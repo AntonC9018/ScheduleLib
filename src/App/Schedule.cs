@@ -66,7 +66,19 @@ public record struct TimeSlotInterval(TimeOnly Start, TimeSpan Duration)
     public TimeOnly End => Start.Add(Duration);
 }
 
-public record struct TimeSlot(int Index);
+public record struct TimeSlot(int Index) : IComparable<TimeSlot>
+{
+    public static TimeSlot First => new(0);
+    public static bool operator<(TimeSlot left, TimeSlot right) => left.Index < right.Index;
+    public static bool operator>(TimeSlot left, TimeSlot right) => left.Index > right.Index;
+    public static bool operator<=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
+    public static bool operator>=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
+
+    public int CompareTo(TimeSlot other)
+    {
+        return Index.CompareTo(other.Index);
+    }
+}
 
 public record struct RegularLessonDate
 {
