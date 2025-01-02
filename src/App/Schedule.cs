@@ -182,8 +182,11 @@ public struct LessonGroups()
     }
 }
 
+public readonly record struct CourseId(string Name);
+
 public record struct LessonData
 {
+    public required CourseId Course;
     public required TeacherId Teacher;
     public required LessonGroups Groups;
     public required SubGroupNumber SubGroup;
@@ -251,6 +254,7 @@ public sealed class Group
     public required QualificationType QualificationType;
     public required Faculty Faculty;
     public Specialty Specialty = default;
+    public int SubGroupCount;
     public required Language Language;
 }
 
@@ -258,3 +262,18 @@ public sealed class Teacher
 {
     public required string Name;
 }
+
+public readonly struct GroupAccessor
+{
+    private readonly Schedule _schedule;
+
+    public GroupAccessor(Schedule schedule, GroupId id)
+    {
+        _schedule = schedule;
+        Id = id;
+    }
+
+    public GroupId Id { get; }
+    public Group Ref => _schedule.Groups[Id.Value];
+}
+

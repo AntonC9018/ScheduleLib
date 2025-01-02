@@ -72,7 +72,7 @@ public struct BitArray32
         _bits &= ~(1u << index);
     }
 
-    public readonly BitArray32 Not
+    public readonly BitArray32 Flipped
     {
         get
         {
@@ -129,14 +129,7 @@ public struct BitArray32
     }
     public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(_bits);
     public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(_bits);
-    public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh
-    {
-        get
-        {
-            var allFlipped = ~_bits;
-            return new(allFlipped & GetMask(_length));
-        }
-    }
+    public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped._bits);
     public readonly SlidingWindowLowToHighEnumerable SlidingWindowLowToHigh(int length) => new(this, length);
 
     public bool IsEmpty => _bits == 0;
