@@ -1,3 +1,7 @@
+using System.Diagnostics;
+using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.VisualBasic.CompilerServices;
 
@@ -93,12 +97,99 @@ public record struct OneTimeLessonDate
     public required TimeSlot TimeSlot;
 }
 
+// [StructLayout(LayoutKind.Sequential)]
+public struct LessonGroups()
+{
+    public required GroupId Group0 = new(-1);
+    public required GroupId Group1 = new(-1);
+    public required GroupId Group2 = new(-1);
+
+    // indexer
+    public GroupId this[int index]
+    {
+        get
+        {
+            return index switch
+            {
+                0 => Group0,
+                1 => Group1,
+                2 => Group2,
+                _ => throw new ArgumentOutOfRangeException(nameof(index)),
+            };
+        }
+    }
+
+    public int Count
+    {
+        get
+        {
+            Debug.Assert(Group0.Value != -1);
+            if (Group1.Value == -1)
+            {
+                return 1;
+            }
+            if (Group2.Value == -1)
+            {
+                return 2;
+            }
+            return 3;
+        }
+    }
+
+    public void Add(GroupId id)
+    {
+        if (Group0.Value == -1)
+        {
+            Group0 = id;
+            return;
+        }
+        if (Group1.Value == -1)
+        {
+            Group1 = id;
+            return;
+        }
+        if (Group2.Value == -1)
+        {
+            Group2 = id;
+            return;
+        }
+        Debug.Fail("Can't add more than 3 groups per lesson");
+    }
+
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    public struct Enumerator
+    {
+        private readonly LessonGroups _groups;
+        private int _index;
+
+        public Enumerator(LessonGroups groups)
+        {
+            _groups = groups;
+            _index = -1;
+        }
+
+        public GroupId Current => _groups[_index];
+
+        public bool MoveNext()
+        {
+            _index++;
+            return _index < _groups.Count;
+        }
+    }
+}
+
 public record struct LessonData
 {
     public required TeacherId Teacher;
-    public required GroupId Group;
+    public required LessonGroups Groups;
     public required SubGroupNumber SubGroup;
     public required string Room;
+    public required LessonType Type;
+    public readonly GroupId Group => Groups.Group0;
 }
 
 public sealed class RegularLesson
@@ -128,6 +219,7 @@ public record struct SubGroupNumber(int Value)
 
 public record struct GroupId(int Value)
 {
+    public static GroupId Invalid => new(-1);
 }
 
 public record struct TeacherId(int Id)
@@ -146,6 +238,7 @@ public enum Language
     Ro,
     Ru,
     En,
+    _Count,
 }
 
 public record struct Faculty(string Name);

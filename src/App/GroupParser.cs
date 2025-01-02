@@ -32,7 +32,8 @@ public static class GroupHelper
             throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
         }
 
-        var parser = new Parser(name);
+        var baseParser = new Parser(name);
+        var parser = baseParser.BufferedView();
 
         var (label, _, isMaster) = ParseLabel();
         QualificationType qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
@@ -40,6 +41,7 @@ public static class GroupHelper
         int grade = context.CurrentStudyYear - year + 1; // no validation for now.
         int group = ParseGroup();
         _ = group;
+        var actualName = baseParser.PeekSpanUntilPosition(parser.Position).ToString();
         Language language = ParseLanguage();
 
         return new()
@@ -47,7 +49,7 @@ public static class GroupHelper
             Faculty = new(label),
             Grade = grade,
             Language = language,
-            Name = name,
+            Name = actualName,
             QualificationType = qualificationType,
         };
 
@@ -202,26 +204,44 @@ public static class GroupHelper
             }
 
             ReadOnlySpan<char> langSpan = parser.PeekSpan(languageLen);
-            var ret = Lang(langSpan);
+            var ret = LanguageHelper.ParseName(langSpan) ?? throw new InvalidOperationException($"Unrecognized language string");
             parser.MoveTo(bparser.Position);
             return ret;
         }
 
-        Language Lang(ReadOnlySpan<char> chars)
+    }
+}
+
+public static class LanguageHelper
+{
+
+    private static readonly string[] LanguageNames = GetLanguageNames();
+
+    private static string[] GetLanguageNames()
+    {
+        var names = new string[(int) Language._Count];
+        for (int i = 0; i < names.Length; i++)
         {
-            if (chars.Equals("ro", StringComparison.OrdinalIgnoreCase))
-            {
-                return Language.Ro;
-            }
-            if (chars.Equals("ru", StringComparison.OrdinalIgnoreCase))
-            {
-                return Language.Ru;
-            }
-            if (chars.Equals("en", StringComparison.OrdinalIgnoreCase))
-            {
-                return Language.En;
-            }
-            throw new InvalidOperationException($"Unrecognized language string");
+            var lang = (Language) i;
+            names[i] = lang.ToString().ToLower();
         }
+        return names;
+    }
+
+    public static string GetName(this Language lang)
+    {
+        return LanguageNames[(int) lang];
+    }
+
+    public static Language? ParseName(ReadOnlySpan<char> chars)
+    {
+        for (int i = 0; i < LanguageNames.Length; i++)
+        {
+            if (chars.Equals(LanguageNames[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return (Language) i;
+            }
+        }
+        return null;
     }
 }
