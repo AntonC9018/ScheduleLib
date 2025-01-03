@@ -19,7 +19,7 @@ public struct PermutationEnumerable<T>(T[] elems)
 public struct PermutationEnumerator<T>(T[] current)
 {
     public T[] Current { get; } = current;
-    private int[] _stack;
+    private int[]? _stack;
     private int _index = 1;
 
     private static int[] CreateStack(T[] elems)

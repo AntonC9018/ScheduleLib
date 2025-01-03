@@ -24,9 +24,22 @@ public static class FilterHelper
     public static FilteredSchedule Filter(this Schedule schedule, ScheduleFilter filter)
     {
         var lessons = GetRegularLessons();
-        var groups = GroupsFromLessons();
-        var timeSlots = TimeSlotsFromLessons();
-        var days = UsedDaysOfWeek();
+
+        GroupId[] groups;
+        TimeSlot[] timeSlots;
+        DayOfWeek[] days;
+        if (!lessons.Any())
+        {
+            groups = [];
+            timeSlots = [];
+            days = [];
+        }
+        else
+        {
+            groups = GroupsFromLessons();
+            timeSlots = TimeSlotsFromLessons();
+            days = UsedDaysOfWeek();
+        }
 
         return new()
         {
@@ -47,7 +60,7 @@ public static class FilterHelper
                 {
                     continue;
                 }
-                if (g.Grade == filter.Grade)
+                if (g.Grade != filter.Grade)
                 {
                     continue;
                 }
@@ -64,7 +77,7 @@ public static class FilterHelper
                 groups1.Add(lesson.Lesson.Group);
             }
             var ret = groups1.ToArray();
-            // Sorting by name is fine here.
+            // Sorting by index is fine here.
             Array.Sort(ret);
             return ret;
         }

@@ -1,18 +1,14 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection.PortableExecutable;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace App;
 
 public sealed class Schedule
 {
-    public required List<RegularLesson> RegularLessons;
-    public required List<OneTimeLesson> OneTimeLessons;
-    public required List<Group> Groups;
-    public required List<Teacher> Teachers;
+    public required ImmutableArray<RegularLesson> RegularLessons { get; init; }
+    public required ImmutableArray<OneTimeLesson> OneTimeLessons { get; init; }
+    public required ImmutableArray<Group> Groups { get; init; }
+    public required ImmutableArray<Teacher> Teachers { get; init; }
 }
 
 public enum Parity
@@ -22,19 +18,36 @@ public enum Parity
     EveryWeek,
 }
 
+public struct DefaultLessonTimeConfig
+{
+    public required LessonTimeConfig General;
+    public TimeSlot T8_00 => new(0);
+    public TimeSlot T9_45 => new(1);
+    public TimeSlot T11_30 => new(2);
+    public TimeSlot T13_15 => new(3);
+    public TimeSlot T15_00 => new(4);
+    public TimeSlot T16_45 => new(5);
+    public TimeSlot T18_30 => new(6);
+
+    public static implicit operator LessonTimeConfig(DefaultLessonTimeConfig c) => c.General;
+}
+
 public sealed class LessonTimeConfig
 {
     public required TimeSpan LessonDuration;
     public required TimeOnly[] TimeSlotStarts;
 
-    public static LessonTimeConfig CreateDefault()
+    public static DefaultLessonTimeConfig CreateDefault()
     {
         var ret = new LessonTimeConfig
         {
             LessonDuration = TimeSpan.FromMinutes(90),
             TimeSlotStarts = CreateDefaultTimeSlots(),
         };
-        return ret;
+        return new()
+        {
+            General = ret,
+        };
     }
 
     public static TimeOnly[] CreateDefaultTimeSlots()
@@ -84,9 +97,9 @@ public record struct TimeSlot(int Index) : IComparable<TimeSlot>
     }
 }
 
-public record struct RegularLessonDate
+public record struct RegularLessonDate()
 {
-    public required Parity Parity;
+    public Parity Parity = Parity.EveryWeek;
     public required DayOfWeek DayOfWeek;
     public required TimeSlot TimeSlot;
 }
@@ -100,14 +113,16 @@ public record struct OneTimeLessonDate
 // [StructLayout(LayoutKind.Sequential)]
 public struct LessonGroups()
 {
-    public required GroupId Group0 = new(-1);
-    public required GroupId Group1 = new(-1);
-    public required GroupId Group2 = new(-1);
+    public GroupId Group0 = GroupId.Invalid;
+    public GroupId Group1 = GroupId.Invalid;
+    public GroupId Group2 = GroupId.Invalid;
+
+    public readonly int Capacity => 3;
 
     // indexer
     public GroupId this[int index]
     {
-        get
+        readonly get
         {
             return index switch
             {
@@ -117,20 +132,37 @@ public struct LessonGroups()
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
+        set
+        {
+            switch (index)
+            {
+                case 0:
+                    Group0 = value;
+                    break;
+                case 1:
+                    Group1 = value;
+                    break;
+                case 2:
+                    Group2 = value;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
     }
 
-    public int Count
+    public readonly bool IsSingleGroup => Group1 == GroupId.Invalid;
+
+    public readonly int Count
     {
         get
         {
-            Debug.Assert(Group0.Value != -1);
-            if (Group1.Value == -1)
+            for (int i = 0; i < Capacity; i++)
             {
-                return 1;
-            }
-            if (Group2.Value == -1)
-            {
-                return 2;
+                if (this[i] == GroupId.Invalid)
+                {
+                    return i;
+                }
             }
             return 3;
         }
@@ -138,25 +170,15 @@ public struct LessonGroups()
 
     public void Add(GroupId id)
     {
-        if (Group0.Value == -1)
+        int count = Count;
+        if (count == 3)
         {
-            Group0 = id;
-            return;
+            Debug.Fail("Can't add more than 3 groups per lesson");
         }
-        if (Group1.Value == -1)
-        {
-            Group1 = id;
-            return;
-        }
-        if (Group2.Value == -1)
-        {
-            Group2 = id;
-            return;
-        }
-        Debug.Fail("Can't add more than 3 groups per lesson");
+        this[count] = id;
     }
 
-    public Enumerator GetEnumerator()
+    public readonly Enumerator GetEnumerator()
     {
         return new Enumerator(this);
     }
@@ -184,14 +206,16 @@ public struct LessonGroups()
 
 public readonly record struct CourseId(string Name);
 
-public record struct LessonData
+public record struct LessonData()
 {
+    public required LessonGroups Groups;
+
     public required CourseId Course;
     public required TeacherId Teacher;
-    public required LessonGroups Groups;
-    public required SubGroupNumber SubGroup;
-    public required string Room;
+    public required RoomId Room;
     public required LessonType Type;
+
+    public SubGroupNumber SubGroup = SubGroupNumber.All;
     public readonly GroupId Group => Groups.Group0;
 }
 
@@ -211,21 +235,25 @@ public enum LessonType
 {
     Unspecified,
     Lab,
+    Seminar,
     Curs,
     Custom,
 }
 
-public record struct SubGroupNumber(int Value)
+public readonly record struct SubGroupNumber(int Value)
 {
     public static SubGroupNumber All => new(0);
 }
 
-public record struct GroupId(int Value)
+public readonly record struct GroupId(int Value) : IComparable<GroupId>
 {
     public static GroupId Invalid => new(-1);
+    public int CompareTo(GroupId other) => Value.CompareTo(other.Value);
 }
 
-public record struct TeacherId(int Id)
+public readonly record struct RoomId(string Id);
+
+public readonly record struct TeacherId(int Id)
 {
 }
 
@@ -244,8 +272,8 @@ public enum Language
     _Count,
 }
 
-public record struct Faculty(string Name);
-public record struct Specialty(string? Name);
+public readonly record struct Faculty(string Name);
+public readonly record struct Specialty(string? Name);
 
 public sealed class Group
 {

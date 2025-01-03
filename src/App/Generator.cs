@@ -210,9 +210,13 @@ public sealed class ScheduleTableDocument : IDocument
                 dayCell.Column(1);
                 dayCell.Row(dayRowIndex);
 
-                var textContainer = dayCell.Container();
-                textContainer.RotateLeft();
-                textContainer.Text(text =>
+                // DOESN'T WORK!
+                // Can't use table because it's not possible to rotate text!
+                // Gotta do it manually!
+
+                // var textContainer = dayCell.Container();
+                // textContainer.RotateLeft();
+                dayCell.Text(text =>
                 {
                     var weekDayText = _params.DayNameProvider.GetDayName(weekDay);
                     text.Span(weekDayText);

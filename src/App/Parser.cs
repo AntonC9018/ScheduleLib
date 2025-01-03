@@ -15,7 +15,7 @@ public struct Parser
     public readonly bool IsEmpty => _index >= _input.Length;
     public readonly char Peek(int i) => _input[_index + i];
     public readonly bool CanPeek(int i) => _index + i < _input.Length;
-    public readonly ReadOnlySpan<char> PeekSpan(int indexInclusive) => _input.AsSpan(_index, indexInclusive + 1);
+    public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(int positionExclusive) => _input.AsSpan()[_index .. positionExclusive];
     public readonly char Current => _input[_index];
     public void Move(int x = 1) => _index += x;

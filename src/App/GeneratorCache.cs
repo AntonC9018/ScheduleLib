@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace App;
@@ -136,10 +137,9 @@ public struct Cache
                 dicts.GroupOrder.Add(g, gindex);
             }
         }
-        DoDefaultOrder(schedule);
 
         {
-            bool success = GroupArrangementSearchHelper.Search(dicts, schedule);
+            bool success = GroupArrangementSearchHelper.Search(dicts, schedule.Groups.Length);
             if (success)
             {
                 dicts.LessonVerticalOrder = new();
@@ -222,6 +222,7 @@ public struct Cache
             else
             {
                 // Add no shared cells, for now.
+                dicts.GroupOrder.Clear();
                 DoDefaultOrder(schedule);
             }
         }
@@ -258,7 +259,7 @@ public struct Cache
 
 public static class GroupArrangementSearchHelper
 {
-    public static bool Search(in CacheDicts dicts, in FilteredSchedule schedule)
+    public static bool Search(in CacheDicts dicts, int groupCount)
     {
         var groupings = new Dictionary<DayKey, HashSet<GroupId>>();
 
@@ -266,6 +267,11 @@ public static class GroupArrangementSearchHelper
         {
             foreach (var lesson in lessons)
             {
+                if (lesson.Lesson.Groups.IsSingleGroup)
+                {
+                    continue;
+                }
+
                 ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(groupings, day, out bool exists);
                 if (!exists)
                 {
@@ -280,17 +286,13 @@ public static class GroupArrangementSearchHelper
         }
 
         var order = dicts.GroupOrder;
-        for (int gindex = 0; gindex < schedule.Groups.Length; gindex++)
-        {
-            var g = schedule.Groups[gindex];
-            order.Add(g, gindex);
-        }
+        Debug.Assert(order.Count == 0);
 
         var groupingsValues = groupings.Values.ToArray();
         var searchContext = new SearchContext
         {
             AllGroupingSets = groupingsValues,
-            OccupiedGroupPositions = BitArray32.Empty(schedule.Groups.Length),
+            OccupiedGroupPositions = BitArray32.Empty(groupCount),
             AllGroupingArrays = groupingsValues.Select(x => x.ToArray()).ToArray(),
             GroupOrder = order,
         };
@@ -340,7 +342,6 @@ public static class GroupArrangementSearchHelper
                 {
                     addedMask.Set(index);
                 }
-                index++;
             }
         }
 
@@ -436,11 +437,10 @@ public static class GroupArrangementSearchHelper
             var basePositions = GetBasePositions();
             foreach (var basePosition in basePositions)
             {
-                var arrangements = ArrangementHelper.GenerateWithSingleOutputArray(IdArray, basePosition.Length);
+                var arrangements = ArrangementHelper.Generate(basePosition, resultMem: IndexArrangement);
                 foreach (var arrangement in arrangements)
                 {
-                    _ = arrangement;
-                    yield return IndexArrangement;
+                    yield return arrangement;
                 }
             }
         }
@@ -536,7 +536,7 @@ public readonly struct Dict<TKey, TValue>()
     public ref TValue Ref(TKey key)
     {
         ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_dict, key);
-        return ref value;
+        return ref value!;
     }
 }
 
