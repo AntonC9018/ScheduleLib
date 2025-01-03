@@ -15,12 +15,70 @@ public record struct DayKey
     public required DayOfWeek DayOfWeek;
 }
 
+public static class Helper
+{
+    public static AllKey DefaultAllKey(this RegularLesson lesson)
+    {
+        return new AllKey
+        {
+            TimeSlot = lesson.Date.TimeSlot,
+            DayOfWeek = lesson.Date.DayOfWeek,
+            GroupId = lesson.Lesson.Group,
+        };
+    }
+
+    public static AllKey AllKey(this in RegularLessonDate date, GroupId groupId)
+    {
+        return new AllKey
+        {
+            TimeSlot = date.TimeSlot,
+            DayOfWeek = date.DayOfWeek,
+            GroupId = groupId,
+        };
+    }
+
+    public static DayKey DayKey(this AllKey key)
+    {
+        return new DayKey
+        {
+            TimeSlot = key.TimeSlot,
+            DayOfWeek = key.DayOfWeek,
+        };
+    }
+
+    public static DayKey DayKey(this in RegularLessonDate date)
+    {
+        return new DayKey
+        {
+            TimeSlot = date.TimeSlot,
+            DayOfWeek = date.DayOfWeek,
+        };
+    }
+
+    public static AllKey AllKey(this DayKey dayKey, GroupId groupId)
+    {
+        return new AllKey
+        {
+            TimeSlot = dayKey.TimeSlot,
+            DayOfWeek = dayKey.DayOfWeek,
+            GroupId = groupId,
+        };
+    }
+}
+
 public struct CacheDicts()
 {
     public Dictionary<GroupId, int> GroupOrder = new();
     public Dictionary<AllKey, List<RegularLesson>> MappingByAll = new();
     public Dictionary<DayKey, List<RegularLesson>> MappingByDay = new();
-    public Dictionary<RegularLesson, int> LessonOrder = new();
+
+    public readonly bool IsSeparatedLayout => SharedCellStart == null;
+    // For cell size
+    public HashSet<(int LessonVerticalOrder, AllKey CellKey)>? SharedCellStart;
+    // For position
+    public Dictionary<RegularLesson, int>? LessonVerticalOrder;
+    // For borders
+    // public Dictionary<AllKey, int[]> HorizontalBreakPointsInCell = new();
 }
 
 public struct Cache
@@ -69,15 +127,102 @@ public struct Cache
             }
         }
 
-        // We assume at this point that the sort has determined how to position
-        // the groups such that the ones that have a shared lecture are
-        // put next to each other.
+        void DoDefaultOrder(in FilteredSchedule schedule)
         {
             var groups = schedule.Groups;
             for (int gindex = 0; gindex < groups.Length; gindex++)
             {
                 var g = groups[gindex];
                 dicts.GroupOrder.Add(g, gindex);
+            }
+        }
+        DoDefaultOrder(schedule);
+
+        {
+            bool success = GroupArrangementSearchHelper.Search(dicts, schedule);
+            if (success)
+            {
+                dicts.LessonVerticalOrder = new();
+                dicts.SharedCellStart = new();
+
+                // Singular lessons go on top, have higher priority.
+                // Shared lessons go below.
+                static int LessonPriority(RegularLesson lesson) => lesson.Lesson.Groups.Count;
+
+                Dict<AllKey, int> perGroupCounters = new();
+
+                foreach (var group in schedule.Lessons.GroupBy(LessonPriority))
+                {
+                    foreach (var lesson in group)
+                    {
+                        ProcessLesson();
+
+                        void ProcessLesson()
+                        {
+                            var dayKey = lesson.Date.DayKey();
+
+                            int max = MoveToAfterFurthestInGrouping(dayKey);
+                            dicts.LessonVerticalOrder.Add(lesson, max);
+
+                            var firstGroupId = FindFirstGroupInOrder();
+                            var allKey = dayKey.AllKey(firstGroupId);
+                            dicts.SharedCellStart.Add((max, allKey));
+                        }
+
+                        GroupId FindFirstGroupInOrder()
+                        {
+                            GroupId id = default;
+                            int order = int.MaxValue;
+                            foreach (var groupId in lesson.Lesson.Groups)
+                            {
+                                var otherOrder = dicts.GroupOrder[groupId];
+                                if (otherOrder < order)
+                                {
+                                    order = otherOrder;
+                                    id = groupId;
+                                }
+                            }
+                            return id;
+                        }
+
+
+                        int MoveToAfterFurthestInGrouping(DayKey dayKey)
+                        {
+                            int maxAmongGroups = -1;
+                            foreach (var groupId in lesson.Lesson.Groups)
+                            {
+                                var allKey = dayKey.AllKey(groupId);
+                                var counter = perGroupCounters.Add(allKey, out bool added);
+                                if (added)
+                                {
+                                    continue;
+                                }
+                                maxAmongGroups = Math.Max(maxAmongGroups, counter);
+                            }
+
+                            int maxCurrent = maxAmongGroups + 1;
+
+                            foreach (var groupId in lesson.Lesson.Groups)
+                            {
+                                var allKey = dayKey.AllKey(groupId);
+                                ref var counter = ref perGroupCounters.Ref(allKey);
+                                counter = maxAmongGroups;
+                            }
+
+                            return maxCurrent;
+                        }
+                    }
+                }
+
+                // foreach (var (key, counters) in perGroupCounters)
+                // {
+                //     dicts.HorizontalBreakPointsInCell.Add(key, counters.ToArray());
+                // }
+            }
+            else
+            {
+                // Add no shared cells, for now.
+                DoDefaultOrder(schedule);
             }
         }
 
@@ -353,5 +498,66 @@ public static class GroupArrangementSearchHelper
                 yield return AllowedIndices;
             }
         }
+    }
+}
+
+public readonly struct Dict<TKey, TValue>()
+    where TKey : notnull
+{
+    private readonly Dictionary<TKey, TValue> _dict = new();
+
+    public ref TValue? MaybeAdd(TKey key)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict, key, out bool exists);
+        _ = exists;
+        return ref value!;
+    }
+
+    public ref TValue? Add(TKey key, out bool added)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict, key, out bool exists);
+        _ = exists;
+        added = !exists;
+        return ref value!;
+    }
+
+    public ref TValue Ref(TKey key)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_dict, key);
+        return ref value;
+    }
+}
+
+public readonly struct PerGroupCounters()
+{
+    // private readonly Dictionary<AllKey, List<int>> _dict = new();
+    // private ref int Access(ref List<int> element) => ref CollectionsMarshal.AsSpan(element)[^1];
+    // private void AddedThisTime(ref List<int> element) => element.Add(0);
+
+    private readonly Dictionary<AllKey, int> _dict = new();
+    private ref int Access(ref int element) => ref element;
+    private void AddedThisTime(ref int element) => _ = element;
+
+    public ref int Add(AllKey key, bool addedValueNow)
+    {
+        ref var counters = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _dict,
+            key,
+            out bool exists);
+        if (!exists)
+        {
+            counters = new();
+        }
+        if (addedValueNow)
+        {
+            AddedThisTime(ref counters);
+        }
+        return ref Access(ref counters!);
+    }
+
+    public ref int Ref(AllKey key)
+    {
+        ref var counters = ref CollectionsMarshal.GetValueRefOrNullRef(_dict, key);
+        return ref Access(ref counters);
     }
 }

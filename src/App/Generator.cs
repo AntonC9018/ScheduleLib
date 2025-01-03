@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 
@@ -46,7 +43,7 @@ public sealed class ScheduleTableDocument : IDocument
     private GroupId[] Groups() => _params.Schedule.Groups;
     private TimeSlot[] TimeSlots() => _params.Schedule.TimeSlots;
     private DayOfWeek[] Days() => _params.Schedule.Days;
-    const int maxGroupsPerPage = 5;
+    private const int maxGroupsPerPage = 5;
 
     public void Compose(IDocumentContainer container)
     {
@@ -96,26 +93,6 @@ public sealed class ScheduleTableDocument : IDocument
         }
     }
 
-    private (int Order, GroupId Group) GetLessonMinGroup(RegularLesson lesson)
-    {
-        var e = lesson.Lesson.Groups.GetEnumerator();
-        bool ok = e.MoveNext();
-        Debug.Assert(ok);
-
-        int minOrder = _cache.Dicts.GroupOrder[e.Current];
-        GroupId id = e.Current;
-        while (e.MoveNext())
-        {
-            var order = _cache.Dicts.GroupOrder[e.Current];
-            if (order < minOrder)
-            {
-                minOrder = order;
-                id = e.Current;
-            }
-        }
-        return (minOrder, id);
-    }
-
     private uint GetLessonCol(int minOrder)
     {
         var ret = minOrder % maxGroupsPerPage;
@@ -130,76 +107,87 @@ public sealed class ScheduleTableDocument : IDocument
 
         var days = Days();
         uint timeSlotCount = (uint) TimeSlots().Length;
+        uint cellsPerTimeSlot = (uint) _cache.MaxLessonsInOneCell;
         for (uint dayIndex = 0; dayIndex < days.Length; dayIndex++)
         {
             var day = days[dayIndex];
-            uint dayRowIndex = timeSlotCount * dayIndex;
+            uint dayRowIndex = timeSlotCount * dayIndex * cellsPerTimeSlot;
 
             var timeSlots = TimeSlots();
             for (uint timeSlotIndex = 0; timeSlotIndex < timeSlots.Length; timeSlotIndex++)
             {
                 var timeSlot = timeSlots[timeSlotIndex];
+                var rowStartIndex = dayRowIndex + timeSlotIndex * cellsPerTimeSlot;
 
                 for (int currentGroupIndex = 0; currentGroupIndex < currentGroups.Count; currentGroupIndex++)
                 {
-                    var currentGroupId = currentGroups[currentGroupIndex];
-
+                    var dayKey = new DayKey
                     {
-                        var allKey = new AllKey
-                        {
-                            GroupId = currentGroupId,
-                            TimeSlot = timeSlot,
-                            DayOfWeek = day,
-                        };
-                        if (!_cache.Dicts.MappingByAll.TryGetValue(allKey, out var lessons))
-                        {
-                            continue;
-                        }
-                    }
+                        TimeSlot = timeSlot,
+                        DayOfWeek = day,
+                    };
 
-                    {
-                        var dayKey = new DayKey
-                        {
-                            DayOfWeek = day,
-                            TimeSlot = timeSlot,
-                        };
-                        var allLessonsThisDay = _cache.Dicts.MappingByDay[dayKey];
-                    }
+                    var groupId = currentGroups[currentGroupIndex];
 
+                    var allKey = dayKey.AllKey(groupId);
 
-                    bool MinInAnyLesson()
-                    {
-                        foreach (var lesson in lessons)
-                        {
-                            var t = GetLessonMinGroup(lesson);
-                            if (t.Group == currentGroupId)
-                            {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-
-                    if (!MinInAnyLesson())
+                    if (!_cache.Dicts.MappingByAll.TryGetValue(allKey, out var lessons))
                     {
                         continue;
                     }
 
-
-                    var cell = table.Cell();
-                    cell.ColumnSpan((uint) lesson.Lesson.Groups.Count);
-                    cell.Row(dayRowIndex + timeSlotIndex);
-
+                    if (_cache.Dicts.IsSeparatedLayout)
                     {
-                        var col = GetLessonCol(_groupOrder[currentGroupId]);
-                        cell.Column(col);
-                    }
+                        var cell = table.Cell();
+                        cell.ColumnSpan(1);
+                        cell.RowSpan(cellsPerTimeSlot);
 
-                    {
+                        {
+                            var col = GetLessonCol(_cache.Dicts.GroupOrder[groupId]);
+                            cell.Column(col);
+                        }
+
                         cell.Text(text =>
                         {
-
+                            for (int index = 0; index < lessons.Count; index++)
+                            {
+                                var lesson = lessons[index];
+                                // Temporary.
+                                text.Line(lesson.Lesson.Course.Name);
+                            }
                         });
+                    }
+                    else
+                    {
+                        foreach (var lesson in lessons)
+                        {
+                            var lessonOrder = _cache.Dicts.LessonVerticalOrder![lesson];
+                            {
+                                var key = (lessonOrder, allKey);
+                                // We're not the cell that defines this.
+                                if (_cache.Dicts.SharedCellStart!.Contains(key))
+                                {
+                                    continue;
+                                }
+                            }
+                            {
+                                uint size = (uint) lesson.Lesson.Groups.Count;
+                                var cell = table.Cell();
+                                cell.RowSpan(1);
+                                cell.ColumnSpan(size);
+                                cell.Row(rowStartIndex + (uint) lessonOrder);
+
+                                {
+                                    var col = GetLessonCol(_cache.Dicts.GroupOrder[groupId]);
+                                    cell.Column(col);
+                                }
+
+                                cell.Text(text =>
+                                {
+                                    text.Span(lesson.Lesson.Course.Name);
+                                });
+                            }
+                        }
                     }
                 }
             }
