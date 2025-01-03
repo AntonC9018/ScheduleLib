@@ -32,7 +32,7 @@ public sealed class ScheduleTableDocument : IDocument
     }
 
     private readonly Params _params;
-    private readonly Cache _cache = default;
+    private readonly Cache _cache;
 
     public ScheduleTableDocument(Params p)
     {
@@ -107,7 +107,7 @@ public sealed class ScheduleTableDocument : IDocument
 
         var days = Days();
         uint timeSlotCount = (uint) TimeSlots().Length;
-        uint cellsPerTimeSlot = (uint) _cache.MaxLessonsInOneCell;
+        uint cellsPerTimeSlot = (uint) _cache.MaxRowsInOneCell;
         for (uint dayIndex = 0; dayIndex < days.Length; dayIndex++)
         {
             var day = days[dayIndex];

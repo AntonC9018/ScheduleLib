@@ -84,7 +84,7 @@ public struct CacheDicts()
 public struct Cache
 {
     public required CacheDicts Dicts;
-    public required int MaxLessonsInOneCell;
+    public required int MaxRowsInOneCell;
 
     public bool IsInitialized => Dicts.GroupOrder == null;
 
@@ -228,18 +228,30 @@ public struct Cache
 
         int MaxLessonsInOneCell()
         {
-            int ret = 0;
-            foreach (var lessons in dicts.MappingByAll.Values)
+            if (dicts.IsSeparatedLayout)
             {
-                ret = Math.Max(ret, lessons.Count);
+                int ret = 0;
+                foreach (var lessons in dicts.MappingByAll.Values)
+                {
+                    ret = Math.Max(ret, lessons.Count);
+                }
+                return ret;
             }
-            return ret;
+
+            {
+                int ret = -1;
+                foreach (var k in dicts.LessonVerticalOrder!.Values)
+                {
+                    ret = Math.Max(ret, k);
+                }
+                return ret + 1;
+            }
         }
 
         return new Cache
         {
             Dicts = dicts,
-            MaxLessonsInOneCell = MaxLessonsInOneCell(),
+            MaxRowsInOneCell = MaxLessonsInOneCell(),
         };
     }
 }
