@@ -16,7 +16,7 @@ public record struct DayKey
     public required DayOfWeek DayOfWeek;
 }
 
-public static class Helper
+public static class KeyHelper
 {
     public static AllKey DefaultAllKey(this RegularLesson lesson)
     {
@@ -67,7 +67,7 @@ public static class Helper
     }
 }
 
-public struct CacheDicts()
+public struct GeneratorCacheDicts()
 {
     public Dictionary<GroupId, int> GroupOrder = new();
     public Dictionary<AllKey, List<RegularLesson>> MappingByAll = new();
@@ -82,16 +82,14 @@ public struct CacheDicts()
     // public Dictionary<AllKey, int[]> HorizontalBreakPointsInCell = new();
 }
 
-public struct Cache
+public struct GeneratorCache
 {
-    public required CacheDicts Dicts;
+    public required GeneratorCacheDicts Dicts;
     public required int MaxRowsInOneCell;
 
-    public bool IsInitialized => Dicts.GroupOrder == null;
-
-    public static Cache Create(in FilteredSchedule schedule)
+    public static GeneratorCache Create(in FilteredSchedule schedule)
     {
-        var dicts = new CacheDicts();
+        var dicts = new GeneratorCacheDicts();
 
         foreach (var lesson in schedule.Lessons)
         {
@@ -249,7 +247,7 @@ public struct Cache
             }
         }
 
-        return new Cache
+        return new GeneratorCache
         {
             Dicts = dicts,
             MaxRowsInOneCell = MaxLessonsInOneCell(),
@@ -259,7 +257,7 @@ public struct Cache
 
 public static class GroupArrangementSearchHelper
 {
-    public static bool Search(in CacheDicts dicts, int groupCount)
+    public static bool Search(in GeneratorCacheDicts dicts, int groupCount)
     {
         var groupings = new Dictionary<DayKey, HashSet<GroupId>>();
 
@@ -513,17 +511,10 @@ public static class GroupArrangementSearchHelper
     }
 }
 
-public readonly struct Dict<TKey, TValue>()
+file readonly struct Dict<TKey, TValue>()
     where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> _dict = new();
-
-    public ref TValue? MaybeAdd(TKey key)
-    {
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict, key, out bool exists);
-        _ = exists;
-        return ref value!;
-    }
 
     public ref TValue? Add(TKey key, out bool added)
     {
@@ -537,39 +528,5 @@ public readonly struct Dict<TKey, TValue>()
     {
         ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_dict, key);
         return ref value!;
-    }
-}
-
-public readonly struct PerGroupCounters()
-{
-    // private readonly Dictionary<AllKey, List<int>> _dict = new();
-    // private ref int Access(ref List<int> element) => ref CollectionsMarshal.AsSpan(element)[^1];
-    // private void AddedThisTime(ref List<int> element) => element.Add(0);
-
-    private readonly Dictionary<AllKey, int> _dict = new();
-    private ref int Access(ref int element) => ref element;
-    private void AddedThisTime(ref int element) => _ = element;
-
-    public ref int Add(AllKey key, bool addedValueNow)
-    {
-        ref var counters = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            _dict,
-            key,
-            out bool exists);
-        if (!exists)
-        {
-            counters = new();
-        }
-        if (addedValueNow)
-        {
-            AddedThisTime(ref counters);
-        }
-        return ref Access(ref counters!);
-    }
-
-    public ref int Ref(AllKey key)
-    {
-        ref var counters = ref CollectionsMarshal.GetValueRefOrNullRef(_dict, key);
-        return ref Access(ref counters);
     }
 }

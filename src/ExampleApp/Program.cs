@@ -490,11 +490,13 @@ var filteredSchedule = schedule.Filter(new()
     QualificationType = QualificationType.Licenta,
 });
 var dayNameProvider = new DayNameProvider();
+var timeSlotDisplayHandler = new TimeSlotDisplayHandler();
 var generator = new ScheduleTableDocument(new()
 {
     Schedule = filteredSchedule,
     DayNameProvider = dayNameProvider,
     LessonTimeConfig = timeConfig,
+    TimeSlotDisplay = timeSlotDisplayHandler,
 });
 
 QuestPDF.Settings.License = LicenseType.Community;
