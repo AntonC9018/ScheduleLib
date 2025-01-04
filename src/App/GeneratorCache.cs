@@ -435,7 +435,7 @@ public static class GroupArrangementSearchHelper
             var basePositions = GetBasePositions();
             foreach (var basePosition in basePositions)
             {
-                var arrangements = ArrangementHelper.Generate(basePosition, resultMem: IndexArrangement);
+                var arrangements = CombinationHelper.Generate(basePosition, resultMem: IndexArrangement);
                 foreach (var arrangement in arrangements)
                 {
                     yield return arrangement;

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace App;
 
 // TODO: A non-recursive impl
@@ -57,7 +59,7 @@ public struct ArrangementEnumerator<T>
 }
 #endif
 
-public static class ArrangementHelper
+public static class CombinationHelper
 {
     public static IEnumerable<T[]> GenerateWithSingleOutputArray<T>(T[] items, int slots)
     {
@@ -86,13 +88,14 @@ public static class ArrangementHelper
 
     public static IEnumerable<ArraySegment<T>> Generate<T>(ArraySegment<T> items, ArraySegment<T> resultMem)
     {
-        if (items.Count == 0)
-        {
-            yield break;
-        }
         if (resultMem.Count == 0)
         {
+            yield return default;
             yield break;
+        }
+        else
+        {
+            Debug.Assert(items.Count > 0);
         }
 
         {

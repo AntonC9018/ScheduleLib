@@ -1,0 +1,4 @@
+<Project>
+    <Import Project="Xunit.targets" />
+    <Import Project="Verify.targets" />
+</Project>
