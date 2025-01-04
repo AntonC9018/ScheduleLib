@@ -63,7 +63,7 @@ public sealed class LessonTimeConfig
             New(8, 00),
             New(9, 45),
             New(11, 30),
-            New(13, 00),
+            New(13, 15),
             New(15, 00),
             New(16, 45),
             New(18, 30),

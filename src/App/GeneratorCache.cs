@@ -85,6 +85,7 @@ public struct GeneratorCacheDicts()
 public struct GeneratorCache
 {
     public required GeneratorCacheDicts Dicts;
+    public required GroupId[] GroupOrderArray;
     public required int MaxRowsInOneCell;
 
     public static GeneratorCache Create(in FilteredSchedule schedule)
@@ -137,7 +138,7 @@ public struct GeneratorCache
         }
 
         {
-            bool success = GroupArrangementSearchHelper.Search(dicts, schedule.Groups.Length);
+            bool success = GroupArrangementSearchHelper.Search(dicts, schedule.Groups);
             if (success)
             {
                 dicts.LessonVerticalOrder = new();
@@ -247,8 +248,15 @@ public struct GeneratorCache
             }
         }
 
+        var orderArray = new GroupId[dicts.GroupOrder.Count];
+        foreach (var (group, index) in dicts.GroupOrder)
+        {
+            orderArray[index] = group;
+        }
+
         return new GeneratorCache
         {
+            GroupOrderArray = orderArray,
             Dicts = dicts,
             MaxRowsInOneCell = MaxLessonsInOneCell(),
         };
@@ -257,7 +265,7 @@ public struct GeneratorCache
 
 public static class GroupArrangementSearchHelper
 {
-    public static bool Search(in GeneratorCacheDicts dicts, int groupCount)
+    public static bool Search(in GeneratorCacheDicts dicts, GroupId[] groups)
     {
         var groupings = new Dictionary<DayKey, HashSet<GroupId>>();
 
@@ -289,8 +297,9 @@ public static class GroupArrangementSearchHelper
         var groupingsValues = groupings.Values.ToArray();
         var searchContext = new SearchContext
         {
+            Groups = groups,
             AllGroupingSets = groupingsValues,
-            OccupiedGroupPositions = BitArray32.Empty(groupCount),
+            OccupiedGroupPositions = BitArray32.Empty(groups.Length),
             AllGroupingArrays = groupingsValues.Select(x => x.ToArray()).ToArray(),
             GroupOrder = order,
         };
@@ -307,6 +316,7 @@ public static class GroupArrangementSearchHelper
         public required Dictionary<GroupId, int> GroupOrder;
         public required HashSet<GroupId>[] AllGroupingSets;
         public required GroupId[][] AllGroupingArrays;
+        public required GroupId[] Groups;
         public int Index;
 
         public readonly (HashSet<GroupId> Set, GroupId[] Array) Current
@@ -319,6 +329,26 @@ public static class GroupArrangementSearchHelper
     {
         if (context.IsDone)
         {
+            using var indices = context.OccupiedGroupPositions.UnsetBitIndicesLowToHigh.GetEnumerator();
+            foreach (var group in context.Groups)
+            {
+                ref var groupIndex = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                    context.GroupOrder,
+                    group,
+                    out bool exists);
+                if (exists)
+                {
+                    continue;
+                }
+
+                var moved = indices.MoveNext();
+                Debug.Assert(moved, "Incorrect count!");
+                context.OccupiedGroupPositions.Set(indices.Current);
+                groupIndex = indices.Current;
+            }
+
+            Debug.Assert(indices.MoveNext() == false);
+
             return true;
         }
 
@@ -327,7 +357,6 @@ public static class GroupArrangementSearchHelper
         // Try to apply one set
         // Backtrack if can't apply
         // Recurse if can't
-        var addedMask = BitArray32.Empty(idArray.Length);
         var existingMask = BitArray32.Empty(idArray.Length);
         {
             for (int index = 0; index < idArray.Length; index++)
@@ -336,11 +365,18 @@ public static class GroupArrangementSearchHelper
                 {
                     existingMask.Set(index);
                 }
-                else
-                {
-                    addedMask.Set(index);
-                }
             }
+        }
+
+        var addedMask = existingMask.Flipped;
+        if (addedMask.IsEmpty)
+        {
+            context.Index++;
+            if (DoSearch(ref context))
+            {
+                return true;
+            }
+            context.Index--;
         }
 
         BitArray32 MaskOfPositionsOfIncludedGroups(ref SearchContext context)
@@ -365,8 +401,7 @@ public static class GroupArrangementSearchHelper
         //                         then spill to left or right.
         Context1 CreateContext1(ref SearchContext context)
         {
-            var indexArrangement = new int[addedMask.SetCount];
-            var allowedIndices = new int[addedMask.SetCount];
+            var permutation = new int[addedMask.SetCount];
 
             // These are almost free anyway
             var maskOfIncludedGroups = MaskOfPositionsOfIncludedGroups(ref context);
@@ -374,9 +409,8 @@ public static class GroupArrangementSearchHelper
 
             var context1 = new Context1
             {
-                AllowedIndices = allowedIndices,
+                AllowedIndices = permutation,
                 IdArray = idArray,
-                IndexArrangement = indexArrangement,
                 IncludedGroupPositionsMask = occupiedPositionsWithoutIncludedGroups,
                 OccupiedPositionsWithoutIncludedGroups = occupiedPositionsWithoutIncludedGroups,
             };
@@ -384,19 +418,19 @@ public static class GroupArrangementSearchHelper
         }
 
         var context1 = CreateContext1(ref context);
-        var arrangements = context1.GenerateArrangements();
+        var permutations = context1.GeneratePermutations();
 
-        foreach (var indexArrangement in arrangements)
+        foreach (var indexPermutation in permutations)
         {
             // Not the best way to do this, could integrate it into the arrangement algorithm somehow.
             {
-                foreach (var addedIndex in indexArrangement)
+                foreach (var addedIndex in indexPermutation)
                 {
                     context.OccupiedGroupPositions.Set(addedIndex);
                 }
                 for (int i = 0; i < idArray.Length; i++)
                 {
-                    context.GroupOrder.Add(idArray[i], indexArrangement[i]);
+                    context.GroupOrder.Add(idArray[i], indexPermutation[i]);
                 }
                 context.Index++;
             }
@@ -412,7 +446,7 @@ public static class GroupArrangementSearchHelper
                 {
                     context.GroupOrder.Remove(idArray[i]);
                 }
-                foreach (var addedIndex in indexArrangement)
+                foreach (var addedIndex in indexPermutation)
                 {
                     context.OccupiedGroupPositions.Clear(addedIndex);
                 }
@@ -426,19 +460,18 @@ public static class GroupArrangementSearchHelper
     {
         public required GroupId[] IdArray;
         public required int[] AllowedIndices;
-        public required int[] IndexArrangement;
         public required BitArray32 OccupiedPositionsWithoutIncludedGroups;
         public required BitArray32 IncludedGroupPositionsMask;
 
-        public IEnumerable<int[]> GenerateArrangements()
+        public IEnumerable<int[]> GeneratePermutations()
         {
             var basePositions = GetBasePositions();
             foreach (var basePosition in basePositions)
             {
-                var arrangements = CombinationHelper.Generate(basePosition, resultMem: IndexArrangement);
-                foreach (var arrangement in arrangements)
+                var perms = PermutationHelper.Generate(basePosition);
+                foreach (var p in perms)
                 {
-                    yield return arrangement;
+                    yield return p;
                 }
             }
         }
@@ -494,7 +527,7 @@ public static class GroupArrangementSearchHelper
 
         private IEnumerable<int[]> NoIncludedGroupsBasePositions()
         {
-            var windows = OccupiedPositionsWithoutIncludedGroups.SlidingWindowLowToHigh(IndexArrangement.Length);
+            var windows = OccupiedPositionsWithoutIncludedGroups.SlidingWindowLowToHigh(AllowedIndices.Length);
             foreach (var (offset, slice) in windows)
             {
                 if (!slice.AreNoneSet)

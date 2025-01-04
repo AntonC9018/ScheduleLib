@@ -116,7 +116,7 @@ public static class FilterHelper
                     }
 
                     var t = e.Current.Date.TimeSlot;
-                    if (min1 > t)
+                    if (t < min1)
                     {
                         min1 = t;
                     }
@@ -125,11 +125,11 @@ public static class FilterHelper
 
             TimeSlot FindMax()
             {
-                TimeSlot max1 = TimeSlot.First;
+                var max1 = TimeSlot.First;
                 foreach (var l in lessons)
                 {
                     var t = l.Date.TimeSlot;
-                    if (max1 > t)
+                    if (t > max1)
                     {
                         max1 = t;
                     }
