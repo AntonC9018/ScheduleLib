@@ -75,11 +75,10 @@ public struct GeneratorCacheDicts()
 
     public readonly bool IsSeparatedLayout => SharedCellStart == null;
     // For cell size
-    public HashSet<(int LessonVerticalOrder, AllKey CellKey)>? SharedCellStart;
+    public HashSet<(RegularLesson Lesson, int Order)>? SharedCellStart;
+    public Dictionary<AllKey, int>? SharedMaxCount;
     // For position
-    public Dictionary<RegularLesson, int>? LessonVerticalOrder;
-    // For borders
-    // public Dictionary<AllKey, int[]> HorizontalBreakPointsInCell = new();
+    public Dictionary<RegularLesson, uint>? LessonVerticalOrder;
 }
 
 public struct GeneratorCache
@@ -149,6 +148,7 @@ public struct GeneratorCache
                 static int LessonPriority(RegularLesson lesson) => lesson.Lesson.Groups.Count;
 
                 Dict<AllKey, int> perGroupCounters = new();
+                dicts.SharedMaxCount = perGroupCounters._dict;
 
                 foreach (var group in schedule.Lessons.GroupBy(LessonPriority))
                 {
@@ -161,16 +161,14 @@ public struct GeneratorCache
                             var dayKey = lesson.Date.DayKey();
 
                             int max = MoveToAfterFurthestInGrouping(dayKey);
-                            dicts.LessonVerticalOrder.Add(lesson, max);
+                            dicts.LessonVerticalOrder.Add(lesson, (uint) max);
 
-                            var firstGroupId = FindFirstGroupInOrder();
-                            var allKey = dayKey.AllKey(firstGroupId);
-                            dicts.SharedCellStart.Add((max, allKey));
+                            var firstOrder = FindFirstOrder();
+                            dicts.SharedCellStart.Add((lesson, firstOrder));
                         }
 
-                        GroupId FindFirstGroupInOrder()
+                        int FindFirstOrder()
                         {
-                            GroupId id = default;
                             int order = int.MaxValue;
                             foreach (var groupId in lesson.Lesson.Groups)
                             {
@@ -178,12 +176,10 @@ public struct GeneratorCache
                                 if (otherOrder < order)
                                 {
                                     order = otherOrder;
-                                    id = groupId;
                                 }
                             }
-                            return id;
+                            return order;
                         }
-
 
                         int MoveToAfterFurthestInGrouping(DayKey dayKey)
                         {
@@ -191,8 +187,8 @@ public struct GeneratorCache
                             foreach (var groupId in lesson.Lesson.Groups)
                             {
                                 var allKey = dayKey.AllKey(groupId);
-                                var counter = perGroupCounters.Add(allKey, out bool added);
-                                if (added)
+                                var counter = perGroupCounters.Add(allKey, out bool justAdded);
+                                if (justAdded)
                                 {
                                     continue;
                                 }
@@ -205,18 +201,13 @@ public struct GeneratorCache
                             {
                                 var allKey = dayKey.AllKey(groupId);
                                 ref var counter = ref perGroupCounters.Ref(allKey);
-                                counter = maxAmongGroups;
+                                counter = maxCurrent;
                             }
 
                             return maxCurrent;
                         }
                     }
                 }
-
-                // foreach (var (key, counters) in perGroupCounters)
-                // {
-                //     dicts.HorizontalBreakPointsInCell.Add(key, counters.ToArray());
-                // }
             }
             else
             {
@@ -242,7 +233,7 @@ public struct GeneratorCache
                 int ret = -1;
                 foreach (var k in dicts.LessonVerticalOrder!.Values)
                 {
-                    ret = Math.Max(ret, k);
+                    ret = Math.Max(ret, (int) k);
                 }
                 return ret + 1;
             }
@@ -353,6 +344,7 @@ public static class GroupArrangementSearchHelper
         }
 
         var (idSet, idArray) = context.Current;
+        _ = idSet;
 
         // Try to apply one set
         // Backtrack if can't apply
@@ -367,17 +359,8 @@ public static class GroupArrangementSearchHelper
                 }
             }
         }
-
         var addedMask = existingMask.Flipped;
-        if (addedMask.IsEmpty)
-        {
-            context.Index++;
-            if (DoSearch(ref context))
-            {
-                return true;
-            }
-            context.Index--;
-        }
+
 
         BitArray32 MaskOfPositionsOfIncludedGroups(ref SearchContext context)
         {
@@ -393,7 +376,6 @@ public static class GroupArrangementSearchHelper
             }
             return ret;
         }
-
 
         // 0 indices existing -> try all positions
         // 1 index existing -> Find positions conjoined to the index
@@ -428,10 +410,17 @@ public static class GroupArrangementSearchHelper
                 {
                     context.OccupiedGroupPositions.Set(addedIndex);
                 }
-                for (int i = 0; i < idArray.Length; i++)
+
+                using var itemIndex = addedMask.SetBitIndicesLowToHigh.GetEnumerator();
+                for (int i = 0; i < indexPermutation.Length; i++)
                 {
-                    context.GroupOrder.Add(idArray[i], indexPermutation[i]);
+                    var b = itemIndex.MoveNext();
+                    Debug.Assert(b);
+                    context.GroupOrder.Add(idArray[itemIndex.Current], indexPermutation[i]);
                 }
+
+                Debug.Assert(!itemIndex.MoveNext());
+
                 context.Index++;
             }
 
@@ -442,10 +431,12 @@ public static class GroupArrangementSearchHelper
 
             {
                 context.Index--;
-                for (int i = 0; i < idArray.Length; i++)
+
+                foreach (int index in addedMask.SetBitIndicesLowToHigh)
                 {
-                    context.GroupOrder.Remove(idArray[i]);
+                    context.GroupOrder.Remove(idArray[index]);
                 }
+
                 foreach (var addedIndex in indexPermutation)
                 {
                     context.OccupiedGroupPositions.Clear(addedIndex);
@@ -547,14 +538,13 @@ public static class GroupArrangementSearchHelper
 file readonly struct Dict<TKey, TValue>()
     where TKey : notnull
 {
-    private readonly Dictionary<TKey, TValue> _dict = new();
+    internal readonly Dictionary<TKey, TValue> _dict = new();
 
     public ref TValue? Add(TKey key, out bool added)
     {
         ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict, key, out bool exists);
-        _ = exists;
         added = !exists;
-        return ref value!;
+        return ref value;
     }
 
     public ref TValue Ref(TKey key)

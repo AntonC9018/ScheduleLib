@@ -195,7 +195,10 @@ public struct SetBitIndicesEnumerator : IEnumerator<int>
     public bool MoveNext()
     {
         if (_bits == 0)
+        {
             return false;
+        }
+
         _current = (sizeof(uint) * 8) - BitOperations.LeadingZeroCount(_bits) - 1;
         _bits &= ~(1u << _current);
         return true;
@@ -246,7 +249,10 @@ public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
     public bool MoveNext()
     {
         if (_bits == 0)
+        {
             return false;
+        }
+
         _current = BitOperations.TrailingZeroCount(_bits);
         _bits &= ~(1u << _current);
         return true;
