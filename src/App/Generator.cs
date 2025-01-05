@@ -1,10 +1,22 @@
+using System.Diagnostics.Metrics;
 using System.Reflection;
+using System.Text;
 using QuestPDF.Elements.Table;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace App;
 
+public static class StringBuilderHelper
+{
+    public static string ToStringAndClear(this StringBuilder sb)
+    {
+        var ret = sb.ToString();
+        sb.Clear();
+        return ret;
+    }
+}
 public sealed class ScheduleTableDocument : IDocument
 {
     public struct Params
@@ -13,6 +25,16 @@ public sealed class ScheduleTableDocument : IDocument
         public required FilteredSchedule Schedule;
         public required DayNameProvider DayNameProvider;
         public required TimeSlotDisplayHandler TimeSlotDisplay;
+        public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
+        public required ParityDisplayHandler ParityDisplay;
+        public required LessonTypeDisplayHandler LessonTypeDisplay;
+        public required StringBuilder StringBuilder;
+
+        public readonly StringBuilder GetCleanStringBuilder()
+        {
+            StringBuilder.Clear();
+            return StringBuilder;
+        }
     }
 
     private readonly Params _params;
@@ -27,18 +49,9 @@ public sealed class ScheduleTableDocument : IDocument
     private GroupId[] Groups() => _cache.GroupOrderArray;
     private TimeSlot[] TimeSlots() => _params.Schedule.TimeSlots;
     private DayOfWeek[] Days() => _params.Schedule.Days;
-    private const int maxGroupsPerPage = 5;
 
     private IContainer Centered(IContainer x)
     {
-        x = x.AlignCenter();
-        x = x.AlignMiddle();
-        return x;
-    }
-
-    private IContainer CenteredBordered(IContainer x)
-    {
-        x = x.Border(1);
         x = x.AlignCenter();
         x = x.AlignMiddle();
         return x;
@@ -52,35 +65,76 @@ public sealed class ScheduleTableDocument : IDocument
         return x;
     }
 
+    private struct SizesConfig()
+    {
+        public float WeekDayColumnWidth = 30;
+        public float TimeSlotColumnWidth = 75;
+        public int MaxGroupsPerPage = 5;
+        public PageSize PageSize = PageSizes.A4;
+        public float PageMargin = 15;
+        public float FontSize = 10f;
+
+        public readonly float UsefulGroupsWidth => PageSize.Width - 2 * PageMargin - WeekDayColumnWidth - TimeSlotColumnWidth;
+    }
+
+    private readonly SizesConfig _sizesConfig = new();
+
+    private struct CurrentSizes
+    {
+        public required float RegularColumnWidth;
+    }
+
+    private struct CurrentContext
+    {
+        public required CurrentSizes Sizes;
+        public required ArraySegment<GroupId> Groups;
+    }
+
     public void Compose(IDocumentContainer container)
     {
-        for (int i = 0; i < Groups().Length; i += maxGroupsPerPage)
+        for (int i = 0; i < Groups().Length; i += _sizesConfig.MaxGroupsPerPage)
         {
             ArraySegment<GroupId> CurrentGroups()
             {
                 var groups = Groups();
                 // ReSharper disable once AccessToModifiedClosure
-                var count = int.Min(groups.Length - i, maxGroupsPerPage);
+                var count = int.Min(groups.Length - i, _sizesConfig.MaxGroupsPerPage);
                 // ReSharper disable once AccessToModifiedClosure
                 var ret = new ArraySegment<GroupId>(groups, i, count);
                 return ret;
             }
 
+            var currentContext = new CurrentContext
+            {
+                Groups = CurrentGroups(),
+                Sizes = new()
+                {
+                    RegularColumnWidth = _sizesConfig.UsefulGroupsWidth / CurrentGroups().Count,
+                },
+            };
+
             container.Page(page =>
             {
-                page.Margin(50);
+                page.Size(_sizesConfig.PageSize);
+                page.Margin(_sizesConfig.PageMargin);
+
+                page.DefaultTextStyle(s =>
+                {
+                   s = s.FontSize(_sizesConfig.FontSize);
+                   return s;
+                });
 
                 var content = page.Content();
                 content.Table(table =>
                 {
                     table.ColumnsDefinition(cols =>
                     {
-                        cols.ConstantColumn(30);
-                        cols.ConstantColumn(75);
+                        cols.ConstantColumn(_sizesConfig.WeekDayColumnWidth);
+                        cols.ConstantColumn(_sizesConfig.TimeSlotColumnWidth);
                         var count = CurrentGroups().Count;
                         for (int j = 0; j < count; j++)
                         {
-                            cols.RelativeColumn();
+                            cols.RelativeColumn(currentContext.Sizes.RegularColumnWidth);
                         }
                     });
                     table.Header(h =>
@@ -99,15 +153,15 @@ public sealed class ScheduleTableDocument : IDocument
                         for (uint groupIdIndex = 0; groupIdIndex < ids.Count; groupIdIndex++)
                         {
                             var groupId = ids[(int) groupIdIndex];
-                            var g = new GroupAccessor(_params.Schedule.Source, groupId);
+                            var g = _params.Schedule.Source.Get(groupId);
                             var nameCell = h.Cell();
                             nameCell.Column(3 + groupIdIndex);
                             var x = nameCell.Element(CenteredBorderedThick);
-                            _ = x.Text($"{g.Ref.Name}({g.Ref.Language.GetName()})");
+                            _ = x.Text($"{g.Name}({g.Language.GetName()})");
                         }
                     });
 
-                    TableBody(table, CurrentGroups());
+                    TableBody(table, currentContext);
                 });
             });
         }
@@ -115,7 +169,7 @@ public sealed class ScheduleTableDocument : IDocument
 
     private uint GetLessonCol(int minOrder)
     {
-        var ret = minOrder % maxGroupsPerPage;
+        var ret = minOrder % _sizesConfig.MaxGroupsPerPage;
         // 1-based indexing
         ret += 1;
         // day and time columns
@@ -228,13 +282,13 @@ public sealed class ScheduleTableDocument : IDocument
         }
     }
 
-    private void TableBody(TableDescriptor table, ArraySegment<GroupId> currentGroups)
+    private void TableBody(TableDescriptor table, CurrentContext context)
     {
         TableLeftHeader(table);
 
         foreach (var s in Slots())
         {
-            for (int currentGroupIndex = 0; currentGroupIndex < currentGroups.Count; currentGroupIndex++)
+            for (int currentGroupIndex = 0; currentGroupIndex < context.Groups.Count; currentGroupIndex++)
             {
                 var dayKey = new DayKey
                 {
@@ -242,7 +296,7 @@ public sealed class ScheduleTableDocument : IDocument
                     DayOfWeek = s.DayIter.Day,
                 };
 
-                var groupId = currentGroups[currentGroupIndex];
+                var groupId = context.Groups[currentGroupIndex];
 
                 var allKey = dayKey.AllKey(groupId);
 
@@ -257,11 +311,9 @@ public sealed class ScheduleTableDocument : IDocument
                     var x = BasicCell();
                     x.Text(text =>
                     {
-                        for (int index = 0; index < lessons.Count; index++)
+                        foreach (var lesson in lessons)
                         {
-                            var lesson = lessons[index];
-                            // Temporary.
-                            text.Line(lesson.Lesson.Course.Name);
+                            LessonText(text, lesson, columnWidth: 1);
                         }
                     });
                 }
@@ -316,7 +368,7 @@ public sealed class ScheduleTableDocument : IDocument
                             x = Centered(x);
                             x.Text(text =>
                             {
-                                text.Span(lesson.Lesson.Course.Name);
+                                LessonText(text, lesson, columnWidth: size);
                             });
                         }
                     }
@@ -362,6 +414,91 @@ public sealed class ScheduleTableDocument : IDocument
                     return x;
                 }
             }
+        }
+    }
+
+    private void LessonText(
+        TextDescriptor text,
+        RegularLesson lesson,
+        uint columnWidth)
+    {
+        string CourseName()
+        {
+            // It's impossible to measure text in this library. Yikes.
+            var course = _params.Schedule.Source.Get(lesson.Lesson.Course);
+            if (columnWidth == 1)
+            {
+                return course.Names[^1];
+            }
+
+            return course.Names[0];
+        }
+
+        var sb = _params.GetCleanStringBuilder();
+        {
+            var subGroupNumber = _params.SubGroupNumberDisplay.Get(lesson.Lesson.SubGroup);
+            if (subGroupNumber is { } s1)
+            {
+                sb.Append(s1);
+                sb.Append(". ");
+            }
+        }
+        {
+            var str = sb.ToStringAndClear();
+            var span = text.Span(str);
+            span.Bold();
+        }
+        {
+            var courseName = CourseName();
+            sb.Append(courseName);
+        }
+        {
+            var lessonType = _params.LessonTypeDisplay.Get(lesson.Lesson.Type);
+            var parity = _params.ParityDisplay.Get(lesson.Date.Parity);
+            bool appendAny = lessonType != null || parity != null;
+            if (appendAny)
+            {
+                sb.Append(" (");
+
+                bool written = false;
+                void Write(string? str)
+                {
+                    if (str is not { } notNullS)
+                    {
+                        return;
+                    }
+                    if (written)
+                    {
+                        sb.Append(", ");
+                    }
+                    else
+                    {
+                        written = true;
+                    }
+
+                    sb.Append(notNullS);
+                }
+
+                Write(lessonType);
+                Write(parity);
+                sb.Append(")");
+            }
+        }
+        {
+            var str = sb.ToStringAndClear();
+            text.Line(str);
+        }
+        {
+            var teacher = _params.Schedule.Source.Get(lesson.Lesson.Teacher);
+            sb.Append(teacher.Name);
+
+            sb.Append("  ");
+            var room = _params.Schedule.Source.Get(lesson.Lesson.Room);
+            sb.Append(room);
+        }
+        {
+            var str = sb.ToStringAndClear();
+            text.Span(str);
         }
     }
 
@@ -415,7 +552,8 @@ public sealed class ScheduleTableDocument : IDocument
         {
             var interval = _params.LessonTimeConfig.GetTimeSlotInterval(timeSlot);
             var formattedInterval = _params.TimeSlotDisplay.IntervalDisplay(interval);
-            text.Span(formattedInterval);
+            var span = text.Span(formattedInterval);
+            _ = span;
         }
     }
 }

@@ -49,6 +49,7 @@ public sealed class ScheduleBuilder()
     public List<OneTimeLesson> OneTimeLessons = new();
     public ListBuilder<Group> Groups = new();
     public ListBuilder<Teacher> Teachers = new();
+    public ListBuilder<Course> Courses = new();
 
     public GroupParseContext? GroupParseContext;
 
@@ -210,6 +211,7 @@ public static class ScheduleBuilderHelper
         var oneTimeLessons = s.OneTimeLessons.ToImmutableArray();
         var groups = s.Groups.Build();
         var teachers = s.Teachers.Build();
+        var courses = s.Courses.Build();
 
         return new Schedule
         {
@@ -217,6 +219,7 @@ public static class ScheduleBuilderHelper
             OneTimeLessons = oneTimeLessons,
             Groups = groups,
             Teachers = teachers,
+            Courses = courses,
         };
     }
 
@@ -331,9 +334,14 @@ public static class ScheduleBuilderHelper
         return new(r.Id);
     }
 
-    public static CourseId Course(this ScheduleBuilder s, string name)
+    public static CourseId Course(this ScheduleBuilder s, params string[] names)
     {
-        return new(name);
+        var r = s.Courses.New();
+        r.Value = new()
+        {
+            Names = names,
+        };
+        return new(r.Id);
     }
 
     public static RoomId Room(this ScheduleBuilder s, string id)

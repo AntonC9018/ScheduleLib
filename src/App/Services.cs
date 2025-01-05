@@ -22,15 +22,57 @@ public sealed class TimeSlotDisplayHandler
 {
     public string IndexDisplay(int timeSlotIndex)
     {
-        return ToRoman(timeSlotIndex);
+        return NumberHelper.ToRoman(timeSlotIndex);
     }
 
     public string IntervalDisplay(TimeSlotInterval i)
     {
         return $"{i.Start.Hour}:{i.Start.Minute:00}-{i.End.Hour}:{i.End.Minute:00}";
     }
+}
 
-    private static string ToRoman(int num)
+public sealed class SubGroupNumberDisplayHandler
+{
+    public string? Get(SubGroupNumber n)
+    {
+        if (n == SubGroupNumber.All)
+        {
+            return null;
+        }
+        return NumberHelper.ToRoman(n.Value);
+    }
+}
+
+public sealed class ParityDisplayHandler
+{
+    public string? Get(Parity p)
+    {
+        return p switch
+        {
+            Parity.EvenWeek => "par",
+            Parity.OddWeek => "impar",
+            _ => null,
+        };
+    }
+}
+
+public sealed class LessonTypeDisplayHandler
+{
+    public string? Get(LessonType type)
+    {
+        return type switch
+        {
+            LessonType.Curs => "curs",
+            LessonType.Lab => "lab",
+            LessonType.Seminar => "sem",
+            _ => null,
+        };
+    }
+}
+
+public static class NumberHelper
+{
+    public static string ToRoman(int num)
     {
         string romanLetter = num switch
         {

@@ -55,7 +55,7 @@ public static class FilterHelper
             foreach (var regularLesson in schedule.RegularLessons)
             {
                 var groupId = regularLesson.Lesson.Group;
-                var g = new GroupAccessor(schedule, groupId).Ref;
+                var g = schedule.Get(groupId);
                 if (g.QualificationType != filter.QualificationType)
                 {
                     continue;

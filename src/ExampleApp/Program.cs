@@ -31,19 +31,19 @@ var schedule = ScheduleBuilder.Create(schedule =>
     var m_butnaru = schedule.Teacher("M.Butnaru");
     var v_uncureanu = schedule.Teacher("V.Uncureanu");
 
-    var pachetOptional = schedule.Course("Pachet optional");
-    var calculVariational = schedule.Course("Calcul variational");
+    var pachetOptional = schedule.Course("Pachet opțional");
+    var calculVariational = schedule.Course("Calcul variațional");
     var cloudComputing = schedule.Course("Cloud Computing");
-    var elaborareAplicatiiGrafice = schedule.Course("Elaborarea Aplicatiilor Grafice");
-    var computeAlgebra = schedule.Course("Sisteme de Algebra Computationala");
-    var grafica = schedule.Course("Grafica pe calculator");
-    var webSecurity = schedule.Course("Securitatea aplicatiilor Web");
-    var psi = schedule.Course("Proiectarea Sistemelor Informatice");
+    var elaborareAplicatiiGrafice = schedule.Course("Elaborarea Aplicațiilor Grafice", "Elab. Aplic. Grafice");
+    var computeAlgebra = schedule.Course("Sisteme de Algebra Computationala", "Sist. de Alg. Comp.");
+    var grafica = schedule.Course("Grafica pe calculator", "Grafica pe calc.");
+    var webSecurity = schedule.Course("Securitatea aplicatiilor Web", "SAW");
+    var psi = schedule.Course("Proiectarea Sistemelor Informatice", "PSI");
     var framework = schedule.Course("Framework");
-    var java = schedule.Course("Tehnologii Java p/u Internet");
+    var java = schedule.Course("Tehnologii Java p/u Internet", "Java p/u Internet");
     var cercetariOperationale = schedule.Course("Cercetari operationale");
     var modelareMatematica = schedule.Course("Modelare matematica");
-    var aplicatiiWeb = schedule.Course("Dezvoltarea aplicatiilor Web");
+    var aplicatiiWeb = schedule.Course("Dezvoltarea aplicatiilor Web", "Dezv. aplic. Web");
 
     var room419_4 = schedule.Room("419/4");
     var room113_4 = schedule.Room("113/4");
@@ -620,9 +620,14 @@ var generator = new ScheduleTableDocument(new()
     Schedule = filteredSchedule,
     DayNameProvider = dayNameProvider,
     LessonTimeConfig = timeConfig,
+    ParityDisplay = new(),
+    StringBuilder = new(),
+    LessonTypeDisplay = new(),
     TimeSlotDisplay = timeSlotDisplayHandler,
+    SubGroupNumberDisplay = new(),
 });
 
 QuestPDF.Settings.License = LicenseType.Community;
+QuestPDF.Settings.EnableDebugging = true;
 generator.GeneratePdfAndShow();
 

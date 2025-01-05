@@ -9,6 +9,7 @@ public sealed class Schedule
     public required ImmutableArray<OneTimeLesson> OneTimeLessons { get; init; }
     public required ImmutableArray<Group> Groups { get; init; }
     public required ImmutableArray<Teacher> Teachers { get; init; }
+    public required ImmutableArray<Course> Courses { get; init; }
 }
 
 public enum Parity
@@ -204,9 +205,15 @@ public struct LessonGroups()
     }
 }
 
-public readonly record struct CourseId(string Name);
+public readonly record struct CourseId(int Id);
 
-public record struct LessonData()
+public struct Course
+{
+    public string FullName => Names[0];
+    public required string[] Names;
+}
+
+public struct LessonData()
 {
     public required LessonGroups Groups;
 
@@ -291,17 +298,14 @@ public sealed class Teacher
     public required string Name;
 }
 
-public readonly struct GroupAccessor
+public static class AccessorHelper
 {
-    private readonly Schedule _schedule;
-
-    public GroupAccessor(Schedule schedule, GroupId id)
+    public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
+    public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];
+    public static Teacher Get(this Schedule schedule, TeacherId id) => schedule.Teachers[id.Id];
+    public static string Get(this Schedule schedule, RoomId id)
     {
-        _schedule = schedule;
-        Id = id;
+        _ = schedule;
+        return id.Id;
     }
-
-    public GroupId Id { get; }
-    public Group Ref => _schedule.Groups[Id.Value];
 }
-
