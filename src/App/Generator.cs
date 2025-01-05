@@ -29,6 +29,13 @@ public sealed class ScheduleTableDocument : IDocument
     private DayOfWeek[] Days() => _params.Schedule.Days;
     private const int maxGroupsPerPage = 5;
 
+    private IContainer Centered(IContainer x)
+    {
+        x = x.AlignCenter();
+        x = x.AlignMiddle();
+        return x;
+    }
+
     private IContainer CenteredBordered(IContainer x)
     {
         x = x.Border(1);
@@ -169,10 +176,9 @@ public sealed class ScheduleTableDocument : IDocument
         .Single()
         .CreateDelegate<BorderDelegate>();
 
-    private IContainer Row(ITableCellContainer descriptor, uint row)
+    private IContainer BorderedRow(ITableCellContainer descriptor, uint row)
     {
         descriptor.Row(row);
-        #if false
         uint zeroBasedRow = row - 1;
         uint rowsPerDay = (uint) (_cache.MaxRowsInOneCell * TimeSlots().Length);
         uint rem = zeroBasedRow % rowsPerDay;
@@ -191,8 +197,6 @@ public sealed class ScheduleTableDocument : IDocument
         IContainer ret = descriptor;
         ret = ReflectedBorder(ret, bottom: bottom, top: top, left: 1, right: 1);
         return ret;
-#endif
-        return descriptor;
     }
 
     private IEnumerable<Slot> Slots(DayIter d)
@@ -308,8 +312,8 @@ public sealed class ScheduleTableDocument : IDocument
                                 cell.Column(col);
                             }
 
-                            var x = Row(cell, s.TimeSlotRow + lessonOrder);
-                            x = CenteredBordered(x);
+                            var x = BorderedRow(cell, s.TimeSlotRow + lessonOrder);
+                            x = Centered(x);
                             x.Text(text =>
                             {
                                 text.Span(lesson.Lesson.Course.Name);
@@ -335,8 +339,8 @@ public sealed class ScheduleTableDocument : IDocument
                             cell.Column(col);
                         }
 
-                        var x = Row(cell, s.TimeSlotRow + lastOrderNeedingBorder);
-                        x = CenteredBordered(x);
+                        var x = BorderedRow(cell, s.TimeSlotRow + lastOrderNeedingBorder);
+                        x = Centered(x);
                         _ = x;
                     }
 
@@ -346,7 +350,6 @@ public sealed class ScheduleTableDocument : IDocument
                 {
                     var cell = table.Cell();
                     cell.ColumnSpan(1);
-                    cell.Row(s.TimeSlotRow);
                     cell.RowSpan(s.CellsPerTimeSlot);
 
                     {
@@ -354,7 +357,8 @@ public sealed class ScheduleTableDocument : IDocument
                         cell.Column(col);
                     }
 
-                    var x = CenteredBordered(cell);
+                    var x = BorderedRow(cell, s.TimeSlotRow);
+                    x = Centered(x);
                     return x;
                 }
             }
@@ -391,8 +395,8 @@ public sealed class ScheduleTableDocument : IDocument
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            var x = Row(timeCell, s.DayIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
-            x = CenteredBordered(x);
+            IContainer x = timeCell.Row(s.DayIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
+            x = CenteredBorderedThick(x);
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
         }
