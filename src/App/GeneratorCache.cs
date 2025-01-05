@@ -76,7 +76,7 @@ public struct GeneratorCacheDicts()
     public readonly bool IsSeparatedLayout => SharedCellStart == null;
     // For cell size
     public HashSet<(RegularLesson Lesson, int Order)>? SharedCellStart;
-    public Dictionary<AllKey, int>? SharedMaxCount;
+    public Dictionary<AllKey, int>? SharedMaxOrder;
     // For position
     public Dictionary<RegularLesson, uint>? LessonVerticalOrder;
 }
@@ -148,7 +148,7 @@ public struct GeneratorCache
                 static int LessonPriority(RegularLesson lesson) => lesson.Lesson.Groups.Count;
 
                 Dict<AllKey, int> perGroupCounters = new();
-                dicts.SharedMaxCount = perGroupCounters._dict;
+                dicts.SharedMaxOrder = perGroupCounters._dict;
 
                 foreach (var group in schedule.Lessons.GroupBy(LessonPriority))
                 {
