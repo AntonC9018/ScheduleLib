@@ -1,3 +1,5 @@
+using System.Reflection;
+using QuestPDF.Elements.Table;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 
@@ -153,6 +155,46 @@ public sealed class ScheduleTableDocument : IDocument
         }
     }
 
+    // Why in the world is this method private???
+    private delegate IContainer BorderDelegate(
+        IContainer element,
+        float top = 0,
+        float bottom = 0,
+        float left = 0,
+        float right = 0);
+    // ReSharper disable once ReplaceWithSingleCallToSingle
+    private static readonly BorderDelegate ReflectedBorder = typeof(BorderExtensions)
+        .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
+        .Where(x => x.GetParameters().Length == 5)
+        .Single()
+        .CreateDelegate<BorderDelegate>();
+
+    private IContainer Row(ITableCellContainer descriptor, uint row)
+    {
+        descriptor.Row(row);
+        #if false
+        uint zeroBasedRow = row - 1;
+        uint rowsPerDay = (uint) (_cache.MaxRowsInOneCell * TimeSlots().Length);
+        uint rem = zeroBasedRow % rowsPerDay;
+
+        float top = 1;
+        float bottom = 1;
+        if (rem == 0)
+        {
+            top = 2;
+        }
+        else if (rem == rowsPerDay - 1)
+        {
+            bottom = 2;
+        }
+
+        IContainer ret = descriptor;
+        ret = ReflectedBorder(ret, bottom: bottom, top: top, left: 1, right: 1);
+        return ret;
+#endif
+        return descriptor;
+    }
+
     private IEnumerable<Slot> Slots(DayIter d)
     {
         var timeSlots = TimeSlots();
@@ -261,14 +303,13 @@ public sealed class ScheduleTableDocument : IDocument
                             lastOrderNeedingBorder = lessonOrder + rowSpan - 1;
                             cell.RowSpan(rowSpan);
                             cell.ColumnSpan(size);
-                            cell.Row(s.TimeSlotRow + lessonOrder);
-
                             {
                                 var col = GetLessonCol(currentGroupIndex);
                                 cell.Column(col);
                             }
 
-                            var x = CenteredBordered(cell);
+                            var x = Row(cell, s.TimeSlotRow + lessonOrder);
+                            x = CenteredBordered(x);
                             x.Text(text =>
                             {
                                 text.Span(lesson.Lesson.Course.Name);
@@ -286,7 +327,6 @@ public sealed class ScheduleTableDocument : IDocument
 
                         var cell = table.Cell();
                         cell.ColumnSpan(1);
-                        cell.Row(s.TimeSlotRow + lastOrderNeedingBorder);
                         var rowSpan = lessonOrder - lastOrderNeedingBorder;
                         cell.RowSpan(rowSpan);
 
@@ -295,7 +335,8 @@ public sealed class ScheduleTableDocument : IDocument
                             cell.Column(col);
                         }
 
-                        var x = CenteredBordered(cell);
+                        var x = Row(cell, s.TimeSlotRow + lastOrderNeedingBorder);
+                        x = CenteredBordered(x);
                         _ = x;
                     }
 
@@ -348,10 +389,10 @@ public sealed class ScheduleTableDocument : IDocument
         {
             var timeCell = table.Cell();
             timeCell.Column(2);
-            timeCell.Row(s.DayIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            var x = CenteredBordered(timeCell);
+            var x = Row(timeCell, s.DayIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
+            x = CenteredBordered(x);
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
         }
