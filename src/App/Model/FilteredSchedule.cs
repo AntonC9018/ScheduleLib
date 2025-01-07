@@ -9,7 +9,7 @@ public struct ScheduleFilter
     public required int Grade;
 }
 
-public struct FilteredSchedule
+public sealed class FilteredSchedule
 {
     public required Schedule Source;
     public required IEnumerable<RegularLesson> Lessons;
