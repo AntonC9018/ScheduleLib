@@ -615,9 +615,8 @@ var filteredSchedule = schedule.Filter(new()
 });
 var dayNameProvider = new DayNameProvider();
 var timeSlotDisplayHandler = new TimeSlotDisplayHandler();
-var generator = new ScheduleTableDocument(new()
+var generator = new ScheduleTableDocument(filteredSchedule, new()
 {
-    Schedule = filteredSchedule,
     DayNameProvider = dayNameProvider,
     LessonTimeConfig = timeConfig,
     ParityDisplay = new(),
