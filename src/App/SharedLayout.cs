@@ -7,7 +7,7 @@ public sealed class SharedLayout
 {
     // For cell size
     public required HashSet<(RegularLesson Lesson, int Order)> SharedCellStart;
-    public required Dictionary<AllKey, int> SharedMaxOrder;
+    public required Dictionary<CellKey, int> SharedMaxOrder;
     // For position
     public required Dictionary<RegularLesson, uint> LessonVerticalOrder;
 
@@ -15,7 +15,7 @@ public sealed class SharedLayout
         IEnumerable<RegularLesson> lessons,
         ColumnOrder columnOrder)
     {
-        Dict<AllKey, int> perGroupCounters = new();
+        Dict<CellKey, int> perGroupCounters = new();
         var layout = new SharedLayout
         {
             LessonVerticalOrder = new(),
@@ -36,7 +36,7 @@ public sealed class SharedLayout
 
                 void ProcessLesson()
                 {
-                    var dayKey = lesson.Date.DayKey();
+                    var dayKey = lesson.Date.RowKey();
 
                     int max = MoveToAfterFurthestInGrouping(dayKey);
                     layout.LessonVerticalOrder.Add(lesson, (uint) max);
@@ -59,12 +59,12 @@ public sealed class SharedLayout
                     return order;
                 }
 
-                int MoveToAfterFurthestInGrouping(DayKey dayKey)
+                int MoveToAfterFurthestInGrouping(RowKey dayKey)
                 {
                     int maxAmongGroups = -1;
                     foreach (var groupId in lesson.Lesson.Groups)
                     {
-                        var allKey = dayKey.AllKey(groupId);
+                        var allKey = dayKey.CellKey(groupId);
                         var counter = perGroupCounters.Add(allKey, out bool justAdded);
                         if (justAdded)
                         {
@@ -77,7 +77,7 @@ public sealed class SharedLayout
 
                     foreach (var groupId in lesson.Lesson.Groups)
                     {
-                        var allKey = dayKey.AllKey(groupId);
+                        var allKey = dayKey.CellKey(groupId);
                         ref var counter = ref perGroupCounters.Ref(allKey);
                         counter = maxCurrent;
                     }
@@ -124,7 +124,7 @@ public static class ColumnArrangementHelper
 
     public static bool Search(FilteredSchedule schedule, ColumnOrderBuilder columnOrder)
     {
-        var groupings = new Dictionary<DayKey, HashSet<GroupId>>();
+        var groupings = new Dictionary<RowKey, HashSet<GroupId>>();
 
         foreach (var lesson in schedule.Lessons)
         {
@@ -133,7 +133,7 @@ public static class ColumnArrangementHelper
                 continue;
             }
 
-            var day = lesson.Date.DayKey();
+            var day = lesson.Date.RowKey();
 
             ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(groupings, day, out bool exists);
             if (!exists)

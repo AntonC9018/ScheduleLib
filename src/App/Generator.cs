@@ -151,7 +151,7 @@ public sealed class ScheduleTableDocument : IDocument
         {
             for (int currentGroupIndex = 0; currentGroupIndex < context.Groups.Count; currentGroupIndex++)
             {
-                var dayKey = new DayKey
+                var dayKey = new RowKey
                 {
                     TimeSlot = s.TimeSlot,
                     DayOfWeek = s.DayIter.Day,
@@ -159,9 +159,9 @@ public sealed class ScheduleTableDocument : IDocument
 
                 var groupId = context.Groups[currentGroupIndex];
 
-                var allKey = dayKey.AllKey(groupId);
+                var allKey = dayKey.CellKey(groupId);
 
-                if (!_cache.Mappings.MappingByAll.TryGetValue(allKey, out var lessons))
+                if (!_cache.Mappings.MappingByCell.TryGetValue(allKey, out var lessons))
                 {
                     _ = BasicCell(currentGroupIndex);
                     continue;

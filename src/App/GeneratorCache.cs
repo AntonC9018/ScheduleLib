@@ -2,14 +2,13 @@ using System.Runtime.InteropServices;
 
 namespace App;
 
-public record struct AllKey
+public record struct CellKey
 {
-    public required TimeSlot TimeSlot;
-    public required DayOfWeek DayOfWeek;
-    public required GroupId GroupId;
+    public required RowKey RowKey;
+    public required GroupId ColumnKey;
 }
 
-public record struct DayKey
+public record struct RowKey
 {
     public required TimeSlot TimeSlot;
     public required DayOfWeek DayOfWeek;
@@ -17,51 +16,21 @@ public record struct DayKey
 
 public static class KeyHelper
 {
-    public static AllKey DefaultAllKey(this RegularLesson lesson)
+    public static RowKey RowKey(this in RegularLessonDate date)
     {
-        return new AllKey
-        {
-            TimeSlot = lesson.Date.TimeSlot,
-            DayOfWeek = lesson.Date.DayOfWeek,
-            GroupId = lesson.Lesson.Group,
-        };
-    }
-
-    public static AllKey AllKey(this in RegularLessonDate date, GroupId groupId)
-    {
-        return new AllKey
-        {
-            TimeSlot = date.TimeSlot,
-            DayOfWeek = date.DayOfWeek,
-            GroupId = groupId,
-        };
-    }
-
-    public static DayKey DayKey(this AllKey key)
-    {
-        return new DayKey
-        {
-            TimeSlot = key.TimeSlot,
-            DayOfWeek = key.DayOfWeek,
-        };
-    }
-
-    public static DayKey DayKey(this in RegularLessonDate date)
-    {
-        return new DayKey
+        return new RowKey
         {
             TimeSlot = date.TimeSlot,
             DayOfWeek = date.DayOfWeek,
         };
     }
 
-    public static AllKey AllKey(this DayKey dayKey, GroupId groupId)
+    public static CellKey CellKey(this RowKey rowKey, GroupId groupId)
     {
-        return new AllKey
+        return new CellKey
         {
-            TimeSlot = dayKey.TimeSlot,
-            DayOfWeek = dayKey.DayOfWeek,
-            GroupId = groupId,
+            RowKey = rowKey,
+            ColumnKey = groupId,
         };
     }
 }
@@ -118,8 +87,8 @@ public readonly struct ColumnOrder
 
 public struct GeneratorCacheMappings()
 {
-    public Dictionary<AllKey, List<RegularLesson>> MappingByAll = new();
-    public Dictionary<DayKey, List<RegularLesson>> MappingByDay = new();
+    public Dictionary<CellKey, List<RegularLesson>> MappingByCell = new();
+    public Dictionary<RowKey, List<RegularLesson>> MappingByRow = new();
 }
 
 public struct GeneratorCache
@@ -157,7 +126,7 @@ public struct GeneratorCache
 
             {
                 int ret = 0;
-                foreach (var lessons in mappings.MappingByAll.Values)
+                foreach (var lessons in mappings.MappingByCell.Values)
                 {
                     ret = Math.Max(ret, lessons.Count);
                 }
@@ -177,12 +146,12 @@ public struct GeneratorCache
         {
             foreach (var lesson in schedule.Lessons)
             {
-                var dayKey = new DayKey
+                var rowKey = new RowKey
                 {
                     TimeSlot = lesson.Date.TimeSlot,
                     DayOfWeek = lesson.Date.DayOfWeek,
                 };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByDay, dayKey, out bool exists);
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByRow, rowKey, out bool exists);
                 if (!exists)
                 {
                     list = new();
@@ -198,13 +167,16 @@ public struct GeneratorCache
             {
                 foreach (var group in lesson.Lesson.Groups)
                 {
-                    var key = new AllKey
+                    var cellKey = new CellKey
                     {
-                        GroupId = group,
-                        TimeSlot = lesson.Date.TimeSlot,
-                        DayOfWeek = lesson.Date.DayOfWeek,
+                        ColumnKey = group,
+                        RowKey = new()
+                        {
+                            TimeSlot = lesson.Date.TimeSlot,
+                            DayOfWeek = lesson.Date.DayOfWeek,
+                        },
                     };
-                    ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByAll, key, out bool exists);
+                    ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByCell, cellKey, out bool exists);
                     if (!exists)
                     {
                         list = new(4);
