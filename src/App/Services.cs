@@ -22,7 +22,7 @@ public sealed class TimeSlotDisplayHandler
 {
     public string IndexDisplay(int timeSlotIndex)
     {
-        return NumberHelper.ToRoman(timeSlotIndex);
+        return NumberHelper.ToRoman(timeSlotIndex + 1);
     }
 
     public string IntervalDisplay(TimeSlotInterval i)

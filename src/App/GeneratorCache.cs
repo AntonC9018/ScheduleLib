@@ -116,21 +116,21 @@ public struct GeneratorCache
         {
             if (layout1 is { } layout2)
             {
-                int ret = -1;
+                int ret1 = -1;
                 foreach (var k in layout2.LessonVerticalOrder.Values)
                 {
-                    ret = Math.Max(ret, (int) k);
+                    ret1 = Math.Max(ret1, (int) k);
                 }
-                return ret + 1;
+                return ret1 + 1;
             }
 
             {
-                int ret = 0;
+                int ret1 = 0;
                 foreach (var lessons in mappings.MappingByCell.Values)
                 {
-                    ret = Math.Max(ret, lessons.Count);
+                    ret1 = Math.Max(ret1, lessons.Count);
                 }
-                return ret;
+                return ret1;
             }
         }
     }

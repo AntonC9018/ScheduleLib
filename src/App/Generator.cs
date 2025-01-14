@@ -41,7 +41,7 @@ public sealed class ScheduleTableDocument : IDocument
     private readonly GeneratorCache _cache;
     private readonly SchedulePdfSizesConfig _sizesConfig = new();
 
-    public ScheduleTableDocument(FilteredSchedule schedule, Services p)
+    public ScheduleTableDocument(FilteredSchedule schedule, in Services p)
     {
         _schedule = schedule;
         _services = p;
@@ -60,7 +60,7 @@ public sealed class ScheduleTableDocument : IDocument
     private struct CurrentContext
     {
         public required CurrentSizes Sizes;
-        public required ArraySegment<GroupId> Groups;
+        public required ArraySegment<GroupId> Columns;
     }
 
     public void Compose(IDocumentContainer container)
@@ -78,42 +78,48 @@ public sealed class ScheduleTableDocument : IDocument
 
             var currentContext = new CurrentContext
             {
-                Groups = CurrentColumns(),
+                Columns = CurrentColumns(),
                 Sizes = new()
                 {
                     RegularColumnWidth = _sizesConfig.UsefulGroupsWidth / CurrentColumns().Count,
                 },
             };
 
-            container.Page(page =>
-            {
-                page.Size(_sizesConfig.PageSize);
-                page.Margin(_sizesConfig.PageMargin);
-
-                page.DefaultTextStyle(s =>
-                {
-                   s = s.FontSize(_sizesConfig.FontSize);
-                   return s;
-                });
-
-                var content = page.Content();
-                content.Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.ConstantColumn(_sizesConfig.WeekDayColumnWidth);
-                        cols.ConstantColumn(_sizesConfig.TimeSlotColumnWidth);
-                        var count = CurrentColumns().Count;
-                        for (int j = 0; j < count; j++)
-                        {
-                            cols.RelativeColumn(currentContext.Sizes.RegularColumnWidth);
-                        }
-                    });
-                    TableHeader(table, currentContext);
-                    TableBody(table, currentContext);
-                });
-            });
+            Table(container, currentContext);
         }
+    }
+
+    private void Table(IDocumentContainer container, CurrentContext context)
+    {
+        container.Page(page =>
+        {
+            page.Size(_sizesConfig.PageSize);
+            page.Margin(_sizesConfig.PageMargin);
+
+            page.DefaultTextStyle(s =>
+            {
+                s = s.FontSize(_sizesConfig.FontSize);
+                return s;
+            });
+
+            var content = page.Content();
+            content.Table(table =>
+            {
+                table.ColumnsDefinition(cols =>
+                {
+                    cols.ConstantColumn(_sizesConfig.WeekDayColumnWidth);
+                    cols.ConstantColumn(_sizesConfig.TimeSlotColumnWidth);
+                    var count = context.Columns.Count;
+                    for (int j = 0; j < count; j++)
+                    {
+                        cols.RelativeColumn(context.Sizes.RegularColumnWidth);
+                    }
+                });
+                TableHeader(table, context);
+                TableLeftHeader(table);
+                TableBody(table, context);
+            });
+        });
     }
 
     private void TableHeader(TableDescriptor table, CurrentContext context)
@@ -130,7 +136,7 @@ public sealed class ScheduleTableDocument : IDocument
             time.Column(2);
             time.Border(2);
 
-            var ids = context.Groups;
+            var ids = context.Columns;
             for (uint groupIdIndex = 0; groupIdIndex < ids.Count; groupIdIndex++)
             {
                 var groupId = ids[(int) groupIdIndex];
@@ -145,31 +151,25 @@ public sealed class ScheduleTableDocument : IDocument
 
     private void TableBody(TableDescriptor table, CurrentContext context)
     {
-        TableLeftHeader(table);
-
-        foreach (var s in Slots())
+        foreach (var s in Cells())
         {
-            for (int currentGroupIndex = 0; currentGroupIndex < context.Groups.Count; currentGroupIndex++)
+            var rowKey = s.Key;
+
+            for (int currentGroupIndex = 0; currentGroupIndex < context.Columns.Count; currentGroupIndex++)
             {
-                var dayKey = new RowKey
+                var groupId = context.Columns[currentGroupIndex];
+                var cellKey = rowKey.CellKey(groupId);
+                var column = GetLessonCol(currentGroupIndex);
+
+                if (!_cache.Mappings.MappingByCell.TryGetValue(cellKey, out var lessons))
                 {
-                    TimeSlot = s.TimeSlot,
-                    DayOfWeek = s.DayIter.Day,
-                };
-
-                var groupId = context.Groups[currentGroupIndex];
-
-                var allKey = dayKey.CellKey(groupId);
-
-                if (!_cache.Mappings.MappingByCell.TryGetValue(allKey, out var lessons))
-                {
-                    _ = BasicCell(currentGroupIndex);
+                    _ = BasicCell(column);
                     continue;
                 }
 
                 if (_cache.SharedLayout is not {} layout)
                 {
-                    var x = BasicCell(currentGroupIndex);
+                    var x = BasicCell(column);
                     x.Text(text =>
                     {
                         foreach (var lesson in lessons)
@@ -180,8 +180,80 @@ public sealed class ScheduleTableDocument : IDocument
                     continue;
                 }
 
+                // Shared layout
                 {
-                    var lessonCountThisDay = layout.SharedMaxOrder[allKey] + 1;
+                    var lessonCountThisDay = layout.SharedMaxOrder[cellKey] + 1;
+                    HandleLessons();
+                    HandleMissingBorders();
+
+                    void HandleLessons()
+                    {
+                        foreach (var t in OwnedLessons())
+                        {
+                            uint size = (uint) t.Lesson.Lesson.Groups.Count;
+                            var cell = table.Cell();
+                            cell.RowSpan(t.RowSpan);
+                            cell.ColumnSpan(size);
+                            cell.Column(column);
+
+                            var x = BorderedRow(cell, s.TimeSlotRow + t.LessonOrder);
+                            x = x.Centered();
+                            x.Text(text =>
+                            {
+                                LessonText(text, t.Lesson, columnWidth: size);
+                            });
+                        }
+                    }
+
+                    void HandleMissingBorders()
+                    {
+                        uint lastOrderNeedingBorder = 0;
+
+                        foreach (var t in OwnedLessons())
+                        {
+                            Handle(t.LessonOrder);
+                            lastOrderNeedingBorder = t.LessonOrder + t.RowSpan - 1;
+                        }
+                        Handle(s.CellsPerTimeSlot - 1);
+
+                        void Handle(uint lessonOrder)
+                        {
+                            if (lastOrderNeedingBorder <= lessonOrder)
+                            {
+                                return;
+                            }
+
+                            var cell = table.Cell();
+                            cell.ColumnSpan(1);
+                            var rowSpan = lessonOrder - lastOrderNeedingBorder;
+                            cell.RowSpan(rowSpan);
+                            cell.Column(column);
+
+                            var x = BorderedRow(cell, s.TimeSlotRow + lastOrderNeedingBorder);
+                            x = x.Centered();
+                            _ = x;
+                        }
+                    }
+
+
+                    IEnumerable<(RegularLesson Lesson, uint LessonOrder, uint RowSpan)> OwnedLessons()
+                    {
+                        foreach (var lesson in lessons)
+                        {
+                            {
+                                var key = (lesson, _cache.ColumnOrder[groupId]);
+                                // We're not the cell that defines this.
+                                if (!layout.SharedCellStart.Contains(key))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            var order = layout.LessonVerticalOrder[lesson];
+                            var rowSpan = ComputeRowSpan((int) order);
+                            yield return (lesson, order, rowSpan);
+                        }
+                    }
 
                     int ComputeRowOffsetOf(int lessonIndex)
                     {
@@ -197,79 +269,15 @@ public sealed class ScheduleTableDocument : IDocument
                         return (uint)(b - a);
                     }
 
-                    uint lastOrderNeedingBorder = 0;
-
-                    for (int lessonIndex = 0; lessonIndex < lessons.Count; lessonIndex++)
-                    {
-                        var lesson = lessons[lessonIndex];
-                        {
-                            var key = (lesson, _cache.ColumnOrder[groupId]);
-                            // We're not the cell that defines this.
-                            if (!layout.SharedCellStart.Contains(key))
-                            {
-                                continue;
-                            }
-                        }
-
-                        var lessonOrder = layout.LessonVerticalOrder[lesson];
-                        OrderNeedingBorder(lessonOrder);
-
-                        {
-                            uint size = (uint) lesson.Lesson.Groups.Count;
-                            var cell = table.Cell();
-                            var rowSpan = ComputeRowSpan((int) lessonOrder);
-                            lastOrderNeedingBorder = lessonOrder + rowSpan - 1;
-                            cell.RowSpan(rowSpan);
-                            cell.ColumnSpan(size);
-                            {
-                                var col = GetLessonCol(currentGroupIndex);
-                                cell.Column(col);
-                            }
-
-                            var x = BorderedRow(cell, s.TimeSlotRow + lessonOrder);
-                            x = x.Centered();
-                            x.Text(text =>
-                            {
-                                LessonText(text, lesson, columnWidth: size);
-                            });
-                        }
-                    }
-                    OrderNeedingBorder(s.CellsPerTimeSlot - 1);
-
-                    void OrderNeedingBorder(uint lessonOrder)
-                    {
-                        if (lastOrderNeedingBorder <= lessonOrder)
-                        {
-                            return;
-                        }
-
-                        var cell = table.Cell();
-                        cell.ColumnSpan(1);
-                        var rowSpan = lessonOrder - lastOrderNeedingBorder;
-                        cell.RowSpan(rowSpan);
-
-                        {
-                            var col = GetLessonCol(currentGroupIndex);
-                            cell.Column(col);
-                        }
-
-                        var x = BorderedRow(cell, s.TimeSlotRow + lastOrderNeedingBorder);
-                        x = x.Centered();
-                        _ = x;
-                    }
                 }
             }
 
-            IContainer BasicCell(int column)
+            IContainer BasicCell(uint column)
             {
                 var cell = table.Cell();
                 cell.ColumnSpan(1);
                 cell.RowSpan(s.CellsPerTimeSlot);
-
-                {
-                    var col = GetLessonCol(column);
-                    cell.Column(col);
-                }
+                cell.Column(column);
 
                 var x = BorderedRow(cell, s.TimeSlotRow);
                 x = x.Centered();
@@ -365,7 +373,7 @@ public sealed class ScheduleTableDocument : IDocument
 
     private void TableLeftHeader(TableDescriptor table)
     {
-        foreach (var d in IterateDays())
+        foreach (var d in IterateRows())
         {
             uint timeSlotCount = (uint) TimeSlots().Length;
 
@@ -387,13 +395,13 @@ public sealed class ScheduleTableDocument : IDocument
             }
         }
 
-        foreach (var s in Slots())
+        foreach (var s in Cells())
         {
             var timeCell = table.Cell();
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            IContainer x = timeCell.Row(s.DayIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
+            IContainer x = timeCell.Row(s.RowIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
             x = x.CenteredBorderedThick();
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
@@ -406,7 +414,7 @@ public sealed class ScheduleTableDocument : IDocument
         var timeSlot = TimeSlots()[timeSlotIndex];
 
         {
-            var t = _services.TimeSlotDisplay.IndexDisplay((int) timeSlotIndex + 1);
+            var t = _services.TimeSlotDisplay.IndexDisplay((int) timeSlotIndex);
             text.Line(t);
         }
 
@@ -428,7 +436,7 @@ public sealed class ScheduleTableDocument : IDocument
         return (uint) ret;
     }
 
-    private struct DayIter
+    private struct RowIter
     {
         public required uint Index;
         public required uint Row;
@@ -437,18 +445,24 @@ public sealed class ScheduleTableDocument : IDocument
         public required uint CellsPerTimeSlot;
     }
 
-    private struct Slot
+    private struct Cell
     {
-        public required DayIter DayIter;
+        public required RowIter RowIter;
 
         public required uint TimeSlotIndex;
         public required uint TimeSlotRow;
         public required TimeSlot TimeSlot;
 
-        public uint CellsPerTimeSlot => DayIter.CellsPerTimeSlot;
+        public uint CellsPerTimeSlot => RowIter.CellsPerTimeSlot;
+
+        public RowKey Key => new()
+        {
+            TimeSlot = TimeSlot,
+            DayOfWeek = RowIter.Day,
+        };
     }
 
-    private IEnumerable<DayIter> IterateDays()
+    private IEnumerable<RowIter> IterateRows()
     {
         var days = Days();
         uint timeSlotCount = (uint) TimeSlots().Length;
@@ -489,7 +503,7 @@ public sealed class ScheduleTableDocument : IDocument
         return ret;
     }
 
-    private IEnumerable<Slot> Slots(DayIter d)
+    private IEnumerable<Cell> Cells(RowIter d)
     {
         var timeSlots = TimeSlots();
         for (uint timeSlotIndex = 0; timeSlotIndex < timeSlots.Length; timeSlotIndex++)
@@ -499,7 +513,7 @@ public sealed class ScheduleTableDocument : IDocument
 
             yield return new()
             {
-                DayIter = d,
+                RowIter = d,
                 TimeSlot = timeSlot,
                 TimeSlotIndex = timeSlotIndex,
                 TimeSlotRow = rowStartIndex,
@@ -507,17 +521,16 @@ public sealed class ScheduleTableDocument : IDocument
         }
     }
 
-    private IEnumerable<Slot> Slots()
+    private IEnumerable<Cell> Cells()
     {
-        foreach (var d in IterateDays())
+        foreach (var d in IterateRows())
         {
-            foreach (var s in Slots(d))
+            foreach (var s in Cells(d))
             {
                 yield return s;
             }
         }
     }
-
 }
 
 public static class PdfHelper
