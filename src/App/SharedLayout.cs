@@ -13,7 +13,7 @@ public sealed class SharedLayout
 
     public static SharedLayout Create(
         IEnumerable<RegularLesson> lessons,
-        ColumnOrderDict columnOrder)
+        ColumnOrder columnOrder)
     {
         Dict<AllKey, int> perGroupCounters = new();
         var layout = new SharedLayout
@@ -93,23 +93,26 @@ public sealed class SharedLayout
 
 public static class ColumnArrangementHelper
 {
-    public static (ColumnOrderDictBuilder ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
+    public static (ColumnOrder ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
     {
-        ColumnOrderDictBuilder columnOrder = new();
+        ColumnOrderBuilder columnOrder = new();
 
         bool success = Search(schedule, columnOrder);
         if (!success)
         {
             Debug.Assert(columnOrder.Count == 0);
             DoDefaultOrder(schedule, columnOrder);
-            return (columnOrder, null);
+            return (columnOrder.Build(), null);
         }
 
-        var ret = SharedLayout.Create(schedule.Lessons, columnOrder.AsReadOnly());
-        return (columnOrder, ret);
+        {
+            var columnOrder1 = columnOrder.Build();
+            var ret = SharedLayout.Create(schedule.Lessons, columnOrder1);
+            return (columnOrder1, ret);
+        }
     }
 
-    private static void DoDefaultOrder(FilteredSchedule schedule, ColumnOrderDictBuilder columnOrder)
+    private static void DoDefaultOrder(FilteredSchedule schedule, ColumnOrderBuilder columnOrder)
     {
         var groups = schedule.Groups;
         for (int gindex = 0; gindex < groups.Length; gindex++)
@@ -119,7 +122,7 @@ public static class ColumnArrangementHelper
         }
     }
 
-    public static bool Search(FilteredSchedule schedule, ColumnOrderDictBuilder columnOrder)
+    public static bool Search(FilteredSchedule schedule, ColumnOrderBuilder columnOrder)
     {
         var groupings = new Dictionary<DayKey, HashSet<GroupId>>();
 
@@ -163,7 +166,7 @@ public static class ColumnArrangementHelper
     private struct SearchContext
     {
         public required BitArray32 OccupiedGroupPositions;
-        public required ColumnOrderDictBuilder ColumnOrder;
+        public required ColumnOrderBuilder ColumnOrder;
         public required HashSet<GroupId>[] AllGroupingSets;
         public required GroupId[][] AllGroupingArrays;
         public required GroupId[] Groups;
@@ -179,23 +182,7 @@ public static class ColumnArrangementHelper
     {
         if (context.IsDone)
         {
-            using var indices = context.OccupiedGroupPositions.UnsetBitIndicesLowToHigh.GetEnumerator();
-            foreach (var group in context.Groups)
-            {
-                ref int groupIndex = ref context.ColumnOrder.GetRefOrAddDefault(group, out bool exists);
-                if (exists)
-                {
-                    continue;
-                }
-
-                var moved = indices.MoveNext();
-                Debug.Assert(moved, "Incorrect count!");
-                context.OccupiedGroupPositions.Set(indices.Current);
-                groupIndex = indices.Current;
-            }
-
-            Debug.Assert(indices.MoveNext() == false);
-
+            FillInUnconstrainedColumns(ref context);
             return true;
         }
 
@@ -299,6 +286,26 @@ public static class ColumnArrangementHelper
         }
 
         return false;
+    }
+
+    private static void FillInUnconstrainedColumns(ref SearchContext context)
+    {
+        using var indices = context.OccupiedGroupPositions.UnsetBitIndicesLowToHigh.GetEnumerator();
+        foreach (var group in context.Groups)
+        {
+            ref int groupIndex = ref context.ColumnOrder.GetRefOrAddDefault(group, out bool exists);
+            if (exists)
+            {
+                continue;
+            }
+
+            var moved = indices.MoveNext();
+            Debug.Assert(moved, "Incorrect count!");
+            context.OccupiedGroupPositions.Set(indices.Current);
+            groupIndex = indices.Current;
+        }
+
+        Debug.Assert(indices.MoveNext() == false);
     }
 
     private sealed class ArrangementGenerationContext

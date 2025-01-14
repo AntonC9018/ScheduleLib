@@ -66,11 +66,11 @@ public static class KeyHelper
     }
 }
 
-public readonly struct ColumnOrderDictBuilder()
+public readonly struct ColumnOrderBuilder()
 {
     public readonly Dictionary<GroupId, int> Dict = new();
 
-    public GroupId[] ToArray()
+    private GroupId[] ToArray()
     {
         var ret = new GroupId[Dict.Count];
         foreach (var (group, index) in Dict)
@@ -97,23 +97,23 @@ public readonly struct ColumnOrderDictBuilder()
     public void Add(GroupId key, int value) => Dict.Add(key, value);
     public void Remove(GroupId key) => Dict.Remove(key);
     public int Count => Dict.Count;
-    public bool IsEmpty => Dict.Count == 0;
 
-    public int this[GroupId key]
-    {
-        get => Dict[key];
-        set => Dict[key] = value;
-    }
-
-    public ColumnOrderDict AsReadOnly() => new(Dict);
+    public ColumnOrder Build() => new(Dict, ToArray());
 }
 
-public readonly struct ColumnOrderDict
+public readonly struct ColumnOrder
 {
+    private readonly GroupId[] _columns;
     private readonly Dictionary<GroupId, int> _dict;
-    public ColumnOrderDict(Dictionary<GroupId, int> dict) => _dict = dict;
+
+    public ColumnOrder(Dictionary<GroupId, int> dict, GroupId[] columns)
+    {
+        _dict = dict;
+        _columns = columns;
+    }
 
     public int this[GroupId key] => _dict[key];
+    public GroupId[] Columns => _columns;
 }
 
 public struct GeneratorCacheMappings()
@@ -125,8 +125,7 @@ public struct GeneratorCacheMappings()
 public struct GeneratorCache
 {
     public required GeneratorCacheMappings Mappings;
-    public required GroupId[] ColumnOrderArray;
-    public required ColumnOrderDict ColumnOrder;
+    public required ColumnOrder ColumnOrder;
     public required int MaxRowsInOneCell;
     public required SharedLayout? SharedLayout;
 
@@ -137,8 +136,7 @@ public struct GeneratorCache
 
         var ret = new GeneratorCache
         {
-            ColumnOrder = columnOrder.AsReadOnly(),
-            ColumnOrderArray = columnOrder.ToArray(),
+            ColumnOrder = columnOrder,
             Mappings = mappings,
             MaxRowsInOneCell = MaxLessonsInOneCell(layout),
             SharedLayout = layout,

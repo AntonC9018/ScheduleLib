@@ -48,7 +48,7 @@ public sealed class ScheduleTableDocument : IDocument
         _cache = GeneratorCache.Create(schedule);
     }
 
-    private GroupId[] Columns() => _cache.ColumnOrderArray;
+    private GroupId[] Columns() => _cache.ColumnOrder.Columns;
     private TimeSlot[] TimeSlots() => _schedule.TimeSlots;
     private DayOfWeek[] Days() => _schedule.Days;
 

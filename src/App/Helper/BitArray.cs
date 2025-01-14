@@ -3,14 +3,6 @@ using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
 
-public static class BitHelper
-{
-    public static SetBitIndicesEnumerator GetSetBitIndices(this uint i)
-    {
-        return new SetBitIndicesEnumerator(i);
-    }
-}
-
 public readonly struct Interval
 {
     public readonly int Start;
@@ -177,8 +169,8 @@ public readonly struct SetBitIndicesEnumerable : IEnumerable<int>
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public int Single() => NonAllocEnumerable.Single<int, SetBitIndicesEnumerable>(this);
-    public int First() => NonAllocEnumerable.First<int, SetBitIndicesEnumerable>(this);
+    public int Single() => NonAllocEnumerable.Single<int, SetBitIndicesEnumerator>(GetEnumerator());
+    public int First() => NonAllocEnumerable.First<int, SetBitIndicesEnumerator>(GetEnumerator());
 }
 
 public struct SetBitIndicesEnumerator : IEnumerator<int>
@@ -231,8 +223,8 @@ public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerable>(this);
-    public int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerable>(this);
+    public int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
+    public int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
 }
 
 public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
@@ -326,11 +318,11 @@ public readonly struct SlidingWindowLowToHighEnumerable : IEnumerable<SliceAndOf
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-public static class NonAllocEnumerable
+file static class NonAllocEnumerable
 {
-    public static T? First<T, E>(E e) where E : IEnumerable<T>
+    public static T? First<T, E>(E e) where E : IEnumerator<T>
     {
-        using var enumerator = e.GetEnumerator();
+        using var enumerator = e;
         if (!enumerator.MoveNext())
         {
             return default;
@@ -338,9 +330,9 @@ public static class NonAllocEnumerable
         return enumerator.Current;
     }
 
-    public static T Single<T, E>(E e) where E : IEnumerable<T>
+    public static T Single<T, E>(E e) where E : IEnumerator<T>
     {
-        using var enumerator = e.GetEnumerator();
+        using var enumerator = e;
         if (!enumerator.MoveNext())
         {
             throw new InvalidOperationException("No elements");
