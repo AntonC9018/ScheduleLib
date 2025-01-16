@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace App;
@@ -43,6 +44,25 @@ public readonly struct ListBuilder<T>()
     public ref T Ref(int id) => ref CollectionsMarshal.AsSpan(List)[id];
 }
 
+public enum ValidationMode
+{
+    Strict,
+    None,
+    AttemptAutoFix,
+}
+
+public enum SubGroupValidationMode
+{
+    Strict = ValidationMode.Strict,
+    None = ValidationMode.None,
+    PossiblyIncreaseSubGroupCount = ValidationMode.AttemptAutoFix,
+}
+
+public sealed class ValidationSettings()
+{
+    public SubGroupValidationMode SubGroup = SubGroupValidationMode.Strict;
+}
+
 public sealed class ScheduleBuilder()
 {
     public ListBuilder<RegularLessonBuilderModel> RegularLessons = new();
@@ -50,6 +70,7 @@ public sealed class ScheduleBuilder()
     public ListBuilder<Group> Groups = new();
     public ListBuilder<Teacher> Teachers = new();
     public ListBuilder<Course> Courses = new();
+    public ValidationSettings ValidationSettings = new();
 
     public GroupParseContext? GroupParseContext;
 
@@ -188,7 +209,7 @@ public static class ScheduleBuilderHelper
 
         var regularLessons = s.RegularLessons.Build(x =>
         {
-            var ret = new RegularLesson()
+            var ret = new RegularLesson
             {
                 Date = new()
                 {
@@ -302,9 +323,68 @@ public static class ScheduleBuilderHelper
                 throw new InvalidOperationException("The lesson date must be initialized.");
             }
 
-            if (lesson.Group.Groups.Group0 == GroupId.Invalid)
+
             {
-                throw new InvalidOperationException("The lesson group must be initialized.");
+                if (lesson.Group.Groups.Group0 == GroupId.Invalid)
+                {
+                    throw new InvalidOperationException("The lesson group must be initialized.");
+                }
+
+                foreach (var groupId in lesson.Group.Groups)
+                {
+                    if (groupId.Value >= s.Groups.Count || groupId.Value < 0)
+                    {
+                        throw new InvalidOperationException("Invalid group id in lesson");
+                    }
+                }
+            }
+
+            ValidateSubGroup(ref lesson);
+            void ValidateSubGroup(ref RegularLessonBuilderModel lesson1)
+            {
+                var subgroupValidation = s.ValidationSettings.SubGroup;
+                if (subgroupValidation == SubGroupValidationMode.None)
+                {
+                    return;
+                }
+
+                var groups = lesson1.Group.Groups;
+                var subgroup = lesson1.Group.SubGroup;
+                if (subgroup == SubGroupNumber.All)
+                {
+                    return;
+                }
+
+                int subgroupIndex = subgroup.Value - 1;
+
+                if (!groups.IsSingleGroup)
+                {
+                    throw new InvalidOperationException("Subgroup only supported for a singular group");
+                }
+                var groupId = groups.Group0;
+                var group = s.Groups.Ref(groupId.Value);
+                if (subgroupIndex < group.SubGroupCount)
+                {
+                    return;
+                }
+
+                switch (subgroupValidation)
+                {
+                    case SubGroupValidationMode.Strict:
+                    {
+                        throw new InvalidOperationException("Invalid subgroup number");
+                    }
+                    case SubGroupValidationMode.PossiblyIncreaseSubGroupCount:
+                    {
+                        group.SubGroupCount = subgroupIndex + 1;
+                        return;
+                    }
+                    default:
+                    {
+                        Debug.Fail("Invalid validation mode");
+                        return;
+                    }
+                }
             }
 
             if (lesson.General.Course == null)

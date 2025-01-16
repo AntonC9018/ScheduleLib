@@ -76,5 +76,41 @@ public static class ParserHelper
             }
         }
     }
+
+    public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
+    {
+        if (!parser.CanPeek(length))
+        {
+            return ConsumeIntResult.Error(ConsumeIntStatus.InputTooShort);
+        }
+
+        var numChars = parser.PeekSpan(length);
+        if (!uint.TryParse(numChars, out uint ret))
+        {
+            return ConsumeIntResult.Error(ConsumeIntStatus.NotAnInteger);
+        }
+
+        parser.Move(length);
+        return ConsumeIntResult.Ok(ret);
+    }
 }
 
+
+public enum ConsumeIntStatus
+{
+    Ok,
+    InputTooShort,
+    NotAnInteger,
+}
+
+public record struct ConsumeIntResult(
+    ConsumeIntStatus Status,
+    uint Value = 0)
+{
+    public static ConsumeIntResult Ok(uint value) => new(ConsumeIntStatus.Ok, value);
+    public static ConsumeIntResult Error(ConsumeIntStatus error)
+    {
+        Debug.Assert(error != ConsumeIntStatus.Ok);
+        return new(error);
+    }
+}

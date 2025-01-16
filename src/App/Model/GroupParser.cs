@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace App;
 
 public sealed class GroupParseContext
@@ -36,13 +38,13 @@ public static class GroupHelper
         var parser = baseParser.BufferedView();
 
         var (label, _, isMaster) = ParseLabel();
-        QualificationType qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
+        var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
         int year = ParseYear();
         int grade = context.CurrentStudyYear - year + 1; // no validation for now.
         int group = ParseGroup();
         _ = group;
         var actualName = baseParser.PeekSpanUntilPosition(parser.Position).ToString();
-        Language language = ParseLanguage();
+        var language = ParseLanguage();
 
         return new()
         {
@@ -113,39 +115,53 @@ public static class GroupHelper
         int ParseYear()
         {
             const int yearLen = 2;
-            if (!parser.CanPeek(yearLen))
+            var result = parser.ConsumePositiveInt(yearLen);
+            switch (result.Status)
             {
-                throw new InvalidOperationException("String must include 2 letters of the year after the label.");
+                case ConsumeIntStatus.Ok:
+                {
+                    return (int) result.Value;
+                }
+                case ConsumeIntStatus.InputTooShort:
+                {
+                    throw new InvalidOperationException("String must include 2 letters of the year after the label.");
+                }
+                case ConsumeIntStatus.NotAnInteger:
+                {
+                    throw new InvalidOperationException("Must be a valid year that has 2 letters.");
+                }
+                default:
+                {
+                    Debug.Fail("Unreachable");
+                    return 0;
+                }
             }
-
-            ReadOnlySpan<char> numChars = parser.PeekSpan(yearLen);
-            if (!int.TryParse(numChars, out int ret))
-            {
-                throw new InvalidOperationException("Must be a valid year that has 2 letters.");
-            }
-
-            parser.Move(yearLen);
-
-            return ret;
         }
 
         int ParseGroup()
         {
             const int groupLen = 2;
-            if (!parser.CanPeek(groupLen))
+            var result = parser.ConsumePositiveInt(groupLen);
+            switch (result.Status)
             {
-                throw new InvalidOperationException("String must include 2 letters of the group after the year.");
+                case ConsumeIntStatus.Ok:
+                {
+                    return (int) result.Value;
+                }
+                case ConsumeIntStatus.InputTooShort:
+                {
+                    throw new InvalidOperationException("String must include 2 letters of the group after the year.");
+                }
+                case ConsumeIntStatus.NotAnInteger:
+                {
+                    throw new InvalidOperationException("Must be a valid number that has 2 letters.");
+                }
+                default:
+                {
+                    Debug.Fail("Unreachable");
+                    return 0;
+                }
             }
-
-            ReadOnlySpan<char> numChars = parser.PeekSpan(groupLen);
-            if (!int.TryParse(numChars, out int ret))
-            {
-                throw new InvalidOperationException("Must be a valid number that has 2 letters.");
-            }
-
-            parser.Move(groupLen);
-
-            return ret;
         }
 
         Language ParseLanguage()

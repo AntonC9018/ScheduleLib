@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace App;
+namespace App.Generation;
 
 public record struct CellKey
 {

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace App;
+namespace App.Generation;
 
 public sealed class SharedLayout
 {

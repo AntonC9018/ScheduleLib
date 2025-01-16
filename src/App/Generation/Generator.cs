@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using System.Reflection;
 using System.Text;
 using QuestPDF.Elements.Table;
@@ -6,7 +5,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace App;
+namespace App.Generation;
 
 public static class StringBuilderHelper
 {
