@@ -54,7 +54,8 @@ foreach (var table in tables)
     }
 
     DayOfWeek currentDay = default;
-    int currentTimeSlotIndex = 0;
+    int currentTimeSlotOrdinal = 0;
+    TimeSlot currentTimeSlot = default;
 
     const int dayColumnIndex = 0;
     const int timeSlotColumnIndex = 1;
@@ -76,12 +77,31 @@ foreach (var table in tables)
                 }
                 case timeSlotColumnIndex:
                 {
+                    (currentTimeSlotOrdinal, currentTimeSlot) = TimeSlotCol();
                     break;
                 }
                 default:
                 {
+                    NormalCol();
+                    break;
                 }
             }
+
+            var colSpan = props?.GridSpan?.Val ?? 1;
+
+            switch (columnIndex)
+            {
+                case dayColumnIndex or timeSlotColumnIndex:
+                {
+                    if (colSpan != 0)
+                    {
+                        throw new NotSupportedException("The day and time slot columns must be one column in width");
+                    }
+                    break;
+                }
+            }
+            columnIndex += colSpan;
+
 
             DayOfWeek DayOfWeekCol()
             {
@@ -115,7 +135,7 @@ foreach (var table in tables)
                 return day;
             }
 
-            int TimeSlotCol()
+            (int Ordinal, TimeSlot TimeSlot) TimeSlotCol()
             {
                 if (props?.VerticalMerge is not { } mergeStart)
                 {
@@ -125,7 +145,7 @@ foreach (var table in tables)
                 if (mergeStart.Val is not { } mergeStartVal
                     || mergeStartVal == MergedCellValues.Continue)
                 {
-                    return currentTimeSlotIndex;
+                    return (currentTimeSlotOrdinal, currentTimeSlot);
                 }
 
                 if (mergeStart.Val != MergedCellValues.Restart)
@@ -144,7 +164,7 @@ foreach (var table in tables)
                     throw new NotSupportedException("Invalid time slot cell");
                 }
 
-                int newCurrentSlot;
+                int newTimeSlotOrdinal;
                 {
                     var numberParagraph = paragraphs.Current;
                     if (numberParagraph.InnerText is not { } numberText)
@@ -153,12 +173,12 @@ foreach (var table in tables)
                     }
 
                     var num = NumberHelper.FromRoman(numberText);
-                    if (num != currentTimeSlotIndex + 1)
+                    if (num != currentTimeSlotOrdinal + 1)
                     {
                         throw new NotSupportedException("The time slot number must be in order");
                     }
 
-                    newCurrentSlot = num;
+                    newTimeSlotOrdinal = num;
                 }
 
                 if (!paragraphs.MoveNext())
@@ -166,23 +186,100 @@ foreach (var table in tables)
                     throw new NotSupportedException("");
                 }
 
+                var time = Time();
+
+                if (paragraphs.MoveNext())
+                {
+                    throw new NotSupportedException("Extra paragraphs");
+                }
+
+                {
+                    var timeStarts = timeConfig.Base.TimeSlotStarts;
+                    var timeSlotIndex = currentTimeSlot.Index + 1;
+                    if (timeStarts[timeSlotIndex] != time.Start)
+                    {
+                        throw new NotSupportedException("The time slots must follow each other");
+                    }
+
+                    var expectedEndTime = time.Start.Add(timeConfig.Base.LessonDuration);
+                    if (expectedEndTime != time.End)
+                    {
+                        throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({timeConfig.Base.LessonDuration} minutes)");
+                    }
+
+                    return (newTimeSlotOrdinal, new(timeSlotIndex));
+                }
+
+                (TimeOnly Start, TimeOnly End) Time()
+                {
+                    var timeParagraph = paragraphs.Current;
+                    if (timeParagraph.InnerText is not { } timeText)
+                    {
+                        throw new NotSupportedException("The time slot must contain the time range second");
+                    }
+
+                    // HH:MM-HH:MM
+                    var parser = new Parser(timeText);
+                    parser.SkipWhitespace();
+                    var startTime = ParseTime(ref parser);
+                    if (parser.IsEmpty || parser.Current != '-')
+                    {
+                        throw new NotSupportedException("Expected '-' after start time");
+                    }
+                    parser.Move();
+                    var endTime = ParseTime(ref parser);
+
+                    parser.SkipWhitespace();
+
+                    if (!parser.IsEmpty)
+                    {
+                        throw new NotSupportedException("Time range not consumed fully");
+                    }
+
+                    return (startTime, endTime);
+                }
+
             }
 
-            var colSpan = props?.GridSpan?.Val ?? 1;
-
-            switch (columnIndex)
+            void NormalCol()
             {
-                case dayColumnIndex or timeSlotColumnIndex:
+                if (!ShouldAdd())
                 {
-                    if (colSpan != 0)
+                    return;
+                }
+
+                // 15:00 Baze de date(curs)
+                // L.Novac    404/4
+                // (optional) time override
+                // name
+                // (optional) (type,parity) or (parity) or (type)  -- A
+                // (optional) second name + A
+                // (optional) roman subgroup:    --  I:
+                // professor name
+                // cab (optional?)
+
+                // First organize as just lines, it's easier
+                var lines = cell.ChildElements
+                    .OfType<Paragraph>()
+                    .SelectMany(x => x.InnerText.Split("\n"));
+
+
+
+
+                bool ShouldAdd()
+                {
+                    if (props?.VerticalMerge is not { } merge)
                     {
-                        throw new NotSupportedException("The day and time slot columns must be one column in width");
+                        return true;
                     }
-                    break;
+                    if (merge.Val is { } val
+                        && val == MergedCellValues.Restart)
+                    {
+                        return true;
+                    }
+                    return false;
                 }
             }
-
-            columnIndex += colSpan;
         }
     }
 

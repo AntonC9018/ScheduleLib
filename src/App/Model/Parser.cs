@@ -12,6 +12,7 @@ public struct Parser
         _input = input;
     }
 
+    public readonly string Source => _input;
     public readonly bool IsEmpty => _index >= _input.Length;
     public readonly char Peek(int i) => _input[_index + i];
     public readonly bool CanPeek(int i) => _index + i < _input.Length;
@@ -33,6 +34,11 @@ public struct Parser
     public readonly Parser BufferedView() => this;
 }
 
+public interface IShouldSkip
+{
+    public bool ShouldSkip(char ch);
+}
+
 public static class ParserHelper
 {
     public static bool IsUpper(char ch)
@@ -45,16 +51,17 @@ public static class ParserHelper
         return ch >= 'a' && ch <= 'z';
     }
 
-    public static void SkipWhitespace(this ref Parser parser)
+    public static bool Skip<T>(this ref Parser parser, T impl)
+        where T : struct, IShouldSkip, allows ref struct
     {
-        bool Iter(ref Parser p)
+        static bool Iter(ref Parser p, T impl)
         {
             if (p.IsEmpty)
             {
                 return true;
             }
 
-            if (p.Current != ' ')
+            if (!impl.ShouldSkip(p.Current))
             {
                 return true;
             }
@@ -63,18 +70,27 @@ public static class ParserHelper
             return false;
         }
 
-        if (Iter(ref parser))
+        if (Iter(ref parser, impl))
         {
-            return;
+            return false;
         }
 
         while (true)
         {
-            if (Iter(ref parser))
+            if (Iter(ref parser, impl))
             {
-                return;
+                return true;
             }
         }
+    }
+
+    private struct WhitespaceSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => char.IsWhiteSpace(ch);
+    }
+    public static bool SkipWhitespace(this ref Parser parser)
+    {
+        return parser.Skip(new WhitespaceSkip());
     }
 
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)

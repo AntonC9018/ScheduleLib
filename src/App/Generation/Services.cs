@@ -70,17 +70,36 @@ public sealed class ParityDisplayHandler
     }
 }
 
+public static class LessonTypeConstants
+{
+    private static string[] CreateNames()
+    {
+        var ret = new string[3];
+        void Set(LessonType t, string name)
+        {
+            ret[(int) t] = name;
+        }
+
+        Set(LessonType.Curs, "curs");
+        Set(LessonType.Lab, "lab");
+        Set(LessonType.Seminar, "sem");
+        Debug.Assert(ret.None(x => x is null));
+        return ret;
+    }
+
+    public static readonly ImmutableArray<string> Names = [..CreateNames()];
+}
+
 public sealed class LessonTypeDisplayHandler
 {
     public string? Get(LessonType type)
     {
-        return type switch
+        var names = LessonTypeConstants.Names;
+        if ((int) type < names.Length)
         {
-            LessonType.Curs => "curs",
-            LessonType.Lab => "lab",
-            LessonType.Seminar => "sem",
-            _ => null,
-        };
+            return names[(int) type];
+        }
+        return null;
     }
 }
 

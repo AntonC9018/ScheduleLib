@@ -21,7 +21,7 @@ public enum Parity
 
 public struct DefaultLessonTimeConfig
 {
-    public required LessonTimeConfig General;
+    public required LessonTimeConfig Base;
     public TimeSlot T8_00 => new(0);
     public TimeSlot T9_45 => new(1);
     public TimeSlot T11_30 => new(2);
@@ -30,7 +30,7 @@ public struct DefaultLessonTimeConfig
     public TimeSlot T16_45 => new(5);
     public TimeSlot T18_30 => new(6);
 
-    public static implicit operator LessonTimeConfig(DefaultLessonTimeConfig c) => c.General;
+    public static implicit operator LessonTimeConfig(DefaultLessonTimeConfig c) => c.Base;
 }
 
 public sealed class LessonTimeConfig
@@ -47,7 +47,7 @@ public sealed class LessonTimeConfig
         };
         return new()
         {
-            General = ret,
+            Base = ret,
         };
     }
 
@@ -240,10 +240,10 @@ public sealed class OneTimeLesson
 
 public enum LessonType
 {
-    Unspecified,
     Lab,
     Seminar,
     Curs,
+    Unspecified,
     Custom,
 }
 
