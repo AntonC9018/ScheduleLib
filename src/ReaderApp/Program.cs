@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using App;
 using App.Generation;
 using App.Parsing.Lesson;
@@ -40,8 +41,8 @@ foreach (var table in tables)
 
     IEnumerable<TableCell> Cells() => rowEnumerator.Current.ChildElements.OfType<TableCell>();
 
-    int skippedCols = HeaderRow(colOffset);
-    if (skippedCols != 2)
+    var columnCounts = HeaderRow(colOffset);
+    if (columnCounts.Skipped != 2)
     {
         throw new NotSupportedException("Docs with only header 2 cols supported");
     }
@@ -92,8 +93,13 @@ foreach (var table in tables)
                     break;
                 }
             }
-            columnIndex += colSpan;
 
+            int countLeft = columnCounts.Total - columnIndex;
+            if (countLeft > colSpan)
+            {
+                throw new NotSupportedException("The column count is off");
+            }
+            columnIndex += colSpan;
 
             DayOfWeek DayOfWeekCol()
             {
@@ -242,7 +248,7 @@ foreach (var table in tables)
 
             }
 
-            void NormalCol(int colSpan)
+            void NormalCol(int colSpan1)
             {
                 if (!ShouldAdd())
                 {
@@ -308,7 +314,7 @@ foreach (var table in tables)
 
                     {
                         var groups = new LessonGroups();
-                        for (int i = 0; i < colSpan; i++)
+                        for (int i = 0; i < colSpan1; i++)
                         {
                             var groupId = GroupId(i + columnIndex);
                             groups.Add(groupId);
@@ -317,7 +323,7 @@ foreach (var table in tables)
                         if (groups.Count > 0
                             && lesson.SubGroupNumber != SubGroupNumber.All)
                         {
-                            throw new NotSupportedException("Lessons with for subgroups with multiple groups not supported");
+                            throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
                         }
 
                         ref var g = ref l.Model.Group;
@@ -325,7 +331,6 @@ foreach (var table in tables)
                         g.SubGroup = lesson.SubGroupNumber;
                     }
                 }
-
 
                 bool ShouldAdd()
                 {
@@ -348,17 +353,17 @@ foreach (var table in tables)
 
     GroupId GroupId(int colIndex)
     {
-        return new(colOffset + colIndex);
+        return new(colOffset + colIndex - columnCounts.Skipped);
     }
 
-    int HeaderRow(int colOffset1)
+    ColumnCounts HeaderRow(int colOffset1)
     {
         int skippedCount = 0;
-        int goodCellIndex = 0;
+        int goodCellCount = 0;
         using var cellEnumerator = Cells().GetEnumerator();
         if (cellEnumerator.MoveNext())
         {
-            return 0;
+            return new(0, 0);
         }
         while (true)
         {
@@ -371,31 +376,32 @@ foreach (var table in tables)
 
             if (!cellEnumerator.MoveNext())
             {
-                return skippedCount;
+                return new(skippedCount, 0);
             }
         }
         while (true)
         {
             var text = cellEnumerator.Current.InnerText;
-            var expectedId = goodCellIndex + colOffset1;
+            var expectedId = goodCellCount + colOffset1;
             var group = c.Schedule.Group(text);
             Debug.Assert(expectedId == group.Id.Value);
 
-            goodCellIndex++;
+            goodCellCount++;
             if (!cellEnumerator.MoveNext())
             {
-                return skippedCount;
+                return new(skippedCount, goodCellCount);
             }
         }
     }
 }
 
+[DoesNotReturn]
 void TimeSlotError()
 {
     throw new NotSupportedException("The time slot must contain the time range second");
 }
 
-public sealed class DocParseContext()
+public sealed class DocParseContext
 {
     public required ScheduleBuilder Schedule;
     public required LessonTimeConfig TimeConfig;
@@ -480,4 +486,9 @@ public readonly struct Maps()
     public readonly NameMap<CourseId> Courses = new();
     public readonly NameMap<TeacherId> Teachers = new();
     public readonly NameMap<RoomId> Rooms = new();
+}
+
+public readonly record struct ColumnCounts(int Skipped, int Good)
+{
+    public int Total => Skipped + Good;
 }
