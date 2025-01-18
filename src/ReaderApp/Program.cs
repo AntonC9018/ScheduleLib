@@ -6,22 +6,12 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
 
-var schedule = new ScheduleBuilder
-{
-    ValidationSettings = new()
-    {
-        SubGroup = SubGroupValidationMode.PossiblyIncreaseSubGroupCount,
-    },
-};
 
-schedule.SetStudyYear(2024);
-// TODO: Read the whole table once to find these first.
-var timeConfig = LessonTimeConfig.CreateDefault();
-var dayNameProvider = new DayNameProvider();
-var dayNameToDay = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase);
-var courseByName = new Dictionary<string, CourseId>();
-var teacherByName = new Dictionary<string, TeacherId>();
-var roomByName = new Dictionary<string, RoomId>();
+var c = DocParseContext.Create(new()
+{
+    DayNameProvider = new(),
+});
+c.Schedule.SetStudyYear(2024);
 
 const string fileName = "Orar_An_II Lic.docx";
 var fullPath = Path.GetFullPath(fileName);
@@ -128,8 +118,7 @@ foreach (var table in tables)
                     throw new NotSupportedException("The day name column must include the day name");
                 }
 
-                // parse
-                if (!dayNameToDay.TryGetValue(dayNameText, out var day))
+                if (c.DayNameParser.Map(dayNameText) is not { } day)
                 {
                     throw new NotSupportedException($"The day {dayNameText} is invalid");
                 }
@@ -157,7 +146,6 @@ foreach (var table in tables)
 
                 // I
                 // 8:00-9:30
-
 
                 // Two paragraphs
                 using var paragraphs = cell.ChildElements.OfType<Paragraph>().GetEnumerator();
@@ -200,17 +188,17 @@ foreach (var table in tables)
                 }
 
                 {
-                    var timeStarts = timeConfig.Base.TimeSlotStarts;
+                    var timeStarts = c.TimeConfig.TimeSlotStarts;
                     var timeSlotIndex = currentTimeSlot.Index + 1;
                     if (timeStarts[timeSlotIndex] != time.Start)
                     {
                         throw new NotSupportedException("The time slots must follow each other");
                     }
 
-                    var expectedEndTime = time.Start.Add(timeConfig.Base.LessonDuration);
+                    var expectedEndTime = time.Start.Add(c.TimeConfig.LessonDuration);
                     if (expectedEndTime != time.End)
                     {
-                        throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({timeConfig.Base.LessonDuration} minutes)");
+                        throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({c.TimeConfig.LessonDuration} minutes)");
                     }
 
                     return (newTimeSlotOrdinal, new(timeSlotIndex));
@@ -284,11 +272,11 @@ foreach (var table in tables)
 
                 foreach (var lesson in lessons)
                 {
-                    var l = schedule.RegularLesson();
+                    var l = c.Schedule.RegularLesson();
 
                     if (lesson.StartTime is { } startTime)
                     {
-                        int timeSlotIndex = Array.BinarySearch(timeConfig.Base.TimeSlotStarts, startTime);
+                        int timeSlotIndex = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, startTime);
                         if (timeSlotIndex == -1)
                         {
                             TimeSlotError();
@@ -302,23 +290,17 @@ foreach (var table in tables)
                     // TODO: unite names
                     {
                         var courseName = lesson.LessonName.ToString();
-                        var courseId = courseByName.GetOrAdd(
-                            courseName,
-                            x => schedule.Course(x));
+                        var courseId = c.Course(courseName);
                         l.Course(courseId);
                     }
                     {
                         var teacherName = lesson.TeacherName.ToString();
-                        var teacherId = teacherByName.GetOrAdd(
-                            teacherName,
-                            x => schedule.Teacher(x));
+                        var teacherId = c.Teacher(teacherName);
                         l.Teacher(teacherId);
                     }
                     {
                         var roomName = lesson.RoomName.ToString();
-                        var roomId = roomByName.GetOrAdd(
-                            roomName,
-                            x => schedule.Room(x));
+                        var roomId = c.Room(roomName);
                         l.Room(roomId);
                     }
                     l.Type(lesson.LessonType);
@@ -396,7 +378,7 @@ foreach (var table in tables)
         {
             var text = cellEnumerator.Current.InnerText;
             var expectedId = goodCellIndex + colOffset1;
-            var group = schedule.Group(text);
+            var group = c.Schedule.Group(text);
             Debug.Assert(expectedId == group.Id.Value);
 
             goodCellIndex++;
@@ -411,4 +393,91 @@ foreach (var table in tables)
 void TimeSlotError()
 {
     throw new NotSupportedException("The time slot must contain the time range second");
+}
+
+public sealed class DocParseContext()
+{
+    public required ScheduleBuilder Schedule;
+    public required LessonTimeConfig TimeConfig;
+    public required DayNameParser DayNameParser;
+    public required Maps Maps;
+
+    public struct CreateParams
+    {
+        public required DayNameProvider DayNameProvider;
+    }
+
+    public static DocParseContext Create(CreateParams p)
+    {
+        var s = new ScheduleBuilder
+        {
+            ValidationSettings = new()
+            {
+                SubGroup = SubGroupValidationMode.PossiblyIncreaseSubGroupCount,
+            },
+        };
+        var timeConfig = LessonTimeConfig.CreateDefault();
+
+        return new()
+        {
+            Schedule = s,
+            TimeConfig = timeConfig,
+            DayNameParser = new DayNameParser(p.DayNameProvider),
+            Maps = new(),
+        };
+    }
+
+    public CourseId Course(string name) => Maps.Courses.GetOrAdd(name, x => Schedule.Course(x));
+    public TeacherId Teacher(string name) => Maps.Teachers.GetOrAdd(name, x => Schedule.Teacher(x));
+    public RoomId Room(string name) => Maps.Rooms.GetOrAdd(name, x => Schedule.Room(x));
+}
+
+// TODO: Read the whole table once to find these first.
+public readonly struct DayNameParser(DayNameProvider p)
+{
+    private readonly Dictionary<string, DayOfWeek> _days = CreateMappings(p);
+
+    public DayOfWeek? Map(string s)
+    {
+        if (_days.TryGetValue(s, out var day))
+        {
+            return day;
+        }
+        return null;
+    }
+
+    private static Dictionary<string, DayOfWeek> CreateMappings(DayNameProvider p)
+    {
+        var ret = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < p.Names.Length; index++)
+        {
+            string name = p.Names[index];
+            ret.Add(name, (DayOfWeek) index);
+        }
+        return ret;
+    }
+}
+
+public readonly struct NameMap<T>() where T : struct
+{
+    public readonly Dictionary<string, T> _values = new();
+
+    public T GetOrAdd(string name, Func<string, T> add)
+    {
+        if (_values.TryGetValue(name, out var value))
+        {
+            return value;
+        }
+
+        value = add(name);
+        _values.Add(name, value);
+        return value;
+    }
+}
+
+public readonly struct Maps()
+{
+    public readonly NameMap<CourseId> Courses = new();
+    public readonly NameMap<TeacherId> Teachers = new();
+    public readonly NameMap<RoomId> Rooms = new();
 }
