@@ -25,6 +25,7 @@ public struct Parser
         Debug.Assert(_index <= position);
         _index = position;
     }
+    public void MovePast(int position) => MoveTo(position + 1);
 
     public int Position => _index;
 
@@ -93,6 +94,15 @@ public static class ParserHelper
         return parser.Skip(new WhitespaceSkip());
     }
 
+    private struct NotWhitespaceSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch);
+    }
+    public static bool SkipNotWhitespace(this ref Parser parser)
+    {
+        return parser.Skip(new NotWhitespaceSkip());
+    }
+
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
     {
         if (!parser.CanPeek(length))
@@ -108,6 +118,63 @@ public static class ParserHelper
 
         parser.Move(length);
         return ConsumeIntResult.Ok(ret);
+    }
+
+    private struct NumberSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => char.IsNumber(ch);
+    }
+    public static bool SkipNumbers(this ref Parser parser)
+    {
+        return parser.Skip(new NumberSkip());
+    }
+
+    public static TimeOnly? ParseTime(ref Parser parser)
+    {
+        var bparser = parser.BufferedView();
+        if (!parser.SkipNumbers())
+        {
+            return null;
+        }
+
+        uint hours;
+        {
+            var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            if (!uint.TryParse(numberSpan, out hours))
+            {
+                return null;
+            }
+
+            parser.MoveTo(bparser.Position);
+        }
+
+        {
+            if (parser.Current != ':')
+            {
+                return null;
+            }
+            parser.Move();
+        }
+
+        uint minutes;
+        {
+            var result = parser.ConsumePositiveInt(length: 2);
+            if (result.Status != ConsumeIntStatus.Ok)
+            {
+                return null;
+            }
+
+            minutes = result.Value;
+        }
+
+        {
+            var timeSpan = new TimeSpan(
+                hours: (int) hours,
+                minutes: (int) minutes,
+                seconds: 0);
+            var ret = TimeOnly.FromTimeSpan(timeSpan);
+            return ret;
+        }
     }
 }
 

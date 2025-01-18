@@ -124,16 +124,16 @@ public static class NumberHelper
         return romanLetter;
     }
 
-    public static int FromRoman(string roman)
+    public static int? FromRoman(ReadOnlySpan<char> roman)
     {
         for (int i = 1; i <= 10; i++)
         {
             var num = ToRoman(i);
-            if (num.Equals(roman, StringComparison.Ordinal))
+            if (num.AsSpan().Equals(roman, StringComparison.Ordinal))
             {
                 return i;
             }
         }
-        throw new NotImplementedException("Unimplemented for higher time slots.");
+        return null;
     }
 }

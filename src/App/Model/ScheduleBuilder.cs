@@ -190,6 +190,25 @@ public static class Helper1
     public static void Room(this ILessonBuilder b, RoomId room) => b.Model.General.Room = room;
     public static void Type(this ILessonBuilder b, LessonType type) => b.Model.General.Type = type;
     public static void Course(this ILessonBuilder b, CourseId course) => b.Model.General.Course = course;
+    public static void Add<T>(this ILessonBuilder b, T id) where T : struct
+    {
+        if (typeof(T) == typeof(TeacherId))
+        {
+            b.Teacher((TeacherId) (object) id);
+            return;
+        }
+        if (typeof(T) == typeof(RoomId))
+        {
+            b.Room((RoomId) (object) id);
+            return;
+        }
+        if (typeof(T) == typeof(CourseId))
+        {
+            b.Course((CourseId) (object) id);
+            return;
+        }
+        throw new ArgumentException("Invalid type");
+    }
 }
 
 public sealed class RegularLessonBuilder : ILessonBuilder

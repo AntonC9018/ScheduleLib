@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using App;
 using App.Generation;
+using App.Parsing.Lesson;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
 
@@ -19,6 +19,9 @@ schedule.SetStudyYear(2024);
 var timeConfig = LessonTimeConfig.CreateDefault();
 var dayNameProvider = new DayNameProvider();
 var dayNameToDay = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase);
+var courseByName = new Dictionary<string, CourseId>();
+var teacherByName = new Dictionary<string, TeacherId>();
+var roomByName = new Dictionary<string, RoomId>();
 
 const string fileName = "Orar_An_II Lic.docx";
 var fullPath = Path.GetFullPath(fileName);
@@ -67,6 +70,7 @@ foreach (var table in tables)
         foreach (var cell in Cells())
         {
             var props = cell.TableCellProperties;
+            var colSpan = props?.GridSpan?.Val ?? 1;
 
             switch (columnIndex)
             {
@@ -82,12 +86,10 @@ foreach (var table in tables)
                 }
                 default:
                 {
-                    NormalCol();
+                    NormalCol(colSpan);
                     break;
                 }
             }
-
-            var colSpan = props?.GridSpan?.Val ?? 1;
 
             switch (columnIndex)
             {
@@ -172,7 +174,11 @@ foreach (var table in tables)
                         throw new NotSupportedException("The time slot must contain the ordinal first");
                     }
 
-                    var num = NumberHelper.FromRoman(numberText);
+                    var maybeNum = NumberHelper.FromRoman(numberText);
+                    if (maybeNum is not { } num)
+                    {
+                        throw new NotSupportedException("The time slot number should be a roman numeral");
+                    }
                     if (num != currentTimeSlotOrdinal + 1)
                     {
                         throw new NotSupportedException("The time slot number must be in order");
@@ -215,19 +221,26 @@ foreach (var table in tables)
                     var timeParagraph = paragraphs.Current;
                     if (timeParagraph.InnerText is not { } timeText)
                     {
-                        throw new NotSupportedException("The time slot must contain the time range second");
+                        TimeSlotError();
                     }
 
                     // HH:MM-HH:MM
                     var parser = new Parser(timeText);
                     parser.SkipWhitespace();
-                    var startTime = ParseTime(ref parser);
+                    if (ParserHelper.ParseTime(ref parser) is not { } startTime)
+                    {
+                        throw new NotSupportedException("Expected time range start");
+                    }
                     if (parser.IsEmpty || parser.Current != '-')
                     {
                         throw new NotSupportedException("Expected '-' after start time");
                     }
                     parser.Move();
-                    var endTime = ParseTime(ref parser);
+
+                    if (ParserHelper.ParseTime(ref parser) is not { } endTime)
+                    {
+                        throw new NotSupportedException("Expected time range end");
+                    }
 
                     parser.SkipWhitespace();
 
@@ -241,7 +254,7 @@ foreach (var table in tables)
 
             }
 
-            void NormalCol()
+            void NormalCol(int colSpan)
             {
                 if (!ShouldAdd())
                 {
@@ -262,8 +275,74 @@ foreach (var table in tables)
                 var lines = cell.ChildElements
                     .OfType<Paragraph>()
                     .SelectMany(x => x.InnerText.Split("\n"));
+                var lessons = LessonParsingHelper.ParseLessons(new()
+                {
+                    Lines = lines,
+                    ParityParser = ParityParser.Instance,
+                    LessonTypeParser = LessonTypeParser.Instance,
+                });
 
+                foreach (var lesson in lessons)
+                {
+                    var l = schedule.RegularLesson();
 
+                    if (lesson.StartTime is { } startTime)
+                    {
+                        int timeSlotIndex = Array.BinarySearch(timeConfig.Base.TimeSlotStarts, startTime);
+                        if (timeSlotIndex == -1)
+                        {
+                            TimeSlotError();
+                        }
+
+                        l.TimeSlot(new(timeSlotIndex));
+                    }
+
+                    l.DayOfWeek(currentDay);
+
+                    // TODO: unite names
+                    {
+                        var courseName = lesson.LessonName.ToString();
+                        var courseId = courseByName.GetOrAdd(
+                            courseName,
+                            x => schedule.Course(x));
+                        l.Course(courseId);
+                    }
+                    {
+                        var teacherName = lesson.TeacherName.ToString();
+                        var teacherId = teacherByName.GetOrAdd(
+                            teacherName,
+                            x => schedule.Teacher(x));
+                        l.Teacher(teacherId);
+                    }
+                    {
+                        var roomName = lesson.RoomName.ToString();
+                        var roomId = roomByName.GetOrAdd(
+                            roomName,
+                            x => schedule.Room(x));
+                        l.Room(roomId);
+                    }
+                    l.Type(lesson.LessonType);
+                    l.Parity(lesson.Parity);
+
+                    {
+                        var groups = new LessonGroups();
+                        for (int i = 0; i < colSpan; i++)
+                        {
+                            var groupId = GroupId(i + columnIndex);
+                            groups.Add(groupId);
+                        }
+
+                        if (groups.Count > 0
+                            && lesson.SubGroupNumber != SubGroupNumber.All)
+                        {
+                            throw new NotSupportedException("Lessons with for subgroups with multiple groups not supported");
+                        }
+
+                        ref var g = ref l.Model.Group;
+                        g.Groups = groups;
+                        g.SubGroup = lesson.SubGroupNumber;
+                    }
+                }
 
 
                 bool ShouldAdd()
@@ -355,4 +434,9 @@ foreach (var table in tables)
         }
     }
 
+}
+
+void TimeSlotError()
+{
+    throw new NotSupportedException("The time slot must contain the time range second");
 }
