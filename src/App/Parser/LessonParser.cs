@@ -332,13 +332,13 @@ public static class LessonParsingHelper
                 }
 
                 var numberSpan = c.Parser.PeekSpanUntilPosition(bparser.Position);
-                if (NumberHelper.FromRoman(numberSpan) is not { } romanSubGroup)
+                // TODO: Figure out what to do with named groups? what even are these?
+                if (NumberHelper.FromRoman(numberSpan) is { } romanSubGroup)
                 {
-                    throw new WrongFormatException();
+                    c.State.CurrentSubLesson.SubGroupNumber = new(romanSubGroup);
                 }
 
                 c.State.Step = ParsingStep.TeacherName;
-                c.State.CurrentSubLesson.SubGroupNumber = new(romanSubGroup);
                 c.Parser.MovePast(bparser.Position);
                 break;
             }

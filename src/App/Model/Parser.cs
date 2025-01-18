@@ -25,7 +25,10 @@ public struct Parser
         Debug.Assert(_index <= position);
         _index = position;
     }
-    public void MovePast(int position) => MoveTo(position + 1);
+    public void MovePast(int position)
+    {
+        _index = Math.Min(_input.Length, position + 1);
+    }
 
     public int Position => _index;
 

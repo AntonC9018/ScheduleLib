@@ -362,34 +362,7 @@ foreach (var table in tables)
         }
     }
 
-    foreach (var (rowIndex, row) in rows.WithIndex())
-    {
-        var cells = row.ChildElements.OfType<TableCell>();
-        // Read the header.
-        if (rowIndex == 0)
-        {
-        }
-
-        var props = row.TableRowProperties;
-
-        foreach (var maybeCell in row.ChildElements)
-        {
-            if (maybeCell is not TableCell cell)
-            {
-                continue;
-            }
-
-            if (!cell.InnerText.Contains("Progr.JAVA"))
-            {
-                continue;
-            }
-
-            if (cell.TableCellProperties?.GridSpan is { } span)
-            {
-                Console.WriteLine(span);
-            }
-        }
-    }
+    _ = rowIndex;
 
     GroupId GroupId(int colIndex)
     {
@@ -433,7 +406,6 @@ foreach (var table in tables)
             }
         }
     }
-
 }
 
 void TimeSlotError()
