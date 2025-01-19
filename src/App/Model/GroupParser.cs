@@ -79,7 +79,7 @@ public static class GroupHelper
                     throw new InvalidOperationException("After the label, it must include a number!");
                 }
 
-                if (bparser.CanPeek(2))
+                if (bparser.CanPeekCount(2))
                 {
                     var chars = bparser.PeekSpan(2);
                     if (chars[0] == 'F' && chars[1] == 'R' && !ParserHelper.IsUpper(chars[2]))

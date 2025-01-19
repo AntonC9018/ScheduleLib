@@ -14,8 +14,9 @@ public struct Parser
 
     public readonly string Source => _input;
     public readonly bool IsEmpty => _index >= _input.Length;
-    public readonly char Peek(int i) => _input[_index + i];
-    public readonly bool CanPeek(int i) => _index + i < _input.Length;
+    public readonly char PeekAt(int offset) => _input[_index + offset];
+    public readonly bool CanPeekAt(int offset) => _index + offset < _input.Length;
+    public readonly bool CanPeekCount(int size) => CanPeekAt(size - 1);
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(int positionExclusive) => _input.AsSpan()[_index .. positionExclusive];
     public readonly char Current => _input[_index];
@@ -36,11 +37,17 @@ public struct Parser
     // Currently just return a copy, because we only have a string impl and
     // I don't want it to get more abstract at this point.
     public readonly Parser BufferedView() => this;
+    public readonly override string ToString() => _input[_index ..];
 }
 
 public interface IShouldSkip
 {
     public bool ShouldSkip(char ch);
+}
+
+public interface IShouldSkipSequence
+{
+    public bool ShouldSkip(ReadOnlySpan<char> window);
 }
 
 public static class ParserHelper
@@ -55,44 +62,74 @@ public static class ParserHelper
         return ch >= 'a' && ch <= 'z';
     }
 
-    public static bool Skip<T>(this ref Parser parser, T impl)
-        where T : struct, IShouldSkip, allows ref struct
+    public struct SkipResult
     {
-        static bool Iter(ref Parser p, T impl)
+        public bool EndOfInput;
+        public bool Satisfied;
+        public bool SkippedAny;
+
+        public static SkipResult EndOfInputResult => new()
         {
-            if (p.IsEmpty)
-            {
-                return true;
-            }
+            EndOfInput = true,
+        };
+    }
 
-            if (!impl.ShouldSkip(p.Current))
-            {
-                return true;
-            }
+    public static SkipResult SkipWindow<T>(
+        this ref Parser parser,
+        T impl,
+        int windowSize)
 
-            p.Move();
-            return false;
-        }
-
-        if (Iter(ref parser, impl))
-        {
-            return false;
-        }
-
+        where T : struct, IShouldSkipSequence, allows ref struct
+    {
+        var ret = new SkipResult();
         while (true)
         {
-            if (Iter(ref parser, impl))
+            if (!parser.CanPeekCount(windowSize))
             {
-                return true;
+                ret.EndOfInput = true;
+                break;
             }
+
+            var window = parser.PeekSpan(windowSize);
+            if (!impl.ShouldSkip(window))
+            {
+                ret.Satisfied = true;
+                break;
+            }
+
+            ret.SkippedAny = true;
         }
+        return ret;
+    }
+
+    public static SkipResult Skip<T>(this ref Parser parser, T impl)
+        where T : struct, IShouldSkip, allows ref struct
+    {
+        var ret = new SkipResult();
+        while (true)
+        {
+            if (parser.IsEmpty)
+            {
+                ret.EndOfInput = true;
+                break;
+            }
+
+            if (!impl.ShouldSkip(parser.Current))
+            {
+                break;
+            }
+
+            ret.SkippedAny = true;
+            parser.Move();
+        }
+        return ret;
     }
 
     private struct WhitespaceSkip : IShouldSkip
     {
         public bool ShouldSkip(char ch) => char.IsWhiteSpace(ch);
     }
-    public static bool SkipWhitespace(this ref Parser parser)
+    public static SkipResult SkipWhitespace(this ref Parser parser)
     {
         return parser.Skip(new WhitespaceSkip());
     }
@@ -101,14 +138,14 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch);
     }
-    public static bool SkipNotWhitespace(this ref Parser parser)
+    public static SkipResult SkipNotWhitespace(this ref Parser parser)
     {
         return parser.Skip(new NotWhitespaceSkip());
     }
 
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
     {
-        if (!parser.CanPeek(length))
+        if (!parser.CanPeekCount(length))
         {
             return ConsumeIntResult.Error(ConsumeIntStatus.InputTooShort);
         }
@@ -127,15 +164,24 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsNumber(ch);
     }
-    public static bool SkipNumbers(this ref Parser parser)
+    public static SkipResult SkipNumbers(this ref Parser parser)
     {
         return parser.Skip(new NumberSkip());
+    }
+
+    private struct NotNumberSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => !char.IsNumber(ch);
+    }
+    public static SkipResult SkipNotNumbers(this ref Parser parser)
+    {
+        return parser.Skip(new NotNumberSkip());
     }
 
     public static TimeOnly? ParseTime(ref Parser parser)
     {
         var bparser = parser.BufferedView();
-        if (!parser.SkipNumbers())
+        if (!bparser.SkipNumbers().SkippedAny)
         {
             return null;
         }

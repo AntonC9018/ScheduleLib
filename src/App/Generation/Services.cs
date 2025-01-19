@@ -19,7 +19,7 @@ public sealed class DayNameProvider
         }
 
         Set(DayOfWeek.Monday, "Luni");
-        Set(DayOfWeek.Tuesday, "Marți");
+        Set(DayOfWeek.Tuesday, "Marţi");
         Set(DayOfWeek.Wednesday, "Miercuri");
         Set(DayOfWeek.Thursday, "Joi");
         Set(DayOfWeek.Friday, "Vineri");

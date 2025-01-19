@@ -73,6 +73,7 @@ public struct CommonLessonInParsing()
 
 public enum ParsingStep
 {
+    Start,
     TimeOverride,
     LessonName,
     OptionalParens,
@@ -88,13 +89,35 @@ public struct StringSegment
     public required string Source;
     public required int Start;
     public required int EndInclusive;
-    public ReadOnlySpan<char> Span => Source.AsSpan(Start, EndInclusive - Start);
-    public override string ToString() => Span.ToString();
+    public readonly ReadOnlySpan<char> Span => Source.AsSpan(Start, EndInclusive - Start + 1);
+    public readonly override string ToString() => Span.ToString();
+
+    public readonly StringSegment TrimEnd()
+    {
+        int end = EndInclusive;
+        while (true)
+        {
+            if (!char.IsWhiteSpace(Source[end]))
+            {
+                break;
+            }
+            end--;
+
+            if (end < Start)
+            {
+                break;
+            }
+        }
+        return this with
+        {
+            EndInclusive = end,
+        };
+    }
 }
 
 public struct ParsingState()
 {
-    public ParsingStep Step = ParsingStep.TimeOverride;
+    public ParsingStep Step = ParsingStep.Start;
     public CommonLessonInParsing CommonLesson = new();
     public List<SubLessonInParsing> LessonsInParsing = new();
 
@@ -174,7 +197,8 @@ public static class LessonParsingHelper
             }
         }
 
-        if (state.Step != ParsingStep.Output)
+        if (state.Step != ParsingStep.Output
+            && state.Step != ParsingStep.Start)
         {
             throw new WrongFormatException();
         }
@@ -185,6 +209,7 @@ public static class LessonParsingHelper
         switch (c.State.Step)
         {
             case ParsingStep.TimeOverride:
+            case ParsingStep.Start:
             {
                 var bparser = c.Parser.BufferedView();
                 if (ParserHelper.ParseTime(ref bparser) is { } time)
@@ -204,11 +229,7 @@ public static class LessonParsingHelper
             {
                 // Until end of line or paren
                 var bparser = c.Parser.BufferedView();
-                bool skipped = bparser.Skip(new SkipUntil(['(', ',']));
-                if (!skipped)
-                {
-                    throw new WrongFormatException();
-                }
+                bparser.Skip(new SkipUntil(['(', ',']));
 
                 var name = SourceUntilExclusive(c.Parser, bparser);
                 c.State.LessonsInParsing.Add(new()
@@ -229,18 +250,19 @@ public static class LessonParsingHelper
 
                 c.Parser.Move();
 
-                var bparser = c.Parser.BufferedView();
-
                 while (true)
                 {
+                    var bparser = c.Parser.BufferedView();
                     SkipParenListItem(ref bparser);
                     var it = c.Parser.PeekSpanUntilPosition(bparser.Position);
                     Process(c, it);
                     c.Parser.MoveTo(bparser.Position);
 
-                    if (bparser.Current == ')')
+                    bool isEnd = bparser.Current == ')';
+                    c.Parser.Move();
+
+                    if (isEnd)
                     {
-                        c.Parser.Move();
                         break;
                     }
                 }
@@ -324,8 +346,8 @@ public static class LessonParsingHelper
                 }
 
                 var bparser = c.Parser.BufferedView();
-                bool hasColon = bparser.Skip(new SkipUntil([':']));
-                if (!hasColon)
+                bparser.Skip(new SkipUntil([':']));
+                if (bparser.IsEmpty)
                 {
                     c.State.Step = ParsingStep.TeacherName;
                     break;
@@ -344,10 +366,14 @@ public static class LessonParsingHelper
             }
             case ParsingStep.TeacherName:
             {
+                // TODO: Parse it out as A.Abc?
                 var bparser = c.Parser.BufferedView();
-                bparser.SkipWhitespace();
+                var skipResult = bparser.SkipNotNumbers();
+                _ = skipResult;
 
                 var teacherName = SourceUntilExclusive(c.Parser, bparser);
+                teacherName = teacherName.TrimEnd();
+
                 c.Parser.MoveTo(bparser.Position);
                 c.State.CommonLesson.TeacherName = teacherName;
                 c.State.Step = ParsingStep.RoomName;
@@ -383,18 +409,29 @@ public static class LessonParsingHelper
 
     private static void SkipParenListItem(ref Parser p)
     {
-        bool skipped = p.Skip(new SkipUntil([
+        var skipped = p.Skip(new SkipUntil([
             ',',
             ')',
         ]));
-        if (!skipped)
+        if (!skipped.SkippedAny || skipped.EndOfInput)
         {
             // expected non-empty parens
             throw new WrongFormatException();
         }
-        if (p.IsEmpty)
+    }
+
+    private struct SkipWhitespaceWindow : IShouldSkipSequence
+    {
+        public bool ShouldSkip(ReadOnlySpan<char> window)
         {
-            throw new WrongFormatException();
+            foreach (var ch in window)
+            {
+                if (!char.IsWhiteSpace(ch))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
@@ -434,15 +471,15 @@ public sealed class ParityParser
     public static readonly ParityParser Instance = new();
     public Parity? Parse(ReadOnlySpan<char> parity)
     {
-        bool Equals(ReadOnlySpan<char> a, string b)
+        static bool Equals1(ReadOnlySpan<char> a, string b)
         {
             return a.Equals(b.AsSpan(), StringComparison.OrdinalIgnoreCase);
         }
-        if (Equals(parity, "par"))
+        if (Equals1(parity, "par"))
         {
             return Parity.EvenWeek;
         }
-        if (Equals(parity, "impar"))
+        if (Equals1(parity, "imp"))
         {
             return Parity.OddWeek;
         }

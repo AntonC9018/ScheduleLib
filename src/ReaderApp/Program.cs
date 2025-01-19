@@ -49,7 +49,7 @@ foreach (var table in tables)
 
     DayOfWeek currentDay = default;
     int currentTimeSlotOrdinal = 0;
-    TimeSlot currentTimeSlot = default;
+    TimeSlot? currentTimeSlot = null;
 
     const int dayColumnIndex = 0;
     const int timeSlotColumnIndex = 1;
@@ -67,7 +67,13 @@ foreach (var table in tables)
             {
                 case dayColumnIndex:
                 {
-                    currentDay = DayOfWeekCol();
+                    var newDay = DayOfWeekCol();
+                    if (newDay != currentDay)
+                    {
+                        currentDay = newDay;
+                        currentTimeSlot = null;
+                        currentTimeSlotOrdinal = 0;
+                    }
                     break;
                 }
                 case timeSlotColumnIndex:
@@ -86,7 +92,7 @@ foreach (var table in tables)
             {
                 case dayColumnIndex or timeSlotColumnIndex:
                 {
-                    if (colSpan != 0)
+                    if (colSpan != 1)
                     {
                         throw new NotSupportedException("The day and time slot columns must be one column in width");
                     }
@@ -95,7 +101,7 @@ foreach (var table in tables)
             }
 
             int countLeft = columnCounts.Total - columnIndex;
-            if (countLeft > colSpan)
+            if (countLeft < colSpan)
             {
                 throw new NotSupportedException("The column count is off");
             }
@@ -134,20 +140,20 @@ foreach (var table in tables)
 
             (int Ordinal, TimeSlot TimeSlot) TimeSlotCol()
             {
-                if (props?.VerticalMerge is not { } mergeStart)
                 {
-                    throw new NotSupportedException("Invalid format");
-                }
+                    if (props?.VerticalMerge is { } mergeStart)
+                    {
+                        if (mergeStart.Val is not { } mergeStartVal
+                            || mergeStartVal == MergedCellValues.Continue)
+                        {
+                            return (currentTimeSlotOrdinal, currentTimeSlot!.Value);
+                        }
 
-                if (mergeStart.Val is not { } mergeStartVal
-                    || mergeStartVal == MergedCellValues.Continue)
-                {
-                    return (currentTimeSlotOrdinal, currentTimeSlot);
-                }
-
-                if (mergeStart.Val != MergedCellValues.Restart)
-                {
-                    throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                        if (mergeStart.Val != MergedCellValues.Restart)
+                        {
+                            throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                        }
+                    }
                 }
 
                 // I
@@ -195,7 +201,7 @@ foreach (var table in tables)
 
                 {
                     var timeStarts = c.TimeConfig.TimeSlotStarts;
-                    var timeSlotIndex = currentTimeSlot.Index + 1;
+                    int timeSlotIndex = NextTimeSlotIndex();
                     if (timeStarts[timeSlotIndex] != time.Start)
                     {
                         throw new NotSupportedException("The time slots must follow each other");
@@ -246,6 +252,16 @@ foreach (var table in tables)
                     return (startTime, endTime);
                 }
 
+                int NextTimeSlotIndex()
+                {
+                    if (currentTimeSlot is { } x)
+                    {
+                        return x.Index + 1;
+                    }
+
+                    int ret = FindTimeSlotIndex(time.Start);
+                    return ret;
+                }
             }
 
             void NormalCol(int colSpan1)
@@ -282,12 +298,7 @@ foreach (var table in tables)
 
                     if (lesson.StartTime is { } startTime)
                     {
-                        int timeSlotIndex = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, startTime);
-                        if (timeSlotIndex == -1)
-                        {
-                            TimeSlotError();
-                        }
-
+                        int timeSlotIndex = FindTimeSlotIndex(startTime);
                         l.TimeSlot(new(timeSlotIndex));
                     }
 
@@ -320,7 +331,7 @@ foreach (var table in tables)
                             groups.Add(groupId);
                         }
 
-                        if (groups.Count > 0
+                        if (groups.Count > 1
                             && lesson.SubGroupNumber != SubGroupNumber.All)
                         {
                             throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
@@ -351,6 +362,16 @@ foreach (var table in tables)
 
     _ = rowIndex;
 
+    int FindTimeSlotIndex(TimeOnly start)
+    {
+        int i = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, start);
+        if (i == -1)
+        {
+            TimeSlotError();
+        }
+        return i;
+    }
+
     GroupId GroupId(int colIndex)
     {
         return new(colOffset + colIndex - columnCounts.Skipped);
@@ -361,7 +382,7 @@ foreach (var table in tables)
         int skippedCount = 0;
         int goodCellCount = 0;
         using var cellEnumerator = Cells().GetEnumerator();
-        if (cellEnumerator.MoveNext())
+        if (!cellEnumerator.MoveNext())
         {
             return new(0, 0);
         }

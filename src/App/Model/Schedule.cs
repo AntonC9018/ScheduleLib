@@ -117,8 +117,9 @@ public struct LessonGroups()
     public GroupId Group0 = GroupId.Invalid;
     public GroupId Group1 = GroupId.Invalid;
     public GroupId Group2 = GroupId.Invalid;
+    public GroupId Group3 = GroupId.Invalid;
 
-    public readonly int Capacity => 3;
+    public readonly int Capacity => 4;
 
     // indexer
     public GroupId this[int index]
@@ -130,6 +131,7 @@ public struct LessonGroups()
                 0 => Group0,
                 1 => Group1,
                 2 => Group2,
+                3 => Group3,
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
@@ -145,6 +147,9 @@ public struct LessonGroups()
                     break;
                 case 2:
                     Group2 = value;
+                    break;
+                case 3:
+                    Group3 = value;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(index));
@@ -165,14 +170,14 @@ public struct LessonGroups()
                     return i;
                 }
             }
-            return 3;
+            return 4;
         }
     }
 
     public void Add(GroupId id)
     {
         int count = Count;
-        if (count == 3)
+        if (count == 4)
         {
             Debug.Fail("Can't add more than 3 groups per lesson");
         }
