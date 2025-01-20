@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using App;
 using App.Generation;
 using App.Parsing.Lesson;
@@ -28,7 +29,6 @@ if (doc.MainDocumentPart?.Document.Body is not { } bodyElement)
 var tables = bodyElement.ChildElements
     .OfType<Table>()
     .ToArray();
-int colOffset = 0;
 var state = new TableParsingState();
 
 foreach (var table in tables)
@@ -42,48 +42,12 @@ foreach (var table in tables)
 
     IEnumerable<TableCell> Cells() => rowEnumerator.Current.ChildElements.OfType<TableCell>();
 
+    if (MaybeParseHeaderRow())
     {
-        const int expectedHeaderWidth = 2;
-        var result = ParseHeaderRow(colOffset, expectedSkippedCount: expectedHeaderWidth);
-        switch (result.Status)
+        // Table with rows other than the header is allowed ig.
+        if (!rowEnumerator.MoveNext())
         {
-            case HeaderRowResultStatus.Nothing:
-            {
-                // ??
-                break;
-            }
-            case HeaderRowResultStatus.NoData:
-            {
-                throw new NotSupportedException("Empty table not supported");
-            }
-            case HeaderRowResultStatus.WrongAmountSkipped:
-            {
-                if (result.SkippedCount != 0)
-                {
-                    throw new NotSupportedException($"Expected {expectedHeaderWidth} empty columns for the left header");
-                }
-                if (state.ColumnCounts is null)
-                {
-                    throw new NotSupportedException("Parsing must begin with a table that has the header with the groups");
-                }
-                break;
-            }
-            case HeaderRowResultStatus.GroupNames:
-            {
-                state.ColumnCounts = new(expectedHeaderWidth, result.GroupCount);
-
-                // Table with no header is allowed ig.
-                if (!rowEnumerator.MoveNext())
-                {
-                    continue;
-                }
-                break;
-            }
-            default:
-            {
-                Debug.Fail("Impossible");
-                throw new NotImplementedException("??");
-            }
+            continue;
         }
     }
 
@@ -351,17 +315,18 @@ foreach (var table in tables)
 
                     l.DayOfWeek(state.CurrentDay!.Value);
 
-                    // TODO: unite names
                     {
                         var courseName = lesson.LessonName.ToString();
                         var courseId = c.Course(courseName);
                         l.Course(courseId);
                     }
+                    if (lesson.TeacherName != default)
                     {
                         var teacherName = lesson.TeacherName.ToString();
                         var teacherId = c.Teacher(teacherName);
                         l.Teacher(teacherId);
                     }
+                    if (lesson.RoomName != default)
                     {
                         var roomName = lesson.RoomName.ToString();
                         var roomId = c.Room(roomName);
@@ -370,24 +335,36 @@ foreach (var table in tables)
                     l.Type(lesson.LessonType);
                     l.Parity(lesson.Parity);
 
+                    ref var g = ref l.Model.Group;
+                    if (lesson.GroupName == default)
                     {
                         var groups = new LessonGroups();
                         for (int i = 0; i < colSpan1; i++)
                         {
-                            var groupId = GroupId(i + columnIndex);
+                            var groupId = state.GroupId(i + columnIndex);
                             groups.Add(groupId);
                         }
 
-                        if (groups.Count > 1
-                            && lesson.SubGroupNumber != SubGroupNumber.All)
-                        {
-                            throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
-                        }
+                        // if (groups.Count > 1
+                        //     && lesson.SubGroupNumber != SubGroupNumber.All)
+                        // {
+                        //     throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
+                        // }
 
-                        ref var g = ref l.Model.Group;
                         g.Groups = groups;
-                        g.SubGroup = lesson.SubGroupNumber;
                     }
+                    else
+                    {
+                        // validate group
+                        var groupName = lesson.GroupName.Span.Trim().ToString();
+                        if (!c.Maps.Groups.TryGetValue(groupName, out var x))
+                        {
+                            throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
+                        }
+                        g.Groups.Add(x);
+                    }
+
+                    g.SubGroup = lesson.SubGroupNumber;
                 }
 
                 bool ShouldAdd()
@@ -423,49 +400,97 @@ foreach (var table in tables)
         return i;
     }
 
-    GroupId GroupId(int colIndex)
+    // Returns whether the header row is present
+    bool MaybeParseHeaderRow()
     {
-        return new(colOffset + colIndex - state.ColumnCounts!.Value.Skipped);
-    }
+        const int expectedSkippedCount = 2;
 
-    HeaderRowResult ParseHeaderRow(int colOffset1, int expectedSkippedCount)
-    {
-        int skippedCount = 0;
-        int goodCellCount = 0;
         using var cellEnumerator = Cells().GetEnumerator();
-        if (!cellEnumerator.MoveNext())
+        int skippedCount = SkipEmpties();
+        if (!ShouldParseGroupsWithChecks(skippedCount))
         {
-            return HeaderRowResult.Nothing;
+            return false;
         }
-        while (true)
         {
-            var text = cellEnumerator.Current.InnerText;
-            if (text != "")
+            if (state.ColumnCounts is { } cc)
             {
-                break;
-            }
-            skippedCount++;
-
-            if (!cellEnumerator.MoveNext())
-            {
-                return HeaderRowResult.NoData;
+                state.GroupsProcessed += cc.Good;
             }
         }
-        if (skippedCount != expectedSkippedCount)
-        {
-            return HeaderRowResult.WrongAmountSkipped(skippedCount);
-        }
-        while (true)
-        {
-            var text = cellEnumerator.Current.InnerText;
-            var expectedId = goodCellCount + colOffset1;
-            var group = c.Schedule.Group(text);
-            Debug.Assert(expectedId == group.Id.Value);
+        int groupCount = AddGroups();
+        state.ColumnCounts = new(skippedCount, groupCount);
+        return true;
 
-            goodCellCount++;
+        int SkipEmpties()
+        {
+            int skippedCount1 = 0;
             if (!cellEnumerator.MoveNext())
             {
-                return HeaderRowResult.Good(goodCellCount);
+                throw new NotSupportedException("Empty table not supported");
+            }
+            while (true)
+            {
+                var text = cellEnumerator.Current.InnerText;
+                if (text != "")
+                {
+                    break;
+                }
+                skippedCount1++;
+
+                if (!cellEnumerator.MoveNext())
+                {
+                    throw new NotSupportedException("Header columns expected after the empties");
+                }
+            }
+            return skippedCount1;
+        }
+
+        bool ShouldParseGroupsWithChecks(int skippedCount1)
+        {
+            if (skippedCount1 == expectedSkippedCount)
+            {
+                return true;
+            }
+
+            if (skippedCount1 != 0)
+            {
+                throw new NotSupportedException($"Expected {expectedSkippedCount} empty columns for the left header");
+            }
+
+            if (state.ColumnCounts is null)
+            {
+                throw new NotSupportedException("Parsing must begin with a table that has the header with the groups");
+            }
+
+            return false;
+        }
+
+        int AddGroups()
+        {
+            int goodCellCount = 0;
+            while (true)
+            {
+                var groupName = cellEnumerator.Current.InnerText;
+                var expectedId = goodCellCount + state.GroupsProcessed;
+
+                var group = c.Schedule.Group(groupName);
+                Debug.Assert(expectedId == group.Id.Value);
+
+                ref var groupIdRef = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                    c.Maps.Groups,
+                    group.Ref.Name,
+                    out bool groupAddedPreviously);
+                if (groupAddedPreviously)
+                {
+                    throw new NotSupportedException("Each group must only be used in a column header once.");
+                }
+                groupIdRef = group.Id;
+
+                goodCellCount++;
+                if (!cellEnumerator.MoveNext())
+                {
+                    return goodCellCount;
+                }
             }
         }
     }
@@ -495,7 +520,7 @@ public sealed class DocParseContext
         {
             ValidationSettings = new()
             {
-                SubGroup = SubGroupValidationMode.PossiblyIncreaseSubGroupCount,
+                SubGroup = SubGroupValidationMode.PossiblyRegisterSubGroup,
             },
         };
         var timeConfig = LessonTimeConfig.CreateDefault();
@@ -542,17 +567,17 @@ public readonly struct DayNameParser(DayNameProvider p)
 
 public readonly struct NameMap<T>() where T : struct
 {
-    public readonly Dictionary<string, T> _values = new();
+    public readonly Dictionary<string, T> Values = new();
 
     public T GetOrAdd(string name, Func<string, T> add)
     {
-        if (_values.TryGetValue(name, out var value))
+        if (Values.TryGetValue(name, out var value))
         {
             return value;
         }
 
         value = add(name);
-        _values.Add(name, value);
+        Values.Add(name, value);
         return value;
     }
 }
@@ -562,6 +587,7 @@ public readonly struct Maps()
     public readonly NameMap<CourseId> Courses = new();
     public readonly NameMap<TeacherId> Teachers = new();
     public readonly NameMap<RoomId> Rooms = new();
+    public readonly Dictionary<string, GroupId> Groups = new();
 }
 
 public readonly record struct ColumnCounts(int Skipped, int Good)
@@ -580,53 +606,10 @@ public struct TableParsingState()
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
-}
+    public int GroupsProcessed = 0;
 
-public readonly struct HeaderRowResult
-{
-    public static HeaderRowResult Nothing => new(HeaderRowResultStatus.Nothing);
-    public static HeaderRowResult WrongAmountSkipped(int skipped) => new(HeaderRowResultStatus.WrongAmountSkipped, skipped);
-    public static HeaderRowResult NoData => new(HeaderRowResultStatus.NoData);
-    public static HeaderRowResult Good(int goodCount) => new(HeaderRowResultStatus.GroupNames, goodCount);
-
-    public readonly HeaderRowResultStatus Status;
-    public readonly int Count;
-
-    private HeaderRowResult(HeaderRowResultStatus status, int count = 0)
+    public GroupId GroupId(int colIndex)
     {
-        Status = status;
-        Count = count;
+        return new(GroupsProcessed + colIndex - ColumnCounts!.Value.Skipped);
     }
-
-    public int GroupCount
-    {
-        get
-        {
-            if (Status != HeaderRowResultStatus.GroupNames)
-            {
-                throw new InvalidOperationException("The result is not good");
-            }
-            return Count;
-        }
-    }
-
-    public int SkippedCount
-    {
-        get
-        {
-            if (Status != HeaderRowResultStatus.WrongAmountSkipped)
-            {
-                throw new InvalidOperationException("The result is not wrong amount skipped");
-            }
-            return Count;
-        }
-    }
-}
-
-public enum HeaderRowResultStatus
-{
-    Nothing,
-    WrongAmountSkipped,
-    NoData,
-    GroupNames,
 }

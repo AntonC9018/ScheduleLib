@@ -16,6 +16,7 @@ public struct ParsedLesson()
     public required StringSegment LessonName;
     public required StringSegment TeacherName;
     public required StringSegment RoomName;
+    public required StringSegment GroupName;
     public TimeOnly? StartTime = null;
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
@@ -59,9 +60,42 @@ public struct SubLessonInParsing()
 
 public struct Modifiers()
 {
+    public ModifiersValue Value = new();
+    public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
+}
+
+public struct ModifiersValue()
+{
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
-    public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
+    public StringSegment GroupName = default;
+
+    public bool Set(MaybeModifiersValue v)
+    {
+        if (v.LessonType is { } lessonType)
+        {
+            LessonType = lessonType;
+            return true;
+        }
+        if (v.Parity is { } parity)
+        {
+            Parity = parity;
+            return true;
+        }
+        if (v.GroupName != default)
+        {
+            GroupName = v.GroupName;
+            return true;
+        }
+        return false;
+    }
+}
+
+public struct MaybeModifiersValue()
+{
+    public LessonType? LessonType;
+    public Parity? Parity;
+    public StringSegment GroupName;
 }
 
 public struct CommonLessonInParsing()
@@ -83,35 +117,53 @@ public enum ParsingStep
     Output,
 }
 
-
-public struct StringSegment
+public readonly record struct StringSegment
 {
-    public required string Source;
-    public required int Start;
-    public required int EndInclusive;
-    public readonly ReadOnlySpan<char> Span => Source.AsSpan(Start, EndInclusive - Start + 1);
+    private readonly string Source;
+    private readonly int Start;
+    private readonly int EndExclusive;
+
+    public StringSegment(string source, int start, int endExclusive)
+    {
+        Source = source;
+        Start = start;
+        EndExclusive = endExclusive;
+
+        Debug.Assert(Start >= 0);
+        Debug.Assert(EndExclusive >= Start);
+        Debug.Assert(EndExclusive <= Source.Length);
+    }
+
+    public readonly ReadOnlySpan<char> Span => Source.AsSpan(Start, EndExclusive - Start);
     public readonly override string ToString() => Span.ToString();
+    public readonly int Length => EndExclusive - Start;
 
     public readonly StringSegment TrimEnd()
     {
-        int end = EndInclusive;
+        int end = EndExclusive;
         while (true)
         {
-            if (!char.IsWhiteSpace(Source[end]))
+            if (!char.IsWhiteSpace(Source[end - 1]))
             {
                 break;
             }
             end--;
 
-            if (end < Start)
+            if (end <= Start)
             {
                 break;
             }
         }
-        return this with
+        return new(Source, Start, end);
+    }
+
+    public StringSegment this[Range range]
+    {
+        get
         {
-            EndInclusive = end,
-        };
+            var (start, length) = range.GetOffsetAndLength(Length);
+            return new(Source, Start + start, Start + start + length);
+        }
     }
 }
 
@@ -128,6 +180,18 @@ public struct ParsingState()
         Step = ParsingStep.TimeOverride;
         LessonsInParsing.Clear();
         CommonLesson = new();
+    }
+
+    public bool IsTerminalState
+    {
+        get
+        {
+            return Step is ParsingStep.Output
+                or ParsingStep.Start
+                // In this format, the teacher name and the room are optional
+                or ParsingStep.OptionalSubGroup
+                or ParsingStep.OptionalParens;
+        }
     }
 }
 
@@ -176,31 +240,50 @@ public static class LessonParsingHelper
                     continue;
                 }
 
-                foreach (var lesson in state.LessonsInParsing)
+                foreach (var x in DoOutput())
                 {
-                    foreach (var modifiers in lesson.AllModifiers)
-                    {
-                        yield return new()
-                        {
-                            LessonName = lesson.LessonName,
-                            TeacherName = state.CommonLesson.TeacherName,
-                            RoomName = state.CommonLesson.RoomName,
-                            Parity = modifiers.Parity,
-                            LessonType = modifiers.LessonType,
-                            SubGroupNumber = modifiers.SubGroupNumber != SubGroupNumber.All
-                                ? modifiers.SubGroupNumber
-                                : lesson.SubGroupNumber,
-                            StartTime = state.CommonLesson.StartTime,
-                        };
-                    }
+                    yield return x;
                 }
             }
         }
 
-        if (state.Step != ParsingStep.Output
-            && state.Step != ParsingStep.Start)
+        if (!state.IsTerminalState)
         {
             throw new WrongFormatException();
+        }
+
+        // Special case
+        // Only appears to happen in Educatia fizica.
+        if (state.IsTerminalState
+            && state.Step is not ParsingStep.Output and not ParsingStep.Start)
+        {
+            foreach (var x in DoOutput())
+            {
+                yield return x;
+            }
+        }
+
+        IEnumerable<ParsedLesson> DoOutput()
+        {
+            foreach (var lesson in state.LessonsInParsing)
+            {
+                foreach (var modifiers in lesson.AllModifiers)
+                {
+                    yield return new()
+                    {
+                        LessonName = lesson.LessonName,
+                        TeacherName = state.CommonLesson.TeacherName,
+                        RoomName = state.CommonLesson.RoomName,
+                        Parity = modifiers.Value.Parity,
+                        LessonType = modifiers.Value.LessonType,
+                        GroupName = modifiers.Value.GroupName,
+                        SubGroupNumber = modifiers.SubGroupNumber != SubGroupNumber.All
+                            ? modifiers.SubGroupNumber
+                            : lesson.SubGroupNumber,
+                        StartTime = state.CommonLesson.StartTime,
+                    };
+                }
+            }
         }
     }
 
@@ -254,7 +337,7 @@ public static class LessonParsingHelper
                 {
                     var bparser = c.Parser.BufferedView();
                     SkipParenListItem(ref bparser);
-                    var it = c.Parser.PeekSpanUntilPosition(bparser.Position);
+                    var it = c.Parser.SourceUntilExclusive(bparser);
                     Process(c, it);
                     c.Parser.MoveTo(bparser.Position);
 
@@ -270,40 +353,23 @@ public static class LessonParsingHelper
                 c.State.Step = ParsingStep.OptionalSubGroup;
                 break;
 
-                static void Process(ParsingContext c, ReadOnlySpan<char> it)
+                static void Process(ParsingContext c, StringSegment it)
                 {
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
                     var subgroup = ParseOutSubGroup(ref it);
                     ref var modifiers = ref c.State.CurrentSubLesson.Modifiers(subgroup);
                     var modifierValue = ParseOutModifier(c, it);
-                    if (modifierValue.LessonType is { } lessonType)
+                    bool somethingSet = modifiers.Value.Set(modifierValue);
+                    if (!somethingSet)
                     {
-                        if (modifiers.LessonType == default)
-                        {
-                            throw new WrongFormatException();
-                        }
-                        modifiers.LessonType = lessonType;
-                    }
-                    else if (modifierValue.Parity is { } parity)
-                    {
-                        if (modifiers.Parity == default)
-                        {
-                            throw new WrongFormatException();
-                        }
-                        modifiers.Parity = parity;
-                    }
-                    else
-                    {
-                        // TODO: Might also be just the group name.
                         throw new WrongFormatException();
                     }
-
                 }
 
-                static SubGroupNumber ParseOutSubGroup(ref ReadOnlySpan<char> it)
+                static SubGroupNumber ParseOutSubGroup(ref StringSegment it)
                 {
-                    int sepIndex = it.IndexOf('-');
+                    int sepIndex = it.Span.IndexOf('-');
                     if (sepIndex == -1)
                     {
                         return SubGroupNumber.All;
@@ -312,7 +378,7 @@ public static class LessonParsingHelper
                     var subGroupSpan = it[.. sepIndex];
                     it = it[(sepIndex + 1) ..];
 
-                    if (NumberHelper.FromRoman(subGroupSpan) is not { } subGroupNum)
+                    if (NumberHelper.FromRoman(subGroupSpan.Span) is not { } subGroupNum)
                     {
                         throw new WrongFormatException();
                     }
@@ -321,19 +387,28 @@ public static class LessonParsingHelper
                     return subGroup;
                 }
 
-                static (LessonType? LessonType, Parity? Parity) ParseOutModifier(ParsingContext c, ReadOnlySpan<char> it)
+                static MaybeModifiersValue ParseOutModifier(ParsingContext c, StringSegment it)
                 {
-                    if (c.Params.LessonTypeParser.Parse(it) is { } lessonType)
+                    if (c.Params.LessonTypeParser.Parse(it.Span) is { } lessonType)
                     {
-                        return (lessonType, null);
+                        return new()
+                        {
+                            LessonType = lessonType,
+                        };
                     }
 
-                    if (c.Params.ParityParser.Parse(it) is { } parity1)
+                    if (c.Params.ParityParser.Parse(it.Span) is { } parity1)
                     {
-                        return (null, parity1);
+                        return new()
+                        {
+                            Parity = parity1,
+                        };
                     }
 
-                    return (null, null);
+                    return new()
+                    {
+                        GroupName = it,
+                    };
                 }
             }
             case ParsingStep.OptionalSubGroup:
@@ -394,18 +469,13 @@ public static class LessonParsingHelper
         }
     }
 
-    public static StringSegment SourceUntilExclusive(Parser a, Parser b)
+    public static StringSegment SourceUntilExclusive(this Parser a, Parser b)
     {
         Debug.Assert(ReferenceEquals(a.Source, b.Source));
 
         int start = a.Position;
         int end = b.Position;
-        return new()
-        {
-            Source = a.Source,
-            Start = start,
-            EndInclusive = end - 1,
-        };
+        return new(a.Source, start, end);
     }
 
     private static void SkipParenListItem(ref Parser p)

@@ -55,7 +55,7 @@ public enum SubGroupValidationMode
 {
     Strict = ValidationMode.Strict,
     None = ValidationMode.None,
-    PossiblyIncreaseSubGroupCount = ValidationMode.AttemptAutoFix,
+    PossiblyRegisterSubGroup = ValidationMode.AttemptAutoFix,
 }
 
 public sealed class ValidationSettings()
@@ -107,8 +107,8 @@ public sealed class RegularLessonBuilderModel
     public struct GeneralData()
     {
         public CourseId? Course;
-        public TeacherId? Teacher;
-        public RoomId? Room;
+        public TeacherId Teacher;
+        public RoomId Room;
         public LessonType Type = LessonType.Unspecified;
     }
 
@@ -172,10 +172,6 @@ public static class Helper1
         if (groups.Length == 0)
         {
             throw new ArgumentException("At least one group must be specified.");
-        }
-        if (groups.Length != 1 && b.Model.Group.SubGroup != SubGroupNumber.All)
-        {
-            throw new ArgumentException("Subgroup can only be specified for a single group.");
         }
 
         var g = new LessonGroups();
@@ -241,8 +237,8 @@ public static class ScheduleBuilderHelper
                     Groups = x.Group.Groups,
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
-                    Room = x.General.Room!.Value,
-                    Teacher = x.General.Teacher!.Value,
+                    Room = x.General.Room,
+                    Teacher = x.General.Teacher,
                     Type = x.General.Type,
                 },
             };
@@ -376,32 +372,30 @@ public static class ScheduleBuilderHelper
 
                 int subgroupIndex = subgroup.Value - 1;
 
-                if (!groups.IsSingleGroup)
+                foreach (var groupId in groups)
                 {
-                    throw new InvalidOperationException("Subgroup only supported for a singular group");
-                }
-                var groupId = groups.Group0;
-                var group = s.Groups.Ref(groupId.Value);
-                if (subgroupIndex < group.SubGroupCount)
-                {
-                    return;
-                }
+                    var group = s.Groups.Ref(groupId.Value);
+                    if (subgroupIndex < group.SubGroupCount)
+                    {
+                        return;
+                    }
 
-                switch (subgroupValidation)
-                {
-                    case SubGroupValidationMode.Strict:
+                    switch (subgroupValidation)
                     {
-                        throw new InvalidOperationException("Invalid subgroup number");
-                    }
-                    case SubGroupValidationMode.PossiblyIncreaseSubGroupCount:
-                    {
-                        group.SubGroupCount = subgroupIndex + 1;
-                        return;
-                    }
-                    default:
-                    {
-                        Debug.Fail("Invalid validation mode");
-                        return;
+                        case SubGroupValidationMode.Strict:
+                        {
+                            throw new InvalidOperationException("Invalid subgroup number");
+                        }
+                        case SubGroupValidationMode.PossiblyRegisterSubGroup:
+                        {
+                            group.SubGroupCount = subgroupIndex + 1;
+                            return;
+                        }
+                        default:
+                        {
+                            Debug.Fail("Invalid validation mode");
+                            return;
+                        }
                     }
                 }
             }
@@ -409,16 +403,6 @@ public static class ScheduleBuilderHelper
             if (lesson.General.Course == null)
             {
                 throw new InvalidOperationException("The lesson course must be initialized.");
-            }
-
-            if (lesson.General.Room == null)
-            {
-                throw new InvalidOperationException("The lesson room must be initialized.");
-            }
-
-            if (lesson.General.Teacher == null)
-            {
-                throw new InvalidOperationException("The lesson teacher must be initialized.");
             }
         }
     }

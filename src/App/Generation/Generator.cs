@@ -357,12 +357,26 @@ public sealed class ScheduleTableDocument : IDocument
             text.Line(str);
         }
         {
-            var teacher = _schedule.Source.Get(lesson.Lesson.Teacher);
-            sb.Append(teacher.Name);
+            bool added = false;
 
-            sb.Append("  ");
-            var room = _schedule.Source.Get(lesson.Lesson.Room);
-            sb.Append(room);
+            var t = lesson.Lesson.Teacher;
+            if (t.IsValid)
+            {
+                var teacher = _schedule.Source.Get(t);
+                sb.Append(teacher.Name);
+                added = true;
+            }
+
+            var r = lesson.Lesson.Room;
+            if (r.IsValid)
+            {
+                if (added)
+                {
+                    sb.Append("  ");
+                }
+                var room = _schedule.Source.Get(r);
+                sb.Append(room);
+            }
         }
         {
             var str = sb.ToStringAndClear();

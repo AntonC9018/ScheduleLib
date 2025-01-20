@@ -263,10 +263,18 @@ public readonly record struct GroupId(int Value) : IComparable<GroupId>
     public int CompareTo(GroupId other) => Value.CompareTo(other.Value);
 }
 
-public readonly record struct RoomId(string Id);
+public readonly record struct RoomId(string? Id)
+{
+    public static RoomId Invalid => new(null!);
+    public bool IsInvalid => this == Invalid;
+    public bool IsValid => !IsInvalid;
+}
 
 public readonly record struct TeacherId(int Id)
 {
+    public static TeacherId Invalid => new(-1);
+    public bool IsInvalid => this == Invalid;
+    public bool IsValid => !IsInvalid;
 }
 
 public enum QualificationType
@@ -289,7 +297,11 @@ public readonly record struct Specialty(string? Name);
 
 public sealed class Group
 {
+    /// <summary>
+    /// Does not contain the language
+    /// </summary>
     public required string Name;
+
     public required int Grade;
     public required QualificationType QualificationType;
     public required Faculty Faculty;
@@ -307,10 +319,16 @@ public static class AccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
     public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];
-    public static Teacher Get(this Schedule schedule, TeacherId id) => schedule.Teachers[id.Id];
+    public static Teacher Get(this Schedule schedule, TeacherId id)
+    {
+        Debug.Assert(id.IsValid);
+        return schedule.Teachers[id.Id];
+    }
+
     public static string Get(this Schedule schedule, RoomId id)
     {
+        Debug.Assert(id.IsValid);
         _ = schedule;
-        return id.Id;
+        return id.Id!;
     }
 }
