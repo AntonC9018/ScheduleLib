@@ -107,7 +107,7 @@ public sealed class RegularLessonBuilderModel
     public struct GeneralData()
     {
         public CourseId? Course;
-        public TeacherId Teacher;
+        public List<TeacherId> Teacher = new();
         public RoomId Room;
         public LessonType Type = LessonType.Unspecified;
     }
@@ -182,7 +182,7 @@ public static class Helper1
         b.Model.Group.Groups = g;
     }
 
-    public static void Teacher(this ILessonBuilder b, TeacherId teacher) => b.Model.General.Teacher = teacher;
+    public static void Teacher(this ILessonBuilder b, TeacherId teacher) => b.Model.General.Teacher.Add(teacher);
     public static void Room(this ILessonBuilder b, RoomId room) => b.Model.General.Room = room;
     public static void Type(this ILessonBuilder b, LessonType type) => b.Model.General.Type = type;
     public static void Course(this ILessonBuilder b, CourseId course) => b.Model.General.Course = course;
@@ -238,7 +238,7 @@ public static class ScheduleBuilderHelper
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
-                    Teacher = x.General.Teacher,
+                    Teachers = [.. x.General.Teacher],
                     Type = x.General.Type,
                 },
             };

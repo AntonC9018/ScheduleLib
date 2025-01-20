@@ -223,7 +223,7 @@ public struct LessonData()
     public required LessonGroups Groups;
 
     public required CourseId Course;
-    public required TeacherId Teacher;
+    public required ImmutableArray<TeacherId> Teachers;
     public required RoomId Room;
     public required LessonType Type;
 
@@ -272,9 +272,6 @@ public readonly record struct RoomId(string? Id)
 
 public readonly record struct TeacherId(int Id)
 {
-    public static TeacherId Invalid => new(-1);
-    public bool IsInvalid => this == Invalid;
-    public bool IsValid => !IsInvalid;
 }
 
 public enum QualificationType
@@ -321,7 +318,6 @@ public static class AccessorHelper
     public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];
     public static Teacher Get(this Schedule schedule, TeacherId id)
     {
-        Debug.Assert(id.IsValid);
         return schedule.Teachers[id.Id];
     }
 

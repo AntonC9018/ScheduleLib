@@ -14,7 +14,7 @@ public struct ParseLessonsParams
 public struct ParsedLesson()
 {
     public required StringSegment LessonName;
-    public required StringSegment TeacherName;
+    public required List<StringSegment> TeacherNames;
     public required StringSegment RoomName;
     public required StringSegment GroupName;
     public TimeOnly? StartTime = null;
@@ -101,7 +101,7 @@ public struct MaybeModifiersValue()
 public struct CommonLessonInParsing()
 {
     public TimeOnly? StartTime = null;
-    public StringSegment TeacherName;
+    public List<StringSegment> TeacherNames = new();
     public StringSegment RoomName;
 }
 
@@ -112,7 +112,7 @@ public enum ParsingStep
     LessonName,
     OptionalParens,
     OptionalSubGroup,
-    TeacherName,
+    TeacherNameList,
     RoomName,
     Output,
 }
@@ -272,7 +272,7 @@ public static class LessonParsingHelper
                     yield return new()
                     {
                         LessonName = lesson.LessonName,
-                        TeacherName = state.CommonLesson.TeacherName,
+                        TeacherNames = state.CommonLesson.TeacherNames,
                         RoomName = state.CommonLesson.RoomName,
                         Parity = modifiers.Value.Parity,
                         LessonType = modifiers.Value.LessonType,
@@ -425,7 +425,7 @@ public static class LessonParsingHelper
                 bparser.Skip(new SkipUntil([':']));
                 if (bparser.IsEmpty)
                 {
-                    c.State.Step = ParsingStep.TeacherName;
+                    c.State.Step = ParsingStep.TeacherNameList;
                     break;
                 }
 
@@ -436,22 +436,30 @@ public static class LessonParsingHelper
                     c.State.CurrentSubLesson.SubGroupNumber = new(romanSubGroup);
                 }
 
-                c.State.Step = ParsingStep.TeacherName;
+                c.State.Step = ParsingStep.TeacherNameList;
                 c.Parser.MovePast(bparser.Position);
                 break;
             }
-            case ParsingStep.TeacherName:
+            case ParsingStep.TeacherNameList:
             {
                 // TODO: Parse it out as A.Abc?
                 var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.SkipNotNumbers();
+                var skipResult = bparser.Skip(new SkipUntilNumberOrComma());
                 _ = skipResult;
 
                 var teacherName = SourceUntilExclusive(c.Parser, bparser);
                 teacherName = teacherName.TrimEnd();
 
                 c.Parser.MoveTo(bparser.Position);
-                c.State.CommonLesson.TeacherName = teacherName;
+                c.State.CommonLesson.TeacherNames.Add(teacherName);
+
+                // Keep doing the list if found a comma.
+                if (!c.Parser.IsEmpty && c.Parser.Current == ',')
+                {
+                    c.Parser.Move();
+                    break;
+                }
+
                 c.State.Step = ParsingStep.RoomName;
                 break;
             }
@@ -466,6 +474,22 @@ public static class LessonParsingHelper
                 c.State.Step = ParsingStep.Output;
                 break;
             }
+        }
+    }
+
+    public struct SkipUntilNumberOrComma : IShouldSkip
+    {
+        public bool ShouldSkip(char ch)
+        {
+            if (char.IsNumber(ch))
+            {
+                return false;
+            }
+            if (ch == ',')
+            {
+                return false;
+            }
+            return true;
         }
     }
 

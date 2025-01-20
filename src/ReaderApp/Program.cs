@@ -320,9 +320,9 @@ foreach (var table in tables)
                         var courseId = c.Course(courseName);
                         l.Course(courseId);
                     }
-                    if (lesson.TeacherName != default)
+                    foreach (var t in lesson.TeacherNames)
                     {
-                        var teacherName = lesson.TeacherName.ToString();
+                        var teacherName = t.ToString();
                         var teacherId = c.Teacher(teacherName);
                         l.Teacher(teacherId);
                     }

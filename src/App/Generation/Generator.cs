@@ -359,9 +359,13 @@ public sealed class ScheduleTableDocument : IDocument
         {
             bool added = false;
 
-            var t = lesson.Lesson.Teacher;
-            if (t.IsValid)
+            foreach (var t in lesson.Lesson.Teachers)
             {
+                if (added)
+                {
+                    sb.Append(',');
+                }
+
                 var teacher = _schedule.Source.Get(t);
                 sb.Append(teacher.Name);
                 added = true;
