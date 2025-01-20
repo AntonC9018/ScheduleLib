@@ -29,10 +29,11 @@ var tables = bodyElement.ChildElements
     .OfType<Table>()
     .ToArray();
 int colOffset = 0;
+var state = new TableParsingState();
+
 foreach (var table in tables)
 {
     var rows = table.ChildElements.OfType<TableRow>();
-    int rowIndex = 0;
     using var rowEnumerator = rows.GetEnumerator();
     if (!rowEnumerator.MoveNext())
     {
@@ -41,21 +42,55 @@ foreach (var table in tables)
 
     IEnumerable<TableCell> Cells() => rowEnumerator.Current.ChildElements.OfType<TableCell>();
 
-    var columnCounts = HeaderRow(colOffset);
-    if (columnCounts.Skipped != 2)
     {
-        throw new NotSupportedException("Docs with only header 2 cols supported");
-    }
+        const int expectedHeaderWidth = 2;
+        var result = ParseHeaderRow(colOffset, expectedSkippedCount: expectedHeaderWidth);
+        switch (result.Status)
+        {
+            case HeaderRowResultStatus.Nothing:
+            {
+                // ??
+                break;
+            }
+            case HeaderRowResultStatus.NoData:
+            {
+                throw new NotSupportedException("Empty table not supported");
+            }
+            case HeaderRowResultStatus.WrongAmountSkipped:
+            {
+                if (result.SkippedCount != 0)
+                {
+                    throw new NotSupportedException($"Expected {expectedHeaderWidth} empty columns for the left header");
+                }
+                if (state.ColumnCounts is null)
+                {
+                    throw new NotSupportedException("Parsing must begin with a table that has the header with the groups");
+                }
+                break;
+            }
+            case HeaderRowResultStatus.GroupNames:
+            {
+                state.ColumnCounts = new(expectedHeaderWidth, result.GroupCount);
 
-    DayOfWeek currentDay = default;
-    int currentTimeSlotOrdinal = 0;
-    TimeSlot? currentTimeSlot = null;
+                // Table with no header is allowed ig.
+                if (!rowEnumerator.MoveNext())
+                {
+                    continue;
+                }
+                break;
+            }
+            default:
+            {
+                Debug.Fail("Impossible");
+                throw new NotImplementedException("??");
+            }
+        }
+    }
 
     const int dayColumnIndex = 0;
     const int timeSlotColumnIndex = 1;
 
-    rowIndex++;
-    while (rowEnumerator.MoveNext())
+    while (true)
     {
         int columnIndex = 0;
         foreach (var cell in Cells())
@@ -67,18 +102,17 @@ foreach (var table in tables)
             {
                 case dayColumnIndex:
                 {
-                    var newDay = DayOfWeekCol();
-                    if (newDay != currentDay)
+                    var newDay = DayOfWeekCol(state.CurrentDay);
+                    if (newDay != state.CurrentDay)
                     {
-                        currentDay = newDay;
-                        currentTimeSlot = null;
-                        currentTimeSlotOrdinal = 0;
+                        state.CurrentDay = newDay;
+                        state.Time = null;
                     }
                     break;
                 }
                 case timeSlotColumnIndex:
                 {
-                    (currentTimeSlotOrdinal, currentTimeSlot) = TimeSlotCol();
+                    state.Time = TimeSlotCol(state.Time);
                     break;
                 }
                 default:
@@ -100,14 +134,14 @@ foreach (var table in tables)
                 }
             }
 
-            int countLeft = columnCounts.Total - columnIndex;
+            int countLeft = state.ColumnCounts!.Value.Total - columnIndex;
             if (countLeft < colSpan)
             {
                 throw new NotSupportedException("The column count is off");
             }
             columnIndex += colSpan;
 
-            DayOfWeek DayOfWeekCol()
+            DayOfWeek DayOfWeekCol(DayOfWeek? currentDay)
             {
                 if (props?.VerticalMerge is not { } mergeStart)
                 {
@@ -117,7 +151,11 @@ foreach (var table in tables)
                 if (mergeStart.Val is not { } mergeStartVal
                     || mergeStartVal == MergedCellValues.Continue)
                 {
-                    return currentDay;
+                    if (currentDay is { } v)
+                    {
+                        return v;
+                    }
+                    throw new NotSupportedException("Expected the day");
                 }
 
                 if (mergeStart.Val != MergedCellValues.Restart)
@@ -138,7 +176,7 @@ foreach (var table in tables)
                 return day;
             }
 
-            (int Ordinal, TimeSlot TimeSlot) TimeSlotCol()
+            TimeParsingState TimeSlotCol(TimeParsingState? currentTime)
             {
                 {
                     if (props?.VerticalMerge is { } mergeStart)
@@ -146,7 +184,11 @@ foreach (var table in tables)
                         if (mergeStart.Val is not { } mergeStartVal
                             || mergeStartVal == MergedCellValues.Continue)
                         {
-                            return (currentTimeSlotOrdinal, currentTimeSlot!.Value);
+                            if (currentTime is not { } v)
+                            {
+                                throw new NotSupportedException("Expected the time slot");
+                            }
+                            return v;
                         }
 
                         if (mergeStart.Val != MergedCellValues.Restart)
@@ -179,7 +221,8 @@ foreach (var table in tables)
                     {
                         throw new NotSupportedException("The time slot number should be a roman numeral");
                     }
-                    if (num != currentTimeSlotOrdinal + 1)
+                    int currentOrdinal = currentTime?.TimeSlotOrdinal ?? 0;
+                    if (num != currentOrdinal + 1)
                     {
                         throw new NotSupportedException("The time slot number must be in order");
                     }
@@ -192,7 +235,7 @@ foreach (var table in tables)
                     throw new NotSupportedException("");
                 }
 
-                var time = Time();
+                var parsedTime = Time();
 
                 if (paragraphs.MoveNext())
                 {
@@ -202,18 +245,22 @@ foreach (var table in tables)
                 {
                     var timeStarts = c.TimeConfig.TimeSlotStarts;
                     int timeSlotIndex = NextTimeSlotIndex();
-                    if (timeStarts[timeSlotIndex] != time.Start)
+                    if (timeStarts[timeSlotIndex] != parsedTime.Start)
                     {
                         throw new NotSupportedException("The time slots must follow each other");
                     }
 
-                    var expectedEndTime = time.Start.Add(c.TimeConfig.LessonDuration);
-                    if (expectedEndTime != time.End)
+                    var expectedEndTime = parsedTime.Start.Add(c.TimeConfig.LessonDuration);
+                    if (expectedEndTime != parsedTime.End)
                     {
                         throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({c.TimeConfig.LessonDuration} minutes)");
                     }
 
-                    return (newTimeSlotOrdinal, new(timeSlotIndex));
+                    return new()
+                    {
+                        TimeSlot = new(timeSlotIndex),
+                        TimeSlotOrdinal = newTimeSlotOrdinal,
+                    };
                 }
 
                 (TimeOnly Start, TimeOnly End) Time()
@@ -254,12 +301,12 @@ foreach (var table in tables)
 
                 int NextTimeSlotIndex()
                 {
-                    if (currentTimeSlot is { } x)
+                    if (currentTime is { } x)
                     {
-                        return x.Index + 1;
+                        return x.TimeSlot.Index + 1;
                     }
 
-                    int ret = FindTimeSlotIndex(time.Start);
+                    int ret = FindTimeSlotIndex(parsedTime.Start);
                     return ret;
                 }
             }
@@ -302,7 +349,7 @@ foreach (var table in tables)
                         l.TimeSlot(new(timeSlotIndex));
                     }
 
-                    l.DayOfWeek(currentDay);
+                    l.DayOfWeek(state.CurrentDay!.Value);
 
                     // TODO: unite names
                     {
@@ -358,9 +405,13 @@ foreach (var table in tables)
                 }
             }
         }
-    }
 
-    _ = rowIndex;
+        if (!rowEnumerator.MoveNext())
+        {
+            break;
+        }
+    }
+    continue;
 
     int FindTimeSlotIndex(TimeOnly start)
     {
@@ -374,17 +425,17 @@ foreach (var table in tables)
 
     GroupId GroupId(int colIndex)
     {
-        return new(colOffset + colIndex - columnCounts.Skipped);
+        return new(colOffset + colIndex - state.ColumnCounts!.Value.Skipped);
     }
 
-    ColumnCounts HeaderRow(int colOffset1)
+    HeaderRowResult ParseHeaderRow(int colOffset1, int expectedSkippedCount)
     {
         int skippedCount = 0;
         int goodCellCount = 0;
         using var cellEnumerator = Cells().GetEnumerator();
         if (!cellEnumerator.MoveNext())
         {
-            return new(0, 0);
+            return HeaderRowResult.Nothing;
         }
         while (true)
         {
@@ -397,8 +448,12 @@ foreach (var table in tables)
 
             if (!cellEnumerator.MoveNext())
             {
-                return new(skippedCount, 0);
+                return HeaderRowResult.NoData;
             }
+        }
+        if (skippedCount != expectedSkippedCount)
+        {
+            return HeaderRowResult.WrongAmountSkipped(skippedCount);
         }
         while (true)
         {
@@ -410,7 +465,7 @@ foreach (var table in tables)
             goodCellCount++;
             if (!cellEnumerator.MoveNext())
             {
-                return new(skippedCount, goodCellCount);
+                return HeaderRowResult.Good(goodCellCount);
             }
         }
     }
@@ -512,4 +567,66 @@ public readonly struct Maps()
 public readonly record struct ColumnCounts(int Skipped, int Good)
 {
     public int Total => Skipped + Good;
+}
+
+public struct TimeParsingState()
+{
+    public int TimeSlotOrdinal;
+    public TimeSlot TimeSlot;
+}
+
+public struct TableParsingState()
+{
+    public DayOfWeek? CurrentDay;
+    public TimeParsingState? Time;
+    public ColumnCounts? ColumnCounts;
+}
+
+public readonly struct HeaderRowResult
+{
+    public static HeaderRowResult Nothing => new(HeaderRowResultStatus.Nothing);
+    public static HeaderRowResult WrongAmountSkipped(int skipped) => new(HeaderRowResultStatus.WrongAmountSkipped, skipped);
+    public static HeaderRowResult NoData => new(HeaderRowResultStatus.NoData);
+    public static HeaderRowResult Good(int goodCount) => new(HeaderRowResultStatus.GroupNames, goodCount);
+
+    public readonly HeaderRowResultStatus Status;
+    public readonly int Count;
+
+    private HeaderRowResult(HeaderRowResultStatus status, int count = 0)
+    {
+        Status = status;
+        Count = count;
+    }
+
+    public int GroupCount
+    {
+        get
+        {
+            if (Status != HeaderRowResultStatus.GroupNames)
+            {
+                throw new InvalidOperationException("The result is not good");
+            }
+            return Count;
+        }
+    }
+
+    public int SkippedCount
+    {
+        get
+        {
+            if (Status != HeaderRowResultStatus.WrongAmountSkipped)
+            {
+                throw new InvalidOperationException("The result is not wrong amount skipped");
+            }
+            return Count;
+        }
+    }
+}
+
+public enum HeaderRowResultStatus
+{
+    Nothing,
+    WrongAmountSkipped,
+    NoData,
+    GroupNames,
 }

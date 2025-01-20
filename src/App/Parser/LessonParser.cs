@@ -295,6 +295,7 @@ public static class LessonParsingHelper
                     }
                     else
                     {
+                        // TODO: Might also be just the group name.
                         throw new WrongFormatException();
                     }
 
