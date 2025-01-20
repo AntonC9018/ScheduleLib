@@ -13,10 +13,10 @@ public struct ParseLessonsParams
 
 public struct ParsedLesson()
 {
-    public required StringSegment LessonName;
-    public required List<StringSegment> TeacherNames;
-    public required StringSegment RoomName;
-    public required StringSegment GroupName;
+    public required ReadOnlyMemory<char> LessonName;
+    public required List<ReadOnlyMemory<char>> TeacherNames;
+    public required ReadOnlyMemory<char> RoomName;
+    public required ReadOnlyMemory<char> GroupName;
     public TimeOnly? StartTime = null;
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
@@ -25,7 +25,7 @@ public struct ParsedLesson()
 
 public struct SubLessonInParsing()
 {
-    public StringSegment LessonName = default;
+    public ReadOnlyMemory<char> LessonName = default;
     public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
     public List<Modifiers> AllModifiers = new();
 
@@ -68,7 +68,7 @@ public struct ModifiersValue()
 {
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
-    public StringSegment GroupName = default;
+    public ReadOnlyMemory<char> GroupName = default;
 
     public bool Set(MaybeModifiersValue v)
     {
@@ -82,7 +82,7 @@ public struct ModifiersValue()
             Parity = parity;
             return true;
         }
-        if (v.GroupName != default)
+        if (!v.GroupName.IsEmpty)
         {
             GroupName = v.GroupName;
             return true;
@@ -95,14 +95,14 @@ public struct MaybeModifiersValue()
 {
     public LessonType? LessonType;
     public Parity? Parity;
-    public StringSegment GroupName;
+    public ReadOnlyMemory<char> GroupName;
 }
 
 public struct CommonLessonInParsing()
 {
     public TimeOnly? StartTime = null;
-    public List<StringSegment> TeacherNames = new();
-    public StringSegment RoomName;
+    public List<ReadOnlyMemory<char>> TeacherNames = new();
+    public ReadOnlyMemory<char> RoomName;
 }
 
 public enum ParsingStep
@@ -115,56 +115,6 @@ public enum ParsingStep
     TeacherNameList,
     RoomName,
     Output,
-}
-
-public readonly record struct StringSegment
-{
-    private readonly string Source;
-    private readonly int Start;
-    private readonly int EndExclusive;
-
-    public StringSegment(string source, int start, int endExclusive)
-    {
-        Source = source;
-        Start = start;
-        EndExclusive = endExclusive;
-
-        Debug.Assert(Start >= 0);
-        Debug.Assert(EndExclusive >= Start);
-        Debug.Assert(EndExclusive <= Source.Length);
-    }
-
-    public readonly ReadOnlySpan<char> Span => Source.AsSpan(Start, EndExclusive - Start);
-    public readonly override string ToString() => Span.ToString();
-    public readonly int Length => EndExclusive - Start;
-
-    public readonly StringSegment TrimEnd()
-    {
-        int end = EndExclusive;
-        while (true)
-        {
-            if (!char.IsWhiteSpace(Source[end - 1]))
-            {
-                break;
-            }
-            end--;
-
-            if (end <= Start)
-            {
-                break;
-            }
-        }
-        return new(Source, Start, end);
-    }
-
-    public StringSegment this[Range range]
-    {
-        get
-        {
-            var (start, length) = range.GetOffsetAndLength(Length);
-            return new(Source, Start + start, Start + start + length);
-        }
-    }
 }
 
 public struct ParsingState()
@@ -338,6 +288,7 @@ public static class LessonParsingHelper
                     var bparser = c.Parser.BufferedView();
                     SkipParenListItem(ref bparser);
                     var it = c.Parser.SourceUntilExclusive(bparser);
+                    it = it.Trim();
                     Process(c, it);
                     c.Parser.MoveTo(bparser.Position);
 
@@ -353,7 +304,7 @@ public static class LessonParsingHelper
                 c.State.Step = ParsingStep.OptionalSubGroup;
                 break;
 
-                static void Process(ParsingContext c, StringSegment it)
+                static void Process(ParsingContext c, ReadOnlyMemory<char> it)
                 {
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
@@ -367,7 +318,7 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static SubGroupNumber ParseOutSubGroup(ref StringSegment it)
+                static SubGroupNumber ParseOutSubGroup(ref ReadOnlyMemory<char> it)
                 {
                     int sepIndex = it.Span.IndexOf('-');
                     if (sepIndex == -1)
@@ -387,7 +338,7 @@ public static class LessonParsingHelper
                     return subGroup;
                 }
 
-                static MaybeModifiersValue ParseOutModifier(ParsingContext c, StringSegment it)
+                static MaybeModifiersValue ParseOutModifier(ParsingContext c, ReadOnlyMemory<char> it)
                 {
                     if (c.Params.LessonTypeParser.Parse(it.Span) is { } lessonType)
                     {
@@ -493,13 +444,13 @@ public static class LessonParsingHelper
         }
     }
 
-    public static StringSegment SourceUntilExclusive(this Parser a, Parser b)
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
     {
         Debug.Assert(ReferenceEquals(a.Source, b.Source));
 
         int start = a.Position;
         int end = b.Position;
-        return new(a.Source, start, end);
+        return a.Source.AsMemory(start .. end);
     }
 
     private static void SkipParenListItem(ref Parser p)
