@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using ScheduleLib.Generation;
 
 namespace ScheduleLib.Parsing.Lesson;
@@ -265,6 +266,8 @@ public static class LessonParsingHelper
                 bparser.Skip(new SkipUntil(['(', ',']));
 
                 var name = SourceUntilExclusive(c.Parser, bparser);
+                name = CleanCourseName(name);
+
                 c.State.LessonsInParsing.Add(new()
                 {
                     LessonName = name,
@@ -390,7 +393,7 @@ public static class LessonParsingHelper
                 _ = skipResult;
 
                 var teacherName = SourceUntilExclusive(c.Parser, bparser);
-                teacherName = teacherName.TrimEnd();
+                teacherName = CleanTeacherName(teacherName);
 
                 c.Parser.MoveTo(bparser.Position);
                 c.State.CommonLesson.TeacherNames.Add(teacherName);
@@ -463,21 +466,6 @@ public static class LessonParsingHelper
         }
     }
 
-    private struct SkipWhitespaceWindow : IShouldSkipSequence
-    {
-        public bool ShouldSkip(ReadOnlySpan<char> window)
-        {
-            foreach (var ch in window)
-            {
-                if (!char.IsWhiteSpace(ch))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
     private ref struct SkipUntil : IShouldSkip
     {
         private readonly ReadOnlySpan<char> _chars;
@@ -485,9 +473,68 @@ public static class LessonParsingHelper
         public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
 
-    private struct ParenSkip : IShouldSkip
+    private static ReadOnlyMemory<char> CleanCourseName(ReadOnlyMemory<char> input)
     {
-        public bool ShouldSkip(char ch) => ch != ')';
+        input = input.TrimEnd();
+
+        int newLength = NewLength();
+        if (newLength == input.Length)
+        {
+            return input;
+        }
+
+        var ret = string.Create(newLength, input, static (output, input) =>
+        {
+            int writePos = 0;
+            foreach (var ch in input.Span.WithoutConsecutiveSpaces())
+            {
+                output[writePos] = ch;
+                writePos++;
+            }
+
+            Debug.Assert(writePos == output.Length);
+        });
+        return ret.AsMemory();
+
+        int NewLength()
+        {
+            int count = 0;
+            foreach (var ch in input.Span.WithoutConsecutiveSpaces())
+            {
+                _ = ch;
+                count++;
+            }
+            return count;
+        }
+    }
+
+
+    private static ReadOnlyMemory<char> CleanTeacherName(ReadOnlyMemory<char> input)
+    {
+        input = input.TrimEnd();
+
+        var spaceCount = input.Span.Count(' ');
+        if (spaceCount == 0)
+        {
+            return input;
+        }
+        var ret = string.Create(input.Length - spaceCount, input, static (output, input) =>
+        {
+            var inputSpan = input.Span;
+
+            int writePos = 0;
+            for (int readPos = 0; readPos < input.Length; readPos++)
+            {
+                if (inputSpan[readPos] != ' ')
+                {
+                    output[writePos] = inputSpan[readPos];
+                    writePos++;
+                }
+            }
+
+            Debug.Assert(writePos == output.Length);
+        });
+        return ret.AsMemory();
     }
 }
 
@@ -527,5 +574,57 @@ public sealed class ParityParser
             return Parity.OddWeek;
         }
         return null;
+    }
+}
+
+public static class StringCleanHelper
+{
+    public static WithoutConsecutiveSpacesEnumerable WithoutConsecutiveSpaces(this ReadOnlySpan<char> s)
+    {
+        return new(s);
+    }
+}
+
+public readonly ref struct WithoutConsecutiveSpacesEnumerable
+{
+    private readonly ReadOnlySpan<char> _str;
+    public WithoutConsecutiveSpacesEnumerable(ReadOnlySpan<char> str) => _str = str;
+    public Enumerator GetEnumerator() => new(_str);
+
+    public ref struct Enumerator
+    {
+        private readonly ReadOnlySpan<char> _str;
+        private bool _isSpace;
+        private int _index;
+
+        public Enumerator(ReadOnlySpan<char> str)
+        {
+            _str = str;
+            _isSpace = false;
+            _index = -1;
+        }
+
+        public readonly char Current => _str[_index];
+
+        public bool MoveNext()
+        {
+            while (true)
+            {
+                _index++;
+                if (_index >= _str.Length)
+                {
+                    return false;
+                }
+
+                bool isCurrentSpace = Current == ' ';
+                if (_isSpace && isCurrentSpace)
+                {
+                    continue;
+                }
+
+                _isSpace = isCurrentSpace;
+                return true;
+            }
+        }
     }
 }

@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -5,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.Lesson;
+using InvalidOperationException = System.InvalidOperationException;
 
 namespace ScheduleLib.Parsing.Word;
 
@@ -61,7 +64,7 @@ public readonly struct DayNameParser(DayNameProvider p)
 
     private static Dictionary<string, DayOfWeek> CreateMappings(DayNameProvider p)
     {
-        var ret = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase);
+        var ret = new Dictionary<string, DayOfWeek>(StringComparer.CurrentCultureIgnoreCase);
         for (int index = 0; index < p.Names.Length; index++)
         {
             string name = p.Names[index];
@@ -95,6 +98,354 @@ public readonly struct Maps()
     public readonly NameMap<RoomId> Rooms = new();
     public readonly Dictionary<string, GroupId> Groups = new();
 }
+
+public struct ParsedCourse()
+{
+    public List<CourseNameSegment> Segments = new();
+
+    public bool IsProgrammingLanguageRelated
+    {
+        get
+        {
+            foreach (var s in Segments)
+            {
+                if (s.Flags.IsProgrammingLanguage)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+}
+
+public struct OptimizedParsedCourse()
+{
+    public required ParsedCourse Base;
+    public List<CourseNameSegment> Segments => Base.Segments;
+}
+
+public readonly ref struct WordSpan(ReadOnlySpan<char> v)
+{
+    public readonly ReadOnlySpan<char> Value = v;
+    public readonly bool IsFull => Value[^1] != Word.ShortenedWordCharacter;
+    public readonly ShortenedWordSpan Shortened
+    {
+        get
+        {
+            Debug.Assert(!IsFull);
+            return new ShortenedWordSpan(Value[.. ^1]);
+        }
+    }
+}
+public readonly record struct Word(string Value)
+{
+    public readonly WordSpan Span => new(Value);
+    public readonly bool IsFull => Span.IsFull;
+    public const char ShortenedWordCharacter = '.';
+    public static implicit operator WordSpan(Word v) => v.Span;
+}
+
+public struct CourseNameSegment()
+{
+    public required Word Word;
+    public CourseNameSegmentFlags Flags = new();
+    public ReadOnlySpan<char> GetInitials()
+    {
+        Debug.Assert(Flags.IsInitials);
+        return Word.Value;
+    }
+}
+
+public struct CourseNameSegmentFlags()
+{
+    public bool IsIgnoredInComparison = false;
+    public bool IsProgrammingLanguage = false;
+    public bool IsIgnoredWithProgrammingLanguage = false;
+    public bool IsInitials = false;
+}
+
+/// <summary>
+/// Does not contain the delimiter at end.
+/// </summary>
+public readonly record struct ShortenedWord(string Value)
+{
+    public readonly ShortenedWordSpan Span => new(Value);
+    public static implicit operator ShortenedWordSpan(ShortenedWord v) => v.Span;
+}
+
+public readonly ref struct ShortenedWordSpan(ReadOnlySpan<char> v)
+{
+    public readonly ReadOnlySpan<char> Value = v;
+}
+
+public sealed class CourseParseContext
+{
+    public readonly int MinUsefulWordLength;
+    public readonly ImmutableHashSet<string> IgnoredFullWords;
+    public readonly ImmutableHashSet<string> ProgrammingLanguages;
+    public readonly ImmutableArray<ShortenedWord> IgnoredShortenedWords;
+
+    public CourseParseContext(in Params p)
+    {
+        for (int i = 0; i < p.IgnoredShortenedWords.Length; i++)
+        {
+            var w = p.IgnoredShortenedWords[i];
+            if (w[^1] == '.')
+            {
+                throw new InvalidOperationException("Just provide the words without the dot.");
+            }
+        }
+
+        MinUsefulWordLength = p.MinUsefulWordLength;
+        IgnoredFullWords = ImmutableHashSet.Create(StringComparer.CurrentCultureIgnoreCase, p.IgnoredFullWords);
+        ProgrammingLanguages = ImmutableHashSet.Create(StringComparer.CurrentCultureIgnoreCase, p.ProgrammingLanguages);
+
+        {
+            var b = ImmutableArray.CreateBuilder<ShortenedWord>(p.IgnoredShortenedWords.Length);
+            foreach (var x in p.IgnoredShortenedWords)
+            {
+                b.Add(new(x));
+            }
+            IgnoredShortenedWords = b.MoveToImmutable();
+        }
+    }
+
+    public static CourseParseContext Create(in Params p) => new(p);
+
+    public ref struct Params()
+    {
+        public int MinUsefulWordLength = 2;
+        public ReadOnlySpan<string> IgnoredFullWords = [];
+        public ReadOnlySpan<string> ProgrammingLanguages = [];
+        public ReadOnlySpan<string> IgnoredShortenedWords = [];
+    }
+}
+
+public enum CompareWordsResult
+{
+    Equal_FirstBetter,
+    Equal_SecondBetter,
+    NotEqual,
+}
+
+public static class CourseNameOperations
+{
+    public static bool Equal(this CompareWordsResult r)
+    {
+        return r is CompareWordsResult.Equal_FirstBetter
+            or CompareWordsResult.Equal_SecondBetter;
+    }
+
+    public static ParsedCourse ParseCourse(
+        CourseParseContext context,
+        ReadOnlySpan<char> course)
+    {
+        var wordRanges = course.Split(' ').GetEnumerator();
+        var ret = new ParsedCourse();
+        foreach (var range in wordRanges)
+        {
+            // Need a string to be able to look up in the hash sets.
+            // kinda yikes.
+            var wordString = course[range].ToString();
+            var word = new Word(wordString);
+            var segment = ParseSegment();
+            ret.Segments.Add(segment);
+
+            CourseNameSegment ParseSegment()
+            {
+                var segment = new CourseNameSegment
+                {
+                    Word = word,
+                };
+
+                if (IsEitherShortForOther(word.Span, new ShortenedWordSpan("programare")))
+                {
+                    segment.Flags.IsIgnoredWithProgrammingLanguage = true;
+                }
+
+                if (word.IsFull)
+                {
+                    if (context.ProgrammingLanguages.Contains(wordString))
+                    {
+                        segment.Flags.IsProgrammingLanguage = true;
+                        return segment;
+                    }
+                    if (context.IgnoredFullWords.Contains(wordString))
+                    {
+                        segment.Flags.IsIgnoredInComparison = true;
+                        return segment;
+                    }
+                }
+
+                bool areAllCapital = true;
+                {
+                    foreach (var c in wordString)
+                    {
+                        if (!char.IsUpper(c))
+                        {
+                            areAllCapital = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (areAllCapital)
+                {
+                    segment.Flags.IsInitials = true;
+                    return segment;
+                }
+                else if (wordString.Length < context.MinUsefulWordLength)
+                {
+                    segment.Flags.IsIgnoredInComparison = true;
+                    return segment;
+                }
+
+                foreach (var shortenedWithoutDot in context.IgnoredShortenedWords)
+                {
+                    if (!IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
+                    {
+                        continue;
+                    }
+
+                    segment.Flags.IsIgnoredInComparison = true;
+                    break;
+                }
+
+                return segment;
+            }
+
+        }
+
+        return ret;
+    }
+
+    public static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
+    {
+        if (a.IsFull)
+        {
+            return a.IsFullVersionOf(b);
+        }
+
+        var r = Compare(a.Shortened, b);
+        return r.Equal();
+    }
+
+    public static bool IsFullVersionOf(this WordSpan a, ShortenedWordSpan b)
+    {
+        Debug.Assert(a.IsFull);
+
+        if (a.Value.Length < b.Value.Length)
+        {
+            return false;
+        }
+
+        var a1 = a.Value[.. b.Value.Length];
+        return a1.Equals(b.Value, StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    public static CompareWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
+    {
+        int len = int.Min(a.Value.Length, b.Value.Length);
+        var a1 = a.Value[.. len];
+        var b1 = b.Value[.. len];
+        if (!a1.Equals(b1, StringComparison.CurrentCultureIgnoreCase))
+        {
+            return CompareWordsResult.NotEqual;
+        }
+
+        bool a1longer = a.Value.Length > b.Value.Length;
+        if (a1longer)
+        {
+            return CompareWordsResult.Equal_FirstBetter;
+        }
+        return CompareWordsResult.Equal_SecondBetter;
+    }
+
+    public enum CompareAndUpdateResult
+    {
+        Equal_Updated,
+        Equal_NotUpdated,
+        NotEqual,
+    }
+
+    private struct CourseIter(ParsedCourse c)
+    {
+        public int Index = 0;
+        public ParsedCourse Course = c;
+        public bool IsProgrammingLanguageRelated = c.IsProgrammingLanguageRelated;
+
+        public bool IsDone => Index >= Course.Segments.Count;
+        public CourseNameSegment CurrentSegment => Course.Segments[Index];
+    }
+
+    public static CompareAndUpdateResult CompareAndUpdate(
+        CourseParseContext context,
+        ref OptimizedParsedCourse self,
+        ParsedCourse other)
+    {
+        var iself = new CourseIter(self.Base);
+        var iother = new CourseIter(other);
+
+        bool isNewDifferent = false;
+        ParsedCourse newResult = new();
+
+        while (true)
+        {
+            if (iself.IsDone && iother.IsDone)
+            {
+                if (isNewDifferent)
+                {
+                    self.Base = newResult;
+                    return CompareAndUpdateResult.Equal_Updated;
+                }
+                return CompareAndUpdateResult.NotEqual;
+            }
+
+            if (iself.IsDone)
+            {
+                if (ProcessLast(ref iother))
+                {
+                    iother.Index++;
+                    continue;
+                }
+                break;
+            }
+
+            // Self is always optimal.
+            if (iother.IsDone)
+            {
+                break;
+            }
+
+            {
+                var selfNext = iself.CurrentSegment;
+                var otherNext = iother.CurrentSegment;
+            }
+
+            // true if should continue
+            // false if it's a failure
+            bool ProcessLast(ref CourseIter iter)
+            {
+                // If all the other segments may be ignored, ignore.
+                var seg = other.Segments[iter.Index];
+                if (seg.Flags.IsIgnoredInComparison)
+                {
+                    return true;
+                }
+                if (seg.Flags.IsIgnoredWithProgrammingLanguage
+                    && iter.IsProgrammingLanguageRelated)
+                {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        return CompareAndUpdateResult.NotEqual;
+    }
+}
+
 
 file readonly record struct ColumnCounts(int Skipped, int Good)
 {
