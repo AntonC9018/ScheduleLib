@@ -101,7 +101,7 @@ public sealed class RegularLessonBuilderModel
     public struct GroupData()
     {
         public LessonGroups Groups = new();
-        public SubGroupNumber SubGroup = SubGroupNumber.All;
+        public SubGroup SubGroup = SubGroup.All;
     }
 
     public struct GeneralData()
@@ -157,13 +157,13 @@ public static class Helper1
         }
     }
 
-    public static void Group(this ILessonBuilder b, GroupId group, SubGroupNumber? subGroup = null)
+    public static void Group(this ILessonBuilder b, GroupId group, SubGroup? subGroup = null)
     {
         b.Model.Group.Groups = new()
         {
             Group0 = group,
         };
-        b.Model.Group.SubGroup = subGroup ?? SubGroupNumber.All;
+        b.Model.Group.SubGroup = subGroup ?? SubGroup.All;
     }
 
     public static void Groups(this ILessonBuilder b, ReadOnlySpan<GroupId> groups)
@@ -353,52 +353,6 @@ public static class ScheduleBuilderHelper
                     if (groupId.Value >= s.Groups.Count || groupId.Value < 0)
                     {
                         throw new InvalidOperationException("Invalid group id in lesson");
-                    }
-                }
-            }
-
-            ValidateSubGroup(ref lesson);
-            void ValidateSubGroup(ref RegularLessonBuilderModel lesson1)
-            {
-                var subgroupValidation = s.ValidationSettings.SubGroup;
-                if (subgroupValidation == SubGroupValidationMode.None)
-                {
-                    return;
-                }
-
-                var groups = lesson1.Group.Groups;
-                var subgroup = lesson1.Group.SubGroup;
-                if (subgroup == SubGroupNumber.All)
-                {
-                    return;
-                }
-
-                int subgroupIndex = subgroup.Value - 1;
-
-                foreach (var groupId in groups)
-                {
-                    var group = s.Groups.Ref(groupId.Value);
-                    if (subgroupIndex < group.SubGroupCount)
-                    {
-                        return;
-                    }
-
-                    switch (subgroupValidation)
-                    {
-                        case SubGroupValidationMode.Strict:
-                        {
-                            throw new InvalidOperationException("Invalid subgroup number");
-                        }
-                        case SubGroupValidationMode.PossiblyRegisterSubGroup:
-                        {
-                            group.SubGroupCount = subgroupIndex + 1;
-                            return;
-                        }
-                        default:
-                        {
-                            Debug.Fail("Invalid validation mode");
-                            return;
-                        }
                     }
                 }
             }

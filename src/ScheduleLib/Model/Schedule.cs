@@ -227,7 +227,7 @@ public struct LessonData()
     public required RoomId Room;
     public required LessonType Type;
 
-    public SubGroupNumber SubGroup = SubGroupNumber.All;
+    public SubGroup SubGroup = SubGroup.All;
     public readonly GroupId Group => Groups.Group0;
 }
 
@@ -252,9 +252,9 @@ public enum LessonType
     Custom,
 }
 
-public readonly record struct SubGroupNumber(int Value)
+public readonly record struct SubGroup(string? Value)
 {
-    public static SubGroupNumber All => new(0);
+    public static SubGroup All => new(null!);
 }
 
 public readonly record struct GroupId(int Value) : IComparable<GroupId>
@@ -302,7 +302,6 @@ public sealed class Group
     public required QualificationType QualificationType;
     public required Faculty Faculty;
     public Specialty Specialty = default;
-    public int SubGroupCount;
     public required Language Language;
 }
 

@@ -47,13 +47,9 @@ public sealed class TimeSlotDisplayHandler
 
 public sealed class SubGroupNumberDisplayHandler
 {
-    public string? Get(SubGroupNumber n)
+    public string? Get(SubGroup n)
     {
-        if (n == SubGroupNumber.All)
-        {
-            return null;
-        }
-        return NumberHelper.ToRoman(n.Value);
+        return n.Value;
     }
 }
 

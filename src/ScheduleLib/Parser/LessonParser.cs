@@ -20,20 +20,20 @@ public struct ParsedLesson()
     public TimeOnly? StartTime = null;
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
-    public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
+    public SubGroup SubGroup = SubGroup.All;
 }
 
 public struct SubLessonInParsing()
 {
     public ReadOnlyMemory<char> LessonName = default;
-    public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
+    public SubGroup SubGroup = SubGroup.All;
     public List<Modifiers> AllModifiers = new();
 
-    public ref Modifiers Modifiers(SubGroupNumber subGroupNumber = default)
+    public ref Modifiers Modifiers(SubGroup subGroup = default)
     {
-        if (subGroupNumber == default)
+        if (subGroup == default)
         {
-            subGroupNumber = SubGroupNumber.All;
+            subGroup = SubGroup.All;
         }
 
         {
@@ -41,7 +41,7 @@ public struct SubLessonInParsing()
             for (int i = 0; i < mods.Length; i++)
             {
                 ref var it = ref mods[i];
-                if (it.SubGroupNumber == subGroupNumber)
+                if (it.SubGroup == subGroup)
                 {
                     return ref it;
                 }
@@ -51,7 +51,7 @@ public struct SubLessonInParsing()
         {
             AllModifiers.Add(new()
             {
-                SubGroupNumber = subGroupNumber,
+                SubGroup = subGroup,
             });
             return ref CollectionsMarshal.AsSpan(AllModifiers)[^1];
         }
@@ -61,7 +61,7 @@ public struct SubLessonInParsing()
 public struct Modifiers()
 {
     public ModifiersValue Value = new();
-    public SubGroupNumber SubGroupNumber = SubGroupNumber.All;
+    public SubGroup SubGroup = SubGroup.All;
 }
 
 public struct ModifiersValue()
@@ -227,9 +227,9 @@ public static class LessonParsingHelper
                         Parity = modifiers.Value.Parity,
                         LessonType = modifiers.Value.LessonType,
                         GroupName = modifiers.Value.GroupName,
-                        SubGroupNumber = modifiers.SubGroupNumber != SubGroupNumber.All
-                            ? modifiers.SubGroupNumber
-                            : lesson.SubGroupNumber,
+                        SubGroup = modifiers.SubGroup != SubGroup.All
+                            ? modifiers.SubGroup
+                            : lesson.SubGroup,
                         StartTime = state.CommonLesson.StartTime,
                     };
                 }
@@ -318,23 +318,18 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static SubGroupNumber ParseOutSubGroup(ref ReadOnlyMemory<char> it)
+                static SubGroup ParseOutSubGroup(ref ReadOnlyMemory<char> it)
                 {
                     int sepIndex = it.Span.IndexOf('-');
                     if (sepIndex == -1)
                     {
-                        return SubGroupNumber.All;
+                        return SubGroup.All;
                     }
 
                     var subGroupSpan = it[.. sepIndex];
                     it = it[(sepIndex + 1) ..];
 
-                    if (NumberHelper.FromRoman(subGroupSpan.Span) is not { } subGroupNum)
-                    {
-                        throw new WrongFormatException();
-                    }
-
-                    var subGroup = new SubGroupNumber(subGroupNum);
+                    var subGroup = new SubGroup(subGroupSpan.Span.ToString());
                     return subGroup;
                 }
 
@@ -381,11 +376,7 @@ public static class LessonParsingHelper
                 }
 
                 var numberSpan = c.Parser.PeekSpanUntilPosition(bparser.Position);
-                // TODO: Figure out what to do with named groups? what even are these?
-                if (NumberHelper.FromRoman(numberSpan) is { } romanSubGroup)
-                {
-                    c.State.CurrentSubLesson.SubGroupNumber = new(romanSubGroup);
-                }
+                c.State.CurrentSubLesson.SubGroup = new(numberSpan.ToString());
 
                 c.State.Step = ParsingStep.TeacherNameList;
                 c.Parser.MovePast(bparser.Position);

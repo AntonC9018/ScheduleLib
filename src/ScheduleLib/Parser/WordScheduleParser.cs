@@ -398,17 +398,6 @@ public static class WordScheduleParser
                             return;
                         }
 
-                        // 15:00 Baze de date(curs)
-                        // L.Novac    404/4
-                        // (optional) time override
-                        // name
-                        // (optional) (type,parity) or (parity) or (type)  -- A
-                        // (optional) second name + A
-                        // (optional) roman subgroup:    --  I:
-                        // professor name
-                        // cab (optional?)
-
-                        // First organize as just lines, it's easier
                         var lines = cell.ChildElements
                             .OfType<Paragraph>()
                             .SelectMany(x => x.InnerText.Split("\n"));
@@ -484,7 +473,7 @@ public static class WordScheduleParser
                                 g.Groups.Add(x);
                             }
 
-                            g.SubGroup = lesson.SubGroupNumber;
+                            g.SubGroup = lesson.SubGroup;
                         }
 
                         bool ShouldAdd()
