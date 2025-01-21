@@ -15,12 +15,14 @@ public sealed class DocParseContext
 {
     public required ScheduleBuilder Schedule;
     public required LessonTimeConfig TimeConfig;
+    public required CourseParseContext CourseParseContext;
     public required DayNameParser DayNameParser;
     public required Maps Maps;
 
     public struct CreateParams
     {
         public required DayNameProvider DayNameProvider;
+        public required CourseParseContext CourseParseContext;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -38,14 +40,69 @@ public sealed class DocParseContext
         {
             Schedule = s,
             TimeConfig = timeConfig,
+            CourseParseContext = p.CourseParseContext,
             DayNameParser = new DayNameParser(p.DayNameProvider),
             Maps = new(),
         };
     }
 
-    public CourseId Course(string name) => Maps.Courses.GetOrAdd(name, x => Schedule.Course(x));
+    public CourseId Course(string name)
+    {
+        ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Maps.Courses,
+            name,
+            out bool exists);
+
+        if (exists)
+        {
+            return courseId;
+        }
+
+        var parsedCourse = CourseParseContext.Parse(name);
+        // TODO: N^2, use some sort of hash to make this faster.
+        foreach (var t in Maps.SlowCourses)
+        {
+            if (!parsedCourse.IsEqual(t.ParsedCourse))
+            {
+                continue;
+            }
+
+            courseId = t.CourseId;
+            return courseId;
+        }
+
+        var result = Schedule.Courses.New();
+        courseId = new(result.Id);
+
+        Maps.SlowCourses.Add(new(parsedCourse, courseId));
+
+        return courseId;
+    }
+
     public TeacherId Teacher(string name) => Maps.Teachers.GetOrAdd(name, x => Schedule.Teacher(x));
     public RoomId Room(string name) => Maps.Rooms.GetOrAdd(name, x => Schedule.Room(x));
+
+    public Schedule BuildSchedule()
+    {
+        var courseNamesByKey = Maps.Courses
+            .GroupBy(x => x.Value)
+            .Select(x =>
+            {
+                var names = x.Select(x1 => x1.Key).ToArray();
+                Array.Sort(names, static (a, b) => b.Length - a.Length);
+                return (x.Key, Names: names);
+            });
+
+        foreach (var t in courseNamesByKey)
+        {
+            ref var b = ref Schedule.Courses.Ref(t.Key.Id);
+            b.Names = t.Names;
+            Console.WriteLine(string.Join("; ", t.Names));
+        }
+
+        var ret = Schedule.Build();
+        return ret;
+    }
 }
 
 // TODO: Read the whole table once to find these first.
@@ -91,9 +148,15 @@ public readonly struct NameMap<T>() where T : struct
     }
 }
 
+public readonly record struct SlowCourse(
+    ParsedCourse ParsedCourse,
+    CourseId CourseId);
+
 public readonly struct Maps()
 {
-    public readonly NameMap<CourseId> Courses = new();
+    public readonly Dictionary<string, CourseId> Courses = new();
+    public readonly List<SlowCourse> SlowCourses = new();
+
     public readonly NameMap<TeacherId> Teachers = new();
     public readonly NameMap<RoomId> Rooms = new();
     public readonly Dictionary<string, GroupId> Groups = new();
@@ -102,38 +165,20 @@ public readonly struct Maps()
 public struct ParsedCourse()
 {
     public List<CourseNameSegment> Segments = new();
-
-    public bool IsProgrammingLanguageRelated
-    {
-        get
-        {
-            foreach (var s in Segments)
-            {
-                if (s.Flags.IsProgrammingLanguage)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-}
-
-public struct OptimizedParsedCourse()
-{
-    public required ParsedCourse Base;
-    public List<CourseNameSegment> Segments => Base.Segments;
 }
 
 public readonly ref struct WordSpan(ReadOnlySpan<char> v)
 {
     public readonly ReadOnlySpan<char> Value = v;
-    public readonly bool IsFull => Value[^1] != Word.ShortenedWordCharacter;
+    public readonly bool LooksFull => Value[^1] != Word.ShortenedWordCharacter;
     public readonly ShortenedWordSpan Shortened
     {
         get
         {
-            Debug.Assert(!IsFull);
+            if (LooksFull)
+            {
+                return new(Value);
+            }
             return new ShortenedWordSpan(Value[.. ^1]);
         }
     }
@@ -141,7 +186,7 @@ public readonly ref struct WordSpan(ReadOnlySpan<char> v)
 public readonly record struct Word(string Value)
 {
     public readonly WordSpan Span => new(Value);
-    public readonly bool IsFull => Span.IsFull;
+    public readonly bool LooksFull => Span.LooksFull;
     public const char ShortenedWordCharacter = '.';
     public static implicit operator WordSpan(Word v) => v.Span;
 }
@@ -159,9 +204,6 @@ public struct CourseNameSegment()
 
 public struct CourseNameSegmentFlags()
 {
-    public bool IsIgnoredInComparison = false;
-    public bool IsProgrammingLanguage = false;
-    public bool IsIgnoredWithProgrammingLanguage = false;
     public bool IsInitials = false;
 }
 
@@ -229,111 +271,167 @@ public enum CompareWordsResult
     NotEqual,
 }
 
-public static class CourseNameOperations
+public static class CourseNameHelper
 {
-    public static bool Equal(this CompareWordsResult r)
+    public static bool IsEqual(this CompareWordsResult r)
     {
         return r is CompareWordsResult.Equal_FirstBetter
             or CompareWordsResult.Equal_SecondBetter;
     }
 
-    public static ParsedCourse ParseCourse(
-        CourseParseContext context,
+    public static ParsedCourse Parse(
+        this CourseParseContext context,
         ReadOnlySpan<char> course)
     {
-        var wordRanges = course.Split(' ').GetEnumerator();
-        var ret = new ParsedCourse();
-        foreach (var range in wordRanges)
+        var wordRanges = course.Split(' ');
+        var count = course.Count(' ') + 1;
+        var array = ArrayPool<string>.Shared.Rent(count);
+        try
         {
-            // Need a string to be able to look up in the hash sets.
-            // kinda yikes.
-            var wordString = course[range].ToString();
-            var word = new Word(wordString);
-            var segment = ParseSegment();
-            ret.Segments.Add(segment);
-
-            CourseNameSegment ParseSegment()
+            int i = 0;
+            foreach (var range in wordRanges)
             {
+                var span = course[range];
+                if (span.Length == 0)
+                {
+                    continue;
+                }
+                // Need a string to be able to look up in the hash sets.
+                // kinda yikes.
+                var wordString = course[range].ToString();
+                array[i] = wordString;
+                i++;
+            }
+
+            var strings = array.AsSpan(0, i);
+
+            bool isAnyProgrammingLanguage = IsAnyProgrammingLanguage(strings);
+
+            var ret = new ParsedCourse();
+            foreach (var s in strings)
+            {
+                var word = new Word(s);
                 var segment = new CourseNameSegment
                 {
                     Word = word,
                 };
 
-                if (IsEitherShortForOther(word.Span, new ShortenedWordSpan("programare")))
+                if (context.IgnoredFullWords.Contains(s))
                 {
-                    segment.Flags.IsIgnoredWithProgrammingLanguage = true;
+                    continue;
+                }
+                if (ShouldIgnoreShort())
+                {
+                    continue;
+                }
+                if (isAnyProgrammingLanguage
+                    && IsEitherShortForOther(word, new("programare")))
+                {
+                    continue;
+                }
+                if (!PrepareReturn())
+                {
+                    continue;
+                }
+                {
+                    ret.Segments.Add(segment);
                 }
 
-                if (word.IsFull)
+                bool PrepareReturn()
                 {
-                    if (context.ProgrammingLanguages.Contains(wordString))
+                    bool isProgrammingLanguage = IsProgrammingLanguage(word);
+                    if (isProgrammingLanguage)
                     {
-                        segment.Flags.IsProgrammingLanguage = true;
-                        return segment;
+                        return true;
                     }
-                    if (context.IgnoredFullWords.Contains(wordString))
+
+                    bool isAllCapital = IsAllCapital(s);
+                    if (isAllCapital)
                     {
-                        segment.Flags.IsIgnoredInComparison = true;
-                        return segment;
+                        segment.Flags.IsInitials = true;
+                        return true;
                     }
+
+                    if (s.Length < context.MinUsefulWordLength)
+                    {
+                        return false;
+                    }
+
+                    // Regular word.
+                    return true;
                 }
 
-                bool areAllCapital = true;
+                bool ShouldIgnoreShort()
                 {
-                    foreach (var c in wordString)
+                    foreach (var shortenedWithoutDot in context.IgnoredShortenedWords)
                     {
-                        if (!char.IsUpper(c))
+                        if (IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
                         {
-                            areAllCapital = false;
-                            break;
+                            return true;
                         }
                     }
+                    return false;
                 }
-
-                if (areAllCapital)
-                {
-                    segment.Flags.IsInitials = true;
-                    return segment;
-                }
-                else if (wordString.Length < context.MinUsefulWordLength)
-                {
-                    segment.Flags.IsIgnoredInComparison = true;
-                    return segment;
-                }
-
-                foreach (var shortenedWithoutDot in context.IgnoredShortenedWords)
-                {
-                    if (!IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
-                    {
-                        continue;
-                    }
-
-                    segment.Flags.IsIgnoredInComparison = true;
-                    break;
-                }
-
-                return segment;
             }
 
+            return ret;
+        }
+        catch (Exception)
+        {
+            ArrayPool<string>.Shared.Return(array);
+            throw;
         }
 
-        return ret;
+        bool IsAnyProgrammingLanguage(ReadOnlySpan<string> strings)
+        {
+            foreach (var s in strings)
+            {
+                var word = new Word(s);
+                if (IsProgrammingLanguage(word))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool IsProgrammingLanguage(Word word)
+        {
+            if (!word.LooksFull)
+            {
+                return false;
+            }
+            return context.ProgrammingLanguages.Contains(word.Value);
+        }
+
+        bool IsAllCapital(ReadOnlySpan<char> s)
+        {
+            foreach (var c in s)
+            {
+                if (!char.IsUpper(c))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public static bool AreEqual(this WordSpan a, WordSpan b)
+    {
+        var ret = Compare(a.Shortened, b.Shortened);
+        return ret.IsEqual();
     }
 
     public static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
     {
-        if (a.IsFull)
-        {
-            return a.IsFullVersionOf(b);
-        }
-
         var r = Compare(a.Shortened, b);
-        return r.Equal();
+        return r.IsEqual();
     }
 
     public static bool IsFullVersionOf(this WordSpan a, ShortenedWordSpan b)
     {
-        Debug.Assert(a.IsFull);
+        Debug.Assert(a.LooksFull);
 
         if (a.Value.Length < b.Value.Length)
         {
@@ -362,87 +460,75 @@ public static class CourseNameOperations
         return CompareWordsResult.Equal_SecondBetter;
     }
 
-    public enum CompareAndUpdateResult
-    {
-        Equal_Updated,
-        Equal_NotUpdated,
-        NotEqual,
-    }
-
     private struct CourseIter(ParsedCourse c)
     {
-        public int Index = 0;
-        public ParsedCourse Course = c;
-        public bool IsProgrammingLanguageRelated = c.IsProgrammingLanguageRelated;
+        private int Index = 0;
+        private int InitialsIndex = 0;
+        private readonly ParsedCourse Course = c;
 
         public bool IsDone => Index >= Course.Segments.Count;
-        public CourseNameSegment CurrentSegment => Course.Segments[Index];
+        private CourseNameSegment CurrentSegment => Course.Segments[Index];
+        public WordSpan CurrentWord
+        {
+            get
+            {
+                var s = CurrentSegment;
+                if (s.Flags.IsInitials)
+                {
+                    var all = s.GetInitials();
+                    var singleLetterSlice = all.Slice(InitialsIndex, 1);
+                    return new(singleLetterSlice);
+                }
+                return s.Word;
+            }
+        }
+        public void Move()
+        {
+            var s = CurrentSegment;
+            if (s.Flags.IsInitials)
+            {
+                InitialsIndex++;
+                if (InitialsIndex < s.GetInitials().Length)
+                {
+                    return;
+                }
+                InitialsIndex = 0;
+            }
+            Index++;
+        }
+
     }
 
-    public static CompareAndUpdateResult CompareAndUpdate(
-        CourseParseContext context,
-        ref OptimizedParsedCourse self,
-        ParsedCourse other)
+    public static bool IsEqual(this ParsedCourse self, ParsedCourse other)
     {
-        var iself = new CourseIter(self.Base);
+        var iself = new CourseIter(self);
         var iother = new CourseIter(other);
-
-        bool isNewDifferent = false;
-        ParsedCourse newResult = new();
 
         while (true)
         {
             if (iself.IsDone && iother.IsDone)
             {
-                if (isNewDifferent)
-                {
-                    self.Base = newResult;
-                    return CompareAndUpdateResult.Equal_Updated;
-                }
-                return CompareAndUpdateResult.NotEqual;
+                return true;
             }
-
             if (iself.IsDone)
             {
-                if (ProcessLast(ref iother))
-                {
-                    iother.Index++;
-                    continue;
-                }
-                break;
-            }
-
-            // Self is always optimal.
-            if (iother.IsDone)
-            {
-                break;
-            }
-
-            {
-                var selfNext = iself.CurrentSegment;
-                var otherNext = iother.CurrentSegment;
-            }
-
-            // true if should continue
-            // false if it's a failure
-            bool ProcessLast(ref CourseIter iter)
-            {
-                // If all the other segments may be ignored, ignore.
-                var seg = other.Segments[iter.Index];
-                if (seg.Flags.IsIgnoredInComparison)
-                {
-                    return true;
-                }
-                if (seg.Flags.IsIgnoredWithProgrammingLanguage
-                    && iter.IsProgrammingLanguageRelated)
-                {
-                    return true;
-                }
                 return false;
             }
-        }
+            if (iother.IsDone)
+            {
+                return false;
+            }
 
-        return CompareAndUpdateResult.NotEqual;
+            var selfword = iself.CurrentWord;
+            var otherword = iother.CurrentWord;
+            if (!AreEqual(selfword, otherword))
+            {
+                return false;
+            }
+
+            iself.Move();
+            iother.Move();
+        }
     }
 }
 

@@ -478,15 +478,10 @@ public static class LessonParsingHelper
         input = input.TrimEnd();
 
         int newLength = NewLength();
-        if (newLength == input.Length)
-        {
-            return input;
-        }
-
         var ret = string.Create(newLength, input, static (output, input) =>
         {
             int writePos = 0;
-            foreach (var ch in input.Span.WithoutConsecutiveSpaces())
+            foreach (var ch in input.Span.WordsSeparatedWithSpaces())
             {
                 output[writePos] = ch;
                 writePos++;
@@ -499,8 +494,9 @@ public static class LessonParsingHelper
         int NewLength()
         {
             int count = 0;
-            foreach (var ch in input.Span.WithoutConsecutiveSpaces())
+            foreach (var ch in input.Span.WordsSeparatedWithSpaces())
             {
+                // For each dot in the middle, we need to add a space
                 _ = ch;
                 count++;
             }
@@ -583,6 +579,73 @@ public static class StringCleanHelper
     {
         return new(s);
     }
+    public static WordsSeparatedWithSpacesEnumerable WordsSeparatedWithSpaces(this ReadOnlySpan<char> s)
+    {
+        return new(s);
+    }
+}
+
+public readonly ref struct WordsSeparatedWithSpacesEnumerable
+{
+    private readonly ReadOnlySpan<char> _str;
+    public WordsSeparatedWithSpacesEnumerable(ReadOnlySpan<char> str) => _str = str;
+    public Enumerator GetEnumerator() => new(_str);
+
+    public ref struct Enumerator
+    {
+        private WithoutConsecutiveSpacesEnumerable.Enumerator _withoutSpaces;
+        private bool _nextOutputsSpace;
+        private bool _currentOutputsSpace;
+
+        public Enumerator(ReadOnlySpan<char> str)
+        {
+            _withoutSpaces = new(str);
+            _currentOutputsSpace = false;
+            _nextOutputsSpace = false;
+        }
+
+        public char Current
+        {
+            get
+            {
+                if (_currentOutputsSpace)
+                {
+                    return ' ';
+                }
+                return _withoutSpaces.Current;
+            }
+        }
+
+
+        // A.b c
+        // MoveNext() ->
+
+        public bool MoveNext()
+        {
+            if (_nextOutputsSpace)
+            {
+                _nextOutputsSpace = false;
+                _currentOutputsSpace = true;
+                return true;
+            }
+
+            _currentOutputsSpace = false;
+
+            if (!_withoutSpaces.MoveNext())
+            {
+                return false;
+            }
+
+            var ch = _withoutSpaces.Current;
+            if (char.IsPunctuation(ch))
+            {
+                Debug.Assert(ch != ' ');
+                _nextOutputsSpace = true;
+            }
+
+            return true;
+        }
+    }
 }
 
 public readonly ref struct WithoutConsecutiveSpacesEnumerable
@@ -604,6 +667,16 @@ public readonly ref struct WithoutConsecutiveSpacesEnumerable
             _index = -1;
         }
 
+        public readonly bool IsInitialized => _index != -1;
+
+        public readonly bool IsDone
+        {
+            get
+            {
+                return _index >= _str.Length;
+            }
+        }
+
         public readonly char Current => _str[_index];
 
         public bool MoveNext()
@@ -611,12 +684,12 @@ public readonly ref struct WithoutConsecutiveSpacesEnumerable
             while (true)
             {
                 _index++;
-                if (_index >= _str.Length)
+                if (IsDone)
                 {
                     return false;
                 }
 
-                bool isCurrentSpace = Current == ' ';
+                bool isCurrentSpace = Current is ' ' or '\t' or '\r' or '\n';
                 if (_isSpace && isCurrentSpace)
                 {
                     continue;

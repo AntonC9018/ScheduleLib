@@ -8,6 +8,13 @@ using QuestPDF.Infrastructure;
 var context = DocParseContext.Create(new()
 {
     DayNameProvider = new(),
+    CourseParseContext = CourseParseContext.Create(new()
+    {
+        ProgrammingLanguages = ["Java", "C++", "C#"],
+        IgnoredFullWords = ["p/u", "pentru"],
+        IgnoredShortenedWords = ["Opț"],
+        MinUsefulWordLength = 3,
+    }),
 });
 {
     context.Schedule.SetStudyYear(2024);
@@ -24,7 +31,7 @@ var context = DocParseContext.Create(new()
 }
 
 {
-    var schedule = context.Schedule.Build();
+    var schedule = context.BuildSchedule();
 
     var filteredSchedule = schedule.Filter(new()
     {

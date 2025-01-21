@@ -215,6 +215,9 @@ public readonly record struct CourseId(int Id);
 public struct Course
 {
     public string FullName => Names[0];
+    /// <summary>
+    /// Sorted from longest to least long.
+    /// </summary>
     public required string[] Names;
 }
 
