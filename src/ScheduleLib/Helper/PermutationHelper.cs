@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Collections;
 
-namespace App;
+namespace ScheduleLib;
 
 public static class PermutationHelper
 {

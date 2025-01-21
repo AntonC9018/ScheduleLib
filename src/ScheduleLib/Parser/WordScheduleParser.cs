@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using App.Generation;
-using App.Parsing.Lesson;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using ScheduleLib.Generation;
+using ScheduleLib.Parsing.Lesson;
 
-namespace App.Parsing.Word;
+namespace ScheduleLib.Parsing.Word;
 
 public sealed class DocParseContext
 {
@@ -428,6 +428,10 @@ public static class WordScheduleParser
                                 int timeSlotIndex = FindTimeSlotIndex(startTime);
                                 l.TimeSlot(new(timeSlotIndex));
                             }
+                            else
+                            {
+                                l.TimeSlot(state.Time!.Value.TimeSlot);
+                            }
 
                             l.DayOfWeek(state.CurrentDay!.Value);
 
@@ -442,7 +446,7 @@ public static class WordScheduleParser
                                 var teacherId = c.Teacher(teacherName);
                                 l.Teacher(teacherId);
                             }
-                            if (lesson.RoomName.IsEmpty)
+                            if (!lesson.RoomName.IsEmpty)
                             {
                                 var roomName = lesson.RoomName.ToString();
                                 var roomId = c.Room(roomName);

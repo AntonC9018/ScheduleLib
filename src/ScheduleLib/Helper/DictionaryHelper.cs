@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace App;
+namespace ScheduleLib;
 
 public static class DictionaryHelper
 {

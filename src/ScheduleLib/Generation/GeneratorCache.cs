@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace App.Generation;
+namespace ScheduleLib.Generation;
 
 public record struct CellKey
 {

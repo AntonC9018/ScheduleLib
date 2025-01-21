@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace App;
+namespace ScheduleLib;
 
 public sealed class Schedule
 {
@@ -266,8 +266,7 @@ public readonly record struct GroupId(int Value) : IComparable<GroupId>
 public readonly record struct RoomId(string? Id)
 {
     public static RoomId Invalid => new(null!);
-    public bool IsInvalid => this == Invalid;
-    public bool IsValid => !IsInvalid;
+    public bool IsValid => this != Invalid;
 }
 
 public readonly record struct TeacherId(int Id)

@@ -1,4 +1,4 @@
-namespace App;
+namespace ScheduleLib;
 
 public static class EnumerableHelper
 {

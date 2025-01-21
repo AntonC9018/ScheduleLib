@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace App.Generation;
+namespace ScheduleLib.Generation;
 
 public sealed class DayNameProvider
 {

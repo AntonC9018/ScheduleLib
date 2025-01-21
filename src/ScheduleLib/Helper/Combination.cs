@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace App;
+namespace ScheduleLib;
 
 // TODO: A non-recursive impl
 #if false

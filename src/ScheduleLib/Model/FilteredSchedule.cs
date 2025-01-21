@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace App;
+namespace ScheduleLib;
 
 public struct ScheduleFilter
 {

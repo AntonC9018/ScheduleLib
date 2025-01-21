@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace App;
+namespace ScheduleLib;
 
 public sealed class GroupParseContext
 {

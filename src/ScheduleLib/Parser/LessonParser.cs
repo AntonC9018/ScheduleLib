@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using App.Generation;
+using ScheduleLib.Generation;
 
-namespace App.Parsing.Lesson;
+namespace ScheduleLib.Parsing.Lesson;
 
 public struct ParseLessonsParams
 {
@@ -417,6 +417,12 @@ public static class LessonParsingHelper
             case ParsingStep.RoomName:
             {
                 var bparser = c.Parser.BufferedView();
+                if (!char.IsNumber(bparser.Current))
+                {
+                    c.State.Step = ParsingStep.Output;
+                    break;
+                }
+
                 bparser.SkipNotWhitespace();
 
                 var roomName = SourceUntilExclusive(c.Parser, bparser);

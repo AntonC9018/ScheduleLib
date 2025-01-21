@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
-        <ProjectReference Include="..\..\App\App.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.csproj" />
     </ItemGroup>
 </Project>

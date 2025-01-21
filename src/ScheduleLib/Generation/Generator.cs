@@ -5,7 +5,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace App.Generation;
+namespace ScheduleLib.Generation;
 
 public static class StringBuilderHelper
 {
@@ -150,38 +150,58 @@ public sealed class ScheduleTableDocument : IDocument
 
     private void TableBody(TableDescriptor table, CurrentContext context)
     {
-        foreach (var s in Cells())
+        foreach (var s in IterateRows())
         {
             var rowKey = s.Key;
 
-            for (int currentGroupIndex = 0; currentGroupIndex < context.Columns.Count; currentGroupIndex++)
+            for (int columnIndex = 0; columnIndex < context.Columns.Count; columnIndex++)
             {
-                var groupId = context.Columns[currentGroupIndex];
-                var cellKey = rowKey.CellKey(groupId);
-                var column = GetLessonCol(currentGroupIndex);
+                var columnKey = context.Columns[columnIndex];
+                var cellKey = rowKey.CellKey(columnKey);
+                var columnNumber = GetLessonCol(columnIndex);
 
                 if (!_cache.Mappings.MappingByCell.TryGetValue(cellKey, out var lessons))
                 {
-                    _ = BasicCell(column);
+                    _ = BasicCell(columnNumber);
                     continue;
                 }
 
+                SizeComputer SizeComputer(int lessonCount) => new(_cache.MaxRowsInOneCell, lessonCount);
+
                 if (_cache.SharedLayout is not {} layout)
                 {
-                    var x = BasicCell(column);
-                    x.Text(text =>
+                    var sizeComputer = SizeComputer(lessons.Count);
+                    for (int index = 0; index < lessons.Count; index++)
                     {
-                        foreach (var lesson in lessons)
+                        var lesson = lessons[index];
+
+                        // Very important gotcha:
+                        // the text will end up stacking if not all rows in a row group are taken.
+                        // So it's very important to do correct computations of the row and column span.
+
+                        var rowSpan = sizeComputer.ComputeRowSpan(index);
+                        var cell = table.Cell();
+                        cell = cell.ColumnSpan(1);
+                        cell = cell.RowSpan(rowSpan);
+                        cell = cell.Column(columnNumber);
+
+                        int offset = sizeComputer.ComputeRowOffsetOf(index);
+                        var rowNumber = (uint) (s.TimeSlotRow + offset);
+
+                        var x = BorderedRow(cell, rowNumber);
+                        x = x.Centered();
+                        x.Text(text =>
                         {
                             LessonText(text, lesson, columnWidth: 1);
-                        }
-                    });
+                        });
+                    }
                     continue;
                 }
 
                 // Shared layout
                 {
                     var lessonCountThisDay = layout.SharedMaxOrder[cellKey] + 1;
+                    var sizeComputer = SizeComputer(lessonCountThisDay);
                     HandleLessons();
                     HandleMissingBorders();
 
@@ -193,7 +213,7 @@ public sealed class ScheduleTableDocument : IDocument
                             var cell = table.Cell();
                             cell.RowSpan(t.RowSpan);
                             cell.ColumnSpan(size);
-                            cell.Column(column);
+                            cell.Column(columnNumber);
 
                             var x = BorderedRow(cell, s.TimeSlotRow + t.LessonOrder);
                             x = x.Centered();
@@ -226,7 +246,7 @@ public sealed class ScheduleTableDocument : IDocument
                             cell.ColumnSpan(1);
                             var rowSpan = lessonOrder - lastOrderNeedingBorder;
                             cell.RowSpan(rowSpan);
-                            cell.Column(column);
+                            cell.Column(columnNumber);
 
                             var x = BorderedRow(cell, s.TimeSlotRow + lastOrderNeedingBorder);
                             x = x.Centered();
@@ -234,13 +254,12 @@ public sealed class ScheduleTableDocument : IDocument
                         }
                     }
 
-
-                    IEnumerable<(RegularLesson Lesson, uint LessonOrder, uint RowSpan)> OwnedLessons()
+                    IEnumerable<OwnedLesson> OwnedLessons()
                     {
                         foreach (var lesson in lessons)
                         {
                             {
-                                var key = (lesson, _cache.ColumnOrder[groupId]);
+                                var key = (lesson, _cache.ColumnOrder[columnKey]);
                                 // We're not the cell that defines this.
                                 if (!layout.SharedCellStart.Contains(key))
                                 {
@@ -249,25 +268,10 @@ public sealed class ScheduleTableDocument : IDocument
                             }
 
                             var order = layout.LessonVerticalOrder[lesson];
-                            var rowSpan = ComputeRowSpan((int) order);
-                            yield return (lesson, order, rowSpan);
+                            var rowSpan = sizeComputer.ComputeRowSpan((int) order);
+                            yield return new(lesson, order, rowSpan);
                         }
                     }
-
-                    int ComputeRowOffsetOf(int lessonIndex)
-                    {
-                        var total = _cache.MaxRowsInOneCell;
-                        var x = (float) (lessonIndex + 1) / (float) lessonCountThisDay;
-                        return (int)(x * total);
-                    }
-
-                    uint ComputeRowSpan(int lessonIndex)
-                    {
-                        var a = ComputeRowOffsetOf(lessonIndex - 1);
-                        var b = ComputeRowOffsetOf(lessonIndex);
-                        return (uint)(b - a);
-                    }
-
                 }
             }
 
@@ -390,7 +394,7 @@ public sealed class ScheduleTableDocument : IDocument
 
     private void TableLeftHeader(TableDescriptor table)
     {
-        foreach (var d in IterateRows())
+        foreach (var d in IterateRowGroups())
         {
             uint timeSlotCount = (uint) TimeSlots().Length;
 
@@ -412,13 +416,13 @@ public sealed class ScheduleTableDocument : IDocument
             }
         }
 
-        foreach (var s in Cells())
+        foreach (var s in IterateRows())
         {
             var timeCell = table.Cell();
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            IContainer x = timeCell.Row(s.RowIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
+            IContainer x = timeCell.Row(s.RowGroupIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
             x = x.CenteredBorderedThick();
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
@@ -453,7 +457,7 @@ public sealed class ScheduleTableDocument : IDocument
         return (uint) ret;
     }
 
-    private struct RowIter
+    private struct RowGroupIter
     {
         public required uint Index;
         public required uint Row;
@@ -462,24 +466,24 @@ public sealed class ScheduleTableDocument : IDocument
         public required uint CellsPerTimeSlot;
     }
 
-    private struct Cell
+    private struct RowIter
     {
-        public required RowIter RowIter;
+        public required RowGroupIter RowGroupIter;
 
         public required uint TimeSlotIndex;
         public required uint TimeSlotRow;
         public required TimeSlot TimeSlot;
 
-        public uint CellsPerTimeSlot => RowIter.CellsPerTimeSlot;
+        public uint CellsPerTimeSlot => RowGroupIter.CellsPerTimeSlot;
 
         public RowKey Key => new()
         {
             TimeSlot = TimeSlot,
-            DayOfWeek = RowIter.Day,
+            DayOfWeek = RowGroupIter.Day,
         };
     }
 
-    private IEnumerable<RowIter> IterateRows()
+    private IEnumerable<RowGroupIter> IterateRowGroups()
     {
         var days = Days();
         uint timeSlotCount = (uint) TimeSlots().Length;
@@ -520,7 +524,7 @@ public sealed class ScheduleTableDocument : IDocument
         return ret;
     }
 
-    private IEnumerable<Cell> Cells(RowIter d)
+    private IEnumerable<RowIter> IterateRows(RowGroupIter d)
     {
         var timeSlots = TimeSlots();
         for (uint timeSlotIndex = 0; timeSlotIndex < timeSlots.Length; timeSlotIndex++)
@@ -530,7 +534,7 @@ public sealed class ScheduleTableDocument : IDocument
 
             yield return new()
             {
-                RowIter = d,
+                RowGroupIter = d,
                 TimeSlot = timeSlot,
                 TimeSlotIndex = timeSlotIndex,
                 TimeSlotRow = rowStartIndex,
@@ -538,11 +542,11 @@ public sealed class ScheduleTableDocument : IDocument
         }
     }
 
-    private IEnumerable<Cell> Cells()
+    private IEnumerable<RowIter> IterateRows()
     {
-        foreach (var d in IterateRows())
+        foreach (var d in IterateRowGroups())
         {
-            foreach (var s in Cells(d))
+            foreach (var s in IterateRows(d))
             {
                 yield return s;
             }
@@ -604,3 +608,32 @@ public struct SchedulePdfSizesConfig()
     public readonly float UsefulGroupsWidth => PageSize.Width - 2 * PageMargin - WeekDayColumnWidth - TimeSlotColumnWidth;
 }
 
+
+public readonly struct SizeComputer
+{
+    private readonly int _maxRowsInOneCell;
+    private readonly int _lessonCount;
+
+    public SizeComputer(int maxRowsInOneCell, int lessonCount)
+    {
+        _maxRowsInOneCell = maxRowsInOneCell;
+        _lessonCount = lessonCount;
+    }
+
+    public int ComputeRowOffsetOf(int lessonIndex)
+    {
+        var total = _maxRowsInOneCell;
+        var x = (float) lessonIndex / (float) _lessonCount;
+        return (int)(x * total);
+    }
+
+    public uint ComputeRowSpan(int lessonIndex)
+    {
+        var a = ComputeRowOffsetOf(lessonIndex);
+        var b = ComputeRowOffsetOf(lessonIndex + 1);
+        return (uint)(b - a);
+    }
+
+}
+
+file record struct OwnedLesson(RegularLesson Lesson, uint LessonOrder, uint RowSpan);

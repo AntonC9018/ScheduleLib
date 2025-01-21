@@ -1,5 +1,5 @@
-﻿using App;
-using App.Generation;
+﻿using ScheduleLib;
+using ScheduleLib.Generation;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 

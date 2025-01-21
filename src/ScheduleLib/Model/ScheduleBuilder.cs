@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace App;
+namespace ScheduleLib;
 
 public readonly struct ListBuilder<T>()
 {
@@ -114,7 +114,10 @@ public sealed class RegularLessonBuilderModel
 
     public void CopyFrom(RegularLessonBuilderModel model)
     {
-        General = model.General;
+        General = model.General with
+        {
+            Teacher = [..model.General.Teacher],
+        };
         Date = model.Date;
         Group = model.Group;
     }
