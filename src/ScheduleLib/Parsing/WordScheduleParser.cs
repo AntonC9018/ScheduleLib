@@ -238,6 +238,17 @@ public static class WordScheduleParser
 
             while (true)
             {
+                ParseRegularRow();
+
+                if (!rowEnumerator.MoveNext())
+                {
+                    break;
+                }
+            }
+            continue;
+
+            void ParseRegularRow()
+            {
                 int columnIndex = 0;
                 foreach (var cell in Cells())
                 {
@@ -558,13 +569,7 @@ public static class WordScheduleParser
                         }
                     }
                 }
-
-                if (!rowEnumerator.MoveNext())
-                {
-                    break;
-                }
             }
-            continue;
 
             int FindTimeSlotIndex(TimeOnly start)
             {
