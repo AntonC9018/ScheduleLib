@@ -232,10 +232,6 @@ public static class WordScheduleParser
                     continue;
                 }
             }
-
-            const int dayColumnIndex = 0;
-            const int timeSlotColumnIndex = 1;
-
             while (true)
             {
                 ParseRegularRow();
@@ -249,6 +245,9 @@ public static class WordScheduleParser
 
             void ParseRegularRow()
             {
+                const int dayColumnIndex = 0;
+                const int timeSlotColumnIndex = 1;
+
                 int columnIndex = 0;
                 foreach (var cell in Cells())
                 {
@@ -297,6 +296,8 @@ public static class WordScheduleParser
                         throw new NotSupportedException("The column count is off");
                     }
                     columnIndex += colSpan;
+                    continue;
+
 
                     DayOfWeek DayOfWeekCol(DayOfWeek? currentDay)
                     {
