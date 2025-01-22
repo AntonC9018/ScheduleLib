@@ -69,9 +69,7 @@ public sealed class ScheduleTableDocument : IDocument
             ArraySegment<GroupId> CurrentColumns()
             {
                 var groups = Columns();
-                // ReSharper disable once AccessToModifiedClosure
                 var count = int.Min(groups.Length - i, _sizesConfig.MaxAdditionalColumnsPerPage);
-                // ReSharper disable once AccessToModifiedClosure
                 return new(groups, i, count);
             }
 
@@ -111,7 +109,7 @@ public sealed class ScheduleTableDocument : IDocument
                     var count = context.Columns.Count;
                     for (int j = 0; j < count; j++)
                     {
-                        cols.RelativeColumn(context.Sizes.RegularColumnWidth);
+                        cols.ConstantColumn(context.Sizes.RegularColumnWidth);
                     }
                 });
                 TableHeader(table, context);
