@@ -345,7 +345,7 @@ public static class CourseNameHelper
                         return true;
                     }
 
-                    bool isAllCapital = IsAllCapital(s);
+                    bool isAllCapital = IsInitials(s);
                     if (isAllCapital)
                     {
                         segment.Flags.IsInitials = true;
@@ -404,12 +404,25 @@ public static class CourseNameHelper
             return context.ProgrammingLanguages.Contains(word.Value);
         }
 
-        bool IsAllCapital(ReadOnlySpan<char> s)
+        bool IsInitials(ReadOnlySpan<char> s)
         {
             foreach (var c in s)
             {
-                if (!char.IsUpper(c))
+                if (!IsFine())
                 {
+                    return false;
+                }
+
+                bool IsFine()
+                {
+                    if (char.IsUpper(c))
+                    {
+                        return true;
+                    }
+                    if (char.IsNumber(c))
+                    {
+                        return true;
+                    }
                     return false;
                 }
             }
