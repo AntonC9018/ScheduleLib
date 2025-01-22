@@ -93,6 +93,7 @@ public sealed class SharedLayout
 
 public static class ColumnArrangementHelper
 {
+    // TODO: Integrate the max columns per page feature.
     public static (ColumnOrder ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
     {
         ColumnOrderBuilder columnOrder = new();
