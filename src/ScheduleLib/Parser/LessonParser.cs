@@ -594,21 +594,19 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
     public ref struct Enumerator
     {
         private WithoutConsecutiveSpacesEnumerable.Enumerator _withoutSpaces;
-        private bool _nextOutputsSpace;
-        private bool _currentOutputsSpace;
+        private bool _shouldOutputSpace;
 
         public Enumerator(ReadOnlySpan<char> str)
         {
             _withoutSpaces = new(str);
-            _currentOutputsSpace = false;
-            _nextOutputsSpace = false;
+            _shouldOutputSpace = false;
         }
 
-        public char Current
+        public readonly char Current
         {
             get
             {
-                if (_currentOutputsSpace)
+                if (_shouldOutputSpace)
                 {
                     return ' ';
                 }
@@ -616,31 +614,25 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
             }
         }
 
-
-        // A.b c
-        // MoveNext() ->
-
         public bool MoveNext()
         {
-            if (_nextOutputsSpace)
+            if (_shouldOutputSpace)
             {
-                _nextOutputsSpace = false;
-                _currentOutputsSpace = true;
+                _shouldOutputSpace = false;
                 return true;
             }
 
-            _currentOutputsSpace = false;
-
+            bool isPrevPunctuation = _withoutSpaces.IsInitialized
+                && char.IsPunctuation(_withoutSpaces.Current);
             if (!_withoutSpaces.MoveNext())
             {
                 return false;
             }
 
-            var ch = _withoutSpaces.Current;
-            if (char.IsPunctuation(ch))
+            bool isCurrentSpace = _withoutSpaces.Current == ' ';
+            if (!isCurrentSpace && isPrevPunctuation)
             {
-                Debug.Assert(ch != ' ');
-                _nextOutputsSpace = true;
+                _shouldOutputSpace = true;
             }
 
             return true;
