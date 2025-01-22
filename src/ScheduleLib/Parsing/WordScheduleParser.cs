@@ -17,7 +17,7 @@ public sealed class DocParseContext
     public required LessonTimeConfig TimeConfig;
     public required CourseNameParserConfig CourseNameParserConfig;
     public required DayNameParser DayNameParser;
-    public required Maps Maps;
+    internal readonly List<SlowCourse> SlowCourses = new();
 
     public struct CreateParams
     {
@@ -34,6 +34,7 @@ public sealed class DocParseContext
                 SubGroup = SubGroupValidationMode.PossiblyRegisterSubGroup,
             },
         };
+        s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
         return new()
@@ -42,49 +43,48 @@ public sealed class DocParseContext
             TimeConfig = timeConfig,
             CourseNameParserConfig = p.CourseNameParserConfig,
             DayNameParser = new DayNameParser(p.DayNameProvider),
-            Maps = new(),
         };
     }
 
     public CourseId Course(string name)
     {
         ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Maps.Courses,
+            Schedule.LookupModule!.Courses,
             name,
             out bool exists);
 
         if (exists)
         {
-            return courseId;
+            return new(courseId);
         }
 
         var parsedCourse = CourseNameParserConfig.Parse(name);
         // TODO: N^2, use some sort of hash to make this faster.
-        foreach (var t in Maps.SlowCourses)
+        foreach (var t in SlowCourses)
         {
             if (!parsedCourse.IsEqual(t.Name))
             {
                 continue;
             }
 
-            courseId = t.CourseId;
-            return courseId;
+            courseId = t.CourseId.Id;
+            return new(courseId);
         }
 
         var result = Schedule.Courses.New();
-        courseId = new(result.Id);
+        courseId = result.Id;
 
-        Maps.SlowCourses.Add(new(parsedCourse, courseId));
+        SlowCourses.Add(new(parsedCourse, new(courseId)));
 
-        return courseId;
+        return new(courseId);
     }
 
-    public TeacherId Teacher(string name) => Maps.Teachers.GetOrAdd(name, x => Schedule.Teacher(x));
-    public RoomId Room(string name) => Maps.Rooms.GetOrAdd(name, x => Schedule.Room(x));
+    public TeacherId Teacher(string name) => Schedule.Teacher(name);
+    public RoomId Room(string name) => Schedule.Room(name);
 
     public Schedule BuildSchedule()
     {
-        var courseNamesByKey = Maps.Courses
+        var courseNamesByKey = Schedule.LookupModule!.Courses
             .GroupBy(x => x.Value)
             .Select(x =>
             {
@@ -95,9 +95,8 @@ public sealed class DocParseContext
 
         foreach (var t in courseNamesByKey)
         {
-            ref var b = ref Schedule.Courses.Ref(t.Key.Id);
+            ref var b = ref Schedule.Courses.Ref(t.Key);
             b.Names = t.Names;
-            Console.WriteLine(string.Join("; ", t.Names));
         }
 
         var ret = Schedule.Build();
@@ -154,12 +153,6 @@ public readonly record struct SlowCourse(
 
 public readonly struct Maps()
 {
-    public readonly Dictionary<string, CourseId> Courses = new();
-    public readonly List<SlowCourse> SlowCourses = new();
-
-    public readonly NameMap<TeacherId> Teachers = new();
-    public readonly NameMap<RoomId> Rooms = new();
-    public readonly Dictionary<string, GroupId> Groups = new();
 }
 
 
@@ -179,7 +172,7 @@ file struct TableParsingState()
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
-    public int GroupsProcessed = 0;
+    public required int GroupsProcessed;
 
     public GroupId GroupId(int colIndex)
     {
@@ -211,7 +204,10 @@ public static class WordScheduleParser
         var tables = bodyElement.ChildElements
             .OfType<Table>()
             .ToArray();
-        var state = new TableParsingState();
+        var state = new TableParsingState
+        {
+            GroupsProcessed = p.Context.Schedule.Groups.Count,
+        };
 
         foreach (var table in tables)
         {
@@ -545,11 +541,11 @@ public static class WordScheduleParser
                             {
                                 // validate group
                                 var groupName = lesson.GroupName.Span.Trim().ToString();
-                                if (!c.Maps.Groups.TryGetValue(groupName, out var x))
+                                if (!c.Schedule.LookupModule!.Groups.TryGetValue(groupName, out var x))
                                 {
                                     throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
                                 }
-                                g.Groups.Add(x);
+                                g.Groups.Add(new(x));
                             }
 
                             g.SubGroup = lesson.SubGroup;
@@ -656,17 +652,11 @@ public static class WordScheduleParser
                         var expectedId = goodCellCount + state.GroupsProcessed;
 
                         var group = c.Schedule.Group(groupName);
-                        Debug.Assert(expectedId == group.Id.Value);
-
-                        ref var groupIdRef = ref CollectionsMarshal.GetValueRefOrAddDefault(
-                            c.Maps.Groups,
-                            group.Ref.Name,
-                            out bool groupAddedPreviously);
-                        if (groupAddedPreviously)
+                        if (expectedId != group.Id.Value)
                         {
                             throw new NotSupportedException("Each group must only be used in a column header once.");
                         }
-                        groupIdRef = group.Id;
+                        Debug.Assert(expectedId == group.Id.Value);
 
                         goodCellCount++;
                         if (!cellEnumerator.MoveNext())

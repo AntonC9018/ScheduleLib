@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -63,6 +65,43 @@ public sealed class ValidationSettings()
     public SubGroupValidationMode SubGroup = SubGroupValidationMode.Strict;
 }
 
+public sealed class LookupModule()
+{
+    public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, int> Teachers = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public struct LookupFacade(ScheduleBuilder s)
+{
+    public CourseId? Course(string name) => Find<CourseId>(Lookup.Courses, name);
+    public TeacherId? Teacher(string name) => Find<TeacherId>(Lookup.Teachers, name);
+    public GroupId? Group(string name) => Find<GroupId>(Lookup.Groups, name);
+
+    private LookupModule Lookup
+    {
+        get
+        {
+            var l = s.LookupModule;
+            Debug.Assert(l != null);
+            return l;
+        }
+    }
+
+    private T? Find<T>(Dictionary<string, int> dict, string val)
+        where T : struct
+    {
+        if (!dict.TryGetValue(val, out var id))
+        {
+            return null;
+        }
+        Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
+        T ret = Unsafe.As<int, T>(ref id);
+        return ret;
+    }
+
+}
+
 public sealed class ScheduleBuilder()
 {
     public ListBuilder<RegularLessonBuilderModel> RegularLessons = new();
@@ -71,6 +110,7 @@ public sealed class ScheduleBuilder()
     public ListBuilder<Teacher> Teachers = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
+    public LookupModule? LookupModule = null;
 
     public GroupParseContext? GroupParseContext;
 
@@ -262,6 +302,50 @@ public static class ScheduleBuilderHelper
         };
     }
 
+    public static void EnableLookupModule(this ScheduleBuilder s)
+    {
+        if (s.LookupModule is not null)
+        {
+            return;
+        }
+
+        var lookupModule = s.LookupModule = new();
+
+        {
+            var coursesMap = lookupModule.Courses;
+            for (int i = 0; i < s.Courses.Count; i++)
+            {
+                ref var course = ref s.Courses.Ref(i);
+                foreach (var name in course.Names)
+                {
+                    coursesMap.Add(name, i);
+                }
+            }
+        }
+        {
+            var teachersMap = lookupModule.Teachers;
+            for (int i = 0; i < s.Teachers.Count; i++)
+            {
+                ref var teacher = ref s.Teachers.Ref(i);
+                teachersMap.Add(teacher.Name, i);
+            }
+        }
+        {
+            var groupsMap = lookupModule.Groups;
+            for (int i = 0; i < s.Groups.Count; i++)
+            {
+                ref var group = ref s.Groups.Ref(i);
+                groupsMap.Add(group.Name, i);
+            }
+        }
+    }
+
+    public static LookupFacade Lookup(this ScheduleBuilder s)
+    {
+        s.EnableLookupModule();
+        return new(s);
+    }
+
     public static void SetStudyYear(this ScheduleBuilder s, int year)
     {
         if (s.Groups.Count != 0)
@@ -290,28 +374,33 @@ public static class ScheduleBuilderHelper
         {
             CurrentStudyYear = DetermineStudyYear(),
         });
-        var result = s.Groups.New();
-        result.Value = s.GroupParseContext.Parse(fullName);
+
+        var group = s.GroupParseContext.Parse(fullName);
+
+        int ret;
+        if (s.LookupModule is { } lookupModule)
+        {
+            ret = lookupModule.Groups.GetOrAdd(
+                group.Name,
+                (s, group),
+                static state => Default(state.s, state.group));
+        }
+        else
+        {
+            ret = Default(s, group);
+        }
         return new()
         {
-            Id = new(result.Id),
+            Id = new(ret),
             Schedule = s,
         };
-    }
 
-    public static GroupBuilder Group(this ScheduleBuilder s)
-    {
-        var result = s.Groups.New();
-        return new()
+        static int Default(ScheduleBuilder s, Group group)
         {
-            Id = new(result.Id),
-            Schedule = s,
-        };
-    }
-
-    public static void Configure(this GroupBuilder g, Action<GroupBuilder> action)
-    {
-        action(g);
+            var result = s.Groups.New();
+            result.Value = group;
+            return result.Id;
+        }
     }
 
     public static void Validate(this ScheduleBuilder s)
@@ -364,28 +453,72 @@ public static class ScheduleBuilderHelper
         }
     }
 
+    private record struct ScheduleAndName(ScheduleBuilder Schedule, string Name);
+
     public static TeacherId Teacher(this ScheduleBuilder s, string name)
     {
-        var r = s.Teachers.New();
-        r.Value = new()
+        int ret;
+        if (s.LookupModule is { } lookupModule)
         {
-            Name = name,
-        };
-        return new(r.Id);
+            ret = lookupModule.Teachers.GetOrAdd(
+                name,
+                new ScheduleAndName(s, name),
+                static state => Default(state));
+        }
+        else
+        {
+            ret = Default(new(s, name));
+        }
+        return new(ret);
+
+        static int Default(ScheduleAndName p)
+        {
+            var r = p.Schedule.Teachers.New();
+            r.Value = new()
+            {
+                Name = p.Name,
+            };
+            return r.Id;
+        }
     }
 
     public static CourseId Course(this ScheduleBuilder s, params string[] names)
     {
+        Debug.Assert(names.Length > 0, "Must provide a course name");
+
+        {
+            if (s.LookupModule is { } lookupModule)
+            {
+                if (lookupModule.Courses.TryGetValue(names[0], out int val))
+                {
+                    return new(val);
+                }
+            }
+        }
+
         var r = s.Courses.New();
         r.Value = new()
         {
             Names = names,
         };
+
+        {
+            if (s.LookupModule is { } lookupModule)
+            {
+                foreach (var name in names)
+                {
+                    // Let it throw on duplicates here for now.
+                    lookupModule.Courses.Add(name, r.Id);
+                }
+            }
+        }
+
         return new(r.Id);
     }
 
     public static RoomId Room(this ScheduleBuilder s, string id)
     {
+        _ = s;
         return new(id);
     }
 

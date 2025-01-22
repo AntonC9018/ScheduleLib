@@ -33,10 +33,17 @@ var context = DocParseContext.Create(new()
 {
     var schedule = context.BuildSchedule();
 
+    // TODO: Might want the lookup in the built schedule too?
+    var myId = context.Schedule.Lookup().Teacher("A.Curmanschi")!.Value;
+
     var filteredSchedule = schedule.Filter(new()
     {
         Grade = 2,
         QualificationType = QualificationType.Licenta,
+        TeacherFilter = new()
+        {
+            IncludeIds = [myId],
+        },
     });
     var dayNameProvider = new DayNameProvider();
     var timeSlotDisplayHandler = new TimeSlotDisplayHandler();

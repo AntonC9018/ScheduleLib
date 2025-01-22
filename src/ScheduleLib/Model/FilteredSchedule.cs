@@ -3,10 +3,16 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib;
 
-public struct ScheduleFilter
+public struct ScheduleFilter()
 {
     public required QualificationType QualificationType;
     public required int Grade;
+    public TeacherFilter TeacherFilter = new();
+}
+
+public struct TeacherFilter()
+{
+    public TeacherId[]? IncludeIds = null;
 }
 
 public sealed class FilteredSchedule
@@ -64,7 +70,27 @@ public static class FilterHelper
                 {
                     continue;
                 }
+                if (!PassesTeacherIdFilter())
+                {
+                    continue;
+                }
                 yield return regularLesson;
+
+                bool PassesTeacherIdFilter()
+                {
+                    if (filter.TeacherFilter.IncludeIds is not { } includedIds)
+                    {
+                        return true;
+                    }
+                    foreach (var teacherId in regularLesson.Lesson.Teachers)
+                    {
+                        if (includedIds.Contains(teacherId))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
             }
         }
 
