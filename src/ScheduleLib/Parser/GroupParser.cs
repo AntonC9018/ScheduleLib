@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ScheduleLib;
+namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
 {
@@ -230,7 +230,6 @@ public static class GroupHelper
 
 public static class LanguageHelper
 {
-
     private static readonly string[] LanguageNames = GetLanguageNames();
 
     private static string[] GetLanguageNames()

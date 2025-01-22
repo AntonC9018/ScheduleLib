@@ -8,7 +8,7 @@ using QuestPDF.Infrastructure;
 var context = DocParseContext.Create(new()
 {
     DayNameProvider = new(),
-    CourseParseContext = CourseParseContext.Create(new()
+    CourseNameParserConfig = new(new()
     {
         ProgrammingLanguages = ["Java", "C++", "C#"],
         IgnoredFullWords = ["p/u", "pentru"],

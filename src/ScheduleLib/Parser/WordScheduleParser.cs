@@ -8,7 +8,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
-using InvalidOperationException = System.InvalidOperationException;
 
 namespace ScheduleLib.Parsing.Word;
 
@@ -16,14 +15,14 @@ public sealed class DocParseContext
 {
     public required ScheduleBuilder Schedule;
     public required LessonTimeConfig TimeConfig;
-    public required CourseParseContext CourseParseContext;
+    public required CourseNameParserConfig CourseNameParserConfig;
     public required DayNameParser DayNameParser;
     public required Maps Maps;
 
     public struct CreateParams
     {
         public required DayNameProvider DayNameProvider;
-        public required CourseParseContext CourseParseContext;
+        public required CourseNameParserConfig CourseNameParserConfig;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -41,7 +40,7 @@ public sealed class DocParseContext
         {
             Schedule = s,
             TimeConfig = timeConfig,
-            CourseParseContext = p.CourseParseContext,
+            CourseNameParserConfig = p.CourseNameParserConfig,
             DayNameParser = new DayNameParser(p.DayNameProvider),
             Maps = new(),
         };
@@ -59,7 +58,7 @@ public sealed class DocParseContext
             return courseId;
         }
 
-        var parsedCourse = CourseParseContext.Parse(name);
+        var parsedCourse = CourseNameParserConfig.Parse(name);
         // TODO: N^2, use some sort of hash to make this faster.
         foreach (var t in Maps.SlowCourses)
         {

@@ -9,34 +9,11 @@ public struct ParsedCourseName()
     public List<CourseNameSegment> Segments = new();
 }
 
-public readonly ref struct WordSpan(ReadOnlySpan<char> v)
-{
-    public readonly ReadOnlySpan<char> Value = v;
-    public readonly bool LooksFull => Value[^1] != Word.ShortenedWordCharacter;
-    public readonly ShortenedWordSpan Shortened
-    {
-        get
-        {
-            if (LooksFull)
-            {
-                return new(Value);
-            }
-            return new ShortenedWordSpan(Value[.. ^1]);
-        }
-    }
-}
-public readonly record struct Word(string Value)
-{
-    public readonly WordSpan Span => new(Value);
-    public readonly bool LooksFull => Span.LooksFull;
-    public const char ShortenedWordCharacter = '.';
-    public static implicit operator WordSpan(Word v) => v.Span;
-}
-
 public struct CourseNameSegment()
 {
     public required Word Word;
     public CourseNameSegmentFlags Flags = new();
+
     public ReadOnlySpan<char> GetInitials()
     {
         Debug.Assert(Flags.IsInitials);
@@ -49,6 +26,30 @@ public struct CourseNameSegmentFlags()
     public bool IsInitials = false;
 }
 
+public readonly ref struct WordSpan(ReadOnlySpan<char> v)
+{
+    public readonly ReadOnlySpan<char> Value = v;
+    public readonly bool LooksFull => Value[^1] != CourseNameParsing.ShortenedWordCharacter;
+    public readonly ShortenedWordSpan Shortened
+    {
+        get
+        {
+            if (LooksFull)
+            {
+                return new(Value);
+            }
+            return new ShortenedWordSpan(Value[.. ^1]);
+        }
+    }
+}
+
+public readonly record struct Word(string Value)
+{
+    public readonly WordSpan Span => new(Value);
+    public readonly bool LooksFull => Span.LooksFull;
+    public static implicit operator WordSpan(Word v) => v.Span;
+}
+
 /// <summary>
 /// Does not contain the delimiter at end.
 /// </summary>
@@ -58,19 +59,22 @@ public readonly record struct ShortenedWord(string Value)
     public static implicit operator ShortenedWordSpan(ShortenedWord v) => v.Span;
 }
 
+/// <summary>
+/// Does not contain the delimiter at end.
+/// </summary>
 public readonly ref struct ShortenedWordSpan(ReadOnlySpan<char> v)
 {
     public readonly ReadOnlySpan<char> Value = v;
 }
 
-public sealed class CourseParseContext
+public sealed class CourseNameParserConfig
 {
     public readonly int MinUsefulWordLength;
     public readonly ImmutableHashSet<string> IgnoredFullWords;
     public readonly ImmutableHashSet<string> ProgrammingLanguages;
     public readonly ImmutableArray<ShortenedWord> IgnoredShortenedWords;
 
-    public CourseParseContext(in Params p)
+    public CourseNameParserConfig(in Params p)
     {
         for (int i = 0; i < p.IgnoredShortenedWords.Length; i++)
         {
@@ -95,7 +99,7 @@ public sealed class CourseParseContext
         }
     }
 
-    public static CourseParseContext Create(in Params p) => new(p);
+    public static CourseNameParserConfig Create(in Params p) => new(p);
 
     public ref struct Params()
     {
@@ -106,23 +110,19 @@ public sealed class CourseParseContext
     }
 }
 
-public enum CompareWordsResult
+public enum CompareShortenedWordsResult
 {
     Equal_FirstBetter,
     Equal_SecondBetter,
     NotEqual,
 }
 
-public static class CourseNameHelper
+public static class CourseNameParsing
 {
-    public static bool IsEqual(this CompareWordsResult r)
-    {
-        return r is CompareWordsResult.Equal_FirstBetter
-            or CompareWordsResult.Equal_SecondBetter;
-    }
+    public const char ShortenedWordCharacter = '.';
 
     public static ParsedCourseName Parse(
-        this CourseParseContext context,
+        this CourseNameParserConfig config,
         ReadOnlySpan<char> course)
     {
         var wordRanges = course.Split(' ');
@@ -158,7 +158,7 @@ public static class CourseNameHelper
                     Word = word,
                 };
 
-                if (context.IgnoredFullWords.Contains(s))
+                if (config.IgnoredFullWords.Contains(s))
                 {
                     continue;
                 }
@@ -194,7 +194,7 @@ public static class CourseNameHelper
                         return true;
                     }
 
-                    if (s.Length < context.MinUsefulWordLength)
+                    if (s.Length < config.MinUsefulWordLength)
                     {
                         return false;
                     }
@@ -205,7 +205,7 @@ public static class CourseNameHelper
 
                 bool ShouldIgnoreShort()
                 {
-                    foreach (var shortenedWithoutDot in context.IgnoredShortenedWords)
+                    foreach (var shortenedWithoutDot in config.IgnoredShortenedWords)
                     {
                         if (IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
                         {
@@ -243,7 +243,7 @@ public static class CourseNameHelper
             {
                 return false;
             }
-            return context.ProgrammingLanguages.Contains(word.Value);
+            return config.ProgrammingLanguages.Contains(word.Value);
         }
 
         bool IsInitials(ReadOnlySpan<char> s)
@@ -272,47 +272,36 @@ public static class CourseNameHelper
         }
     }
 
-    public static bool AreEqual(this WordSpan a, WordSpan b)
+    public static bool IsEqual(this ParsedCourseName self, ParsedCourseName other)
     {
-        var ret = Compare(a.Shortened, b.Shortened);
-        return ret.IsEqual();
-    }
+        var iself = new CourseIter(self);
+        var iother = new CourseIter(other);
 
-    public static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
-    {
-        var r = Compare(a.Shortened, b);
-        return r.IsEqual();
-    }
-
-    public static bool IsFullVersionOf(this WordSpan a, ShortenedWordSpan b)
-    {
-        Debug.Assert(a.LooksFull);
-
-        if (a.Value.Length < b.Value.Length)
+        while (true)
         {
-            return false;
-        }
+            if (iself.IsDone && iother.IsDone)
+            {
+                return true;
+            }
+            if (iself.IsDone)
+            {
+                return false;
+            }
+            if (iother.IsDone)
+            {
+                return false;
+            }
 
-        var a1 = a.Value[.. b.Value.Length];
-        return a1.Equals(b.Value, StringComparison.CurrentCultureIgnoreCase);
-    }
+            var selfword = iself.CurrentWord;
+            var otherword = iother.CurrentWord;
+            if (!IsEqual(selfword, otherword))
+            {
+                return false;
+            }
 
-    public static CompareWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
-    {
-        int len = int.Min(a.Value.Length, b.Value.Length);
-        var a1 = a.Value[.. len];
-        var b1 = b.Value[.. len];
-        if (!a1.Equals(b1, StringComparison.CurrentCultureIgnoreCase))
-        {
-            return CompareWordsResult.NotEqual;
+            iself.Move();
+            iother.Move();
         }
-
-        bool a1longer = a.Value.Length > b.Value.Length;
-        if (a1longer)
-        {
-            return CompareWordsResult.Equal_FirstBetter;
-        }
-        return CompareWordsResult.Equal_SecondBetter;
     }
 
     private struct CourseIter(ParsedCourseName c)
@@ -351,40 +340,41 @@ public static class CourseNameHelper
             }
             Index++;
         }
-
     }
 
-    public static bool IsEqual(this ParsedCourseName self, ParsedCourseName other)
+    private static bool IsEqual(this CompareShortenedWordsResult r)
     {
-        var iself = new CourseIter(self);
-        var iother = new CourseIter(other);
+        return r is CompareShortenedWordsResult.Equal_FirstBetter
+            or CompareShortenedWordsResult.Equal_SecondBetter;
+    }
 
-        while (true)
+    private static bool IsEqual(this WordSpan a, WordSpan b)
+    {
+        var ret = Compare(a.Shortened, b.Shortened);
+        return ret.IsEqual();
+    }
+
+    private static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
+    {
+        var r = Compare(a.Shortened, b);
+        return r.IsEqual();
+    }
+
+    private static CompareShortenedWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
+    {
+        int len = int.Min(a.Value.Length, b.Value.Length);
+        var a1 = a.Value[.. len];
+        var b1 = b.Value[.. len];
+        if (!a1.Equals(b1, StringComparison.CurrentCultureIgnoreCase))
         {
-            if (iself.IsDone && iother.IsDone)
-            {
-                return true;
-            }
-            if (iself.IsDone)
-            {
-                return false;
-            }
-            if (iother.IsDone)
-            {
-                return false;
-            }
-
-            var selfword = iself.CurrentWord;
-            var otherword = iother.CurrentWord;
-            if (!AreEqual(selfword, otherword))
-            {
-                return false;
-            }
-
-            iself.Move();
-            iother.Move();
+            return CompareShortenedWordsResult.NotEqual;
         }
+
+        bool a1longer = a.Value.Length > b.Value.Length;
+        if (a1longer)
+        {
+            return CompareShortenedWordsResult.Equal_FirstBetter;
+        }
+        return CompareShortenedWordsResult.Equal_SecondBetter;
     }
 }
-
-
