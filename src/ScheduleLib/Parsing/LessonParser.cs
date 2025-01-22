@@ -70,7 +70,7 @@ public struct ModifiersValue()
     public Parity Parity = Parity.EveryWeek;
     public ReadOnlyMemory<char> GroupName = default;
 
-    public bool Set(MaybeModifiersValue v)
+    internal bool Set(MaybeModifiersValue v)
     {
         if (v.LessonType is { } lessonType)
         {
@@ -91,14 +91,14 @@ public struct ModifiersValue()
     }
 }
 
-public struct MaybeModifiersValue()
+internal struct MaybeModifiersValue()
 {
     public LessonType? LessonType;
     public Parity? Parity;
     public ReadOnlyMemory<char> GroupName;
 }
 
-public struct CommonLessonInParsing()
+internal struct CommonLessonInParsing()
 {
     public TimeOnly? StartTime = null;
     public List<ReadOnlyMemory<char>> TeacherNames = new();
@@ -117,7 +117,7 @@ public enum ParsingStep
     Output,
 }
 
-public struct ParsingState()
+internal struct ParsingState()
 {
     public ParsingStep Step = ParsingStep.Start;
     public CommonLessonInParsing CommonLesson = new();
@@ -149,11 +149,22 @@ public sealed class WrongFormatException : Exception
 {
 }
 
-public ref struct ParsingContext
+internal ref struct ParsingContext
 {
     public required ref ParseLessonsParams Params;
     public required ref ParsingState State;
     public required ref Parser Parser;
+}
+public static class ParsingHelper1
+{
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
+    {
+        Debug.Assert(ReferenceEquals(a.Source, b.Source));
+
+        int start = a.Position;
+        int end = b.Position;
+        return a.Source.AsMemory(start .. end);
+    }
 }
 
 public static class LessonParsingHelper
@@ -262,9 +273,9 @@ public static class LessonParsingHelper
             {
                 // Until end of line or paren
                 var bparser = c.Parser.BufferedView();
-                bparser.Skip(new SkipUntil(['(', ',']));
+                bparser.SkipUntil(['(', ',']);
 
-                var name = SourceUntilExclusive(c.Parser, bparser);
+                var name = c.Parser.SourceUntilExclusive(bparser);
                 name = CleanCourseName(name);
 
                 c.State.LessonsInParsing.Add(new()
@@ -370,7 +381,7 @@ public static class LessonParsingHelper
                 }
 
                 var bparser = c.Parser.BufferedView();
-                bparser.Skip(new SkipUntil([':']));
+                bparser.SkipUntil([':']);
                 if (bparser.IsEmpty)
                 {
                     c.State.Step = ParsingStep.TeacherNameList;
@@ -391,7 +402,7 @@ public static class LessonParsingHelper
                 var skipResult = bparser.Skip(new SkipUntilNumberOrComma());
                 _ = skipResult;
 
-                var teacherName = SourceUntilExclusive(c.Parser, bparser);
+                var teacherName = c.Parser.SourceUntilExclusive(bparser);
                 teacherName = CleanTeacherName(teacherName);
 
                 c.Parser.MoveTo(bparser.Position);
@@ -418,7 +429,7 @@ public static class LessonParsingHelper
 
                 bparser.SkipNotWhitespace();
 
-                var roomName = SourceUntilExclusive(c.Parser, bparser);
+                var roomName = c.Parser.SourceUntilExclusive(bparser);
                 c.Parser.MoveTo(bparser.Position);
                 c.State.CommonLesson.RoomName = roomName;
                 c.State.Step = ParsingStep.Output;
@@ -427,7 +438,7 @@ public static class LessonParsingHelper
         }
     }
 
-    public struct SkipUntilNumberOrComma : IShouldSkip
+    private struct SkipUntilNumberOrComma : IShouldSkip
     {
         public bool ShouldSkip(char ch)
         {
@@ -443,33 +454,14 @@ public static class LessonParsingHelper
         }
     }
 
-    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
-    {
-        Debug.Assert(ReferenceEquals(a.Source, b.Source));
-
-        int start = a.Position;
-        int end = b.Position;
-        return a.Source.AsMemory(start .. end);
-    }
-
     private static void SkipParenListItem(ref Parser p)
     {
-        var skipped = p.Skip(new SkipUntil([
-            ',',
-            ')',
-        ]));
+        var skipped = p.SkipUntil([',', ')']);
         if (!skipped.SkippedAny || skipped.EndOfInput)
         {
             // expected non-empty parens
             throw new WrongFormatException();
         }
-    }
-
-    private ref struct SkipUntil : IShouldSkip
-    {
-        private readonly ReadOnlySpan<char> _chars;
-        public SkipUntil(ReadOnlySpan<char> chars) => _chars = chars;
-        public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
 
     private static ReadOnlyMemory<char> CleanCourseName(ReadOnlyMemory<char> input)
@@ -502,7 +494,6 @@ public static class LessonParsingHelper
             return count;
         }
     }
-
 
     private static ReadOnlyMemory<char> CleanTeacherName(ReadOnlyMemory<char> input)
     {
@@ -569,126 +560,5 @@ public sealed class ParityParser
             return Parity.OddWeek;
         }
         return null;
-    }
-}
-
-public static class StringCleanHelper
-{
-    public static WithoutConsecutiveSpacesEnumerable WithoutConsecutiveSpaces(this ReadOnlySpan<char> s)
-    {
-        return new(s);
-    }
-    public static WordsSeparatedWithSpacesEnumerable WordsSeparatedWithSpaces(this ReadOnlySpan<char> s)
-    {
-        return new(s);
-    }
-}
-
-public readonly ref struct WordsSeparatedWithSpacesEnumerable
-{
-    private readonly ReadOnlySpan<char> _str;
-    public WordsSeparatedWithSpacesEnumerable(ReadOnlySpan<char> str) => _str = str;
-    public Enumerator GetEnumerator() => new(_str);
-
-    public ref struct Enumerator
-    {
-        private WithoutConsecutiveSpacesEnumerable.Enumerator _withoutSpaces;
-        private bool _shouldOutputSpace;
-
-        public Enumerator(ReadOnlySpan<char> str)
-        {
-            _withoutSpaces = new(str);
-            _shouldOutputSpace = false;
-        }
-
-        public readonly char Current
-        {
-            get
-            {
-                if (_shouldOutputSpace)
-                {
-                    return ' ';
-                }
-                return _withoutSpaces.Current;
-            }
-        }
-
-        public bool MoveNext()
-        {
-            if (_shouldOutputSpace)
-            {
-                _shouldOutputSpace = false;
-                return true;
-            }
-
-            bool isPrevPunctuation = _withoutSpaces.IsInitialized
-                && char.IsPunctuation(_withoutSpaces.Current);
-            if (!_withoutSpaces.MoveNext())
-            {
-                return false;
-            }
-
-            bool isCurrentSpace = _withoutSpaces.Current == ' ';
-            if (!isCurrentSpace && isPrevPunctuation)
-            {
-                _shouldOutputSpace = true;
-            }
-
-            return true;
-        }
-    }
-}
-
-public readonly ref struct WithoutConsecutiveSpacesEnumerable
-{
-    private readonly ReadOnlySpan<char> _str;
-    public WithoutConsecutiveSpacesEnumerable(ReadOnlySpan<char> str) => _str = str;
-    public Enumerator GetEnumerator() => new(_str);
-
-    public ref struct Enumerator
-    {
-        private readonly ReadOnlySpan<char> _str;
-        private bool _isSpace;
-        private int _index;
-
-        public Enumerator(ReadOnlySpan<char> str)
-        {
-            _str = str;
-            _isSpace = false;
-            _index = -1;
-        }
-
-        public readonly bool IsInitialized => _index != -1;
-
-        public readonly bool IsDone
-        {
-            get
-            {
-                return _index >= _str.Length;
-            }
-        }
-
-        public readonly char Current => _str[_index];
-
-        public bool MoveNext()
-        {
-            while (true)
-            {
-                _index++;
-                if (IsDone)
-                {
-                    return false;
-                }
-
-                bool isCurrentSpace = Current is ' ' or '\t' or '\r' or '\n';
-                if (_isSpace && isCurrentSpace)
-                {
-                    continue;
-                }
-
-                _isSpace = isCurrentSpace;
-                return true;
-            }
-        }
     }
 }

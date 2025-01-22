@@ -1,16 +1,13 @@
 using System.Diagnostics;
 
-namespace ScheduleLib;
+namespace ScheduleLib.Parsing;
 
 public struct Parser
 {
     private readonly string _input;
     private int _index;
 
-    public Parser(string input)
-    {
-        _input = input;
-    }
+    public Parser(string input) => _input = input;
 
     public readonly string Source => _input;
     public readonly bool IsEmpty => _index >= _input.Length;
@@ -143,6 +140,19 @@ public static class ParserHelper
         return parser.Skip(new NotWhitespaceSkip());
     }
 
+    private ref struct SkipUntilImpl : IShouldSkip
+    {
+        private readonly ReadOnlySpan<char> _chars;
+        public SkipUntilImpl(ReadOnlySpan<char> chars) => _chars = chars;
+        public bool ShouldSkip(char ch) => !_chars.Contains(ch);
+    }
+    public static SkipResult SkipUntil(
+        this ref Parser parser,
+        ReadOnlySpan<char> chars)
+    {
+        return parser.Skip(new SkipUntilImpl(chars));
+    }
+
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
     {
         if (!parser.CanPeekCount(length))
@@ -167,15 +177,6 @@ public static class ParserHelper
     public static SkipResult SkipNumbers(this ref Parser parser)
     {
         return parser.Skip(new NumberSkip());
-    }
-
-    private struct NotNumberSkip : IShouldSkip
-    {
-        public bool ShouldSkip(char ch) => !char.IsNumber(ch);
-    }
-    public static SkipResult SkipNotNumbers(this ref Parser parser)
-    {
-        return parser.Skip(new NotNumberSkip());
     }
 
     public static TimeOnly? ParseTime(ref Parser parser)
@@ -226,7 +227,6 @@ public static class ParserHelper
         }
     }
 }
-
 
 public enum ConsumeIntStatus
 {
