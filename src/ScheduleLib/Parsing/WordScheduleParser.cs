@@ -1,5 +1,3 @@
-using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -245,6 +243,7 @@ public static class WordScheduleParser
                 const int timeSlotColumnIndex = 1;
 
                 int columnIndex = 0;
+                int columnSizeCounter = 0;
                 foreach (var cell in Cells())
                 {
                     var props = cell.TableCellProperties;
@@ -274,24 +273,13 @@ public static class WordScheduleParser
                         }
                     }
 
-                    switch (columnIndex)
-                    {
-                        case dayColumnIndex or timeSlotColumnIndex:
-                        {
-                            if (colSpan != 1)
-                            {
-                                throw new NotSupportedException("The day and time slot columns must be one column in width");
-                            }
-                            break;
-                        }
-                    }
-
-                    int countLeft = state.ColumnCounts!.Value.Total - columnIndex;
+                    int countLeft = state.ColumnCounts!.Value.Total - columnSizeCounter;
                     if (countLeft < colSpan)
                     {
                         throw new NotSupportedException("The column count is off");
                     }
-                    columnIndex += colSpan;
+                    columnIndex += 1;
+                    columnSizeCounter += colSpan;
                     continue;
 
 
@@ -584,7 +572,7 @@ public static class WordScheduleParser
                 const int expectedSkippedCount = 2;
 
                 using var cellEnumerator = Cells().GetEnumerator();
-                int skippedCount = SkipEmpties();
+                (int skippedCount, int skippedSize) = SkipEmpties();
                 if (!ShouldParseGroupsWithChecks(skippedCount))
                 {
                     return false;
@@ -596,31 +584,36 @@ public static class WordScheduleParser
                     }
                 }
                 int groupCount = AddGroups();
-                state.ColumnCounts = new(skippedCount, groupCount);
+                state.ColumnCounts = new(skippedSize, groupCount);
                 return true;
 
-                int SkipEmpties()
+                (int SkippedCount, int SkippedSize) SkipEmpties()
                 {
                     int skippedCount1 = 0;
+                    int skippedSize1 = 0;
                     if (!cellEnumerator.MoveNext())
                     {
                         throw new NotSupportedException("Empty table not supported");
                     }
                     while (true)
                     {
-                        var text = cellEnumerator.Current.InnerText;
+                        var cell = cellEnumerator.Current;
+                        var text = cell.InnerText;
                         if (text != "")
                         {
                             break;
                         }
                         skippedCount1++;
 
+                        var size = cell.TableCellProperties?.GridSpan?.Val ?? 1;
+                        skippedSize1 += size;
+
                         if (!cellEnumerator.MoveNext())
                         {
                             throw new NotSupportedException("Header columns expected after the empties");
                         }
                     }
-                    return skippedCount1;
+                    return (skippedCount1, skippedSize1);
                 }
 
                 bool ShouldParseGroupsWithChecks(int skippedCount1)
@@ -645,11 +638,12 @@ public static class WordScheduleParser
 
                 int AddGroups()
                 {
-                    int goodCellCount = 0;
+                    int goodSize = 0;
                     while (true)
                     {
-                        var groupName = cellEnumerator.Current.InnerText;
-                        var expectedId = goodCellCount + state.GroupsProcessed;
+                        var cell = cellEnumerator.Current;
+                        var groupName = cell.InnerText;
+                        var expectedId = goodSize + state.GroupsProcessed;
 
                         var group = c.Schedule.Group(groupName);
                         if (expectedId != group.Id.Value)
@@ -658,10 +652,12 @@ public static class WordScheduleParser
                         }
                         Debug.Assert(expectedId == group.Id.Value);
 
-                        goodCellCount++;
+                        var colSpan = cell.TableCellProperties?.GridSpan?.Val ?? 1;
+                        goodSize += colSpan;
+
                         if (!cellEnumerator.MoveNext())
                         {
-                            return goodCellCount;
+                            return goodSize;
                         }
                     }
                 }
