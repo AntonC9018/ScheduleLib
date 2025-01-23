@@ -21,6 +21,7 @@ public readonly struct ModifiersList<T, TImpl>()
     private readonly List<T> _list = new();
 
     public List<T>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    public bool IsEmpty => _list.Count == 0;
 
     private TImpl Impl => new();
 
@@ -29,12 +30,21 @@ public readonly struct ModifiersList<T, TImpl>()
         _list.Clear();
     }
 
+    public bool OnlyHasAllSubGroup()
+    {
+        if (_list.Count > 1)
+        {
+            return false;
+        }
+        return Impl.SubGroup(Ref(0)) == SubGroup.All;
+    }
+
     public ref T Ref(int index)
     {
         return ref CollectionsMarshal.AsSpan(_list)[index];
     }
 
-    private int FindIndex(SubGroup subGroup)
+    public int FindIndex(SubGroup subGroup)
     {
         var mods = CollectionsMarshal.AsSpan(_list);
         for (int i = 0; i < mods.Length; i++)
@@ -116,12 +126,40 @@ public struct GeneralModifiersValue()
         }
         return false;
     }
+
+    internal void UpdateIfNotDefault(in GeneralModifiersValue v)
+    {
+        if (v.LessonType != LessonType.Unspecified)
+        {
+            LessonType = v.LessonType;
+        }
+        if (v.Parity != Parity.EveryWeek)
+        {
+            Parity = v.Parity;
+        }
+        if (!v.GroupName.IsEmpty)
+        {
+            GroupName = v.GroupName;
+        }
+    }
 }
 
 public struct SpecificModifiersValue()
 {
     public List<ReadOnlyMemory<char>> TeacherNames = new();
     public ReadOnlyMemory<char> RoomName = default;
+
+    public void UpdateIfNotDefault(in SpecificModifiersValue v)
+    {
+        if (v.TeacherNames.Count != 0)
+        {
+            TeacherNames = v.TeacherNames;
+        }
+        if (!v.RoomName.IsEmpty)
+        {
+            RoomName = v.RoomName;
+        }
+    }
 }
 
 public interface IModifiersImpl<T>
@@ -130,11 +168,19 @@ public interface IModifiersImpl<T>
     T Create(SubGroup subGroup);
 }
 
-public struct DefaultModifiers()
+public struct DefaultModifiersValue()
 {
     public GeneralModifiersValue General = new();
     public SpecificModifiersValue Specific = new();
+}
+
+public struct DefaultModifiers()
+{
+    public DefaultModifiersValue Value = new();
     public required SubGroup SubGroup { get; init; }
+
+    [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
+    [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
 
     public struct Impl : IModifiersImpl<DefaultModifiers>
     {
@@ -216,6 +262,8 @@ internal struct ParsingState()
                 // In this format, the teacher name and the room are optional
                 or ParsingStep.OptionalSubGroup
                 or ParsingStep.OptionalParens
+                or ParsingStep.OptionalParensBeforeRoom
+                or ParsingStep.RoomName
                 or ParsingStep.MaybeSubGroupAgain;
         }
     }
@@ -309,99 +357,98 @@ public static class LessonParsingHelper
 
         IEnumerable<ParsedLesson> DoOutput()
         {
+            var allDefaultIndex = state.DefaultModifiers.FindIndex(SubGroup.All);
+            DefaultModifiersValue allDefaults;
+            if (allDefaultIndex != -1)
+            {
+                allDefaults = state.DefaultModifiers.Ref(allDefaultIndex).Value;
+            }
+            else
+            {
+                allDefaults = new();
+            }
 
             foreach (var lesson in state.LessonsInParsing)
             {
-                foreach (var m in lesson.Modifiers)
+                var allFallback = allDefaults;
+
+                var allIndex = lesson.Modifiers.FindIndex(SubGroup.All);
+                if (allIndex != -1)
                 {
-                    yield return new()
-                    {
-                        LessonName = lesson.LessonName,
-                        TeacherNames = TeacherNames(),
-                        RoomName = RoomName(),
-                        Parity = Parity1(),
-                        LessonType = LessonType1(),
-                        GroupName = GroupName1(),
-                        SubGroup = m.SubGroup,
-                        StartTime = state.CommonLesson.StartTime,
-                    };
+                    ref var all = ref lesson.Modifiers.Ref(allIndex);
+                    allFallback.General.UpdateIfNotDefault(all.General);
+                }
 
-                    List<ReadOnlyMemory<char>> TeacherNames()
-                    {
-                        ref var x = ref state.DefaultModifiers.Ref(m.SubGroup);
-                        if (x.Specific.TeacherNames.Count > 0)
-                        {
-                            return x.Specific.TeacherNames;
-                        }
-                        ref var all = ref state.DefaultModifiers.Ref(SubGroup.All);
-                        if (all.Specific.TeacherNames.Count == 0)
-                        {
-                            return x.Specific.TeacherNames;
-                        }
-                        return all.Specific.TeacherNames;
-                    }
+                {
+                    bool shouldDoAllSubGroup = allDefaultIndex != -1;
 
-                    ReadOnlyMemory<char> RoomName()
+                    foreach (var mod in lesson.Modifiers)
                     {
-                        ref var x = ref state.DefaultModifiers.Ref(m.SubGroup);
-                        if (!x.Specific.RoomName.IsEmpty)
-                        {
-                            return x.Specific.RoomName;
-                        }
-                        ref var all = ref state.DefaultModifiers.Ref(SubGroup.All);
-                        if (all.Specific.RoomName.IsEmpty)
-                        {
-                            return x.Specific.RoomName;
-                        }
-                        return all.Specific.RoomName;
-                    }
+                        var v = allFallback;
 
-                    Parity Parity1()
-                    {
-                        ref var x = ref state.DefaultModifiers.Ref(m.SubGroup);
-                        if (x.General.Parity != Parity.EveryWeek)
+                        if (mod.SubGroup == SubGroup.All)
                         {
-                            return x.General.Parity;
+                            if (!shouldDoAllSubGroup)
+                            {
+                                continue;
+                            }
                         }
-                        ref var all = ref state.DefaultModifiers.Ref(SubGroup.All);
-                        if (all.General.Parity != Parity.EveryWeek)
+                        else
                         {
-                            return all.General.Parity;
+                            var defaultIndex = state.DefaultModifiers.FindIndex(mod.SubGroup);
+                            if (defaultIndex != -1)
+                            {
+                                ref var def = ref state.DefaultModifiers.Ref(defaultIndex);
+                                v.General.UpdateIfNotDefault(def.General);
+                                v.Specific.UpdateIfNotDefault(def.Specific);
+                            }
                         }
-                        return Parity.EveryWeek;
-                    }
 
-                    LessonType LessonType1()
-                    {
-                        ref var x = ref state.DefaultModifiers.Ref(m.SubGroup);
-                        if (x.General.LessonType != LessonType.Unspecified)
-                        {
-                            return x.General.LessonType;
-                        }
-                        ref var all = ref state.DefaultModifiers.Ref(SubGroup.All);
-                        if (all.General.LessonType != LessonType.Unspecified)
-                        {
-                            return all.General.LessonType;
-                        }
-                        return LessonType.Unspecified;
-                    }
-
-                    ReadOnlyMemory<char> GroupName1()
-                    {
-                        ref var x = ref state.DefaultModifiers.Ref(m.SubGroup);
-                        if (!x.General.GroupName.IsEmpty)
-                        {
-                            return x.General.GroupName;
-                        }
-                        ref var all = ref state.DefaultModifiers.Ref(SubGroup.All);
-                        if (!all.General.GroupName.IsEmpty)
-                        {
-                            return all.General.GroupName;
-                        }
-                        return default;
+                        v.General.UpdateIfNotDefault(mod.General);
+                        yield return Output(mod.SubGroup, v, lesson.LessonName);
                     }
                 }
+
+                foreach (var defaultMod in state.DefaultModifiers)
+                {
+                    if (defaultMod.SubGroup == SubGroup.All)
+                    {
+                        continue;
+                    }
+
+                    var lessonModIndex = lesson.Modifiers.FindIndex(defaultMod.SubGroup);
+                    if (lessonModIndex != -1)
+                    {
+                        continue;
+                    }
+
+                    var v = allFallback;
+                    v.General.UpdateIfNotDefault(defaultMod.General);
+                    v.Specific.UpdateIfNotDefault(defaultMod.Specific);
+
+                    yield return Output(defaultMod.SubGroup, v, lesson.LessonName);
+                }
             }
+
+
+            ParsedLesson Output(
+                SubGroup subGroup,
+                in DefaultModifiersValue v,
+                ReadOnlyMemory<char> lessonName)
+            {
+                return new()
+                {
+                    LessonName = lessonName,
+                    StartTime = state.CommonLesson.StartTime,
+                    LessonType = v.General.LessonType,
+                    Parity = v.General.Parity,
+                    SubGroup = subGroup,
+                    GroupName = v.General.GroupName,
+                    TeacherNames = v.Specific.TeacherNames,
+                    RoomName = v.Specific.RoomName,
+                };
+            }
+
         }
     }
 
@@ -686,7 +733,7 @@ public static class LessonParsingHelper
                     break;
                 }
 
-                bparser.SkipNotWhitespace();
+                bparser.Skip(new NotWhitespaceOrCommaSkip());
 
                 var roomName = c.Parser.SourceUntilExclusive(bparser);
                 c.Parser.MoveTo(bparser.Position);
@@ -748,6 +795,11 @@ public static class LessonParsingHelper
             }
             return true;
         }
+    }
+
+    private struct NotWhitespaceOrCommaSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch) && ch != ',';
     }
 
     private static void SkipParenListItem(ref Parser p)
