@@ -3,11 +3,19 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib;
 
+// TODO: Separate the filters out (array of filters)
 public struct ScheduleFilter()
 {
-    public required QualificationType QualificationType;
-    public required int Grade;
+    public QualificationType? QualificationType;
+    public int? Grade;
     public TeacherFilter TeacherFilter = new();
+    public GroupFilter GroupFilter = new();
+}
+
+public struct GroupFilter()
+{
+    public SubGroup[]? SubGroups = null;
+    public GroupId[]? GroupIds = null;
 }
 
 public struct TeacherFilter()
@@ -22,14 +30,16 @@ public sealed class FilteredSchedule
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
+
+    public bool IsEmpty => Days.Length == 0;
 }
 
 public static class FilterHelper
 {
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
-    public static FilteredSchedule Filter(this Schedule schedule, ScheduleFilter filter)
+    public static FilteredSchedule Filter(this Schedule schedule, in ScheduleFilter filter)
     {
-        var lessons = GetRegularLessons();
+        var lessons = GetRegularLessons(filter);
 
         GroupId[] groups;
         TimeSlot[] timeSlots;
@@ -56,17 +66,11 @@ public static class FilterHelper
             Days = days,
         };
 
-        IEnumerable<RegularLesson> GetRegularLessons()
+        IEnumerable<RegularLesson> GetRegularLessons(ScheduleFilter filter)
         {
             foreach (var regularLesson in schedule.RegularLessons)
             {
-                var groupId = regularLesson.Lesson.Group;
-                var g = schedule.Get(groupId);
-                if (g.QualificationType != filter.QualificationType)
-                {
-                    continue;
-                }
-                if (g.Grade != filter.Grade)
+                if (!PassesGradeTest())
                 {
                     continue;
                 }
@@ -74,7 +78,36 @@ public static class FilterHelper
                 {
                     continue;
                 }
+                if (!PassesSubGroupFilter())
+                {
+                    continue;
+                }
+                if (!PassesGroupFilter())
+                {
+                    continue;
+                }
                 yield return regularLesson;
+
+                bool PassesGradeTest()
+                {
+                    var groupId = regularLesson.Lesson.Group;
+                    var g = schedule.Get(groupId);
+                    if (filter.QualificationType is { } q)
+                    {
+                        if (g.QualificationType != q)
+                        {
+                            return false;
+                        }
+                    }
+                    if (filter.Grade is { } grade)
+                    {
+                        if (g.Grade != grade)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
 
                 bool PassesTeacherIdFilter()
                 {
@@ -85,6 +118,38 @@ public static class FilterHelper
                     foreach (var teacherId in regularLesson.Lesson.Teachers)
                     {
                         if (includedIds.Contains(teacherId))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                bool PassesSubGroupFilter()
+                {
+                    if (filter.GroupFilter.SubGroups is not { } subGroups)
+                    {
+                        return true;
+                    }
+                    foreach (var subGroup in subGroups)
+                    {
+                        if (subGroup == regularLesson.Lesson.SubGroup)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                bool PassesGroupFilter()
+                {
+                    if (filter.GroupFilter.GroupIds is not { } groupIds)
+                    {
+                        return true;
+                    }
+                    foreach (var groupId1 in groupIds)
+                    {
+                        if (groupId1 == regularLesson.Lesson.Group)
                         {
                             return true;
                         }
@@ -119,7 +184,7 @@ public static class FilterHelper
             var ret = new TimeSlot[len];
             for (int i = min.Index; i <= max.Index; i++)
             {
-                ret[i] = new TimeSlot(i);
+                ret[i - min.Index] = new TimeSlot(i);
             }
             return ret;
 

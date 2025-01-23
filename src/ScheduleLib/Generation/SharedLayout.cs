@@ -94,11 +94,13 @@ public sealed class SharedLayout
 public static class ColumnArrangementHelper
 {
     // TODO: Integrate the max columns per page feature.
+    // TODO: Doesn't work actually, make tests for this thing.
     public static (ColumnOrder ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
     {
         ColumnOrderBuilder columnOrder = new();
 
-        bool success = Search(schedule, columnOrder);
+        bool success = false;
+        // bool success = Search(schedule, columnOrder);
         if (!success)
         {
             Debug.Assert(columnOrder.Count == 0);

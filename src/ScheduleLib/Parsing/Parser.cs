@@ -99,6 +99,43 @@ public static class ParserHelper
         return ret;
     }
 
+    private ref struct SkipWindowUntilStringImpl : IShouldSkipSequence
+    {
+        private readonly ReadOnlySpan<string> _strings;
+        public SkipWindowUntilStringImpl(ReadOnlySpan<string> strings) => _strings = strings;
+
+        public bool ShouldSkip(ReadOnlySpan<char> window)
+        {
+            foreach (var str in _strings)
+            {
+                if (window.Equals(str, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    public static SkipResult SkipUntil(this ref Parser parser, ReadOnlySpan<string> strings)
+    {
+        Debug.Assert(!strings.IsEmpty);
+        var len = strings[0].Length;
+        Debug.Assert(strings[1 ..].All(x => x.Length == len));
+        return parser.SkipWindow(new SkipWindowUntilStringImpl(strings), len);
+    }
+
+    private static bool All<T>(this ReadOnlySpan<T> s, Func<T, bool> action)
+    {
+        foreach (var item in s)
+        {
+            if (!action(item))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static SkipResult Skip<T>(this ref Parser parser, T impl)
         where T : struct, IShouldSkip, allows ref struct
     {

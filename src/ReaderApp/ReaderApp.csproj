@@ -10,11 +10,7 @@
 
     <ItemGroup>
         <None
-            Include="*.doc"
-            CopyToOutputDirectory="Always"
-            CopyToPublishDirectory="Always" />
-        <None
-            Include="*.docx"
+            Include="data\**\*.docx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
     </ItemGroup>

@@ -50,7 +50,7 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
             }
 
             bool isPrevPunctuation = _withoutSpaces.IsInitialized
-                && char.IsPunctuation(_withoutSpaces.Current);
+                && _withoutSpaces.Current is ',' or '.' or ':' or ';';
             if (!_withoutSpaces.MoveNext())
             {
                 return false;
