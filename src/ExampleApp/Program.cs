@@ -616,7 +616,7 @@ var filteredSchedule = schedule.Filter(new()
 });
 var dayNameProvider = new DayNameProvider();
 var timeSlotDisplayHandler = new TimeSlotDisplayHandler();
-var generator = new ScheduleTableDocument(filteredSchedule, new()
+var generator = new GroupColumnScheduleTableDocument(filteredSchedule, new()
 {
     DayNameProvider = dayNameProvider,
     LessonTimeConfig = timeConfig,

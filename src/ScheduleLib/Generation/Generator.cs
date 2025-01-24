@@ -16,7 +16,7 @@ public static class StringBuilderHelper
         return ret;
     }
 }
-public sealed class ScheduleTableDocument : IDocument
+public sealed class GroupColumnScheduleTableDocument : IDocument
 {
     public struct Services
     {
@@ -40,7 +40,7 @@ public sealed class ScheduleTableDocument : IDocument
     private readonly GeneratorCache _cache;
     private readonly SchedulePdfSizesConfig _sizesConfig = new();
 
-    public ScheduleTableDocument(FilteredSchedule schedule, in Services p)
+    public GroupColumnScheduleTableDocument(FilteredSchedule schedule, in Services p)
     {
         _schedule = schedule;
         _services = p;
@@ -310,7 +310,7 @@ public sealed class ScheduleTableDocument : IDocument
             if (subGroupNumber is { } s1)
             {
                 sb.Append(s1);
-                sb.Append(". ");
+                sb.Append(": ");
             }
         }
         {

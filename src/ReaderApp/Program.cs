@@ -34,7 +34,7 @@ var context = DocParseContext.Create(new()
 
 {
     var schedule = context.BuildSchedule();
-    var services = new ScheduleTableDocument.Services
+    var services = new GroupColumnScheduleTableDocument.Services
     {
         LessonTimeConfig = context.TimeConfig,
         ParityDisplay = new(),
@@ -100,7 +100,7 @@ var context = DocParseContext.Create(new()
             return;
         }
 
-        var generator = new ScheduleTableDocument(filteredSchedule, services with
+        var generator = new GroupColumnScheduleTableDocument(filteredSchedule, services with
         {
             StringBuilder = new(),
         });
