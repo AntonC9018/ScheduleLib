@@ -34,16 +34,20 @@ var context = DocParseContext.Create(new()
 
 {
     var schedule = context.BuildSchedule();
+    var textDisplayServices = new PdfLessonTextDisplayHandler.Services
+    {
+        ParityDisplay = new(),
+        LessonTypeDisplay = new(),
+        SubGroupNumberDisplay = new(),
+    };
     var services = new GroupColumnScheduleTableDocument.Services
     {
         LessonTimeConfig = context.TimeConfig,
-        ParityDisplay = new(),
-        LessonTypeDisplay = new(),
         TimeSlotDisplay = new(),
-        SubGroupNumberDisplay = new(),
         DayNameProvider = dayNameProvider,
 
         // Initialized later.
+        LessonTextDisplayHandler = null!,
         StringBuilder = null!,
     };
 
@@ -57,42 +61,55 @@ var context = DocParseContext.Create(new()
     QuestPDF.Settings.License = LicenseType.Community;
 
     var tasks = new List<Task>();
-    for (int groupId = 0; groupId < schedule.Groups.Length; groupId++)
     {
-        int groupId1 = groupId;
-        var t = Task.Run(() =>
+        var textDisplayHandler = new PdfLessonTextDisplayHandler(textDisplayServices, new());
+        for (int groupId = 0; groupId < schedule.Groups.Length; groupId++)
         {
-            var groupName = schedule.Groups[groupId1].Name;
-            GenerateWithFilter(groupName, new()
+            int groupId1 = groupId;
+            var t = Task.Run(() =>
             {
-                GroupFilter = new()
+                var groupName = schedule.Groups[groupId1].Name;
+                GenerateWithFilter(groupName, textDisplayHandler, new()
                 {
-                    GroupIds = [new(groupId1)],
-                },
+                    GroupFilter = new()
+                    {
+                        GroupIds = [new(groupId1)],
+                    },
+                });
             });
-        });
-        tasks.Add(t);
+            tasks.Add(t);
+        }
     }
-    for (int teacherId = 0; teacherId < schedule.Teachers.Length; teacherId++)
+
     {
-        int teacherId1 = teacherId;
-        var t = Task.Run(() =>
+        var textDisplayHandler = new PdfLessonTextDisplayHandler(textDisplayServices, new()
         {
-            var teacherName = schedule.Teachers[teacherId1].Name;
-            var fileName = teacherName.Replace('.', '_');
-            GenerateWithFilter(fileName, new()
-            {
-                TeacherFilter = new()
-                {
-                    IncludeIds = [new(teacherId1)],
-                },
-            });
+            PrintsTeacherName = false,
         });
-        tasks.Add(t);
+        for (int teacherId = 0; teacherId < schedule.Teachers.Length; teacherId++)
+        {
+            int teacherId1 = teacherId;
+            var t = Task.Run(() =>
+            {
+                var teacherName = schedule.Teachers[teacherId1].Name;
+                var fileName = teacherName.Replace('.', '_');
+                GenerateWithFilter(fileName, textDisplayHandler, new()
+                {
+                    TeacherFilter = new()
+                    {
+                        IncludeIds = [new(teacherId1)],
+                    },
+                });
+            });
+            tasks.Add(t);
+        }
     }
     await Task.WhenAll(tasks);
 
-    void GenerateWithFilter(string name, in ScheduleFilter filter)
+    void GenerateWithFilter(
+        string name,
+        PdfLessonTextDisplayHandler textDisplayHandler,
+        in ScheduleFilter filter)
     {
         var filteredSchedule = schedule.Filter(filter);
         if (filteredSchedule.IsEmpty)
@@ -103,6 +120,7 @@ var context = DocParseContext.Create(new()
         var generator = new GroupColumnScheduleTableDocument(filteredSchedule, services with
         {
             StringBuilder = new(),
+            LessonTextDisplayHandler = textDisplayHandler,
         });
 
         var path = Path.Combine(outputDirPath, name + ".pdf");

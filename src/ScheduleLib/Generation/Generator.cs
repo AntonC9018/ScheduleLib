@@ -23,9 +23,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
         public required LessonTimeConfig LessonTimeConfig;
         public required DayNameProvider DayNameProvider;
         public required TimeSlotDisplayHandler TimeSlotDisplay;
-        public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
-        public required ParityDisplayHandler ParityDisplay;
-        public required LessonTypeDisplayHandler LessonTypeDisplay;
+        public required PdfLessonTextDisplayHandler LessonTextDisplayHandler;
         public required StringBuilder StringBuilder;
 
         public readonly StringBuilder GetCleanStringBuilder()
@@ -292,102 +290,15 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
         RegularLesson lesson,
         uint columnWidth)
     {
-        string CourseName()
+        _services.LessonTextDisplayHandler.Handle(new()
         {
-            // It's impossible to measure text in this library. Yikes.
-            var course = _schedule.Source.Get(lesson.Lesson.Course);
-            if (columnWidth == 1)
-            {
-                return course.Names[^1];
-            }
-
-            return course.Names[0];
-        }
-
-        var sb = _services.GetCleanStringBuilder();
-        {
-            var subGroupNumber = _services.SubGroupNumberDisplay.Get(lesson.Lesson.SubGroup);
-            if (subGroupNumber is { } s1)
-            {
-                sb.Append(s1);
-                sb.Append(": ");
-            }
-        }
-        {
-            var str = sb.ToStringAndClear();
-            var span = text.Span(str);
-            span.Bold();
-        }
-        {
-            var courseName = CourseName();
-            sb.Append(courseName);
-        }
-        {
-            var lessonType = _services.LessonTypeDisplay.Get(lesson.Lesson.Type);
-            var parity = _services.ParityDisplay.Get(lesson.Date.Parity);
-            bool appendAny = lessonType != null || parity != null;
-            if (appendAny)
-            {
-                sb.Append(" (");
-
-                bool written = false;
-                void Write(string? str)
-                {
-                    if (str is not { } notNullS)
-                    {
-                        return;
-                    }
-                    if (written)
-                    {
-                        sb.Append(", ");
-                    }
-                    else
-                    {
-                        written = true;
-                    }
-
-                    sb.Append(notNullS);
-                }
-
-                Write(lessonType);
-                Write(parity);
-                sb.Append(")");
-            }
-        }
-        {
-            var str = sb.ToStringAndClear();
-            text.Line(str);
-        }
-        {
-            bool added = false;
-
-            foreach (var t in lesson.Lesson.Teachers)
-            {
-                if (added)
-                {
-                    sb.Append(',');
-                }
-
-                var teacher = _schedule.Source.Get(t);
-                sb.Append(teacher.Name);
-                added = true;
-            }
-
-            var r = lesson.Lesson.Room;
-            if (r.IsValid)
-            {
-                if (added)
-                {
-                    sb.Append("  ");
-                }
-                var room = _schedule.Source.Get(r);
-                sb.Append(room);
-            }
-        }
-        {
-            var str = sb.ToStringAndClear();
-            text.Span(str);
-        }
+            TextDescriptor = text,
+            Lesson = lesson,
+            StringBuilder = _services.GetCleanStringBuilder(),
+            Schedule = _schedule.Source,
+            ColumnWidth = columnWidth,
+            LessonTimeConfig = _services.LessonTimeConfig,
+        });
     }
 
     private void TableLeftHeader(TableDescriptor table)
