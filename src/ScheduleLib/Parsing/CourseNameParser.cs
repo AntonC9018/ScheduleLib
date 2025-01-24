@@ -99,8 +99,6 @@ public sealed class CourseNameParserConfig
         }
     }
 
-    public static CourseNameParserConfig Create(in Params p) => new(p);
-
     public ref struct Params()
     {
         public int MinUsefulWordLength = 2;
@@ -127,102 +125,95 @@ public static class CourseNameParsing
     {
         var wordRanges = course.Split(' ');
         var count = course.Count(' ') + 1;
-        var array = ArrayPool<string>.Shared.Rent(count);
-        try
+        using var buffer = new RentedBuffer<string>(count);
+
+        int i = 0;
+        foreach (var range in wordRanges)
         {
-            int i = 0;
-            foreach (var range in wordRanges)
+            var span = course[range];
+            if (span.Length == 0)
             {
-                var span = course[range];
-                if (span.Length == 0)
-                {
-                    continue;
-                }
-                // Need a string to be able to look up in the hash sets.
-                // kinda yikes.
-                var wordString = course[range].ToString();
-                array[i] = wordString;
-                i++;
+                continue;
+            }
+            // Need a string to be able to look up in the hash sets.
+            // kinda yikes.
+            var wordString = course[range].ToString();
+            buffer.Array[i] = wordString;
+            i++;
+        }
+
+        var strings = buffer.Array.AsSpan(0, i);
+
+        bool isAnyProgrammingLanguage = IsAnyProgrammingLanguage(strings);
+
+        var ret = new ParsedCourseName();
+        foreach (var s in strings)
+        {
+            var word = new Word(s);
+            var segment = new CourseNameSegment
+            {
+                Word = word,
+            };
+
+            if (config.IgnoredFullWords.Contains(s))
+            {
+                continue;
+            }
+            if (ShouldIgnoreShort())
+            {
+                continue;
+            }
+            if (isAnyProgrammingLanguage
+                && IsEitherShortForOther(word, new("programare")))
+            {
+                continue;
+            }
+            if (!PrepareReturn())
+            {
+                continue;
+            }
+            {
+                ret.Segments.Add(segment);
             }
 
-            var strings = array.AsSpan(0, i);
-
-            bool isAnyProgrammingLanguage = IsAnyProgrammingLanguage(strings);
-
-            var ret = new ParsedCourseName();
-            foreach (var s in strings)
+            bool PrepareReturn()
             {
-                var word = new Word(s);
-                var segment = new CourseNameSegment
+                bool isProgrammingLanguage = IsProgrammingLanguage(word);
+                if (isProgrammingLanguage)
                 {
-                    Word = word,
-                };
-
-                if (config.IgnoredFullWords.Contains(s))
-                {
-                    continue;
-                }
-                if (ShouldIgnoreShort())
-                {
-                    continue;
-                }
-                if (isAnyProgrammingLanguage
-                    && IsEitherShortForOther(word, new("programare")))
-                {
-                    continue;
-                }
-                if (!PrepareReturn())
-                {
-                    continue;
-                }
-                {
-                    ret.Segments.Add(segment);
-                }
-
-                bool PrepareReturn()
-                {
-                    bool isProgrammingLanguage = IsProgrammingLanguage(word);
-                    if (isProgrammingLanguage)
-                    {
-                        return true;
-                    }
-
-                    bool isAllCapital = IsInitials(s);
-                    if (isAllCapital)
-                    {
-                        segment.Flags.IsInitials = true;
-                        return true;
-                    }
-
-                    if (s.Length < config.MinUsefulWordLength)
-                    {
-                        return false;
-                    }
-
-                    // Regular word.
                     return true;
                 }
 
-                bool ShouldIgnoreShort()
+                bool isAllCapital = IsInitials(s);
+                if (isAllCapital)
                 {
-                    foreach (var shortenedWithoutDot in config.IgnoredShortenedWords)
-                    {
-                        if (IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
-                        {
-                            return true;
-                        }
-                    }
+                    segment.Flags.IsInitials = true;
+                    return true;
+                }
+
+                if (s.Length < config.MinUsefulWordLength)
+                {
                     return false;
                 }
+
+                // Regular word.
+                return true;
             }
 
-            return ret;
+            bool ShouldIgnoreShort()
+            {
+                foreach (var shortenedWithoutDot in config.IgnoredShortenedWords)
+                {
+                    if (IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
         }
-        catch (Exception)
-        {
-            ArrayPool<string>.Shared.Return(array);
-            throw;
-        }
+
+        return ret;
 
         bool IsAnyProgrammingLanguage(ReadOnlySpan<string> strings)
         {

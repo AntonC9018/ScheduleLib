@@ -68,7 +68,7 @@ public sealed class ValidationSettings()
 public sealed class LookupModule()
 {
     public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
-    public readonly Dictionary<string, int> Teachers = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, int> Teachers = new(IgnoreDiacriticsComparer.Instance);
     public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
 }
 

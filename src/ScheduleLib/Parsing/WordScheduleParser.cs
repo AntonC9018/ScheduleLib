@@ -11,10 +11,10 @@ namespace ScheduleLib.Parsing.Word;
 
 public sealed class DocParseContext
 {
-    public required ScheduleBuilder Schedule;
-    public required LessonTimeConfig TimeConfig;
-    public required CourseNameParserConfig CourseNameParserConfig;
-    public required DayNameParser DayNameParser;
+    public required ScheduleBuilder Schedule { get; init; }
+    public required LessonTimeConfig TimeConfig { get; init; }
+    public required CourseNameParserConfig CourseNameParserConfig { get; init; }
+    public required DayNameParser DayNameParser { get; init; }
     internal readonly List<SlowCourse> SlowCourses = new();
 
     public struct CreateParams
@@ -44,7 +44,28 @@ public sealed class DocParseContext
         };
     }
 
-    public CourseId Course(string name)
+    public Schedule BuildSchedule()
+    {
+        var courseNamesByKey = Schedule.LookupModule!.Courses
+            .GroupBy(x => x.Value)
+            .Select(x =>
+            {
+                var names = x.Select(x1 => x1.Key).ToArray();
+                Array.Sort(names, static (a, b) => b.Length - a.Length);
+                return (x.Key, Names: names);
+            });
+
+        foreach (var t in courseNamesByKey)
+        {
+            ref var b = ref Schedule.Courses.Ref(t.Key);
+            b.Names = t.Names;
+        }
+
+        var ret = Schedule.Build();
+        return ret;
+    }
+
+    internal CourseId Course(string name)
     {
         ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
             Schedule.LookupModule!.Courses,
@@ -77,33 +98,24 @@ public sealed class DocParseContext
         return new(courseId);
     }
 
-    public TeacherId Teacher(string name) => Schedule.Teacher(name);
-    public RoomId Room(string name) => Schedule.Room(name);
-
-    public Schedule BuildSchedule()
+    internal TeacherId Teacher(string name)
     {
-        var courseNamesByKey = Schedule.LookupModule!.Courses
-            .GroupBy(x => x.Value)
-            .Select(x =>
-            {
-                var names = x.Select(x1 => x1.Key).ToArray();
-                Array.Sort(names, static (a, b) => b.Length - a.Length);
-                return (x.Key, Names: names);
-            });
+        var teacherId = Schedule.Teacher(name);
+        ref var teacher = ref Schedule.Teachers.Ref(teacherId.Id);
 
-        foreach (var t in courseNamesByKey)
+        if (!teacher.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
         {
-            ref var b = ref Schedule.Courses.Ref(t.Key);
-            b.Names = t.Names;
+            teacher.Name = DiacriticsHelper.SelectOneWithMostDiacritics(teacher.Name, name);
         }
 
-        var ret = Schedule.Build();
-        return ret;
+        return teacherId;
     }
+
+    internal RoomId Room(string name) => Schedule.Room(name);
 }
 
 // TODO: Read the whole table once to find these first.
-public readonly struct DayNameParser(DayNameProvider p)
+public sealed class DayNameParser(DayNameProvider p)
 {
     private readonly Dictionary<string, DayOfWeek> _days = CreateMappings(p);
 
@@ -128,31 +140,9 @@ public readonly struct DayNameParser(DayNameProvider p)
     }
 }
 
-public readonly struct NameMap<T>() where T : struct
-{
-    public readonly Dictionary<string, T> Values = new();
-
-    public T GetOrAdd(string name, Func<string, T> add)
-    {
-        if (Values.TryGetValue(name, out var value))
-        {
-            return value;
-        }
-
-        value = add(name);
-        Values.Add(name, value);
-        return value;
-    }
-}
-
-public readonly record struct SlowCourse(
+internal readonly record struct SlowCourse(
     ParsedCourseName Name,
     CourseId CourseId);
-
-public readonly struct Maps()
-{
-}
-
 
 file readonly record struct ColumnCounts(int Skipped, int Good)
 {
