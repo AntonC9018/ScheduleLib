@@ -324,4 +324,70 @@ public sealed class LessonParserTests
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
             });
     }
+
+    [Fact]
+    public void LessonTypeInSubGroupModifierKey_Works()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "LessonA (curs-par,sem-imp)",
+                "TeacherA",
+            ],
+        });
+
+        void Common(in ParsedLesson lesson)
+        {
+            Assert.Equal("LessonA".AsMemory(), lesson.LessonName);
+            Assert.Equal("TeacherA".AsMemory(), Assert.Single(lesson.TeacherNames));
+        }
+
+        Assert.Collection(lessons,
+            lesson1 =>
+            {
+                Common(lesson1);
+                Assert.Equal(Parity.EvenWeek, lesson1.Parity);
+                Assert.Equal(LessonType.Curs, lesson1.LessonType);
+            },
+            lesson2 =>
+            {
+                Common(lesson2);
+                Assert.Equal(Parity.OddWeek, lesson2.Parity);
+                Assert.Equal(LessonType.Seminar, lesson2.LessonType);
+            });
+    }
+
+    [Fact]
+    public void BothGeneralAndSubGroupModifiers()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "MTA 3D (lab, I-imp, II-par)",
+                "A.Schiopu  251/4",
+            ],
+        }).ToArray();
+
+        void Common(in ParsedLesson lesson)
+        {
+            Assert.Equal("MTA 3D".AsMemory(), lesson.LessonName);
+            Assert.Equal(LessonType.Lab, lesson.LessonType);
+            Assert.Equal("A.Schiopu".AsMemory(), Assert.Single(lesson.TeacherNames));
+            Assert.Equal("251/4".AsMemory(), lesson.RoomName);
+        }
+
+        Assert.Collection(lessons,
+            lesson1 =>
+            {
+                Common(lesson1);
+                Assert.Equal("I", lesson1.SubGroup.Value);
+                Assert.Equal(Parity.OddWeek, lesson1.Parity);
+            },
+            lesson2 =>
+            {
+                Common(lesson2);
+                Assert.Equal("II", lesson2.SubGroup.Value);
+                Assert.Equal(Parity.EvenWeek, lesson2.Parity);
+            });
+    }
 }

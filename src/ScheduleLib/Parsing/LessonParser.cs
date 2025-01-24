@@ -14,34 +14,29 @@ public struct ParseLessonsParams()
     public required IEnumerable<string> Lines;
 }
 
-public readonly struct ModifiersList<T, TImpl>()
-    where T : struct
-    where TImpl : struct, IModifiersImpl<T>
+public readonly struct DefaultModifiersList()
 {
-    private readonly List<T> _list = new();
+    private readonly List<DefaultModifiers> _list = new();
 
-    public List<T>.Enumerator GetEnumerator() => _list.GetEnumerator();
-    public bool IsEmpty => _list.Count == 0;
-
-    private TImpl Impl => new();
+    public List<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
 
     public void Clear()
     {
         _list.Clear();
     }
 
-    public bool OnlyHasAllSubGroup()
-    {
-        if (_list.Count > 1)
-        {
-            return false;
-        }
-        return Impl.SubGroup(Ref(0)) == SubGroup.All;
-    }
-
-    public ref T Ref(int index)
+    public ref DefaultModifiers Ref(int index)
     {
         return ref CollectionsMarshal.AsSpan(_list)[index];
+    }
+
+    public bool HasOtherThanAllSubGroup()
+    {
+        if (_list.Count != 1)
+        {
+            return true;
+        }
+        return Ref(0).SubGroup != SubGroup.All;
     }
 
     public int FindIndex(SubGroup subGroup)
@@ -50,7 +45,7 @@ public readonly struct ModifiersList<T, TImpl>()
         for (int i = 0; i < mods.Length; i++)
         {
             ref var it = ref mods[i];
-            if (Impl.SubGroup(it) == subGroup)
+            if (it.SubGroup == subGroup)
             {
                 return i;
             }
@@ -66,19 +61,73 @@ public readonly struct ModifiersList<T, TImpl>()
             return index;
         }
 
-        var it = Impl.Create(subGroup);
+        var it = new DefaultModifiers
+        {
+            SubGroup = subGroup,
+        };
+        _list.Add(it);
+        return _list.Count - 1;
+    }
+}
+
+public readonly struct SubLessonModifiersList()
+{
+    private readonly List<SubLessonModifiers> _list = new();
+
+    public List<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+
+    public ref SubLessonModifiers Ref(int index)
+    {
+        return ref CollectionsMarshal.AsSpan(_list)[index];
+    }
+
+    public bool HasOtherThanDefaultKey()
+    {
+        if (_list.Count != 1)
+        {
+            return true;
+        }
+        return Ref(0).Key != SubLessonModifiersKey.Default;
+    }
+
+    public int FindIndex(SubLessonModifiersKey key)
+    {
+        var mods = CollectionsMarshal.AsSpan(_list);
+        for (int i = 0; i < mods.Length; i++)
+        {
+            ref var it = ref mods[i];
+            if (it.Key == key)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int FindOrAdd(SubLessonModifiersKey key)
+    {
+        int index = FindIndex(key);
+        if (index != -1)
+        {
+            return index;
+        }
+
+        var it = new SubLessonModifiers
+        {
+            Key = key,
+        };
         _list.Add(it);
         return _list.Count - 1;
     }
 
-    public ref T Ref(SubGroup subGroup)
+    public ref SubLessonModifiers Ref(SubLessonModifiersKey key)
     {
-        if (subGroup == default)
+        if (key == default)
         {
-            subGroup = SubGroup.All;
+            key = new();
         }
 
-        int index = FindOrAdd(subGroup);
+        int index = FindOrAdd(key);
         return ref Ref(index);
     }
 }
@@ -98,7 +147,7 @@ public struct ParsedLesson()
 public struct SubLessonInParsing()
 {
     public ReadOnlyMemory<char> LessonName = default;
-    public ModifiersList<SubLessonModifiers, SubLessonModifiers.Impl> Modifiers = new();
+    public SubLessonModifiersList Modifiers = new();
 }
 
 public struct GeneralModifiersValue()
@@ -162,12 +211,6 @@ public struct SpecificModifiersValue()
     }
 }
 
-public interface IModifiersImpl<T>
-{
-    SubGroup SubGroup(in T v);
-    T Create(SubGroup subGroup);
-}
-
 public struct DefaultModifiersValue()
 {
     public GeneralModifiersValue General = new();
@@ -181,30 +224,19 @@ public struct DefaultModifiers()
 
     [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
     [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
+}
 
-    public struct Impl : IModifiersImpl<DefaultModifiers>
-    {
-        public SubGroup SubGroup(in DefaultModifiers v) => v.SubGroup;
-        public DefaultModifiers Create(SubGroup subGroup)
-        {
-            return new DefaultModifiers { SubGroup = subGroup };
-        }
-    }
+public readonly record struct SubLessonModifiersKey()
+{
+    public static SubLessonModifiersKey Default => new();
+    public SubGroup SubGroup { get; init; } = SubGroup.All;
+    public LessonType LessonType { get; init; } = LessonType.Unspecified;
 }
 
 public struct SubLessonModifiers()
 {
     public GeneralModifiersValue General = new();
-    public required SubGroup SubGroup { get; init; }
-
-    public struct Impl : IModifiersImpl<SubLessonModifiers>
-    {
-        public SubGroup SubGroup(in SubLessonModifiers v) => v.SubGroup;
-        public SubLessonModifiers Create(SubGroup subGroup)
-        {
-            return new SubLessonModifiers { SubGroup = subGroup };
-        }
-    }
+    public required SubLessonModifiersKey Key { get; init; }
 }
 
 internal struct MaybeGeneralModifiersValue()
@@ -237,7 +269,7 @@ internal struct ParsingState()
 {
     public ParsingStep Step = ParsingStep.Start;
     public CommonLessonInParsing CommonLesson = new();
-    public ModifiersList<DefaultModifiers, DefaultModifiers.Impl> DefaultModifiers = new();
+    public DefaultModifiersList DefaultModifiers = new();
     public List<SubLessonInParsing> LessonsInParsing = new();
     public int LastModiferIndex = -1;
 
@@ -368,11 +400,13 @@ public static class LessonParsingHelper
                 allDefaults = new();
             }
 
+            bool defaultHasOtherThanAllSubGroup = state.DefaultModifiers.HasOtherThanAllSubGroup();
+
             foreach (var lesson in state.LessonsInParsing)
             {
                 var allFallback = allDefaults;
 
-                var allIndex = lesson.Modifiers.FindIndex(SubGroup.All);
+                var allIndex = lesson.Modifiers.FindIndex(SubLessonModifiersKey.Default);
                 if (allIndex != -1)
                 {
                     ref var all = ref lesson.Modifiers.Ref(allIndex);
@@ -380,32 +414,43 @@ public static class LessonParsingHelper
                 }
 
                 {
-                    bool shouldDoAllSubGroup = allDefaultIndex != -1;
+                    bool shouldNotOutputDefaultKey = defaultHasOtherThanAllSubGroup
+                        || lesson.Modifiers.HasOtherThanDefaultKey();
 
                     foreach (var mod in lesson.Modifiers)
                     {
+                        bool isDefaultKey = mod.Key == SubLessonModifiersKey.Default;
+                        if (isDefaultKey && shouldNotOutputDefaultKey)
+                        {
+                            continue;
+                        }
+
                         var v = allFallback;
 
-                        if (mod.SubGroup == SubGroup.All)
+                        // These are already in the fallback if it's the default.
+                        if (!isDefaultKey)
                         {
-                            if (!shouldDoAllSubGroup)
-                            {
-                                continue;
-                            }
-                        }
-                        else
-                        {
-                            var defaultIndex = state.DefaultModifiers.FindIndex(mod.SubGroup);
+                            var defaultIndex = state.DefaultModifiers.FindIndex(mod.Key.SubGroup);
                             if (defaultIndex != -1)
                             {
                                 ref var def = ref state.DefaultModifiers.Ref(defaultIndex);
                                 v.General.UpdateIfNotDefault(def.General);
                                 v.Specific.UpdateIfNotDefault(def.Specific);
                             }
+                            v.General.UpdateIfNotDefault(mod.General);
+
+                            if (mod.Key.LessonType != LessonType.Unspecified)
+                            {
+                                if (mod.General.LessonType != LessonType.Unspecified)
+                                {
+                                    throw new WrongFormatException();
+                                }
+
+                                v.General.LessonType = mod.Key.LessonType;
+                            }
                         }
 
-                        v.General.UpdateIfNotDefault(mod.General);
-                        yield return Output(mod.SubGroup, v, lesson.LessonName);
+                        yield return Output(mod.Key.SubGroup, v, lesson.LessonName);
                     }
                 }
 
@@ -416,7 +461,12 @@ public static class LessonParsingHelper
                         continue;
                     }
 
-                    var lessonModIndex = lesson.Modifiers.FindIndex(defaultMod.SubGroup);
+                    var key = new SubLessonModifiersKey
+                    {
+                        SubGroup = defaultMod.SubGroup,
+                        LessonType = LessonType.Unspecified,
+                    };
+                    var lessonModIndex = lesson.Modifiers.FindIndex(key);
                     if (lessonModIndex != -1)
                     {
                         continue;
@@ -569,8 +619,8 @@ public static class LessonParsingHelper
                 {
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
-                    var subgroup = ParseOutSubGroup(ref it);
-                    ref var modifiers = ref GetCurrentModifiers(c, subgroup);
+                    var key = ParseOutKey(ref it, c.Params.LessonTypeParser);
+                    ref var modifiers = ref GetCurrentModifiers(c, key);
                     var modifierValue = ParseOutModifier(c, it);
                     bool somethingSet = modifiers.Set(modifierValue);
                     if (!somethingSet)
@@ -579,31 +629,44 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static SubGroup ParseOutSubGroup(ref ReadOnlyMemory<char> it)
+                static SubLessonModifiersKey ParseOutKey(
+                    ref ReadOnlyMemory<char> it,
+                    LessonTypeParser lessonTypeParser)
                 {
                     int sepIndex = it.Span.IndexOf('-');
                     if (sepIndex == -1)
                     {
-                        return SubGroup.All;
+                        return new();
                     }
 
-                    var subGroupSpan = it[.. sepIndex];
+                    var s = it.Span[.. sepIndex];
                     it = it[(sepIndex + 1) ..];
 
-                    var subGroup = new SubGroup(subGroupSpan.Span.ToString());
-                    return subGroup;
+                    if (lessonTypeParser.Parse(s) is { } lessonType)
+                    {
+                        return new()
+                        {
+                            LessonType = lessonType,
+                        };
+                    }
+
+                    var subGroup = new SubGroup(s.ToString());
+                    return new()
+                    {
+                        SubGroup = subGroup,
+                    };
                 }
 
-                static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubGroup parsedSubGroup)
+                static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubLessonModifiersKey key)
                 {
                     bool isParsingInsideSubgroupAlready = c.State.Step == ParsingStep.OptionalParensBeforeRoom;
                     if (!isParsingInsideSubgroupAlready)
                     {
-                        ref var modifiers = ref c.State.CurrentSubLesson.Modifiers.Ref(parsedSubGroup).General;
+                        ref var modifiers = ref c.State.CurrentSubLesson.Modifiers.Ref(key).General;
                         return ref modifiers;
                     }
 
-                    if (parsedSubGroup != SubGroup.All)
+                    if (key != new SubLessonModifiersKey())
                     {
                         throw new WrongFormatException();
                     }
