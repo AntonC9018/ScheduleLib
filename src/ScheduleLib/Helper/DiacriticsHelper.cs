@@ -81,4 +81,18 @@ public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>
         var x = DiacriticsHelper.RemoveDiacritics(obj);
         return x.GetHashCode();
     }
+
+    public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
+        var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
+        return Equals(x1, y1);
+    }
+
+    public bool StartsWith(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
+        var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
+        return x1.StartsWith(y1, StringComparison.OrdinalIgnoreCase);
+    }
 }

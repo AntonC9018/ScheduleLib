@@ -310,7 +310,22 @@ public sealed class Group
 
 public sealed class Teacher
 {
-    public required string Name;
+    public required PersonName PersonName;
+    public required PersonContacts Contacts;
+}
+
+public struct PersonName
+{
+    public required string? FirstName;
+    public required Word ShortFirstName;
+    public required string LastName;
+}
+
+public struct PersonContacts
+{
+    public string? PersonalEmail;
+    public string? CorporateEmail;
+    public string? PhoneNumber;
 }
 
 public static class AccessorHelper

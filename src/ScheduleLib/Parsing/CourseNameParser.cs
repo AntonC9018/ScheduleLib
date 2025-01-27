@@ -26,47 +26,6 @@ public struct CourseNameSegmentFlags()
     public bool IsInitials = false;
 }
 
-public readonly ref struct WordSpan(ReadOnlySpan<char> v)
-{
-    public readonly ReadOnlySpan<char> Value = v;
-    public readonly bool LooksFull => Value[^1] != CourseNameParsing.ShortenedWordCharacter;
-    public readonly ShortenedWordSpan Shortened
-    {
-        get
-        {
-            if (LooksFull)
-            {
-                return new(Value);
-            }
-            return new ShortenedWordSpan(Value[.. ^1]);
-        }
-    }
-}
-
-public readonly record struct Word(string Value)
-{
-    public readonly WordSpan Span => new(Value);
-    public readonly bool LooksFull => Span.LooksFull;
-    public static implicit operator WordSpan(Word v) => v.Span;
-}
-
-/// <summary>
-/// Does not contain the delimiter at end.
-/// </summary>
-public readonly record struct ShortenedWord(string Value)
-{
-    public readonly ShortenedWordSpan Span => new(Value);
-    public static implicit operator ShortenedWordSpan(ShortenedWord v) => v.Span;
-}
-
-/// <summary>
-/// Does not contain the delimiter at end.
-/// </summary>
-public readonly ref struct ShortenedWordSpan(ReadOnlySpan<char> v)
-{
-    public readonly ReadOnlySpan<char> Value = v;
-}
-
 public sealed class CourseNameParserConfig
 {
     public readonly int MinUsefulWordLength;
@@ -108,17 +67,8 @@ public sealed class CourseNameParserConfig
     }
 }
 
-public enum CompareShortenedWordsResult
-{
-    Equal_FirstBetter,
-    Equal_SecondBetter,
-    NotEqual,
-}
-
 public static class CourseNameParsing
 {
-    public const char ShortenedWordCharacter = '.';
-
     public static ParsedCourseName Parse(
         this CourseNameParserConfig config,
         ReadOnlySpan<char> course)
@@ -164,7 +114,7 @@ public static class CourseNameParsing
                 continue;
             }
             if (isAnyProgrammingLanguage
-                && IsEitherShortForOther(word, new("programare")))
+                && word.Span.IsEitherShortForOther(new("programare")))
             {
                 continue;
             }
@@ -204,7 +154,7 @@ public static class CourseNameParsing
             {
                 foreach (var shortenedWithoutDot in config.IgnoredShortenedWords)
                 {
-                    if (IsEitherShortForOther(word.Span, shortenedWithoutDot.Span))
+                    if (word.Span.IsEitherShortForOther(shortenedWithoutDot.Span))
                     {
                         return true;
                     }
@@ -285,7 +235,7 @@ public static class CourseNameParsing
 
             var selfword = iself.CurrentWord;
             var otherword = iother.CurrentWord;
-            if (!IsEqual(selfword, otherword))
+            if (!selfword.IsEqual(otherword))
             {
                 return false;
             }
@@ -333,39 +283,5 @@ public static class CourseNameParsing
         }
     }
 
-    private static bool IsEqual(this CompareShortenedWordsResult r)
-    {
-        return r is CompareShortenedWordsResult.Equal_FirstBetter
-            or CompareShortenedWordsResult.Equal_SecondBetter;
-    }
 
-    private static bool IsEqual(this WordSpan a, WordSpan b)
-    {
-        var ret = Compare(a.Shortened, b.Shortened);
-        return ret.IsEqual();
-    }
-
-    private static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
-    {
-        var r = Compare(a.Shortened, b);
-        return r.IsEqual();
-    }
-
-    private static CompareShortenedWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
-    {
-        int len = int.Min(a.Value.Length, b.Value.Length);
-        var a1 = a.Value[.. len];
-        var b1 = b.Value[.. len];
-        if (!a1.Equals(b1, StringComparison.CurrentCultureIgnoreCase))
-        {
-            return CompareShortenedWordsResult.NotEqual;
-        }
-
-        bool a1longer = a.Value.Length > b.Value.Length;
-        if (a1longer)
-        {
-            return CompareShortenedWordsResult.Equal_FirstBetter;
-        }
-        return CompareShortenedWordsResult.Equal_SecondBetter;
-    }
 }

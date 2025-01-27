@@ -7,7 +7,7 @@ using ScheduleLib.Generation;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 
-namespace ScheduleLib.Parsing.Word;
+namespace ScheduleLib.Parsing.WordDoc;
 
 public sealed class DocParseContext
 {

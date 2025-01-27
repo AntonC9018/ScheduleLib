@@ -16,6 +16,7 @@ public struct Parser
     public readonly bool CanPeekCount(int size) => CanPeekAt(size - 1);
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(int positionExclusive) => _input.AsSpan()[_index .. positionExclusive];
+    public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => _input.AsSpan()[_index ..];
     public readonly char Current => _input[_index];
     public void Move(int x = 1) => _index += x;
     public void MoveTo(int position)
@@ -62,8 +63,8 @@ public static class ParserHelper
     public struct SkipResult
     {
         public bool EndOfInput;
-        public bool Satisfied;
         public bool SkippedAny;
+        public readonly bool Satisfied => SkippedAny && !EndOfInput;
 
         public static SkipResult EndOfInputResult => new()
         {
@@ -90,7 +91,6 @@ public static class ParserHelper
             var window = parser.PeekSpan(windowSize);
             if (!impl.ShouldSkip(window))
             {
-                ret.Satisfied = true;
                 break;
             }
 
@@ -262,6 +262,15 @@ public static class ParserHelper
             var ret = TimeOnly.FromTimeSpan(timeSpan);
             return ret;
         }
+    }
+
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
+    {
+        Debug.Assert(ReferenceEquals(a.Source, b.Source));
+
+        int start = a.Position;
+        int end = b.Position;
+        return a.Source.AsMemory(start .. end);
     }
 }
 

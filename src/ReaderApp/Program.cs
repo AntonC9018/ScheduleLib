@@ -1,6 +1,6 @@
 using ScheduleLib;
 using ScheduleLib.Generation;
-using ScheduleLib.Parsing.Word;
+using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;

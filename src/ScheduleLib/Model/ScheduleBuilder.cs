@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib;
@@ -65,17 +66,107 @@ public sealed class ValidationSettings()
     public SubGroupValidationMode SubGroup = SubGroupValidationMode.Strict;
 }
 
+public readonly struct TeachersByLastName()
+{
+    private readonly Dictionary<string, List<int>> _dict = new(IgnoreDiacriticsComparer.Instance);
+
+    public List<int>? Get(string lastName) => _dict.GetValueOrDefault(lastName);
+    public List<int> AddOrGet(string lastName) => _dict.GetOrAdd(lastName, _ => new());
+}
+
 public sealed class LookupModule()
 {
     public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
-    public readonly Dictionary<string, int> Teachers = new(IgnoreDiacriticsComparer.Instance);
+    public readonly TeachersByLastName TeachersByLastName = new();
     public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public static class TeacherHelper
+{
+    public static int FindIndexOfBestMatch(
+        ScheduleBuilder s,
+        List<int> ids,
+        Word firstName)
+    {
+        return FindIndexOfBestMatch(
+            s,
+            CollectionsMarshal.AsSpan(ids),
+            firstName);
+    }
+
+    public static int FindIndexOfBestMatch(
+        ScheduleBuilder s,
+        ReadOnlySpan<int> ids,
+        Word firstName)
+    {
+        if (firstName.LooksFull)
+        {
+            for (int i = 0; i < ids.Length; i++)
+            {
+                int id = ids[i];
+                ref var teacher = ref s.Teachers.Ref(id);
+                if (teacher.Name.FirstName is { } first &&
+                    firstName.LooksFull &&
+                    IgnoreDiacriticsComparer.Instance.Equals(firstName.Value, first))
+                {
+                    return i;
+                }
+            }
+        }
+
+        {
+            for (int i = 0; i < ids.Length; i++)
+            {
+                int id = ids[i];
+                ref var teacher = ref s.Teachers.Ref(id);
+                // This is (unofficially) a builder model.
+                if (teacher.Name.ShortFirstName is not { } shortName)
+                {
+                    continue;
+                }
+
+                if (IgnoreDiacriticsComparer.Instance.Equals(
+                        // Ignore the separators as well
+                        firstName.Span.Shortened.Value,
+                        shortName.Span.Shortened.Value))
+                {
+                    return i;
+                }
+            }
+        }
+        // Let's just make sure it's shortened.
+        // NOTE: even the short names might have more than 1 character before the separator
+        if (!firstName.LooksFull)
+        {
+            for (int i = 0; i < ids.Length; i++)
+            {
+                int id = ids[i];
+                ref var teacher = ref s.Teachers.Ref(id);
+                if (teacher.Name.FirstName is { } first &&
+                    IgnoreDiacriticsComparer.Instance.StartsWith(first, firstName.Span.Shortened.Value))
+                {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
 }
 
 public struct LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(string name) => Find<CourseId>(Lookup.Courses, name);
-    public TeacherId? Teacher(string name) => Find<TeacherId>(Lookup.Teachers, name);
+    public TeacherId? Teacher(Word firstName, string lastName)
+    {
+        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        {
+            return null;
+        }
+        int i = TeacherHelper.FindIndexOfBestMatch(s, ids, firstName);
+        return new(ids[i]);
+    }
+
     public GroupId? Group(string name) => Find<GroupId>(Lookup.Groups, name);
 
     private LookupModule Lookup
@@ -99,7 +190,35 @@ public struct LookupFacade(ScheduleBuilder s)
         T ret = Unsafe.As<int, T>(ref id);
         return ret;
     }
+}
 
+public sealed class TeacherBuilderModel
+{
+    public NameModel Name;
+    public PersonContacts Contacts;
+
+    public struct NameModel
+    {
+        public string? FirstName;
+        public Word? ShortFirstName;
+        public string? LastName;
+
+        public Word? LongerFirstName
+        {
+            get
+            {
+                if (FirstName is { } firstName)
+                {
+                    return new(firstName);
+                }
+                if (ShortFirstName is { } shortFirstName)
+                {
+                    return shortFirstName;
+                }
+                return null;
+            }
+        }
+    }
 }
 
 public sealed class ScheduleBuilder()
@@ -107,7 +226,7 @@ public sealed class ScheduleBuilder()
     public ListBuilder<RegularLessonBuilderModel> RegularLessons = new();
     public List<OneTimeLesson> OneTimeLessons = new();
     public ListBuilder<Group> Groups = new();
-    public ListBuilder<Teacher> Teachers = new();
+    public ListBuilder<TeacherBuilderModel> Teachers = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
     public LookupModule? LookupModule = null;
@@ -254,9 +373,8 @@ public sealed class RegularLessonBuilder : ILessonBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required int Id { get; init; }
-    public ref RegularLessonBuilderModel Ref => ref Schedule.RegularLessons.Ref(Id);
+    public RegularLessonBuilderModel Model => Schedule.RegularLessons.Ref(Id);
     public static implicit operator int(RegularLessonBuilder r) => r.Id;
-    public RegularLessonBuilderModel Model => Ref;
 }
 
 public static class ScheduleBuilderHelper
@@ -289,7 +407,20 @@ public static class ScheduleBuilderHelper
         });
         var oneTimeLessons = s.OneTimeLessons.ToImmutableArray();
         var groups = s.Groups.Build();
-        var teachers = s.Teachers.Build();
+        var teachers = s.Teachers.Build(x =>
+        {
+            var ret = new Teacher
+            {
+                Contacts = x.Contacts,
+                PersonName = new()
+                {
+                    FirstName = x.Name.FirstName,
+                    LastName = x.Name.LastName!,
+                    ShortFirstName = x.Name.ShortFirstName ?? new Word($"{x.Name.FirstName![0]}."),
+                },
+            };
+            return ret;
+        });
         var courses = s.Courses.Build();
 
         return new Schedule
@@ -323,11 +454,16 @@ public static class ScheduleBuilderHelper
             }
         }
         {
-            var teachersMap = lookupModule.Teachers;
+            var teachersMap = lookupModule.TeachersByLastName;
             for (int i = 0; i < s.Teachers.Count; i++)
             {
                 ref var teacher = ref s.Teachers.Ref(i);
-                teachersMap.Add(teacher.Name, i);
+                if (teacher.Name.LastName is not { } lastName)
+                {
+                    continue;
+                }
+                var list = teachersMap.AddOrGet(lastName);
+                list.Add(i);
             }
         }
         {
@@ -453,32 +589,34 @@ public static class ScheduleBuilderHelper
         }
     }
 
-    private record struct ScheduleAndName(ScheduleBuilder Schedule, string Name);
-
-    public static TeacherId Teacher(this ScheduleBuilder s, string name)
+    public static TeacherBuilder Teacher(this ScheduleBuilder s, string fullName)
     {
-        int ret;
+        var name = TeacherNameHelper.ParseName(fullName);
+
         if (s.LookupModule is { } lookupModule)
         {
-            ret = lookupModule.Teachers.GetOrAdd(
-                name,
-                new ScheduleAndName(s, name),
-                static state => Default(state));
-        }
-        else
-        {
-            ret = Default(new(s, name));
-        }
-        return new(ret);
-
-        static int Default(ScheduleAndName p)
-        {
-            var r = p.Schedule.Teachers.New();
-            r.Value = new()
+            var list = lookupModule.TeachersByLastName.AddOrGet(name.LastName!);
+            if (name.LongerFirstName is { } longerFirstName)
             {
-                Name = p.Name,
+                int i = TeacherHelper.FindIndexOfBestMatch(s, list, longerFirstName);
+                int id = list[i];
+                var builder = new TeacherBuilder
+                {
+                    Id = id,
+                    Schedule = s,
+                };
+                return builder;
+            }
+        }
+        {
+            var ret = s.Teachers.New();
+            var builder = new TeacherBuilder
+            {
+                Id = ret.Id,
+                Schedule = s,
             };
-            return r.Id;
+            builder.FullName(name, updateLookup: false);
+            return builder;
         }
     }
 
@@ -567,7 +705,7 @@ public static class ScheduleBuilderHelper
     public static RegularLessonBuilder RegularLesson(this LessonConfigScope scope)
     {
         var lesson = RegularLesson(scope.Schedule);
-        lesson.Ref.CopyFrom(scope.Defaults);
+        lesson.Model.CopyFrom(scope.Defaults);
         return lesson;
     }
 
@@ -588,4 +726,176 @@ public sealed class LessonConfigScope : ILessonBuilder
     public RegularLessonBuilderModel Model => Defaults;
 }
 
+public readonly struct TeacherBuilder
+{
+    public required ScheduleBuilder Schedule { get; init; }
+    public required int Id { get; init; }
+    public TeacherBuilderModel Model => Schedule.Teachers.Ref(Id);
+    public static implicit operator int(TeacherBuilder r) => r.Id;
 
+    /// <summary>
+    /// Allowed syntax: <see cref="TeacherNameHelper.ParseName"/>
+    /// </summary>
+    public void FullName(string fullName, bool updateLookup = true)
+    {
+        var name = TeacherNameHelper.ParseName(fullName);
+        FullName(name, updateLookup: updateLookup);
+    }
+
+    public void FullName(TeacherBuilderModel.NameModel name, bool updateLookup = true)
+    {
+        if (name.FirstName is { } firstName)
+        {
+            FirstName(firstName, name.ShortFirstName?.Value);
+        }
+        LastName(name.LastName!, updateLookup: updateLookup);
+    }
+
+
+    public void FirstName(string firstName, string? initials = null)
+    {
+        if (initials is not null)
+        {
+            var w = new Word(initials);
+            // This might be wrong.
+            // Ana-Maria  ->  A-M. ?
+            // I don't know.
+            bool isOk = !IgnoreDiacriticsComparer.Instance.StartsWith(
+                firstName.AsSpan(),
+                w.Span.Shortened.Value);
+            if (!isOk)
+            {
+                throw new ArgumentException(
+                    "The first name must start with initials when those are given.",
+                    nameof(initials));
+            }
+            Model.Name.ShortFirstName = w;
+        }
+
+        Model.Name.FirstName = firstName;
+    }
+
+    public void LastName(string lastName, bool updateLookup = true)
+    {
+        var prevLastName = Model.Name.LastName;
+        Model.Name.LastName = lastName;
+
+        if (!updateLookup)
+        {
+            return;
+        }
+
+        if (prevLastName == null
+            || !IgnoreDiacriticsComparer.Instance.Equals(prevLastName, lastName))
+        {
+            return;
+        }
+
+        if (Schedule.LookupModule is not { } lookup)
+        {
+            return;
+        }
+
+        {
+            var people = lookup.TeachersByLastName.Get(prevLastName);
+            Debug.Assert(people != null);
+            people.Remove(Id);
+        }
+
+        {
+            var people = lookup.TeachersByLastName.AddOrGet(lastName);
+            people.Add(Id);
+        }
+    }
+
+    public void Contacts(PersonContacts contacts)
+    {
+        Model.Contacts = contacts;
+    }
+}
+
+public static class TeacherNameHelper
+{
+    public static TeacherBuilderModel.NameModel ParseName(string fullName)
+    {
+        var parser = new Parser(fullName);
+        var name = ParseName(ref parser);
+        if (!parser.IsEmpty)
+        {
+            throw new ArgumentException("The full name must contain a correct name syntax.", nameof(fullName));
+        }
+        if (name.LastName is null)
+        {
+            throw new ArgumentException("Last name must be provided.", nameof(fullName));
+        }
+        return name;
+    }
+    /// <summary>
+    /// The forms allowed:
+    /// F. Last
+    /// F.Last
+    /// First Last
+    /// Last
+    /// </summary>
+    public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
+    {
+        var ret = new TeacherBuilderModel.NameModel();
+        var bparser = parser.BufferedView();
+        var result = bparser.SkipUntil(['.', ' ']);
+        if (!result.SkippedAny)
+        {
+            return ret;
+        }
+
+        if (result.EndOfInput)
+        {
+            ret.LastName = parser.Source;
+            return ret;
+        }
+
+        if (bparser.Current == '.')
+        {
+            bparser.Move();
+            var firstName = parser.PeekSpanUntilPosition(bparser.Position);
+            ret.ShortFirstName = new(firstName.ToString());
+            parser.MoveTo(bparser.Position);
+
+            if (parser.IsEmpty)
+            {
+                throw new ArgumentException("The string can't only have the first name.");
+            }
+
+            if (parser.Current == ' ')
+            {
+                parser.Move();
+            }
+        }
+        else if (bparser.Current == ' ')
+        {
+            var firstName = parser.PeekSpanUntilPosition(bparser.Position);
+            ret.FirstName = firstName.ToString();
+            parser.MovePast(bparser.Position);
+        }
+
+        if (parser.IsEmpty)
+        {
+            throw new ArgumentException("The last name is required after the first name.");
+        }
+
+        bparser = parser.BufferedView();
+        if (bparser.Current == ' ')
+        {
+            throw new ArgumentException("Only a single space in between first and last name allowed.");
+        }
+
+        bparser.SkipUntil([' ']);
+
+        var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);
+        var lastName = lastNameSpan.ToString();
+        ret.LastName = lastName;
+
+        parser.MoveTo(bparser.Position);
+
+        return ret;
+    }
+}

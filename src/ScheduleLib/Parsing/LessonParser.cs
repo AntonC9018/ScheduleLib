@@ -135,7 +135,7 @@ public readonly struct SubLessonModifiersList()
 public struct ParsedLesson()
 {
     public required ReadOnlyMemory<char> LessonName;
-    public required List<ReadOnlyMemory<char>> TeacherNames;
+    public required List<TeacherName> TeacherNames;
     public required ReadOnlyMemory<char> RoomName;
     public required ReadOnlyMemory<char> GroupName;
     public TimeOnly? StartTime = null;
@@ -193,10 +193,24 @@ public struct GeneralModifiersValue()
     }
 }
 
+public struct TeacherName
+{
+    public ReadOnlyMemory<char> ShortFirstName;
+    public ReadOnlyMemory<char> LastName;
+}
+
 public struct SpecificModifiersValue()
 {
-    public List<ReadOnlyMemory<char>> TeacherNames = new();
+    public List<TeacherName> TeacherNames = new();
     public ReadOnlyMemory<char> RoomName = default;
+
+    public readonly ref TeacherName LastTeacher
+    {
+        get
+        {
+            return ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
+        }
+    }
 
     public void UpdateIfNotDefault(in SpecificModifiersValue v)
     {
@@ -208,6 +222,14 @@ public struct SpecificModifiersValue()
         {
             RoomName = v.RoomName;
         }
+    }
+
+    public readonly ref TeacherName NewTeacher()
+    {
+        CollectionsMarshal.SetCount(TeacherNames, TeacherNames.Count + 1);
+        ref var ret = ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
+        ret = default;
+        return ref ret;
     }
 }
 
@@ -258,9 +280,11 @@ public enum ParsingStep
     LessonName,
     OptionalParens,
     OptionalSubGroup,
-    TeacherNameList,
+    RequiredTeacherName,
+    OptionalTeacherName,
+    TeacherLastName,
     OptionalParensBeforeRoom,
-    RoomName,
+    OptionalRoomName,
     MaybeSubGroupAgain,
     Output,
 }
@@ -295,7 +319,8 @@ internal struct ParsingState()
                 or ParsingStep.OptionalSubGroup
                 or ParsingStep.OptionalParens
                 or ParsingStep.OptionalParensBeforeRoom
-                or ParsingStep.RoomName
+                or ParsingStep.OptionalTeacherName
+                or ParsingStep.OptionalRoomName
                 or ParsingStep.MaybeSubGroupAgain;
         }
     }
@@ -318,18 +343,6 @@ internal ref struct ParsingContext
     public required ref ParsingState State;
     public required ref Parser Parser;
 }
-public static class ParsingHelper1
-{
-    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
-    {
-        Debug.Assert(ReferenceEquals(a.Source, b.Source));
-
-        int start = a.Position;
-        int end = b.Position;
-        return a.Source.AsMemory(start .. end);
-    }
-}
-
 public static class LessonParsingHelper
 {
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
@@ -602,7 +615,7 @@ public static class LessonParsingHelper
                         // I don't even know how to get here.
                         Debug.Assert(c.Parser.Current != ',');
 
-                        c.State.Step = ParsingStep.RoomName;
+                        c.State.Step = ParsingStep.OptionalRoomName;
                         return true;
                     }
                     if (c.Parser.Current == ',')
@@ -735,7 +748,7 @@ public static class LessonParsingHelper
                     // Maybe should check how it was added and give an error if it was
                     // added through "subgroup:" rather than "subgroup-modifier" syntax.
                     c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(SubGroup.All);
-                    c.State.Step = ParsingStep.TeacherNameList;
+                    c.State.Step = ParsingStep.OptionalTeacherName;
                     break;
                 }
 
@@ -743,7 +756,7 @@ public static class LessonParsingHelper
                 var subgroup = new SubGroup(numberSpan.ToString());
                 c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(subgroup);
 
-                c.State.Step = ParsingStep.TeacherNameList;
+                c.State.Step = ParsingStep.OptionalTeacherName;
                 c.Parser.MovePast(bparser.Position);
                 break;
 
@@ -764,30 +777,98 @@ public static class LessonParsingHelper
                     return false;
                 }
             }
-            case ParsingStep.TeacherNameList:
+            case ParsingStep.RequiredTeacherName:
+            case ParsingStep.OptionalTeacherName:
             {
-                // Maybe parse it out as A.Abc?
                 var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.Skip(new SkipUntilNumberOrCommaOrUnderscoreOrParen());
-                _ = skipResult;
+                var skipResult = bparser.Skip(new SkipUntilRoomOrDotOrSpaceOrComma());
+                if (!skipResult.SkippedAny)
+                {
+                    if (c.State.Step == ParsingStep.RequiredTeacherName)
+                    {
+                        // Required teacher name after comma
+                        throw new WrongFormatException();
+                    }
+                    if (!IsRoomStart(bparser.Current))
+                    {
+                        // Following should be a number (room)
+                        throw new WrongFormatException();
+                    }
+                    c.State.Step = ParsingStep.OptionalRoomName;
+                    break;
+                }
 
-                var teacherName = c.Parser.SourceUntilExclusive(bparser);
-                teacherName = CleanTeacherName(teacherName);
+                ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
+
+                // last name
+                if (skipResult.EndOfInput
+                    || c.Parser.Current is ' ' or ',')
+                {
+                    var lastName = c.Parser.SourceUntilExclusive(bparser);
+                    teacher.LastName = lastName;
+
+                    if (c.Parser.Current == ' ')
+                    {
+                        c.State.Step = ParsingStep.OptionalParensBeforeRoom;
+                    }
+                    else
+                    {
+                        Debug.Assert(c.Parser.Current == ',');
+                        c.State.Step = ParsingStep.RequiredTeacherName;
+                    }
+
+                    if (!skipResult.EndOfInput)
+                    {
+                        bparser.Move();
+                    }
+                }
+                // first name
+                else if (c.Parser.Current == '.')
+                {
+                    bparser.Move();
+
+                    var firstName = c.Parser.SourceUntilExclusive(bparser);
+                    teacher.ShortFirstName = firstName;
+                    c.State.Step = ParsingStep.TeacherLastName;
+                }
 
                 c.Parser.MoveTo(bparser.Position);
-                c.State.LastModifiers.Specific.TeacherNames.Add(teacherName);
+                break;
+            }
+            case ParsingStep.TeacherLastName:
+            {
+                var bparser = c.Parser.BufferedView();
+                var skipResult = bparser.SkipUntil([' ', ',', '(']);
+                if (!skipResult.SkippedAny)
+                {
+                    // Only the first name?
+                    // This only works because it's a forward parser (no backtracking)
+                    throw new WrongFormatException();
+                }
+
+                var lastName = c.Parser.SourceUntilExclusive(bparser);
+                c.Parser.MoveTo(bparser.Position);
+                ref var teacher = ref c.State.LastModifiers.Value.Specific.LastTeacher;
+                teacher.LastName = lastName;
+
+                if (c.Parser.IsEmpty)
+                {
+                    c.State.Step = ParsingStep.OptionalParensBeforeRoom;
+                    break;
+                }
 
                 // Keep doing the list if found a comma.
-                if (!c.Parser.IsEmpty && c.Parser.Current == ',')
+                if (c.Parser.Current == ',')
                 {
                     c.Parser.Move();
+                    c.State.Step = ParsingStep.RequiredTeacherName;
                     break;
                 }
 
                 c.State.Step = ParsingStep.OptionalParensBeforeRoom;
                 break;
             }
-            case ParsingStep.RoomName:
+            case ParsingStep.OptionalRoomName:
             {
                 var bparser = c.Parser.BufferedView();
                 if (!IsRoomStart(bparser.Current))
@@ -836,7 +917,7 @@ public static class LessonParsingHelper
         }
     }
 
-    private struct SkipUntilNumberOrCommaOrUnderscoreOrParen : IShouldSkip
+    private struct SkipUntilRoomOrDotOrSpaceOrComma : IShouldSkip
     {
         public bool ShouldSkip(char ch)
         {
@@ -844,15 +925,15 @@ public static class LessonParsingHelper
             {
                 return false;
             }
-            if (ch == '_')
-            {
-                return false;
-            }
             if (ch == ',')
             {
                 return false;
             }
-            if (ch == '(')
+            if (ch == '.')
+            {
+                return false;
+            }
+            if (ch == ' ')
             {
                 return false;
             }
