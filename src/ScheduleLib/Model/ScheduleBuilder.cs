@@ -587,22 +587,29 @@ public static class ScheduleBuilderHelper
                 throw new InvalidOperationException("The lesson course must be initialized.");
             }
         }
+
+        foreach (ref var teacher in CollectionsMarshal.AsSpan(s.Teachers.List))
+        {
+            if (teacher.Name.LastName == null)
+            {
+                throw new InvalidOperationException("The teacher last name must be initialized.");
+            }
+        }
     }
 
-    public static TeacherBuilder Teacher(this ScheduleBuilder s, string fullName)
+    public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        var name = TeacherNameHelper.ParseName(fullName);
-
+        List<int>? list = null;
         if (s.LookupModule is { } lookupModule)
         {
-            var list = lookupModule.TeachersByLastName.AddOrGet(name.LastName!);
+            list = lookupModule.TeachersByLastName.AddOrGet(name.LastName!);
             if (name.LongerFirstName is { } longerFirstName)
             {
                 int i = TeacherHelper.FindIndexOfBestMatch(s, list, longerFirstName);
                 int id = list[i];
                 var builder = new TeacherBuilder
                 {
-                    Id = id,
+                    Id = new(id),
                     Schedule = s,
                 };
                 return builder;
@@ -612,12 +619,23 @@ public static class ScheduleBuilderHelper
             var ret = s.Teachers.New();
             var builder = new TeacherBuilder
             {
-                Id = ret.Id,
+                Id = new(ret.Id),
                 Schedule = s,
             };
             builder.FullName(name, updateLookup: false);
+
+            // Update the lookup manually.
+            list?.Add(ret.Id);
+
             return builder;
         }
+    }
+
+    public static TeacherBuilder Teacher(this ScheduleBuilder s, string fullName)
+    {
+        var name = TeacherNameHelper.ParseName(fullName);
+        var ret = Teacher(s, name);
+        return ret;
     }
 
     public static CourseId Course(this ScheduleBuilder s, params string[] names)
@@ -729,9 +747,9 @@ public sealed class LessonConfigScope : ILessonBuilder
 public readonly struct TeacherBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
-    public required int Id { get; init; }
-    public TeacherBuilderModel Model => Schedule.Teachers.Ref(Id);
-    public static implicit operator int(TeacherBuilder r) => r.Id;
+    public required TeacherId Id { get; init; }
+    public TeacherBuilderModel Model => Schedule.Teachers.Ref(Id.Id);
+    public static implicit operator TeacherId(TeacherBuilder r) => r.Id;
 
     /// <summary>
     /// Allowed syntax: <see cref="TeacherNameHelper.ParseName"/>
@@ -799,12 +817,12 @@ public readonly struct TeacherBuilder
         {
             var people = lookup.TeachersByLastName.Get(prevLastName);
             Debug.Assert(people != null);
-            people.Remove(Id);
+            people.Remove(Id.Id);
         }
 
         {
             var people = lookup.TeachersByLastName.AddOrGet(lastName);
-            people.Add(Id);
+            people.Add(Id.Id);
         }
     }
 

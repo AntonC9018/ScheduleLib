@@ -15,6 +15,7 @@ public sealed class PdfLessonTextDisplayHandler
     public struct Config()
     {
         public bool PrintsTeacherName = true;
+        public bool PreferLongerTeacherName = false;
     }
 
     private readonly Services _services;
@@ -133,8 +134,58 @@ public sealed class PdfLessonTextDisplayHandler
                     }
 
                     var teacher = p.Schedule.Get(t);
-                    sb.Append(teacher.Name);
+                    _ = AppendFirstName();
+                    sb.Append(teacher.PersonName.LastName);
                     added = true;
+                    continue;
+
+                    bool AppendFirstName()
+                    {
+                        if (_config.PreferLongerTeacherName)
+                        {
+                            if (AppendLonger())
+                            {
+                                return true;
+                            }
+                            if (AppendShorter())
+                            {
+                                return true;
+                            }
+                            return false;
+                        }
+                        {
+                            if (AppendShorter())
+                            {
+                                return true;
+                            }
+                            if (AppendLonger())
+                            {
+                                return true;
+                            }
+                            return false;
+                        }
+
+                        bool AppendLonger()
+                        {
+                            if (teacher.PersonName.FirstName is { } firstName)
+                            {
+                                sb.Append(firstName);
+                                sb.Append(' ');
+                                return true;
+                            }
+                            return false;
+                        }
+                        bool AppendShorter()
+                        {
+                            var shortName = teacher.PersonName.ShortFirstName;
+                            if (shortName != Word.Empty)
+                            {
+                                sb.Append(shortName.Span.Value);
+                                return true;
+                            }
+                            return false;
+                        }
+                    }
                 }
             }
 

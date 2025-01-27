@@ -98,17 +98,27 @@ public sealed class DocParseContext
         return new(courseId);
     }
 
-    internal TeacherId Teacher(string name)
+    internal TeacherId Teacher(TeacherName name)
     {
-        var teacherId = Schedule.Teacher(name);
-        ref var teacher = ref Schedule.Teachers.Ref(teacherId.Id);
-
-        if (!teacher.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
+        var nameModel = new TeacherBuilderModel.NameModel
         {
-            teacher.Name = DiacriticsHelper.SelectOneWithMostDiacritics(teacher.Name, name);
+            ShortFirstName = name.ShortFirstName.IsEmpty
+                ? null
+                : new(name.ShortFirstName.ToString()),
+            FirstName = null,
+            LastName = name.LastName.ToString(),
+        };
+        var teacherBuilder = Schedule.Teacher(nameModel);
+        var teacher = teacherBuilder.Model;
+
+        if (!teacher.Name.LastName!.Equals(
+            nameModel.FirstName,
+            StringComparison.CurrentCultureIgnoreCase))
+        {
+            teacher.Name.LastName = nameModel.LastName;
         }
 
-        return teacherId;
+        return teacherBuilder.Id;
     }
 
     internal RoomId Room(string name) => Schedule.Room(name);
@@ -484,8 +494,7 @@ public static class WordScheduleParser
                             }
                             foreach (var t in lesson.TeacherNames)
                             {
-                                var teacherName = t.ToString();
-                                var teacherId = c.Teacher(teacherName);
+                                var teacherId = c.Teacher(t);
                                 l.Teacher(teacherId);
                             }
                             if (!lesson.RoomName.IsEmpty)

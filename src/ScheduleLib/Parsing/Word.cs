@@ -19,6 +19,8 @@ public readonly record struct Word(string Value)
 {
     public readonly WordSpan Span => new(Value);
     public readonly bool LooksFull => Span.LooksFull;
+    public static Word Empty => new("");
+
     public static implicit operator WordSpan(Word v) => v.Span;
 }
 
@@ -67,8 +69,6 @@ public static class WordHelper
         var r = Compare(a.Shortened, b);
         return r.IsEqual();
     }
-
-    public
 
     public static CompareShortenedWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
     {
