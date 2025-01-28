@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
@@ -108,10 +109,12 @@ public sealed class DocParseContext
             FirstName = null,
             LastName = name.LastName.ToString(),
         };
+
+        // Need to remap explicitly, because we do the check for diacritics later.
+        nameModel.LastName = Schedule.RemapTeacherName(nameModel.LastName);
+
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;
-
-        teacher.Name.ShortFirstName = nameModel.ShortFirstName;
 
         if (!teacher.Name.LastName!.Equals(
             nameModel.FirstName,

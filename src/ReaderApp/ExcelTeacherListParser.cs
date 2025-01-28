@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using ScheduleLib;
+using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
 
 namespace ReaderApp;

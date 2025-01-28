@@ -1,11 +1,8 @@
-using System.Diagnostics;
-using ScheduleLib;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using ReaderApp;
-using ScheduleLib.Parsing;
+using ScheduleLib.Builders;
 
 var dayNameProvider = new DayNameProvider();
 var context = DocParseContext.Create(new()
@@ -18,6 +15,14 @@ var context = DocParseContext.Create(new()
         IgnoredShortenedWords = ["Opț"],
         MinUsefulWordLength = 3,
     }),
+});
+
+context.Schedule.ConfigureRemappings(remap =>
+{
+    var teach = remap.TeacherLastNameRemappings;
+    teach.Add("Curmanschi", "Curmanschii");
+    teach.Add("Bet", "Băț");
+    teach.Add("Spincean", "Sprîncean");
 });
 
 {
@@ -50,9 +55,10 @@ var context = DocParseContext.Create(new()
     }
 }
 
+var schedule = context.BuildSchedule();
+Console.WriteLine("Hello");
 
 #if false
-var schedule = context.BuildSchedule();
 {
     await Tasks.GeneratePdfForGroupsAndTeachers(new()
     {
