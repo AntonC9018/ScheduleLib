@@ -134,58 +134,16 @@ public sealed class PdfLessonTextDisplayHandler
                     }
 
                     var teacher = p.Schedule.Get(t);
-                    _ = AppendFirstName();
-                    sb.Append(teacher.PersonName.LastName);
-                    added = true;
-                    continue;
-
-                    bool AppendFirstName()
+                    LessonTextDisplayHelper.AppendTeacherName(new()
                     {
-                        if (_config.PreferLongerTeacherName)
-                        {
-                            if (AppendLonger())
-                            {
-                                return true;
-                            }
-                            if (AppendShorter())
-                            {
-                                return true;
-                            }
-                            return false;
-                        }
-                        {
-                            if (AppendShorter())
-                            {
-                                return true;
-                            }
-                            if (AppendLonger())
-                            {
-                                return true;
-                            }
-                            return false;
-                        }
+                        Output = sb,
+                        Teacher = teacher,
+                        LastNameFirst = false,
+                        InsertSpaceAfterShortName = false,
+                        PreferLonger = _config.PreferLongerTeacherName,
+                    });
 
-                        bool AppendLonger()
-                        {
-                            if (teacher.PersonName.FirstName is { } firstName)
-                            {
-                                sb.Append(firstName);
-                                sb.Append(' ');
-                                return true;
-                            }
-                            return false;
-                        }
-                        bool AppendShorter()
-                        {
-                            var shortName = teacher.PersonName.ShortFirstName;
-                            if (shortName != Word.Empty)
-                            {
-                                sb.Append(shortName.Span.Value);
-                                return true;
-                            }
-                            return false;
-                        }
-                    }
+                    added = true;
                 }
             }
 
@@ -204,5 +162,116 @@ public sealed class PdfLessonTextDisplayHandler
             var str = sb.ToStringAndClear();
             p.TextDescriptor.Span(str);
         }
+    }
+}
+
+public static class LessonTextDisplayHelper
+{
+    public struct TeacherNameParams()
+    {
+        public required StringBuilder Output;
+        public required Teacher Teacher;
+        public required bool LastNameFirst;
+        public bool PreferLonger = true;
+        public bool InsertSpaceAfterShortName = true;
+    }
+
+    private enum WhichFirstName
+    {
+        None,
+        Full,
+        Short,
+    }
+
+    public static void AppendTeacherName(TeacherNameParams p)
+    {
+        var shouldAddSpaceNext = false;
+        if (p.LastNameFirst)
+        {
+            if (AppendLastName())
+            {
+                shouldAddSpaceNext = true;
+            }
+            AppendFirstName();
+        }
+        else
+        {
+            var res = AppendFirstName();
+            if (res == WhichFirstName.Full
+                || res == WhichFirstName.Short && p.InsertSpaceAfterShortName)
+            {
+                shouldAddSpaceNext = true;
+            }
+
+            AppendLastName();
+        }
+
+        bool AppendLastName()
+        {
+            AppendSpaceMaybe();
+            p.Output.Append(p.Teacher.PersonName.LastName);
+            return true;
+        }
+        WhichFirstName AppendFirstName()
+        {
+            if (p.PreferLonger)
+            {
+                if (AppendLonger())
+                {
+                    return WhichFirstName.Full;
+                }
+                if (AppendShorter())
+                {
+                    return WhichFirstName.Short;
+                }
+                return WhichFirstName.None;
+            }
+            {
+                if (AppendShorter())
+                {
+                    return WhichFirstName.Short;
+                }
+                if (AppendLonger())
+                {
+                    return WhichFirstName.Full;
+                }
+                return WhichFirstName.None;
+            }
+
+            bool AppendLonger()
+            {
+                if (p.Teacher.PersonName.FirstName is { } firstName)
+                {
+                    AppendSpaceMaybe();
+                    p.Output.Append(firstName);
+                    return true;
+                }
+                return false;
+            }
+            bool AppendShorter()
+            {
+                var shortName = p.Teacher.PersonName.ShortFirstName;
+                if (shortName != Word.Empty)
+                {
+                    AppendSpaceMaybe();
+                    p.Output.Append(shortName.Span.Value);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        void AppendSpaceMaybe()
+        {
+            if (shouldAddSpaceNext)
+            {
+                p.Output.Append(' ');
+            }
+        }
+    }
+
+    public static void AppendGroupNameWithLanguage(StringBuilder b, Group g)
+    {
+        b.Append($"{g.Name}({g.Language.GetName()})");
     }
 }

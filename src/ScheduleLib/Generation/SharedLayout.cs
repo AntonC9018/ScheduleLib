@@ -7,7 +7,7 @@ public sealed class SharedLayout
 {
     // For cell size
     public required HashSet<(RegularLesson Lesson, int Order)> SharedCellStart;
-    public required Dictionary<CellKey, int> SharedMaxOrder;
+    public required Dictionary<CellKey<GroupId>, int> SharedMaxOrder;
     // For position
     public required Dictionary<RegularLesson, uint> LessonVerticalOrder;
 
@@ -15,7 +15,7 @@ public sealed class SharedLayout
         IEnumerable<RegularLesson> lessons,
         ColumnOrder columnOrder)
     {
-        Dict<CellKey, int> perGroupCounters = new();
+        Dict<CellKey<GroupId>, int> perGroupCounters = new();
         var layout = new SharedLayout
         {
             LessonVerticalOrder = new(),

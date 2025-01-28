@@ -7,15 +7,6 @@ using QuestPDF.Infrastructure;
 
 namespace ScheduleLib.Generation;
 
-public static class StringBuilderHelper
-{
-    public static string ToStringAndClear(this StringBuilder sb)
-    {
-        var ret = sb.ToString();
-        sb.Clear();
-        return ret;
-    }
-}
 public sealed class GroupColumnScheduleTableDocument : IDocument
 {
     public struct Services
@@ -139,7 +130,9 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                 var nameCell = h.Cell();
                 nameCell.Column(3 + groupIdIndex);
                 var x = nameCell.CenteredBorderedThick();
-                _ = x.Text($"{g.Name}({g.Language.GetName()})");
+                var sb = _services.GetCleanStringBuilder();
+                LessonTextDisplayHelper.AppendGroupNameWithLanguage(sb, g);
+                x.Text(sb.ToString());
             }
         });
     }

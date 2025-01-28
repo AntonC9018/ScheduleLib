@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -19,9 +20,9 @@ public enum Parity
     EveryWeek,
 }
 
-public struct DefaultLessonTimeConfig
+public struct DefaultLessonTimeConfig(LessonTimeConfig b)
 {
-    public required LessonTimeConfig Base;
+    public readonly LessonTimeConfig Base = b;
     public TimeSlot T8_00 => new(0);
     public TimeSlot T9_45 => new(1);
     public TimeSlot T11_30 => new(2);
@@ -38,6 +39,8 @@ public sealed class LessonTimeConfig
     public required TimeSpan LessonDuration;
     public required TimeOnly[] TimeSlotStarts;
 
+    public int TimeSlotCount => TimeSlotStarts.Length;
+
     public static DefaultLessonTimeConfig CreateDefault()
     {
         var ret = new LessonTimeConfig
@@ -45,10 +48,7 @@ public sealed class LessonTimeConfig
             LessonDuration = TimeSpan.FromMinutes(90),
             TimeSlotStarts = CreateDefaultTimeSlots(),
         };
-        return new()
-        {
-            Base = ret,
-        };
+        return new(ret);
     }
 
     public static TimeOnly[] CreateDefaultTimeSlots()
@@ -112,7 +112,7 @@ public record struct OneTimeLessonDate
 }
 
 // [StructLayout(LayoutKind.Sequential)]
-public struct LessonGroups()
+public struct LessonGroups() : IEnumerable<GroupId>
 {
     public GroupId Group0 = GroupId.Invalid;
     public GroupId Group1 = GroupId.Invalid;
@@ -184,12 +184,11 @@ public struct LessonGroups()
         this[count] = id;
     }
 
-    public readonly Enumerator GetEnumerator()
-    {
-        return new Enumerator(this);
-    }
+    public readonly Enumerator GetEnumerator() => new(this);
+    IEnumerator<GroupId> IEnumerable<GroupId>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public struct Enumerator
+    public struct Enumerator : IEnumerator<GroupId>
     {
         private readonly LessonGroups _groups;
         private int _index;
@@ -207,6 +206,13 @@ public struct LessonGroups()
             _index++;
             return _index < _groups.Count;
         }
+
+        public void Dispose()
+        {
+        }
+
+        public void Reset() => throw new NotImplementedException();
+        object? IEnumerator.Current => Current;
     }
 }
 

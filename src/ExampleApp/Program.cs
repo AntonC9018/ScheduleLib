@@ -2,6 +2,7 @@
 using ScheduleLib.Generation;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using ScheduleLib.Builders;
 
 var timeConfig = LessonTimeConfig.CreateDefault();
 

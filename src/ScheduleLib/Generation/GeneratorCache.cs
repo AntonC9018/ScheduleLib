@@ -2,10 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace ScheduleLib.Generation;
 
-public record struct CellKey
+public record struct CellKey<TColumnKey>
 {
     public required RowKey RowKey;
-    public required GroupId ColumnKey;
+    public required TColumnKey ColumnKey;
 }
 
 public record struct RowKey
@@ -25,12 +25,12 @@ public static class KeyHelper
         };
     }
 
-    public static CellKey CellKey(this RowKey rowKey, GroupId groupId)
+    public static CellKey<T> CellKey<T>(this RowKey rowKey, T columnKey)
     {
-        return new CellKey
+        return new CellKey<T>
         {
             RowKey = rowKey,
-            ColumnKey = groupId,
+            ColumnKey = columnKey,
         };
     }
 }
@@ -85,15 +85,20 @@ public readonly struct ColumnOrder
     public GroupId[] Columns => _columns;
 }
 
-public struct GeneratorCacheMappings()
+public sealed class RegularLessonByCellKey<ColumnKey>
+    : Dictionary<CellKey<ColumnKey>, List<RegularLesson>>
 {
-    public Dictionary<CellKey, List<RegularLesson>> MappingByCell = new();
+}
+
+public struct GeneratorCacheMappings<TColumnKey>()
+{
+    public RegularLessonByCellKey<TColumnKey> MappingByCell = new();
     public Dictionary<RowKey, List<RegularLesson>> MappingByRow = new();
 }
 
 public struct GeneratorCache
 {
-    public required GeneratorCacheMappings Mappings;
+    public required GeneratorCacheMappings<GroupId> Mappings;
     public required ColumnOrder ColumnOrder;
     public required int MaxRowsInOneCell;
     public required SharedLayout? SharedLayout;
@@ -135,31 +140,12 @@ public struct GeneratorCache
         }
     }
 
-    private static GeneratorCacheMappings CreateMappings(FilteredSchedule schedule)
+    private static GeneratorCacheMappings<GroupId> CreateMappings(FilteredSchedule schedule)
     {
-        var dicts = new GeneratorCacheMappings();
-        InitColumnMappings();
+        var dicts = new GeneratorCacheMappings<GroupId>();
+        dicts.MappingByCell = MappingsCreationHelper.CreateCellMappings(schedule.Lessons, l => l.Lesson.Groups);
         InitCellMappings();
         return dicts;
-
-        void InitColumnMappings()
-        {
-            foreach (var lesson in schedule.Lessons)
-            {
-                var rowKey = new RowKey
-                {
-                    TimeSlot = lesson.Date.TimeSlot,
-                    DayOfWeek = lesson.Date.DayOfWeek,
-                };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByRow, rowKey, out bool exists);
-                if (!exists)
-                {
-                    list = new();
-                }
-
-                list!.Add(lesson);
-            }
-        }
 
         void InitCellMappings()
         {
@@ -167,7 +153,7 @@ public struct GeneratorCache
             {
                 foreach (var group in lesson.Lesson.Groups)
                 {
-                    var cellKey = new CellKey
+                    var cellKey = new CellKey<GroupId>
                     {
                         ColumnKey = group,
                         RowKey = new()
@@ -179,7 +165,7 @@ public struct GeneratorCache
                     ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByCell, cellKey, out bool exists);
                     if (!exists)
                     {
-                        list = new(4);
+                        list = new(2);
                     }
 
                     list!.Add(lesson);
@@ -189,3 +175,31 @@ public struct GeneratorCache
     }
 }
 
+
+public static class MappingsCreationHelper
+{
+    public static RegularLessonByCellKey<TColumnKey> CreateCellMappings<TColumnKey>(
+        IEnumerable<RegularLesson> lessons,
+        // TODO: Remove the use of this IEnumerable
+        Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
+    {
+        var ret = new RegularLessonByCellKey<TColumnKey>();
+        foreach (var lesson in lessons)
+        {
+            var rowKey = lesson.Date.RowKey();
+            var columnKeys = colFunc(lesson);
+            foreach (var columnKey in columnKeys)
+            {
+                var cellKey = rowKey.CellKey(columnKey);
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, cellKey, out bool exists);
+                if (!exists)
+                {
+                    list = new(2);
+                }
+
+                list!.Add(lesson);
+            }
+        }
+        return ret;
+    }
+}
