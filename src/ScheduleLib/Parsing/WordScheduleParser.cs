@@ -111,6 +111,8 @@ public sealed class DocParseContext
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;
 
+        teacher.Name.ShortFirstName = nameModel.ShortFirstName;
+
         if (!teacher.Name.LastName!.Equals(
             nameModel.FirstName,
             StringComparison.CurrentCultureIgnoreCase))

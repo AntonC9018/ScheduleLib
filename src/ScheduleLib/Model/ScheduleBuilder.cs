@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
@@ -409,6 +410,18 @@ public static class ScheduleBuilderHelper
         var groups = s.Groups.Build();
         var teachers = s.Teachers.Build(x =>
         {
+            Word ShortFirstName()
+            {
+                if (x.Name.ShortFirstName is { } shortf)
+                {
+                    return shortf;
+                }
+                if (x.Name.FirstName is { } fullf)
+                {
+                    return new Word($"{fullf[0]}.");
+                }
+                return Word.Empty;
+            }
             var ret = new Teacher
             {
                 Contacts = x.Contacts,
@@ -416,7 +429,7 @@ public static class ScheduleBuilderHelper
                 {
                     FirstName = x.Name.FirstName,
                     LastName = x.Name.LastName!,
-                    ShortFirstName = x.Name.ShortFirstName ?? new Word($"{x.Name.FirstName![0]}."),
+                    ShortFirstName = ShortFirstName(),
                 },
             };
             return ret;
@@ -599,35 +612,74 @@ public static class ScheduleBuilderHelper
 
     public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        List<int>? list = null;
-        if (s.LookupModule is { } lookupModule)
+        var list = Lookup1();
+        if (FindId(list) is { } id)
         {
-            list = lookupModule.TeachersByLastName.AddOrGet(name.LastName!);
-            if (name.LongerFirstName is { } longerFirstName)
+            var b = new TeacherBuilder
             {
-                int i = TeacherHelper.FindIndexOfBestMatch(s, list, longerFirstName);
-                int id = list[i];
-                var builder = new TeacherBuilder
-                {
-                    Id = new(id),
-                    Schedule = s,
-                };
-                return builder;
+                Id = new(id),
+                Schedule = s,
+            };
+
+            // The first name should be updated.
+            if (name.FirstName is { } f)
+            {
+                b.FirstName(f, name.ShortFirstName);
             }
+            else if (name.ShortFirstName is { } f1)
+            {
+                b.ShortFirstName(f1);
+            }
+
+            return b;
         }
+
         {
             var ret = s.Teachers.New();
+            ret.Value = new();
             var builder = new TeacherBuilder
             {
                 Id = new(ret.Id),
                 Schedule = s,
             };
-            builder.FullName(name, updateLookup: false);
+            TeacherNameHelper.MaybeValidateInitialsCompatibility(name.FirstName, name.ShortFirstName);
+            builder.Model.Name = name;
 
             // Update the lookup manually.
             list?.Add(ret.Id);
 
             return builder;
+        }
+
+        int? FindId(List<int>? lookup)
+        {
+            if (lookup is null)
+            {
+                return null;
+            }
+            if (name.LongerFirstName is not { } longerFirstName)
+            {
+                return null;
+            }
+            int i = TeacherHelper.FindIndexOfBestMatch(s, lookup, longerFirstName);
+            if (i == -1)
+            {
+                return null;
+            }
+
+            int ret = lookup[i];
+            return ret;
+        }
+
+        List<int>? Lookup1()
+        {
+            if (s.LookupModule is not { } lookupModule)
+            {
+                return null;
+            }
+
+            var ret = lookupModule.TeachersByLastName.AddOrGet(name.LastName!);
+            return ret;
         }
     }
 
@@ -748,7 +800,7 @@ public readonly struct TeacherBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required TeacherId Id { get; init; }
-    public TeacherBuilderModel Model => Schedule.Teachers.Ref(Id.Id);
+    public ref TeacherBuilderModel Model => ref Schedule.Teachers.Ref(Id.Id);
     public static implicit operator TeacherId(TeacherBuilder r) => r.Id;
 
     /// <summary>
@@ -762,35 +814,39 @@ public readonly struct TeacherBuilder
 
     public void FullName(TeacherBuilderModel.NameModel name, bool updateLookup = true)
     {
-        if (name.FirstName is { } firstName)
-        {
-            FirstName(firstName, name.ShortFirstName?.Value);
-        }
+        var newFirstName = name.FirstName ?? Model.Name.FirstName;
+        var newShortFirstName = name.ShortFirstName ?? Model.Name.ShortFirstName;
+        TeacherNameHelper.MaybeValidateInitialsCompatibility(newFirstName, newShortFirstName);
+        Model.Name.FirstName = newFirstName;
+        Model.Name.ShortFirstName = newShortFirstName;
+
         LastName(name.LastName!, updateLookup: updateLookup);
     }
 
+    public void ShortFirstName(Word initials)
+    {
+        if (Model.Name.FirstName is not { } firstName)
+        {
+            return;
+        }
+        TeacherNameHelper.ValidateInitialsCompatibility(firstName, initials);
+        Model.Name.ShortFirstName = initials;
+    }
+
+    public void FirstName(string firstName, Word? initials)
+    {
+        Model.Name.FirstName = firstName;
+
+        if ((initials ?? Model.Name.ShortFirstName) is { } i)
+        {
+            ShortFirstName(i);
+        }
+    }
 
     public void FirstName(string firstName, string? initials = null)
     {
-        if (initials is not null)
-        {
-            var w = new Word(initials);
-            // This might be wrong.
-            // Ana-Maria  ->  A-M. ?
-            // I don't know.
-            bool isOk = !IgnoreDiacriticsComparer.Instance.StartsWith(
-                firstName.AsSpan(),
-                w.Span.Shortened.Value);
-            if (!isOk)
-            {
-                throw new ArgumentException(
-                    "The first name must start with initials when those are given.",
-                    nameof(initials));
-            }
-            Model.Name.ShortFirstName = w;
-        }
-
-        Model.Name.FirstName = firstName;
+        Word? w = initials is null ? null : new Word(initials);
+        FirstName(firstName, w);
     }
 
     public void LastName(string lastName, bool updateLookup = true)
@@ -859,7 +915,7 @@ public static class TeacherNameHelper
     {
         var ret = new TeacherBuilderModel.NameModel();
         var bparser = parser.BufferedView();
-        var result = bparser.SkipUntil(['.', ' ']);
+        var result = bparser.SkipUntil(['.', ' ', '(']);
         if (!result.SkippedAny)
         {
             return ret;
@@ -908,12 +964,43 @@ public static class TeacherNameHelper
 
         bparser.SkipUntil([' ']);
 
-        var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);
-        var lastName = lastNameSpan.ToString();
-        ret.LastName = lastName;
+        {
+            var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var lastName = lastNameSpan.ToString();
+            ret.LastName = lastName;
+        }
 
         parser.MoveTo(bparser.Position);
 
         return ret;
+    }
+
+    public static void MaybeValidateInitialsCompatibility(string? firstName, Word? initials)
+    {
+        if (firstName is not { } firstNameNotNull)
+        {
+            return;
+        }
+        if (initials is not { } initialsNotNull)
+        {
+            return;
+        }
+        ValidateInitialsCompatibility(firstNameNotNull, initialsNotNull);
+    }
+
+    public static void ValidateInitialsCompatibility(string firstName, Word initials)
+    {
+        // This might be wrong.
+        // Ana-Maria  ->  A-M. ?
+        // I don't know.
+        bool isOk = IgnoreDiacriticsComparer.Instance.StartsWith(
+            firstName.AsSpan(),
+            initials.Span.Shortened.Value);
+        if (!isOk)
+        {
+            throw new ArgumentException(
+                "The first name must start with initials when those are given.",
+                nameof(initials));
+        }
     }
 }

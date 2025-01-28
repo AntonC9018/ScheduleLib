@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using ScheduleLib;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ReaderApp;
+using ScheduleLib.Parsing;
 
 var dayNameProvider = new DayNameProvider();
 var context = DocParseContext.Create(new()
@@ -16,6 +19,22 @@ var context = DocParseContext.Create(new()
         MinUsefulWordLength = 3,
     }),
 });
+
+{
+    // Register the teachers from the list.
+    const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
+    using var excel = SpreadsheetDocument.Open(fileName, isEditable: false, new()
+    {
+        AutoSave = false,
+        CompatibilityLevel = CompatibilityLevel.Version_2_20,
+    });
+
+    ExcelTeacherListParser.AddTeachersFromExcel(new()
+    {
+        Excel = excel,
+        Schedule = context.Schedule,
+    });
+}
 {
     context.Schedule.SetStudyYear(2024);
 
@@ -31,9 +50,9 @@ var context = DocParseContext.Create(new()
     }
 }
 
-var schedule = context.BuildSchedule();
 
 #if false
+var schedule = context.BuildSchedule();
 {
     await Tasks.GeneratePdfForGroupsAndTeachers(new()
     {
@@ -51,3 +70,4 @@ var schedule = context.BuildSchedule();
     });
 }
 #endif
+

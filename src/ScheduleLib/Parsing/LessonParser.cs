@@ -802,18 +802,18 @@ public static class LessonParsingHelper
 
                 // last name
                 if (skipResult.EndOfInput
-                    || c.Parser.Current is ' ' or ',')
+                    || bparser.Current is ' ' or ',')
                 {
                     var lastName = c.Parser.SourceUntilExclusive(bparser);
                     teacher.LastName = lastName;
 
-                    if (c.Parser.Current == ' ')
+                    if (bparser.Current == ' ')
                     {
                         c.State.Step = ParsingStep.OptionalParensBeforeRoom;
                     }
                     else
                     {
-                        Debug.Assert(c.Parser.Current == ',');
+                        Debug.Assert(bparser.Current == ',');
                         c.State.Step = ParsingStep.RequiredTeacherName;
                     }
 
@@ -823,7 +823,7 @@ public static class LessonParsingHelper
                     }
                 }
                 // first name
-                else if (c.Parser.Current == '.')
+                else if (bparser.Current == '.')
                 {
                     bparser.Move();
 

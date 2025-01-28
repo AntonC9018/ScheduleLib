@@ -20,7 +20,7 @@ public readonly record struct Word(string Value)
     public readonly WordSpan Span => new(Value);
     public readonly bool LooksFull => Span.LooksFull;
     public static Word Empty => new("");
-
+    public override string ToString() => Value;
     public static implicit operator WordSpan(Word v) => v.Span;
 }
 

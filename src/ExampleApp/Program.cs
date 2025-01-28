@@ -620,11 +620,17 @@ var generator = new GroupColumnScheduleTableDocument(filteredSchedule, new()
 {
     DayNameProvider = dayNameProvider,
     LessonTimeConfig = timeConfig,
-    ParityDisplay = new(),
     StringBuilder = new(),
-    LessonTypeDisplay = new(),
     TimeSlotDisplay = timeSlotDisplayHandler,
-    SubGroupNumberDisplay = new(),
+    LessonTextDisplayHandler = new(new()
+    {
+        ParityDisplay = new(),
+        LessonTypeDisplay = new(),
+        SubGroupNumberDisplay = new(),
+    }, new()
+    {
+        PreferLongerTeacherName = true,
+    }),
 });
 
 QuestPDF.Settings.License = LicenseType.Community;
