@@ -21,6 +21,7 @@ public readonly struct ListStringBuilder(
     char separator = ' ')
 {
     private readonly int _initialCount = sb.Length;
+    private StringBuilder StringBuilder => sb;
 
     public void MaybeAppendSeparator()
     {
@@ -39,7 +40,6 @@ public readonly struct ListStringBuilder(
     public void Append([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler)
     {
         _ = this;
-        MaybeAppendSeparator();
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -53,6 +53,8 @@ public readonly struct ListStringBuilder(
             _ = literalLength;
             _ = formattedCount;
             this.writer = writer;
+
+            writer.MaybeAppendSeparator();
         }
 
         public void AppendLiteral(string value)
@@ -70,7 +72,7 @@ public readonly struct ListStringBuilder(
 
         public void AppendFormatted(ReadOnlySpan<char> value)
         {
-            this.writer.Append(value);
+            this.writer.StringBuilder.Append(value);
         }
 
         public void AppendFormatted<T>(T value)
@@ -82,15 +84,15 @@ public readonly struct ListStringBuilder(
         {
             if (value is ISpanFormattable spanFormattable)
             {
-                this.writer.Append(spanFormattable.ToString(format, CultureInfo.InvariantCulture));
+                AppendFormatted(spanFormattable.ToString(format, CultureInfo.InvariantCulture));
             }
             else if (value is IFormattable formattable)
             {
-                this.writer.Append(formattable.ToString(format, CultureInfo.InvariantCulture));
+                AppendFormatted(formattable.ToString(format, CultureInfo.InvariantCulture));
             }
             else if (value is not null)
             {
-                this.writer.Append(value.ToString());
+                AppendFormatted(value.ToString());
             }
         }
     }

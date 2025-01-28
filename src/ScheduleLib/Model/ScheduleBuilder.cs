@@ -70,7 +70,7 @@ public static partial class ScheduleBuilderHelper
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
-                    Teachers = [.. x.General.Teacher],
+                    Teachers = [.. x.General.Teachers],
                     Type = x.General.Type,
                 },
             };
@@ -151,10 +151,21 @@ public static partial class ScheduleBuilderHelper
                     // Let it throw on duplicates here for now.
                     lookupModule.Courses.Add(name, r.Id);
                 }
+                UpdateLookupAfterCourseAdded(s);
             }
         }
 
         return new(r.Id);
+    }
+
+    // Obviously pretty bad code.
+    // Gonna need to introduce some more abstraction later.
+    public static void UpdateLookupAfterCourseAdded(ScheduleBuilder s)
+    {
+        if (s.LookupModule is { } lookupModule)
+        {
+            lookupModule.LessonsByCourse.Add([]);
+        }
     }
 
     public static RoomId Room(this ScheduleBuilder s, string id)

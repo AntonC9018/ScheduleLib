@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
+using System.Text;
 
 public readonly struct Interval
 {
@@ -17,7 +18,7 @@ public readonly struct Interval
     public int Length => EndInclusive - Start + 1;
 }
 
-public struct BitArray32
+public record struct BitArray32
 {
     private uint _bits;
     private readonly int _length;
@@ -33,22 +34,23 @@ public struct BitArray32
 
     public readonly int SetCount => BitOperations.PopCount(_bits);
 
-    public void Set(int index)
+    public void Set(int index, bool value = true)
     {
         Debug.Assert(index < _length);
-        _bits |= (1u << index);
+        if (value)
+        {
+            _bits |= (1u << index);
+        }
+        else
+        {
+            Clear(index);
+        }
     }
 
     public readonly bool IsSet(int index)
     {
         Debug.Assert(index < _length);
         return (_bits & (1u << index)) != 0;
-    }
-
-    public void Set(BitArray32 other, int offset)
-    {
-        Debug.Assert(offset + other._length <= _length);
-        _bits |= other._bits << offset;
     }
 
     public readonly BitArray32 WithSet(int index)
@@ -153,8 +155,16 @@ public struct BitArray32
     }
 
     public const int MaxLength = sizeof(uint) * 8;
-}
 
+    private bool PrintMembers(StringBuilder sb)
+    {
+        sb.Append("Bits: ");
+        sb.Append(_bits);
+        sb.Append(", Length: ");
+        sb.Append(_length);
+        return true;
+    }
+}
 
 public readonly struct SetBitIndicesEnumerable : IEnumerable<int>
 {

@@ -9,8 +9,14 @@ public partial class ScheduleBuilder
     public LookupModule? LookupModule = null;
 }
 
+public sealed class LessonsByCourseMap : List<List<int>>
+{
+    public List<int> this[CourseId courseId] => this[courseId.Id];
+}
+
 public sealed class LookupModule()
 {
+    public readonly LessonsByCourseMap LessonsByCourse = new();
     public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
     public readonly TeachersByLastName TeachersByLastName = new();
     public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
@@ -96,6 +102,26 @@ public static partial class ScheduleBuilderHelper
             {
                 ref var group = ref s.Groups.Ref(i);
                 groupsMap.Add(group.Name, i);
+            }
+        }
+        {
+            var courseCount = s.Courses.Count;
+            CollectionsMarshal.SetCount(lookupModule.LessonsByCourse, courseCount);
+            foreach (ref var it in CollectionsMarshal.AsSpan(lookupModule.LessonsByCourse))
+            {
+                it = new();
+            }
+        }
+        {
+            for (int i = 0; i < s.RegularLessons.Count; i++)
+            {
+                ref var lesson = ref s.RegularLessons.Ref(i);
+                if (lesson.General.Course is not { } courseId)
+                {
+                    continue;
+                }
+                var list = lookupModule.LessonsByCourse[courseId.Id];
+                list.Add(i);
             }
         }
     }

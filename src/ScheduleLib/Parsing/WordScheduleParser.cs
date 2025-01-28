@@ -93,6 +93,7 @@ public sealed class DocParseContext
 
         var result = Schedule.Courses.New();
         courseId = result.Id;
+        ScheduleBuilderHelper.UpdateLookupAfterCourseAdded(Schedule);
 
         SlowCourses.Add(new(parsedCourse, new(courseId)));
 
@@ -159,25 +160,25 @@ internal readonly record struct SlowCourse(
     ParsedCourseName Name,
     CourseId CourseId);
 
-file readonly record struct ColumnCounts(int Skipped, int Good)
+internal readonly record struct ColumnCounts(int Skipped, int Good)
 {
     public int Total => Skipped + Good;
 }
 
-file struct TimeParsingState()
+internal struct TimeParsingState()
 {
     public int TimeSlotOrdinal;
     public TimeSlot TimeSlot;
 }
 
-file struct TableParsingState()
+internal struct TableParsingState()
 {
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
     public required int GroupsProcessed;
 
-    public GroupId GroupId(int colIndex)
+    public readonly GroupId GroupId(int colIndex)
     {
         return new(GroupsProcessed + colIndex - ColumnCounts!.Value.Skipped);
     }
@@ -454,7 +455,7 @@ public static class WordScheduleParser
                                 return x.TimeSlot.Index + 1;
                             }
 
-                            int ret = FindTimeSlotIndex(parsedTime.Start);
+                            int ret = c.FindTimeSlotIndex(parsedTime.Start);
                             return ret;
                         }
                     }
@@ -478,69 +479,11 @@ public static class WordScheduleParser
 
                         foreach (var lesson in lessons)
                         {
-                            var l = c.Schedule.RegularLesson();
-
-                            if (lesson.StartTime is { } startTime)
-                            {
-                                int timeSlotIndex = FindTimeSlotIndex(startTime);
-                                l.TimeSlot(new(timeSlotIndex));
-                            }
-                            else
-                            {
-                                l.TimeSlot(state.Time!.Value.TimeSlot);
-                            }
-
-                            l.DayOfWeek(state.CurrentDay!.Value);
-
-                            {
-                                var courseName = lesson.LessonName.ToString();
-                                var courseId = c.Course(courseName);
-                                l.Course(courseId);
-                            }
-                            foreach (var t in lesson.TeacherNames)
-                            {
-                                var teacherId = c.Teacher(t);
-                                l.Teacher(teacherId);
-                            }
-                            if (!lesson.RoomName.IsEmpty)
-                            {
-                                var roomName = lesson.RoomName.ToString();
-                                var roomId = c.Room(roomName);
-                                l.Room(roomId);
-                            }
-                            l.Type(lesson.LessonType);
-                            l.Parity(lesson.Parity);
-
-                            ref var g = ref l.Model.Group;
-                            if (lesson.GroupName.IsEmpty)
-                            {
-                                var groups = new LessonGroups();
-                                for (int i = 0; i < colSpan1; i++)
-                                {
-                                    var groupId = state.GroupId(i + columnIndex);
-                                    groups.Add(groupId);
-                                }
-
-                                // if (groups.Count > 1
-                                //     && lesson.SubGroupNumber != SubGroupNumber.All)
-                                // {
-                                //     throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
-                                // }
-
-                                g.Groups = groups;
-                            }
-                            else
-                            {
-                                // validate group
-                                var groupName = lesson.GroupName.Span.Trim().ToString();
-                                if (!c.Schedule.LookupModule!.Groups.TryGetValue(groupName, out var x))
-                                {
-                                    throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
-                                }
-                                g.Groups.Add(new(x));
-                            }
-
-                            g.SubGroup = lesson.SubGroup;
+                            c.AddOrMergeLesson(
+                                in state,
+                                in lesson,
+                                columnIndex: columnIndex,
+                                colSpan: colSpan1);
                         }
 
                         bool ShouldAdd()
@@ -558,16 +501,6 @@ public static class WordScheduleParser
                         }
                     }
                 }
-            }
-
-            int FindTimeSlotIndex(TimeOnly start)
-            {
-                int i = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, start);
-                if (i == -1)
-                {
-                    TimeSlotError();
-                }
-                return i;
             }
 
             // Returns whether the header row is present
@@ -673,5 +606,140 @@ public static class WordScheduleParser
     private static void TimeSlotError()
     {
         throw new NotSupportedException("The time slot must contain the time range second");
+    }
+
+    private static void AddOrMergeLesson(
+        this DocParseContext c,
+        in TableParsingState state,
+        in ParsedLesson lesson,
+        int columnIndex,
+        int colSpan)
+    {
+        RegularLessonBuilderModelData modelData = new();
+
+        if (lesson.StartTime is { } startTime)
+        {
+            int timeSlotIndex = c.FindTimeSlotIndex(startTime);
+            modelData.Date.TimeSlot = new(timeSlotIndex);
+        }
+        else
+        {
+            modelData.Date.TimeSlot = state.Time!.Value.TimeSlot;
+        }
+
+        modelData.Date.DayOfWeek = state.CurrentDay!.Value;
+
+        CourseId courseId;
+        {
+            var courseName = lesson.LessonName.ToString();
+            courseId = c.Course(courseName);
+            modelData.General.Course = courseId;
+        }
+        foreach (var t in lesson.TeacherNames)
+        {
+            var teacherId = c.Teacher(t);
+            modelData.General.Teachers.Add(teacherId);
+        }
+        if (!lesson.RoomName.IsEmpty)
+        {
+            var roomName = lesson.RoomName.ToString();
+            var roomId = c.Room(roomName);
+            modelData.General.Room = roomId;
+        }
+
+        modelData.General.Type = lesson.LessonType;
+        modelData.Date.Parity = lesson.Parity;
+
+        ref var g = ref modelData.Group;
+        if (lesson.GroupName.IsEmpty)
+        {
+            var groups = new LessonGroups();
+            for (int i = 0; i < colSpan; i++)
+            {
+                var groupId = state.GroupId(i + columnIndex);
+                groups.Add(groupId);
+            }
+
+            // if (groups.Count > 1
+            //     && lesson.SubGroupNumber != SubGroupNumber.All)
+            // {
+            //     throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
+            // }
+
+            g.Groups = groups;
+        }
+        else
+        {
+            // validate group
+            var groupName = lesson.GroupName.Span.Trim().ToString();
+            if (!c.Schedule.LookupModule!.Groups.TryGetValue(groupName, out var x))
+            {
+                throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
+            }
+            g.Groups.Add(new(x));
+        }
+
+        g.SubGroup = lesson.SubGroup;
+
+        if (MaybeMergeIntoAnExistingLesson())
+        {
+            return;
+        }
+
+        _ = c.Schedule.RegularLesson(modelData);
+        return;
+
+        bool MaybeMergeIntoAnExistingLesson()
+        {
+            var schedule = c.Schedule;
+            var lessonsByCourse = schedule.LookupModule!.LessonsByCourse;
+            var existingLessonsOfThisCourse = lessonsByCourse[courseId];
+
+            foreach (var existingLesson in existingLessonsOfThisCourse)
+            {
+                var model = schedule.RegularLessons.Ref(existingLesson);
+
+                var diffMask = new RegularLessonModelDiffMask
+                {
+                    Parity = true,
+                    Day = true,
+                    TimeSlot = true,
+                    SubGroup = true,
+                    Room = true,
+                    LessonType = true,
+                    // Already checked because we look up by it.
+                    // Course = true,
+                };
+                var diff = LessonBuilderHelper.Diff(
+                    modelData,
+                    model.Data,
+                    diffMask);
+                if (diff.TheyDiffer)
+                {
+                    continue;
+                }
+
+                LessonBuilderHelper.Merge(
+                    to: ref model.Data,
+                    from: modelData,
+                    new()
+                    {
+                        Groups = true,
+                        Teachers = true,
+                    });
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private static int FindTimeSlotIndex(this DocParseContext c, TimeOnly start)
+    {
+        int i = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, start);
+        if (i == -1)
+        {
+            TimeSlotError();
+        }
+        return i;
     }
 }

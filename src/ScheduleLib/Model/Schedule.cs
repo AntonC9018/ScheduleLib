@@ -112,7 +112,7 @@ public record struct OneTimeLessonDate
 }
 
 // [StructLayout(LayoutKind.Sequential)]
-public struct LessonGroups() : IEnumerable<GroupId>
+public record struct LessonGroups() : IEnumerable<GroupId>
 {
     public GroupId Group0 = GroupId.Invalid;
     public GroupId Group1 = GroupId.Invalid;
@@ -170,14 +170,14 @@ public struct LessonGroups() : IEnumerable<GroupId>
                     return i;
                 }
             }
-            return 4;
+            return Capacity;
         }
     }
 
     public void Add(GroupId id)
     {
         int count = Count;
-        if (count == 4)
+        if (count == Capacity)
         {
             Debug.Fail("Can't add more than 3 groups per lesson");
         }

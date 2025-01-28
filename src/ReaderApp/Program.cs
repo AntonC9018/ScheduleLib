@@ -321,13 +321,20 @@ void ExcelStuff(string outputFile)
                         }
                         if (t.LessonTypeDisplay.Get(lesson.Lesson.Type) is { } lessonTypeName)
                         {
-                            listBuilder.Append($"{lessonTypeName}");
+                            listBuilder.Append($"({lessonTypeName})");
                         }
                         if (lesson.Lesson.Room != RoomId.Invalid)
                         {
                             listBuilder.Append($"{lesson.Lesson.Room.Id}");
                         }
+
                         {
+                            var groups = lesson.Lesson.Groups;
+                            if (groups.Count > 0)
+                            {
+                                listBuilder.MaybeAppendSeparator();
+                            }
+
                             var commaListBuilder = new ListStringBuilder(sb, ',');
                             foreach (var groupId in lesson.Lesson.Groups)
                             {
