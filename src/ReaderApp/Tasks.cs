@@ -150,7 +150,33 @@ public static class Tasks
         };
         sheets.Append(sheet);
 
+        {
+            var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
+            if (mergeCells is null)
+            {
+                mergeCells = new MergeCells();
+                worksheet.InsertAfter(mergeCells, sheetData);
+            }
+
+            uint timeSlotCount = (uint) p.TimeConfig.TimeSlotCount;
+            uint initialRowIndex = 1;
+            for (uint dayIndex = 0; dayIndex < 6; dayIndex++)
+            {
+                var merge = new MergeCell();
+                uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
+                uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
+                merge.Reference = GetCellRange(new()
+                {
+                    Start = new(ColIndex: 0, RowIndex: rowIndexStart),
+                    EndInclusive = new(ColIndex: 0, RowIndex: rowIndexEnd),
+                    StringBuilder = p.StringBuilder,
+                });
+                mergeCells.Append(merge);
+            }
+        }
+
         var strings = new Dictionary<string, int>();
+
 
         TopHeader();
         Body();
@@ -391,4 +417,82 @@ public static class Tasks
         cell.DataType = CellValues.String;
         cell.CellValue = new(str);
     }
+
+    public record struct CellPosition(uint ColIndex, uint RowIndex);
+
+    public struct AppendCellReferenceParams
+    {
+        public required StringBuilder StringBuilder;
+        public required CellPosition Position;
+    }
+
+    private static void AppendCellReference(AppendCellReferenceParams p)
+    {
+        Span<char> stack = stackalloc char[8];
+        int stackPos = 0;
+
+        uint remaining = p.Position.ColIndex + 1;
+        while (true)
+        {
+            const uint base_ = 'Z' - 'A' + 1;
+            byte remainder = (byte)((remaining - 1) % base_);
+            byte letter = (byte)('A' + remainder);
+            char ch = (char) letter;
+            stack[stackPos] = ch;
+            stackPos++;
+
+            remaining -= remainder;
+            remaining /= base_;
+            if (remaining == 0)
+            {
+                break;
+            }
+        }
+
+        for (int j = stackPos - 1; j >= 0; j--)
+        {
+            p.StringBuilder.Append(stack[j]);
+        }
+
+        p.StringBuilder.Append(p.Position.RowIndex + 1);
+    }
+
+    private static StringValue GetCellReference(AppendCellReferenceParams p)
+    {
+        Debug.Assert(p.StringBuilder.Length == 0);
+        AppendCellReference(p);
+        var ret = p.StringBuilder.ToStringAndClear();
+        return new StringValue(ret);
+    }
+
+    public struct AppendCellRangeParams
+    {
+        public required StringBuilder StringBuilder;
+        public required CellPosition Start;
+        public required CellPosition EndInclusive;
+    }
+
+    private static void AppendCellRange(AppendCellRangeParams p)
+    {
+        AppendCellReference(new()
+        {
+            StringBuilder = p.StringBuilder,
+            Position = p.Start,
+        });
+        p.StringBuilder.Append(':');
+        AppendCellReference(new()
+        {
+            StringBuilder = p.StringBuilder,
+            Position = p.EndInclusive,
+        });
+    }
+
+    private static StringValue GetCellRange(AppendCellRangeParams p)
+    {
+        Debug.Assert(p.StringBuilder.Length == 0);
+        AppendCellRange(p);
+        var ret = p.StringBuilder.ToStringAndClear();
+        return new StringValue(ret);
+    }
+
 }
