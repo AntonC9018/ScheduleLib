@@ -148,7 +148,7 @@ public static class Tasks
             SheetId = 1,
             Name = "main",
         };
-        sheets.Append(sheet);
+        sheets.AppendChild(sheet);
 
         {
             var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
@@ -171,8 +171,25 @@ public static class Tasks
                     EndInclusive = new(ColIndex: 0, RowIndex: rowIndexEnd),
                     StringBuilder = p.StringBuilder,
                 });
-                mergeCells.Append(merge);
+                mergeCells.AppendChild(merge);
             }
+        }
+
+        uint rotatedTextFormatId;
+        {
+            var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            using var stylesheet = StylesheetBuilder.CreateWithDefaults(stylesPart);
+
+            rotatedTextFormatId = stylesheet.CellFormat(x =>
+            {
+                x.Alignment = new()
+                {
+                    TextRotation = 90,
+                    Horizontal = HorizontalAlignmentValues.Center,
+                    Vertical = VerticalAlignmentValues.Center,
+                };
+                x.ApplyAlignment = true;
+            });
         }
 
         var strings = new Dictionary<string, int>();
@@ -188,14 +205,14 @@ public static class Tasks
         foreach (var s in strings.OrderBy(x => x.Value))
         {
             var item = new SharedStringItem(new Text(s.Key));
-            sharedStringTable.Append(item);
+            sharedStringTable.AppendChild(item);
         }
         return;
 
         Row NextRow()
         {
             var row = new Row();
-            sheetData.Append(row);
+            sheetData.AppendChild(row);
             return row;
         }
 
@@ -227,12 +244,12 @@ public static class Tasks
             var row = NextRow();
 
             // Empty corner
-            row.Append(NextCell());
+            row.AppendChild(NextCell());
 
             {
                 var cell = NextCell();
                 cell.SetStringValue("         Profesor\n  Ora");
-                row.Append(cell);
+                row.AppendChild(cell);
             }
 
             var sb = p.StringBuilder;
@@ -249,7 +266,7 @@ public static class Tasks
                 var teacherName = sb.ToStringAndClear();
                 var cell = NextCell();
                 cell.SetStringValue(teacherName);
-                row.Append(cell);
+                row.AppendChild(cell);
             }
         }
 
@@ -285,20 +302,21 @@ public static class Tasks
                         var dayName = p.DayNameProvider.GetDayName(day);
                         var cell = NextCell();
                         cell.SetStringValue(dayName);
-                        row.Append(cell);
+                        cell.StyleIndex = rotatedTextFormatId;
+                        row.AppendChild(cell);
                     }
                     else
                     {
-                        // TODO: Should be merged. But this is done in another component.
                         var cell = NextCell();
-                        row.Append(cell);
+                        cell.StyleIndex = rotatedTextFormatId;
+                        row.AppendChild(cell);
                     }
 
                     {
                         var id = firstTimeSlotStringId + timeSlotIndex;
                         var cell = NextCell();
                         cell.SetSharedStringValue(id);
-                        row.Append(cell);
+                        row.AppendChild(cell);
                     }
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
@@ -306,7 +324,7 @@ public static class Tasks
                     for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
                     {
                         var cell = NextCell();
-                        row.Append(cell);
+                        row.AppendChild(cell);
 
                         if (isSeminarDate)
                         {
@@ -495,4 +513,163 @@ public static class Tasks
         return new StringValue(ret);
     }
 
+    public abstract class CountedAdderBase<T, TItem>
+        where T : OpenXmlCompositeElement, new()
+        where TItem : OpenXmlElement, new()
+    {
+        public T Element { get; } = new();
+        private uint _index = 0;
+
+        public void AssertHasDefault()
+        {
+            Debug.Assert(_index != 0);
+        }
+
+        public bool HasDefault()
+        {
+            return _index != 0;
+        }
+
+        public (uint Id, TItem Item) Next()
+        {
+            var ret = new TItem();
+            Element.Append(ret);
+            var id = _index;
+            _index++;
+            return (id, ret);
+        }
+
+        public virtual TItem AppendDefault()
+        {
+            (_, var it) = Next();
+            return it;
+        }
+    }
+
+    public sealed class CountedFonts : CountedAdderBase<Fonts, Font>
+    {
+    }
+
+    public sealed class CountedFills : CountedAdderBase<Fills, Fill>
+    {
+        public override Fill AppendDefault()
+        {
+            var fill = base.AppendDefault();
+            fill.PatternFill = new()
+            {
+                PatternType = PatternValues.None,
+            };
+            return fill;
+        }
+    }
+
+    public sealed class CountedBorders : CountedAdderBase<Borders, Border>
+    {
+    }
+
+    public sealed class CountedCellFormats : CountedAdderBase<CellFormats, CellFormat>
+    {
+    }
+
+    public sealed class StylesheetBuilder : IDisposable
+    {
+        private readonly Stylesheet _stylesheet;
+        private readonly CountedFonts _fonts;
+        private readonly CountedFills _fills;
+        private readonly CountedBorders _borders;
+        private readonly CountedCellFormats _cellFormats;
+
+        public StylesheetBuilder(
+            Stylesheet stylesheet,
+            CountedFonts fonts,
+            CountedFills fills,
+            CountedBorders borders,
+            CountedCellFormats cellFormats)
+        {
+            _stylesheet = stylesheet;
+            _fonts = fonts;
+            _fills = fills;
+            _borders = borders;
+            _cellFormats = cellFormats;
+        }
+
+        public uint Font(Action<Font> configure)
+        {
+            var (id, font) = _fonts.Next();
+            configure(font);
+            return id;
+        }
+
+        public uint Fill(Action<Fill> configure)
+        {
+            var (id, fill) = _fills.Next();
+            configure(fill);
+            return id;
+        }
+
+        public uint Border(Action<Border> configure)
+        {
+            var (id, border) = _borders.Next();
+            configure(border);
+            return id;
+        }
+
+        public uint CellFormat(Action<CellFormat> configure)
+        {
+            var (id, cellFormat) = _cellFormats.Next();
+            configure(cellFormat);
+            return id;
+        }
+
+        public void Dispose()
+        {
+            if (!_fonts.HasDefault())
+            {
+                _fonts.AppendDefault();
+            }
+            if (!_fills.HasDefault())
+            {
+                _fills.AppendDefault();
+            }
+            if (!_borders.HasDefault())
+            {
+                _borders.AppendDefault();
+            }
+            if (!_cellFormats.HasDefault())
+            {
+                _cellFormats.AppendDefault();
+            }
+            _stylesheet.Save();
+        }
+
+        public static StylesheetBuilder CreateWithDefaults(WorkbookStylesPart stylesPart)
+        {
+            var stylesheet = new Stylesheet();
+            stylesPart.Stylesheet = stylesheet;
+
+            var fonts = new CountedFonts();
+            stylesheet.AppendChild(fonts.Element);
+            fonts.AppendDefault();
+
+            var fills = new CountedFills();
+            stylesheet.AppendChild(fills.Element);
+            fills.AppendDefault();
+
+            var borders = new CountedBorders();
+            stylesheet.AppendChild(borders.Element);
+            borders.AppendDefault();
+
+            var cellFormats = new CountedCellFormats();
+            stylesheet.AppendChild(cellFormats.Element);
+            cellFormats.AppendDefault();
+
+            var ret = new StylesheetBuilder(
+                stylesheet,
+                fonts,
+                fills,
+                borders,
+                cellFormats);
+            return ret;
+        }
+    }
 }
