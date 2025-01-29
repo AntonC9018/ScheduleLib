@@ -271,18 +271,16 @@ public static class Tasks
             };
         });
 
+        static BorderStyleValues Thick() => BorderStyleValues.Medium;
+        static BorderStyleValues Thin() => BorderStyleValues.Thin;
         var thickBordersId = stylesheet.Border(x =>
         {
-            x.AllSides(BorderStyleValues.Thick);
+            x.AllSides(Thick());
         });
         var cellBorderIds = EdgesBorderIds.Create(stylesheet, (x, edge) =>
         {
-            var topStyle = edge == Edgeness.Top
-                ? BorderStyleValues.Thick
-                : BorderStyleValues.Medium;
-            var bottomStyle = edge == Edgeness.Bottom
-                ? BorderStyleValues.Thick
-                : BorderStyleValues.Medium;
+            var topStyle = edge == Edgeness.Top ? Thick() : Thin();
+            var bottomStyle = edge == Edgeness.Bottom ? Thick() : Thin();
             x.TopBorder = new()
             {
                 Style = topStyle,
@@ -293,11 +291,11 @@ public static class Tasks
             };
             x.LeftBorder = new()
             {
-                Style = BorderStyleValues.Thick,
+                Style = Thick(),
             };
             x.RightBorder = new()
             {
-                Style = BorderStyleValues.Thick,
+                Style = Thick(),
             };
         });
         BorderId BorderIdByEdge(Edgeness edge)
