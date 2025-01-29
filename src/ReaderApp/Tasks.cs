@@ -175,81 +175,241 @@ public static class Tasks
             }
         }
 
-        uint rotatedTextFormatId;
-        {
-            var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
-            using var stylesheet = StylesheetBuilder.CreateWithDefaults(stylesPart);
+        using var stylesheet = StylesheetBuilder.CreateWithDefaults(workbookPart);
 
-            rotatedTextFormatId = stylesheet.CellFormat(x =>
+        void DefaultFont(Font x)
+        {
+            x.FontName = new()
             {
-                x.Alignment = new()
-                {
-                    TextRotation = 90,
-                    Horizontal = HorizontalAlignmentValues.Center,
-                    Vertical = VerticalAlignmentValues.Center,
-                };
-                x.ApplyAlignment = true;
-            });
+                Val = "Helvetica Neue",
+            };
         }
 
-        var strings = new Dictionary<string, int>();
+        var cellFontId = stylesheet.Font(x =>
+        {
+            DefaultFont(x);
+            x.FontSize = new()
+            {
+                Val = 9,
+            };
+        });
+        var teacherFontId = stylesheet.Font(x =>
+        {
+            DefaultFont(x);
+            x.FontSize = new()
+            {
+                Val = 9,
+            };
+            x.Bold = new()
+            {
+                Val = true,
+            };
+        });
+        var timeSlotFontId = stylesheet.Font(x =>
+        {
+            DefaultFont(x);
+            x.FontSize = new()
+            {
+                Val = 10,
+            };
+            x.Bold = new()
+            {
+                Val = true,
+            };
+        });
+        var dayFontId = stylesheet.Font(x =>
+        {
+            DefaultFont(x);
+            x.FontSize = new()
+            {
+                Val = 11,
+            };
+            x.Bold = new()
+            {
+                Val = true,
+            };
+        });
+        const int autoColor = 64;
 
+        {
+            // The style with this id is some dotted grid pattern.
+            // ???
+            var wtf = stylesheet.Fill(_ => {});
+            _ = wtf;
+        }
+
+        var greenFillId = stylesheet.Fill(x =>
+        {
+            x.PatternFill = new()
+            {
+                PatternType = PatternValues.Solid,
+                ForegroundColor = new()
+                {
+                    Rgb = "92D050",
+                },
+                BackgroundColor = new()
+                {
+                    Indexed = autoColor,
+                },
+            };
+        });
+        var oddFillId = stylesheet.Fill(x =>
+        {
+            x.PatternFill = new()
+            {
+                PatternType = PatternValues.Solid,
+                ForegroundColor = new()
+                {
+                    Rgb = "EFEFEF",
+                },
+                BackgroundColor = new()
+                {
+                    Indexed = autoColor,
+                },
+            };
+        });
+
+        var thickBordersId = stylesheet.Border(x =>
+        {
+            x.AllSides(BorderStyleValues.Thick);
+        });
+        var mediumBorderThickSidesId = stylesheet.Border(x =>
+        {
+            x.TopBorder = new()
+            {
+                Style = BorderStyleValues.Medium,
+            };
+            x.BottomBorder = new()
+            {
+                Style = BorderStyleValues.Medium,
+            };
+            x.LeftBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+            x.RightBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+        });
+        var mediumBorderThickSidesAndTop = stylesheet.Border(x =>
+        {
+            x.TopBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+            x.BottomBorder = new()
+            {
+                Style = BorderStyleValues.Medium,
+            };
+            x.LeftBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+            x.RightBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+        });
+        var mediumBorderThickSidesAndBottom = stylesheet.Border(x =>
+        {
+            x.TopBorder = new()
+            {
+                Style = BorderStyleValues.Medium,
+            };
+            x.BottomBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+            x.LeftBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+            x.RightBorder = new()
+            {
+                Style = BorderStyleValues.Thick,
+            };
+        });
+        BorderId BorderIdByEdge(Edgeness edge)
+        {
+            return edge switch
+            {
+                Edgeness.Top => mediumBorderThickSidesAndTop,
+                Edgeness.Bottom => mediumBorderThickSidesAndBottom,
+                Edgeness.Neither => mediumBorderThickSidesId,
+                _ => throw new ArgumentOutOfRangeException(nameof(edge)),
+            };
+        }
+
+        var dayStyleIds = OddOrEvenStyleId.Create(stylesheet, (x, isOdd) =>
+        {
+            x.Alignment = new()
+            {
+                TextRotation = 90,
+                Horizontal = HorizontalAlignmentValues.Center,
+                Vertical = VerticalAlignmentValues.Center,
+            };
+            x.SetFont(dayFontId);
+            x.SetBorder(thickBordersId);
+            if (isOdd)
+            {
+                x.SetFill(oddFillId);
+            }
+        });
+        var teacherStyleId = stylesheet.CellFormat(x =>
+        {
+            x.CenterAndWrap();
+            x.SetFont(teacherFontId);
+            x.SetBorder(thickBordersId);
+        });
+        var lessonStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
+        {
+            x.CenterAndWrap();
+            x.SetFont(cellFontId);
+            x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
+            if (edge.IsOdd())
+            {
+                x.SetFill(oddFillId);
+            }
+        });
+
+        var seminarStyleIds = EdgesStyleIds.Create(stylesheet, (x, edge) =>
+        {
+            x.CenterAndWrap();
+            x.SetFont(cellFontId);
+            x.SetFill(greenFillId);
+            x.SetBorder(BorderIdByEdge(edge));
+        });
+        var timeSlotStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
+        {
+            x.CenterAndWrap();
+            x.SetFont(timeSlotFontId);
+            x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
+            if (edge.IsOdd())
+            {
+                x.SetFill(oddFillId);
+            }
+        });
+
+        using var strings = StringTableBuilder.Create(workbookPart);
+        var cells = new CellsBuilder(sheetData);
 
         TopHeader();
         Body();
 
-        var sharedStringPart = workbookPart.AddNewPart<SharedStringTablePart>();
-        var sharedStringTable = new SharedStringTable();
-        sharedStringPart.SharedStringTable = sharedStringTable;
-
-        foreach (var s in strings.OrderBy(x => x.Value))
-        {
-            var item = new SharedStringItem(new Text(s.Key));
-            sharedStringTable.AppendChild(item);
-        }
         return;
-
-        Row NextRow()
-        {
-            var row = new Row();
-            sheetData.AppendChild(row);
-            return row;
-        }
-
-        Cell NextCell()
-        {
-            var cell = new Cell();
-            return cell;
-        }
-
-        int GetOrAddString(string s)
-        {
-            ref var ret = ref CollectionsMarshal.GetValueRefOrAddDefault(strings, s, out var exists);
-            if (!exists)
-            {
-                ret = strings.Count - 1;
-            }
-            return ret;
-        }
-        int AddString(string s)
-        {
-            var index = strings.Count;
-            strings.Add(s, index);
-            return index;
-        }
 
         // top header
         void TopHeader()
         {
-            var row = NextRow();
+            _ = cells.NextRow();
 
-            // Empty corner
-            row.AppendChild(NextCell());
+            _ = cells.NextCell();
 
             {
-                var cell = NextCell();
+                var cell = cells.NextCell();
                 cell.SetStringValue("         Profesor\n  Ora");
-                row.AppendChild(cell);
+                cell.SetStyle(teacherStyleId);
             }
 
             var sb = p.StringBuilder;
@@ -264,22 +424,20 @@ public static class Tasks
                     PreferLonger = true,
                 });
                 var teacherName = sb.ToStringAndClear();
-                var cell = NextCell();
+                var cell = cells.NextCell();
                 cell.SetStringValue(teacherName);
-                row.AppendChild(cell);
+                cell.SetStyle(teacherStyleId);
             }
         }
 
-#pragma warning disable CS8321 // Local function is declared but never used
         void Body()
-#pragma warning restore CS8321 // Local function is declared but never used
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
                 p.Schedule.RegularLessons,
                 l => l.Lesson.Teachers);
             int timeSlotCount = p.TimeConfig.TimeSlotCount;
 
-            var seminarStringId = AddString("Seminarul DI");
+            var seminarStringId = strings.AddString("Seminarul DI");
             int firstTimeSlotStringId = AddTimeSlotStrings();
 
             for (int dayIndex = 0; dayIndex < 6; dayIndex++)
@@ -295,42 +453,47 @@ public static class Tasks
                         DayOfWeek = day,
                     };
 
-                    var row = NextRow();
+                    _ = cells.NextRow();
 
-                    if (timeSlotIndex == 0)
+                    var option = EdgeOptionFromIndex(
+                        oddnessIndex: dayIndex,
+                        edgenessIndex: timeSlotIndex,
+                        height: timeSlotCount);
+
                     {
-                        var dayName = p.DayNameProvider.GetDayName(day);
-                        var cell = NextCell();
-                        cell.SetStringValue(dayName);
-                        cell.StyleIndex = rotatedTextFormatId;
-                        row.AppendChild(cell);
-                    }
-                    else
-                    {
-                        var cell = NextCell();
-                        cell.StyleIndex = rotatedTextFormatId;
-                        row.AppendChild(cell);
+                        var cell = cells.NextCell();
+                        if (timeSlotIndex == 0)
+                        {
+                            var dayName = p.DayNameProvider.GetDayName(day);
+                            cell.SetStringValue(dayName);
+                        }
+                        cell.SetStyle(dayStyleIds.Get(option.IsOdd()));
                     }
 
                     {
                         var id = firstTimeSlotStringId + timeSlotIndex;
-                        var cell = NextCell();
+                        var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        row.AppendChild(cell);
+                        cell.SetStyle(timeSlotStyleIds.Get(option));
                     }
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
 
                     for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
                     {
-                        var cell = NextCell();
-                        row.AppendChild(cell);
+                        var cell = cells.NextCell();
 
                         if (isSeminarDate)
                         {
                             cell.SetSharedStringValue(seminarStringId);
+
+                            var styleId = seminarStyleIds.Get(option.GetEdgeness());
+                            cell.SetStyle(styleId);
+
                             continue;
                         }
+
+                        cell.SetStyle(lessonStyleIds.Get(option));
 
                         var cellKey = rowKey.CellKey(new TeacherId(teacherId));
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -390,7 +553,7 @@ public static class Tasks
                         Debug.Assert(sb.Length > 0);
 
                         {
-                            var stringId = GetOrAddString(sb.ToStringAndClear());
+                            var stringId = strings.GetOrAddString(sb.ToStringAndClear());
                             cell.SetSharedStringValue(stringId);
                         }
                     }
@@ -415,13 +578,11 @@ public static class Tasks
                         Duration = interval.Duration.Add(TimeSpan.FromMinutes(1)),
                     };
                     var timeSlotString = p.TimeSlotDisplay.IntervalDisplay(interval);
-                    var ret = AddString(timeSlotString);
+                    var ret = strings.AddString(timeSlotString);
                     return ret;
                 }
             }
         }
-
-
     }
 
     private static void SetSharedStringValue(this Cell cell, int stringId)
@@ -571,7 +732,27 @@ public static class Tasks
     {
     }
 
-    public sealed class StylesheetBuilder : IDisposable
+    public static void SetFont(this CellFormat format, FontId fontId)
+    {
+        format.FontId = new(fontId.Value);
+    }
+
+    public static void SetFill(this CellFormat format, FillId fillId)
+    {
+        format.FillId = new(fillId.Value);
+    }
+
+    public static void SetBorder(this CellFormat format, BorderId borderId)
+    {
+        format.BorderId = new(borderId.Value);
+    }
+
+    public static void SetStyle(this Cell cell, CellFormatId formatId)
+    {
+        cell.StyleIndex = new(formatId.Value);
+    }
+
+    public readonly struct StylesheetBuilder : IDisposable
     {
         private readonly Stylesheet _stylesheet;
         private readonly CountedFonts _fonts;
@@ -593,35 +774,58 @@ public static class Tasks
             _cellFormats = cellFormats;
         }
 
-        public uint Font(Action<Font> configure)
+        public FontId Font(Action<Font> configure)
         {
             var (id, font) = _fonts.Next();
             configure(font);
-            return id;
+            return new(id);
         }
 
-        public uint Fill(Action<Fill> configure)
+        public FillId Fill(Action<Fill> configure)
         {
             var (id, fill) = _fills.Next();
             configure(fill);
-            return id;
+            return new(id);
         }
 
-        public uint Border(Action<Border> configure)
+        public BorderId Border(Action<Border> configure)
         {
             var (id, border) = _borders.Next();
             configure(border);
-            return id;
+            return new(id);
         }
 
-        public uint CellFormat(Action<CellFormat> configure)
+        public CellFormatId CellFormat(Action<CellFormat> configure)
         {
             var (id, cellFormat) = _cellFormats.Next();
             configure(cellFormat);
-            return id;
+
+            if (cellFormat.Alignment != null && cellFormat.ApplyAlignment == null)
+            {
+                cellFormat.ApplyAlignment = true;
+            }
+            if (cellFormat.FontId != null || cellFormat.ApplyFont == null)
+            {
+                cellFormat.ApplyFont = true;
+            }
+            if (cellFormat.FillId != null && cellFormat.ApplyFill == null)
+            {
+                cellFormat.ApplyFill = true;
+            }
+            if (cellFormat.BorderId != null && cellFormat.ApplyBorder == null)
+            {
+                cellFormat.ApplyBorder = true;
+            }
+
+            return new(id);
         }
 
         public void Dispose()
+        {
+            Save();
+        }
+
+        public void Save()
         {
             if (!_fonts.HasDefault())
             {
@@ -642,8 +846,10 @@ public static class Tasks
             _stylesheet.Save();
         }
 
-        public static StylesheetBuilder CreateWithDefaults(WorkbookStylesPart stylesPart)
+        public static StylesheetBuilder CreateWithDefaults(WorkbookPart workbookPart)
         {
+            var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
             var stylesheet = new Stylesheet();
             stylesPart.Stylesheet = stylesheet;
 
@@ -672,4 +878,247 @@ public static class Tasks
             return ret;
         }
     }
+
+    public readonly struct StringTableBuilder(SharedStringTable table) : IDisposable
+    {
+        private readonly Dictionary<string, int> _strings = new();
+        private readonly SharedStringTable _table = table;
+
+        public static StringTableBuilder Create(WorkbookPart workbookPart)
+        {
+            var sharedStringPart = workbookPart.AddNewPart<SharedStringTablePart>();
+            var sharedStringTable = new SharedStringTable();
+            sharedStringPart.SharedStringTable = sharedStringTable;
+            return new(sharedStringTable);
+        }
+
+        public int GetOrAddString(string s)
+        {
+            ref var ret = ref CollectionsMarshal.GetValueRefOrAddDefault(_strings, s, out var exists);
+            if (!exists)
+            {
+                ret = _strings.Count - 1;
+            }
+            return ret;
+        }
+
+        public int AddString(string s)
+        {
+            var index = _strings.Count;
+            _strings.Add(s, index);
+            return index;
+        }
+
+        public void Dispose()
+        {
+            foreach (var s in _strings.OrderBy(x => x.Value))
+            {
+                var text = new Text(s.Key);
+                var item = new SharedStringItem(text);
+                _table.AppendChild(item);
+            }
+        }
+    }
+
+    private static void CenterAndWrap(this CellFormat style)
+    {
+        style.Alignment = new()
+        {
+            Horizontal = HorizontalAlignmentValues.Center,
+            Vertical = VerticalAlignmentValues.Center,
+            WrapText = true,
+        };
+    }
+
+    private static void AllSides(this Border border, BorderStyleValues style)
+    {
+        border.LeftBorder = new()
+        {
+            Style = style,
+        };
+        border.RightBorder = new()
+        {
+            Style = style,
+        };
+        border.TopBorder = new()
+        {
+            Style = style,
+        };
+        border.BottomBorder = new()
+        {
+            Style = style,
+        };
+    }
+
+    private readonly struct OddOrEvenStyleId
+    {
+        public readonly uint Odd;
+        public readonly uint Even;
+
+        public OddOrEvenStyleId(uint odd, uint even)
+        {
+            Odd = odd;
+            Even = even;
+        }
+
+        public delegate void ConfigureDelegate(CellFormat x, bool isOdd);
+
+        public static OddOrEvenStyleId Create(
+            StylesheetBuilder builder,
+            ConfigureDelegate configure)
+        {
+            var odd = builder.CellFormat(x =>
+            {
+                configure(x, isOdd: true);
+            });
+            var even = builder.CellFormat(x =>
+            {
+                configure(x, isOdd: false);
+            });
+            return new(odd.Value, even.Value);
+        }
+
+        public CellFormatId Get(bool isOdd) => new(isOdd ? Odd : Even);
+    }
+
+    // First half are for odd = false
+    // second for odd = true.
+    // Then it's top, bottom, or neither
+    public enum EdgeOption
+    {
+        Even_Top = 0,
+        Even_Bottom = 1,
+        Even_Neither = 2,
+        Odd_Top = 3,
+        Odd_Bottom = 4,
+        Odd_Neither = 5,
+        Count,
+    }
+
+    public static bool IsOdd(this EdgeOption opt) => opt >= EdgeOption.Odd_Top;
+    public static Edgeness GetEdgeness(this EdgeOption opt) => (Edgeness) ((int) opt % 3);
+
+    public enum Edgeness
+    {
+        Top,
+        Bottom,
+        Neither,
+        Count,
+    }
+
+    private static EdgeOption EdgeOptionFromIndex(
+        int oddnessIndex,
+        int edgenessIndex,
+        int height)
+    {
+        bool odd = oddnessIndex % 2 == 1;
+        bool top = edgenessIndex == 0;
+        bool bottom = edgenessIndex == height - 1;
+        bool neither = !top && !bottom;
+
+        int val = 0;
+        if (neither)
+        {
+            val += (int) Edgeness.Neither;
+        }
+        else if (bottom)
+        {
+            val += (int) Edgeness.Bottom;
+        }
+
+        if (odd)
+        {
+            val += (int) Edgeness.Count;
+        }
+
+        return (EdgeOption) val;
+    }
+
+    private readonly struct EdgesAndOddnessStyleIds
+    {
+        private readonly uint _first;
+
+        public EdgesAndOddnessStyleIds(uint first) => _first = first;
+        public readonly CellFormatId Get(EdgeOption option) => new(_first + (uint) option);
+
+        public static EdgesAndOddnessStyleIds Create(
+            StylesheetBuilder builder,
+            Action<CellFormat, EdgeOption> configure)
+        {
+            var first = builder.CellFormat(x =>
+            {
+                configure(x, (EdgeOption) 0);
+            });
+            for (uint i = 1; i < (uint) EdgeOption.Count; i++)
+            {
+                builder.CellFormat(x =>
+                {
+                    // ReSharper disable once AccessToModifiedClosure
+                    configure(x, (EdgeOption) i);
+                });
+            }
+            return new(first.Value);
+        }
+    }
+
+    private readonly struct EdgesStyleIds
+    {
+        private readonly uint _first;
+        public EdgesStyleIds(uint first) => _first = first;
+        public readonly CellFormatId Get(Edgeness edge) => new(_first + (uint) edge);
+
+        public static EdgesStyleIds Create(
+            StylesheetBuilder builder,
+            Action<CellFormat, Edgeness> configure)
+        {
+            var first = builder.CellFormat(x =>
+            {
+                configure(x, (Edgeness) 0);
+            });
+            for (uint i = 1; i < (int) Edgeness.Count; i++)
+            {
+                builder.CellFormat(x =>
+                {
+                    // ReSharper disable once AccessToModifiedClosure
+                    configure(x, (Edgeness) i);
+                });
+            }
+            return new(first.Value);
+        }
+    }
+
+
+
+    private struct CellsBuilder
+    {
+        private readonly SheetData _sheetData;
+        private Row? _row;
+
+        public CellsBuilder(SheetData sheetData)
+        {
+            _sheetData = sheetData;
+            _row = null;
+        }
+
+        public Row NextRow()
+        {
+            _row = new Row();
+            _sheetData.AppendChild(_row);
+            return _row;
+        }
+
+        public Cell NextCell()
+        {
+            var cell = new Cell();
+            Debug.Assert(_row != null);
+            _row.AppendChild(cell);
+            return cell;
+        }
+    }
 }
+
+public readonly record struct FontId(uint Value);
+public readonly record struct FillId(uint Value);
+public readonly record struct BorderId(uint Value);
+public readonly record struct CellFormatId(uint Value);
+
