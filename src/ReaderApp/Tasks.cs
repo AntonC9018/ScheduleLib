@@ -155,7 +155,9 @@ public static class Tasks
             if (mergeCells is null)
             {
                 mergeCells = new MergeCells();
-                worksheet.InsertAfter(mergeCells, sheetData);
+                worksheet.InsertAfter(
+                    newChild: mergeCells,
+                    referenceChild: sheetData);
             }
 
             uint timeSlotCount = (uint) p.TimeConfig.TimeSlotCount;
@@ -273,53 +275,21 @@ public static class Tasks
         {
             x.AllSides(BorderStyleValues.Thick);
         });
-        var mediumBorderThickSidesId = stylesheet.Border(x =>
+        var cellBorderIds = EdgesBorderIds.Create(stylesheet, (x, edge) =>
         {
+            var topStyle = edge == Edgeness.Top
+                ? BorderStyleValues.Thick
+                : BorderStyleValues.Medium;
+            var bottomStyle = edge == Edgeness.Bottom
+                ? BorderStyleValues.Thick
+                : BorderStyleValues.Medium;
             x.TopBorder = new()
             {
-                Style = BorderStyleValues.Medium,
+                Style = topStyle,
             };
             x.BottomBorder = new()
             {
-                Style = BorderStyleValues.Medium,
-            };
-            x.LeftBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
-            };
-            x.RightBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
-            };
-        });
-        var mediumBorderThickSidesAndTop = stylesheet.Border(x =>
-        {
-            x.TopBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
-            };
-            x.BottomBorder = new()
-            {
-                Style = BorderStyleValues.Medium,
-            };
-            x.LeftBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
-            };
-            x.RightBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
-            };
-        });
-        var mediumBorderThickSidesAndBottom = stylesheet.Border(x =>
-        {
-            x.TopBorder = new()
-            {
-                Style = BorderStyleValues.Medium,
-            };
-            x.BottomBorder = new()
-            {
-                Style = BorderStyleValues.Thick,
+                Style = bottomStyle,
             };
             x.LeftBorder = new()
             {
@@ -332,13 +302,7 @@ public static class Tasks
         });
         BorderId BorderIdByEdge(Edgeness edge)
         {
-            return edge switch
-            {
-                Edgeness.Top => mediumBorderThickSidesAndTop,
-                Edgeness.Bottom => mediumBorderThickSidesAndBottom,
-                Edgeness.Neither => mediumBorderThickSidesId,
-                _ => throw new ArgumentOutOfRangeException(nameof(edge)),
-            };
+            return cellBorderIds.Get(edge);
         }
 
         var dayStyleIds = OddOrEvenStyleId.Create(stylesheet, (x, isOdd) =>
@@ -1087,7 +1051,31 @@ public static class Tasks
         }
     }
 
+    private readonly struct EdgesBorderIds
+    {
+        private readonly uint _first;
+        public EdgesBorderIds(uint first) => _first = first;
+        public readonly BorderId Get(Edgeness edge) => new(_first + (uint) edge);
 
+        public static EdgesBorderIds Create(
+            StylesheetBuilder builder,
+            Action<Border, Edgeness> configure)
+        {
+            var first = builder.Border(x =>
+            {
+                configure(x, (Edgeness) 0);
+            });
+            for (uint i = 1; i < (int) Edgeness.Count; i++)
+            {
+                builder.Border(x =>
+                {
+                    // ReSharper disable once AccessToModifiedClosure
+                    configure(x, (Edgeness) i);
+                });
+            }
+            return new(first.Value);
+        }
+    }
 
     private struct CellsBuilder
     {
