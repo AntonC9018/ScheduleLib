@@ -150,6 +150,19 @@ public static class Tasks
         };
         sheets.AppendChild(sheet);
 
+        using var strings = StringTableBuilder.Create(workbookPart);
+
+        ConfigureMerges();
+
+        var styles = ConfigureStylesheet(workbookPart);
+
+        var cells = new CellsBuilder(sheetData);
+        TopHeader();
+        Body();
+        return;
+
+
+        void ConfigureMerges()
         {
             var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
             if (mergeCells is null)
@@ -177,191 +190,193 @@ public static class Tasks
             }
         }
 
-        using var stylesheet = StylesheetBuilder.CreateWithDefaults(workbookPart);
-
-        void DefaultFont(Font x)
+        static StyleIds ConfigureStylesheet(WorkbookPart workbookPart)
         {
-            x.FontName = new()
+            using var stylesheet = StylesheetBuilder.CreateWithDefaults(workbookPart);
+
+            void DefaultFont(Font x)
             {
-                Val = "Helvetica Neue",
+                x.FontName = new()
+                {
+                    Val = "Helvetica Neue",
+                };
+            }
+
+            var cellFontId = stylesheet.Font(x =>
+            {
+                DefaultFont(x);
+                x.FontSize = new()
+                {
+                    Val = 9,
+                };
+            });
+            var teacherFontId = stylesheet.Font(x =>
+            {
+                DefaultFont(x);
+                x.FontSize = new()
+                {
+                    Val = 9,
+                };
+                x.Bold = new()
+                {
+                    Val = true,
+                };
+            });
+            var timeSlotFontId = stylesheet.Font(x =>
+            {
+                DefaultFont(x);
+                x.FontSize = new()
+                {
+                    Val = 10,
+                };
+                x.Bold = new()
+                {
+                    Val = true,
+                };
+            });
+            var dayFontId = stylesheet.Font(x =>
+            {
+                DefaultFont(x);
+                x.FontSize = new()
+                {
+                    Val = 11,
+                };
+                x.Bold = new()
+                {
+                    Val = true,
+                };
+            });
+            const int autoColor = 64;
+
+            {
+                // The style with this id is some dotted grid pattern.
+                // ???
+                var wtf = stylesheet.Fill(_ => {});
+                _ = wtf;
+            }
+
+            var greenFillId = stylesheet.Fill(x =>
+            {
+                x.PatternFill = new()
+                {
+                    PatternType = PatternValues.Solid,
+                    ForegroundColor = new()
+                    {
+                        Rgb = "92D050",
+                    },
+                    BackgroundColor = new()
+                    {
+                        Indexed = autoColor,
+                    },
+                };
+            });
+            var oddFillId = stylesheet.Fill(x =>
+            {
+                x.PatternFill = new()
+                {
+                    PatternType = PatternValues.Solid,
+                    ForegroundColor = new()
+                    {
+                        Rgb = "EFEFEF",
+                    },
+                    BackgroundColor = new()
+                    {
+                        Indexed = autoColor,
+                    },
+                };
+            });
+
+            static BorderStyleValues Thick() => BorderStyleValues.Medium;
+            static BorderStyleValues Thin() => BorderStyleValues.Thin;
+            var thickBordersId = stylesheet.Border(x =>
+            {
+                x.AllSides(Thick());
+            });
+            var cellBorderIds = EdgesBorderIds.Create(stylesheet, (x, edge) =>
+            {
+                var topStyle = edge == Edgeness.Top ? Thick() : Thin();
+                var bottomStyle = edge == Edgeness.Bottom ? Thick() : Thin();
+                x.TopBorder = new()
+                {
+                    Style = topStyle,
+                };
+                x.BottomBorder = new()
+                {
+                    Style = bottomStyle,
+                };
+                x.LeftBorder = new()
+                {
+                    Style = Thick(),
+                };
+                x.RightBorder = new()
+                {
+                    Style = Thick(),
+                };
+            });
+            BorderId BorderIdByEdge(Edgeness edge)
+            {
+                return cellBorderIds.Get(edge);
+            }
+
+            var dayStyleIds = OddOrEvenStyleId.Create(stylesheet, (x, isOdd) =>
+            {
+                x.Alignment = new()
+                {
+                    TextRotation = 90,
+                    Horizontal = HorizontalAlignmentValues.Center,
+                    Vertical = VerticalAlignmentValues.Center,
+                };
+                x.SetFont(dayFontId);
+                x.SetBorder(thickBordersId);
+                if (isOdd)
+                {
+                    x.SetFill(oddFillId);
+                }
+            });
+            var teacherStyleId = stylesheet.CellFormat(x =>
+            {
+                x.CenterAndWrap();
+                x.SetFont(teacherFontId);
+                x.SetBorder(thickBordersId);
+            });
+            var lessonStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
+            {
+                x.CenterAndWrap();
+                x.SetFont(cellFontId);
+                x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
+                if (edge.IsOdd())
+                {
+                    x.SetFill(oddFillId);
+                }
+            });
+            var seminarStyleIds = EdgesStyleIds.Create(stylesheet, (x, edge) =>
+            {
+                x.CenterAndWrap();
+                x.SetFont(cellFontId);
+                x.SetFill(greenFillId);
+                x.SetBorder(BorderIdByEdge(edge));
+            });
+            var timeSlotStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
+            {
+                x.CenterAndWrap();
+                x.SetFont(timeSlotFontId);
+                x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
+                if (edge.IsOdd())
+                {
+                    x.SetFill(oddFillId);
+                }
+            });
+
+            return new()
+            {
+                Day = dayStyleIds,
+                Teacher = teacherStyleId,
+                Lesson = lessonStyleIds,
+                Seminar = seminarStyleIds,
+                TimeSlot = timeSlotStyleIds,
             };
         }
 
-        var cellFontId = stylesheet.Font(x =>
-        {
-            DefaultFont(x);
-            x.FontSize = new()
-            {
-                Val = 9,
-            };
-        });
-        var teacherFontId = stylesheet.Font(x =>
-        {
-            DefaultFont(x);
-            x.FontSize = new()
-            {
-                Val = 9,
-            };
-            x.Bold = new()
-            {
-                Val = true,
-            };
-        });
-        var timeSlotFontId = stylesheet.Font(x =>
-        {
-            DefaultFont(x);
-            x.FontSize = new()
-            {
-                Val = 10,
-            };
-            x.Bold = new()
-            {
-                Val = true,
-            };
-        });
-        var dayFontId = stylesheet.Font(x =>
-        {
-            DefaultFont(x);
-            x.FontSize = new()
-            {
-                Val = 11,
-            };
-            x.Bold = new()
-            {
-                Val = true,
-            };
-        });
-        const int autoColor = 64;
-
-        {
-            // The style with this id is some dotted grid pattern.
-            // ???
-            var wtf = stylesheet.Fill(_ => {});
-            _ = wtf;
-        }
-
-        var greenFillId = stylesheet.Fill(x =>
-        {
-            x.PatternFill = new()
-            {
-                PatternType = PatternValues.Solid,
-                ForegroundColor = new()
-                {
-                    Rgb = "92D050",
-                },
-                BackgroundColor = new()
-                {
-                    Indexed = autoColor,
-                },
-            };
-        });
-        var oddFillId = stylesheet.Fill(x =>
-        {
-            x.PatternFill = new()
-            {
-                PatternType = PatternValues.Solid,
-                ForegroundColor = new()
-                {
-                    Rgb = "EFEFEF",
-                },
-                BackgroundColor = new()
-                {
-                    Indexed = autoColor,
-                },
-            };
-        });
-
-        static BorderStyleValues Thick() => BorderStyleValues.Medium;
-        static BorderStyleValues Thin() => BorderStyleValues.Thin;
-        var thickBordersId = stylesheet.Border(x =>
-        {
-            x.AllSides(Thick());
-        });
-        var cellBorderIds = EdgesBorderIds.Create(stylesheet, (x, edge) =>
-        {
-            var topStyle = edge == Edgeness.Top ? Thick() : Thin();
-            var bottomStyle = edge == Edgeness.Bottom ? Thick() : Thin();
-            x.TopBorder = new()
-            {
-                Style = topStyle,
-            };
-            x.BottomBorder = new()
-            {
-                Style = bottomStyle,
-            };
-            x.LeftBorder = new()
-            {
-                Style = Thick(),
-            };
-            x.RightBorder = new()
-            {
-                Style = Thick(),
-            };
-        });
-        BorderId BorderIdByEdge(Edgeness edge)
-        {
-            return cellBorderIds.Get(edge);
-        }
-
-        var dayStyleIds = OddOrEvenStyleId.Create(stylesheet, (x, isOdd) =>
-        {
-            x.Alignment = new()
-            {
-                TextRotation = 90,
-                Horizontal = HorizontalAlignmentValues.Center,
-                Vertical = VerticalAlignmentValues.Center,
-            };
-            x.SetFont(dayFontId);
-            x.SetBorder(thickBordersId);
-            if (isOdd)
-            {
-                x.SetFill(oddFillId);
-            }
-        });
-        var teacherStyleId = stylesheet.CellFormat(x =>
-        {
-            x.CenterAndWrap();
-            x.SetFont(teacherFontId);
-            x.SetBorder(thickBordersId);
-        });
-        var lessonStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
-        {
-            x.CenterAndWrap();
-            x.SetFont(cellFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
-            if (edge.IsOdd())
-            {
-                x.SetFill(oddFillId);
-            }
-        });
-
-        var seminarStyleIds = EdgesStyleIds.Create(stylesheet, (x, edge) =>
-        {
-            x.CenterAndWrap();
-            x.SetFont(cellFontId);
-            x.SetFill(greenFillId);
-            x.SetBorder(BorderIdByEdge(edge));
-        });
-        var timeSlotStyleIds = EdgesAndOddnessStyleIds.Create(stylesheet, (x, edge) =>
-        {
-            x.CenterAndWrap();
-            x.SetFont(timeSlotFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdgeness()));
-            if (edge.IsOdd())
-            {
-                x.SetFill(oddFillId);
-            }
-        });
-
-        using var strings = StringTableBuilder.Create(workbookPart);
-        var cells = new CellsBuilder(sheetData);
-
-        TopHeader();
-        Body();
-
-        return;
-
-        // top header
         void TopHeader()
         {
             _ = cells.NextRow();
@@ -371,7 +386,7 @@ public static class Tasks
             {
                 var cell = cells.NextCell();
                 cell.SetStringValue("         Profesor\n  Ora");
-                cell.SetStyle(teacherStyleId);
+                cell.SetStyle(styles.Teacher);
             }
 
             var sb = p.StringBuilder;
@@ -388,7 +403,7 @@ public static class Tasks
                 var teacherName = sb.ToStringAndClear();
                 var cell = cells.NextCell();
                 cell.SetStringValue(teacherName);
-                cell.SetStyle(teacherStyleId);
+                cell.SetStyle(styles.Teacher);
             }
         }
 
@@ -429,14 +444,14 @@ public static class Tasks
                             var dayName = p.DayNameProvider.GetDayName(day);
                             cell.SetStringValue(dayName);
                         }
-                        cell.SetStyle(dayStyleIds.Get(option.IsOdd()));
+                        cell.SetStyle(styles.Day.Get(option.IsOdd()));
                     }
 
                     {
                         var id = firstTimeSlotStringId + timeSlotIndex;
                         var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        cell.SetStyle(timeSlotStyleIds.Get(option));
+                        cell.SetStyle(styles.TimeSlot.Get(option));
                     }
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
@@ -449,13 +464,13 @@ public static class Tasks
                         {
                             cell.SetSharedStringValue(seminarStringId);
 
-                            var styleId = seminarStyleIds.Get(option.GetEdgeness());
+                            var styleId = styles.Seminar.Get(option.GetEdgeness());
                             cell.SetStyle(styleId);
 
                             continue;
                         }
 
-                        cell.SetStyle(lessonStyleIds.Get(option));
+                        cell.SetStyle(styles.Lesson.Get(option));
 
                         var cellKey = rowKey.CellKey(new TeacherId(teacherId));
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -1100,6 +1115,15 @@ public static class Tasks
             _row.AppendChild(cell);
             return cell;
         }
+    }
+
+    private readonly struct StyleIds
+    {
+        public required OddOrEvenStyleId Day { get; init; }
+        public required CellFormatId Teacher { get; init; }
+        public required EdgesAndOddnessStyleIds Lesson { get; init; }
+        public required EdgesStyleIds Seminar { get; init; }
+        public required EdgesAndOddnessStyleIds TimeSlot { get; init; }
     }
 }
 
