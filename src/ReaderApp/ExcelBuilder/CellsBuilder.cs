@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace ReaderApp;
+namespace ReaderApp.ExcelBuilder;
 
 public struct CellsBuilder
 {

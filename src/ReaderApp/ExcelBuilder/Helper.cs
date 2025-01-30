@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
 
-namespace ReaderApp;
+namespace ReaderApp.ExcelBuilder;
 
 public readonly struct Spaces : ISpanFormattable
 {

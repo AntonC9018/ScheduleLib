@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace ReaderApp;
+namespace ReaderApp.ExcelBuilder;
 
 public readonly struct StyleIds<TEnum, TId> where TEnum : struct, Enum
 {
@@ -60,15 +60,9 @@ public static partial class StylesheetBuilderHelper
         where TEnum : struct, Enum
         where TResource : OpenXmlCompositeElement
     {
-        TEnum IdFromInt(uint i)
-        {
-            return Unsafe.As<uint, TEnum>(ref i);
-        }
-
         uint Next(TEnum val)
         {
             var (i, it) = builder.Next(resource);
-            var id = IdFromInt(i);
             configure((TResource) it, val);
             return i;
         }

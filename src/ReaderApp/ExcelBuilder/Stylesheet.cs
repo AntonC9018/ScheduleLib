@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace ReaderApp;
+namespace ReaderApp.ExcelBuilder;
 
 public readonly record struct FontId(uint Value);
 public readonly record struct FillId(uint Value);

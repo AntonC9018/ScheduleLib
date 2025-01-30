@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using ReaderApp.ExcelBuilder;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;

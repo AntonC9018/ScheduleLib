@@ -1,17 +1,18 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace ReaderApp;
+namespace ReaderApp.ExcelBuilder;
 
 public readonly record struct SharedStringItemId(int Value);
 
-public struct StringTableBuilder(SharedStringTable table)
+public struct StringTableBuilder
 {
     private readonly Dictionary<string, SharedStringItemId> _strings = new();
-    private readonly SharedStringTable _table = table;
+    private readonly SharedStringTable _table;
     private int otherCount;
+
+    public StringTableBuilder(SharedStringTable table) => _table = table;
 
     public static StringTableBuilder Create(WorkbookPart workbookPart)
     {
@@ -50,7 +51,7 @@ public struct StringTableBuilder(SharedStringTable table)
         return id;
     }
 
-    public SharedStringItemId AddOther(SharedStringItem item)
+    public SharedStringItemId AddItem(SharedStringItem item)
     {
         var id = NextId;
         otherCount++;
