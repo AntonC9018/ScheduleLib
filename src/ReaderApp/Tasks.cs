@@ -153,6 +153,17 @@ public static class Tasks
 
         var strings = StringTableBuilder.Create(workbookPart);
 
+        ConfigureWidths();
+        ConfigureMerges();
+
+        var styles = ConfigureStylesheet(workbookPart);
+
+        var cells = new CellsBuilder(sheetData);
+        TopHeader();
+        Body();
+        return;
+
+        void ConfigureWidths()
         {
             var columns = new Columns();
 
@@ -193,16 +204,6 @@ public static class Tasks
             };
             columns.AppendChild(teacherColumns);
         }
-
-        ConfigureMerges();
-
-        var styles = ConfigureStylesheet(workbookPart);
-
-        var cells = new CellsBuilder(sheetData);
-        TopHeader();
-        Body();
-        return;
-
 
         void ConfigureMerges()
         {
