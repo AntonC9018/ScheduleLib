@@ -153,6 +153,47 @@ public static class Tasks
 
         var strings = StringTableBuilder.Create(workbookPart);
 
+        {
+            var columns = new Columns();
+
+            // Order matters for these.
+            worksheet.InsertBefore(
+                newChild: columns,
+                referenceChild: sheetData);
+
+            double FromPixels(int px)
+            {
+                const double c = 8.43 / 64.0;
+                return px * c;
+            }
+            var dayColumn = new Column
+            {
+                Min = 1,
+                Max = 1,
+                Width = FromPixels(30),
+                CustomWidth = true,
+            };
+            columns.AppendChild(dayColumn);
+
+            var timeSlotColumn = new Column
+            {
+                Min = 2,
+                Max = 2,
+                Width = FromPixels(85),
+                CustomWidth = true,
+            };
+            columns.AppendChild(timeSlotColumn);
+
+            var teacherColumns = new Column
+            {
+                Min = 3,
+                Max = (uint)(3 + p.Schedule.Teachers.Length),
+                Width = FromPixels(80),
+                CustomWidth = true,
+            };
+            columns.AppendChild(teacherColumns);
+        }
+
         ConfigureMerges();
 
         var styles = ConfigureStylesheet(workbookPart);
@@ -194,8 +235,9 @@ public static class Tasks
         void TopHeader()
         {
             var row = cells.NextRow();
-            row.Height = 28;
-            row.CustomHeight = true;
+            // row.Height = 28;
+            // row.CustomHeight = true;
+            _ = row;
 
             _ = cells.NextCell();
 
@@ -203,7 +245,7 @@ public static class Tasks
                 var cell = cells.NextCell();
                 // Excel strips spaces without this.
                 // Width should be 12
-                cell.SetStringValue($"{Spaces(11)}Profesor\n{Spaces(3)}Ora");
+                cell.SetStringValue($"{Spaces(7)}Profesor\n{Spaces(3)}Ora");
                 cell.SetStyle(styles.HeaderTitle);
             }
 
