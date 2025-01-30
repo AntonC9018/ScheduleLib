@@ -7,6 +7,7 @@ using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ReaderApp;
+using ReaderApp.Helper;
 using ScheduleLib;
 using ScheduleLib.Builders;
 

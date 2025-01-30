@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ReaderApp;
+namespace ReaderApp.Helper;
 
 public readonly struct AllEnumEnumerable<T>
     where T : struct, Enum

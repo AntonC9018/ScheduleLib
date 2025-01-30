@@ -1,6 +1,6 @@
-namespace ReaderApp;
-
 using System.Runtime.InteropServices;
+
+namespace ReaderApp.Helper;
 
 public static class ExplorerHelper
 {
