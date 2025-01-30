@@ -138,18 +138,16 @@ public static class Tasks
         var workbook = new Workbook();
         var sheetData = new SheetData();
         var worksheet = new Worksheet(sheetData);
+        var strings = StringTableBuilder.Create(workbookPart);
+        var styles = ConfigureStylesheet(workbookPart);
+        var cells = new CellsBuilder(sheetData);
 
         InitExcelBasics();
-
-        var strings = StringTableBuilder.Create(workbookPart);
 
         ConfigureFrozenViews();
         ConfigureWidths();
         ConfigureMerges();
 
-        var styles = ConfigureStylesheet(workbookPart);
-
-        var cells = new CellsBuilder(sheetData);
         TopHeader();
         Body();
 
