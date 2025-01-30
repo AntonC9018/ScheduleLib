@@ -366,19 +366,14 @@ public static class Tasks
 
                             {
                                 var groups = lesson.Lesson.Groups;
-                                if (groups.Count > 0)
+                                if (groups.IsSingleGroup)
                                 {
                                     listBuilder.MaybeAppendSeparator();
-                                }
-
-                                var commaListBuilder = new ListStringBuilder(sb, ',');
-                                foreach (var groupId in lesson.Lesson.Groups)
-                                {
-                                    var group = p.Schedule.Get(groupId);
-                                    commaListBuilder.MaybeAppendSeparator();
+                                    var group = p.Schedule.Get(groups.Group0);
                                     LessonTextDisplayHelper.AppendGroupNameWithLanguage(sb, group);
                                 }
                             }
+
                             if (lesson.Lesson.SubGroup != SubGroup.All)
                             {
                                 sb.Append($"-{lesson.Lesson.SubGroup.Value}");
