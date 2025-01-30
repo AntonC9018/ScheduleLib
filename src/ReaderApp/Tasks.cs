@@ -203,8 +203,7 @@ public static class Tasks
                 var cell = cells.NextCell();
                 // Excel strips spaces without this.
                 // Width should be 12
-                var spaces = new string(NonBreakingSpace, 11);
-                cell.SetStringValue($"{spaces}Profesor\nOra");
+                cell.SetStringValue($"{Spaces(11)}Profesor\n{Spaces(3)}Ora");
                 cell.SetStyle(styles.HeaderTitle);
             }
 
@@ -961,8 +960,6 @@ public static class Tasks
         public required EdgesAndOddnessStyleIds TimeSlot { get; init; }
     }
 
-    private const char NonBreakingSpace = '\u00A0';
-
     private static StyleIds ConfigureStylesheet(WorkbookPart workbookPart)
     {
         using var stylesheet = StylesheetBuilder.CreateWithDefaults(workbookPart);
@@ -1162,6 +1159,7 @@ public static class Tasks
         };
     }
 
+    private static Spaces Spaces(int count) => new(count);
 }
 
 public readonly record struct FontId(uint Value);
@@ -1169,3 +1167,40 @@ public readonly record struct FillId(uint Value);
 public readonly record struct BorderId(uint Value);
 public readonly record struct CellFormatId(uint Value);
 
+
+public readonly struct Spaces : ISpanFormattable
+{
+    private readonly int _count;
+    public Spaces(int count) => _count = count;
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        _ = format;
+        _ = formatProvider;
+        return new string(NonBreakingSpace, _count);
+    }
+
+    private const char NonBreakingSpace = '\u00A0';
+
+    public bool TryFormat(
+        Span<char> destination,
+        out int charsWritten,
+        ReadOnlySpan<char> format,
+        IFormatProvider? provider)
+    {
+        _ = provider;
+        _ = format;
+
+        if (destination.Length < _count)
+        {
+            charsWritten = 0;
+            return false;
+        }
+        charsWritten = _count;
+        for (int i = 0; i < _count; i++)
+        {
+            destination[i] = NonBreakingSpace;
+        }
+        return true;
+    }
+}
