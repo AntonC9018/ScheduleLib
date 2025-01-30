@@ -1,11 +1,6 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
-using DocumentFormat.OpenXml;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using ReaderApp;
 using ReaderApp.Helper;
 using ScheduleLib;

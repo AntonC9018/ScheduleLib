@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -12,7 +10,6 @@ using ReaderApp.ExcelBuilder;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
-using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 
 namespace ReaderApp;
 
