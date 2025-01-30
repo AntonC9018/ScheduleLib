@@ -16,7 +16,7 @@ var context = DocParseContext.Create(new()
     DayNameProvider = dayNameProvider,
     CourseNameParserConfig = new(new()
     {
-        ProgrammingLanguages = ["Java", "C++", "C#"],
+        ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
         IgnoredFullWords = ["p/u", "pentru"],
         IgnoredShortenedWords = ["Opț"],
         MinUsefulWordLength = 3,

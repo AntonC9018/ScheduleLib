@@ -522,6 +522,126 @@ public static class LessonBuilderHelper
         return ret;
     }
 
+    // TODO: Move this out of this class.
+    public static RegularLessonModelDiffMask Diff(
+        RegularLesson a,
+        RegularLesson b,
+        RegularLessonModelDiffMask whatToDiff)
+    {
+        var ret = new RegularLessonModelDiffMask();
+        if (whatToDiff.Course)
+        {
+            if (a.Lesson.Course != b.Lesson.Course)
+            {
+                ret.Course = true;
+            }
+        }
+        if (whatToDiff.OneTeacher)
+        {
+            if (!a.Lesson.Teachers.SequenceEqual(b.Lesson.Teachers))
+            {
+                ret.OneTeacher = true;
+            }
+        }
+
+        if (whatToDiff.AllTeachers)
+        {
+            if (AllTeachersNotEqual())
+            {
+                ret.AllTeachers = true;
+            }
+        }
+        bool AllTeachersNotEqual()
+        {
+            foreach (var teach1 in a.Lesson.Teachers)
+            {
+                foreach (var teach2 in b.Lesson.Teachers)
+                {
+                    if (teach1 == teach2)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        if (whatToDiff.Room)
+        {
+            if (a.Lesson.Room != b.Lesson.Room)
+            {
+                ret.Room = true;
+            }
+        }
+        if (whatToDiff.LessonType)
+        {
+            if (a.Lesson.Type != b.Lesson.Type)
+            {
+                ret.LessonType = true;
+            }
+        }
+        if (whatToDiff.OneGroup)
+        {
+            if (a.Lesson.Groups != b.Lesson.Groups)
+            {
+                ret.OneGroup = true;
+            }
+        }
+
+        if (whatToDiff.AllGroups)
+        {
+            if (AllGroupsNotEqual())
+            {
+                ret.AllGroups = true;
+            }
+        }
+        bool AllGroupsNotEqual()
+        {
+            foreach (var g in a.Lesson.Groups)
+            {
+                foreach (var g1 in b.Lesson.Groups)
+                {
+                    if (g == g1)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        if (whatToDiff.SubGroup)
+        {
+            if (a.Lesson.SubGroup != b.Lesson.SubGroup)
+            {
+                ret.SubGroup = true;
+            }
+        }
+        if (whatToDiff.Day)
+        {
+            if (a.Date.DayOfWeek != b.Date.DayOfWeek)
+            {
+                ret.Day = true;
+            }
+        }
+        if (whatToDiff.TimeSlot)
+        {
+            if (a.Date.TimeSlot != b.Date.TimeSlot)
+            {
+                ret.TimeSlot = true;
+            }
+        }
+        if (whatToDiff.Parity)
+        {
+            if (a.Date.Parity != b.Date.Parity)
+            {
+                ret.Parity = true;
+            }
+        }
+
+        return ret;
+    }
+
     public static void Merge(
         ref RegularLessonBuilderModelData to,
         in RegularLessonBuilderModelData from,

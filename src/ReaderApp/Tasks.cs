@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using ScheduleLib;
+using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using RunProperties = DocumentFormat.OpenXml.Drawing.RunProperties;
 
@@ -199,7 +200,7 @@ public static class Tasks
             {
                 Min = 3,
                 Max = (uint)(3 + p.Schedule.Teachers.Length),
-                Width = FromPixels(80),
+                Width = FromPixels(100),
                 CustomWidth = true,
             };
             columns.AppendChild(teacherColumns);
@@ -341,56 +342,15 @@ public static class Tasks
                             continue;
                         }
 
-                        var sb = p.StringBuilder;
-                        for (int lessonIndex = 0; lessonIndex < lessons.Count; lessonIndex++)
                         {
-                            if (lessonIndex != 0)
-                            {
-                                sb.AppendLine();
-                            }
+                            var sb = p.StringBuilder;
+                            FormatLessons(sb, lessons);
+                            Debug.Assert(sb.Length > 0);
 
-                            var lesson = lessons[lessonIndex];
-                            var listBuilder = new ListStringBuilder(sb);
-                            {
-                                var course = p.Schedule.Get(lesson.Lesson.Course);
-                                listBuilder.Append(course.Names[^1]);
-                            }
-                            if (p.LessonTypeDisplay.Get(lesson.Lesson.Type) is { } lessonTypeName)
-                            {
-                                listBuilder.Append($"({lessonTypeName})");
-                            }
-                            if (lesson.Lesson.Room != RoomId.Invalid)
-                            {
-                                listBuilder.Append($"{lesson.Lesson.Room.Id}");
-                            }
-
-                            {
-                                var groups = lesson.Lesson.Groups;
-                                if (groups.IsSingleGroup)
-                                {
-                                    listBuilder.MaybeAppendSeparator();
-                                    var group = p.Schedule.Get(groups.Group0);
-                                    LessonTextDisplayHelper.AppendGroupNameWithLanguage(sb, group);
-                                }
-                            }
-
-                            if (lesson.Lesson.SubGroup != SubGroup.All)
-                            {
-                                sb.Append($"-{lesson.Lesson.SubGroup.Value}");
-                            }
-                            if (lesson.Date.Parity != Parity.EveryWeek)
-                            {
-                                var parityName = p.ParityDisplay.Get(lesson.Date.Parity);
-                                listBuilder.Append($"({parityName})");
-                            }
-                        }
-
-                        Debug.Assert(sb.Length > 0);
-
-                        {
                             var stringId = strings.GetOrAddString(sb.ToStringAndClear());
                             cell.SetSharedStringValue(stringId);
                         }
+
                     }
                 }
             }
@@ -416,6 +376,280 @@ public static class Tasks
                     var ret = strings.AddString(timeSlotString);
                     return ret;
                 }
+            }
+        }
+
+        void FormatLessons(StringBuilder sb, List<RegularLesson> lessons)
+        {
+            if (TryUniteLessonsBasedOnParity())
+            {
+                return;
+            }
+
+            if (TryUniteLessonBasedOnEqualityOfAllButGroup())
+            {
+                return;
+            }
+
+            for (int lessonIndex = 0; lessonIndex < lessons.Count; lessonIndex++)
+            {
+                if (lessonIndex != 0)
+                {
+                    sb.AppendLine();
+                }
+                var lesson = lessons[lessonIndex];
+                PrintLesson(lesson);
+            }
+
+            bool TryUniteLessonBasedOnEqualityOfAllButGroup()
+            {
+                if (lessons.Count == 1)
+                {
+                    return false;
+                }
+                for (int index = 0; index < lessons.Count - 1; index++)
+                {
+                    var l0 = lessons[index];
+                    var l1 = lessons[index + 1];
+
+                    var diffMask = new RegularLessonModelDiffMask
+                    {
+                        LessonType = true,
+                        Course = true,
+                        Room = true,
+                    };
+                    var diff = LessonBuilderHelper.Diff(l0, l1, diffMask);
+                    if (diff.TheyDiffer)
+                    {
+                        return false;
+                    }
+                }
+
+                bool metOdd = false;
+                bool metEven = false;
+                for (int i = 0; i < lessons.Count; i++)
+                {
+                    var lesson = lessons[i];
+                    switch (lesson.Date.Parity)
+                    {
+                        case Parity.EvenWeek:
+                        {
+                            metEven = true;
+                            break;
+                        }
+                        case Parity.OddWeek:
+                        {
+                            metOdd = true;
+                            break;
+                        }
+                        case Parity.EveryWeek:
+                        {
+                            metEven = true;
+                            metOdd = true;
+                            break;
+                        }
+                        default:
+                        {
+                            Debug.Fail("??");
+                            throw new InvalidOperationException("??");
+                        }
+                    }
+                }
+                Debug.Assert(!(metEven == false && metOdd == false));
+
+                bool shouldPrintParity = metEven != metOdd;
+                PrintLesson(
+                    lessons[0],
+                    printParity: shouldPrintParity,
+                    printGroup: false);
+
+                return true;
+            }
+
+            void PrintLesson(
+                RegularLesson lesson,
+                bool printParity = true,
+                bool printGroup = true)
+            {
+                var listBuilder = new ListStringBuilder(sb);
+
+                AppendCourse(listBuilder, lesson);
+                AppendLessonTypeName(listBuilder, lesson);
+                AppendRoom(listBuilder, lesson);
+
+                if (printGroup)
+                {
+                    AppendGroup(listBuilder, lesson);
+                }
+
+                if (printParity)
+                {
+                    if (lesson.Date.Parity != Parity.EveryWeek)
+                    {
+                        var parityName = GetParityName(lesson);
+                        listBuilder.Append($"({parityName})");
+                    }
+                }
+            }
+
+            bool TryUniteLessonsBasedOnParity()
+            {
+                if (lessons.Count != 2)
+                {
+                    return false;
+                }
+
+                var l0 = lessons[0];
+                var l1 = lessons[1];
+                var checkGroups = l0.Lesson.Groups.IsSingleGroup
+                    && l0.Lesson.Groups.IsSingleGroup;
+                var diff = LessonBuilderHelper.Diff(l0, l1, new()
+                {
+                    Course = true,
+                    Parity = true,
+                    LessonType = true,
+                    OneGroup = checkGroups,
+                    SubGroup = true,
+                    Room = true,
+                });
+                if (!diff.Parity)
+                {
+                    return false;
+                }
+                if (diff.Course)
+                {
+                    return false;
+                }
+
+                var listBuilder = new ListStringBuilder(sb);
+                AppendCourse(listBuilder, l0);
+
+                if (!diff.LessonType)
+                {
+                    AppendLessonTypeName(listBuilder, l0);
+                }
+                if (!diff.Room)
+                {
+                    AppendRoom(listBuilder, l0);
+                }
+                if (!diff.OneGroup)
+                {
+                    AppendGroup(listBuilder, l0);
+                }
+
+                bool AllWillAppendSomething()
+                {
+                    for (int i = 0; i < lessons.Count; i++)
+                    {
+                        if (!WillAppendSomething())
+                        {
+                            return false;
+                        }
+                        bool WillAppendSomething()
+                        {
+                            var l = lessons[i];
+                            if (diff.OneGroup && WillAppendGroup(l))
+                            {
+                                return true;
+                            }
+                            if (diff.LessonType && WillAppendLessonTypeName(l))
+                            {
+                                return true;
+                            }
+                            if (diff.Room && WillAppendRoom(l))
+                            {
+                                return true;
+                            }
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                if (AllWillAppendSomething())
+                {
+                    for (int i = 0; i < lessons.Count; i++)
+                    {
+                        sb.AppendLine();
+
+                        var lesson = lessons[i];
+                        var parityName = GetParityName(lesson);
+                        sb.Append($"{parityName}: ");
+
+                        var commaList = new ListStringBuilder(sb, ',');
+                        if (diff.LessonType)
+                        {
+                            AppendLessonTypeName(commaList, lesson);
+                        }
+                        if (diff.OneGroup)
+                        {
+                            AppendGroup(commaList, lesson);
+                        }
+                        if (diff.Room)
+                        {
+                            AppendRoom(commaList, lesson);
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            void AppendCourse(ListStringBuilder b, RegularLesson lesson)
+            {
+                var course = p.Schedule.Get(lesson.Lesson.Course);
+                b.Append(course.Names[^1]);
+            }
+            bool WillAppendLessonTypeName(RegularLesson lesson)
+            {
+                return p.LessonTypeDisplay.Get(lesson.Lesson.Type) is not null;
+            }
+            void AppendLessonTypeName(ListStringBuilder b, RegularLesson lesson)
+            {
+                if (p.LessonTypeDisplay.Get(lesson.Lesson.Type) is { } lessonTypeName)
+                {
+                    b.Append($"({lessonTypeName})");
+                }
+            }
+            bool WillAppendRoom(RegularLesson lesson)
+            {
+                return lesson.Lesson.Room != RoomId.Invalid;
+            }
+            void AppendRoom(ListStringBuilder b, RegularLesson lesson)
+            {
+                if (lesson.Lesson.Room != RoomId.Invalid)
+                {
+                    b.Append($"{lesson.Lesson.Room.Id}");
+                }
+            }
+            bool WillAppendGroup(RegularLesson lesson)
+            {
+                var groups = lesson.Lesson.Groups;
+                return groups.IsSingleGroup;
+            }
+            void AppendGroup(ListStringBuilder b, RegularLesson lesson)
+            {
+                var groups = lesson.Lesson.Groups;
+                if (!groups.IsSingleGroup)
+                {
+                    return;
+                }
+
+                // b.MaybeAppendSeparator();
+
+                var group = p.Schedule.Get(groups.Group0);
+                // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
+                b.Append(group.Name);
+
+                if (lesson.Lesson.SubGroup != SubGroup.All)
+                {
+                    b.StringBuilder.Append($"-{lesson.Lesson.SubGroup.Value}");
+                }
+            }
+            string GetParityName(RegularLesson l)
+            {
+                var parityName = p.ParityDisplay.Get(l.Date.Parity);
+                return parityName!;
             }
         }
     }

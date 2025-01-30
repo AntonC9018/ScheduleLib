@@ -21,7 +21,7 @@ public readonly struct ListStringBuilder(
     char separator = ' ')
 {
     private readonly int _initialCount = sb.Length;
-    private StringBuilder StringBuilder => sb;
+    public StringBuilder StringBuilder => sb;
 
     public void MaybeAppendSeparator()
     {
