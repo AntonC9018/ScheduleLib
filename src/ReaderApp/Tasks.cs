@@ -154,6 +154,7 @@ public static class Tasks
 
         var strings = StringTableBuilder.Create(workbookPart);
 
+        ConfigureFrozenViews();
         ConfigureWidths();
         ConfigureMerges();
 
@@ -163,6 +164,32 @@ public static class Tasks
         TopHeader();
         Body();
         return;
+
+        void ConfigureFrozenViews()
+        {
+            var sheetViews = new SheetViews();
+            worksheet.InsertAt(sheetViews, 0);
+
+            var sheetView = new SheetView
+            {
+                WorkbookViewId = 0,
+            };
+            sheetViews.AppendChild(sheetView);
+
+            var pane = new Pane
+            {
+                VerticalSplit = 1,
+                HorizontalSplit = 2,
+                TopLeftCell = GetCellReference(new()
+                {
+                    Position = new(ColIndex: 2, RowIndex: 1),
+                    StringBuilder = p.StringBuilder,
+                }),
+                ActivePane = PaneValues.BottomRight,
+                State = PaneStateValues.Frozen,
+            };
+            sheetView.AppendChild(pane);
+        }
 
         void ConfigureWidths()
         {
