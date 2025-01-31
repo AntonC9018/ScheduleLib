@@ -58,47 +58,68 @@ context.Schedule.ConfigureRemappings(remap =>
 }
 
 var schedule = context.BuildSchedule();
-CancellationToken cancellationToken = default;
-_ = cancellationToken;
+var option = Option.CreateLessonsInRegistry;
 
-#if true
-
-const string outputFile = "all_teachers_orar.xlsx";
-string outputFileFullPath = Path.GetFullPath(outputFile);
-
-var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
-
-Tasks.GenerateAllTeacherExcel(new()
+switch (option)
 {
-    DayNameProvider = new DayNameProvider(),
-    StringBuilder = new(),
-    LessonTypeDisplay = new(),
-    ParityDisplay = new(),
-    TimeSlotDisplay = new(),
-    SeminarDate = (DayOfWeek.Wednesday, timeConfig.T15_00),
-    OutputFilePath = outputFileFullPath,
-    Schedule = schedule,
-    TimeConfig = context.TimeConfig,
-});
-
-ExplorerHelper.OpenFolderAndSelectFile(outputFileFullPath);
-
-#else
-{
-    await Tasks.GeneratePdfForGroupsAndTeachers(new()
+    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+    case Option.AllTeachersExcel:
     {
-        LessonTextDisplayServices = new()
-        {
-            ParityDisplay = new(),
-            LessonTypeDisplay = new(),
-            SubGroupNumberDisplay = new(),
-        },
-        Schedule = schedule,
-        LessonTimeConfig = context.TimeConfig,
-        TimeSlotDisplay = new(),
-        DayNameProvider = dayNameProvider,
-        OutputPath = "output",
-    });
-}
-#endif
+        const string outputFile = "all_teachers_orar.xlsx";
+        string outputFileFullPath = Path.GetFullPath(outputFile);
 
+        var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
+
+        Tasks.GenerateAllTeacherExcel(new()
+        {
+            DayNameProvider = new DayNameProvider(),
+            StringBuilder = new(),
+            LessonTypeDisplay = new(),
+            ParityDisplay = new(),
+            TimeSlotDisplay = new(),
+            SeminarDate = (DayOfWeek.Wednesday, timeConfig.T15_00),
+            OutputFilePath = outputFileFullPath,
+            Schedule = schedule,
+            TimeConfig = context.TimeConfig,
+        });
+
+        ExplorerHelper.OpenFolderAndSelectFile(outputFileFullPath);
+        break;
+    }
+
+    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+    case Option.PerGroupAndPerTeacherPdfs:
+    {
+        var cancellationToken = CancellationToken.None;
+        _ = cancellationToken;
+
+        await Tasks.GeneratePdfForGroupsAndTeachers(new()
+        {
+            LessonTextDisplayServices = new()
+            {
+                ParityDisplay = new(),
+                LessonTypeDisplay = new(),
+                SubGroupNumberDisplay = new(),
+            },
+            Schedule = schedule,
+            LessonTimeConfig = context.TimeConfig,
+            TimeSlotDisplay = new(),
+            DayNameProvider = dayNameProvider,
+            OutputPath = "output",
+        });
+        break;
+    }
+
+    case Option.CreateLessonsInRegistry:
+    {
+
+        break;
+    }
+}
+
+public enum Option
+{
+    AllTeachersExcel,
+    PerGroupAndPerTeacherPdfs,
+    CreateLessonsInRegistry,
+}
