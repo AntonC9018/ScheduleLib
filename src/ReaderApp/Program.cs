@@ -1,14 +1,6 @@
-using System.Collections.Specialized;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using System.Web;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
-using Microsoft.Extensions.Configuration;
 using ReaderApp;
 using ReaderApp.Helper;
 using ScheduleLib;
@@ -25,6 +17,7 @@ var context = DocParseContext.Create(new()
         ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
         IgnoredFullWords = ["p/u", "pentru"],
         IgnoredShortenedWords = ["Opț"],
+        IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
         MinUsefulWordLength = 3,
     }),
 });
@@ -124,208 +117,46 @@ switch (option)
 
     case Option.CreateLessonsInRegistry:
     {
-        var credentials = GetCredentials();
-
-        var cookieContainer = new CookieContainer();
-
-        using var handler = new HttpClientHandler();
-        handler.CookieContainer = cookieContainer;
-        handler.UseCookies = true;
-        handler.AllowAutoRedirect = false;
-
-        using var httpClient = new HttpClient(handler);
-        const string tokensFile = "tokens.json";
-        const string tokenCookieName = "ForDecanat";
-
-        // const string registryUrl = "http://crd.usm.md/studregistry";
-        const string loginUrl = "http://crd.usm.md/studregistry/Account/Login";
-        var loginUri = new Uri(loginUrl);
-
-        await InitializeToken();
+        TeacherId MyId()
+        {
+            return context.Schedule
+                .Lookup()
+                .Teacher(lastName: "Curmanschii")!
+                .Value;
+        }
+        var mySchedule = schedule.Filter(new()
+        {
+            TeacherFilter = new()
+            {
+                IncludeIds = [ MyId() ],
+            },
+        });
+        await Tasks.AddLessonsToOnlineRegistry(new()
+        {
+            CancellationToken = cancellationToken,
+            Schedule = mySchedule,
+            Session = Session.Ses2,
+            Logger = new Logger(),
+            CourseFinder = new()
+            {
+                LookupModule = context.Schedule.LookupModule!,
+                Impl = context.CourseNameUnifierModule,
+            },
+        });
         break;
-
-        async ValueTask<Cookie?> LoadToken()
-        {
-            if (!File.Exists(tokensFile))
-            {
-                return null;
-            }
-
-            await using var stream = File.OpenRead(tokensFile);
-            using var cookies = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            if (cookies == null)
-            {
-                return null;
-            }
-            var root = cookies.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return null;
-            }
-            if (!root.TryGetProperty(credentials.Login, out var token))
-            {
-                return null;
-            }
-
-            try
-            {
-                var cookie = token.Deserialize<Cookie>();
-                return cookie;
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        async Task<bool> MaybeSetCookieFromFile()
-        {
-            var token = await LoadToken();
-            if (token is null)
-            {
-                return false;
-            }
-            if (token.Expired)
-            {
-                return false;
-            }
-            cookieContainer.Add(loginUri, token);
-            return true;
-        }
-
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-        async Task InitializeToken()
-        {
-            if (await MaybeSetCookieFromFile())
-            {
-                return;
-            }
-
-            var success = await LogIn(
-                httpClient,
-                credentials,
-                cancellationToken);
-            if (!success)
-            {
-                throw new InvalidOperationException("Login failed.");
-            }
-
-            var cookies = cookieContainer.GetCookies(new(loginUrl));
-            if (cookies[tokenCookieName] is not { } token)
-            {
-                throw new InvalidOperationException("Token cookie not found.");
-            }
-
-            await using var stream = File.Open(tokensFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-            if (await TryUpdateExisting())
-            {
-                return;
-            }
-            await CreateNew();
-            return;
-
-            async ValueTask<bool> TryUpdateExisting()
-            {
-                if (!Path.Exists(tokensFile))
-                {
-                    return false;
-                }
-                if (stream.Length == 0)
-                {
-                    return await CreateNew();
-                }
-
-                var document = await JsonNode.ParseAsync(
-                    stream,
-                    cancellationToken: cancellationToken);
-                if (document is not JsonObject)
-                {
-                    return false;
-                }
-
-                document[credentials.Login] = JsonSerializer.SerializeToNode(token);
-
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    document,
-                    cancellationToken: cancellationToken);
-                return true;
-            }
-
-            async Task<bool> CreateNew()
-            {
-                var root = new JsonObject();
-                return await Save(root);
-            }
-
-            async Task<bool> Save(JsonObject root)
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-                root[credentials.Login] = JsonSerializer.SerializeToNode(token);
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    root,
-                    cancellationToken: cancellationToken);
-                return true;
-            }
-        }
-
-        static async Task<bool> LogIn(
-            HttpClient client,
-            Credentials credentials,
-            CancellationToken cancellationToken)
-        {
-            Uri uri;
-            {
-                var b = new UriBuilder(loginUrl);
-                var parameters = HttpUtility.ParseQueryString("");
-                parameters.Add("UserLogin", credentials.Login);
-                parameters.Add("UserPassword", credentials.Password);
-                b.Query = parameters.ToString();
-                uri = b.Uri;
-            }
-
-            var response = await client.PostAsync(
-                uri,
-                content: null,
-                cancellationToken: cancellationToken);
-            bool success = response.StatusCode == HttpStatusCode.Redirect;
-            return success;
-        }
     }
 }
 
-static Credentials GetCredentials()
+sealed class Logger : Tasks.ILogger
 {
-    var b = new ConfigurationBuilder();
-    b.AddUserSecrets<Program>();
-    var config = b.Build();
-    var ret = config.GetRequiredSection("Registry").Get<Credentials>();
-    if (ret == null)
+    public void CourseNotFound(string courseName)
     {
-        throw new InvalidOperationException("Credentials not found.");
+        Console.WriteLine($"Course not found: {courseName}");
     }
-    if (ret.Login == null)
+
+    public void LessonWithoutName()
     {
-        throw new InvalidOperationException("Login not found.");
+        Console.WriteLine("Lesson without name");
     }
-    if (ret.Password == null)
-    {
-        throw new InvalidOperationException("Password not found.");
-    }
-    return ret;
 }
 
-public enum Option
-{
-    AllTeachersExcel,
-    PerGroupAndPerTeacherPdfs,
-    CreateLessonsInRegistry,
-}
-
-
-public sealed class Credentials
-{
-    public required string Login { get; set; }
-    public required string Password { get; set; }
-}

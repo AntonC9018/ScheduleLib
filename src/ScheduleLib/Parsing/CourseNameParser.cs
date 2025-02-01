@@ -1,8 +1,90 @@
-using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using ScheduleLib.Builders;
+using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing.CourseName;
+
+// TODO: This should probably be separated in 2.
+public sealed class CourseNameUnifierModule
+{
+    internal readonly List<SlowCourse> SlowCourses = new();
+    private readonly CourseNameParserConfig _parserConfig;
+
+    public CourseNameUnifierModule(CourseNameParserConfig parserConfig)
+    {
+        _parserConfig = parserConfig;
+    }
+
+    public ref struct FindParams()
+    {
+        public required LookupModule Lookup;
+        public required string CourseName;
+        public CourseNameParseOptions ParseOptions = new();
+    }
+
+    public CourseId? Find(FindParams p)
+    {
+        if (p.Lookup.Courses.TryGetValue(p.CourseName, out var courseId))
+        {
+            return new(courseId);
+        }
+
+        var parsedCourse = _parserConfig.Parse(p.CourseName);
+        foreach (var t in SlowCourses)
+        {
+            if (!parsedCourse.IsEqual(t.Name))
+            {
+                continue;
+            }
+
+            return t.CourseId;
+        }
+
+        return null;
+    }
+
+    public struct FindOrAddParams()
+    {
+        public required ScheduleBuilder Schedule;
+        public required string CourseName;
+        public CourseNameParseOptions ParseOptions = new();
+    }
+
+    public CourseId FindOrAdd(FindOrAddParams p)
+    {
+        ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            p.Schedule.LookupModule!.Courses,
+            p.CourseName,
+            out bool exists);
+
+        if (exists)
+        {
+            return new(courseId);
+        }
+
+        var parsedCourse = _parserConfig.Parse(p.CourseName);
+        // TODO: N^2, use some sort of hash to make this faster.
+        foreach (var t in SlowCourses)
+        {
+            if (!parsedCourse.IsEqual(t.Name))
+            {
+                continue;
+            }
+            return t.CourseId;
+        }
+
+        var result = p.Schedule.Courses.New();
+        courseId = result.Id;
+        ScheduleBuilderHelper.UpdateLookupAfterCourseAdded(p.Schedule);
+
+        SlowCourses.Add(new(parsedCourse, new(courseId)));
+
+        return new(courseId);
+    }
+}
+
 
 public struct ParsedCourseName()
 {
@@ -32,6 +114,7 @@ public sealed class CourseNameParserConfig
     public readonly ImmutableHashSet<string> IgnoredFullWords;
     public readonly ImmutableHashSet<string> ProgrammingLanguages;
     public readonly ImmutableArray<ShortenedWord> IgnoredShortenedWords;
+    public readonly ImmutableArray<string> IgnoredProgrammingRelatedWords;
 
     public CourseNameParserConfig(in Params p)
     {
@@ -47,6 +130,7 @@ public sealed class CourseNameParserConfig
         MinUsefulWordLength = p.MinUsefulWordLength;
         IgnoredFullWords = ImmutableHashSet.Create(StringComparer.CurrentCultureIgnoreCase, p.IgnoredFullWords);
         ProgrammingLanguages = ImmutableHashSet.Create(StringComparer.CurrentCultureIgnoreCase, p.ProgrammingLanguages);
+        IgnoredProgrammingRelatedWords = [.. p.IgnoredProgrammingRelatedWords];
 
         {
             var b = ImmutableArray.CreateBuilder<ShortenedWord>(p.IgnoredShortenedWords.Length);
@@ -64,35 +148,39 @@ public sealed class CourseNameParserConfig
         public ReadOnlySpan<string> IgnoredFullWords = [];
         public ReadOnlySpan<string> ProgrammingLanguages = [];
         public ReadOnlySpan<string> IgnoredShortenedWords = [];
+        public ReadOnlySpan<string> IgnoredProgrammingRelatedWords = [];
     }
+}
+
+public struct CourseNameParseOptions()
+{
+    /// <summary>
+    /// If this is false, punctuation is considered an error.
+    /// </summary>
+    public bool IgnorePunctuation = false;
 }
 
 public static class CourseNameParsing
 {
     public static ParsedCourseName Parse(
         this CourseNameParserConfig config,
-        ReadOnlySpan<char> course)
+        ReadOnlySpan<char> course,
+        CourseNameParseOptions options = default)
     {
-        var wordRanges = course.Split(' ');
-        var count = course.Count(' ') + 1;
-        using var buffer = new RentedBuffer<string>(count);
+        var words = new WordEnumerable(options, course);
+        using var buffer = new RentedBuffer<string>(words.Count());
 
         int i = 0;
-        foreach (var range in wordRanges)
+        foreach (var word in words)
         {
-            var span = course[range];
-            if (span.Length == 0)
-            {
-                continue;
-            }
             // Need a string to be able to look up in the hash sets.
             // kinda yikes.
-            var wordString = course[range].ToString();
+            var wordString = word.ToString();
             buffer.Array[i] = wordString;
             i++;
         }
 
-        var strings = buffer.Array.AsSpan(0, i);
+        var strings = buffer.Span;
 
         bool isAnyProgrammingLanguage = IsAnyProgrammingLanguage(strings);
 
@@ -113,8 +201,7 @@ public static class CourseNameParsing
             {
                 continue;
             }
-            if (isAnyProgrammingLanguage
-                && word.Span.IsEitherShortForOther(new("programare")))
+            if (ShouldIgnoreProgrammingWords())
             {
                 continue;
             }
@@ -124,6 +211,7 @@ public static class CourseNameParsing
             }
             {
                 ret.Segments.Add(segment);
+                continue;
             }
 
             bool PrepareReturn()
@@ -148,6 +236,22 @@ public static class CourseNameParsing
 
                 // Regular word.
                 return true;
+            }
+
+            bool ShouldIgnoreProgrammingWords()
+            {
+                if (!isAnyProgrammingLanguage)
+                {
+                    return false;
+                }
+                foreach (var w in config.IgnoredProgrammingRelatedWords)
+                {
+                    if (word.Span.IsEitherShortForOther(new(w)))
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             bool ShouldIgnoreShort()
@@ -282,6 +386,143 @@ public static class CourseNameParsing
             Index++;
         }
     }
-
-
 }
+
+public sealed class InvalidSeparatorException : Exception
+{
+    public InvalidSeparatorException(int position)
+        : base("Invalid separator at position " + position)
+    {
+    }
+}
+file readonly ref struct WordEnumerable
+{
+    private readonly CourseNameParseOptions _opts;
+    private readonly ReadOnlySpan<char> _str;
+
+    public WordEnumerable(
+        CourseNameParseOptions opts,
+        ReadOnlySpan<char> str)
+    {
+        _opts = opts;
+        _str = str;
+    }
+
+    public Enumerator GetEnumerator() => new(this);
+
+    public int Count()
+    {
+        var e = new Enumerator();
+        int count = 0;
+        while (e.MoveNext())
+        {
+            count++;
+        }
+        return count;
+    }
+
+    public ref struct Enumerator
+    {
+        private readonly WordEnumerable _e;
+        private int _currentIndex;
+        private int _startIndex;
+        private int _count;
+
+        public Enumerator(WordEnumerable e)
+        {
+            _e = e;
+            _currentIndex = 0;
+            _startIndex = 0;
+            _count = 0;
+        }
+
+        private enum SepResult
+        {
+            Yes,
+            No,
+            NotAllowed,
+        }
+
+        private readonly SepResult IsSep(char ch)
+        {
+            if (char.IsPunctuation(ch))
+            {
+                if (_e._opts.IgnorePunctuation)
+                {
+                    return SepResult.Yes;
+                }
+                return SepResult.NotAllowed;
+            }
+            if (char.IsWhiteSpace(ch))
+            {
+                return SepResult.Yes;
+            }
+            return SepResult.No;
+        }
+
+        private readonly bool IsSep_Throw(char ch)
+        {
+            var r = IsSep(ch);
+            if (r == SepResult.NotAllowed)
+            {
+                throw new InvalidSeparatorException(_currentIndex);
+            }
+            return r == SepResult.Yes;
+        }
+
+        public bool MoveNext()
+        {
+            if (_currentIndex >= _e._str.Length)
+            {
+                return false;
+            }
+
+            _startIndex = _currentIndex;
+            _count = 0;
+
+            // Find first separator.
+            while (true)
+            {
+                _currentIndex++;
+
+                if (_currentIndex >= _e._str.Length)
+                {
+                    return _count != 0;
+                }
+
+                char ch = _e._str[_currentIndex];
+                if (IsSep_Throw(ch))
+                {
+                    _count = _currentIndex - _startIndex;
+                    break;
+                }
+            }
+
+            // Skip consecutive separators.
+            while (true)
+            {
+                _currentIndex++;
+                if (_currentIndex >= _e._str.Length)
+                {
+                    break;
+                }
+
+                char ch = _e._str[_currentIndex];
+                if (!IsSep_Throw(ch))
+                {
+                    break;
+                }
+            }
+            return true;
+        }
+
+        public readonly ReadOnlySpan<char> Current
+        {
+            get
+            {
+                return _e._str.Slice(_startIndex, length: _count);
+            }
+        }
+    }
+}
+

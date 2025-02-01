@@ -25,13 +25,33 @@ public sealed class LookupModule()
 public struct LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(string name) => Find<CourseId>(Lookup.Courses, name);
-    public TeacherId? Teacher(Word firstName, string lastName)
+
+    public IEnumerable<TeacherId> Teachers(string lastName)
+    {
+        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        {
+            return [];
+        }
+        return ids.Select(id => new TeacherId(id));
+    }
+
+    public TeacherId? Teacher(string lastName)
+    {
+        using var e = Teachers(lastName).GetEnumerator();
+        if (!e.MoveNext())
+        {
+            return null;
+        }
+        return e.Current;
+    }
+
+    public TeacherId? Teacher(string firstName, string lastName)
     {
         if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
         {
             return null;
         }
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstName);
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, new(firstName));
         return new(ids[i]);
     }
 

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
@@ -14,9 +13,8 @@ public sealed class DocParseContext
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required LessonTimeConfig TimeConfig { get; init; }
-    public required CourseNameParserConfig CourseNameParserConfig { get; init; }
     public required DayNameParser DayNameParser { get; init; }
-    internal readonly List<SlowCourse> SlowCourses = new();
+    public required CourseNameUnifierModule CourseNameUnifierModule { get; init; }
 
     public struct CreateParams
     {
@@ -40,7 +38,7 @@ public sealed class DocParseContext
         {
             Schedule = s,
             TimeConfig = timeConfig,
-            CourseNameParserConfig = p.CourseNameParserConfig,
+            CourseNameUnifierModule = new(p.CourseNameParserConfig),
             DayNameParser = new DayNameParser(p.DayNameProvider),
         };
     }
@@ -68,36 +66,13 @@ public sealed class DocParseContext
 
     internal CourseId Course(string name)
     {
-        ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Schedule.LookupModule!.Courses,
-            name,
-            out bool exists);
-
-        if (exists)
+        var ret = CourseNameUnifierModule.FindOrAdd(new()
         {
-            return new(courseId);
-        }
-
-        var parsedCourse = CourseNameParserConfig.Parse(name);
-        // TODO: N^2, use some sort of hash to make this faster.
-        foreach (var t in SlowCourses)
-        {
-            if (!parsedCourse.IsEqual(t.Name))
-            {
-                continue;
-            }
-
-            courseId = t.CourseId.Id;
-            return new(courseId);
-        }
-
-        var result = Schedule.Courses.New();
-        courseId = result.Id;
-        ScheduleBuilderHelper.UpdateLookupAfterCourseAdded(Schedule);
-
-        SlowCourses.Add(new(parsedCourse, new(courseId)));
-
-        return new(courseId);
+            Schedule = Schedule,
+            CourseName = name,
+            ParseOptions = new(),
+        });
+        return ret;
     }
 
     internal TeacherId Teacher(TeacherName name)
