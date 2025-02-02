@@ -151,25 +151,17 @@ public struct GeneratorCache
         {
             foreach (var lesson in schedule.Lessons)
             {
-                foreach (var group in lesson.Lesson.Groups)
+                var rowKey = new RowKey
                 {
-                    var cellKey = new CellKey<GroupId>
-                    {
-                        ColumnKey = group,
-                        RowKey = new()
-                        {
-                            TimeSlot = lesson.Date.TimeSlot,
-                            DayOfWeek = lesson.Date.DayOfWeek,
-                        },
-                    };
-                    ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByCell, cellKey, out bool exists);
-                    if (!exists)
-                    {
-                        list = new(2);
-                    }
-
-                    list!.Add(lesson);
+                    TimeSlot = lesson.Date.TimeSlot,
+                    DayOfWeek = lesson.Date.DayOfWeek,
+                };
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByRow, rowKey, out bool exists);
+                if (!exists)
+                {
+                    list = new(2);
                 }
+                list!.Add(lesson);
             }
         }
     }

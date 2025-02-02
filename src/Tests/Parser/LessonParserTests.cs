@@ -9,20 +9,47 @@ public sealed class LessonParserTests
     public bool CheckEqualName(string expected, TeacherName actual)
     {
         var expectedName = TeacherNameHelper.ParseName(expected);
-        var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
-        var shortActualSpan = actual.ShortFirstName.Span;
-        if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
+        if (!ShortNameEqual())
         {
             return false;
         }
-
-        var lastNameSpan = expectedName.LastName!.AsSpan();
-        if (!lastNameSpan.Equals(actual.LastName.Span, StringComparison.Ordinal))
+        if (!LastNameEqual())
         {
             return false;
         }
-
         return true;
+
+        bool ShortNameEqual()
+        {
+            if (actual.ShortFirstName.IsEmpty)
+            {
+                return expectedName.ShortFirstName is null;
+            }
+
+            var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
+            var shortActualSpan = actual.ShortFirstName.Span;
+            if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool LastNameEqual()
+        {
+            if (actual.LastName.IsEmpty)
+            {
+                return expectedName.LastName is null;
+            }
+
+            var lastNameSpan = expectedName.LastName!.AsSpan();
+            if (!lastNameSpan.Equals(actual.LastName.Span, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            return true;
+        }
     }
     private void AssertEqualName(string expected, TeacherName actual)
     {
@@ -204,7 +231,7 @@ public sealed class LessonParserTests
         bool Check(in ParsedLesson lesson, string lessonName, string groupName, string teacherName)
         {
             var actualTeacherName = Assert.Single(lesson.TeacherNames);
-            if (CheckEqualName(teacherName, actualTeacherName))
+            if (!CheckEqualName(teacherName, actualTeacherName))
             {
                 return false;
             }

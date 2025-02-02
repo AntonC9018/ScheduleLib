@@ -362,6 +362,7 @@ public static class TeacherNameHelper
         if (result.EndOfInput)
         {
             ret.LastName = parser.Source;
+            parser.MoveTo(bparser.Position);
             return ret;
         }
 

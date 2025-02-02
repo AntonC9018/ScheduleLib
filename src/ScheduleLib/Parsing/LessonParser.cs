@@ -806,19 +806,23 @@ public static class LessonParsingHelper
                 {
                     var lastName = c.Parser.SourceUntilExclusive(bparser);
                     teacher.LastName = lastName;
+                    NextStep(c);
 
-                    if (bparser.Current == ' ')
+                    void NextStep(in ParsingContext c1)
                     {
-                        c.State.Step = ParsingStep.OptionalParensBeforeRoom;
-                    }
-                    else
-                    {
+                        if (skipResult.EndOfInput)
+                        {
+                            c1.State.Step = ParsingStep.OptionalRoomName;
+                            return;
+                        }
+                        if (bparser.Current == ' ')
+                        {
+                            c1.State.Step = ParsingStep.OptionalParensBeforeRoom;
+                            return;
+                        }
+
                         Debug.Assert(bparser.Current == ',');
-                        c.State.Step = ParsingStep.RequiredTeacherName;
-                    }
-
-                    if (!skipResult.EndOfInput)
-                    {
+                        c1.State.Step = ParsingStep.RequiredTeacherName;
                         bparser.Move();
                     }
                 }

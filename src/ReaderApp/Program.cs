@@ -63,7 +63,7 @@ context.Schedule.ConfigureRemappings(remap =>
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.CreateLessonsInRegistry;
+var option = Option.PerGroupAndPerTeacherPdfs;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
