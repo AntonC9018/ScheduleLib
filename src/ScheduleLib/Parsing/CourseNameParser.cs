@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
@@ -22,6 +23,12 @@ public sealed class CourseNameUnifierModule
         public required LookupModule Lookup;
         public required string CourseName;
         public CourseNameParseOptions ParseOptions = new();
+
+        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        {
+            CourseName = CourseName,
+            ParseOptions = ParseOptions,
+        };
     }
 
     public CourseId? Find(FindParams p)
@@ -31,15 +38,11 @@ public sealed class CourseNameUnifierModule
             return new(courseId);
         }
 
-        var parsedCourse = _parserConfig.Parse(p.CourseName);
-        foreach (var t in SlowCourses)
+        var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
+        if (FindSlow(parsedCourseName) is { } slowCourseId)
         {
-            if (!parsedCourse.IsEqual(t.Name))
-            {
-                continue;
-            }
-
-            return t.CourseId;
+            p.Lookup.Courses.Add(p.CourseName, slowCourseId.Id);
+            return slowCourseId;
         }
 
         return null;
@@ -50,9 +53,41 @@ public sealed class CourseNameUnifierModule
         public required ScheduleBuilder Schedule;
         public required string CourseName;
         public CourseNameParseOptions ParseOptions = new();
+
+        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        {
+            CourseName = CourseName,
+            ParseOptions = ParseOptions,
+        };
     }
 
-    public CourseId FindOrAdd(FindOrAddParams p)
+    public struct CourseNameForParsing
+    {
+        public required CourseNameParseOptions ParseOptions;
+        public required string CourseName;
+    }
+
+    private ParsedCourseName ParseCourseName(CourseNameForParsing p)
+    {
+        var parsedCourse = _parserConfig.Parse(p.CourseName, p.ParseOptions);
+        return parsedCourse;
+    }
+
+    private CourseId? FindSlow(ParsedCourseName parsedCourseName)
+    {
+        // TODO: N^2, use some sort of hash to make this faster.
+        foreach (var t in SlowCourses)
+        {
+            if (t.Name.IsEqual(parsedCourseName))
+            {
+                continue;
+            }
+            return t.CourseId;
+        }
+        return null;
+    }
+
+    public CourseId FindOrAdd(in FindOrAddParams p)
     {
         ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
             p.Schedule.LookupModule!.Courses,
@@ -64,24 +99,20 @@ public sealed class CourseNameUnifierModule
             return new(courseId);
         }
 
-        var parsedCourse = _parserConfig.Parse(p.CourseName);
-        // TODO: N^2, use some sort of hash to make this faster.
-        foreach (var t in SlowCourses)
+        var parsedCourse = ParseCourseName(p.CourseNameForParsing);
+        if (FindSlow(parsedCourse) is { } slowCourseId)
         {
-            if (!parsedCourse.IsEqual(t.Name))
-            {
-                continue;
-            }
-            return t.CourseId;
+            courseId = slowCourseId.Id;
+            return slowCourseId;
         }
 
         var result = p.Schedule.Courses.New();
         courseId = result.Id;
         ScheduleBuilderHelper.UpdateLookupAfterCourseAdded(p.Schedule);
 
-        SlowCourses.Add(new(parsedCourse, new(courseId)));
+        SlowCourses.Add(new(parsedCourse, new(result.Id)));
 
-        return new(courseId);
+        return new(result.Id);
     }
 }
 
@@ -167,7 +198,7 @@ public static class CourseNameParsing
         ReadOnlySpan<char> course,
         CourseNameParseOptions options = default)
     {
-        var words = new WordEnumerable(options, course);
+        var words = new WordEnumerable(course, options);
         using var buffer = new RentedBuffer<string>(words.Count());
 
         int i = 0;
@@ -395,14 +426,15 @@ public sealed class InvalidSeparatorException : Exception
     {
     }
 }
-file readonly ref struct WordEnumerable
+
+internal readonly ref struct WordEnumerable
 {
     private readonly CourseNameParseOptions _opts;
     private readonly ReadOnlySpan<char> _str;
 
     public WordEnumerable(
-        CourseNameParseOptions opts,
-        ReadOnlySpan<char> str)
+        ReadOnlySpan<char> str,
+        CourseNameParseOptions opts)
     {
         _opts = opts;
         _str = str;
@@ -412,7 +444,7 @@ file readonly ref struct WordEnumerable
 
     public int Count()
     {
-        var e = new Enumerator();
+        var e = GetEnumerator();
         int count = 0;
         while (e.MoveNext())
         {
@@ -443,9 +475,24 @@ file readonly ref struct WordEnumerable
             NotAllowed,
         }
 
+        private static bool IsPunctuation(char ch)
+        {
+            // Consider this part of the word.
+            // Maybe add the option to not do this.
+            if (ch == WordHelper.ShortenedWordCharacter)
+            {
+                return false;
+            }
+            if (ch is ',' or ';' or ':' or '!' or '?')
+            {
+                return false;
+            }
+            return false;
+        }
+
         private readonly SepResult IsSep(char ch)
         {
-            if (char.IsPunctuation(ch))
+            if (IsPunctuation(ch))
             {
                 if (_e._opts.IgnorePunctuation)
                 {
@@ -472,6 +519,26 @@ file readonly ref struct WordEnumerable
 
         public bool MoveNext()
         {
+            // Skip until the first non-separator at the start
+            if (_currentIndex == 0)
+            {
+                while (true)
+                {
+                    if (_currentIndex >= _e._str.Length)
+                    {
+                        return false;
+                    }
+
+                    var ch = _e._str[_currentIndex];
+                    if (!IsSep_Throw(ch))
+                    {
+                        break;
+                    }
+
+                    _currentIndex++;
+                }
+            }
+
             if (_currentIndex >= _e._str.Length)
             {
                 return false;
@@ -484,16 +551,16 @@ file readonly ref struct WordEnumerable
             while (true)
             {
                 _currentIndex++;
+                _count++;
 
                 if (_currentIndex >= _e._str.Length)
                 {
-                    return _count != 0;
+                    return true;
                 }
 
                 char ch = _e._str[_currentIndex];
                 if (IsSep_Throw(ch))
                 {
-                    _count = _currentIndex - _startIndex;
                     break;
                 }
             }

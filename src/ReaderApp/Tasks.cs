@@ -959,22 +959,21 @@ public static class Tasks
     {
         public string TokensFile = "tokens.json";
         public string TokenCookieName = "ForDecanat";
-        public string RegistryBaseUrl = "http://crd.usm.md/studregistry";
+        public string RegistryBaseUrl = "http://crd.usm.md/studregistry/";
         public string RegistryLoginPath = "Account/Login";
         public string LessonsPath = "LessonAttendance";
 
-        public readonly Uri RegistryBaseUri => new(RegistryBaseUrl);
-        public readonly Uri LoginUri => RegistryBaseUri.MakeRelativeUri(new(RegistryLoginPath));
-        public readonly Uri LessonsUri => RegistryBaseUri.MakeRelativeUri(new(LessonsPath));
-
         public readonly NamesConfig Build()
         {
+            var reg = new Uri(RegistryBaseUrl);
+            var login = new Uri(reg, RegistryLoginPath);
+            var lessons = new Uri(reg, LessonsPath);
             return new()
             {
                 TokensFile = TokensFile,
                 TokenCookieName = TokenCookieName,
-                LoginUrl = LoginUri,
-                LessonsUrl = LessonsUri,
+                LoginUrl = login,
+                LessonsUrl = lessons,
             };
         }
     }
@@ -987,6 +986,8 @@ public static class Tasks
         public required string TokenCookieName;
         public required Uri LoginUrl;
         public required Uri LessonsUrl;
+
+        public readonly bool IsInitialized => LoginUrl != null;
     }
 
     public static JsonSerializerOptions DefaultJsonOptions = new()
@@ -998,7 +999,7 @@ public static class Tasks
     public static async Task AddLessonsToOnlineRegistry(AddLessonsToOnlineRegistryParams p)
     {
         p.Credentials ??= GetCredentials();
-        if (p.Names.LoginUrl == null)
+        if (!p.Names.IsInitialized)
         {
             p.Names = NamesConfig.Default;
         }
@@ -1016,7 +1017,9 @@ public static class Tasks
         var config = Configuration.Default;
         using var browsingContext = BrowsingContext.New(config);
 
-        var courseLinks = await QueryCourseLinks();
+        var courseLinksE = await QueryCourseLinks();
+        var courseLinks = courseLinksE.ToArray();
+
         return;
 
         async Task<IEnumerable<CourseLink>> QueryCourseLinks()
@@ -1117,13 +1120,31 @@ public static class Tasks
             }
 
             await using var stream = File.OpenRead(p.Names.TokensFile);
-            using var cookies = await JsonDocument.ParseAsync(
-                stream,
-                cancellationToken: p.CancellationToken);
-            if (cookies == null)
+            if (stream.Length == 0)
             {
                 return null;
             }
+
+            JsonDocument cookies;
+            try
+            {
+                cookies = await JsonDocument.ParseAsync(
+                    stream,
+                    cancellationToken: p.CancellationToken);
+                if (cookies == null)
+                {
+                    return null;
+                }
+            }
+            catch (JsonException)
+            {
+                stream.Close();
+                File.Delete(p.Names.TokensFile);
+                return null;
+            }
+
+            using var cookies_ = cookies;
+
             var root = cookies.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
@@ -1174,13 +1195,9 @@ public static class Tasks
 
             async ValueTask<bool> TryUpdateExisting()
             {
-                if (!Path.Exists(p.Names.TokensFile))
-                {
-                    return false;
-                }
                 if (stream.Length == 0)
                 {
-                    return await CreateNew();
+                    return false;
                 }
 
                 var document = await JsonNode.ParseAsync(
@@ -1225,6 +1242,7 @@ public static class Tasks
             Uri uri;
             {
                 var b = new UriBuilder(p.Names.LoginUrl);
+                b.Port = -1;
                 var parameters = HttpUtility.ParseQueryString("");
                 parameters.Add("UserLogin", p.Credentials.Login);
                 parameters.Add("UserPassword", p.Credentials.Password);

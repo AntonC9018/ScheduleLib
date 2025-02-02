@@ -5,4 +5,9 @@
     <ItemGroup Label="Parser">
         <PackageReference Include="DocumentFormat.OpenXml" Version="3.2.0" />
     </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Parser.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
 </Project>
