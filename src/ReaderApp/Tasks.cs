@@ -974,6 +974,7 @@ public static class Tasks
                 TokenCookieName = TokenCookieName,
                 LoginUrl = login,
                 LessonsUrl = lessons,
+                BaseUrl = reg,
             };
         }
     }
@@ -984,6 +985,7 @@ public static class Tasks
 
         public required string TokensFile;
         public required string TokenCookieName;
+        public required Uri BaseUrl;
         public required Uri LoginUrl;
         public required Uri LessonsUrl;
 
@@ -1108,7 +1110,7 @@ public static class Tasks
             {
                 return false;
             }
-            cookieContainer.Add(p.Names.LoginUrl, token);
+            cookieContainer.Add(p.Names.BaseUrl, token);
             return true;
         }
 
@@ -1159,10 +1161,6 @@ public static class Tasks
             {
                 var cookie = token.Deserialize<TokenCookieModel>();
                 if (cookie is null)
-                {
-                    return null;
-                }
-                if (cookie.ExpireTime > DateTime.Now)
                 {
                     return null;
                 }
@@ -1308,7 +1306,10 @@ public sealed class TokenCookieModel
 
     public Cookie ToObject(string name)
     {
-        var ret = new Cookie(name, Value);
+        var ret = new Cookie(name, Value)
+        {
+            Expires = ExpireTime,
+        };
         return ret;
     }
 
