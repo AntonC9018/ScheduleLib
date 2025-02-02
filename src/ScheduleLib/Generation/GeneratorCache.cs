@@ -89,15 +89,10 @@ public sealed class RegularLessonsByCellKey<ColumnKey>
     : Dictionary<CellKey<ColumnKey>, List<RegularLesson>>
 {
 }
-public sealed class RegularLessonsByRowKey
-    : Dictionary<RowKey, List<RegularLesson>>
-{
-}
 
 public struct GeneratorCacheMappings<TColumnKey>()
 {
     public required RegularLessonsByCellKey<TColumnKey> MappingByCell;
-    public required RegularLessonsByRowKey MappingByRow;
 }
 
 public struct GeneratorCache
@@ -147,32 +142,10 @@ public struct GeneratorCache
     private static GeneratorCacheMappings<GroupId> CreateMappings(FilteredSchedule schedule)
     {
         var mappingByCell = MappingsCreationHelper.CreateCellMappings(schedule.Lessons, l => l.Lesson.Groups);
-        var rowMappings = InitRowMappings();
         return new()
         {
             MappingByCell = mappingByCell,
-            MappingByRow = rowMappings,
         };
-
-        RegularLessonsByRowKey InitRowMappings()
-        {
-            var ret = new RegularLessonsByRowKey();
-            foreach (var lesson in schedule.Lessons)
-            {
-                var rowKey = new RowKey
-                {
-                    TimeSlot = lesson.Date.TimeSlot,
-                    DayOfWeek = lesson.Date.DayOfWeek,
-                };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, rowKey, out bool exists);
-                if (!exists)
-                {
-                    list = new(2);
-                }
-                list!.Add(lesson);
-            }
-            return ret;
-        }
     }
 }
 
