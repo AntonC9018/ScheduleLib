@@ -1039,16 +1039,6 @@ public static class Tasks
         async Task<IEnumerable<CourseLink>> QueryCourseLinks()
         {
             var doc = await GetHtml(p.Names.LessonsUrl);
-
-            string SemString()
-            {
-                return p.Session switch
-                {
-                    Session.Ses1 => "1",
-                    Session.Ses2 => "2",
-                    _ => throw new InvalidOperationException("??"),
-                };
-            }
             var ret = Ret();
             return ret;
 
@@ -1072,6 +1062,16 @@ public static class Tasks
                     }
                     yield return new(courseId, url);
                 }
+            }
+
+            string SemString()
+            {
+                return p.Session switch
+                {
+                    Session.Ses1 => "1",
+                    Session.Ses2 => "2",
+                    _ => throw new InvalidOperationException("??"),
+                };
             }
         }
 
