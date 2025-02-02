@@ -64,7 +64,7 @@ context.Schedule.ConfigureRemappings(remap =>
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.AllTeachersExcel;
+var option = Option.CreateLessonsInRegistry;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
@@ -116,6 +116,7 @@ switch (option)
         break;
     }
 
+    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.CreateLessonsInRegistry:
     {
         TeacherId MyId()

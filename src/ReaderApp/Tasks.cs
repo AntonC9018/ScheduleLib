@@ -1176,6 +1176,10 @@ public static class Tasks
                 {
                     return null;
                 }
+                if (cookie.ExpireTime > DateTime.Now)
+                {
+                    return null;
+                }
                 return cookie.ToObject(p.Names.TokenCookieName);
             }
             catch (JsonException)
@@ -1214,22 +1218,23 @@ public static class Tasks
                     return false;
                 }
 
-                var document = await JsonNode.ParseAsync(
-                    stream,
-                    cancellationToken: p.CancellationToken);
-                if (document is not JsonObject)
+                JsonNode? document;
+                try
+                {
+                    document = await JsonNode.ParseAsync(
+                        stream,
+                        cancellationToken: p.CancellationToken);
+                }
+                catch (JsonException)
                 {
                     return false;
                 }
 
-                var tokenModel = TokenCookieModel.FromObject(token);
-                document[p.Credentials.Login] = JsonSerializer.SerializeToNode(tokenModel);
-
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    document,
-                    cancellationToken: p.CancellationToken);
-                return true;
+                if (document is not JsonObject jobj)
+                {
+                    return false;
+                }
+                return await Save(jobj);
             }
 
             async Task<bool> CreateNew()
@@ -1241,12 +1246,14 @@ public static class Tasks
             async Task<bool> Save(JsonObject root)
             {
                 stream.Seek(0, SeekOrigin.Begin);
-                root[p.Credentials.Login] = JsonSerializer.SerializeToNode(token);
+                var tokenModel = TokenCookieModel.FromObject(token);
+                root[p.Credentials.Login] = JsonSerializer.SerializeToNode(tokenModel);
                 await JsonSerializer.SerializeAsync(
                     stream,
                     root,
                     options: p.JsonOptions ?? DefaultJsonOptions,
                     cancellationToken: p.CancellationToken);
+                stream.SetLength(stream.Position);
                 return true;
             }
         }
@@ -1311,24 +1318,21 @@ public sealed class Credentials
 public sealed class TokenCookieModel
 {
     public required string Value { get; set; }
-    public DateTime? Expires { get; set; }
+    public DateTime ExpireTime { get; set; }
 
     public Cookie ToObject(string name)
     {
         var ret = new Cookie(name, Value);
-        if (Expires.HasValue)
-        {
-            ret.Expires = Expires.Value;
-        }
         return ret;
     }
 
     public static TokenCookieModel FromObject(Cookie cookie)
     {
+        var expireTime = cookie.Expires;
         return new()
         {
             Value = cookie.Value,
-            Expires = cookie.Expires,
+            ExpireTime = expireTime,
         };
     }
 }
