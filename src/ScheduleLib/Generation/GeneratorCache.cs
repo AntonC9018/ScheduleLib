@@ -85,15 +85,19 @@ public readonly struct ColumnOrder
     public GroupId[] Columns => _columns;
 }
 
-public sealed class RegularLessonByCellKey<ColumnKey>
+public sealed class RegularLessonsByCellKey<ColumnKey>
     : Dictionary<CellKey<ColumnKey>, List<RegularLesson>>
+{
+}
+public sealed class RegularLessonsByRowKey
+    : Dictionary<RowKey, List<RegularLesson>>
 {
 }
 
 public struct GeneratorCacheMappings<TColumnKey>()
 {
-    public RegularLessonByCellKey<TColumnKey> MappingByCell = new();
-    public Dictionary<RowKey, List<RegularLesson>> MappingByRow = new();
+    public required RegularLessonsByCellKey<TColumnKey> MappingByCell;
+    public required RegularLessonsByRowKey MappingByRow;
 }
 
 public struct GeneratorCache
@@ -142,13 +146,17 @@ public struct GeneratorCache
 
     private static GeneratorCacheMappings<GroupId> CreateMappings(FilteredSchedule schedule)
     {
-        var dicts = new GeneratorCacheMappings<GroupId>();
-        dicts.MappingByCell = MappingsCreationHelper.CreateCellMappings(schedule.Lessons, l => l.Lesson.Groups);
-        InitCellMappings();
-        return dicts;
-
-        void InitCellMappings()
+        var mappingByCell = MappingsCreationHelper.CreateCellMappings(schedule.Lessons, l => l.Lesson.Groups);
+        var rowMappings = InitRowMappings();
+        return new()
         {
+            MappingByCell = mappingByCell,
+            MappingByRow = rowMappings,
+        };
+
+        RegularLessonsByRowKey InitRowMappings()
+        {
+            var ret = new RegularLessonsByRowKey();
             foreach (var lesson in schedule.Lessons)
             {
                 var rowKey = new RowKey
@@ -156,13 +164,14 @@ public struct GeneratorCache
                     TimeSlot = lesson.Date.TimeSlot,
                     DayOfWeek = lesson.Date.DayOfWeek,
                 };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dicts.MappingByRow, rowKey, out bool exists);
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, rowKey, out bool exists);
                 if (!exists)
                 {
                     list = new(2);
                 }
                 list!.Add(lesson);
             }
+            return ret;
         }
     }
 }
@@ -170,12 +179,12 @@ public struct GeneratorCache
 
 public static class MappingsCreationHelper
 {
-    public static RegularLessonByCellKey<TColumnKey> CreateCellMappings<TColumnKey>(
+    public static RegularLessonsByCellKey<TColumnKey> CreateCellMappings<TColumnKey>(
         IEnumerable<RegularLesson> lessons,
         // TODO: Remove the use of this IEnumerable
         Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
     {
-        var ret = new RegularLessonByCellKey<TColumnKey>();
+        var ret = new RegularLessonsByCellKey<TColumnKey>();
         foreach (var lesson in lessons)
         {
             var rowKey = lesson.Date.RowKey();
