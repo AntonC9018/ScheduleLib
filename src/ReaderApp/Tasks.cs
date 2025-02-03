@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Web;
 using AngleSharp;
 using AngleSharp.Html.Dom;
+using AngleSharp.Io;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -1020,7 +1021,8 @@ public static class Tasks
             p.Names = NamesConfig.Default;
         }
 
-        var cookieContainer = new CookieContainer();
+        var cookieProvider = new MemoryCookieProvider();
+        var cookieContainer = cookieProvider.Container;
 
         using var handler = new HttpClientHandler();
         handler.CookieContainer = cookieContainer;
@@ -1028,10 +1030,15 @@ public static class Tasks
         handler.AllowAutoRedirect = false;
 
         using var httpClient = new HttpClient(handler);
-        await InitializeToken();
 
         var config = Configuration.Default;
+        config = config.WithDefaultLoader();
+        config = config.With<ICookieProvider>(_ => cookieProvider);
+
         using var browsingContext = BrowsingContext.New(config);
+
+        var cookies = browsingContext.GetService<ICookieProvider>();
+        await InitializeToken();
 
         var courseLinksE = await QueryCourseLinks();
         var courseLinks = courseLinksE.ToArray();
