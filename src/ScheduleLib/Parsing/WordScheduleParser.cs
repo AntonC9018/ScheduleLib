@@ -259,7 +259,21 @@ public static class WordScheduleParser
                     {
                         throw new NotSupportedException("The column count is off");
                     }
-                    columnIndex += 1;
+
+                    switch (columnIndex)
+                    {
+                        case dayColumnIndex:
+                        case timeSlotColumnIndex:
+                        {
+                            columnIndex += 1;
+                            break;
+                        }
+                        default:
+                        {
+                            columnIndex += colSpan;
+                            break;
+                        }
+                    }
                     columnSizeCounter += colSpan;
                     continue;
 
