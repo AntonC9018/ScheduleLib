@@ -25,8 +25,6 @@ public static class ExcelTeacherListParser
         var sheetData = worksheet.Elements<SheetData>().First();
         var stringTable = ParsedStringTable.Create(workbook);
 
-        var cellMetadata = workbook.CellMetadataPart;
-
         int skippedRows = 2;
 
         int rowIndex = 0;
@@ -233,7 +231,7 @@ public static class ExcelTeacherListParser
     {
         public ReadOnlyMemory<char> FirstName;
         public ReadOnlyMemory<char> LastName;
-        public ReadOnlyMemory<char> MaidenName = "".AsMemory();
+        public ReadOnlyMemory<char> MaidenName = ReadOnlyMemory<char>.Empty;
     }
 
     private static TeacherNameFromExcel ParseTeacherName(string s)

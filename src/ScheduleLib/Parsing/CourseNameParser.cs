@@ -6,9 +6,29 @@ namespace ScheduleLib.Parsing.CourseName;
 
 // TODO: This should probably be separated in 2.
 
-public struct ParsedCourseName()
+public readonly struct ParsedCourseName() : IEquatable<ParsedCourseName>
 {
-    public List<CourseNameSegment> Segments = new();
+    public readonly List<CourseNameSegment> Segments = new();
+
+    public bool Equals(ParsedCourseName other)
+    {
+        var ret = this.IsEqual(other);
+        return ret;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not ParsedCourseName other)
+        {
+            return false;
+        }
+        return Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Segments.GetHashCode();
+    }
 }
 
 public struct CourseNameSegment()
@@ -26,6 +46,7 @@ public struct CourseNameSegment()
 public struct CourseNameSegmentFlags()
 {
     public bool IsInitials = false;
+    public bool CanBeIgnored = false;
 }
 
 public sealed class CourseNameParserConfig
@@ -121,10 +142,6 @@ public static class CourseNameParsing
             {
                 continue;
             }
-            if (ShouldIgnoreProgrammingWords())
-            {
-                continue;
-            }
             if (!PrepareReturn())
             {
                 continue;
@@ -149,6 +166,12 @@ public static class CourseNameParsing
                     return true;
                 }
 
+                if (CheckMayIgnoreAsProgrammingWord())
+                {
+                    segment.Flags.CanBeIgnored = true;
+                    return true;
+                }
+
                 if (s.Length < config.MinUsefulWordLength)
                 {
                     return false;
@@ -158,7 +181,7 @@ public static class CourseNameParsing
                 return true;
             }
 
-            bool ShouldIgnoreProgrammingWords()
+            bool CheckMayIgnoreAsProgrammingWord()
             {
                 if (!isAnyProgrammingLanguage)
                 {
@@ -259,13 +282,23 @@ public static class CourseNameParsing
 
             var selfword = iself.CurrentWord;
             var otherword = iother.CurrentWord;
-            if (!selfword.IsEqual(otherword))
+            if (selfword.IsEqual(otherword))
             {
-                return false;
+                iself.Move();
+                iother.Move();
+                continue;
             }
-
-            iself.Move();
-            iother.Move();
+            if (iself.CanIgnoreCurrent)
+            {
+                iself.Move();
+                continue;
+            }
+            if (iother.CanIgnoreCurrent)
+            {
+                iother.Move();
+                continue;
+            }
+            return false;
         }
     }
 
@@ -277,6 +310,7 @@ public static class CourseNameParsing
 
         public bool IsDone => Index >= _courseName.Segments.Count;
         private CourseNameSegment CurrentSegment => _courseName.Segments[Index];
+        public bool CanIgnoreCurrent => CurrentSegment.Flags.CanBeIgnored;
         public WordSpan CurrentWord
         {
             get
