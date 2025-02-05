@@ -7,7 +7,7 @@ namespace ScheduleLib;
 public struct ScheduleFilter()
 {
     public QualificationType? QualificationType;
-    public int? Grade;
+    public Grade? Grade;
     public TeacherFilter TeacherFilter = new();
     public GroupFilter GroupFilter = new();
 }

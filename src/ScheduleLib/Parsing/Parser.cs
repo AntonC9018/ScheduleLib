@@ -272,6 +272,14 @@ public static class ParserHelper
         int end = b.Position;
         return a.Source.AsMemory(start .. end);
     }
+
+    public static ReadOnlyMemory<char> PeekSource(this Parser a, int count)
+    {
+        Debug.Assert(a.CanPeekCount(count));
+        var end = a.Position + count;
+        var ret = a.Source.AsMemory(a.Position .. end);
+        return ret;
+    }
 }
 
 public enum ConsumeIntStatus

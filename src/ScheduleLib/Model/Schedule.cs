@@ -194,6 +194,18 @@ public record struct LessonGroups() : IEnumerable<GroupId>
         this[count] = id;
     }
 
+    public readonly bool Contains(GroupId id)
+    {
+        foreach (var groupId in this)
+        {
+            if (groupId == id)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public readonly Enumerator GetEnumerator() => new(this);
     IEnumerator<GroupId> IEnumerable<GroupId>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -223,6 +235,7 @@ public record struct LessonGroups() : IEnumerable<GroupId>
 
         public void Reset() => throw new NotImplementedException();
         object? IEnumerator.Current => Current;
+
     }
 }
 
@@ -255,6 +268,8 @@ public sealed class RegularLesson
     public required LessonData Lesson;
     public required RegularLessonDate Date;
 }
+
+public readonly record struct RegularLessonId(int Id);
 
 public sealed class OneTimeLesson
 {
@@ -310,6 +325,13 @@ public enum Language
 public readonly record struct Faculty(string Name);
 public readonly record struct Specialty(string? Name);
 
+public readonly record struct Grade(int Value);
+public enum AttendanceMode
+{
+    Zi,
+    FrecventaRedusa,
+}
+
 public sealed class Group
 {
     /// <summary>
@@ -317,9 +339,11 @@ public sealed class Group
     /// </summary>
     public required string Name;
 
-    public required int Grade;
+    public required Grade Grade;
+    public required int GroupNumber;
     public required QualificationType QualificationType;
     public required Faculty Faculty;
+    public required AttendanceMode AttendanceMode;
     public Specialty Specialty = default;
     public required Language Language;
 }
@@ -359,4 +383,5 @@ public static class AccessorHelper
         _ = schedule;
         return id.Id!;
     }
+    public static RegularLesson Get(this Schedule schedule, RegularLessonId id) => schedule.RegularLessons[id.Id];
 }

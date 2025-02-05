@@ -9,9 +9,9 @@ public partial class ScheduleBuilder
     public LookupModule? LookupModule = null;
 }
 
-public sealed class LessonsByCourseMap : List<List<int>>
+public sealed class LessonsByCourseMap : List<List<RegularLessonId>>
 {
-    public List<int> this[CourseId courseId] => this[courseId.Id];
+    public List<RegularLessonId> this[CourseId courseId] => this[courseId.Id];
 }
 
 public sealed class LookupModule()
@@ -141,7 +141,7 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookupModule.LessonsByCourse[courseId.Id];
-                list.Add(i);
+                list.Add(new(i));
             }
         }
     }

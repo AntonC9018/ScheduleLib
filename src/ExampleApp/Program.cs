@@ -612,7 +612,7 @@ var javaAnghelov = s.Scope(s1 =>
 
 var filteredSchedule = schedule.Filter(new()
 {
-    Grade = 3,
+    Grade = new(3),
     QualificationType = QualificationType.Licenta,
 });
 var dayNameProvider = new DayNameProvider();
