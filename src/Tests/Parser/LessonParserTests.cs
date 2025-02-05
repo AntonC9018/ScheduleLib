@@ -6,51 +6,6 @@ namespace App.Tests;
 
 public sealed class LessonParserTests
 {
-    public bool CheckEqualName(string expected, TeacherName actual)
-    {
-        var expectedName = TeacherNameHelper.ParseName(expected);
-        if (!ShortNameEqual())
-        {
-            return false;
-        }
-        if (!LastNameEqual())
-        {
-            return false;
-        }
-        return true;
-
-        bool ShortNameEqual()
-        {
-            if (actual.ShortFirstName.IsEmpty)
-            {
-                return expectedName.ShortFirstName is null;
-            }
-
-            var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
-            var shortActualSpan = actual.ShortFirstName.Span;
-            if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        bool LastNameEqual()
-        {
-            if (actual.LastName.IsEmpty)
-            {
-                return expectedName.LastName is null;
-            }
-
-            var lastNameSpan = expectedName.LastName!.AsSpan();
-            if (!lastNameSpan.Equals(actual.LastName.Span, StringComparison.Ordinal))
-            {
-                return false;
-            }
-            return true;
-        }
-    }
     private void AssertEqualName(string expected, TeacherName actual)
     {
         Assert.True(CheckEqualName(expected, actual));
@@ -439,5 +394,88 @@ public sealed class LessonParserTests
                 Assert.Equal("II", lesson2.SubGroup.Value);
                 Assert.Equal(Parity.EvenWeek, lesson2.Parity);
             });
+    }
+
+    [Fact]
+    public void NoTeacherNoRoom()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+            ],
+        });
+
+        Assert.Collection(lessons,
+            lesson =>
+            {
+                Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+            });
+    }
+
+    [Fact]
+    public void TeacherAll()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher",
+            ],
+        });
+
+        Assert.Collection(lessons,
+            lesson =>
+            {
+                Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+                var teacher = Assert.Single(lesson.TeacherNames);
+                AssertEqualName("Teacher", teacher);
+            });
+    }
+
+    private bool CheckEqualName(string expected, TeacherName actual)
+    {
+        var expectedName = TeacherNameHelper.ParseName(expected);
+        if (!ShortNameEqual())
+        {
+            return false;
+        }
+        if (!LastNameEqual())
+        {
+            return false;
+        }
+        return true;
+
+        bool ShortNameEqual()
+        {
+            if (actual.ShortFirstName.IsEmpty)
+            {
+                return expectedName.ShortFirstName is null;
+            }
+
+            var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
+            var shortActualSpan = actual.ShortFirstName.Span;
+            if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool LastNameEqual()
+        {
+            if (actual.LastName.IsEmpty)
+            {
+                return expectedName.LastName is null;
+            }
+
+            var lastNameSpan = expectedName.LastName!.AsSpan();
+            if (!lastNameSpan.Equals(actual.LastName.Span, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

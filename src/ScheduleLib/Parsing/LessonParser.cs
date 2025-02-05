@@ -19,6 +19,7 @@ public readonly struct DefaultModifiersList()
     private readonly List<DefaultModifiers> _list = new();
 
     public List<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    public bool IsEmpty => _list.Count == 0;
 
     public void Clear()
     {
@@ -75,6 +76,8 @@ public readonly struct SubLessonModifiersList()
     private readonly List<SubLessonModifiers> _list = new();
 
     public List<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+
+    public bool IsEmpty => _list.Count == 0;
 
     public ref SubLessonModifiers Ref(int index)
     {
@@ -469,7 +472,8 @@ public static class LessonParsingHelper
 
                 foreach (var defaultMod in state.DefaultModifiers)
                 {
-                    if (defaultMod.SubGroup == SubGroup.All)
+                    if (defaultMod.SubGroup == SubGroup.All
+                        && !lesson.Modifiers.IsEmpty)
                     {
                         continue;
                     }
@@ -490,6 +494,15 @@ public static class LessonParsingHelper
                     v.Specific.UpdateIfNotDefault(defaultMod.Specific);
 
                     yield return Output(defaultMod.SubGroup, v, lesson.LessonName);
+                }
+
+                if (lesson.Modifiers.IsEmpty
+                    && state.DefaultModifiers.IsEmpty)
+                {
+                    yield return Output(
+                        SubGroup.All,
+                        allFallback,
+                        lesson.LessonName);
                 }
             }
 
