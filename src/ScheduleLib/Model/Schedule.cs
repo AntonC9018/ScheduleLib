@@ -118,8 +118,10 @@ public record struct LessonGroups() : IEnumerable<GroupId>
     public GroupId Group1 = GroupId.Invalid;
     public GroupId Group2 = GroupId.Invalid;
     public GroupId Group3 = GroupId.Invalid;
+    public GroupId Group4 = GroupId.Invalid;
+    public GroupId Group5 = GroupId.Invalid;
 
-    public readonly int Capacity => 4;
+    public readonly int Capacity => 6;
 
     // indexer
     public GroupId this[int index]
@@ -132,6 +134,8 @@ public record struct LessonGroups() : IEnumerable<GroupId>
                 1 => Group1,
                 2 => Group2,
                 3 => Group3,
+                4 => Group4,
+                5 => Group5,
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
@@ -150,6 +154,12 @@ public record struct LessonGroups() : IEnumerable<GroupId>
                     break;
                 case 3:
                     Group3 = value;
+                    break;
+                case 4:
+                    Group4 = value;
+                    break;
+                case 5:
+                    Group5 = value;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(index));

@@ -63,7 +63,7 @@ context.Schedule.ConfigureRemappings(remap =>
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.PerGroupAndPerTeacherPdfs;
+var option = Option.AllTeachersExcel;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
