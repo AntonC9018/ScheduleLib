@@ -90,7 +90,7 @@ public static class GroupBuilderHelper
                 throw new InvalidOperationException("The group name must be initialized.");
             }
 
-            if (group.Grade == 0)
+            if (group.Grade.Value == 0)
             {
                 throw new InvalidOperationException("The group grade must be initialized.");
             }

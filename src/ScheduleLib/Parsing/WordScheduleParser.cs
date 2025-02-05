@@ -631,7 +631,7 @@ public static class WordScheduleParser
 
             foreach (var existingLesson in existingLessonsOfThisCourse)
             {
-                var model = schedule.RegularLessons.Ref(existingLesson);
+                var model = schedule.RegularLessons.Ref(existingLesson.Id);
 
                 var diffMask = new RegularLessonModelDiffMask
                 {

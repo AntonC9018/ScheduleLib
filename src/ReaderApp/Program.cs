@@ -119,24 +119,24 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.CreateLessonsInRegistry:
     {
-        TeacherId MyId()
-        {
-            return context.Schedule
-                .Lookup()
-                .Teacher(lastName: "Curmanschii")!
-                .Value;
-        }
-        var mySchedule = schedule.Filter(new()
-        {
-            TeacherFilter = new()
-            {
-                IncludeIds = [ MyId() ],
-            },
-        });
+        // TeacherId MyId()
+        // {
+        //     return context.Schedule
+        //         .Lookup()
+        //         .Teacher(lastName: "Curmanschii")!
+        //         .Value;
+        // }
+        // var mySchedule = schedule.Filter(new()
+        // {
+        //     TeacherFilter = new()
+        //     {
+        //         IncludeIds = [ MyId() ],
+        //     },
+        // });
         await Tasks.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
-            Schedule = mySchedule,
+            Schedule = schedule,
             Session = Session.Ses2,
             Logger = new Logger(),
             CourseFinder = new()
@@ -144,6 +144,8 @@ switch (option)
                 LookupModule = context.Schedule.LookupModule!,
                 Impl = context.CourseNameUnifierModule,
             },
+            GroupParseContext = context.Schedule.GroupParseContext!,
+            LookupModule = context.Schedule.LookupModule!,
         });
         break;
     }
@@ -159,6 +161,11 @@ sealed class Logger : Tasks.ILogger
     public void LessonWithoutName()
     {
         Console.WriteLine("Lesson without name");
+    }
+
+    public void GroupNotFound(string groupName)
+    {
+        Console.WriteLine($"Group not found: {groupName}");
     }
 }
 

@@ -19,8 +19,12 @@ using ReaderApp.ExcelBuilder;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
+using Group = ScheduleLib.Group;
 using IDocument = AngleSharp.Dom.IDocument;
+using NotSupportedException = System.NotSupportedException;
 
 namespace ReaderApp;
 
@@ -939,9 +943,11 @@ public static class Tasks
         public NamesConfig Names = default;
 
         public required Session Session;
-        public required FilteredSchedule Schedule;
+        public required Schedule Schedule;
         public required ILogger Logger;
         public required CourseFinder CourseFinder;
+        public required GroupParseContext GroupParseContext;
+        public required LookupModule LookupModule;
     }
 
     public sealed class CourseFinder
@@ -967,6 +973,7 @@ public static class Tasks
     public interface ILogger
     {
         void CourseNotFound(string courseName);
+        void GroupNotFound(string groupName);
         void LessonWithoutName();
     }
 
@@ -1037,13 +1044,65 @@ public static class Tasks
 
         using var browsingContext = BrowsingContext.New(config);
 
-        var cookies = browsingContext.GetService<ICookieProvider>();
         await InitializeToken();
 
-        var courseLinksE = await QueryCourseLinks();
-        var courseLinks = courseLinksE.ToArray();
+        var courseLinks = await QueryCourseLinks();
+        foreach (var courseLink in courseLinks)
+        {
+            var groupsUrl = courseLink.Url;
+            var groups = await QueryGroupLinksOfCourse(groupsUrl);
+            foreach (var group in groups)
+            {
+                var lessons = MatchLessons(new()
+                {
+                    Lookup = p.LookupModule.LessonsByCourse,
+                    Schedule = p.Schedule,
+                    CourseId = courseLink.CourseId,
+                    GroupId = group.GroupId,
+                    SubGroup = group.SubGroup,
+                });
+            }
+        }
 
         return;
+
+        async Task<IEnumerable<GroupLink>> QueryGroupLinksOfCourse(Uri courseUrl)
+        {
+            var doc = await GetHtml(courseUrl);
+            // here, the format is different
+            // DJ2302ru(II)
+            // DJ2301
+            // IA2401fr
+            return Ret();
+
+            IEnumerable<GroupLink> Ret()
+            {
+                const string path = """form[name="lesson"] > div.row:nth-child(2) > div.col:nth-child(1) > div.row > a:nth-child(1)""";
+                var anchors = doc.QuerySelectorAll(path);
+                foreach (var el in anchors)
+                {
+                    var anchor = (IHtmlAnchorElement) el;
+                    var url = anchor.Href;
+                    var groupName = anchor.Text;
+                    var groupForSearch = ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
+                    var groupId = FindGroupMatch(p.Schedule, groupForSearch);
+                    if (groupId == GroupId.Invalid)
+                    {
+                        p.Logger.GroupNotFound(groupName);
+                        continue;
+                    }
+
+                    var uri = new Uri(url);
+                    var subgroup = new SubGroup(groupForSearch.SubGroupName.ToString());
+                    yield return new()
+                    {
+                        Uri = uri,
+                        GroupId = groupId,
+                        SubGroup = subgroup,
+                    };
+                }
+            }
+        }
 
         async Task<IEnumerable<CourseLink>> QueryCourseLinks()
         {
@@ -1069,7 +1128,8 @@ public static class Tasks
                         p.Logger.CourseNotFound(courseName);
                         continue;
                     }
-                    yield return new(courseId, url);
+                    var uri = new Uri(url);
+                    yield return new(courseId, uri);
                 }
             }
 
@@ -1305,6 +1365,223 @@ public static class Tasks
         }
         return ret;
     }
+
+
+    static GroupForSearch ParseGroupFromOnlineRegistry(GroupParseContext context, string s)
+    {
+        var mainParser = new Parser(s);
+        mainParser.SkipWhitespace();
+
+        var bparser = mainParser.BufferedView();
+
+        var label = ParseLabel(ref bparser);
+        var year = ParseYear(ref bparser);
+        var groupNumber = ParseGroupNumber(ref bparser);
+        var nameWithoutFR = mainParser.PeekSpanUntilPosition(bparser.Position);
+        _ = nameWithoutFR;
+
+        mainParser.MoveTo(bparser.Position);
+
+        var languageOrFR = ParseLanguageOrFR(ref mainParser);
+        var subGroup = ParseSubGroup(ref mainParser);
+
+        mainParser.SkipWhitespace();
+        if (!mainParser.IsEmpty)
+        {
+            throw new NotSupportedException("Group name not parsed fully.");
+        }
+
+        var grade = context.DetermineGrade((int) year);
+
+        return new()
+        {
+            Grade = grade,
+            FacultyName = label,
+            GroupNumber = (int) groupNumber,
+            // Don't have precedents for master yet.
+            QualificationType = QualificationType.Licenta,
+            AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
+            SubGroupName = subGroup,
+        };
+
+        static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
+        {
+            if (!parser.CanPeekCount(2))
+            {
+                JustThrow("group label");
+            }
+            return parser.PeekSource(2);
+        }
+
+        static uint ParseYear(ref Parser parser)
+        {
+            var yearResult = parser.ConsumePositiveInt(GroupHelper.YearLen);
+            if (yearResult.Status != ConsumeIntStatus.Ok)
+            {
+                JustThrow("year");
+            }
+            return yearResult.Value;
+        }
+
+        static uint ParseGroupNumber(ref Parser parser)
+        {
+            var numberResult = parser.ConsumePositiveInt(GroupHelper.GroupNumberLen);
+            if (numberResult.Status != ConsumeIntStatus.Ok)
+            {
+                JustThrow("group number");
+            }
+            return numberResult.Value;
+        }
+
+        static LanguageOrFR ParseLanguageOrFR(ref Parser parser)
+        {
+            var bparser = parser.BufferedView();
+            var skipResult = bparser.Skip(new SkipUntilOpenParenOrWhiteSpace());
+            if (!skipResult.SkippedAny)
+            {
+                JustThrow("language or FR");
+            }
+
+            var languageOrFRName = parser.PeekSpanUntilPosition(bparser.Position);
+            var ret = DetermineIfLabelIsLanguageOrFR(languageOrFRName);
+            parser.MoveTo(bparser.Position);
+            return ret;
+        }
+
+        static LanguageOrFR DetermineIfLabelIsLanguageOrFR(ReadOnlySpan<char> languageOrFRName)
+        {
+            LanguageOrFR ret = default;
+            if (languageOrFRName.Equals("fr", StringComparison.OrdinalIgnoreCase))
+            {
+                ret.FR = true;
+                ret.Language = Language.Ro;
+                return ret;
+            }
+
+            var maybeLang = LanguageHelper.ParseName(languageOrFRName);
+            if (maybeLang is not { } lang)
+            {
+                JustThrow("language");
+            }
+            ret.Language = lang;
+            return ret;
+        }
+
+        static ReadOnlyMemory<char> ParseSubGroup(ref Parser parser)
+        {
+            if (parser.IsEmpty)
+            {
+                return ReadOnlyMemory<char>.Empty;
+            }
+
+            // Possible if we're at a whitespace.
+            if (parser.Current != '(')
+            {
+                return ReadOnlyMemory<char>.Empty;
+            }
+
+            parser.Move();
+            var bparser = parser.BufferedView();
+            var skipResult = bparser.SkipUntil([')']);
+            if (skipResult.EndOfInput)
+            {
+                JustThrow("subgroup number");
+            }
+
+            var ret = parser.SourceUntilExclusive(bparser);
+            parser.MovePast(bparser.Position);
+
+            return ret;
+        }
+
+        [DoesNotReturn]
+        static void JustThrow(string part)
+        {
+            throw new NotSupportedException($"Bad {part}");
+        }
+    }
+
+    private struct SkipUntilOpenParenOrWhiteSpace : IShouldSkip
+    {
+        public bool ShouldSkip(char c)
+        {
+            if (c == '(')
+            {
+                return false;
+            }
+            if (char.IsWhiteSpace(c))
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    {
+        var groups = schedule.Groups;
+        for (int i = 0; i < groups.Length; i++)
+        {
+            var group = groups[i];
+            if (IsMatch(group, g))
+            {
+                return new(i);
+            }
+        }
+        return GroupId.Invalid;
+    }
+
+    private static bool IsMatch(Group a, in GroupForSearch b)
+    {
+        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
+            b.FacultyName.Span,
+            StringComparison.OrdinalIgnoreCase);
+        if (!facultyMatches)
+        {
+            return false;
+        }
+
+        if (a.GroupNumber != b.GroupNumber)
+        {
+            return false;
+        }
+
+        if (a.AttendanceMode != b.AttendanceMode)
+        {
+            return false;
+        }
+
+        if (a.QualificationType != b.QualificationType)
+        {
+            return false;
+        }
+
+        if (a.Grade != b.Grade)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static IEnumerable<RegularLesson> MatchLessons(LessonMatchParams p)
+    {
+        var lessonsOfCourse = p.Lookup[p.CourseId];
+        foreach (var lessonId in lessonsOfCourse)
+        {
+            var lesson = p.Schedule.Get(lessonId);
+            if (!lesson.Lesson.Groups.Contains(p.GroupId))
+            {
+                continue;
+            }
+            if (lesson.Lesson.SubGroup != p.SubGroup)
+            {
+                continue;
+            }
+
+            yield return lesson;
+        }
+    }
 }
 
 public enum Option
@@ -1351,4 +1628,34 @@ public enum Session
     Ses2,
 }
 
-public readonly record struct CourseLink(CourseId CourseId, string Url);
+internal readonly record struct CourseLink(CourseId CourseId, Uri Url);
+internal readonly record struct GroupLink
+{
+    public required GroupId GroupId { get; init; }
+    public required SubGroup SubGroup { get; init; }
+    public required Uri Uri { get; init; }
+}
+
+internal readonly record struct LessonMatchParams
+{
+    public required CourseId CourseId { get; init; }
+    public required GroupId GroupId { get; init; }
+    public required SubGroup SubGroup { get; init; }
+    public required LessonsByCourseMap Lookup { get; init; }
+    public required Schedule Schedule { get; init; }
+}
+
+internal record struct LanguageOrFR(Language Language, bool FR)
+{
+    public readonly bool IsLanguage => !FR;
+}
+
+internal struct GroupForSearch
+{
+    public required AttendanceMode AttendanceMode;
+    public required Grade Grade;
+    public required int GroupNumber;
+    public required ReadOnlyMemory<char> FacultyName;
+    public required QualificationType QualificationType;
+    public required ReadOnlyMemory<char> SubGroupName;
+}
