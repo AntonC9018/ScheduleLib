@@ -110,7 +110,7 @@ public sealed class LessonParserTests
 
         TimeOnly Time(int hours)
         {
-            var span =  TimeSpan.FromHours(hours);
+            var span = TimeSpan.FromHours(hours);
             return TimeOnly.FromTimeSpan(span);
         }
 

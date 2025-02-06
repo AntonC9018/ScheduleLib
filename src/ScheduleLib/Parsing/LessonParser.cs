@@ -7,134 +7,6 @@ using ScheduleLib.Generation;
 
 namespace ScheduleLib.Parsing.Lesson;
 
-public struct ParseLessonsParams()
-{
-    public LessonTypeParser LessonTypeParser = LessonTypeParser.Instance;
-    public ParityParser ParityParser = ParityParser.Instance;
-    public required IEnumerable<string> Lines;
-}
-
-public readonly struct DefaultModifiersList()
-{
-    private readonly List<DefaultModifiers> _list = new();
-
-    public List<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
-    public bool IsEmpty => _list.Count == 0;
-
-    public void Clear()
-    {
-        _list.Clear();
-    }
-
-    public ref DefaultModifiers Ref(int index)
-    {
-        return ref CollectionsMarshal.AsSpan(_list)[index];
-    }
-
-    public bool HasOtherThanAllSubGroup()
-    {
-        if (_list.Count != 1)
-        {
-            return true;
-        }
-        return Ref(0).SubGroup != SubGroup.All;
-    }
-
-    public int FindIndex(SubGroup subGroup)
-    {
-        var mods = CollectionsMarshal.AsSpan(_list);
-        for (int i = 0; i < mods.Length; i++)
-        {
-            ref var it = ref mods[i];
-            if (it.SubGroup == subGroup)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public int FindOrAdd(SubGroup subGroup)
-    {
-        int index = FindIndex(subGroup);
-        if (index != -1)
-        {
-            return index;
-        }
-
-        var it = new DefaultModifiers
-        {
-            SubGroup = subGroup,
-        };
-        _list.Add(it);
-        return _list.Count - 1;
-    }
-}
-
-public readonly struct SubLessonModifiersList()
-{
-    private readonly List<SubLessonModifiers> _list = new();
-
-    public List<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
-
-    public bool IsEmpty => _list.Count == 0;
-
-    public ref SubLessonModifiers Ref(int index)
-    {
-        return ref CollectionsMarshal.AsSpan(_list)[index];
-    }
-
-    public bool HasOtherThanDefaultKey()
-    {
-        if (_list.Count != 1)
-        {
-            return true;
-        }
-        return Ref(0).Key != SubLessonModifiersKey.Default;
-    }
-
-    public int FindIndex(SubLessonModifiersKey key)
-    {
-        var mods = CollectionsMarshal.AsSpan(_list);
-        for (int i = 0; i < mods.Length; i++)
-        {
-            ref var it = ref mods[i];
-            if (it.Key == key)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public int FindOrAdd(SubLessonModifiersKey key)
-    {
-        int index = FindIndex(key);
-        if (index != -1)
-        {
-            return index;
-        }
-
-        var it = new SubLessonModifiers
-        {
-            Key = key,
-        };
-        _list.Add(it);
-        return _list.Count - 1;
-    }
-
-    public ref SubLessonModifiers Ref(SubLessonModifiersKey key)
-    {
-        if (key == default)
-        {
-            key = new();
-        }
-
-        int index = FindOrAdd(key);
-        return ref Ref(index);
-    }
-}
-
 public struct ParsedLesson()
 {
     public required ReadOnlyMemory<char> LessonName;
@@ -147,186 +19,10 @@ public struct ParsedLesson()
     public SubGroup SubGroup = SubGroup.All;
 }
 
-public struct SubLessonInParsing()
-{
-    public ReadOnlyMemory<char> LessonName = default;
-    public SubLessonModifiersList Modifiers = new();
-}
-
-public struct GeneralModifiersValue()
-{
-    public LessonType LessonType = LessonType.Unspecified;
-    public Parity Parity = Parity.EveryWeek;
-    public ReadOnlyMemory<char> GroupName = default;
-
-    internal bool Set(MaybeGeneralModifiersValue v)
-    {
-        if (v.LessonType is { } lessonType)
-        {
-            LessonType = lessonType;
-            return true;
-        }
-        if (v.Parity is { } parity)
-        {
-            Parity = parity;
-            return true;
-        }
-        if (!v.GroupName.IsEmpty)
-        {
-            GroupName = v.GroupName;
-            return true;
-        }
-        return false;
-    }
-
-    internal void UpdateIfNotDefault(in GeneralModifiersValue v)
-    {
-        if (v.LessonType != LessonType.Unspecified)
-        {
-            LessonType = v.LessonType;
-        }
-        if (v.Parity != Parity.EveryWeek)
-        {
-            Parity = v.Parity;
-        }
-        if (!v.GroupName.IsEmpty)
-        {
-            GroupName = v.GroupName;
-        }
-    }
-}
-
 public struct TeacherName
 {
     public ReadOnlyMemory<char> ShortFirstName;
     public ReadOnlyMemory<char> LastName;
-}
-
-public struct SpecificModifiersValue()
-{
-    public List<TeacherName> TeacherNames = new();
-    public ReadOnlyMemory<char> RoomName = default;
-
-    public readonly ref TeacherName LastTeacher
-    {
-        get
-        {
-            return ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
-        }
-    }
-
-    public void UpdateIfNotDefault(in SpecificModifiersValue v)
-    {
-        if (v.TeacherNames.Count != 0)
-        {
-            TeacherNames = v.TeacherNames;
-        }
-        if (!v.RoomName.IsEmpty)
-        {
-            RoomName = v.RoomName;
-        }
-    }
-
-    public readonly ref TeacherName NewTeacher()
-    {
-        CollectionsMarshal.SetCount(TeacherNames, TeacherNames.Count + 1);
-        ref var ret = ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
-        ret = default;
-        return ref ret;
-    }
-}
-
-public struct DefaultModifiersValue()
-{
-    public GeneralModifiersValue General = new();
-    public SpecificModifiersValue Specific = new();
-}
-
-public struct DefaultModifiers()
-{
-    public DefaultModifiersValue Value = new();
-    public required SubGroup SubGroup { get; init; }
-
-    [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
-    [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
-}
-
-public readonly record struct SubLessonModifiersKey()
-{
-    public static SubLessonModifiersKey Default => new();
-    public SubGroup SubGroup { get; init; } = SubGroup.All;
-    public LessonType LessonType { get; init; } = LessonType.Unspecified;
-}
-
-public struct SubLessonModifiers()
-{
-    public GeneralModifiersValue General = new();
-    public required SubLessonModifiersKey Key { get; init; }
-}
-
-internal struct MaybeGeneralModifiersValue()
-{
-    public LessonType? LessonType;
-    public Parity? Parity;
-    public ReadOnlyMemory<char> GroupName;
-}
-
-internal struct CommonLessonInParsing()
-{
-    public TimeOnly? StartTime = null;
-}
-
-public enum ParsingStep
-{
-    Start,
-    TimeOverride,
-    LessonName,
-    OptionalParens,
-    OptionalSubGroup,
-    RequiredTeacherName,
-    OptionalTeacherName,
-    TeacherLastName,
-    OptionalParensBeforeRoom,
-    OptionalRoomName,
-    MaybeSubGroupAgain,
-    Output,
-}
-
-internal struct ParsingState()
-{
-    public ParsingStep Step = ParsingStep.Start;
-    public CommonLessonInParsing CommonLesson = new();
-    public DefaultModifiersList DefaultModifiers = new();
-    public List<SubLessonInParsing> LessonsInParsing = new();
-    public int LastModiferIndex = -1;
-
-    public ref SubLessonInParsing CurrentSubLesson => ref CollectionsMarshal.AsSpan(LessonsInParsing)[^1];
-    public ref DefaultModifiers LastModifiers => ref DefaultModifiers.Ref(LastModiferIndex);
-
-    public void Reset()
-    {
-        Step = ParsingStep.TimeOverride;
-        LessonsInParsing.Clear();
-        DefaultModifiers.Clear();
-        CommonLesson = new();
-        LastModiferIndex = 0;
-    }
-
-    public bool IsTerminalState
-    {
-        get
-        {
-            return Step is ParsingStep.Output
-                or ParsingStep.Start
-                // In this format, the teacher name and the room are optional
-                or ParsingStep.OptionalSubGroup
-                or ParsingStep.OptionalParens
-                or ParsingStep.OptionalParensBeforeRoom
-                or ParsingStep.OptionalTeacherName
-                or ParsingStep.OptionalRoomName
-                or ParsingStep.MaybeSubGroupAgain;
-        }
-    }
 }
 
 public sealed class WrongFormatException : Exception
@@ -340,15 +36,19 @@ public sealed class WrongFormatException : Exception
     public static void ThrowEmptyCourseName() => throw new WrongFormatException("Empty course name");
 }
 
-internal ref struct ParsingContext
+internal struct ParseLessonsParams()
 {
-    public required ref ParseLessonsParams Params;
-    public required ref ParsingState State;
-    public required ref Parser Parser;
+    public LessonTypeParser LessonTypeParser = LessonTypeParser.Instance;
+    public ParityParser ParityParser = ParityParser.Instance;
+    public required IEnumerable<string> Lines;
 }
+
 public static class LessonParsingHelper
 {
-    public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
+    // I'm not sure how much sense it makes for this to not be internal.
+    // This is really only usable in the context of the Word document,
+    // because the format is really specific.
+    internal static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
         ParsingState state = new();
 
@@ -1033,7 +733,310 @@ public static class LessonParsingHelper
     }
 }
 
-public sealed class LessonTypeParser
+internal readonly struct DefaultModifiersList()
+{
+    private readonly List<DefaultModifiers> _list = new();
+
+    public List<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    public bool IsEmpty => _list.Count == 0;
+
+    public void Clear()
+    {
+        _list.Clear();
+    }
+
+    public ref DefaultModifiers Ref(int index)
+    {
+        return ref CollectionsMarshal.AsSpan(_list)[index];
+    }
+
+    public bool HasOtherThanAllSubGroup()
+    {
+        if (_list.Count != 1)
+        {
+            return true;
+        }
+        return Ref(0).SubGroup != SubGroup.All;
+    }
+
+    public int FindIndex(SubGroup subGroup)
+    {
+        var mods = CollectionsMarshal.AsSpan(_list);
+        for (int i = 0; i < mods.Length; i++)
+        {
+            ref var it = ref mods[i];
+            if (it.SubGroup == subGroup)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int FindOrAdd(SubGroup subGroup)
+    {
+        int index = FindIndex(subGroup);
+        if (index != -1)
+        {
+            return index;
+        }
+
+        var it = new DefaultModifiers
+        {
+            SubGroup = subGroup,
+        };
+        _list.Add(it);
+        return _list.Count - 1;
+    }
+}
+
+internal readonly struct SubLessonModifiersList()
+{
+    private readonly List<SubLessonModifiers> _list = new();
+
+    public List<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+
+    public bool IsEmpty => _list.Count == 0;
+
+    public ref SubLessonModifiers Ref(int index)
+    {
+        return ref CollectionsMarshal.AsSpan(_list)[index];
+    }
+
+    public bool HasOtherThanDefaultKey()
+    {
+        if (_list.Count != 1)
+        {
+            return true;
+        }
+        return Ref(0).Key != SubLessonModifiersKey.Default;
+    }
+
+    public int FindIndex(SubLessonModifiersKey key)
+    {
+        var mods = CollectionsMarshal.AsSpan(_list);
+        for (int i = 0; i < mods.Length; i++)
+        {
+            ref var it = ref mods[i];
+            if (it.Key == key)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int FindOrAdd(SubLessonModifiersKey key)
+    {
+        int index = FindIndex(key);
+        if (index != -1)
+        {
+            return index;
+        }
+
+        var it = new SubLessonModifiers
+        {
+            Key = key,
+        };
+        _list.Add(it);
+        return _list.Count - 1;
+    }
+
+    public ref SubLessonModifiers Ref(SubLessonModifiersKey key)
+    {
+        if (key == default)
+        {
+            key = new();
+        }
+
+        int index = FindOrAdd(key);
+        return ref Ref(index);
+    }
+}
+
+internal struct SubLessonInParsing()
+{
+    public ReadOnlyMemory<char> LessonName = default;
+    public SubLessonModifiersList Modifiers = new();
+}
+
+internal struct GeneralModifiersValue()
+{
+    public LessonType LessonType = LessonType.Unspecified;
+    public Parity Parity = Parity.EveryWeek;
+    public ReadOnlyMemory<char> GroupName = default;
+
+    internal bool Set(MaybeGeneralModifiersValue v)
+    {
+        if (v.LessonType is { } lessonType)
+        {
+            LessonType = lessonType;
+            return true;
+        }
+        if (v.Parity is { } parity)
+        {
+            Parity = parity;
+            return true;
+        }
+        if (!v.GroupName.IsEmpty)
+        {
+            GroupName = v.GroupName;
+            return true;
+        }
+        return false;
+    }
+
+    internal void UpdateIfNotDefault(in GeneralModifiersValue v)
+    {
+        if (v.LessonType != LessonType.Unspecified)
+        {
+            LessonType = v.LessonType;
+        }
+        if (v.Parity != Parity.EveryWeek)
+        {
+            Parity = v.Parity;
+        }
+        if (!v.GroupName.IsEmpty)
+        {
+            GroupName = v.GroupName;
+        }
+    }
+}
+
+internal struct SpecificModifiersValue()
+{
+    public List<TeacherName> TeacherNames = new();
+    public ReadOnlyMemory<char> RoomName = default;
+
+    public readonly ref TeacherName LastTeacher
+    {
+        get
+        {
+            return ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
+        }
+    }
+
+    public void UpdateIfNotDefault(in SpecificModifiersValue v)
+    {
+        if (v.TeacherNames.Count != 0)
+        {
+            TeacherNames = v.TeacherNames;
+        }
+        if (!v.RoomName.IsEmpty)
+        {
+            RoomName = v.RoomName;
+        }
+    }
+
+    public readonly ref TeacherName NewTeacher()
+    {
+        CollectionsMarshal.SetCount(TeacherNames, TeacherNames.Count + 1);
+        ref var ret = ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
+        ret = default;
+        return ref ret;
+    }
+}
+
+internal struct DefaultModifiersValue()
+{
+    public GeneralModifiersValue General = new();
+    public SpecificModifiersValue Specific = new();
+}
+
+internal struct DefaultModifiers()
+{
+    public DefaultModifiersValue Value = new();
+    public required SubGroup SubGroup { get; init; }
+
+    [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
+    [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
+}
+
+internal readonly record struct SubLessonModifiersKey()
+{
+    public static SubLessonModifiersKey Default => new();
+    public SubGroup SubGroup { get; init; } = SubGroup.All;
+    public LessonType LessonType { get; init; } = LessonType.Unspecified;
+}
+
+internal struct SubLessonModifiers()
+{
+    public GeneralModifiersValue General = new();
+    public required SubLessonModifiersKey Key { get; init; }
+}
+
+internal struct MaybeGeneralModifiersValue()
+{
+    public LessonType? LessonType;
+    public Parity? Parity;
+    public ReadOnlyMemory<char> GroupName;
+}
+
+internal struct CommonLessonInParsing()
+{
+    public TimeOnly? StartTime = null;
+}
+
+internal enum ParsingStep
+{
+    Start,
+    TimeOverride,
+    LessonName,
+    OptionalParens,
+    OptionalSubGroup,
+    RequiredTeacherName,
+    OptionalTeacherName,
+    TeacherLastName,
+    OptionalParensBeforeRoom,
+    OptionalRoomName,
+    MaybeSubGroupAgain,
+    Output,
+}
+
+internal struct ParsingState()
+{
+    public ParsingStep Step = ParsingStep.Start;
+    public CommonLessonInParsing CommonLesson = new();
+    public DefaultModifiersList DefaultModifiers = new();
+    public List<SubLessonInParsing> LessonsInParsing = new();
+    public int LastModiferIndex = -1;
+
+    public ref SubLessonInParsing CurrentSubLesson => ref CollectionsMarshal.AsSpan(LessonsInParsing)[^1];
+    public ref DefaultModifiers LastModifiers => ref DefaultModifiers.Ref(LastModiferIndex);
+
+    public void Reset()
+    {
+        Step = ParsingStep.TimeOverride;
+        LessonsInParsing.Clear();
+        DefaultModifiers.Clear();
+        CommonLesson = new();
+        LastModiferIndex = 0;
+    }
+
+    public bool IsTerminalState
+    {
+        get
+        {
+            return Step is ParsingStep.Output
+                or ParsingStep.Start
+                // In this format, the teacher name and the room are optional
+                or ParsingStep.OptionalSubGroup
+                or ParsingStep.OptionalParens
+                or ParsingStep.OptionalParensBeforeRoom
+                or ParsingStep.OptionalTeacherName
+                or ParsingStep.OptionalRoomName
+                or ParsingStep.MaybeSubGroupAgain;
+        }
+    }
+}
+
+internal ref struct ParsingContext
+{
+    public required ref ParseLessonsParams Params;
+    public required ref ParsingState State;
+    public required ref Parser Parser;
+}
+internal sealed class LessonTypeParser
 {
     public static readonly LessonTypeParser Instance = new();
     public LessonType? Parse(ReadOnlySpan<char> type)
@@ -1051,7 +1054,7 @@ public sealed class LessonTypeParser
     }
 }
 
-public sealed class ParityParser
+internal sealed class ParityParser
 {
     public static readonly ParityParser Instance = new();
     public Parity? Parse(ReadOnlySpan<char> parity)

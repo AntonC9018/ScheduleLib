@@ -178,26 +178,15 @@ public sealed class RegularLessonBuilder : ILessonBuilder
 
         if (prevCourseId is { } p)
         {
-            lookupModule.LessonsByCourse[p.Id].Remove(Id);
+            lookupModule.LessonsByCourse[p.Id].Remove(new(Id));
         }
         if (Model.General.Course is { } p1)
         {
-            lookupModule.LessonsByCourse[p1.Id].Add(Id);
+            lookupModule.LessonsByCourse[p1.Id].Add(new(Id));
         }
     }
 
-    public void InitLookup()
-    {
-        if (Schedule.LookupModule is not { } lookupModule)
-        {
-            return;
-        }
-
-        if (Model.General.Course is { } p1)
-        {
-            lookupModule.LessonsByCourse[p1.Id].Add(Id);
-        }
-    }
+    public void InitLookup() => UpdateLookup(prevCourseId: null);
 }
 
 // Allows to specify defaults.
