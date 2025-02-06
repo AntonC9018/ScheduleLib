@@ -119,20 +119,12 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.CreateLessonsInRegistry:
     {
-        // TeacherId MyId()
-        // {
-        //     return context.Schedule
-        //         .Lookup()
-        //         .Teacher(lastName: "Curmanschii")!
-        //         .Value;
-        // }
-        // var mySchedule = schedule.Filter(new()
-        // {
-        //     TeacherFilter = new()
-        //     {
-        //         IncludeIds = [ MyId() ],
-        //     },
-        // });
+        const string studyWeekParityFilePath = @"data\Paritate.docx";
+        var studyWeeks = Tasks.ParseStudyWeekWordDoc(new()
+        {
+            InputPath = studyWeekParityFilePath,
+        }).ToArray();
+
         await Tasks.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
@@ -146,6 +138,11 @@ switch (option)
             },
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
+            DateProvider = new ManualAllScheduledDateProvider
+            {
+                StudyWeeks = studyWeeks,
+            },
+            TimeConfig = context.TimeConfig,
         });
         break;
     }
@@ -161,6 +158,11 @@ sealed class Logger : Tasks.ILogger
     public void LessonWithoutName()
     {
         Console.WriteLine("Lesson without name");
+    }
+
+    public void CustomLessonType(ReadOnlySpan<char> ch)
+    {
+        Console.WriteLine($"Custom lesson type: {ch.ToString()}");
     }
 
     public void GroupNotFound(string groupName)

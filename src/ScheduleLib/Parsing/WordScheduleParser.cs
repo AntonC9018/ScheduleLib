@@ -187,8 +187,7 @@ public static class WordScheduleParser
         // Multicolumn cell has <w:gridSpan w:val="2" /> where 2 indicates the column size
         // May be combined
         var tables = bodyElement.ChildElements
-            .OfType<Table>()
-            .ToArray();
+            .OfType<Table>();
         var state = new TableParsingState
         {
             GroupsProcessed = p.Context.Schedule.Groups.Count,

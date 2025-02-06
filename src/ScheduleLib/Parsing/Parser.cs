@@ -259,6 +259,15 @@ public static class ParserHelper
         return parser.Skip(new SkipUntilImpl(chars));
     }
 
+    private ref struct SkipLettersImpl : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => char.IsLetter(ch);
+    }
+    public static SkipResult SkipLetters(this ref Parser parser)
+    {
+        return parser.Skip(new SkipLettersImpl());
+    }
+
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
     {
         if (!parser.CanPeekCount(length))

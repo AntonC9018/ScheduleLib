@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -7,11 +8,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Web;
 using AngleSharp;
+using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Extensions.Configuration;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -22,9 +25,15 @@ using ScheduleLib.Generation;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
+using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
+using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
+using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
 using Group = ScheduleLib.Group;
+using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using IDocument = AngleSharp.Dom.IDocument;
 using NotSupportedException = System.NotSupportedException;
+using Table = DocumentFormat.OpenXml.Spreadsheet.Table;
+using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
 namespace ReaderApp;
 
@@ -948,6 +957,8 @@ public static class Tasks
         public required CourseFinder CourseFinder;
         public required GroupParseContext GroupParseContext;
         public required LookupModule LookupModule;
+        public required IAllScheduledDateProvider DateProvider;
+        public required LessonTimeConfig TimeConfig;
     }
 
     public sealed class CourseFinder
@@ -975,6 +986,9 @@ public static class Tasks
         void CourseNotFound(string courseName);
         void GroupNotFound(string groupName);
         void LessonWithoutName();
+
+        // May want to pull this out.
+        void CustomLessonType(ReadOnlySpan<char> ch);
     }
 
     public struct NamesConfigSource()
@@ -1061,10 +1075,91 @@ public static class Tasks
                     GroupId = group.GroupId,
                     SubGroup = group.SubGroup,
                 });
+
+                var existingLessonInstances = await QueryLessonInstances(group.Uri);
+                var orderedLessonInstances = existingLessonInstances
+                    .OrderBy(x => x.DateTime)
+                    .ToArray();
+                _ = orderedLessonInstances;
+
+                // Figure out the exact dates that the lessons will occur.
+                var times = GetDateTimesOfScheduledLessons(new()
+                {
+                    Lessons = lessons,
+                    Schedule = p.Schedule,
+                    DateProvider = p.DateProvider,
+                    TimeConfig = p.TimeConfig,
+                }).OrderBy(x => x.DateTime);
             }
         }
 
         return;
+
+        async Task<IEnumerable<LessonInstanceLink>> QueryLessonInstances(Uri groupUri)
+        {
+            var doc = await GetHtml(groupUri);
+            return Ret();
+
+            IEnumerable<LessonInstanceLink> Ret()
+            {
+                const string rowPath = """main > div:nth-of-type(3) > table > tbody > tr""";
+                var rows = doc.QuerySelectorAll(rowPath).Skip(1);
+                foreach (var row in rows)
+                {
+                    var cells = row.Children;
+                    // NOTE: these are going to throw an invalid cast if anything is weird with the nodes.
+                    var first = ProcessFirst();
+                    var editUri = ProcessEdit();
+                    yield return new()
+                    {
+                        EditUri = editUri,
+                        DateTime = first.DateTime,
+                        LessonType = first.LessonType,
+                    };
+                    continue;
+
+                    (LessonType LessonType, DateTime DateTime) ProcessFirst()
+                    {
+                        var dateTimeAndTypeCell = (IHtmlTableDataCellElement) cells[0];
+                        var children = dateTimeAndTypeCell.ChildNodes;
+
+                        LessonType lessonType;
+                        {
+                            var typeNode = children[^1];
+                            var typeText = typeNode.TextContent;
+                            lessonType = ParseLessonType(typeText, p.Logger);
+                        }
+
+                        DateTime dateTime;
+                        {
+                            var anchor = children.OfType<IHtmlAnchorElement>().First();
+                            var dateTimeText = anchor.Text;
+                            var span = dateTimeText.AsSpan();
+                            const string format = "dd.MM.yyyy HH.mm";
+                            bool success = DateTime.TryParseExact(
+                                format: format,
+                                s: span,
+                                provider: null,
+                                style: DateTimeStyles.AssumeLocal,
+                                result: out dateTime);
+                            if (!success)
+                            {
+                                throw new NotSupportedException("The date time didn't parse properly");
+                            }
+                        }
+
+                        return (lessonType, dateTime);
+                    }
+                    Uri ProcessEdit()
+                    {
+                        var editCell = (IHtmlTableDataCellElement) cells[2];
+                        var editAnchor = (IHtmlAnchorElement) editCell.Children[0];
+                        var ret = new Uri(editAnchor.Href);
+                        return ret;
+                    }
+                }
+            }
+        }
 
         async Task<IEnumerable<GroupLink>> QueryGroupLinksOfCourse(Uri courseUrl)
         {
@@ -1077,7 +1172,7 @@ public static class Tasks
 
             IEnumerable<GroupLink> Ret()
             {
-                const string path = """form[name="lesson"] > div.row:nth-child(2) > div.col:nth-child(1) > div.row > a:nth-child(1)""";
+                const string path = """form[name="lesson"] > div.row:nth-of-type(2) > div.col:nth-of-type(1) > div.row > a:nth-of-type(1)""";
                 var anchors = doc.QuerySelectorAll(path);
                 foreach (var el in anchors)
                 {
@@ -1112,7 +1207,7 @@ public static class Tasks
 
             IEnumerable<CourseLink> Ret()
             {
-                var anchors = doc.QuerySelectorAll($"#nav-{SemString()} > div > span:nth-child(2) > a");
+                var anchors = doc.QuerySelectorAll($"#nav-{SemString()} > div > span:nth-of-type(2) > a");
                 foreach (var el in anchors)
                 {
                     var anchor = (IHtmlAnchorElement) el;
@@ -1128,8 +1223,7 @@ public static class Tasks
                         p.Logger.CourseNotFound(courseName);
                         continue;
                     }
-                    var uri = new Uri(url);
-                    yield return new(courseId, uri);
+                    yield return new(courseId, new(url));
                 }
             }
 
@@ -1166,7 +1260,7 @@ public static class Tasks
                     continue;
                 }
                 await using var res = await req.Content.ReadAsStreamAsync(p.CancellationToken);
-                var document = await browsingContext.OpenAsync(r => r.Content(res));
+                var document = await browsingContext.OpenAsync(r => r.Content(res).Address(uri));
                 return document;
             }
         }
@@ -1366,7 +1460,6 @@ public static class Tasks
         return ret;
     }
 
-
     static GroupForSearch ParseGroupFromOnlineRegistry(GroupParseContext context, string s)
     {
         var mainParser = new Parser(s);
@@ -1410,7 +1503,9 @@ public static class Tasks
             {
                 JustThrow("group label");
             }
-            return parser.PeekSource(2);
+            var ret = parser.PeekSource(2);
+            parser.Move(2);
+            return ret;
         }
 
         static uint ParseYear(ref Parser parser)
@@ -1439,7 +1534,7 @@ public static class Tasks
             var skipResult = bparser.Skip(new SkipUntilOpenParenOrWhiteSpace());
             if (!skipResult.SkippedAny)
             {
-                JustThrow("language or FR");
+                return default;
             }
 
             var languageOrFRName = parser.PeekSpanUntilPosition(bparser.Position);
@@ -1454,7 +1549,6 @@ public static class Tasks
             if (languageOrFRName.Equals("fr", StringComparison.OrdinalIgnoreCase))
             {
                 ret.FR = true;
-                ret.Language = Language.Ro;
                 return ret;
             }
 
@@ -1564,7 +1658,7 @@ public static class Tasks
         return true;
     }
 
-    private static IEnumerable<RegularLesson> MatchLessons(LessonMatchParams p)
+    private static IEnumerable<RegularLessonId> MatchLessons(LessonMatchParams p)
     {
         var lessonsOfCourse = p.Lookup[p.CourseId];
         foreach (var lessonId in lessonsOfCourse)
@@ -1579,9 +1673,483 @@ public static class Tasks
                 continue;
             }
 
-            yield return lesson;
+            yield return lessonId;
         }
     }
+
+    // Intentionally duplicated, because the strings are actually different.
+    private static LessonType ParseLessonType(
+        string s,
+        ILogger logger)
+    {
+        var parser = new Parser(s);
+        parser.SkipWhitespace();
+        if (parser.IsEmpty)
+        {
+            return LessonType.Unspecified;
+        }
+        var bparser = parser.BufferedView();
+        _ = parser.SkipNotWhitespace();
+        var lessonTypeSpan = parser.PeekSpanUntilPosition(bparser.Position);
+        var lessonType = Get(lessonTypeSpan);
+        if (lessonType == LessonType.Custom)
+        {
+            logger.CustomLessonType(lessonTypeSpan);
+        }
+
+        parser.MoveTo(bparser.Position);
+
+        parser.SkipWhitespace();
+        if (!parser.IsEmpty)
+        {
+            throw new NotSupportedException("Lesson type not parsed fully.");
+        }
+        return lessonType;
+
+        LessonType Get(ReadOnlySpan<char> str)
+        {
+            static bool Equal(
+                ReadOnlySpan<char> str,
+                string literal)
+            {
+                return str.Equals(
+                    literal.AsSpan(),
+                    StringComparison.Ordinal);
+            }
+
+            if (Equal(str, "laborator"))
+            {
+                return LessonType.Lab;
+            }
+            if (Equal(str, "curs"))
+            {
+                return LessonType.Curs;
+            }
+            if (Equal(str, "seminar"))
+            {
+                return LessonType.Seminar;
+            }
+            return LessonType.Custom;
+        }
+    }
+
+    private readonly record struct LessonInstance
+    {
+        public required RegularLessonId LessonId { get; init; }
+        public required DateTime DateTime { get; init; }
+        // TODO: add topics
+    }
+
+    private readonly struct GetDateTimesOfScheduledLessonsParams
+    {
+        public required IEnumerable<RegularLessonId> Lessons { get; init; }
+        public required Schedule Schedule { get; init; }
+        public required LessonTimeConfig TimeConfig { get; init; }
+        public required IAllScheduledDateProvider DateProvider { get; init; }
+    }
+
+    private static IEnumerable<LessonInstance> GetDateTimesOfScheduledLessons(
+        GetDateTimesOfScheduledLessonsParams p)
+    {
+        foreach (var lessonId in p.Lessons)
+        {
+            var lesson = p.Schedule.Get(lessonId);
+            var lessonDate = lesson.Date;
+
+            var timeSlot = lessonDate.TimeSlot;
+            var startTime = p.TimeConfig.GetTimeSlotInterval(timeSlot).Start;
+
+            var dates = p.DateProvider.Dates(new()
+            {
+                Day = lessonDate.DayOfWeek,
+                Parity = lessonDate.Parity,
+            });
+            foreach (var date in dates)
+            {
+                var dateTime = new DateTime(
+                    date: date,
+                    time: startTime);
+                yield return new()
+                {
+                    LessonId = lessonId,
+                    DateTime = dateTime,
+                };
+            }
+        }
+    }
+
+    public struct ParseStudyWeekWordDocParams
+    {
+        public required string InputPath;
+    }
+
+    public static IEnumerable<StudyWeek> ParseStudyWeekWordDoc(ParseStudyWeekWordDocParams p)
+    {
+        using var stream = File.OpenRead(p.InputPath);
+        using var word = WordprocessingDocument.Open(stream, isEditable: false);
+        if (word.MainDocumentPart?.Document is not { } document)
+        {
+            throw new InvalidOperationException("No document found.");
+        }
+        if (document.Body is not { } body)
+        {
+            throw new InvalidOperationException("No body found.");
+        }
+
+        var table = body.Descendants<Table>().First();
+        var rows = table.ChildElements.OfType<TableRow>();
+        using var rowEnumerator = rows.GetEnumerator();
+
+        DateOnly? previousWeekEnd = null;
+
+        VerifyHeader();
+        while (rowEnumerator.MoveNext())
+        {
+            var cells = GetDataCells(rowEnumerator.Current);
+            var weekInterval = Week();
+            var isOdd = IsOdd();
+            previousWeekEnd = weekInterval.End;
+            yield return new()
+            {
+                MondayDate = weekInterval.Start,
+                IsOddWeek = isOdd,
+            };
+            continue;
+
+            WeekInterval Week()
+            {
+                var weekText = cells.Week.InnerText;
+                var parser = new Parser(weekText);
+                var ret = ParseWeekInterval(ref parser);
+                parser.SkipWhitespace();
+                if (!parser.IsEmpty)
+                {
+                    throw new NotSupportedException("Invalid date range format.");
+                }
+
+                {
+                    int dayCount = ret.End.DayNumber - ret.Start.DayNumber + 1;
+                    if (dayCount != 6)
+                    {
+                        throw new NotSupportedException("The date range must have 6 days in total");
+                    }
+                }
+
+                if (previousWeekEnd is { } prevEnd)
+                {
+                    var dayDiff = ret.Start.DayNumber - prevEnd.DayNumber;
+                    if (dayDiff < 0)
+                    {
+                        throw new NotSupportedException("The week intervals must be in order.");
+                    }
+                }
+
+                if (ret.Start.DayOfWeek != DayOfWeek.Monday)
+                {
+                    throw new NotSupportedException("The week interval must start on a Monday.");
+                }
+
+                return ret;
+            }
+
+            bool IsOdd()
+            {
+                var parityText = cells.Parity.InnerText;
+                var parser = new Parser(parityText);
+                var ret = ParseIsOdd(ref parser);
+                parser.SkipWhitespace();
+                if (!parser.IsEmpty)
+                {
+                    throw new NotSupportedException("Invalid parity format.");
+                }
+                return ret;
+            }
+        }
+
+        yield break;
+
+
+        void VerifyHeader()
+        {
+            bool hasHeader = rowEnumerator.MoveNext();
+            if (!hasHeader)
+            {
+                throw new NotSupportedException("No header found.");
+            }
+
+            // Check has 3 columns
+            // Săptămâna
+            // ...
+            // Paritatea
+
+            var header = rowEnumerator.Current;
+            var headerCells = header.ChildElements.OfType<TableCell>();
+            using var cellEnumerator = headerCells.GetEnumerator();
+
+            bool CompareHeader(string expectedText)
+            {
+                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan().Trim();
+                return IgnoreDiacriticsComparer.Instance.Equals(weekHeaderText, expectedText.AsSpan());
+            }
+
+            {
+                bool moved = cellEnumerator.MoveNext();
+                if (!moved)
+                {
+                    throw new NotSupportedException("No row for the week string");
+                }
+
+                if (!CompareHeader("Saptamana"))
+                {
+                    throw new NotSupportedException("Week header should be first. It had unexpected name.");
+                }
+            }
+
+            {
+                bool moved = cellEnumerator.MoveNext();
+                if (!moved)
+                {
+                    throw new NotSupportedException("An insignificant column must follow after the week column.");
+                }
+            }
+
+            {
+                bool moved = cellEnumerator.MoveNext();
+                if (!moved)
+                {
+                    throw new NotSupportedException("No row for the parity string");
+                }
+
+                if (!CompareHeader("Paritatea"))
+                {
+                    throw new NotSupportedException("Week header should be first. It had unexpected name.");
+                }
+            }
+
+            {
+                bool moved = cellEnumerator.MoveNext();
+                if (moved)
+                {
+                    throw new NotSupportedException("Must only have 3 columns");
+                }
+            }
+        }
+
+        static (Cell Week, Cell Parity) GetDataCells(TableRow dataRow)
+        {
+            var cells = dataRow.ChildElements.OfType<Cell>();
+            using var cellsEnumerator = cells.GetEnumerator();
+
+            var weekCell = NextCell(cellsEnumerator);
+            _ = NextCell(cellsEnumerator);
+            var parityCell = NextCell(cellsEnumerator);
+            NoNextCell(cellsEnumerator);
+            return (
+                Week: weekCell,
+                Parity: parityCell);
+        }
+
+        static Cell NextCell(IEnumerator<Cell> cells)
+        {
+            bool moved = cells.MoveNext();
+            if (!moved)
+            {
+                throw new NotSupportedException("Expected a cell??");
+            }
+            return cells.Current;
+        }
+        static void NoNextCell(IEnumerator<Cell> cells)
+        {
+            bool moved = cells.MoveNext();
+            if (moved)
+            {
+                throw new NotSupportedException("Expected no more cells.");
+            }
+        }
+    }
+
+    private static readonly ImmutableArray<string> MonthNames = GetMonthNames();
+
+    private static ImmutableArray<string> GetMonthNames()
+    {
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var ret = ImmutableArray.CreateBuilder<string>();
+        ret.Capacity = (int) Month.Count;
+        ret.Count = (int) Month.Count;
+        Set(Month.January, "ianuarie");
+        Set(Month.February, "februarie");
+        Set(Month.March, "martie");
+        Set(Month.April, "aprilie");
+        Set(Month.May, "mai");
+        Set(Month.June, "iunie");
+        Set(Month.July, "iulie");
+        Set(Month.August, "august");
+        Set(Month.September, "septembrie");
+        Set(Month.October, "octombrie");
+        Set(Month.November, "noiembrie");
+        Set(Month.December, "decembrie");
+        Debug.Assert(ret.All(x => x != null));
+        return ret.MoveToImmutable();
+
+        void Set(Month m, string name)
+        {
+            ret[(int) (m - 1)] = name;
+        }
+    }
+
+
+    private static Month? ParseMonth(ReadOnlySpan<char> name)
+    {
+        for (int i = 0; i < MonthNames.Length; i++)
+        {
+            var monthName = MonthNames[i];
+            if (monthName.AsSpan().Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                var month = (Month)(i + 1);
+                return month;
+            }
+        }
+        return null;
+    }
+
+    private record struct WeekInterval(DateOnly Start, DateOnly End);
+
+    private readonly struct SkipPunctuationOrWhite : IShouldSkip
+    {
+        public bool ShouldSkip(char c)
+        {
+            if (char.IsPunctuation(c))
+            {
+                return true;
+            }
+            if (char.IsWhiteSpace(c))
+            {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private static WeekInterval ParseWeekInterval(ref Parser parser)
+    {
+        parser.SkipWhitespace();
+
+        var dayStart = ParseDayNumber(ref parser);
+        parser.SkipWhitespace();
+        var monthStart = ParseMonth1(ref parser);
+        parser.Skip(new SkipPunctuationOrWhite());
+
+        var dayEnd = ParseDayNumber(ref parser);
+        parser.SkipWhitespace();
+        var monthEnd = ParseMonth1(ref parser);
+        parser.SkipWhitespace();
+
+        var year = ParseYear(ref parser);
+        var startDate = CreateDate(dayStart, monthStart);
+        var endDate = CreateDate(dayEnd, monthEnd);
+        return new()
+        {
+            Start = startDate,
+            End = endDate,
+        };
+
+        DateOnly CreateDate(uint day, Month month)
+        {
+            return new DateOnly(
+                year: year,
+                month: (int) month,
+                day: (int) day);
+        }
+
+        uint ParseDayNumber(ref Parser parser)
+        {
+            var bparser = parser.BufferedView();
+            var skipResult = bparser.SkipNumbers();
+            if (!skipResult.SkippedAny)
+            {
+                throw new NotSupportedException("Day number expected");
+            }
+            var daySpan = parser.PeekSpanUntilPosition(bparser.Position);
+            if (daySpan.Length > 2)
+            {
+                throw new NotSupportedException("Day number too long (max 2 numbers)");
+            }
+            if (!uint.TryParse(daySpan, out uint day))
+            {
+                Debug.Fail("This should never happen?");
+                day = 0;
+            }
+            parser.MoveTo(bparser.Position);
+            return day;
+        }
+
+        Month ParseMonth1(ref Parser parser)
+        {
+            var bparser = parser.BufferedView();
+            var skipResult = bparser.SkipLetters();
+            if (!skipResult.SkippedAny)
+            {
+                throw new NotSupportedException("Month name expected");
+            }
+            var monthSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            if (ParseMonth(monthSpan) is not { } month)
+            {
+                throw new NotSupportedException("Month name not recognized");
+            }
+            return month;
+        }
+
+        int ParseYear(ref Parser parser)
+        {
+            var yearResult = parser.ConsumePositiveInt(4);
+            if (yearResult.Status != ConsumeIntStatus.Ok)
+            {
+                throw new NotSupportedException("Year not parsed");
+            }
+            return (int) yearResult.Value;
+        }
+    }
+
+    private static bool ParseIsOdd(ref Parser parser)
+    {
+        var bparser = parser.BufferedView();
+        bparser.SkipNotWhitespace();
+        var span = parser.PeekSpanUntilPosition(bparser.Position);
+
+        static bool Equals1(ReadOnlySpan<char> span, string literal)
+        {
+            return span.Equals(literal.AsSpan(), StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        if (Equals1(span, "Pară"))
+        {
+            parser.MoveTo(bparser.Position);
+            return false;
+        }
+        if (Equals1(span, "Impară"))
+        {
+            parser.MoveTo(bparser.Position);
+            return true;
+        }
+        throw new NotSupportedException("Parity not recognized");
+    }
+}
+
+public enum Month
+{
+    January = 1,
+    February = 2,
+    March = 3,
+    April = 4,
+    May = 5,
+    June = 6,
+    July = 7,
+    August = 8,
+    September = 9,
+    October = 10,
+    November = 11,
+    December = 12,
+    Count = 12,
 }
 
 public enum Option
@@ -1636,6 +2204,13 @@ internal readonly record struct GroupLink
     public required Uri Uri { get; init; }
 }
 
+internal readonly record struct LessonInstanceLink
+{
+    public required DateTime DateTime { get; init; }
+    public required LessonType LessonType { get; init; }
+    public required Uri EditUri { get; init; }
+}
+
 internal readonly record struct LessonMatchParams
 {
     public required CourseId CourseId { get; init; }
@@ -1645,9 +2220,11 @@ internal readonly record struct LessonMatchParams
     public required Schedule Schedule { get; init; }
 }
 
-internal record struct LanguageOrFR(Language Language, bool FR)
+internal record struct LanguageOrFR
 {
-    public readonly bool IsLanguage => !FR;
+    public Language? Language;
+    public bool FR;
+    public readonly bool IsLanguage => Language is not null;
 }
 
 internal struct GroupForSearch
@@ -1658,4 +2235,65 @@ internal struct GroupForSearch
     public required ReadOnlyMemory<char> FacultyName;
     public required QualificationType QualificationType;
     public required ReadOnlyMemory<char> SubGroupName;
+}
+
+public record struct StudyWeek(DateOnly MondayDate, bool IsOddWeek);
+
+
+public interface IAllScheduledDateProvider
+{
+
+    public readonly struct Params
+    {
+        public required Parity Parity { get; init; }
+        public required DayOfWeek Day { get; init; }
+    }
+    IEnumerable<DateOnly> Dates(Params p);
+}
+
+public sealed class ManualAllScheduledDateProvider
+    : IAllScheduledDateProvider
+{
+    public required StudyWeek[] StudyWeeks { private get; init; }
+
+    public IEnumerable<DateOnly> Dates(IAllScheduledDateProvider.Params p)
+    {
+        foreach (var week in StudyWeeks)
+        {
+            if (!IsParityMatch())
+            {
+                continue;
+            }
+            const int weekdayCount = 7;
+            var offset = (p.Day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
+            var ret = week.MondayDate.AddDays(offset);
+            yield return ret;
+
+            continue;
+
+            bool IsParityMatch()
+            {
+                switch (p.Parity)
+                {
+                    case Parity.EveryWeek:
+                    {
+                        return true;
+                    }
+                    case Parity.OddWeek:
+                    {
+                        return week.IsOddWeek;
+                    }
+                    case Parity.EvenWeek:
+                    {
+                        return !week.IsOddWeek;
+                    }
+                    default:
+                    {
+                        Debug.Fail("Impossible value of parity");
+                        return false;
+                    }
+                }
+            }
+        }
+    }
 }
