@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ScheduleLib;
 using ScheduleLib.Parsing;
@@ -204,19 +206,46 @@ public static partial class RegistryScraping
                     StringComparison.Ordinal);
             }
 
-            if (Equal(str, "laborator"))
+            for (var i = 0; i < LessonTypeNames.Length; i++)
             {
-                return LessonType.Lab;
-            }
-            if (Equal(str, "curs"))
-            {
-                return LessonType.Curs;
-            }
-            if (Equal(str, "seminar"))
-            {
-                return LessonType.Seminar;
+                if (Equal(str, LessonTypeNames[i]))
+                {
+                    return (LessonType) i;
+                }
             }
             return LessonType.Custom;
+        }
+    }
+
+    internal static string? GetLessonTypeName(LessonType type)
+    {
+        if (LessonTypeNames.Length <= (int) type)
+        {
+            return null;
+        }
+        return LessonTypeNames[(int) type];
+    }
+
+
+    private static readonly ImmutableArray<string> LessonTypeNames = CreateLessonTypeNames();
+    private static ImmutableArray<string> CreateLessonTypeNames()
+    {
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var ret = ImmutableArray.CreateBuilder<string>();
+        ret.Capacity = 3;
+        ret.Count = 3;
+
+        Set(LessonType.Lab, "laborator");
+        Set(LessonType.Curs, "curs");
+        Set(LessonType.Seminar, "seminar");
+
+        Debug.Assert(ret.All(x => x != null));
+
+        return ret.ToImmutable();
+
+        void Set(LessonType t, string value)
+        {
+            ret[(int) t] = value;
         }
     }
 }
