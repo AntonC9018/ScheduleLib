@@ -3,6 +3,7 @@ using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
 using ReaderApp;
 using ReaderApp.Helper;
+using ReaderApp.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 
@@ -119,55 +120,24 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.CreateLessonsInRegistry:
     {
-        const string studyWeekParityFilePath = @"data\Paritate.docx";
-        var studyWeeks = Tasks.ParseStudyWeekWordDoc(new()
+        var dateProvider = Tasks.CreateDateProviderFromWeekParityExcel(new()
         {
-            InputPath = studyWeekParityFilePath,
-        }).ToArray();
-
-        await Tasks.AddLessonsToOnlineRegistry(new()
+            InputPath = @"data\Paritate.docx",
+        });
+        await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
             Schedule = schedule,
             Session = Session.Ses2,
-            Logger = new Logger(),
-            CourseFinder = new()
-            {
-                LookupModule = context.Schedule.LookupModule!,
-                Impl = context.CourseNameUnifierModule,
-            },
+            ErrorHandler = new RegistryErrorLogger(),
+            CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
-            DateProvider = new ManualAllScheduledDateProvider
-            {
-                StudyWeeks = studyWeeks,
-            },
+            DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
         });
         break;
     }
 }
 
-sealed class Logger : Tasks.ILogger
-{
-    public void CourseNotFound(string courseName)
-    {
-        Console.WriteLine($"Course not found: {courseName}");
-    }
-
-    public void LessonWithoutName()
-    {
-        Console.WriteLine("Lesson without name");
-    }
-
-    public void CustomLessonType(ReadOnlySpan<char> ch)
-    {
-        Console.WriteLine($"Custom lesson type: {ch.ToString()}");
-    }
-
-    public void GroupNotFound(string groupName)
-    {
-        Console.WriteLine($"Group not found: {groupName}");
-    }
-}
 
