@@ -9,7 +9,7 @@ public interface IRegistryErrorHandler
     // May want to pull this out.
     void CustomLessonType(ReadOnlySpan<char> ch);
 
-    void ExtraLessonDateFound(DateTime date);
+    void ExtraLessonDateFound(DateOnly date);
 }
 
 public sealed class RegistryErrorLogger : IRegistryErrorHandler
@@ -29,7 +29,7 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
         Console.WriteLine($"Custom lesson type: {ch.ToString()}");
     }
 
-    public void ExtraLessonDateFound(DateTime date)
+    public void ExtraLessonDateFound(DateOnly date)
     {
         Console.WriteLine($"Extra lesson: {date}");
     }

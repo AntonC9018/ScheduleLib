@@ -110,7 +110,7 @@ internal static class HtmlSearch
             var url = anchor.Href;
             var groupName = anchor.Text;
             var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
-            var groupId = MissingLessonDetection.FindGroupMatch(p.Schedule, groupForSearch);
+            var groupId = FindGroupMatch(p.Schedule, groupForSearch);
             if (groupId == GroupId.Invalid)
             {
                 p.ErrorHandler.GroupNotFound(groupName);
@@ -126,6 +126,16 @@ internal static class HtmlSearch
                 SubGroup = subgroup,
             };
         }
+    }
+
+    internal static Uri ScanForLessonAddLink(IDocument doc)
+    {
+        var anchor = doc
+            .QuerySelectorAll<IHtmlAnchorElement>("div > a")
+            .First(a => IgnoreDiacriticsComparer.Instance.Equals(a.TextContent, "Adaugare"));
+        var href = anchor.Href;
+        var uri = new Uri(href);
+        return uri;
     }
 
     internal static IEnumerable<LessonInstanceLink> ScanLessonsDocumentForLessonInstances(
@@ -189,4 +199,50 @@ internal static class HtmlSearch
         }
     }
 
+    private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    {
+        var groups = schedule.Groups;
+        for (int i = 0; i < groups.Length; i++)
+        {
+            var group = groups[i];
+            if (IsMatch(group, g))
+            {
+                return new(i);
+            }
+        }
+        return GroupId.Invalid;
+    }
+
+    private static bool IsMatch(Group a, in GroupForSearch b)
+    {
+        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
+            b.FacultyName.Span,
+            StringComparison.OrdinalIgnoreCase);
+        if (!facultyMatches)
+        {
+            return false;
+        }
+
+        if (a.GroupNumber != b.GroupNumber)
+        {
+            return false;
+        }
+
+        if (a.AttendanceMode != b.AttendanceMode)
+        {
+            return false;
+        }
+
+        if (a.QualificationType != b.QualificationType)
+        {
+            return false;
+        }
+
+        if (a.Grade != b.Grade)
+        {
+            return false;
+        }
+
+        return true;
+    }
 }

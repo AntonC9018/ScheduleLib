@@ -53,6 +53,26 @@ public record struct BitArray32
         return (_bits & (1u << index)) != 0;
     }
 
+    public readonly int GetUnsetAfter(int index)
+    {
+        Debug.Assert(index < _length);
+        var ignoredMask = index < 0 ? 0 : GetMask(index + 1);
+        var allMask = GetMask(_length);
+        var mask = ~ignoredMask & allMask;
+        var unset = ~_bits & mask;
+        if (unset == 0)
+        {
+            return -1;
+        }
+        var ret = BitOperations.TrailingZeroCount(unset);
+        return ret;
+    }
+
+    public readonly int GetUnsetAtOrAfter(int index)
+    {
+        return GetUnsetAfter(index - 1);
+    }
+
     public readonly BitArray32 WithSet(int index)
     {
         var r = this;
