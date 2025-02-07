@@ -106,6 +106,34 @@ public static class EnumerableHelper
                 throw new InvalidOperationException("The list was too short");
             }
         }
+    }
 
+    public static RememberIsDoneEnumerator<T> RememberIsDone<T>(this IEnumerator<T> e) => new(e);
+
+    public struct RememberIsDoneEnumerator<T> : IDisposable
+    {
+        private readonly IEnumerator<T> _e;
+        private bool _isDone;
+
+        public RememberIsDoneEnumerator(IEnumerator<T> e)
+        {
+            _e = e;
+        }
+
+        public readonly bool IsDone => _isDone;
+        public readonly T Current => _e.Current;
+        public bool MoveNext()
+        {
+            if (_e.MoveNext())
+            {
+                _isDone = true;
+            }
+            return !_isDone;
+        }
+
+        public void Dispose()
+        {
+            _e.Dispose();
+        }
     }
 }

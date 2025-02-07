@@ -123,102 +123,186 @@ public static partial class RegistryScraping
                     TimeConfig = p.TimeConfig,
                 }).OrderBy(x => x.DateTime);
 
-                List<LessonInstance> thisDayAll = new();
-                List<LessonInstanceLink> thisDayExisting = new();
+                var lists = new MatchingLists();
 
-                using var allEnumerator = times.GetEnumerator();
-                using var existingEnumerator = orderedLessonInstances.GetEnumerator();
+                // ReSharper disable once GenericEnumeratorNotDisposed
+                using var allEnumerator = times.GetEnumerator().RememberIsDone();
+                // ReSharper disable once GenericEnumeratorNotDisposed
+                using var existingEnumerator = orderedLessonInstances.GetEnumerator().RememberIsDone();
 
-                // TODO: moved once
+                allEnumerator.MoveNext();
+                existingEnumerator.MoveNext();
 
                 while (true)
                 {
+                    if (allEnumerator.IsDone)
+                    {
+                        break;
+                    }
+                    if (existingEnumerator.IsDone)
+                    {
+                        break;
+                    }
+
                     var all = allEnumerator.Current;
                     var existing = existingEnumerator.Current;
 
                     var allDate = DateOnly.FromDateTime(all.DateTime);
                     var existingDate = DateOnly.FromDateTime(existing.DateTime);
+                    var smallestDate = allDate < existingDate ? allDate : existingDate;
 
-                    if (allDate == existingDate)
+                    if (allDate == smallestDate)
                     {
-                        var date = allDate;
-                        thisDayAll.Add(all);
-                        thisDayExisting.Add(existing);
-
-                        while (allEnumerator.MoveNext())
+                        while (true)
                         {
+                            lists.AllToday.Add(all);
+                            if (!allEnumerator.MoveNext())
+                            {
+                                break;
+                            }
                             var nextDate = DateOnly.FromDateTime(allEnumerator.Current.DateTime);
-                            if (nextDate != date)
+                            if (nextDate != smallestDate)
                             {
                                 break;
                             }
-                            thisDayAll.Add(allEnumerator.Current);
+                            lists.AllToday.Add(allEnumerator.Current);
                         }
-
-                        while (existingEnumerator.MoveNext())
+                    }
+                    if (existingDate == smallestDate)
+                    {
+                        while (true)
                         {
+                            lists.ExistingToday.Add(existing);
+                            if (!existingEnumerator.MoveNext())
+                            {
+                                break;
+                            }
                             var nextDate = DateOnly.FromDateTime(existingEnumerator.Current.DateTime);
-                            if (nextDate != date)
+                            if (nextDate != smallestDate)
                             {
                                 break;
                             }
-                            thisDayExisting.Add(existingEnumerator.Current);
+                            lists.ExistingToday.Add(existingEnumerator.Current);
                         }
+                    }
 
-                        if (thisDayExisting.Count > thisDayAll.Count)
-                        {
-                            p.ErrorHandler.ExtraLessonDateFound(date);
-                            continue;
-                        }
+                    Debug.Assert(!TwoLessonAtSameTime());
+                    var matchingContext = lists.CreateContext();
 
-                        Debug.Assert(!TwoLessonAtSameTime());
-                        bool TwoLessonAtSameTime()
+                    UseUpExactMatches();
+                    AddPartialMatches();
+
+                    // TODO: Run the updates in parallel.
+                    foreach (var match in lists.Matches)
+                    {
+                        var t = matchingContext.Get(match);
+                        await Update(t.Existing.EditUri, t.All);
+                    }
+                    foreach (var x in matchingContext.UnusedExisting())
+                    {
+                        await HandleExtraLesson(x);
+                    }
+                    foreach (var x in matchingContext.UnusedAll())
+                    {
+                        await Create(x);
+                    }
+                    lists.Clear();
+
+                    continue;
+
+                    void AddPartialMatches()
+                    {
+                        foreach (var x in matchingContext.IteratePotentialMappings())
                         {
-                            var dates = new HashSet<DateTime>();
-                            foreach (var all in thisDayAll)
+                            if (!x.DatesEqual())
                             {
-                                if (!dates.Add(all.DateTime))
-                                {
-                                    return true;
-                                }
+                                continue;
                             }
-                            return false;
+                            matchingContext.AddMatch(x.Mapping);
                         }
-
-                        List<Mapping> exactMatches = new();
-                        var matchingContext = new MatchingContext(thisDayAll, thisDayExisting, exactMatches);
-                        UseUpExactMatches();
-
-                        void UseUpExactMatches()
+                        foreach (var x in matchingContext.IteratePotentialMappings())
                         {
-                            foreach (var x in matchingContext.IteratePotentialMappings())
+                            if (!x.LessonTypesEqual(p.Schedule))
                             {
-                                if (x.All.DateTime != x.Existing.DateTime)
-                                {
-                                    continue;
-                                }
-                                var type = p.Schedule.Get(x.All.LessonId).Lesson.Type;
-                                if (type != x.Existing.LessonType)
-                                {
-                                    continue;
-                                }
+                                continue;
+                            }
+                            matchingContext.AddMatch(x.Mapping);
+                        }
+                    }
 
-                                matchingContext.UseUpMatch(x.Mapping);
+                    void UseUpExactMatches()
+                    {
+                        foreach (var x in matchingContext.IteratePotentialMappings())
+                        {
+                            if (!x.DatesEqual())
+                            {
+                                continue;
+                            }
+                            if (!x.LessonTypesEqual(p.Schedule))
+                            {
+                                continue;
+                            }
+
+                            matchingContext.UseUpMatch(x.Mapping);
+                        }
+                    }
+
+                    bool TwoLessonAtSameTime()
+                    {
+                        var dates = new HashSet<DateTime>();
+                        foreach (var a in lists.AllToday)
+                        {
+                            if (!dates.Add(a.DateTime))
+                            {
+                                return true;
                             }
                         }
+                        return false;
                     }
                 }
 
-                async Task Change(Uri editUri, LessonInstance lessonInstance)
+                while (!allEnumerator.IsDone)
+                {
+                    await Create(allEnumerator.Current);
+                    allEnumerator.MoveNext();
+                }
+
+                while (!existingEnumerator.IsDone)
+                {
+                    await HandleExtraLesson(existingEnumerator.Current);
+                    existingEnumerator.MoveNext();
+                }
+
+                async ValueTask HandleExtraLesson(LessonInstanceLink x)
+                {
+                    var action = p.ErrorHandler.ExtraLessonInstanceFound(x.DateTime);
+                    if (action == ExtraLessonInstanceAction.Delete)
+                    {
+                        await Delete(x.ViewUri);
+                    }
+                    if (action == ExtraLessonInstanceAction.DeleteWithoutDataLoss)
+                    {
+                        throw new NotImplementedException("This will need some more scanning");
+                    }
+                }
+
+                async Task Update(Uri editUri, LessonInstance lessonInstance)
                 {
                     var doc = await GetHtml(editUri);
                     await SendUpdatedForm(doc, lessonInstance);
                 }
 
-                async Task Add(LessonInstance lessonInstance)
+                async Task Create(LessonInstance lessonInstance)
                 {
                     var doc = await GetHtml(addLessonUri);
                     await SendUpdatedForm(doc, lessonInstance);
+                }
+
+                async Task Delete(Uri detailsUri)
+                {
+                    var doc = await GetHtml(detailsUri);
+                    var form = doc.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")!;
+                    await form.SubmitAsync();
                 }
 
                 Task SendUpdatedForm(IDocument doc, LessonInstance lessonInstance)
@@ -251,7 +335,7 @@ public static partial class RegistryScraping
 
         return;
 
-        async Task<(IEnumerable<LessonInstanceLink> Lessons, Uri? AddLessonLink)> QueryLessonInstances(Uri groupUri)
+        async Task<(IEnumerable<LessonInstanceLink> Lessons, Uri AddLessonLink)> QueryLessonInstances(Uri groupUri)
         {
             var doc = await GetHtml(groupUri);
             var lessons = HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
@@ -357,35 +441,86 @@ internal static class MatchingContextHelper
     {
         return new(ref c);
     }
+
+    public static MatchingContext CreateContext(this MatchingLists lists)
+    {
+        return new(lists);
+    }
+}
+
+internal readonly struct MatchingLists()
+{
+    public readonly List<Mapping> Matches = new();
+    public readonly List<LessonInstance> AllToday = new();
+    public readonly List<LessonInstanceLink> ExistingToday = new();
+
+    public readonly void Clear()
+    {
+        Matches.Clear();
+        AllToday.Clear();
+        ExistingToday.Clear();
+    }
 }
 
 internal struct MatchingContext
 {
+    private readonly MatchingLists _lists;
     private Matches _matches;
-    private readonly List<Mapping> _mappings;
-    private readonly List<LessonInstance> _allToday;
-    private readonly List<LessonInstanceLink> _existingToday;
 
-    public MatchingContext(
-        List<LessonInstance> allToday,
-        List<LessonInstanceLink> existingToday,
-        List<Mapping> mappings)
+    public MatchingContext(MatchingLists lists)
     {
-        _allToday = allToday;
-        _existingToday = existingToday;
-        _mappings = mappings;
-        _matches = new(allToday.Count, existingToday.Count);
+        _lists = lists;
+        _matches = new(lists.AllToday.Count, _lists.ExistingToday.Count);
     }
 
     public void AddMatch(Mapping m)
     {
-        _mappings.Add(m);
+        _lists.Matches.Add(m);
         UseUpMatch(m);
     }
 
     public void UseUpMatch(Mapping m)
     {
         _matches.Set(m);
+    }
+
+    public readonly Item Get(Mapping m)
+    {
+        return new()
+        {
+            Mapping = m,
+            All = _lists.AllToday[m.AllIndex],
+            Existing = _lists.ExistingToday[m.ExistingIndex],
+        };
+    }
+
+    public readonly UnusedEnumerable<LessonInstance> UnusedAll()
+    {
+        return new(_matches.AllMapped, _lists.AllToday);
+    }
+
+    public readonly UnusedEnumerable<LessonInstanceLink> UnusedExisting()
+    {
+        return new(_matches.ExistingMapped, _lists.ExistingToday);
+    }
+
+    public struct Item
+    {
+        public required Mapping Mapping;
+        public required LessonInstance All;
+        public required LessonInstanceLink Existing;
+
+        public readonly bool DatesEqual() => All.DateTime.Date == Existing.DateTime.Date;
+        public readonly bool LessonTypesEqual(Schedule s)
+        {
+            if (Existing.LessonType == LessonType.Unspecified)
+            {
+                return true;
+            }
+
+            var lesson = s.Get(All.LessonId).Lesson;
+            return lesson.Type == Existing.LessonType;
+        }
     }
 
     public readonly ref struct PotentialMappingEnumerable
@@ -408,19 +543,7 @@ internal struct MatchingContext
             _context = ref context;
         }
 
-        public struct Item
-        {
-            public required Mapping Mapping;
-            public required LessonInstance All;
-            public required LessonInstanceLink Existing;
-        }
-
-        public Item Current => new()
-        {
-            Mapping = new(AllIndex: _allIndex, ExistingIndex: _existingIndex),
-            All = _context._allToday[_allIndex],
-            Existing = _context._existingToday[_existingIndex],
-        };
+        public Item Current => _context.Get(new(AllIndex: _allIndex, ExistingIndex: _existingIndex));
 
         public bool MoveNext()
         {
@@ -463,5 +586,32 @@ internal struct MatchingContext
             return true;
 
         }
+    }
+
+    public readonly struct UnusedEnumerable<T>
+    {
+        private readonly BitArray32 _bits;
+        private readonly List<T> _items;
+        public UnusedEnumerable(BitArray32 bits, List<T> items)
+        {
+            _bits = bits;
+            _items = items;
+        }
+        public UnusedEnumerator<T> GetEnumerator() => new(_bits, _items);
+    }
+
+    public struct UnusedEnumerator<T>
+    {
+        private SetBitIndicesEnumerator _e;
+        private readonly List<T> _items;
+
+        public UnusedEnumerator(BitArray32 isUsed, List<T> items)
+        {
+            _e = isUsed.UnsetBitIndicesLowToHigh.GetEnumerator();
+            _items = items;
+        }
+
+        public T Current => _items[_e.Current];
+        public bool MoveNext() => _e.MoveNext();
     }
 }

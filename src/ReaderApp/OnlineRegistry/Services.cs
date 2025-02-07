@@ -9,7 +9,15 @@ public interface IRegistryErrorHandler
     // May want to pull this out.
     void CustomLessonType(ReadOnlySpan<char> ch);
 
-    void ExtraLessonDateFound(DateOnly date);
+    // TODO: Needs to be passed the context.
+    ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date);
+}
+
+public enum ExtraLessonInstanceAction
+{
+    LeaveAlone,
+    Delete,
+    DeleteWithoutDataLoss,
 }
 
 public sealed class RegistryErrorLogger : IRegistryErrorHandler
@@ -29,9 +37,10 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
         Console.WriteLine($"Custom lesson type: {ch.ToString()}");
     }
 
-    public void ExtraLessonDateFound(DateOnly date)
+    public ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date)
     {
-        Console.WriteLine($"Extra lesson: {date}");
+        Console.WriteLine($"Extra lesson instance found: {date}");
+        return ExtraLessonInstanceAction.LeaveAlone;
     }
 
     public void GroupNotFound(string groupName)

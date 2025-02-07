@@ -53,6 +53,19 @@ public record struct BitArray32
         return (_bits & (1u << index)) != 0;
     }
 
+    public readonly int GetSetAfter(int index)
+    {
+        Debug.Assert(index < _length);
+        var ignoredMask = index < 0 ? 0 : GetMask(index + 1);
+        var set = _bits & ~ignoredMask;
+        if (set == 0)
+        {
+            return -1;
+        }
+        var ret = BitOperations.TrailingZeroCount(set);
+        return ret;
+    }
+
     public readonly int GetUnsetAfter(int index)
     {
         Debug.Assert(index < _length);
@@ -84,6 +97,11 @@ public record struct BitArray32
     {
         Debug.Assert(index < _length);
         _bits &= ~(1u << index);
+    }
+
+    public void ClearAll()
+    {
+        _bits = 0;
     }
 
     public readonly BitArray32 Flipped

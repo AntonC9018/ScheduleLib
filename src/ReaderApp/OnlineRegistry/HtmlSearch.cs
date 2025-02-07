@@ -25,6 +25,7 @@ internal readonly record struct LessonInstanceLink
     public required DateTime DateTime { get; init; }
     public required LessonType LessonType { get; init; }
     public required Uri EditUri { get; init; }
+    public required Uri ViewUri { get; init; }
 }
 
 internal readonly struct ScanCoursesParams
@@ -152,12 +153,13 @@ internal static class HtmlSearch
             yield return new()
             {
                 EditUri = editUri,
+                ViewUri = first.ViewUri,
                 DateTime = first.DateTime,
                 LessonType = first.LessonType,
             };
             continue;
 
-            (ScheduleLib.LessonType LessonType, DateTime DateTime) ProcessFirst()
+            (LessonType LessonType, DateTime DateTime, Uri ViewUri) ProcessFirst()
             {
                 var dateTimeAndTypeCell = (IHtmlTableDataCellElement) cells[0];
                 var children = dateTimeAndTypeCell.ChildNodes;
@@ -170,6 +172,7 @@ internal static class HtmlSearch
                 }
 
                 DateTime dateTime;
+                Uri viewUri;
                 {
                     var anchor = children.OfType<IHtmlAnchorElement>().First();
                     var dateTimeText = anchor.Text;
@@ -185,9 +188,11 @@ internal static class HtmlSearch
                     {
                         throw new NotSupportedException("The date time didn't parse properly");
                     }
+
+                    viewUri = new(anchor.Href);
                 }
 
-                return (lessonType, dateTime);
+                return (lessonType, dateTime, viewUri);
             }
             Uri ProcessEdit()
             {
