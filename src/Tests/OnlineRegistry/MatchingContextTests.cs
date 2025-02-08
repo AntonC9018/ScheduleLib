@@ -1,13 +1,13 @@
 namespace ScheduleLib.OnlineRegistry.Tests;
 
-public class MatchingContextTests
+public sealed class MatchingContextTests
 {
-    private DateTime DT1 => new(2025, 1, 1);
-    private DateTime DT2 => new(2025, 1, 2);
-    private DateTime DT3 => new(2025, 1, 3);
-    private DateTime DT4 => new(2025, 1, 4);
-    private DateTime DT5 => new(2025, 1, 5);
-    private DateTime DT6 => new(2025, 1, 5);
+    private static DateTime DT1 => new(2025, 1, 1);
+    private static DateTime DT2 => new(2025, 1, 2);
+    private static DateTime DT3 => new(2025, 1, 3);
+    private static DateTime DT4 => new(2025, 1, 4);
+    private static DateTime DT5 => new(2025, 1, 5);
+    private static DateTime DT6 => new(2025, 1, 5);
 
     [Fact]
     public void BasicCombinationsTest()
@@ -28,7 +28,7 @@ public class MatchingContextTests
     }
 
     [Fact]
-    public void APairUsedUpTest()
+    public void OnePairUsedUpTest()
     {
         var lists = new MatchingLists();
         lists.AddAll(DT1);
@@ -50,7 +50,7 @@ public class MatchingContextTests
     }
 
     [Fact]
-    public void FirstUsedUpWhileIterating()
+    public void SomeUsedUpWhileIterating()
     {
         var lists = new MatchingLists();
         lists.AddAll(DT1);
