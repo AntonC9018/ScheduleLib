@@ -20,7 +20,7 @@ internal readonly record struct GroupLink
     public required Uri Uri { get; init; }
 }
 
-internal readonly record struct LessonInstanceLink
+internal readonly record struct LessonInstanceLink : IDateTime
 {
     public required DateTime DateTime { get; init; }
     public required LessonType LessonType { get; init; }
