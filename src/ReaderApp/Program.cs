@@ -1,9 +1,10 @@
+using System.Reflection;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
 using ReaderApp;
 using ReaderApp.Helper;
-using ReaderApp.OnlineRegistry;
+using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 
@@ -124,9 +125,11 @@ switch (option)
         {
             InputPath = @"data\Paritate.docx",
         });
+        var credentials = Tasks.GetCredentials();
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
+            Credentials = credentials,
             Schedule = schedule,
             Session = Session.Ses2,
             ErrorHandler = new RegistryErrorLogger(),

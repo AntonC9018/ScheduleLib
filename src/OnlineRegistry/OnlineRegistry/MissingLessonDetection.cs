@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using ScheduleLib;
 using ScheduleLib.Builders;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 internal readonly struct GetDateTimesOfScheduledLessonsParams
 {
@@ -99,7 +98,7 @@ public static class MissingLessonDetection
         return DateOnly.FromDateTime(item.DateTime);
     }
 
-    internal static IEnumerable<LessonCommand> DiffLessonSets(DiffLessonSetsParams p)
+    internal static IEnumerable<LessonEquationCommand> GetLessonEquationCommands(DiffLessonSetsParams p)
     {
         p.ExistingLessons = p.ExistingLessons.OrderBy(x => x.DateTime);
         p.AllLessons = p.AllLessons.OrderBy(x => x.DateTime);
@@ -143,15 +142,15 @@ public static class MissingLessonDetection
             var matchResult = matchingContext.AsResult();
             foreach (var r in matchResult.MatchedLessons())
             {
-                yield return LessonCommand.Update(r.Existing, r.All);
+                yield return LessonEquationCommand.Update(r.Existing, r.All);
             }
             foreach (var r in matchResult.UnusedExisting())
             {
-                yield return LessonCommand.Delete(r);
+                yield return LessonEquationCommand.Delete(r);
             }
             foreach (var r in matchResult.UnusedAll())
             {
-                yield return LessonCommand.Create(r);
+                yield return LessonEquationCommand.Create(r);
             }
 
             p.Lists.Clear();
@@ -234,13 +233,13 @@ public static class MissingLessonDetection
 
         while (!allEnumerator.IsDone)
         {
-            yield return LessonCommand.Create(allEnumerator.Current);
+            yield return LessonEquationCommand.Create(allEnumerator.Current);
             allEnumerator.MoveNext();
         }
 
         while (!existingEnumerator.IsDone)
         {
-            yield return LessonCommand.Delete(existingEnumerator.Current);
+            yield return LessonEquationCommand.Delete(existingEnumerator.Current);
             existingEnumerator.MoveNext();
         }
     }
@@ -309,43 +308,43 @@ internal readonly struct MatchingLists()
     }
 }
 
-public enum LessonCommandType
+public enum LessonEquationCommandType
 {
     Create,
     Update,
     Delete,
 }
 
-internal struct LessonCommand
+internal struct LessonEquationCommand
 {
-    public required LessonCommandType Type;
+    public required LessonEquationCommandType Type;
     public LessonInstanceLink Existing;
     public LessonInstance All;
 
-    public static LessonCommand Create(LessonInstance all)
+    public static LessonEquationCommand Create(LessonInstance all)
     {
         return new()
         {
-            Type = LessonCommandType.Create,
+            Type = LessonEquationCommandType.Create,
             All = all,
         };
     }
 
-    public static LessonCommand Update(LessonInstanceLink existing, LessonInstance all)
+    public static LessonEquationCommand Update(LessonInstanceLink existing, LessonInstance all)
     {
         return new()
         {
-            Type = LessonCommandType.Update,
+            Type = LessonEquationCommandType.Update,
             Existing = existing,
             All = all,
         };
     }
 
-    public static LessonCommand Delete(LessonInstanceLink existing)
+    public static LessonEquationCommand Delete(LessonInstanceLink existing)
     {
         return new()
         {
-            Type = LessonCommandType.Delete,
+            Type = LessonEquationCommandType.Delete,
             Existing = existing,
         };
     }

@@ -1,13 +1,11 @@
 using System.Globalization;
-using System.Net;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 internal readonly record struct CourseLink(
     CourseId CourseId,

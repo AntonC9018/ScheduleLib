@@ -1,14 +1,17 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Reflection;
+using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
-using ReaderApp.OnlineRegistry;
-using ScheduleLib;
+using ScheduleLib.Builders;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 public enum Session
 {
@@ -76,11 +79,34 @@ internal struct RegistryScrapingContext : IDisposable
     }
 }
 
+public struct AddLessonsToOnlineRegistryParams()
+{
+    public required CancellationToken CancellationToken;
+    public required Credentials Credentials;
+    /// <summary>
+    /// Will be initialized to the default config if not provided.
+    /// </summary>
+    public JsonSerializerOptions? JsonOptions;
+    /// <summary>
+    /// Will be initialized to the default values if not provided.
+    /// </summary>
+    public NamesConfig? Names = null;
+
+    public required Session Session;
+    public required Schedule Schedule;
+    public required IRegistryErrorHandler ErrorHandler;
+    public required CourseNameUnifierModule CourseNameUnifier;
+    public required GroupParseContext GroupParseContext;
+    public required LookupModule LookupModule;
+    public required IAllScheduledDateProvider DateProvider;
+    public required LessonTimeConfig TimeConfig;
+}
+
+
 public static partial class RegistryScraping
 {
     public static async Task AddLessonsToOnlineRegistry(AddLessonsToOnlineRegistryParams p)
     {
-        p.Credentials ??= OnlineRegistryCredentialsHelper.GetCredentials();
         p.Names ??= NamesConfig.Default;
 
         using var context = RegistryScrapingContext.Create();
@@ -103,7 +129,7 @@ public static partial class RegistryScraping
             var groups = await QueryGroupLinksOfCourse(groupsUrl);
             foreach (var group in groups)
             {
-                var (existingLessonInstances, addLessonUri) = await QueryLessonInstances(group.Uri);
+                var (existingLessonInstances, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 var lessons = MissingLessonDetection.MatchLessonsInSchedule(new()
                 {
                     Lookup = p.LookupModule.LessonsByCourse,
@@ -122,30 +148,30 @@ public static partial class RegistryScraping
                     TimeConfig = p.TimeConfig,
                 });
 
-                var commands = MissingLessonDetection.DiffLessonSets(new()
+                var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
                 {
                     Lists = lists,
                     Schedule = p.Schedule,
                     AllLessons = times,
                     ExistingLessons = existingLessonInstances,
                 });
-                foreach (var c in commands)
+                foreach (var command in equationCommands)
                 {
-                    switch (c.Type)
+                    switch (command.Type)
                     {
-                        case LessonCommandType.Create:
+                        case LessonEquationCommandType.Create:
                         {
-                            await Create(c.All);
+                            await Create(command.All);
                             break;
                         }
-                        case LessonCommandType.Update:
+                        case LessonEquationCommandType.Update:
                         {
-                            await Update(c.Existing.EditUri, c.All);
+                            await Update(command.Existing.EditUri, command.All);
                             break;
                         }
-                        case LessonCommandType.Delete:
+                        case LessonEquationCommandType.Delete:
                         {
-                            await HandleExtraLesson(c.Existing);
+                            await HandleExtraLesson(command.Existing);
                             break;
                         }
                         default:
@@ -218,7 +244,7 @@ public static partial class RegistryScraping
 
         return;
 
-        async Task<(IEnumerable<LessonInstanceLink> Lessons, Uri AddLessonLink)> QueryLessonInstances(Uri groupUri)
+        async Task<(IEnumerable<LessonInstanceLink> Lessons, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(Uri groupUri)
         {
             var doc = await GetHtml(groupUri);
             var lessons = HtmlSearch.ScanLessonsDocumentForLessonInstances(new()

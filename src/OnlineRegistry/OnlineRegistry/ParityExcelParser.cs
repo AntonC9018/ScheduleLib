@@ -3,11 +3,10 @@ using System.Diagnostics;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using ScheduleLib;
 using ScheduleLib.Parsing;
 using Table = DocumentFormat.OpenXml.Spreadsheet.Table;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 public record struct StudyWeek(DateOnly MondayDate, bool IsOddWeek);
 

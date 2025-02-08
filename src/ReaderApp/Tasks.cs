@@ -1,19 +1,17 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.Extensions.Configuration;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using ReaderApp.ExcelBuilder;
-using ReaderApp.OnlineRegistry;
+using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
-using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.GroupParser;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
@@ -48,32 +46,6 @@ public struct AllTeacherExcelParams
 public struct ParseStudyWeekWordDocParams
 {
     public required string InputPath;
-}
-
-public struct AddLessonsToOnlineRegistryParams()
-{
-    public required CancellationToken CancellationToken;
-    /// <summary>
-    /// Will be initialized from the default source if not provided.
-    /// </summary>
-    public Credentials? Credentials = null;
-    /// <summary>
-    /// Will be initialized to the default config if not provided.
-    /// </summary>
-    public JsonSerializerOptions? JsonOptions;
-    /// <summary>
-    /// Will be initialized to the default values if not provided.
-    /// </summary>
-    public NamesConfig? Names = null;
-
-    public required Session Session;
-    public required Schedule Schedule;
-    public required IRegistryErrorHandler ErrorHandler;
-    public required CourseNameUnifierModule CourseNameUnifier;
-    public required GroupParseContext GroupParseContext;
-    public required LookupModule LookupModule;
-    public required IAllScheduledDateProvider DateProvider;
-    public required LessonTimeConfig TimeConfig;
 }
 
 public static class Tasks
@@ -961,6 +933,27 @@ public static class Tasks
         {
             StudyWeeks = studyWeeks,
         };
+        return ret;
+    }
+
+    public static Credentials GetCredentials()
+    {
+        var b = new ConfigurationBuilder();
+        b.AddUserSecrets<Program>();
+        var config = b.Build();
+        var ret = config.GetRequiredSection("Registry").Get<Credentials>();
+        if (ret == null)
+        {
+            throw new InvalidOperationException("Credentials not found.");
+        }
+        if (ret.Login == null)
+        {
+            throw new InvalidOperationException("Login not found.");
+        }
+        if (ret.Password == null)
+        {
+            throw new InvalidOperationException("Password not found.");
+        }
         return ret;
     }
 }
