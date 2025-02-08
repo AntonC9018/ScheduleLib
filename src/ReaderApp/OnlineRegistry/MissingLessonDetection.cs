@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ScheduleLib;
 using ScheduleLib.Builders;
 
@@ -11,7 +12,12 @@ internal readonly struct GetDateTimesOfScheduledLessonsParams
     public required IAllScheduledDateProvider DateProvider { get; init; }
 }
 
-internal readonly record struct LessonInstance
+internal interface IDateTime
+{
+    DateTime DateTime { get; }
+}
+
+internal readonly record struct LessonInstance : IDateTime
 {
     public required RegularLessonId LessonId { get; init; }
     public required DateTime DateTime { get; init; }
@@ -59,7 +65,7 @@ public static class MissingLessonDetection
         }
     }
 
-    internal static IEnumerable<RegularLessonId> MatchLessons(LessonMatchParams p)
+    internal static IEnumerable<RegularLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
         var lessonsOfCourse = p.Lookup[p.CourseId];
         foreach (var lessonId in lessonsOfCourse)
@@ -76,5 +82,475 @@ public static class MissingLessonDetection
 
             yield return lessonId;
         }
+    }
+
+    // Could be made to rely on a T1 : IDateTime, T2 : IDateTime,
+    // and take a custom diff impl.
+    internal struct DiffLessonSetsParams
+    {
+        public required Schedule Schedule;
+        public required MatchingLists Lists;
+        public required IEnumerable<LessonInstanceLink> ExistingLessons;
+        public required IEnumerable<LessonInstance> AllLessons;
+    }
+
+    private static DateOnly GetDateOnly<T>(this T item) where T : struct, IDateTime
+    {
+        return DateOnly.FromDateTime(item.DateTime);
+    }
+
+    internal static IEnumerable<LessonCommand> DiffLessonSets(DiffLessonSetsParams p)
+    {
+        p.ExistingLessons = p.ExistingLessons.OrderBy(x => x.DateTime);
+        p.AllLessons = p.AllLessons.OrderBy(x => x.DateTime);
+
+        using var a_ = p.AllLessons.GetEnumerator();
+        var allEnumerator = a_.RememberIsDone();
+
+        using var b_ = p.ExistingLessons.GetEnumerator();
+        var existingEnumerator = b_.RememberIsDone();
+
+        allEnumerator.MoveNext();
+        existingEnumerator.MoveNext();
+
+        while (true)
+        {
+            if (allEnumerator.IsDone)
+            {
+                break;
+            }
+            if (existingEnumerator.IsDone)
+            {
+                break;
+            }
+
+            var all = allEnumerator.Current;
+            var existing = existingEnumerator.Current;
+
+            var allDate = all.GetDateOnly();
+            var existingDate = existing.GetDateOnly();
+            var todaysDate = allDate < existingDate ? allDate : existingDate;
+
+            AddTodaysItems(ref allEnumerator, p.Lists.AllToday);
+            AddTodaysItems(ref existingEnumerator, p.Lists.ExistingToday);
+
+            Debug.Assert(!TwoLessonAtSameTime());
+            var matchingContext = p.Lists.CreateContext();
+
+            UseUpExactMatches();
+            AddPartialMatches();
+
+            var matchResult = matchingContext.AsResult();
+            foreach (var r in matchResult.MatchedLessons())
+            {
+                yield return LessonCommand.Update(r.Existing, r.All);
+            }
+            foreach (var r in matchResult.UnusedExisting())
+            {
+                yield return LessonCommand.Delete(r);
+            }
+            foreach (var r in matchResult.UnusedAll())
+            {
+                yield return LessonCommand.Create(r);
+            }
+
+            p.Lists.Clear();
+            continue;
+
+            void AddTodaysItems<T>(
+                ref EnumerableHelper.RememberIsDoneEnumerator<T> e,
+                List<T> list)
+
+                where T : struct, IDateTime
+            {
+                while (true)
+                {
+                    var c = e.Current;
+                    var date = c.GetDateOnly();
+                    if (date != todaysDate)
+                    {
+                        break;
+                    }
+
+                    list.Add(c);
+
+                    if (!e.MoveNext())
+                    {
+                        break;
+                    }
+                }
+            }
+
+            void AddPartialMatches()
+            {
+                foreach (var x in matchingContext.IteratePotentialMappings())
+                {
+                    if (!x.DatesEqual())
+                    {
+                        continue;
+                    }
+                    matchingContext.AddMatch(x.Mapping);
+                }
+                foreach (var x in matchingContext.IteratePotentialMappings())
+                {
+                    if (!x.LessonTypesEqual(p.Schedule))
+                    {
+                        continue;
+                    }
+                    matchingContext.AddMatch(x.Mapping);
+                }
+            }
+
+            void UseUpExactMatches()
+            {
+                foreach (var x in matchingContext.IteratePotentialMappings())
+                {
+                    if (!x.DatesEqual())
+                    {
+                        continue;
+                    }
+                    if (!x.LessonTypesEqual(p.Schedule))
+                    {
+                        continue;
+                    }
+
+                    matchingContext.UseUpMatch(x.Mapping);
+                }
+            }
+
+            bool TwoLessonAtSameTime()
+            {
+                var dates = new HashSet<DateTime>();
+                foreach (var a in p.Lists.AllToday)
+                {
+                    if (!dates.Add(a.DateTime))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        while (!allEnumerator.IsDone)
+        {
+            yield return LessonCommand.Create(allEnumerator.Current);
+            allEnumerator.MoveNext();
+        }
+
+        while (!existingEnumerator.IsDone)
+        {
+            yield return LessonCommand.Delete(existingEnumerator.Current);
+            existingEnumerator.MoveNext();
+        }
+    }
+}
+
+internal readonly record struct Mapping(int AllIndex, int ExistingIndex);
+
+internal struct Matches
+{
+    public Matches(int allLen, int existingLen)
+    {
+        if (allLen > BitArray32.MaxLength)
+        {
+            throw new NotSupportedException("At most 32 lessons per day are supported.");
+        }
+        if (existingLen > BitArray32.MaxLength)
+        {
+            throw new NotSupportedException("At most 32 lessons per day are supported.");
+        }
+        AllMapped = BitArray32.Empty(allLen);
+        ExistingMapped = BitArray32.Empty(existingLen);
+    }
+
+    public BitArray32 AllMapped;
+    public BitArray32 ExistingMapped;
+
+    public void Set(Mapping mapping)
+    {
+        Debug.Assert(!AllMapped.IsSet(mapping.AllIndex));
+        Debug.Assert(!ExistingMapped.IsSet(mapping.ExistingIndex));
+        AllMapped.Set(mapping.AllIndex);
+        ExistingMapped.Set(mapping.ExistingIndex);
+    }
+}
+
+internal struct MappedLesson
+{
+    public required Mapping Mapping;
+    public required LessonInstance All;
+    public required LessonInstanceLink Existing;
+
+    public readonly bool DatesEqual() => All.DateTime.Date == Existing.DateTime.Date;
+    public readonly bool LessonTypesEqual(Schedule s)
+    {
+        if (Existing.LessonType == LessonType.Unspecified)
+        {
+            return true;
+        }
+
+        var lesson = s.Get(All.LessonId).Lesson;
+        return lesson.Type == Existing.LessonType;
+    }
+}
+
+internal readonly struct MatchingLists()
+{
+    public readonly List<Mapping> Matches = new();
+    public readonly List<LessonInstance> AllToday = new();
+    public readonly List<LessonInstanceLink> ExistingToday = new();
+
+    public readonly void Clear()
+    {
+        Matches.Clear();
+        AllToday.Clear();
+        ExistingToday.Clear();
+    }
+}
+
+public enum LessonCommandType
+{
+    Create,
+    Update,
+    Delete,
+}
+
+internal struct LessonCommand
+{
+    public required LessonCommandType Type;
+    public LessonInstanceLink Existing;
+    public LessonInstance All;
+
+    public static LessonCommand Create(LessonInstance all)
+    {
+        return new()
+        {
+            Type = LessonCommandType.Create,
+            All = all,
+        };
+    }
+
+    public static LessonCommand Update(LessonInstanceLink existing, LessonInstance all)
+    {
+        return new()
+        {
+            Type = LessonCommandType.Update,
+            Existing = existing,
+            All = all,
+        };
+    }
+
+    public static LessonCommand Delete(LessonInstanceLink existing)
+    {
+        return new()
+        {
+            Type = LessonCommandType.Delete,
+            Existing = existing,
+        };
+    }
+}
+
+internal struct MatchingResult
+{
+    private readonly MatchingLists _lists;
+    private readonly Matches _matches;
+
+    internal MatchingResult(MatchingLists lists, Matches matches)
+    {
+        _lists = lists;
+        _matches = matches;
+    }
+
+    public readonly UnusedEnumerable<LessonInstance> UnusedAll()
+    {
+        return new(_matches.AllMapped, _lists.AllToday);
+    }
+
+    public readonly UnusedEnumerable<LessonInstanceLink> UnusedExisting()
+    {
+        return new(_matches.ExistingMapped, _lists.ExistingToday);
+    }
+
+    public readonly MappingsEnumerable MatchedLessons()
+    {
+        return new(_lists);
+    }
+
+    public readonly struct UnusedEnumerable<T>
+    {
+        private readonly BitArray32 _bits;
+        private readonly List<T> _items;
+        public UnusedEnumerable(BitArray32 bits, List<T> items)
+        {
+            _bits = bits;
+            _items = items;
+        }
+        public UnusedEnumerator<T> GetEnumerator() => new(_bits, _items);
+    }
+
+    public struct UnusedEnumerator<T>
+    {
+        private SetBitIndicesEnumerator _e;
+        private readonly List<T> _items;
+
+        public UnusedEnumerator(BitArray32 isUsed, List<T> items)
+        {
+            _e = isUsed.UnsetBitIndicesLowToHigh.GetEnumerator();
+            _items = items;
+        }
+
+        public T Current => _items[_e.Current];
+        public bool MoveNext() => _e.MoveNext();
+    }
+
+    public readonly struct MappingsEnumerable
+    {
+        private readonly MatchingLists _lists;
+        public MappingsEnumerable(MatchingLists lists) => _lists = lists;
+        public MappingsEnumerator GetEnumerator() => new(_lists);
+    }
+
+    public struct MappingsEnumerator
+    {
+        private List<Mapping>.Enumerator _e;
+        private readonly List<LessonInstanceLink> _existing;
+        private readonly List<LessonInstance> _all;
+
+        public MappingsEnumerator(MatchingLists lists)
+        {
+            _e = lists.Matches.GetEnumerator();
+            _existing = lists.ExistingToday;
+            _all = lists.AllToday;
+        }
+
+        public MappedLesson Current
+        {
+            get
+            {
+                var m = _e.Current;
+                return new()
+                {
+                    Mapping = m,
+                    All = _all[m.AllIndex],
+                    Existing = _existing[m.ExistingIndex],
+                };
+            }
+        }
+
+        public bool MoveNext() => _e.MoveNext();
+    }
+}
+
+internal struct MatchingContext
+{
+    private readonly MatchingLists _lists;
+    private Matches _matches;
+
+    public MatchingContext(MatchingLists lists)
+    {
+        _lists = lists;
+        _matches = new(lists.AllToday.Count, _lists.ExistingToday.Count);
+    }
+
+    public void AddMatch(Mapping m)
+    {
+        _lists.Matches.Add(m);
+        UseUpMatch(m);
+    }
+
+    public void UseUpMatch(Mapping m)
+    {
+        _matches.Set(m);
+    }
+
+    public MatchingResult AsResult() => new(_lists, _matches);
+
+    public readonly MappedLesson Get(Mapping m)
+    {
+        return new()
+        {
+            Mapping = m,
+            All = _lists.AllToday[m.AllIndex],
+            Existing = _lists.ExistingToday[m.ExistingIndex],
+        };
+    }
+
+    public readonly ref struct PotentialMappingEnumerable
+    {
+        private readonly ref MatchingContext _context;
+        public PotentialMappingEnumerable(ref MatchingContext context) => _context = ref context;
+        public PotentialMappingEnumerator GetEnumerator() => new(ref _context);
+    }
+
+    public ref struct PotentialMappingEnumerator
+    {
+        private int _allIndex;
+        private int _existingIndex;
+        private readonly ref MatchingContext _context;
+
+        public PotentialMappingEnumerator(ref MatchingContext context)
+        {
+            _allIndex = -1;
+            _existingIndex = 0;
+            _context = ref context;
+        }
+
+        public MappedLesson Current => _context.Get(new(AllIndex: _allIndex, ExistingIndex: _existingIndex));
+
+        public bool MoveNext()
+        {
+            var unusedAllIndex = _context._matches.AllMapped.GetUnsetAtOrAfter(_allIndex);
+
+            // There's no more available bits to iterate
+            if (unusedAllIndex == -1)
+            {
+                return false;
+            }
+            if (_context._matches.ExistingMapped.AreAllSet)
+            {
+                return false;
+            }
+
+            // The current All index is unused.
+            if (unusedAllIndex != _allIndex)
+            {
+                _allIndex = unusedAllIndex;
+                _existingIndex = _context._matches.ExistingMapped.UnsetBitIndicesLowToHigh.First();
+                return true;
+            }
+
+            var nextUnusedExistingIndex = _context._matches.ExistingMapped.GetUnsetAfter(_existingIndex);
+
+            // There's no more unused existing indices.
+            if (nextUnusedExistingIndex == -1)
+            {
+                int nextAll = _context._matches.AllMapped.GetUnsetAfter(_allIndex);
+                if (nextAll == -1)
+                {
+                    return false;
+                }
+                _allIndex = nextAll;
+                _existingIndex = _context._matches.ExistingMapped.UnsetBitIndicesLowToHigh.First();
+                return true;
+            }
+
+            _existingIndex = nextUnusedExistingIndex;
+            return true;
+        }
+    }
+}
+
+internal static class MatchingContextHelper
+{
+    public static MatchingContext.PotentialMappingEnumerable IteratePotentialMappings(
+        this ref MatchingContext c)
+    {
+        return new(ref c);
+    }
+
+    public static MatchingContext CreateContext(this MatchingLists lists)
+    {
+        return new(lists);
     }
 }
