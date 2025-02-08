@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
     </ItemGroup>
 
     <ItemGroup>

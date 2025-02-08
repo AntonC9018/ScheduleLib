@@ -1,11 +1,10 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using ScheduleLib;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 public static partial class RegistryScraping
 {

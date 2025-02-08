@@ -1,4 +1,4 @@
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 public interface IRegistryErrorHandler
 {

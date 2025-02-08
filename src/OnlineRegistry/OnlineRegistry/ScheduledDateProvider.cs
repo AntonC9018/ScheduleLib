@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using ScheduleLib;
 
-namespace ReaderApp.OnlineRegistry;
+namespace ScheduleLib.OnlineRegistry;
 
 public interface IAllScheduledDateProvider
 {
