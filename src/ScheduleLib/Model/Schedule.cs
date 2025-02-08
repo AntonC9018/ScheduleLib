@@ -51,6 +51,16 @@ public sealed class LessonTimeConfig
         return new(ret);
     }
 
+    public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)
+    {
+        var i = Array.BinarySearch(TimeSlotStarts, startTime);
+        if (i == -1)
+        {
+            return null;
+        }
+        return new(i);
+    }
+
     public static TimeOnly[] CreateDefaultTimeSlots()
     {
         TimeOnly New(int hour, int min)
