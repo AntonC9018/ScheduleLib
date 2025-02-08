@@ -1,9 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-      <RootNamespace>OnlineSchedule</RootNamespace>
     </PropertyGroup>
+    
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>OnlineRegistry.Tests</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 
     <ItemGroup>

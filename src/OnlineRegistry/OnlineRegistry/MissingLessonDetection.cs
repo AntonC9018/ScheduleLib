@@ -85,7 +85,7 @@ public static class MissingLessonDetection
 
     // Could be made to rely on a T1 : IDateTime, T2 : IDateTime,
     // and take a custom diff impl.
-    internal struct DiffLessonSetsParams
+    internal struct GetLessonEquationCommandsParams
     {
         public required Schedule Schedule;
         public required MatchingLists Lists;
@@ -98,7 +98,7 @@ public static class MissingLessonDetection
         return DateOnly.FromDateTime(item.DateTime);
     }
 
-    internal static IEnumerable<LessonEquationCommand> GetLessonEquationCommands(DiffLessonSetsParams p)
+    internal static IEnumerable<LessonEquationCommand> GetLessonEquationCommands(GetLessonEquationCommandsParams p)
     {
         p.ExistingLessons = p.ExistingLessons.OrderBy(x => x.DateTime);
         p.AllLessons = p.AllLessons.OrderBy(x => x.DateTime);
@@ -184,7 +184,7 @@ public static class MissingLessonDetection
             {
                 foreach (var x in matchingContext.IteratePotentialMappings())
                 {
-                    if (!x.DatesEqual())
+                    if (!x.TimeEquals())
                     {
                         continue;
                     }
@@ -204,7 +204,7 @@ public static class MissingLessonDetection
             {
                 foreach (var x in matchingContext.IteratePotentialMappings())
                 {
-                    if (!x.DatesEqual())
+                    if (!x.TimeEquals())
                     {
                         continue;
                     }
@@ -281,7 +281,7 @@ internal struct MappedLesson
     public required LessonInstance All;
     public required LessonInstanceLink Existing;
 
-    public readonly bool DatesEqual() => All.DateTime.Date == Existing.DateTime.Date;
+    public readonly bool TimeEquals() => All.DateTime == Existing.DateTime;
     public readonly bool LessonTypesEqual(Schedule s)
     {
         if (Existing.LessonType == LessonType.Unspecified)
@@ -315,38 +315,69 @@ public enum LessonEquationCommandType
     Delete,
 }
 
-internal struct LessonEquationCommand
+public static class LessonEquationCommandTypeHelper
 {
-    public required LessonEquationCommandType Type;
-    public LessonInstanceLink Existing;
-    public LessonInstance All;
+    public static bool HasAll(this LessonEquationCommandType type)
+    {
+        return type is LessonEquationCommandType.Create or LessonEquationCommandType.Update;
+    }
+
+    public static bool HasExisting(this LessonEquationCommandType type)
+    {
+        return type is LessonEquationCommandType.Update or LessonEquationCommandType.Delete;
+    }
+}
+
+internal readonly struct LessonEquationCommand
+{
+    public readonly LessonEquationCommandType Type;
+    private readonly LessonInstanceLink _existing;
+    private readonly LessonInstance _all;
+
+    private LessonEquationCommand(
+        LessonEquationCommandType type,
+        LessonInstanceLink existing = default,
+        LessonInstance all = default)
+    {
+        Type = type;
+        _existing = existing;
+        _all = all;
+    }
+
+    public bool HasAll => Type.HasAll();
+    public LessonInstance All
+    {
+        get
+        {
+            Debug.Assert(HasAll);
+            return _all;
+        }
+    }
+
+    public bool HasExisting => Type.HasExisting();
+    public LessonInstanceLink Existing
+    {
+        get
+        {
+            Debug.Assert(HasExisting);
+            return _existing;
+        }
+    }
+
 
     public static LessonEquationCommand Create(LessonInstance all)
     {
-        return new()
-        {
-            Type = LessonEquationCommandType.Create,
-            All = all,
-        };
+        return new(LessonEquationCommandType.Create, all: all);
     }
 
     public static LessonEquationCommand Update(LessonInstanceLink existing, LessonInstance all)
     {
-        return new()
-        {
-            Type = LessonEquationCommandType.Update,
-            Existing = existing,
-            All = all,
-        };
+        return new(LessonEquationCommandType.Update, existing: existing, all: all);
     }
 
     public static LessonEquationCommand Delete(LessonInstanceLink existing)
     {
-        return new()
-        {
-            Type = LessonEquationCommandType.Delete,
-            Existing = existing,
-        };
+        return new(LessonEquationCommandType.Delete, existing: existing);
     }
 }
 
@@ -491,7 +522,7 @@ internal struct MatchingContext
         public PotentialMappingEnumerator(ref MatchingContext context)
         {
             _allIndex = -1;
-            _existingIndex = 0;
+            _existingIndex = -1;
             _context = ref context;
         }
 

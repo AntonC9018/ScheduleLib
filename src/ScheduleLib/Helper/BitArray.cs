@@ -204,29 +204,29 @@ public record struct BitArray32
     }
 }
 
-public readonly struct SetBitIndicesEnumerable : IEnumerable<int>
+public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
 {
     private readonly uint _bits;
 
-    public SetBitIndicesEnumerable(uint bits)
+    public ReverseSetBitIndicesEnumerable(uint bits)
     {
         _bits = bits;
     }
 
-    public SetBitIndicesEnumerator GetEnumerator() => new(_bits);
+    public ReverseSetBitIndicesEnumerator GetEnumerator() => new(_bits);
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public int Single() => NonAllocEnumerable.Single<int, SetBitIndicesEnumerator>(GetEnumerator());
-    public int First() => NonAllocEnumerable.First<int, SetBitIndicesEnumerator>(GetEnumerator());
+    public int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
+    public int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
 }
 
-public struct SetBitIndicesEnumerator : IEnumerator<int>
+public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
 {
     private uint _bits;
     private int _current;
 
-    public SetBitIndicesEnumerator(uint bits)
+    public ReverseSetBitIndicesEnumerator(uint bits)
     {
         _bits = bits;
         _current = 0;
@@ -258,29 +258,29 @@ public struct SetBitIndicesEnumerator : IEnumerator<int>
     }
 }
 
-public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
+public readonly struct SetBitIndicesEnumerable : IEnumerable<int>
 {
     private readonly uint _bits;
 
-    public ReverseSetBitIndicesEnumerable(uint bits)
+    public SetBitIndicesEnumerable(uint bits)
     {
         _bits = bits;
     }
 
-    public ReverseSetBitIndicesEnumerator GetEnumerator() => new(_bits);
+    public SetBitIndicesEnumerator GetEnumerator() => new(_bits);
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
-    public int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
+    public int Single() => NonAllocEnumerable.Single<int, SetBitIndicesEnumerator>(GetEnumerator());
+    public int First() => NonAllocEnumerable.First<int, SetBitIndicesEnumerator>(GetEnumerator());
 }
 
-public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
+public struct SetBitIndicesEnumerator : IEnumerator<int>
 {
     private uint _bits;
     private int _current;
 
-    public ReverseSetBitIndicesEnumerator(uint bits)
+    public SetBitIndicesEnumerator(uint bits)
     {
         _bits = bits;
         _current = 0;

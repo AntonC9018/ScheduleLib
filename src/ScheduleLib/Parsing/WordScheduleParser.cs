@@ -668,12 +668,13 @@ public static class WordScheduleParser
 
     private static int FindTimeSlotIndex(this DocParseContext c, TimeOnly start)
     {
-        int i = Array.BinarySearch(c.TimeConfig.TimeSlotStarts, start);
-        if (i == -1)
+        var timeSlot = c.TimeConfig.FindTimeSlotByStartTime(start);
+        if (timeSlot is not { } v)
         {
             TimeSlotError();
+            throw null!;
         }
-        return i;
+        return v.Index;
     }
 
     private static IEnumerable<TableCell> Cells(this TableRow row)

@@ -124,7 +124,7 @@ public static class EnumerableHelper
         public readonly T Current => _e.Current;
         public bool MoveNext()
         {
-            if (_e.MoveNext())
+            if (!_e.MoveNext())
             {
                 _isDone = true;
             }
