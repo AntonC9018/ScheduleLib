@@ -923,19 +923,6 @@ public static class LessonParsingHelper
         }
     }
 
-    private static bool MightBeRoomStart(char ch)
-    {
-        if (char.IsNumber(ch))
-        {
-            return true;
-        }
-        if (ch == '_')
-        {
-            return true;
-        }
-        return false;
-    }
-
     private struct SkipWhitespaceButNotUnderscore : IShouldSkip
     {
         public bool ShouldSkip(char ch)
@@ -1130,7 +1117,26 @@ public sealed class RoomParser
 
         if (parser.Current == Mediacor[0])
         {
-            return ParseMediacorRoom(ref parser);
+            var r = ParseMediacorRoom(ref parser);
+            switch (r)
+            {
+                case MediacorParseProgress.Ok:
+                {
+                    return true;
+                }
+                case MediacorParseProgress.BeforeConfirmFail:
+                {
+                    return false;
+                }
+                case MediacorParseProgress.AfterConfirmFail:
+                {
+                    throw new WrongFormatException();
+                }
+                default:
+                {
+                    throw Unreachable();
+                }
+            }
         }
         else
         {
@@ -1161,22 +1167,29 @@ public sealed class RoomParser
         }
     }
 
-    private bool ParseMediacorRoom(ref Parser parser)
+    private enum MediacorParseProgress
+    {
+        BeforeConfirmFail,
+        AfterConfirmFail,
+        Ok,
+    }
+
+    private MediacorParseProgress ParseMediacorRoom(ref Parser parser)
     {
         var bparser = parser.BufferedView();
         {
             Debug.Assert(parser.Current == Mediacor[0]);
             bparser.Move();
-            var mediacorEnd = Mediacor.AsSpan()[.. ^1];
+            var mediacorEnd = Mediacor.AsSpan()[1 ..];
             if (!bparser.CanPeekCount(mediacorEnd.Length))
             {
-                return false;
+                return MediacorParseProgress.BeforeConfirmFail;
             }
 
             var maybeMediacor = bparser.PeekSpan(mediacorEnd.Length);
             if (!maybeMediacor.SequenceEqual(mediacorEnd))
             {
-                return false;
+                return MediacorParseProgress.BeforeConfirmFail;
             }
             bparser.Move(mediacorEnd.Length);
         }
@@ -1184,30 +1197,32 @@ public sealed class RoomParser
 
         if (bparser.IsEmpty)
         {
-            return false;
+            return MediacorParseProgress.AfterConfirmFail;
         }
 
         if (bparser.Current != ',')
         {
-            return false;
+            return MediacorParseProgress.AfterConfirmFail;
         }
         bparser.Move();
         if (bparser.IsEmpty)
         {
-            return false;
+            return MediacorParseProgress.AfterConfirmFail;
         }
 
+        bparser.SkipWhitespace();
+
         const string etajString = "etajul";
-        if (bparser.CanPeekCount(etajString.Length))
+        if (!bparser.CanPeekCount(etajString.Length))
         {
-            return false;
+            return MediacorParseProgress.AfterConfirmFail;
         }
 
         {
             var maybeEtaj = bparser.PeekSpan(etajString.Length);
             if (!maybeEtaj.SequenceEqual(etajString))
             {
-                return false;
+                return MediacorParseProgress.AfterConfirmFail;
             }
 
             bparser.Move(etajString.Length);
@@ -1217,7 +1232,7 @@ public sealed class RoomParser
 
         if (bparser.IsEmpty)
         {
-            return false;
+            return MediacorParseProgress.AfterConfirmFail;
         }
 
         {
@@ -1228,20 +1243,20 @@ public sealed class RoomParser
             if (!res.SkippedAny)
             {
                 Debug.Assert(bparser1.Current == ',');
-                return false;
+                return MediacorParseProgress.AfterConfirmFail;
             }
 
             var numberSpan = bparser.PeekSpanUntilPosition(bparser1.Position);
             var romanResult = NumberHelper.FromRoman(numberSpan);
             if (romanResult is null)
             {
-                return false;
+                return MediacorParseProgress.AfterConfirmFail;
             }
 
             bparser.MoveTo(bparser1.Position);
         }
 
         parser.MoveTo(bparser.Position);
-        return true;
+        return MediacorParseProgress.Ok;
     }
 }

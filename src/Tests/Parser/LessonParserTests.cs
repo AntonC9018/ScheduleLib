@@ -478,4 +478,37 @@ public sealed class LessonParserTests
             return true;
         }
     }
+
+    [Fact]
+    public void MediacorRoom()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Mediacor, etajul II",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+        Assert.Equal("Mediacor, etajul II", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void MediacorRoomWithTeacher()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher  Mediacor, etajul I",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+        Assert.Equal("Teacher", Assert.Single(lesson.TeacherNames).LastName.Span);
+        Assert.Equal("Mediacor, etajul I", lesson.RoomName.Span);
+    }
 }

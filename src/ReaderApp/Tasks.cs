@@ -92,8 +92,11 @@ public static class Tasks
                 int teacherId1 = teacherId;
 
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
-                sb.Append(teacherName.ShortFirstName.Span.Shortened.Value);
-                sb.Append('_');
+                if (!teacherName.ShortFirstName.Span.Value.IsEmpty)
+                {
+                    sb.Append(teacherName.ShortFirstName.Span.Shortened.Value);
+                    sb.Append('_');
+                }
                 sb.Append(teacherName.LastName);
                 sb.Append(".pdf");
 
@@ -288,7 +291,7 @@ public static class Tasks
             {
                 var cell = cells.NextCell();
                 // Excel strips spaces without this.
-                cell.SetStringValue($"{new Spaces(7)}Profesor\n{new Spaces(3)}Ora");
+                cell.SetStringValue($"{new Spaces(6)}Profesor\n{new Spaces(3)}Ora");
                 cell.SetStyle(styles.HeaderTitle);
             }
 

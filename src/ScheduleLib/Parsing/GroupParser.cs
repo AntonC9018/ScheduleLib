@@ -132,8 +132,7 @@ public static class GroupHelper
                 }
                 default:
                 {
-                    Debug.Fail("Unreachable");
-                    return 0;
+                    throw Unreachable();
                 }
             }
         }
@@ -158,8 +157,7 @@ public static class GroupHelper
                 }
                 default:
                 {
-                    Debug.Fail("Unreachable");
-                    return 0;
+                    throw Unreachable();
                 }
             }
         }
