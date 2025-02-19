@@ -29,7 +29,7 @@ public struct Parser
         _index = Math.Min(_input.Length, position + 1);
     }
 
-    public int Position => _index;
+    public readonly int Position => _index;
 
     // Conceptually doesn't consume when moving, it just moves the window.
     // Currently just return a copy, because we only have a string impl and
