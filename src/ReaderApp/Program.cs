@@ -28,6 +28,7 @@ context.Schedule.ConfigureRemappings(remap =>
     teach.Add("Curmanschi", "Curmanschii");
     teach.Add("Băț", "Beț");
     teach.Add("Spincean", "Sprîncean");
+    teach.Add("Anghelova", "Anghelov");
 });
 
 {
