@@ -11,6 +11,7 @@ public struct ParseLessonsParams()
 {
     public LessonTypeParser LessonTypeParser = LessonTypeParser.Instance;
     public ParityParser ParityParser = ParityParser.Instance;
+    public RoomParser RoomParser = RoomParser.Instance;
     public required IEnumerable<string> Lines;
 }
 
@@ -284,7 +285,7 @@ public enum ParsingStep
     OptionalParens,
     OptionalSubGroup,
     RequiredTeacherName,
-    OptionalTeacherName,
+    OptionalTeacherNameOrRoomName,
     TeacherLastName,
     OptionalParensBeforeRoom,
     OptionalRoomName,
@@ -322,7 +323,7 @@ internal struct ParsingState()
                 or ParsingStep.OptionalSubGroup
                 or ParsingStep.OptionalParens
                 or ParsingStep.OptionalParensBeforeRoom
-                or ParsingStep.OptionalTeacherName
+                or ParsingStep.OptionalTeacherNameOrRoomName
                 or ParsingStep.OptionalRoomName
                 or ParsingStep.MaybeSubGroupAgain;
         }
@@ -342,7 +343,7 @@ public sealed class WrongFormatException : Exception
 
 internal ref struct ParsingContext
 {
-    public required ref ParseLessonsParams Params;
+    public required ref readonly ParseLessonsParams Params;
     public required ref ParsingState State;
     public required ref Parser Parser;
 }
@@ -761,7 +762,7 @@ public static class LessonParsingHelper
                     // Maybe should check how it was added and give an error if it was
                     // added through "subgroup:" rather than "subgroup-modifier" syntax.
                     c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(SubGroup.All);
-                    c.State.Step = ParsingStep.OptionalTeacherName;
+                    c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                     break;
                 }
 
@@ -769,7 +770,7 @@ public static class LessonParsingHelper
                 var subgroup = new SubGroup(numberSpan.ToString());
                 c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(subgroup);
 
-                c.State.Step = ParsingStep.OptionalTeacherName;
+                c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                 c.Parser.MovePast(bparser.Position);
                 break;
 
@@ -791,10 +792,18 @@ public static class LessonParsingHelper
                 }
             }
             case ParsingStep.RequiredTeacherName:
-            case ParsingStep.OptionalTeacherName:
+            case ParsingStep.OptionalTeacherNameOrRoomName:
             {
+                if (c.State.Step == ParsingStep.OptionalTeacherNameOrRoomName)
+                {
+                    if (TryParseRoomNameAndAdvanceStepIfParsed(c))
+                    {
+                        break;
+                    }
+                }
+
                 var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.Skip(new SkipUntilRoomOrDotOrSpaceOrComma());
+                var skipResult = bparser.Skip(new SkipUntilDotOrSpaceOrComma());
                 if (!skipResult.SkippedAny)
                 {
                     if (c.State.Step == ParsingStep.RequiredTeacherName)
@@ -802,12 +811,9 @@ public static class LessonParsingHelper
                         // Required teacher name after comma
                         throw new WrongFormatException();
                     }
-                    if (!IsRoomStart(bparser.Current))
-                    {
-                        // Following should be a number (room)
-                        throw new WrongFormatException();
-                    }
-                    c.State.Step = ParsingStep.OptionalRoomName;
+
+                    // We've already tried for room name.
+                    AdvanceStepNotRoom(c);
                     break;
                 }
 
@@ -887,25 +893,37 @@ public static class LessonParsingHelper
             }
             case ParsingStep.OptionalRoomName:
             {
-                var bparser = c.Parser.BufferedView();
-                if (!IsRoomStart(bparser.Current))
+                if (!TryParseRoomNameAndAdvanceStepIfParsed(c))
                 {
-                    c.State.Step = ParsingStep.MaybeSubGroupAgain;
-                    break;
+                    AdvanceStepNotRoom(c);
                 }
-
-                bparser.Skip(new NotWhitespaceOrCommaSkip());
-
-                var roomName = c.Parser.SourceUntilExclusive(bparser);
-                c.Parser.MoveTo(bparser.Position);
-                c.State.LastModifiers.Specific.RoomName = roomName;
-                c.State.Step = ParsingStep.MaybeSubGroupAgain;
                 break;
             }
         }
+
+        static void AdvanceStepNotRoom(ParsingContext c)
+        {
+            c.State.Step = ParsingStep.MaybeSubGroupAgain;
+        }
+        static bool TryParseRoomNameAndAdvanceStepIfParsed(ParsingContext c)
+        {
+            var bparser = c.Parser.BufferedView();
+            bool isRoom = c.Params.RoomParser.TryParseRoom(ref bparser);
+            if (!isRoom)
+            {
+                Debug.Assert(bparser.Position == c.Parser.Position);
+                return false;
+            }
+
+            var roomName = c.Parser.SourceUntilExclusive(bparser);
+            c.Parser.MoveTo(bparser.Position);
+            c.State.LastModifiers.Specific.RoomName = roomName;
+            c.State.Step = ParsingStep.MaybeSubGroupAgain;
+            return true;
+        }
     }
 
-    private static bool IsRoomStart(char ch)
+    private static bool MightBeRoomStart(char ch)
     {
         if (char.IsNumber(ch))
         {
@@ -934,14 +952,10 @@ public static class LessonParsingHelper
         }
     }
 
-    private struct SkipUntilRoomOrDotOrSpaceOrComma : IShouldSkip
+    private struct SkipUntilDotOrSpaceOrComma : IShouldSkip
     {
         public bool ShouldSkip(char ch)
         {
-            if (char.IsNumber(ch))
-            {
-                return false;
-            }
             if (ch == ',')
             {
                 return false;
@@ -956,11 +970,6 @@ public static class LessonParsingHelper
             }
             return true;
         }
-    }
-
-    private struct NotWhitespaceOrCommaSkip : IShouldSkip
-    {
-        public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch) && ch != ',';
     }
 
     private static void SkipParenListItem(ref Parser p)
@@ -1073,5 +1082,166 @@ public sealed class ParityParser
             return Parity.OddWeek;
         }
         return null;
+    }
+}
+
+
+public sealed class RoomParser
+{
+    public static readonly RoomParser Instance = new();
+
+    private const string Mediacor = "Mediacor";
+
+    public bool MightBeStart(char ch)
+    {
+        if (char.IsNumber(ch))
+        {
+            return true;
+        }
+        if (ch == '_')
+        {
+            return true;
+        }
+        if (ch == Mediacor[0])
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool TryParseRoom(ref Parser parser)
+    {
+        if (parser.IsEmpty)
+        {
+            return false;
+        }
+        if (!MightBeStart(parser.Current))
+        {
+            return false;
+        }
+        bool ret = ParseRoom(ref parser);
+        return ret;
+    }
+
+    public bool ParseRoom(ref Parser parser)
+    {
+        Debug.Assert(!parser.IsEmpty);
+        Debug.Assert(MightBeStart(parser.Current));
+
+        if (parser.Current == Mediacor[0])
+        {
+            return ParseMediacorRoom(ref parser);
+        }
+        else
+        {
+            SkipUntilWhiteOrComma(ref parser);
+            return true;
+        }
+    }
+
+
+    private static ParserHelper.SkipResult SkipUntilWhiteOrComma(ref Parser parser)
+    {
+        return parser.Skip(new NotWhitespaceOrCommaSkip());
+    }
+
+    private readonly struct NotWhitespaceOrCommaSkip : IShouldSkip
+    {
+        public bool ShouldSkip(char ch)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                return false;
+            }
+            if (ch == ',')
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private bool ParseMediacorRoom(ref Parser parser)
+    {
+        var bparser = parser.BufferedView();
+        {
+            Debug.Assert(parser.Current == Mediacor[0]);
+            bparser.Move();
+            var mediacorEnd = Mediacor.AsSpan()[.. ^1];
+            if (!bparser.CanPeekCount(mediacorEnd.Length))
+            {
+                return false;
+            }
+
+            var maybeMediacor = bparser.PeekSpan(mediacorEnd.Length);
+            if (!maybeMediacor.SequenceEqual(mediacorEnd))
+            {
+                return false;
+            }
+            bparser.Move(mediacorEnd.Length);
+        }
+        bparser.SkipWhitespace();
+
+        if (bparser.IsEmpty)
+        {
+            return false;
+        }
+
+        if (bparser.Current != ',')
+        {
+            return false;
+        }
+        bparser.Move();
+        if (bparser.IsEmpty)
+        {
+            return false;
+        }
+
+        const string etajString = "etajul";
+        if (bparser.CanPeekCount(etajString.Length))
+        {
+            return false;
+        }
+
+        {
+            var maybeEtaj = bparser.PeekSpan(etajString.Length);
+            if (!maybeEtaj.SequenceEqual(etajString))
+            {
+                return false;
+            }
+
+            bparser.Move(etajString.Length);
+        }
+
+        bparser.SkipWhitespace();
+
+        if (bparser.IsEmpty)
+        {
+            return false;
+        }
+
+        {
+            var bparser1 = bparser.BufferedView();
+
+            // Maybe limit the max count to skip?
+            var res = SkipUntilWhiteOrComma(ref bparser1);
+            if (!res.SkippedAny)
+            {
+                Debug.Assert(bparser1.Current == ',');
+                return false;
+            }
+
+            var numberSpan = bparser.PeekSpanUntilPosition(bparser1.Position);
+            var romanResult = NumberHelper.FromRoman(numberSpan);
+            if (romanResult is null)
+            {
+                return false;
+            }
+
+            bparser.MoveTo(bparser1.Position);
+        }
+
+        parser.MoveTo(bparser.Position);
+        return true;
     }
 }
