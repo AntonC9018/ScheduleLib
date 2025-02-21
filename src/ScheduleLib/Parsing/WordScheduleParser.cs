@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
@@ -460,9 +462,7 @@ public static class WordScheduleParser
                             return;
                         }
 
-                        var lines = cell.ChildElements
-                            .OfType<Paragraph>()
-                            .SelectMany(x => x.InnerText.Split("\n"));
+                        var lines = Lines();
                         var lessons = LessonParsingHelper.ParseLessons(new()
                         {
                             Lines = lines,
@@ -478,6 +478,7 @@ public static class WordScheduleParser
                                 columnIndex: columnIndex,
                                 colSpan: colSpan1);
                         }
+                        return;
 
                         bool ShouldAdd()
                         {
@@ -491,6 +492,27 @@ public static class WordScheduleParser
                                 return true;
                             }
                             return false;
+                        }
+
+                        IEnumerable<string> Lines()
+                        {
+                            var copy = cell.CloneNode(deep: true);
+                            RemoveHyperlinks(copy);
+
+                            foreach (var para in cell.ChildElements.OfType<Paragraph>())
+                            {
+                                yield return para.InnerText;
+                            }
+                            yield break;
+
+                            void RemoveHyperlinks(OpenXmlElement el)
+                            {
+                                el.RemoveAllChildren<Hyperlink>();
+                                foreach (var child in el.ChildElements)
+                                {
+                                    RemoveHyperlinks(child);
+                                }
+                            }
                         }
                     }
                 }
