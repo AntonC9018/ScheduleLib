@@ -70,7 +70,11 @@ public sealed class DocParseContext
         {
             Schedule = Schedule,
             CourseName = name,
-            ParseOptions = new(),
+            ParseOptions = new()
+            {
+                // Commas are allowed in course names now, apparently.
+                IgnorePunctuation = true,
+            },
         });
         return ret;
     }

@@ -511,4 +511,31 @@ public sealed class LessonParserTests
         Assert.Equal("Teacher", Assert.Single(lesson.TeacherNames).LastName.Span);
         Assert.Equal("Mediacor, etajul I", lesson.RoomName.Span);
     }
+
+    [Fact]
+    public void LessonWithCommasInName()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher",
+                "Other,Lesson",
+                "Teacher",
+            ],
+        });
+
+        Assert.Collection(lessons,
+            lesson1 =>
+            {
+                Assert.Equal("Lesson", lesson1.LessonName.Span);
+                AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
+            },
+            lesson2 =>
+            {
+                Assert.Equal("Other, Lesson", lesson2.LessonName.Span);
+                AssertEqualName("Teacher", Assert.Single(lesson2.TeacherNames));
+            });
+
+    }
 }

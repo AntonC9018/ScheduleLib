@@ -236,7 +236,7 @@ public static class Tasks
             {
                 Min = 2,
                 Max = 2,
-                Width = FromPixels(85),
+                Width = FromPixels(90),
                 CustomWidth = true,
             };
             columns.AppendChild(timeSlotColumn);
@@ -526,7 +526,7 @@ public static class Tasks
 
                 if (printGroup)
                 {
-                    AppendGroup(listBuilder, lesson);
+                    AppendGroup(listBuilder, lesson, true);
                 }
 
                 if (printParity)
@@ -581,7 +581,8 @@ public static class Tasks
                 }
                 if (!diff.OneGroup)
                 {
-                    AppendGroup(listBuilder, l0);
+                    bool subgroupsDiffer = diff.SubGroup;
+                    AppendGroup(listBuilder, l0, appendSubgroup: !subgroupsDiffer);
                 }
 
                 bool AllWillAppendSomething()
@@ -630,7 +631,10 @@ public static class Tasks
                         }
                         if (diff.OneGroup)
                         {
-                            AppendGroup(commaList, lesson);
+                            AppendGroup(
+                                commaList,
+                                lesson,
+                                appendSubgroup: !diff.SubGroup);
                         }
                         if (diff.Room)
                         {
@@ -674,7 +678,10 @@ public static class Tasks
                 var groups = lesson.Lesson.Groups;
                 return groups.IsSingleGroup;
             }
-            void AppendGroup(ListStringBuilder b, RegularLesson lesson)
+            void AppendGroup(
+                ListStringBuilder b,
+                RegularLesson lesson,
+                bool appendSubgroup)
             {
                 var groups = lesson.Lesson.Groups;
                 if (!groups.IsSingleGroup)
@@ -688,7 +695,8 @@ public static class Tasks
                 // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 
-                if (lesson.Lesson.SubGroup != SubGroup.All)
+                if (appendSubgroup
+                    && lesson.Lesson.SubGroup != SubGroup.All)
                 {
                     b.StringBuilder.Append($"-{lesson.Lesson.SubGroup.Value}");
                 }

@@ -554,9 +554,9 @@ public static class LessonParsingHelper
             {
                 // Until end of line or paren
                 var bparser = c.Parser.BufferedView();
-                bparser.SkipUntil(['(', ',']);
+                var result = bparser.SkipUntilLessonEnd();
 
-                if (!bparser.IsEmpty && bparser.Current == '(')
+                if (result.IsParen)
                 {
                     var bparserPastParen = bparser.BufferedView();
                     while (true)
@@ -565,8 +565,8 @@ public static class LessonParsingHelper
                         bparserPastParen.Move();
                         // The comma is needed here because lessons might be separated by commas.
                         // Because the parser cannot backtrack, commas can't appear in lesson names after parens.
-                        var result = bparserPastParen.SkipUntil(['(', ',']);
-                        if (result.EndOfInput || bparserPastParen.Current == ',')
+                        result = bparserPastParen.SkipUntilLessonEnd();
+                        if (result.EndOfInput || result.IsComma)
                         {
                             break;
                         }
@@ -693,7 +693,7 @@ public static class LessonParsingHelper
                         return ref modifiers;
                     }
 
-                    if (key != new SubLessonModifiersKey())
+                    if (key != SubLessonModifiersKey.Default)
                     {
                         throw new WrongFormatException();
                     }
@@ -1258,5 +1258,37 @@ public sealed class RoomParser
 
         parser.MoveTo(bparser.Position);
         return MediacorParseProgress.Ok;
+    }
+}
+
+file static class LessonEnd
+{
+    public static SkipResult SkipUntilLessonEnd(this ref Parser parser)
+    {
+        var result = parser.SkipUntilSequence(Sequences);
+        return new()
+        {
+            EndOfInput = result.EndOfInput,
+            Match = result.Match,
+        };
+    }
+
+    private static readonly string[] Sequences = Create();
+    private static int ParenIndex => 0;
+    private static int CommaIndex => 1;
+    private static string[] Create()
+    {
+        var ret = new string[2];
+        ret[ParenIndex] = "(";
+        ret[CommaIndex] = ", ";
+        return ret;
+    }
+
+    public readonly struct SkipResult
+    {
+        public required bool EndOfInput { get; init; }
+        public required int Match { get; init; }
+        public bool IsComma => Match == CommaIndex;
+        public bool IsParen => Match == ParenIndex;
     }
 }
