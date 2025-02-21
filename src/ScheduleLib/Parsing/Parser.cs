@@ -341,6 +341,25 @@ public static class ParserHelper
         int end = b.Position;
         return a.Source.AsMemory(start .. end);
     }
+
+    public static bool ConsumeExactString(
+        ref this Parser parser,
+        ReadOnlySpan<char> expectedString)
+    {
+        if (!parser.CanPeekCount(expectedString.Length))
+        {
+            return false;
+        }
+
+        var peek = parser.PeekSpan(expectedString.Length);
+        if (!peek.SequenceEqual(expectedString))
+        {
+            return false;
+        }
+
+        parser.Move(expectedString.Length);
+        return true;
+    }
 }
 
 public enum ConsumeIntStatus

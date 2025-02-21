@@ -1177,21 +1177,16 @@ public sealed class RoomParser
     private MediacorParseProgress ParseMediacorRoom(ref Parser parser)
     {
         var bparser = parser.BufferedView();
-        {
-            Debug.Assert(parser.Current == Mediacor[0]);
-            bparser.Move();
-            var mediacorEnd = Mediacor.AsSpan()[1 ..];
-            if (!bparser.CanPeekCount(mediacorEnd.Length))
-            {
-                return MediacorParseProgress.BeforeConfirmFail;
-            }
 
-            var maybeMediacor = bparser.PeekSpan(mediacorEnd.Length);
-            if (!maybeMediacor.SequenceEqual(mediacorEnd))
+        Debug.Assert(parser.Current == Mediacor[0]);
+        bparser.Move();
+
+        {
+            var mediacorEnd = Mediacor.AsSpan()[1 ..];
+            if (!bparser.ConsumeExactString(mediacorEnd))
             {
                 return MediacorParseProgress.BeforeConfirmFail;
             }
-            bparser.Move(mediacorEnd.Length);
         }
         bparser.SkipWhitespace();
 
@@ -1212,20 +1207,9 @@ public sealed class RoomParser
 
         bparser.SkipWhitespace();
 
-        const string etajString = "etajul";
-        if (!bparser.CanPeekCount(etajString.Length))
+        if (!bparser.ConsumeExactString("etajul"))
         {
             return MediacorParseProgress.AfterConfirmFail;
-        }
-
-        {
-            var maybeEtaj = bparser.PeekSpan(etajString.Length);
-            if (!maybeEtaj.SequenceEqual(etajString))
-            {
-                return MediacorParseProgress.AfterConfirmFail;
-            }
-
-            bparser.Move(etajString.Length);
         }
 
         bparser.SkipWhitespace();
