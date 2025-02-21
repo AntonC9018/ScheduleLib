@@ -573,4 +573,18 @@ public sealed class LessonParserTests
             }
         });
     }
+
+    [Fact]
+    public void StarInFrontOfLessonIsIgnored()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "*Lesson",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+    }
 }

@@ -275,12 +275,14 @@ internal struct MaybeGeneralModifiersValue()
 internal struct CommonLessonInParsing()
 {
     public TimeOnly? StartTime = null;
+    public bool HasStar = false;
 }
 
 public enum ParsingStep
 {
     Start,
     TimeOverride,
+    OptionalStarBeforeLessonName,
     LessonName,
     OptionalParens,
     OptionalSubGroup,
@@ -350,6 +352,9 @@ public class WrongFormatException : Exception
 
     [DoesNotReturn]
     internal static void ThrowRoomAlreadySpecified() => throw new RoomAlreadySpecifiedException();
+
+    [DoesNotReturn]
+    internal static void ThrowUnclosedParenInLessonName() => throw new WrongFormatException("Unclosed paren in lesson name");
 }
 
 internal ref struct ParsingContext
@@ -558,6 +563,16 @@ public static class LessonParsingHelper
                     throw new WrongFormatException();
                 }
 
+                c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
+                break;
+            }
+            case ParsingStep.OptionalStarBeforeLessonName:
+            {
+                if (c.Parser.Current == '*')
+                {
+                    c.State.CommonLesson.HasStar = true;
+                    c.Parser.Move();
+                }
                 c.State.Step = ParsingStep.LessonName;
                 break;
             }
@@ -567,23 +582,37 @@ public static class LessonParsingHelper
                 var bparser = c.Parser.BufferedView();
                 var result = bparser.SkipUntilLessonEnd();
 
-                if (result.IsParen)
+                // Skip until the last parenthesized group
+                if (result.IsOpeningParen)
                 {
-                    var bparserPastParen = bparser.BufferedView();
+                    var bparserTemp = bparser.BufferedView();
+
                     while (true)
                     {
-                        // Skip until the last parenthesized group
-                        bparserPastParen.Move();
-                        // The comma is needed here because lessons might be separated by commas.
-                        // Because the parser cannot backtrack, commas can't appear in lesson names after parens.
-                        result = bparserPastParen.SkipUntilLessonEnd();
-                        if (result.EndOfInput || result.IsComma)
+                        var resultClosing = bparserTemp.SkipUntil([')']);
+                        if (resultClosing.EndOfInput)
                         {
+                            WrongFormatException.ThrowUnclosedParenInLessonName();
                             break;
                         }
 
-                        bparser = bparserPastParen;
+                        bparserTemp.Move();
+
+                        var result1 = bparserTemp.SkipUntilLessonEnd();
+
+                        // This is not the last parenthesized group
+                        if (result1.IsOpeningParen)
+                        {
+                            bparser.MoveTo(bparserTemp.Position);
+                            bparserTemp.Move();
+                            continue;
+                        }
+
+                        // This is the last parenthesized group
+                        // Do not include it in bparser
+                        break;
                     }
+
                 }
 
                 var name = c.Parser.SourceUntilExclusive(bparser);
@@ -645,7 +674,7 @@ public static class LessonParsingHelper
                     }
                     if (c.Parser.Current == ',')
                     {
-                        c.State.Step = ParsingStep.LessonName;
+                        c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         c.Parser.Move();
                         return true;
                     }
@@ -745,7 +774,7 @@ public static class LessonParsingHelper
                     if (c.Parser.Current == ',')
                     {
                         c.Parser.Move();
-                        c.State.Step = ParsingStep.LessonName;
+                        c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         break;
                     }
                 }
@@ -916,10 +945,8 @@ public static class LessonParsingHelper
             }
             case ParsingStep.OptionalRoomName:
             {
-                if (!TryParseAndSetRoomName(c))
-                {
-                    AdvanceStepAfterRoom(c);
-                }
+                TryParseAndSetRoomName(c);
+                AdvanceStepAfterRoom(c);
                 break;
             }
         }
@@ -1301,6 +1328,6 @@ file static class LessonEnd
         public required bool EndOfInput { get; init; }
         public required int Match { get; init; }
         public bool IsComma => Match == CommaIndex;
-        public bool IsParen => Match == ParenIndex;
+        public bool IsOpeningParen => Match == ParenIndex;
     }
 }
