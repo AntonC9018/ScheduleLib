@@ -536,6 +536,41 @@ public sealed class LessonParserTests
                 Assert.Equal("Other, Lesson", lesson2.LessonName.Span);
                 AssertEqualName("Teacher", Assert.Single(lesson2.TeacherNames));
             });
+    }
 
+    [Fact]
+    public void RoomNameAfterTeacherNameWithComma()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher, 123Room",
+            ],
+        });
+
+        var lesson1 = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson1.LessonName.Span);
+        AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
+        Assert.Equal("123Room", lesson1.RoomName.Span);
+    }
+
+    [Fact]
+    public void NoMultipleRoomName()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher, 123Room, 124Room",
+            ],
+        });
+
+        Assert.Throws<RoomAlreadySpecifiedException>(() =>
+        {
+            foreach (var x in lessons)
+            {
+            }
+        });
     }
 }

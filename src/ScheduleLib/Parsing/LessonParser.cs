@@ -284,7 +284,7 @@ public enum ParsingStep
     LessonName,
     OptionalParens,
     OptionalSubGroup,
-    RequiredTeacherName,
+    RequiredTeacherNameOrRoomName,
     OptionalTeacherNameOrRoomName,
     TeacherLastName,
     OptionalParensBeforeRoom,
@@ -330,7 +330,15 @@ internal struct ParsingState()
     }
 }
 
-public sealed class WrongFormatException : Exception
+public sealed class RoomAlreadySpecifiedException : WrongFormatException
+{
+    internal RoomAlreadySpecifiedException() : base("Room already specified")
+    {
+    }
+}
+
+// TODO: Should be abstract
+public class WrongFormatException : Exception
 {
     internal WrongFormatException(string? s = null) : base(s)
     {
@@ -338,7 +346,10 @@ public sealed class WrongFormatException : Exception
 
 
     [DoesNotReturn]
-    public static void ThrowEmptyCourseName() => throw new WrongFormatException("Empty course name");
+    internal static void ThrowEmptyCourseName() => throw new WrongFormatException("Empty course name");
+
+    [DoesNotReturn]
+    internal static void ThrowRoomAlreadySpecified() => throw new RoomAlreadySpecifiedException();
 }
 
 internal ref struct ParsingContext
@@ -791,35 +802,47 @@ public static class LessonParsingHelper
                     return false;
                 }
             }
-            case ParsingStep.RequiredTeacherName:
+            case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
             {
-                if (c.State.Step == ParsingStep.OptionalTeacherNameOrRoomName)
+                if (TryParseAndSetRoomName(c))
                 {
-                    if (TryParseRoomNameAndAdvanceStepIfParsed(c))
+                    c.Parser.SkipWhitespace();
+                    if (c.Parser.IsEmpty)
                     {
+                        AdvanceStepAfterRoom(c);
                         break;
                     }
+                    if (c.Parser.Current == ',')
+                    {
+                        // Continue the list.
+                        c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
+                        c.Parser.Move();
+                        break;
+                    }
+
+                    AdvanceStepAfterRoom(c);
+                    break;
                 }
 
                 var bparser = c.Parser.BufferedView();
                 var skipResult = bparser.Skip(new SkipUntilDotOrSpaceOrComma());
                 if (!skipResult.SkippedAny)
                 {
-                    if (c.State.Step == ParsingStep.RequiredTeacherName)
+                    if (c.State.Step == ParsingStep.RequiredTeacherNameOrRoomName)
                     {
                         // Required teacher name after comma
                         throw new WrongFormatException();
                     }
 
                     // We've already tried for room name.
-                    AdvanceStepNotRoom(c);
+                    AdvanceStepAfterRoom(c);
                     break;
                 }
 
                 ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
 
-                // last name
+                // Last name
                 if (skipResult.EndOfInput
                     || bparser.Current is ' ' or ',')
                 {
@@ -841,11 +864,11 @@ public static class LessonParsingHelper
                         }
 
                         Debug.Assert(bparser.Current == ',');
-                        c1.State.Step = ParsingStep.RequiredTeacherName;
+                        c1.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
                         bparser.Move();
                     }
                 }
-                // first name
+                // First name
                 else if (bparser.Current == '.')
                 {
                     bparser.Move();
@@ -884,7 +907,7 @@ public static class LessonParsingHelper
                 if (c.Parser.Current == ',')
                 {
                     c.Parser.Move();
-                    c.State.Step = ParsingStep.RequiredTeacherName;
+                    c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
                     break;
                 }
 
@@ -893,19 +916,19 @@ public static class LessonParsingHelper
             }
             case ParsingStep.OptionalRoomName:
             {
-                if (!TryParseRoomNameAndAdvanceStepIfParsed(c))
+                if (!TryParseAndSetRoomName(c))
                 {
-                    AdvanceStepNotRoom(c);
+                    AdvanceStepAfterRoom(c);
                 }
                 break;
             }
         }
 
-        static void AdvanceStepNotRoom(ParsingContext c)
+        static void AdvanceStepAfterRoom(ParsingContext c)
         {
             c.State.Step = ParsingStep.MaybeSubGroupAgain;
         }
-        static bool TryParseRoomNameAndAdvanceStepIfParsed(ParsingContext c)
+        static bool TryParseAndSetRoomName(ParsingContext c)
         {
             var bparser = c.Parser.BufferedView();
             bool isRoom = c.Params.RoomParser.TryParseRoom(ref bparser);
@@ -917,8 +940,13 @@ public static class LessonParsingHelper
 
             var roomName = c.Parser.SourceUntilExclusive(bparser);
             c.Parser.MoveTo(bparser.Position);
-            c.State.LastModifiers.Specific.RoomName = roomName;
-            c.State.Step = ParsingStep.MaybeSubGroupAgain;
+
+            ref var roomNameMem = ref c.State.LastModifiers.Specific.RoomName;
+            if (!roomNameMem.IsEmpty)
+            {
+                WrongFormatException.ThrowRoomAlreadySpecified();
+            }
+            roomNameMem = roomName;
             return true;
         }
     }
