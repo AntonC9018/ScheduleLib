@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Parsing.WordDoc;
@@ -588,12 +589,12 @@ public static class WordScheduleParser
         else
         {
             // validate group
-            var groupName = lesson.GroupName.Span.Trim().ToString();
-            if (!c.Schedule.LookupModule!.Groups.TryGetValue(groupName, out var x))
+            var groupFullName = lesson.GroupName.Span.Trim().ToString();
+            if (c.Schedule.Lookup().Group(groupFullName) is not { } groupId)
             {
                 throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
             }
-            g.Groups.Add(new(x));
+            g.Groups.Add(groupId);
         }
 
         g.SubGroup = lesson.SubGroup;
