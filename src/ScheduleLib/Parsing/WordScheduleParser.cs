@@ -514,7 +514,7 @@ public static class WordScheduleParser
                             var copy = cell.CloneNode(deep: true);
                             RemoveHyperlinks(copy);
 
-                            foreach (var para in cell.ChildElements.OfType<Paragraph>())
+                            foreach (var para in copy.ChildElements.OfType<Paragraph>())
                             {
                                 yield return para.InnerText;
                             }
