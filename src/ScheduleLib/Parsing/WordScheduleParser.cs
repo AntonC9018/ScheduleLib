@@ -204,14 +204,31 @@ public static class WordScheduleParser
                 break;
             }
 
-            if (MaybeParseHeaderRow(c, ref state, rowEnumerator).IsPresent)
+            var headerParseResult = MaybeParseHeaderRow(c, ref state, rowEnumerator);
+            switch (headerParseResult.Status)
             {
-                // Table with no rows other than the header is allowed ig.
-                if (!rowEnumerator.MoveNext())
+                case HeaderRowParseStatus.HeaderParsed:
+                {
+                    // Table with no rows other than the header is allowed ig.
+                    if (!rowEnumerator.MoveNext())
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                case HeaderRowParseStatus.NoHeaderParsed:
+                {
+                    break;
+                }
+                // The master doc has a table used for alignment
+                // with general info before the main table.
+                // We ignore it.
+                case HeaderRowParseStatus.SkipTable:
                 {
                     continue;
                 }
             }
+
             while (true)
             {
                 ParseRegularRow();
@@ -695,9 +712,9 @@ public static class WordScheduleParser
             {
                 if (state.ColumnCounts is null)
                 {
-                    throw new NotSupportedException("Parsing must begin with a table that has the header with the groups");
+                    return new(HeaderRowParseStatus.SkipTable);
                 }
-                return new(IsPresent: false);
+                return new(HeaderRowParseStatus.NoHeaderParsed);
             }
 
             // Currently the enumerator is at the group names (already primed with MoveNext).
@@ -709,7 +726,7 @@ public static class WordScheduleParser
 
                 int groupCount = AddGroups(state.GroupsProcessed);
                 state.ColumnCounts = new(skippedInfo.Size, groupCount);
-                return new(IsPresent: true);
+                return new(HeaderRowParseStatus.HeaderParsed);
             }
         }
         finally
@@ -924,7 +941,14 @@ public static class WordScheduleParser
         }
     }
 
-    private readonly record struct HeaderRowParseResult(bool IsPresent);
+    private enum HeaderRowParseStatus
+    {
+        HeaderParsed,
+        NoHeaderParsed,
+        SkipTable,
+    }
+    private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status);
+
     private readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
     {
         public static SkippedHeaderColumnsInfo NotMatch() => default;
