@@ -526,7 +526,10 @@ public static class Tasks
 
                 if (printGroup)
                 {
-                    AppendGroup(listBuilder, lesson, true);
+                    AppendGroup(
+                        listBuilder,
+                        lesson,
+                        appendSubgroup: true);
                 }
 
                 if (printParity)
