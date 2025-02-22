@@ -50,10 +50,10 @@ public static class GroupHelper
         parser.SkipWhitespace();
 
         baseParser.MoveTo(parser.Position);
-        int year = ParseYear();
+        int year = ParseYear(ref parser);
         var grade = context.DetermineGrade(year);
         int groupNumber = ParseGroup(ref parser);
-        int group = ParseGroup();
+        int group = ParseGroup(ref parser);
         _ = group;
 
         string actualName;
