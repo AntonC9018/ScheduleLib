@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
+using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Parsing.WordDoc;
@@ -899,11 +898,15 @@ public static class WordScheduleParser
 
                 DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
                 {
-                    const string format = "dd.MM.yyyy";
+                    var culture = CultureInfo.CurrentCulture;
+                    Debug.Assert(culture.Calendar.TwoDigitYearMax == 2049,
+                        "Fix this if you want to parse older docs");
+
+                    const string format = "dd.MM.yy";
                     if (!DateTime.TryParseExact(
                             s: s,
                             format: format,
-                            provider: null,
+                            provider: culture,
                             style: default,
                             result: out var date))
                     {
