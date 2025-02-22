@@ -19,6 +19,7 @@ public readonly struct TeachersByLastName()
 
     public TeacherIdList? Get(string lastName) => _dict.GetValueOrDefault(lastName);
     public TeacherIdList AddOrGet(string lastName) => _dict.GetOrAdd(lastName, _ => new());
+    public void Clear() => _dict.Clear();
 }
 
 public static class TeacherLookupHelper

@@ -29,6 +29,8 @@ public static class GroupHelper
         // M2401(ro)
         // IAFR2402
         // IAFR2403 R
+        // SMMSPA 2401
+        // MIA 2402 (ru)
         if (name.Length < 5)
         {
             throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
@@ -39,11 +41,21 @@ public static class GroupHelper
 
         var (label, _, isMaster) = ParseLabel();
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
+        parser.SkipWhitespace();
+
+        baseParser.MoveTo(parser.Position);
         int year = ParseYear();
         int grade = context.CurrentStudyYear - year + 1; // no validation for now.
         int group = ParseGroup();
         _ = group;
-        var actualName = baseParser.PeekSpanUntilPosition(parser.Position).ToString();
+
+        string actualName;
+        {
+            var numbers = baseParser.SourceUntilExclusive(parser);
+            actualName = string.Concat(label, numbers.Span);
+        }
+
+        parser.SkipWhitespace();
         var language = ParseLanguage();
 
         return new()
@@ -62,52 +74,22 @@ public static class GroupHelper
             {
                 throw new InvalidOperationException("Must be prefixed with at least one letter indicating the group.");
             }
-            bparser.Move();
 
-            bool isMaybeMaster = false;
-            bool isFr = false;
+            bool isMaybeMaster = bparser.Current == 'M';
 
-            if (bparser.Current == 'M')
+            bool isFr;
             {
-                isMaybeMaster = true;
-            }
-
-            while (true)
-            {
-                if (bparser.IsEmpty)
+                var skip = new SkipUntilFRNotLetter();
+                var skipResult = bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
+                if (!skipResult.SkippedAny)
                 {
                     throw new InvalidOperationException("After the label, it must include a number!");
                 }
-
-                if (bparser.CanPeekCount(2))
-                {
-                    var chars = bparser.PeekSpan(2);
-                    if (chars[0] == 'F' && chars[1] == 'R' && !ParserHelper.IsUpper(chars[2]))
-                    {
-                        isFr = true;
-                    }
-                }
-
-                if (!ParserHelper.IsUpper(bparser.Current))
-                {
-                    break;
-                }
-
-                bparser.Move();
-            }
-
-            bool isMaster1 = false;
-            // More than 1 letter in label
-            if (bparser.Position - parser.Position > 1)
-            {
-                isMaster1 = isMaybeMaster;
-                if (isMaster1)
-                {
-                    parser.Move();
-                }
+                isFr = skip.IsFr;
             }
 
             var label1 = parser.PeekSpanUntilPosition(bparser.Position);
+            bool isMaster1 = isMaybeMaster && label1.Length > 1;
             parser.MoveTo(bparser.Position);
             return (label1.ToString(), isFr, isMaster1);
         }
@@ -132,8 +114,7 @@ public static class GroupHelper
                 }
                 default:
                 {
-                    Debug.Fail("Unreachable");
-                    return 0;
+                    throw Unreachable();
                 }
             }
         }
@@ -158,8 +139,7 @@ public static class GroupHelper
                 }
                 default:
                 {
-                    Debug.Fail("Unreachable");
-                    return 0;
+                    throw Unreachable();
                 }
             }
         }
@@ -223,6 +203,29 @@ public static class GroupHelper
             var ret = LanguageHelper.ParseName(langSpan) ?? throw new InvalidOperationException($"Unrecognized language string");
             parser.MoveTo(bparser.Position);
             return ret;
+        }
+    }
+
+    private struct SkipUntilFRNotLetter : IShouldSkipSequence
+    {
+        public bool IsFr { readonly get; private set; }
+
+        public bool ShouldSkip(ReadOnlySpan<char> window)
+        {
+            if (!ParserHelper.IsUpper(window[0]))
+            {
+                return false;
+            }
+            if (window.Length < 2)
+            {
+                return true;
+            }
+            if (window is "FR")
+            {
+                IsFr = true;
+                return false;
+            }
+            return true;
         }
     }
 }

@@ -20,6 +20,14 @@ public sealed class LookupModule()
     public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
     public readonly TeachersByLastName TeachersByLastName = new();
     public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
+
+    public void Clear()
+    {
+        Courses.Clear();
+        TeachersByLastName.Clear();
+        Groups.Clear();
+        LessonsByCourse.Clear();
+    }
 }
 
 public struct LookupFacade(ScheduleBuilder s)
@@ -55,7 +63,11 @@ public struct LookupFacade(ScheduleBuilder s)
         return new(ids[i]);
     }
 
-    public GroupId? Group(string name) => Find<GroupId>(Lookup.Groups, name);
+    public GroupId? Group(string fullName)
+    {
+        var group = s.ParseGroup(fullName);
+        return Find<GroupId>(Lookup.Groups, group.Name);
+    }
 
     private LookupModule Lookup
     {
@@ -91,9 +103,26 @@ public static partial class ScheduleBuilderHelper
         }
 
         var lookupModule = s.LookupModule = new();
+        InitLookup(s, lookupModule);
+        s.LookupModule = lookupModule;
+    }
 
+    public static void RefreshLookup(this ScheduleBuilder s)
+    {
+        if (s.LookupModule is null)
         {
-            var coursesMap = lookupModule.Courses;
+            EnableLookupModule(s);
+            return;
+        }
+
+        s.LookupModule.Clear();
+        InitLookup(s, s.LookupModule);
+    }
+
+    private static void InitLookup(this ScheduleBuilder s, LookupModule lookup)
+    {
+        {
+            var coursesMap = lookup.Courses;
             for (int i = 0; i < s.Courses.Count; i++)
             {
                 ref var course = ref s.Courses.Ref(i);
@@ -104,7 +133,7 @@ public static partial class ScheduleBuilderHelper
             }
         }
         {
-            var teachersMap = lookupModule.TeachersByLastName;
+            var teachersMap = lookup.TeachersByLastName;
             for (int i = 0; i < s.Teachers.Count; i++)
             {
                 ref var teacher = ref s.Teachers.Ref(i);
@@ -117,7 +146,7 @@ public static partial class ScheduleBuilderHelper
             }
         }
         {
-            var groupsMap = lookupModule.Groups;
+            var groupsMap = lookup.Groups;
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
@@ -126,8 +155,8 @@ public static partial class ScheduleBuilderHelper
         }
         {
             var courseCount = s.Courses.Count;
-            CollectionsMarshal.SetCount(lookupModule.LessonsByCourse, courseCount);
-            foreach (ref var it in CollectionsMarshal.AsSpan(lookupModule.LessonsByCourse))
+            CollectionsMarshal.SetCount(lookup.LessonsByCourse, courseCount);
+            foreach (ref var it in CollectionsMarshal.AsSpan(lookup.LessonsByCourse))
             {
                 it = new();
             }
@@ -140,7 +169,7 @@ public static partial class ScheduleBuilderHelper
                 {
                     continue;
                 }
-                var list = lookupModule.LessonsByCourse[courseId.Id];
+                var list = lookup.LessonsByCourse[courseId.Id];
                 list.Add(i);
             }
         }

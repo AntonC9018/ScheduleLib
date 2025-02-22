@@ -478,4 +478,113 @@ public sealed class LessonParserTests
             return true;
         }
     }
+
+    [Fact]
+    public void MediacorRoom()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Mediacor, etajul II",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+        Assert.Equal("Mediacor, etajul II", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void MediacorRoomWithTeacher()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher  Mediacor, etajul I",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+        Assert.Equal("Teacher", Assert.Single(lesson.TeacherNames).LastName.Span);
+        Assert.Equal("Mediacor, etajul I", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void LessonWithCommasInName()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher",
+                "Other,Lesson",
+                "Teacher",
+            ],
+        });
+
+        Assert.Collection(lessons,
+            lesson1 =>
+            {
+                Assert.Equal("Lesson", lesson1.LessonName.Span);
+                AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
+            },
+            lesson2 =>
+            {
+                Assert.Equal("Other, Lesson", lesson2.LessonName.Span);
+                AssertEqualName("Teacher", Assert.Single(lesson2.TeacherNames));
+            });
+    }
+
+    [Fact]
+    public void RoomNameAfterTeacherNameWithComma()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher, 123Room",
+            ],
+        });
+
+        var lesson1 = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson1.LessonName.Span);
+        AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
+        Assert.Equal("123Room", lesson1.RoomName.Span);
+    }
+
+    [Fact]
+    public void NoMultipleRoomName()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson",
+                "Teacher, 123Room, 124Room",
+            ],
+        });
+
+        Assert.Throws<RoomAlreadySpecifiedException>(() =>
+        {
+            foreach (var x in lessons)
+            {
+            }
+        });
+    }
+
+    [Fact]
+    public void StarInFrontOfLessonIsIgnored()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "*Lesson",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Lesson", lesson.LessonName.Span);
+    }
 }

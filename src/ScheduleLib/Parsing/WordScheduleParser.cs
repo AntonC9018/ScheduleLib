@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
@@ -70,7 +72,11 @@ public sealed class DocParseContext
         {
             Schedule = Schedule,
             CourseName = name,
-            ParseOptions = new(),
+            ParseOptions = new()
+            {
+                // Commas are allowed in course names now, apparently.
+                IgnorePunctuation = true,
+            },
         });
         return ret;
     }
@@ -197,16 +203,31 @@ public static class WordScheduleParser
                 break;
             }
 
-            IEnumerable<TableCell> Cells() => rowEnumerator.Current.ChildElements.OfType<TableCell>();
-
-            if (MaybeParseHeaderRow())
+            var headerParseResult = MaybeParseHeaderRow(c, ref state, rowEnumerator);
+            switch (headerParseResult.Status)
             {
-                // Table with rows other than the header is allowed ig.
-                if (!rowEnumerator.MoveNext())
+                case HeaderRowParseStatus.HeaderParsed:
+                {
+                    // Table with no rows other than the header is allowed ig.
+                    if (!rowEnumerator.MoveNext())
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                case HeaderRowParseStatus.NoHeaderParsed:
+                {
+                    break;
+                }
+                // The master doc has a table used for alignment
+                // with general info before the main table.
+                // We ignore it.
+                case HeaderRowParseStatus.SkipTable:
                 {
                     continue;
                 }
             }
+
             while (true)
             {
                 ParseRegularRow();
@@ -225,7 +246,7 @@ public static class WordScheduleParser
 
                 int columnIndex = 0;
                 int columnSizeCounter = 0;
-                foreach (var cell in Cells())
+                foreach (var cell in rowEnumerator.Current.Cells())
                 {
                     var props = cell.TableCellProperties;
                     var colSpan = props?.GridSpan?.Val ?? 1;
@@ -456,9 +477,7 @@ public static class WordScheduleParser
                             return;
                         }
 
-                        var lines = cell.ChildElements
-                            .OfType<Paragraph>()
-                            .SelectMany(x => x.InnerText.Split("\n"));
+                        var lines = Lines();
                         var lessons = LessonParsingHelper.ParseLessons(new()
                         {
                             Lines = lines,
@@ -474,6 +493,7 @@ public static class WordScheduleParser
                                 columnIndex: columnIndex,
                                 colSpan: colSpan1);
                         }
+                        return;
 
                         bool ShouldAdd()
                         {
@@ -488,106 +508,31 @@ public static class WordScheduleParser
                             }
                             return false;
                         }
-                    }
-                }
-            }
 
-            // Returns whether the header row is present
-            bool MaybeParseHeaderRow()
-            {
-                const int expectedSkippedCount = 2;
-
-                using var cellEnumerator = Cells().GetEnumerator();
-                (int skippedCount, int skippedSize) = SkipEmpties();
-                if (!ShouldParseGroupsWithChecks(skippedCount))
-                {
-                    return false;
-                }
-                {
-                    if (state.ColumnCounts is { } cc)
-                    {
-                        state.GroupsProcessed += cc.Good;
-                    }
-                }
-                int groupCount = AddGroups();
-                state.ColumnCounts = new(skippedSize, groupCount);
-                return true;
-
-                (int SkippedCount, int SkippedSize) SkipEmpties()
-                {
-                    int skippedCount1 = 0;
-                    int skippedSize1 = 0;
-                    if (!cellEnumerator.MoveNext())
-                    {
-                        throw new NotSupportedException("Empty table not supported");
-                    }
-                    while (true)
-                    {
-                        var cell = cellEnumerator.Current;
-                        var text = cell.InnerText;
-                        if (text != "")
+                        IEnumerable<string> Lines()
                         {
-                            break;
-                        }
-                        skippedCount1++;
+                            var copy = cell.CloneNode(deep: true);
+                            RemoveHyperlinks(copy);
 
-                        var size = cell.TableCellProperties?.GridSpan?.Val ?? 1;
-                        skippedSize1 += size;
+                            foreach (var para in copy.ChildElements.OfType<Paragraph>())
+                            {
+                                yield return para.InnerText;
+                            }
+                            yield break;
 
-                        if (!cellEnumerator.MoveNext())
-                        {
-                            throw new NotSupportedException("Header columns expected after the empties");
-                        }
-                    }
-                    return (skippedCount1, skippedSize1);
-                }
-
-                bool ShouldParseGroupsWithChecks(int skippedCount1)
-                {
-                    if (skippedCount1 == expectedSkippedCount)
-                    {
-                        return true;
-                    }
-
-                    if (skippedCount1 != 0)
-                    {
-                        throw new NotSupportedException($"Expected {expectedSkippedCount} empty columns for the left header");
-                    }
-
-                    if (state.ColumnCounts is null)
-                    {
-                        throw new NotSupportedException("Parsing must begin with a table that has the header with the groups");
-                    }
-
-                    return false;
-                }
-
-                int AddGroups()
-                {
-                    int goodSize = 0;
-                    while (true)
-                    {
-                        var cell = cellEnumerator.Current;
-                        var groupName = cell.InnerText;
-                        var expectedId = goodSize + state.GroupsProcessed;
-
-                        var group = c.Schedule.Group(groupName);
-                        if (expectedId != group.Id.Value)
-                        {
-                            throw new NotSupportedException("Each group must only be used in a column header once.");
-                        }
-                        Debug.Assert(expectedId == group.Id.Value);
-
-                        var colSpan = cell.TableCellProperties?.GridSpan?.Val ?? 1;
-                        goodSize += colSpan;
-
-                        if (!cellEnumerator.MoveNext())
-                        {
-                            return goodSize;
+                            void RemoveHyperlinks(OpenXmlElement el)
+                            {
+                                el.RemoveAllChildren<Hyperlink>();
+                                foreach (var child in el.ChildElements)
+                                {
+                                    RemoveHyperlinks(child);
+                                }
+                            }
                         }
                     }
                 }
             }
+
         }
     }
 
@@ -660,12 +605,12 @@ public static class WordScheduleParser
         else
         {
             // validate group
-            var groupName = lesson.GroupName.Span.Trim().ToString();
-            if (!c.Schedule.LookupModule!.Groups.TryGetValue(groupName, out var x))
+            var groupFullName = lesson.GroupName.Span.Trim().ToString();
+            if (c.Schedule.Lookup().Group(groupFullName) is not { } groupId)
             {
                 throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
             }
-            g.Groups.Add(new(x));
+            g.Groups.Add(groupId);
         }
 
         g.SubGroup = lesson.SubGroup;
@@ -730,5 +675,291 @@ public static class WordScheduleParser
             TimeSlotError();
         }
         return i;
+    }
+
+    private static IEnumerable<TableCell> Cells(this TableRow row)
+    {
+        return row.ChildElements.OfType<TableCell>();
+    }
+
+    private static HeaderRowParseResult MaybeParseHeaderRow(
+        DocParseContext c,
+        ref TableParsingState state,
+        IEnumerator<TableRow> rowEnumerator)
+    {
+        const int expectedEmptySkippedCount = 2;
+
+        IEnumerator<TableCell>? cellEnumerator = null;
+        try
+        {
+            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+            if (!cellEnumerator.MoveNext())
+            {
+                throw new NotSupportedException("Empty table not supported");
+            }
+
+            // empties    group names
+            var skippedInfo = TryFirstFormat();
+            if (skippedInfo.IsNotMatch)
+            {
+                // sem    date range, year
+                // ---  group names
+                skippedInfo = TrySecondFormat();
+            }
+
+            if (skippedInfo.IsNotMatch)
+            {
+                if (state.ColumnCounts is null)
+                {
+                    return new(HeaderRowParseStatus.SkipTable);
+                }
+                return new(HeaderRowParseStatus.NoHeaderParsed);
+            }
+
+            // Currently the enumerator is at the group names (already primed with MoveNext).
+            {
+                if (state.ColumnCounts is { } cc)
+                {
+                    state.GroupsProcessed += cc.Good;
+                }
+
+                int groupCount = AddGroups(state.GroupsProcessed);
+                state.ColumnCounts = new(skippedInfo.Size, groupCount);
+                return new(HeaderRowParseStatus.HeaderParsed);
+            }
+        }
+        finally
+        {
+            cellEnumerator?.Dispose();
+        }
+
+        SkippedHeaderColumnsInfo TryFirstFormat()
+        {
+            var skippedInfo = TrySkipEmpties();
+            if (skippedInfo.Count == 0)
+            {
+                return skippedInfo;
+            }
+            if (skippedInfo.Count != expectedEmptySkippedCount)
+            {
+                throw new NotSupportedException($"Expected {expectedEmptySkippedCount} empty header columns");
+            }
+            return skippedInfo;
+        }
+
+        void MoveToNextCellForGroupRow()
+        {
+            if (!cellEnumerator.MoveNext())
+            {
+                throw new NotSupportedException("Header columns expected after the left header");
+            }
+        }
+
+        SkippedHeaderColumnsInfo TrySkipEmpties()
+        {
+            int skippedCount1 = 0;
+            int skippedSize1 = 0;
+            while (true)
+            {
+                var cell = cellEnumerator.Current;
+                // TODO: Try HasChildren
+                var text = cell.InnerText;
+                if (text != "")
+                {
+                    break;
+                }
+                skippedCount1++;
+
+                int size = cell.GetWidth();
+                skippedSize1 += size;
+                MoveToNextCellForGroupRow();
+            }
+            return new(skippedCount1, skippedSize1);
+        }
+
+        SkippedHeaderColumnsInfo TrySecondFormat()
+        {
+            var skippedWidth = TrySecondFormatUpperLeftMostHeader();
+            if (skippedWidth == 0)
+            {
+                return SkippedHeaderColumnsInfo.NotMatch();
+            }
+
+            // Now make sure we skip the same size on the next row.
+            rowEnumerator.MoveNext();
+            cellEnumerator.Dispose();
+            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+
+            if (!cellEnumerator.MoveNext())
+            {
+                throw new NotSupportedException("Expected the second row");
+            }
+
+            var width = cellEnumerator.Current.GetWidth();
+            if (width != skippedWidth)
+            {
+                throw new NotSupportedException("The second row must have the same width as the first row");
+            }
+
+            MoveToNextCellForGroupRow();
+
+            return new(1, skippedWidth);
+        }
+
+        // Returns the size of the column.
+        int TrySecondFormatUpperLeftMostHeader()
+        {
+            var cell = cellEnumerator.Current;
+            using var paragraphs = cell
+                .ChildElements
+                .OfType<Paragraph>()
+                .GetEnumerator();
+            if (!paragraphs.MoveNext())
+            {
+                return 0;
+            }
+            if (ParseSem() is not { } semNumber)
+            {
+                return 0;
+            }
+            if (!paragraphs.MoveNext())
+            {
+                throw new NotSupportedException("Expected the interval");
+            }
+
+            var interval = ParseInterval();
+
+            // Ignored for now.
+            _ = semNumber;
+            _ = interval;
+
+            // Could make sure the next one is the year?
+            // The rest of this row is ignored.
+            return cell.GetWidth();
+
+            int? ParseSem()
+            {
+                var semPara = paragraphs.Current.InnerText;
+                var parser = new Parser(semPara);
+                parser.SkipWhitespace();
+                if (!parser.ConsumeExactString("Sem."))
+                {
+                    return null;
+                }
+
+                parser.SkipWhitespace();
+                {
+                    var bparser = parser.BufferedView();
+                    {
+                        var result = bparser.SkipNotWhitespace();
+                        if (!result.EndOfInput)
+                        {
+                            throw new NotSupportedException("Sem must be followed by a roman number");
+                        }
+                    }
+                    {
+                        var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                        var number = NumberHelper.FromRoman(numberSpan);
+                        if (number is not { } n)
+                        {
+                            throw new NotSupportedException("Sem must be followed by a roman number");
+                        }
+                        return n;
+                    }
+                }
+            }
+
+            (DateTime Start, DateTime End) ParseInterval()
+            {
+                var parser = new Parser(paragraphs.Current.InnerText);
+                parser.SkipWhitespace();
+                var bparser = parser.BufferedView();
+                var skipped = bparser.SkipUntil(['–', '-', '—']);
+                if (skipped.EndOfInput)
+                {
+                    throw new NotSupportedException("Expected interval separator");
+                }
+
+                var startSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                var startDate = ParseDateTime(startSpan, "Invalid start date");
+
+                bparser.Move();
+                parser.MoveTo(bparser.Position);
+
+                var endSpan = parser.PeekSpanUntilEnd();
+                var endDate = ParseDateTime(endSpan, "Invalid end date");
+
+                if (startDate >= endDate)
+                {
+                    throw new NotSupportedException("The start date must be before the end date");
+                }
+
+                return (startDate, endDate);
+
+                DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
+                {
+                    var culture = CultureInfo.CurrentCulture;
+                    Debug.Assert(culture.Calendar.TwoDigitYearMax == 2049,
+                        "Fix this if you want to parse older docs");
+
+                    const string format = "dd.MM.yy";
+                    if (!DateTime.TryParseExact(
+                            s: s,
+                            format: format,
+                            provider: culture,
+                            style: default,
+                            result: out var date))
+                    {
+                        throw new NotSupportedException(error);
+                    }
+                    return date;
+                }
+            }
+        }
+
+        int AddGroups(int groupsProcessed)
+        {
+            int goodSize = 0;
+            while (true)
+            {
+                var cell = cellEnumerator.Current;
+                var groupName = cell.InnerText;
+                var expectedId = goodSize + groupsProcessed;
+
+                var group = c.Schedule.Group(groupName);
+                if (expectedId != group.Id.Value)
+                {
+                    throw new NotSupportedException("Each group must only be used in a column header once.");
+                }
+                Debug.Assert(expectedId == group.Id.Value);
+
+                var colSpan = cell.GetWidth();
+                goodSize += colSpan;
+
+                if (!cellEnumerator.MoveNext())
+                {
+                    return goodSize;
+                }
+            }
+        }
+    }
+
+    private enum HeaderRowParseStatus
+    {
+        HeaderParsed,
+        NoHeaderParsed,
+        SkipTable,
+    }
+    private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status);
+
+    private readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
+    {
+        public static SkippedHeaderColumnsInfo NotMatch() => default;
+        public bool IsNotMatch => Count == 0;
+    }
+
+    private static int GetWidth(this TableCell cell)
+    {
+        return cell.TableCellProperties?.GridSpan?.Val ?? 1;
     }
 }

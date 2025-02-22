@@ -14,6 +14,11 @@ public struct Parser
     public readonly char PeekAt(int offset) => _input[_index + offset];
     public readonly bool CanPeekAt(int offset) => _index + offset < _input.Length;
     public readonly bool CanPeekCount(int size) => CanPeekAt(size - 1);
+    public readonly int GetPeekCount(int desiredSize)
+    {
+        int remaining = _input.Length - _index;
+        return Math.Min(remaining, desiredSize);
+    }
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(int positionExclusive) => _input.AsSpan()[_index .. positionExclusive];
     public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => _input.AsSpan()[_index ..];
@@ -29,7 +34,7 @@ public struct Parser
         _index = Math.Min(_input.Length, position + 1);
     }
 
-    public int Position => _index;
+    public readonly int Position => _index;
 
     // Conceptually doesn't consume when moving, it just moves the window.
     // Currently just return a copy, because we only have a string impl and
@@ -60,6 +65,25 @@ public static class ParserHelper
         return ch >= 'a' && ch <= 'z';
     }
 
+    public readonly struct SkipSequenceResult
+    {
+        private readonly SkipResult _result;
+        private readonly int _match;
+
+        public SkipSequenceResult(
+            SkipResult result,
+            int match)
+        {
+            _match = match;
+            _result = result;
+        }
+
+        public bool EndOfInput => _result.EndOfInput;
+        public bool SkippedAny => _result.SkippedAny;
+        public bool Satisfied => _result.Satisfied;
+        public int Match => _match;
+    }
+
     public struct SkipResult
     {
         public bool EndOfInput;
@@ -74,27 +98,30 @@ public static class ParserHelper
 
     public static SkipResult SkipWindow<T>(
         this ref Parser parser,
-        T impl,
-        int windowSize)
+        ref T impl,
+        int minWindowSize,
+        int maxWindowSize)
 
         where T : struct, IShouldSkipSequence, allows ref struct
     {
         var ret = new SkipResult();
         while (true)
         {
-            if (!parser.CanPeekCount(windowSize))
+            int peekCount = parser.GetPeekCount(maxWindowSize);
+            if (peekCount < minWindowSize)
             {
                 ret.EndOfInput = true;
-                break;
+                return ret;
             }
 
-            var window = parser.PeekSpan(windowSize);
+            var window = parser.PeekSpan(peekCount);
             if (!impl.ShouldSkip(window))
             {
                 break;
             }
 
             ret.SkippedAny = true;
+            parser.Move();
         }
         return ret;
     }
@@ -102,26 +129,68 @@ public static class ParserHelper
     private ref struct SkipWindowUntilStringImpl : IShouldSkipSequence
     {
         private readonly ReadOnlySpan<string> _strings;
-        public SkipWindowUntilStringImpl(ReadOnlySpan<string> strings) => _strings = strings;
+        public int Match { get; private set; }
+        public SkipWindowUntilStringImpl(ReadOnlySpan<string> strings)
+        {
+            _strings = strings;
+            Match = -1;
+        }
 
         public bool ShouldSkip(ReadOnlySpan<char> window)
         {
-            foreach (var str in _strings)
+            for (int index = 0; index < _strings.Length; index++)
             {
-                if (window.Equals(str, StringComparison.CurrentCultureIgnoreCase))
+                string str = _strings[index];
+                if (window.Length < str.Length)
                 {
+                    continue;
+                }
+
+                if (window[.. str.Length].Equals(str, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    Match = index;
                     return false;
                 }
             }
+
             return true;
         }
     }
-    public static SkipResult SkipUntil(this ref Parser parser, ReadOnlySpan<string> strings)
+    public static SkipSequenceResult SkipUntilSequence(this ref Parser parser, ReadOnlySpan<string> strings)
     {
         Debug.Assert(!strings.IsEmpty);
-        var len = strings[0].Length;
-        Debug.Assert(strings[1 ..].All(x => x.Length == len));
-        return parser.SkipWindow(new SkipWindowUntilStringImpl(strings), len);
+        Debug.Assert(strings.All(x => x.Length != 0));
+
+        int min = MinSize(strings);
+        int max = MaxSize(strings);
+        var algorithm = new SkipWindowUntilStringImpl(strings);
+        var result = parser.SkipWindow(
+            ref algorithm,
+            minWindowSize: min,
+            maxWindowSize: max);
+        var ret = new SkipSequenceResult(
+            result,
+            algorithm.Match);
+        return ret;
+
+        static int MaxSize(ReadOnlySpan<string> s)
+        {
+            int max = 0;
+            foreach (var item in s)
+            {
+                max = Math.Max(max, item.Length);
+            }
+            return max;
+        }
+        static int MinSize(ReadOnlySpan<string> s)
+        {
+            int min = int.MaxValue;
+            foreach (var item in s)
+            {
+                min = Math.Min(min, item.Length);
+            }
+            return min;
+        }
     }
 
     private static bool All<T>(this ReadOnlySpan<T> s, Func<T, bool> action)
@@ -271,6 +340,25 @@ public static class ParserHelper
         int start = a.Position;
         int end = b.Position;
         return a.Source.AsMemory(start .. end);
+    }
+
+    public static bool ConsumeExactString(
+        ref this Parser parser,
+        ReadOnlySpan<char> expectedString)
+    {
+        if (!parser.CanPeekCount(expectedString.Length))
+        {
+            return false;
+        }
+
+        var peek = parser.PeekSpan(expectedString.Length);
+        if (!peek.SequenceEqual(expectedString))
+        {
+            return false;
+        }
+
+        parser.Move(expectedString.Length);
+        return true;
     }
 }
 

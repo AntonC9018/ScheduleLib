@@ -41,15 +41,20 @@ public static class GroupBuilderHelper
         return now.Year - 1;
     }
 
-    public static GroupBuilder Group(this ScheduleBuilder s, string fullName)
+    public static Group ParseGroup(this ScheduleBuilder s, string fullName)
     {
         s.GroupParseContext ??= GroupParseContext.Create(new()
         {
             CurrentStudyYear = DetermineStudyYear(),
         });
 
-        var group = s.GroupParseContext.Parse(fullName);
+        var ret = s.GroupParseContext.Parse(fullName);
+        return ret;
+    }
 
+    public static GroupBuilder Group(this ScheduleBuilder s, string fullName)
+    {
+        var group = s.ParseGroup(fullName);
         int ret;
         if (s.LookupModule is { } lookupModule)
         {
