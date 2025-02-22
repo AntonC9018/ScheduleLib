@@ -13,6 +13,7 @@
     <ItemGroup>
         <None
             Include="data\**\*.docx"
+            Exclude="data\**\~$*.docx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
         <None
