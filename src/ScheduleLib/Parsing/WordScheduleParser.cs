@@ -116,18 +116,6 @@ public sealed class DocParseContext
         var periods = Schedule.Periods.List;
         Debug.Assert(periods.IsSorted(x => x.Start));
 
-        [Conditional("DEBUG")]
-        static void OutOfOrderCheck(IEnumerable<PeriodBuilderModel> periods, DateOnly start)
-        {
-            Debug.Assert(periods.All(x => x.Start < start), "Out of order periods not implemented");
-        }
-
-        PeriodId CreatePeriod()
-        {
-            var ret = Schedule.Period(start);
-            return ret;
-        }
-
         if (periods.Count == 0)
         {
             return CreatePeriod();
@@ -146,6 +134,18 @@ public sealed class DocParseContext
         Debug.Assert(lastPeriod.EndExclusive == default);
         lastPeriod.EndExclusive = start;
         return CreatePeriod();
+
+        [Conditional("DEBUG")]
+        static void OutOfOrderCheck(IEnumerable<PeriodBuilderModel> periods, DateOnly start)
+        {
+            Debug.Assert(periods.All(x => x.Start < start), "Out of order periods not implemented");
+        }
+
+        PeriodId CreatePeriod()
+        {
+            var ret = Schedule.Period(start);
+            return ret;
+        }
     }
 }
 

@@ -28,6 +28,7 @@ public record struct RegularLessonModelDiffMask()
         Day,
         TimeSlot,
         Parity,
+        Period,
         Count,
     }
 
@@ -96,6 +97,12 @@ public record struct RegularLessonModelDiffMask()
     {
         get => Bits.IsSet((int) BitIndex.Parity);
         set => Bits.Set((int) BitIndex.Parity, value);
+    }
+
+    public bool Period
+    {
+        get => Bits.IsSet((int) BitIndex.Period);
+        set => Bits.Set((int) BitIndex.Period, value);
     }
 
     public RegularLessonModelDiffMask Intersect(RegularLessonModelDiffMask mask)
@@ -265,24 +272,9 @@ public static class LessonBuilderHelper
         b1.UpdateLookup(prev);
     }
 
-    public static void Add<T>(this ILessonBuilder b, T id) where T : struct
+    public static void Period(this ILessonBuilder b, PeriodId period)
     {
-        if (typeof(T) == typeof(TeacherId))
-        {
-            b.Teacher((TeacherId) (object) id);
-            return;
-        }
-        if (typeof(T) == typeof(RoomId))
-        {
-            b.Room((RoomId) (object) id);
-            return;
-        }
-        if (typeof(T) == typeof(CourseId))
-        {
-            b.Course((CourseId) (object) id);
-            return;
-        }
-        throw new ArgumentException("Invalid type");
+        b.Model.General.Period = period;
     }
 
     public static void ValidateLessons(ScheduleBuilder s)

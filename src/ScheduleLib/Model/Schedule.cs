@@ -432,5 +432,11 @@ public static class AccessorHelper
         return id.Id!;
     }
     public static RegularLesson Get(this Schedule schedule, RegularLessonId id) => schedule.RegularLessons[id.Id];
+
+    public static Period Get(this Schedule schedule, PeriodId id)
+    {
+        Debug.Assert(id.IsSpecified);
+        return schedule.Periods[id.Value];
+    }
 }
 

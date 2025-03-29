@@ -10,6 +10,7 @@ public struct ScheduleFilter()
     public Grade? Grade;
     public TeacherFilter TeacherFilter = new();
     public GroupFilter GroupFilter = new();
+    public PeriodId Period = PeriodId.Unspecified;
 }
 
 public struct GroupFilter()
@@ -86,6 +87,10 @@ public static class FilterHelper
                 {
                     continue;
                 }
+                if (!PassesPeriodFilter())
+                {
+                    continue;
+                }
                 yield return regularLesson;
 
                 bool PassesGradeTest()
@@ -153,6 +158,15 @@ public static class FilterHelper
                         {
                             return true;
                         }
+                    }
+                    return false;
+                }
+
+                bool PassesPeriodFilter()
+                {
+                    if (regularLesson.Lesson.Period == filter.Period)
+                    {
+                        return true;
                     }
                     return false;
                 }
