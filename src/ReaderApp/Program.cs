@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;

@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
