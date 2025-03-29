@@ -570,6 +570,7 @@ public sealed class LessonParserTests
         {
             foreach (var x in lessons)
             {
+                _ = x;
             }
         });
     }

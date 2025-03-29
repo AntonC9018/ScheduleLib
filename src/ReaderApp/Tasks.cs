@@ -12,6 +12,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Parsing.WordDoc;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
@@ -955,6 +956,78 @@ public static class Tasks
             throw new InvalidOperationException("Password not found.");
         }
         return ret;
+    }
+
+    public static void OptionallyEnrichContextWithTeacherFullNames(
+        ScheduleBuilder schedule,
+        string fileName)
+    {
+        if (!File.Exists(fileName))
+        {
+            return;
+        }
+
+        using var excel = SpreadsheetDocument.Open(fileName, isEditable: false, new()
+        {
+            AutoSave = false,
+            CompatibilityLevel = CompatibilityLevel.Version_2_20,
+        });
+
+        ExcelTeacherListParser.AddTeachersFromExcel(new()
+        {
+            Excel = excel,
+            Schedule = schedule,
+        });
+    }
+
+    public static void ParseDocumentDirIntoSchedule(
+        DocParseContext context,
+        string dirName)
+    {
+        ParseDirectoryToSchedule(context, dirName);
+
+        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
+            .Select(x =>
+            {
+                if (!DateOnly.TryParseExact(
+                        x,
+                        format: "dd.MM.yyyy",
+                        provider: null,
+                        style: DateTimeStyles.None,
+                        result: out var startDate))
+                {
+                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
+                }
+                return (SubDirPath: x, StartDate: startDate);
+            })
+            .OrderBy(x => x.StartDate);
+
+        foreach (var t in subdirs)
+        {
+            ParseDirectoryToSchedule(context, t.SubDirPath, new()
+            {
+                StartDate = t.StartDate,
+            });
+        }
+        return;
+
+        static void ParseDirectoryToSchedule(
+            DocParseContext context,
+            string dirName,
+            PeriodBeginning? period = null)
+        {
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
+            {
+                using var document = WordprocessingDocument.Open(filePath, isEditable: false);
+                WordScheduleParser.ParseToSchedule(new()
+                {
+                    Period = period,
+                    Context = context,
+                    Document = document,
+                });
+            }
+        }
+
     }
 }
 

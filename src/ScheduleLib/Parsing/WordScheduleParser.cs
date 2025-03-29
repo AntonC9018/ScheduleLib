@@ -210,7 +210,7 @@ public struct PeriodBeginning
 
 public struct ParseWordParams
 {
-    public required PeriodBeginning Period { get; init; }
+    public PeriodBeginning? Period { get; init; }
     public required DocParseContext Context { get; init; }
     public required WordprocessingDocument Document { get; init; }
 }
@@ -219,7 +219,17 @@ public static class WordScheduleParser
 {
     public static void ParseToSchedule(ParseWordParams p)
     {
-        var periodId = p.Context.Period(p.Period.StartDate);
+        PeriodId periodId;
+        {
+            if (p.Period is { } per)
+            {
+                periodId = p.Context.Period(per.StartDate);
+            }
+            else
+            {
+                periodId = PeriodId.Unspecified;
+            }
+        }
 
         var doc = p.Document;
         var c = p.Context;

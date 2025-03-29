@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
@@ -34,39 +35,16 @@ context.Schedule.ConfigureRemappings(remap =>
 });
 
 {
-    // Register the teachers from the list.
     const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
-    using var excel = SpreadsheetDocument.Open(fileName, isEditable: false, new()
-    {
-        AutoSave = false,
-        CompatibilityLevel = CompatibilityLevel.Version_2_20,
-    });
-
-    ExcelTeacherListParser.AddTeachersFromExcel(new()
-    {
-        Excel = excel,
-        Schedule = context.Schedule,
-    });
+    Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
 }
+
 {
-    context.Schedule.SetStudyYear(2024);
-
     const string dirName = @"data\2024_sem2";
-    foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
-    {
-        var period = new PeriodBeginning
-        {
-            StartDate = new DateOnly(year: 2024, month: 9, day: 1),
-        };
-        using var document = WordprocessingDocument.Open(filePath, isEditable: false);
-        WordScheduleParser.ParseToSchedule(new()
-        {
-            Period = period,
-            Context = context,
-            Document = document,
-        });
-    }
+    Tasks.ParseDocumentDirIntoSchedule(context, dirName);
 }
+
+context.Schedule.SetStudyYear(2024);
 
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
