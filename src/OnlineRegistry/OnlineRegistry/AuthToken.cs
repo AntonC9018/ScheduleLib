@@ -224,10 +224,15 @@ internal sealed class TokenRetrievalContext
         {
             var b = new UriBuilder(_fields.Names.LoginUrl);
             b.Port = -1;
+
+            // Yup, you got it right.
+            // It gets the password through query parameters.
+            // That's the only way that the server seems to accept.
             var parameters = HttpUtility.ParseQueryString("");
             parameters.Add("UserLogin", _fields.Credentials.Login);
             parameters.Add("UserPassword", _fields.Credentials.Password);
             b.Query = parameters.ToString();
+
             uri = b.Uri;
         }
 
