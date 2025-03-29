@@ -66,6 +66,7 @@ public static partial class ScheduleBuilderHelper
                 },
                 Lesson = new()
                 {
+                    Period = x.General.Period,
                     Groups = x.Group.Groups,
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
@@ -106,6 +107,12 @@ public static partial class ScheduleBuilderHelper
         });
         var courses = s.Courses.Build();
 
+        var periods = s.Periods.Build(x =>
+        {
+            var ret = new Period(x.Start, x.EndExclusive);
+            return ret;
+        });
+
         return new Schedule
         {
             RegularLessons = regularLessons,
@@ -113,6 +120,7 @@ public static partial class ScheduleBuilderHelper
             Groups = groups,
             Teachers = teachers,
             Courses = courses,
+            Periods = periods,
         };
     }
 
@@ -121,6 +129,7 @@ public static partial class ScheduleBuilderHelper
         GroupBuilderHelper.ValidateGroups(s);
         LessonBuilderHelper.ValidateLessons(s);
         TeacherBuilderHelper.ValidateTeachers(s);
+        PeriodBuilderHelper.ValidatePeriods(s);
     }
 
     public static CourseId Course(this ScheduleBuilder s, params string[] names)

@@ -109,6 +109,44 @@ public sealed class DocParseContext
     }
 
     internal RoomId Room(string name) => Schedule.Room(name);
+
+    internal PeriodId Period(DateOnly start)
+    {
+        // Currently, assume that periods are going to be ordered.
+        var periods = Schedule.Periods.List;
+        Debug.Assert(periods.IsSorted(x => x.Start));
+
+        [Conditional("DEBUG")]
+        static void OutOfOrderCheck(IEnumerable<PeriodBuilderModel> periods, DateOnly start)
+        {
+            Debug.Assert(periods.All(x => x.Start < start), "Out of order periods not implemented");
+        }
+
+        PeriodId CreatePeriod()
+        {
+            var ret = Schedule.Period(start);
+            return ret;
+        }
+
+        if (periods.Count == 0)
+        {
+            return CreatePeriod();
+        }
+
+        var lastPeriod = periods[^1];
+        if (lastPeriod.Start == start)
+        {
+            OutOfOrderCheck(periods.SkipLast(1), start);
+            return new(periods.Count - 1);
+        }
+
+        OutOfOrderCheck(periods, start);
+
+        // Maybe want to encapsulate this more, use the builder?
+        Debug.Assert(lastPeriod.EndExclusive == default);
+        lastPeriod.EndExclusive = start;
+        return CreatePeriod();
+    }
 }
 
 // TODO: Read the whole table once to find these first.
@@ -165,8 +203,14 @@ internal struct TableParsingState()
     }
 }
 
+public struct PeriodBeginning
+{
+    public required DateOnly StartDate { get; init; }
+}
+
 public struct ParseWordParams
 {
+    public required PeriodBeginning Period { get; init; }
     public required DocParseContext Context { get; init; }
     public required WordprocessingDocument Document { get; init; }
 }
@@ -175,6 +219,8 @@ public static class WordScheduleParser
 {
     public static void ParseToSchedule(ParseWordParams p)
     {
+        var periodId = p.Context.Period(p.Period.StartDate);
+
         var doc = p.Document;
         var c = p.Context;
 
@@ -490,7 +536,8 @@ public static class WordScheduleParser
                                 in state,
                                 in lesson,
                                 columnIndex: columnIndex,
-                                colSpan: colSpan1);
+                                colSpan: colSpan1,
+                                periodId: periodId);
                         }
                         return;
 
@@ -546,7 +593,8 @@ public static class WordScheduleParser
         in TableParsingState state,
         in ParsedLesson lesson,
         int columnIndex,
-        int colSpan)
+        int colSpan,
+        PeriodId periodId)
     {
         RegularLessonBuilderModelData modelData = new();
 
@@ -611,6 +659,8 @@ public static class WordScheduleParser
             }
             g.Groups.Add(groupId);
         }
+
+        modelData.General.Period = periodId;
 
         g.SubGroup = lesson.SubGroup;
 

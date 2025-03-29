@@ -128,6 +128,7 @@ public struct RegularLessonBuilderModelData()
         public List<TeacherId> Teachers = new();
         public RoomId Room;
         public LessonType Type = LessonType.Unspecified;
+        public PeriodId Period = PeriodId.Unspecified;
     }
 }
 

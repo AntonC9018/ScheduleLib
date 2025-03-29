@@ -54,9 +54,14 @@ context.Schedule.ConfigureRemappings(remap =>
     const string dirName = @"data\2024_sem2";
     foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
     {
+        var period = new PeriodBeginning
+        {
+            StartDate = new DateOnly(year: 2024, month: 9, day: 1),
+        };
         using var document = WordprocessingDocument.Open(filePath, isEditable: false);
         WordScheduleParser.ParseToSchedule(new()
         {
+            Period = period,
             Context = context,
             Document = document,
         });
