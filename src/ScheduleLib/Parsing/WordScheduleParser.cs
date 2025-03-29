@@ -195,11 +195,11 @@ internal struct TableParsingState()
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
-    public required int GroupsProcessed;
+    public List<GroupId> CurrentGroups = new();
 
     public readonly GroupId GroupId(int colIndex)
     {
-        return new(GroupsProcessed + colIndex - ColumnCounts!.Value.Skipped);
+        return new(colIndex - ColumnCounts!.Value.Skipped);
     }
 }
 
@@ -246,7 +246,6 @@ public static class WordScheduleParser
             .OfType<Table>();
         var state = new TableParsingState
         {
-            GroupsProcessed = p.Context.Schedule.Groups.Count,
         };
 
         foreach (var table in tables)
@@ -661,12 +660,8 @@ public static class WordScheduleParser
         }
         else
         {
-            // validate group
             var groupFullName = lesson.GroupName.Span.Trim().ToString();
-            if (c.Schedule.Lookup().Group(groupFullName) is not { } groupId)
-            {
-                throw new NotSupportedException("If a group is mentioned in lesson modifiers, it should have been declared prior");
-            }
+            var groupId = c.Schedule.Group(groupFullName);
             g.Groups.Add(groupId);
         }
 
@@ -700,6 +695,7 @@ public static class WordScheduleParser
                     SubGroup = true,
                     Room = true,
                     LessonType = true,
+                    Period = true,
                     // Already checked because we look up by it.
                     // Course = true,
                 };
@@ -778,12 +774,8 @@ public static class WordScheduleParser
 
             // Currently the enumerator is at the group names (already primed with MoveNext).
             {
-                if (state.ColumnCounts is { } cc)
-                {
-                    state.GroupsProcessed += cc.Good;
-                }
-
-                int groupCount = AddGroups(state.GroupsProcessed);
+                state.CurrentGroups.Clear();
+                int groupCount = AddGroups(state.CurrentGroups);
                 state.ColumnCounts = new(skippedInfo.Size, groupCount);
                 return new(HeaderRowParseStatus.HeaderParsed);
             }
@@ -977,21 +969,15 @@ public static class WordScheduleParser
             }
         }
 
-        int AddGroups(int groupsProcessed)
+        int AddGroups(List<GroupId> outputGroups)
         {
             int goodSize = 0;
             while (true)
             {
                 var cell = cellEnumerator.Current;
                 var groupName = cell.InnerText;
-                var expectedId = goodSize + groupsProcessed;
-
                 var group = c.Schedule.Group(groupName);
-                if (expectedId != group.Id.Value)
-                {
-                    throw new NotSupportedException("Each group must only be used in a column header once.");
-                }
-                Debug.Assert(expectedId == group.Id.Value);
+                outputGroups.Add(group);
 
                 var colSpan = cell.GetWidth();
                 goodSize += colSpan;

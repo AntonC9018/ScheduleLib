@@ -21,7 +21,7 @@ using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlign
 
 namespace ReaderApp;
 
-public struct GeneratePdfForGroupsAndTeachersParams
+public struct GeneratePdfForGroupsAndTeachersParams()
 {
     public required PdfLessonTextDisplayHandler.Services LessonTextDisplayServices;
     public required LessonTimeConfig LessonTimeConfig;
@@ -31,7 +31,7 @@ public struct GeneratePdfForGroupsAndTeachersParams
     public required string OutputPath;
 }
 
-public struct AllTeacherExcelParams
+public struct AllTeacherExcelParams()
 {
     public required string OutputFilePath;
     public required DayNameProvider DayNameProvider;
@@ -40,7 +40,7 @@ public struct AllTeacherExcelParams
     public required LessonTypeDisplayHandler LessonTypeDisplay;
     public required ParityDisplayHandler ParityDisplay;
     public required TimeSlotDisplayHandler TimeSlotDisplay;
-    public required Schedule Schedule;
+    public required FilteredSchedule Schedule;
     public required LessonTimeConfig TimeConfig;
 }
 
@@ -53,6 +53,8 @@ public static class Tasks
 {
     public static async Task GeneratePdfForGroupsAndTeachers(GeneratePdfForGroupsAndTeachersParams p)
     {
+        var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
+
         var outputDirPath = p.OutputPath;
         Directory.CreateDirectory(outputDirPath);
         foreach (var filePath in Directory.EnumerateFiles(outputDirPath, "*.pdf", SearchOption.TopDirectoryOnly))
@@ -113,6 +115,7 @@ public static class Tasks
                         {
                             IncludeIds = [new(teacherId1)],
                         },
+                        Period = periodId,
                     });
                 });
                 tasks.Add(t);
@@ -247,7 +250,7 @@ public static class Tasks
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + p.Schedule.Teachers.Length),
+                Max = (uint)(3 + p.Schedule.Source.Teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };
@@ -299,13 +302,13 @@ public static class Tasks
             }
 
             var sb = p.StringBuilder;
-            for (int i = 0; i < p.Schedule.Teachers.Length; i++)
+            for (int i = 0; i < p.Schedule.Source.Teachers.Length; i++)
             {
                 LessonTextDisplayHelper.AppendTeacherName(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Teacher = p.Schedule.Teachers[i],
+                    Teacher = p.Schedule.Source.Teachers[i],
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -319,7 +322,7 @@ public static class Tasks
         void Body()
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-                p.Schedule.RegularLessons,
+                p.Schedule.Lessons,
                 l => l.Lesson.Teachers);
             int timeSlotCount = p.TimeConfig.TimeSlotCount;
 
@@ -369,7 +372,7 @@ public static class Tasks
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
 
-                    for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
+                    for (int teacherId = 0; teacherId < p.Schedule.Source.Teachers.Length; teacherId++)
                     {
                         var cell = cells.NextCell();
 
@@ -654,7 +657,7 @@ public static class Tasks
 
             void AppendCourse(ListStringBuilder b, RegularLesson lesson)
             {
-                var course = p.Schedule.Get(lesson.Lesson.Course);
+                var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
             bool WillAppendLessonTypeName(RegularLesson lesson)
@@ -697,7 +700,7 @@ public static class Tasks
 
                 // b.MaybeAppendSeparator();
 
-                var group = p.Schedule.Get(groups.Group0);
+                var group = p.Schedule.Source.Get(groups.Group0);
                 // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 
@@ -989,9 +992,15 @@ public static class Tasks
         var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
             .Select(x =>
             {
+                var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
+                Debug.Assert(lastSegmentStart != -1);
+                lastSegmentStart += 1;
+
+                var lastSegment = x.AsSpan()[lastSegmentStart ..];
+
                 if (!DateOnly.TryParseExact(
-                        x,
-                        format: "dd.MM.yyyy",
+                        lastSegment,
+                        format: "dd.MM.yy",
                         provider: null,
                         style: DateTimeStyles.None,
                         result: out var startDate))

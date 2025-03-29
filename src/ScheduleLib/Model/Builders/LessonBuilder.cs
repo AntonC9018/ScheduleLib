@@ -500,6 +500,13 @@ public static class LessonBuilderHelper
                 ret.Parity = true;
             }
         }
+        if (whatToDiff.Period)
+        {
+            if (a.General.Period != b.General.Period)
+            {
+                ret.Period = true;
+            }
+        }
 
         return ret;
     }
@@ -618,6 +625,13 @@ public static class LessonBuilderHelper
             if (a.Date.Parity != b.Date.Parity)
             {
                 ret.Parity = true;
+            }
+        }
+        if (whatToDiff.Period)
+        {
+            if (a.Lesson.Period != b.Lesson.Period)
+            {
+                ret.Period = true;
             }
         }
 

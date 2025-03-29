@@ -588,4 +588,23 @@ public sealed class LessonParserTests
         var lesson = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson.LessonName.Span);
     }
+
+    [Fact]
+    public void TeacherNameCommaRoomNameSupported_EvenWithTerribleFormatting()
+    {
+
+        // Managementul proiectelor (sem)
+        // Iu.Drăgălina ,  213a/4
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Managementul proiectelor (sem)",
+                "Iu.Drăgălina ,  213a/4",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        AssertEqualName("Iu.Drăgălina", Assert.Single(lesson.TeacherNames));
+        Assert.Equal("213a/4", lesson.RoomName.Span);
+    }
 }

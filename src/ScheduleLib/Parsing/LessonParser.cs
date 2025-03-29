@@ -597,6 +597,11 @@ public static class LessonParsingHelper
                 ref var teacher = ref c.State.LastModifiers.Value.Specific.LastTeacher;
                 teacher.LastName = lastName;
 
+                // Handles the case when there's a space before the comma.
+                // It's a case of terrible formatting, but we have got precedents.
+                // Could move this into a separate step.
+                c.Parser.SkipWhitespace();
+
                 if (c.Parser.IsEmpty)
                 {
                     c.State.Step = ParsingStep.OptionalParensBeforeRoom;
@@ -1252,16 +1257,31 @@ internal enum ParsingStep
 {
     Start,
     TimeOverride,
+
+    // Star is used for notes.
     OptionalStarBeforeLessonName,
     LessonName,
+
+    // Lesson modifiers.
     OptionalParens,
+
+    // Subgroup may be specified before the teacher-room pair.
     OptionalSubGroup,
+    // May be repeated with more teacher-room pairs.
+    MaybeSubGroupAgain,
+
+    // Rooms generally begin with a number.
     RequiredTeacherNameOrRoomName,
     OptionalTeacherNameOrRoomName,
+
+    // Teachers often have "F.Last" as the name format.
     TeacherLastName,
+
+    // Room modifiers.
     OptionalParensBeforeRoom,
+    // Only room allowed after room modifiers.
     OptionalRoomName,
-    MaybeSubGroupAgain,
+
     Output,
 }
 

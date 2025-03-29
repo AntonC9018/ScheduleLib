@@ -40,11 +40,11 @@ context.Schedule.ConfigureRemappings(remap =>
 }
 
 {
+    context.Schedule.SetStudyYear(2024);
+
     const string dirName = @"data\2024_sem2";
     Tasks.ParseDocumentDirIntoSchedule(context, dirName);
 }
-
-context.Schedule.SetStudyYear(2024);
 
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
@@ -64,6 +64,11 @@ switch (option)
 
         var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
 
+        var filteredSchedule = schedule.Filter(new()
+        {
+            Period = new(schedule.Periods.Length - 1),
+        });
+
         Tasks.GenerateAllTeacherExcel(new()
         {
             DayNameProvider = new DayNameProvider(),
@@ -73,7 +78,7 @@ switch (option)
             TimeSlotDisplay = new(),
             SeminarDate = (DayOfWeek.Wednesday, timeConfig.T15_00),
             OutputFilePath = outputFileFullPath,
-            Schedule = schedule,
+            Schedule = filteredSchedule,
             TimeConfig = context.TimeConfig,
         });
 
