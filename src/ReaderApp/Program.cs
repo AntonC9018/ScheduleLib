@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using DocumentFormat.OpenXml.Packaging;
@@ -99,7 +100,10 @@ switch (option)
             TimeConfig = context.TimeConfig,
         });
 
-        ExplorerHelper.OpenFolderAndSelectFile(outputFileFullPath);
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            ExplorerHelper.OpenFolderAndSelectFile(outputFileFullPath);
+        }
         break;
     }
 
