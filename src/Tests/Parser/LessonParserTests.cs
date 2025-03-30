@@ -31,7 +31,7 @@ public sealed class LessonParserTests
             Assert.Null(lesson.SubGroup.Value);
             var teacherName = Assert.Single(lesson.TeacherNames);
             AssertEqualName("V.Miron", teacherName);
-            Assert.Equal("433/3".AsMemory(), lesson.RoomName);
+            Assert.Equal("433/3", lesson.RoomName.Span);
         }
 
         Assert.Collection(lessons,
@@ -40,14 +40,14 @@ public sealed class LessonParserTests
                 CheckCommon(lesson1);
                 Assert.Equal(Parity.OddWeek, lesson1.Parity);
                 Assert.Equal(LessonType.Curs, lesson1.LessonType);
-                Assert.Equal("Opț. psihol.".AsMemory(), lesson1.LessonName);
+                Assert.Equal("Opț. psihol.", lesson1.LessonName.Span);
             },
             lesson2 =>
             {
                 CheckCommon(lesson2);
                 Assert.Equal(Parity.EvenWeek, lesson2.Parity);
                 Assert.Equal(LessonType.Seminar, lesson2.LessonType);
-                Assert.Equal("Psihologie".AsMemory(), lesson2.LessonName);
+                Assert.Equal("Psihologie", lesson2.LessonName.Span);
             });
     }
 
@@ -67,9 +67,9 @@ public sealed class LessonParserTests
             {
                 var teacherName = Assert.Single(lesson.TeacherNames);
                 AssertEqualName("I.Cucu", teacherName);
-                Assert.Equal("404/4".AsMemory(), lesson.RoomName);
+                Assert.Equal("404/4", lesson.RoomName.Span);
                 Assert.Equal(LessonType.Curs, lesson.LessonType);
-                Assert.Equal("Matematica discretă (Logica)".AsMemory(), lesson.LessonName);
+                Assert.Equal("Matematica discretă (Logica)", lesson.LessonName.Span);
             });
     }
 
@@ -89,9 +89,9 @@ public sealed class LessonParserTests
             {
                 var teacherName = Assert.Single(lesson.TeacherNames);
                 AssertEqualName("A.Dabija", teacherName);
-                Assert.Equal("____".AsMemory(), lesson.RoomName);
+                Assert.Equal("____", lesson.RoomName.Span);
                 Assert.Equal(LessonType.Curs, lesson.LessonType);
-                Assert.Equal("Option. didact.".AsMemory(), lesson.LessonName);
+                Assert.Equal("Option. didact.", lesson.LessonName.Span);
             });
     }
 
@@ -120,20 +120,20 @@ public sealed class LessonParserTests
                 Assert.Equal(Time(8), lesson1.StartTime);
                 Assert.Equal("CV", lesson1.SubGroup.Value);
                 AssertEqualName("M.Croitor", Assert.Single(lesson1.TeacherNames));
-                Assert.Equal("326/4".AsMemory(), lesson1.RoomName);
+                Assert.Equal("326/4", lesson1.RoomName.Span);
                 Assert.Equal(LessonType.Lab, lesson1.LessonType);
                 Assert.Equal(Parity.OddWeek, lesson1.Parity);
-                Assert.Equal("Containerizare și virtualizare".AsMemory(), lesson1.LessonName);
+                Assert.Equal("Containerizare și virtualizare", lesson1.LessonName.Span);
             },
             lesson2 =>
             {
                 Assert.Equal(Time(15), lesson2.StartTime);
                 Assert.Equal("WR", lesson2.SubGroup.Value);
                 AssertEqualName("A.Donu", Assert.Single(lesson2.TeacherNames));
-                Assert.Equal("213a/4".AsMemory(), lesson2.RoomName);
+                Assert.Equal("213a/4", lesson2.RoomName.Span);
                 Assert.Equal(LessonType.Curs, lesson2.LessonType);
                 Assert.Equal(Parity.EveryWeek, lesson2.Parity);
-                Assert.Equal("Dezvoltare de aplicații WEB cu React".AsMemory(), lesson2.LessonName);
+                Assert.Equal("Dezvoltare de aplicații WEB cu React", lesson2.LessonName.Span);
             });
     }
 
@@ -151,7 +151,7 @@ public sealed class LessonParserTests
         void CheckCommon(ParsedLesson lesson)
         {
             Assert.Equal(LessonType.Lab, lesson.LessonType);
-            Assert.Equal("Dezvoltare de aplicații WEB cu React".AsMemory(), lesson.LessonName);
+            Assert.Equal("Dezvoltare de aplicații WEB cu React", lesson.LessonName.Span);
         }
 
         Assert.Collection(lessons,
@@ -160,14 +160,14 @@ public sealed class LessonParserTests
                 CheckCommon(lesson1);
                 Assert.Equal("WR1", lesson1.SubGroup.Value);
                 AssertEqualName("A.Donu", Assert.Single(lesson1.TeacherNames));
-                Assert.Equal("143/4".AsMemory(), lesson1.RoomName);
+                Assert.Equal("143/4", lesson1.RoomName.Span);
             },
             lesson2 =>
             {
                 CheckCommon(lesson2);
                 Assert.Equal("WR2", lesson2.SubGroup.Value);
                 AssertEqualName("Cr.Crudu", Assert.Single(lesson2.TeacherNames));
-                Assert.Equal("145a/4".AsMemory(), lesson2.RoomName);
+                Assert.Equal("145a/4", lesson2.RoomName.Span);
             });
     }
 
@@ -227,7 +227,7 @@ public sealed class LessonParserTests
 
         void Lesson(in ParsedLesson lesson)
         {
-            Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+            Assert.Equal("Lesson", lesson.LessonName.Span);
             Assert.Equal(Parity.EvenWeek, lesson.Parity);
             Assert.Equal(LessonType.Curs, lesson.LessonType);
         }
@@ -262,14 +262,14 @@ public sealed class LessonParserTests
         Assert.Collection(lessons,
             lesson1 =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson1.LessonName);
+                Assert.Equal("Lesson", lesson1.LessonName.Span);
                 Assert.Equal("A", lesson1.SubGroup.Value);
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
                 AssertEqualName("TeacherA", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson2.LessonName);
+                Assert.Equal("Lesson", lesson2.LessonName.Span);
                 Assert.Equal("B", lesson2.SubGroup.Value);
                 Assert.Equal(Parity.OddWeek, lesson2.Parity);
                 AssertEqualName("TeacherB", Assert.Single(lesson2.TeacherNames));
@@ -290,14 +290,14 @@ public sealed class LessonParserTests
         Assert.Collection(lessons,
             lesson1 =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson1.LessonName);
+                Assert.Equal("Lesson", lesson1.LessonName.Span);
                 Assert.Equal("A", lesson1.SubGroup.Value);
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
                 Assert.Empty(lesson1.TeacherNames);
             },
             lesson2 =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson2.LessonName);
+                Assert.Equal("Lesson", lesson2.LessonName.Span);
                 Assert.Equal("B", lesson2.SubGroup.Value);
                 Assert.Equal(Parity.EveryWeek, lesson2.Parity);
                 AssertEqualName("TeacherA", Assert.Single(lesson2.TeacherNames));
@@ -317,7 +317,7 @@ public sealed class LessonParserTests
 
         void Common(in ParsedLesson lesson)
         {
-            Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+            Assert.Equal("Lesson", lesson.LessonName.Span);
             AssertEqualName("TeacherA", Assert.Single(lesson.TeacherNames));
         }
 
@@ -343,7 +343,7 @@ public sealed class LessonParserTests
 
         void Common(in ParsedLesson lesson)
         {
-            Assert.Equal("LessonA".AsMemory(), lesson.LessonName);
+            Assert.Equal("LessonA", lesson.LessonName.Span);
             AssertEqualName("TeacherA", Assert.Single(lesson.TeacherNames));
         }
 
@@ -375,10 +375,10 @@ public sealed class LessonParserTests
 
         void Common(in ParsedLesson lesson)
         {
-            Assert.Equal("MTA 3D".AsMemory(), lesson.LessonName);
+            Assert.Equal("MTA 3D", lesson.LessonName.Span);
             Assert.Equal(LessonType.Lab, lesson.LessonType);
             AssertEqualName("A.Schiopu", Assert.Single(lesson.TeacherNames));
-            Assert.Equal("251/4".AsMemory(), lesson.RoomName);
+            Assert.Equal("251/4", lesson.RoomName.Span);
         }
 
         Assert.Collection(lessons,
@@ -409,7 +409,7 @@ public sealed class LessonParserTests
         Assert.Collection(lessons,
             lesson =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+                Assert.Equal("Lesson", lesson.LessonName.Span);
             });
     }
 
@@ -427,7 +427,7 @@ public sealed class LessonParserTests
         Assert.Collection(lessons,
             lesson =>
             {
-                Assert.Equal("Lesson".AsMemory(), lesson.LessonName);
+                Assert.Equal("Lesson", lesson.LessonName.Span);
                 var teacher = Assert.Single(lesson.TeacherNames);
                 AssertEqualName("Teacher", teacher);
             });
@@ -606,5 +606,20 @@ public sealed class LessonParserTests
         var lesson = Assert.Single(lessons);
         AssertEqualName("Iu.Drăgălina", Assert.Single(lesson.TeacherNames));
         Assert.Equal("213a/4", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void DoubleTeacherFirstName()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Montajul și imaginea video (lab, par)",
+                "G.-M. Lastname",
+            ],
+        });
+
+        var lesson = Assert.Single(lessons);
+        AssertEqualName("G.-M. Lastname", Assert.Single(lesson.TeacherNames));
     }
 }

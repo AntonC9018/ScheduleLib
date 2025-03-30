@@ -47,6 +47,14 @@ public sealed class DocParseContext
 
     public Schedule BuildSchedule()
     {
+        {
+            var x = Schedule.RegularLessons.List.Where(x => x.Date.TimeSlot is { } t && t.Index < 0).ToArray();
+            if (x.Length > 0)
+            {
+                Console.WriteLine();
+            }
+        }
+
         var courseNamesByKey = Schedule.LookupModule!.Courses
             .GroupBy(x => x.Value)
             .Select(x =>
@@ -179,9 +187,11 @@ internal readonly record struct SlowCourse(
     ParsedCourseName Name,
     CourseId CourseId);
 
-internal readonly record struct ColumnCounts(int Skipped, int Good)
+internal readonly record struct ColumnCounts(SkippedHeaderColumnsInfo Skipped, int Good)
 {
-    public int Total => Skipped + Good;
+    // public int SkippedCount => Skipped.Count;
+    public int SkippedSize => Skipped.Size;
+    public int Total => Skipped.Size + Good;
 }
 
 internal struct TimeParsingState()
@@ -195,11 +205,21 @@ internal struct TableParsingState()
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
-    public List<GroupId> CurrentGroups = new();
+    public List<(GroupId Id, int Size)> CurrentGroups = new();
 
     public readonly GroupId GroupId(int colIndex)
     {
-        return new(colIndex - ColumnCounts!.Value.Skipped);
+        int i = colIndex - ColumnCounts!.Value.SkippedSize;
+        foreach (var g in CurrentGroups)
+        {
+            i -= g.Size;
+            if (i < 0)
+            {
+                return g.Id;
+            }
+        }
+        Debug.Fail("Something wrong with the sizes.");
+        throw null!;
     }
 }
 
@@ -544,7 +564,7 @@ public static class WordScheduleParser
                             c.AddOrMergeLesson(
                                 in state,
                                 in lesson,
-                                columnIndex: columnIndex,
+                                columnIndex: columnSizeCounter,
                                 colSpan: colSpan1,
                                 periodId: periodId);
                         }
@@ -776,7 +796,7 @@ public static class WordScheduleParser
             {
                 state.CurrentGroups.Clear();
                 int groupCount = AddGroups(state.CurrentGroups);
-                state.ColumnCounts = new(skippedInfo.Size, groupCount);
+                state.ColumnCounts = new(skippedInfo, groupCount);
                 return new(HeaderRowParseStatus.HeaderParsed);
             }
         }
@@ -969,7 +989,7 @@ public static class WordScheduleParser
             }
         }
 
-        int AddGroups(List<GroupId> outputGroups)
+        int AddGroups(List<(GroupId Id, int Size)> outputGroups)
         {
             int goodSize = 0;
             while (true)
@@ -977,9 +997,9 @@ public static class WordScheduleParser
                 var cell = cellEnumerator.Current;
                 var groupName = cell.InnerText;
                 var group = c.Schedule.Group(groupName);
-                outputGroups.Add(group);
-
                 var colSpan = cell.GetWidth();
+                outputGroups.Add((group, colSpan));
+
                 goodSize += colSpan;
 
                 if (!cellEnumerator.MoveNext())
@@ -998,14 +1018,15 @@ public static class WordScheduleParser
     }
     private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status);
 
-    private readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
-    {
-        public static SkippedHeaderColumnsInfo NotMatch() => default;
-        public bool IsNotMatch => Count == 0;
-    }
-
     private static int GetWidth(this TableCell cell)
     {
         return cell.TableCellProperties?.GridSpan?.Val ?? 1;
     }
 }
+
+internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
+{
+    public static SkippedHeaderColumnsInfo NotMatch() => default;
+    public bool IsNotMatch => Count == 0;
+}
+

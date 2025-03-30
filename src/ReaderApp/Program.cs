@@ -66,7 +66,11 @@ switch (option)
 
         var filteredSchedule = schedule.Filter(new()
         {
-            Period = new(schedule.Periods.Length - 1),
+            PeriodFilter = new()
+            {
+                PeriodId = new(schedule.Periods.Length - 1),
+                UnspecifiedIsAll = true,
+            },
         });
 
         Tasks.GenerateAllTeacherExcel(new()

@@ -53,8 +53,6 @@ public static class Tasks
 {
     public static async Task GeneratePdfForGroupsAndTeachers(GeneratePdfForGroupsAndTeachersParams p)
     {
-        var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
-
         var outputDirPath = p.OutputPath;
         Directory.CreateDirectory(outputDirPath);
         foreach (var filePath in Directory.EnumerateFiles(outputDirPath, "*.pdf", SearchOption.TopDirectoryOnly))
@@ -115,7 +113,6 @@ public static class Tasks
                         {
                             IncludeIds = [new(teacherId1)],
                         },
-                        Period = periodId,
                     });
                 });
                 tasks.Add(t);
@@ -128,7 +125,15 @@ public static class Tasks
             PdfLessonTextDisplayHandler textDisplayHandler,
             in ScheduleFilter filter)
         {
-            var filteredSchedule = p.Schedule.Filter(filter);
+            var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
+            var filteredSchedule = p.Schedule.Filter(filter with
+            {
+                PeriodFilter = new()
+                {
+                    PeriodId = periodId,
+                    UnspecifiedIsAll = true,
+                },
+            });
             if (filteredSchedule.IsEmpty)
             {
                 return;
@@ -963,14 +968,14 @@ public static class Tasks
 
     public static void OptionallyEnrichContextWithTeacherFullNames(
         ScheduleBuilder schedule,
-        string fileName)
+        string filePath)
     {
-        if (!File.Exists(fileName))
+        if (!File.Exists(filePath))
         {
             return;
         }
 
-        using var excel = SpreadsheetDocument.Open(fileName, isEditable: false, new()
+        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
         {
             AutoSave = false,
             CompatibilityLevel = CompatibilityLevel.Version_2_20,

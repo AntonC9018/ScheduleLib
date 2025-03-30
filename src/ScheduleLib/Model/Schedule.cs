@@ -55,7 +55,7 @@ public sealed class LessonTimeConfig
     public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)
     {
         var i = Array.BinarySearch(TimeSlotStarts, startTime);
-        if (i == -1)
+        if (i < 0)
         {
             return null;
         }
