@@ -120,7 +120,15 @@ public static class ExcelTeacherListParser
                             var parsedName = ParseTeacherName(teacherName);
                             builder = p.Schedule.Teacher(new TeacherBuilderModel.NameModel
                             {
-                                FirstName = parsedName.FirstName.ToString(),
+                                FirstName = new()
+                                {
+                                    A = new()
+                                    {
+                                        Full = parsedName.FirstName.ToString(),
+                                        Short = null,
+                                    },
+                                    B = default,
+                                },
                                 LastName = parsedName.LastName.ToString(),
                             });
                             return true;

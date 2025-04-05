@@ -437,7 +437,7 @@ public static class TeacherNameHelper
         var bparser = parser.BufferedView();
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
-        var result = bparser.SkipUntil(['.', ' ', '(', '-']);
+        var result = bparser.SkipUntil(['.', ' ', '-']);
         if (!result.SkippedAny)
         {
             return ret;
@@ -478,7 +478,6 @@ public static class TeacherNameHelper
                 currentOutput.Full = namePartString;
             }
 
-            bparser.Move();
             bparser.SkipWhitespace();
 
             if (bparser.IsEmpty)
@@ -500,9 +499,8 @@ public static class TeacherNameHelper
             parser.MoveTo(bparser.Position);
 
             var skipResult = bparser.SkipUntil(['.', ' ', '-']);
-            if (skipResult.EndOfInput || bparser.Current == ' ')
+            if (skipResult.EndOfInput)
             {
-                parser.MoveTo(bparser.Position);
                 break;
             }
         }
@@ -520,7 +518,7 @@ public static class TeacherNameHelper
         }
 
         parser.MoveTo(bparser.Position);
-        bparser.SkipUntil([' ']);
+        bparser.SkipUntil([' ', '-', '.']);
 
         {
             var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);

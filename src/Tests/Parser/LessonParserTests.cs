@@ -448,19 +448,25 @@ public sealed class LessonParserTests
 
         bool ShortNameEqual()
         {
-            if (actual.FirstName.IsEmpty)
+            return expectedName.FirstName.EachEquals(actual.FirstName, (e, a) =>
             {
-                return expectedName.ShortFirstName is null;
-            }
+                if (e.IsNull)
+                {
+                    if (!a.IsEmpty)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
 
-            var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
-            var shortActualSpan = actual.FirstName.Span;
-            if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            return true;
+                var e1 = (e.Full ?? e.Short)!.AsSpan();
+                var a1 = new WordSpan(a.Span).Value;
+                if (!e1.Equals(a1, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+                return true;
+            });
         }
 
         bool LastNameEqual()

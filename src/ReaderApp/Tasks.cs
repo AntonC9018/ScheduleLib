@@ -95,12 +95,22 @@ public static class Tasks
                 int teacherId1 = teacherId;
 
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
-                if (!teacherName.ShortFirstName.Span.Value.IsEmpty)
+                var nameBuilder = new ListStringBuilder(sb, '_');
+
+                var firstNameBuilder = new ListStringBuilder(sb, '-');
+                foreach (var fname in teacherName.FirstName)
                 {
-                    sb.Append(teacherName.ShortFirstName.Span.Shortened.Value);
-                    sb.Append('_');
+                    if (fname.Short is not { } s)
+                    {
+                        break;
+                    }
+
+                    var w = new Word(s);
+
+                    firstNameBuilder.Append(w.Span.Shortened.Value);
                 }
-                sb.Append(teacherName.LastName);
+
+                nameBuilder.Append(teacherName.LastName);
                 sb.Append(".pdf");
 
                 var fileName = sb.ToStringAndClear();
