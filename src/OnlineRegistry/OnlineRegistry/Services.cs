@@ -17,6 +17,8 @@ public enum ExtraLessonInstanceAction
 {
     LeaveAlone,
     Delete,
+
+    // Unimplemented
     DeleteWithoutDataLoss,
 }
 

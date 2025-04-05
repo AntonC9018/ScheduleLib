@@ -11,6 +11,7 @@ public sealed class Schedule
     public required ImmutableArray<Group> Groups { get; init; }
     public required ImmutableArray<Teacher> Teachers { get; init; }
     public required ImmutableArray<Course> Courses { get; init; }
+    public required ImmutableArray<Period> Periods { get; init; }
 }
 
 public enum Parity
@@ -54,7 +55,7 @@ public sealed class LessonTimeConfig
     public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)
     {
         var i = Array.BinarySearch(TimeSlotStarts, startTime);
-        if (i == -1)
+        if (i < 0)
         {
             return null;
         }
@@ -268,6 +269,7 @@ public struct LessonData()
     public required ImmutableArray<TeacherId> Teachers;
     public required RoomId Room;
     public required LessonType Type;
+    public required PeriodId Period;
 
     public SubGroup SubGroup = SubGroup.All;
     public readonly GroupId Group => Groups.Group0;
@@ -378,6 +380,42 @@ public struct PersonContacts
     public string? PhoneNumber;
 }
 
+public record struct PeriodId(int Value)
+{
+    public static PeriodId Unspecified => new(-1);
+    public bool IsUnspecified => this == Unspecified;
+    public bool IsSpecified => !IsUnspecified;
+}
+
+public record struct Period
+{
+    public Period(DateOnly start, DateOnly end = default)
+    {
+        if (end != default)
+        {
+            Debug.Assert(start <= end);
+        }
+
+        _end = end;
+        Start = start;
+    }
+
+    public readonly DateOnly Start;
+    public readonly DateOnly _end;
+
+    public readonly DateOnly? End
+    {
+        get
+        {
+            if (_end == default)
+            {
+                return null;
+            }
+            return _end;
+        }
+    }
+}
+
 public static class AccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
@@ -394,4 +432,11 @@ public static class AccessorHelper
         return id.Id!;
     }
     public static RegularLesson Get(this Schedule schedule, RegularLessonId id) => schedule.RegularLessons[id.Id];
+
+    public static Period Get(this Schedule schedule, PeriodId id)
+    {
+        Debug.Assert(id.IsSpecified);
+        return schedule.Periods[id.Value];
+    }
 }
+

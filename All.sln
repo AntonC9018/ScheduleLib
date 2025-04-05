@@ -1,7 +1,7 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineRegistry", "src\OnlineRegistry\OnlineRegistry.csproj", "{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExampleApp", "src\ExampleApp\ExampleApp.csproj", "{A283E978-6EE6-4872-A442-BDE2BAC91374}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManualConfigExampleApp", "src\ManualConfigExampleApp\ManualConfigExampleApp.csproj", "{A283E978-6EE6-4872-A442-BDE2BAC91374}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReaderApp", "src\ReaderApp\ReaderApp.csproj", "{85193FA4-DC68-4E0E-BF67-EB3E42210567}"
 EndProject

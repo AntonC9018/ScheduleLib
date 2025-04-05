@@ -540,19 +540,52 @@ public static class LessonParsingHelper
                     break;
                 }
 
-                ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
+                bool success = Teacher(c, ref bparser);
+                Debug.Assert(success, "Don't think this is possible");
+                break;
 
-                // Last name
-                if (skipResult.EndOfInput
-                    || bparser.Current is ' ' or ',')
+                static bool Teacher(ParsingContext c, ref Parser bparser)
                 {
-                    var lastName = c.Parser.SourceUntilExclusive(bparser);
-                    teacher.LastName = lastName;
-                    NextStep(c);
+                    ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
 
-                    void NextStep(in ParsingContext c1)
                     {
-                        if (skipResult.EndOfInput)
+                        var lastName = LastName(c, ref bparser);
+                        if (!lastName.IsEmpty)
+                        {
+                            teacher.LastName = lastName;
+                            return true;
+                        }
+                    }
+
+                    {
+                        var firstName = FirstName(c, ref bparser);
+                        if (!firstName.IsEmpty)
+                        {
+                            teacher.ShortFirstName = firstName;
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                static ReadOnlyMemory<char> LastName(ParsingContext c, ref Parser bparser)
+                {
+                    if (!bparser.IsEmpty
+                        && bparser.Current is not (' ' or ','))
+                    {
+                        return default;
+                    }
+
+                    var lastName = c.Parser.SourceUntilExclusive(bparser);
+                    var ret = lastName;
+                    NextStep(c, ref bparser);
+                    c.Parser.MoveTo(bparser.Position);
+                    return ret;
+
+                    static void NextStep(ParsingContext c1, ref Parser bparser)
+                    {
+                        if (bparser.IsEmpty)
                         {
                             c1.State.Step = ParsingStep.OptionalRoomName;
                             return;
@@ -568,18 +601,80 @@ public static class LessonParsingHelper
                         bparser.Move();
                     }
                 }
-                // First name
-                else if (bparser.Current == '.')
+
+                static ReadOnlyMemory<char> FirstName(ParsingContext c, ref Parser bparser)
                 {
+                    Debug.Assert(!bparser.IsEmpty);
+
+                    if (bparser.Current != '.')
+                    {
+                        return default;
+                    }
                     bparser.Move();
 
-                    var firstName = c.Parser.SourceUntilExclusive(bparser);
-                    teacher.ShortFirstName = firstName;
-                    c.State.Step = ParsingStep.TeacherLastName;
-                }
+                    var firstNameA = c.Parser.SourceUntilExclusive(bparser);
+                    if (bparser.IsEmpty)
+                    {
+                        NextStep(c, ref bparser);
+                        return firstNameA;
+                    }
 
-                c.Parser.MoveTo(bparser.Position);
-                break;
+                    {
+                        // G.-M. is a precedent for a doubled first name.
+                        var doubleBufferedParser = bparser.BufferedView();
+
+                        {
+                            var skipResult = doubleBufferedParser.SkipWhitespace();
+                            if (skipResult.EndOfInput)
+                            {
+                                NextStep(c, ref bparser);
+                                return firstNameA;
+                            }
+                        }
+
+                        if (doubleBufferedParser.Current != '-')
+                        {
+                            NextStep(c, ref bparser);
+                            return firstNameA;
+                        }
+
+                        // Confirmed double first name.
+                        bparser.MovePast(doubleBufferedParser.Position);
+                        c.Parser.MoveTo(bparser.Position);
+                    }
+
+                    {
+                        var skipResult = bparser.SkipWhitespace();
+                        if (skipResult.EndOfInput)
+                        {
+                            WrongFormatException.ThrowInvalidDoubleName();
+                            return default;
+                        }
+                    }
+
+                    {
+                        var skipResult = bparser.SkipUntil(['.']);
+                        if (skipResult.EndOfInput)
+                        {
+                            WrongFormatException.ThrowInvalidDoubleName();
+                            return default;
+                        }
+                        bparser.Move();
+                    }
+
+                    var firstNameB = c.Parser.SourceUntilExclusive(bparser);
+
+                    NextStep(c, ref bparser);
+
+                    string fullFirstName = string.Concat(firstNameA.Span, "-", firstNameB.Span);
+                    return fullFirstName.AsMemory();
+
+                    static void NextStep(ParsingContext c, ref Parser bparser)
+                    {
+                        c.Parser.MoveTo(bparser.Position);
+                        c.State.Step = ParsingStep.TeacherLastName;
+                    }
+                }
             }
             case ParsingStep.TeacherLastName:
             {
@@ -596,6 +691,11 @@ public static class LessonParsingHelper
                 c.Parser.MoveTo(bparser.Position);
                 ref var teacher = ref c.State.LastModifiers.Value.Specific.LastTeacher;
                 teacher.LastName = lastName;
+
+                // Handles the case when there's a space before the comma.
+                // It's a case of terrible formatting, but we have got precedents.
+                // Could move this into a separate step.
+                c.Parser.SkipWhitespace();
 
                 if (c.Parser.IsEmpty)
                 {
@@ -1252,16 +1352,31 @@ internal enum ParsingStep
 {
     Start,
     TimeOverride,
+
+    // Star is used for notes.
     OptionalStarBeforeLessonName,
     LessonName,
+
+    // Lesson modifiers.
     OptionalParens,
+
+    // Subgroup may be specified before the teacher-room pair.
     OptionalSubGroup,
+    // May be repeated with more teacher-room pairs.
+    MaybeSubGroupAgain,
+
+    // Rooms generally begin with a number.
     RequiredTeacherNameOrRoomName,
     OptionalTeacherNameOrRoomName,
+
+    // Teachers often have "F.Last" as the name format.
     TeacherLastName,
+
+    // Room modifiers.
     OptionalParensBeforeRoom,
+    // Only room allowed after room modifiers.
     OptionalRoomName,
-    MaybeSubGroupAgain,
+
     Output,
 }
 
@@ -1325,6 +1440,9 @@ public class WrongFormatException : Exception
 
     [DoesNotReturn]
     internal static void ThrowUnclosedParenInLessonName() => throw new WrongFormatException("Unclosed paren in lesson name");
+
+    [DoesNotReturn]
+    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException("Double names must have the second short name after the '-'");
 }
 
 internal ref struct ParsingContext

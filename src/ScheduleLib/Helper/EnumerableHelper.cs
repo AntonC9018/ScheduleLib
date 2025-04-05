@@ -136,4 +136,13 @@ public static class EnumerableHelper
             _e.Dispose();
         }
     }
+
+    public static bool IsSorted<T, P>(this IEnumerable<T> e, Func<T, P> item)
+    {
+        // ReSharper disable once PossibleMultipleEnumeration
+        var ordered = e.OrderBy(item);
+        // ReSharper disable once PossibleMultipleEnumeration
+        bool ret = e.SequenceEqual(ordered);
+        return ret;
+    }
 }

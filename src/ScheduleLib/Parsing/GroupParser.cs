@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
@@ -53,8 +51,7 @@ public static class GroupHelper
         int year = ParseYear(ref parser);
         var grade = context.DetermineGrade(year);
         int groupNumber = ParseGroup(ref parser);
-        int group = ParseGroup(ref parser);
-        _ = group;
+        _ = groupNumber;
 
         string actualName;
         {

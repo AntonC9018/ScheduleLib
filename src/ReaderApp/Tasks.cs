@@ -12,6 +12,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Parsing.WordDoc;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
@@ -20,7 +21,7 @@ using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlign
 
 namespace ReaderApp;
 
-public struct GeneratePdfForGroupsAndTeachersParams
+public struct GeneratePdfForGroupsAndTeachersParams()
 {
     public required PdfLessonTextDisplayHandler.Services LessonTextDisplayServices;
     public required LessonTimeConfig LessonTimeConfig;
@@ -30,7 +31,7 @@ public struct GeneratePdfForGroupsAndTeachersParams
     public required string OutputPath;
 }
 
-public struct AllTeacherExcelParams
+public struct AllTeacherExcelParams()
 {
     public required string OutputFilePath;
     public required DayNameProvider DayNameProvider;
@@ -39,7 +40,7 @@ public struct AllTeacherExcelParams
     public required LessonTypeDisplayHandler LessonTypeDisplay;
     public required ParityDisplayHandler ParityDisplay;
     public required TimeSlotDisplayHandler TimeSlotDisplay;
-    public required Schedule Schedule;
+    public required FilteredSchedule Schedule;
     public required LessonTimeConfig TimeConfig;
 }
 
@@ -124,7 +125,15 @@ public static class Tasks
             PdfLessonTextDisplayHandler textDisplayHandler,
             in ScheduleFilter filter)
         {
-            var filteredSchedule = p.Schedule.Filter(filter);
+            var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
+            var filteredSchedule = p.Schedule.Filter(filter with
+            {
+                PeriodFilter = new()
+                {
+                    PeriodId = periodId,
+                    UnspecifiedIsAll = true,
+                },
+            });
             if (filteredSchedule.IsEmpty)
             {
                 return;
@@ -246,7 +255,7 @@ public static class Tasks
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + p.Schedule.Teachers.Length),
+                Max = (uint)(3 + p.Schedule.Source.Teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };
@@ -298,13 +307,13 @@ public static class Tasks
             }
 
             var sb = p.StringBuilder;
-            for (int i = 0; i < p.Schedule.Teachers.Length; i++)
+            for (int i = 0; i < p.Schedule.Source.Teachers.Length; i++)
             {
                 LessonTextDisplayHelper.AppendTeacherName(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Teacher = p.Schedule.Teachers[i],
+                    Teacher = p.Schedule.Source.Teachers[i],
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -318,7 +327,7 @@ public static class Tasks
         void Body()
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-                p.Schedule.RegularLessons,
+                p.Schedule.Lessons,
                 l => l.Lesson.Teachers);
             int timeSlotCount = p.TimeConfig.TimeSlotCount;
 
@@ -368,7 +377,7 @@ public static class Tasks
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
 
-                    for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
+                    for (int teacherId = 0; teacherId < p.Schedule.Source.Teachers.Length; teacherId++)
                     {
                         var cell = cells.NextCell();
 
@@ -653,7 +662,7 @@ public static class Tasks
 
             void AppendCourse(ListStringBuilder b, RegularLesson lesson)
             {
-                var course = p.Schedule.Get(lesson.Lesson.Course);
+                var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
             bool WillAppendLessonTypeName(RegularLesson lesson)
@@ -696,7 +705,7 @@ public static class Tasks
 
                 // b.MaybeAppendSeparator();
 
-                var group = p.Schedule.Get(groups.Group0);
+                var group = p.Schedule.Source.Get(groups.Group0);
                 // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 
@@ -955,6 +964,84 @@ public static class Tasks
             throw new InvalidOperationException("Password not found.");
         }
         return ret;
+    }
+
+    public static void OptionallyEnrichContextWithTeacherFullNames(
+        ScheduleBuilder schedule,
+        string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
+        {
+            AutoSave = false,
+            CompatibilityLevel = CompatibilityLevel.Version_2_20,
+        });
+
+        ExcelTeacherListParser.AddTeachersFromExcel(new()
+        {
+            Excel = excel,
+            Schedule = schedule,
+        });
+    }
+
+    public static void ParseDocumentDirIntoSchedule(
+        DocParseContext context,
+        string dirName)
+    {
+        ParseDirectoryToSchedule(context, dirName);
+
+        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
+            .Select(x =>
+            {
+                var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
+                Debug.Assert(lastSegmentStart != -1);
+                lastSegmentStart += 1;
+
+                var lastSegment = x.AsSpan()[lastSegmentStart ..];
+
+                if (!DateOnly.TryParseExact(
+                        lastSegment,
+                        format: "dd.MM.yy",
+                        provider: null,
+                        style: DateTimeStyles.None,
+                        result: out var startDate))
+                {
+                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
+                }
+                return (SubDirPath: x, StartDate: startDate);
+            })
+            .OrderBy(x => x.StartDate);
+
+        foreach (var t in subdirs)
+        {
+            ParseDirectoryToSchedule(context, t.SubDirPath, new()
+            {
+                StartDate = t.StartDate,
+            });
+        }
+        return;
+
+        static void ParseDirectoryToSchedule(
+            DocParseContext context,
+            string dirName,
+            PeriodBeginning? period = null)
+        {
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
+            {
+                using var document = WordprocessingDocument.Open(filePath, isEditable: false);
+                WordScheduleParser.ParseToSchedule(new()
+                {
+                    Period = period,
+                    Context = context,
+                    Document = document,
+                });
+            }
+        }
+
     }
 }
 

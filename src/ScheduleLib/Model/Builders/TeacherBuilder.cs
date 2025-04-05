@@ -349,12 +349,16 @@ public static class TeacherNameHelper
     /// F.Last
     /// First Last
     /// Last
+    /// F.-N. Last
+    /// F.-Name Last
+    /// First-Name Last
+    /// First-N. Last
     /// </summary>
     public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
     {
         var ret = new TeacherBuilderModel.NameModel();
         var bparser = parser.BufferedView();
-        var result = bparser.SkipUntil(['.', ' ', '(']);
+        var result = bparser.SkipUntil(['.', ' ', '(', '-']);
         if (!result.SkippedAny)
         {
             return ret;
@@ -367,34 +371,20 @@ public static class TeacherNameHelper
             return ret;
         }
 
-        if (bparser.Current == '.')
+        SkipToAfterEndOfFirstName(ref bparser);
+
         {
-            bparser.Move();
             var firstName = parser.PeekSpanUntilPosition(bparser.Position);
             ret.ShortFirstName = new(firstName.ToString());
             parser.MoveTo(bparser.Position);
-
-            if (parser.IsEmpty)
-            {
-                throw new ArgumentException("The string can't only have the first name.");
-            }
-
-            if (parser.Current == ' ')
-            {
-                parser.Move();
-            }
         }
-        else if (bparser.Current == ' ')
+
+        RequireSpaceAfterFirstName(ref parser);
+        if (parser.Current == ' ')
         {
-            var firstName = parser.PeekSpanUntilPosition(bparser.Position);
-            ret.FirstName = firstName.ToString();
-            parser.MovePast(bparser.Position);
+            parser.Move();
         }
-
-        if (parser.IsEmpty)
-        {
-            throw new ArgumentException("The last name is required after the first name.");
-        }
+        RequireSpaceAfterFirstName(ref parser);
 
         bparser = parser.BufferedView();
         if (bparser.Current == ' ')
@@ -413,6 +403,44 @@ public static class TeacherNameHelper
         parser.MoveTo(bparser.Position);
 
         return ret;
+
+        static void SkipToAfterEndOfFirstName(ref Parser bparser)
+        {
+            if (bparser.IsEmpty)
+            {
+                return;
+            }
+            if (bparser.Current == ' ')
+            {
+                return;
+            }
+            if (bparser.Current == '.')
+            {
+                bparser.Move();
+            }
+            if (!bparser.IsEmpty && bparser.Current == '-')
+            {
+                bparser.Move();
+                var skipResult = bparser.SkipUntil(['.', ' ']);
+                if (!skipResult.SkippedAny)
+                {
+                    throw new ArgumentException("Invalid double first name format");
+                }
+
+                if (!skipResult.EndOfInput && bparser.Current == '.')
+                {
+                    bparser.Move();
+                }
+            }
+        }
+
+        static void RequireSpaceAfterFirstName(ref Parser parser)
+        {
+            if (parser.IsEmpty)
+            {
+                throw new ArgumentException("The last name is required after the first name.");
+            }
+        }
     }
 
     public static void MaybeValidateInitialsCompatibility(string? firstName, Word? initials)
@@ -431,8 +459,7 @@ public static class TeacherNameHelper
     public static void ValidateInitialsCompatibility(string firstName, Word initials)
     {
         // This might be wrong.
-        // Ana-Maria  ->  A-M. ?
-        // I don't know.
+        // TODO: Ana-Maria  ->  A.-M.
         bool isOk = IgnoreDiacriticsComparer.Instance.StartsWith(
             firstName.AsSpan(),
             initials.Span.Shortened.Value);
