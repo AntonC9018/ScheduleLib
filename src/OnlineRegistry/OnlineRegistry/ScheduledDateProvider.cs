@@ -2,14 +2,17 @@ using System.Diagnostics;
 
 namespace ScheduleLib.OnlineRegistry;
 
+public struct GetScheduledDatesParams()
+{
+    public required Parity Parity { get; set; }
+    public required DayOfWeek Day { get; set; }
+    public DateOnly From { get; set; } = DateOnly.MinValue;
+    public DateOnly To { get; set; } = DateOnly.MaxValue;
+}
+
 public interface IAllScheduledDateProvider
 {
-    public readonly struct Params
-    {
-        public required Parity Parity { get; init; }
-        public required DayOfWeek Day { get; init; }
-    }
-    IEnumerable<DateOnly> Dates(Params p);
+    IEnumerable<DateOnly> Dates(GetScheduledDatesParams p);
 }
 
 public sealed class ManualAllScheduledDateProvider
@@ -17,19 +20,38 @@ public sealed class ManualAllScheduledDateProvider
 {
     public required StudyWeek[] StudyWeeks { private get; init; }
 
-    public IEnumerable<DateOnly> Dates(IAllScheduledDateProvider.Params p)
+    public IEnumerable<DateOnly> Dates(GetScheduledDatesParams p)
     {
-        foreach (var week in StudyWeeks)
+        var e = new DayEnumerator(StudyWeeks, p.Day);
+        while (true)
         {
-            if (!IsParityMatch())
+            if (!e.MoveNext())
+            {
+                yield break;
+            }
+            if (e.Date < p.From)
             {
                 continue;
             }
-            const int weekdayCount = 7;
-            var offset = (p.Day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
-            var ret = week.MondayDate.AddDays(offset);
-            yield return ret;
+            break;
+        }
 
+        while (true)
+        {
+            var ret = e.Date;
+            if (ret >= p.To)
+            {
+                break;
+            }
+            if (IsParityMatch())
+            {
+                yield return ret;
+            }
+
+            if (!e.MoveNext())
+            {
+                yield break;
+            }
             continue;
 
             bool IsParityMatch()
@@ -42,11 +64,11 @@ public sealed class ManualAllScheduledDateProvider
                     }
                     case Parity.OddWeek:
                     {
-                        return week.IsOddWeek;
+                        return e.Week.IsOddWeek;
                     }
                     case Parity.EvenWeek:
                     {
-                        return !week.IsOddWeek;
+                        return !e.Week.IsOddWeek;
                     }
                     default:
                     {
@@ -55,6 +77,42 @@ public sealed class ManualAllScheduledDateProvider
                     }
                 }
             }
+        }
+    }
+}
+
+file struct DayEnumerator
+{
+    private int _index;
+    private readonly StudyWeek[] _weeks;
+    private readonly DayOfWeek _day;
+
+    public DayEnumerator(StudyWeek[] weeks, DayOfWeek day)
+    {
+        _index = -1;
+        _weeks = weeks;
+        _day = day;
+    }
+
+    public bool MoveNext()
+    {
+        _index++;
+        if (_index >= _weeks.Length)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public readonly StudyWeek Week => _weeks[_index];
+    public readonly DateOnly Date
+    {
+        get
+        {
+            const int weekdayCount = 7;
+            var offset = (_day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
+            var ret = Week.MondayDate.AddDays(offset);
+            return ret;
         }
     }
 }

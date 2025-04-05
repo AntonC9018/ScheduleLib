@@ -1,8 +1,6 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
-using DocumentFormat.OpenXml.Packaging;
 using ReaderApp;
 using ReaderApp.Helper;
 using ScheduleLib.OnlineRegistry;

@@ -45,11 +45,25 @@ public static class MissingLessonDetection
             var timeSlot = lessonDate.TimeSlot;
             var startTime = p.TimeConfig.GetTimeSlotInterval(timeSlot).Start;
 
-            var dates = p.DateProvider.Dates(new()
+            var datesParams = new GetScheduledDatesParams
             {
                 Day = lessonDate.DayOfWeek,
                 Parity = lessonDate.Parity,
-            });
+            };
+            {
+                var periodId = lesson.Lesson.Period;
+                if (periodId.IsSpecified)
+                {
+                    var period = p.Schedule.Get(periodId);
+
+                    datesParams.From = period.Start;
+                    if (period.End is { } periodEnd)
+                    {
+                        datesParams.To = periodEnd;
+                    }
+                }
+            }
+            var dates = p.DateProvider.Dates(datesParams);
             foreach (var date in dates)
             {
                 var dateTime = new DateTime(
