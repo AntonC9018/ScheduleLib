@@ -448,13 +448,13 @@ public sealed class LessonParserTests
 
         bool ShortNameEqual()
         {
-            if (actual.ShortFirstName.IsEmpty)
+            if (actual.FirstName.IsEmpty)
             {
                 return expectedName.ShortFirstName is null;
             }
 
             var shortSpan = expectedName.ShortFirstName!.Value.Value.AsSpan();
-            var shortActualSpan = actual.ShortFirstName.Span;
+            var shortActualSpan = actual.FirstName.Span;
             if (!shortSpan.Equals(shortActualSpan, StringComparison.Ordinal))
             {
                 return false;

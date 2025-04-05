@@ -79,29 +79,32 @@ public static partial class ScheduleBuilderHelper
         var groups = s.Groups.Build();
         var teachers = s.Teachers.Build(x =>
         {
-            Word ShortFirstName()
-            {
-                if (x.Name.ShortFirstName is { } shortf)
-                {
-                    return shortf;
-                }
-                if (x.Name.FirstName is { } fullf)
-                {
-                    return new Word($"{fullf[0]}.");
-                }
-                return Word.Empty;
-            }
             var ret = new Teacher
             {
                 Contacts = x.Contacts,
                 PersonName = new()
                 {
-                    FirstName = x.Name.FirstName,
+                    FirstName = x.Name.FirstName.Map(x1 => x1 with
+                    {
+                        Short = ShortFirstName(x1),
+                    }),
                     LastName = x.Name.LastName!,
-                    ShortFirstName = ShortFirstName(),
                 },
             };
             return ret;
+
+            static string? ShortFirstName(OptionalFirstNamePart x)
+            {
+                if (x.Short is { } shortf)
+                {
+                    return shortf;
+                }
+                if (x.Full is { } fullf)
+                {
+                    return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
+                }
+                return null;
+            }
         });
         var courses = s.Courses.Build();
 

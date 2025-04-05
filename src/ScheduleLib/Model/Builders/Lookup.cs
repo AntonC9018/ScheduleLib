@@ -59,7 +59,48 @@ public struct LookupFacade(ScheduleBuilder s)
         {
             return null;
         }
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, new(firstName));
+
+        // TODO: Name separator constant.
+        var firstNameParts = default(FirstNameParts<Word>);
+        {
+            var firstNameSpan = firstName.AsSpan();
+            var splitName = firstNameSpan.Split('-');
+            var firstNameE = firstNameParts.AsRef().GetEnumerator();
+
+            foreach (var partRange in splitName)
+            {
+                var span = firstNameSpan[partRange];
+                if (span.Length == 0)
+                {
+                    continue;
+                }
+                span = span.Trim();
+                if (span.Length == 0)
+                {
+                    throw new ArgumentException(
+                        message: "Don't use double dashes in the names, only use single dashes",
+                        paramName: nameof(firstName));
+                }
+
+                bool nextNamePartOk = firstNameE.MoveNext();
+                if (!nextNamePartOk)
+                {
+                    throw new ArgumentException(
+                        message: "Too many name parts",
+                        paramName: nameof(firstName));
+                }
+
+                var part = span.ToString();
+                firstNameE.Current = new(part);
+            }
+
+            while (firstNameE.MoveNext())
+            {
+                firstNameE.Current = Word.Empty;
+            }
+        }
+
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
         return new(ids[i]);
     }
 

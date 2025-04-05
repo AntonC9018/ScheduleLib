@@ -17,7 +17,7 @@ public struct ParseLessonsParams()
 
 public struct TeacherName
 {
-    public ReadOnlyMemory<char> ShortFirstName;
+    public FirstNameParts<ReadOnlyMemory<char>> FirstName;
     public ReadOnlyMemory<char> LastName;
 }
 
@@ -559,9 +559,9 @@ public static class LessonParsingHelper
 
                     {
                         var firstName = FirstName(c, ref bparser);
-                        if (!firstName.IsEmpty)
+                        if (firstName.Any(x => !x.IsEmpty))
                         {
-                            teacher.ShortFirstName = firstName;
+                            teacher.FirstName = firstName;
                             return true;
                         }
                     }
@@ -602,7 +602,7 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static ReadOnlyMemory<char> FirstName(ParsingContext c, ref Parser bparser)
+                static FirstNameParts<ReadOnlyMemory<char>> FirstName(ParsingContext c, ref Parser bparser)
                 {
                     Debug.Assert(!bparser.IsEmpty);
 
@@ -612,11 +612,13 @@ public static class LessonParsingHelper
                     }
                     bparser.Move();
 
-                    var firstNameA = c.Parser.SourceUntilExclusive(bparser);
+                    var ret = default(FirstNameParts<ReadOnlyMemory<char>>);
+
+                    ret.A = c.Parser.SourceUntilExclusive(bparser);
                     if (bparser.IsEmpty)
                     {
                         NextStep(c, ref bparser);
-                        return firstNameA;
+                        return ret;
                     }
 
                     {
@@ -628,14 +630,14 @@ public static class LessonParsingHelper
                             if (skipResult.EndOfInput)
                             {
                                 NextStep(c, ref bparser);
-                                return firstNameA;
+                                return ret;
                             }
                         }
 
                         if (doubleBufferedParser.Current != '-')
                         {
                             NextStep(c, ref bparser);
-                            return firstNameA;
+                            return ret;
                         }
 
                         // Confirmed double first name.
@@ -662,12 +664,9 @@ public static class LessonParsingHelper
                         bparser.Move();
                     }
 
-                    var firstNameB = c.Parser.SourceUntilExclusive(bparser);
-
+                    ret.B = c.Parser.SourceUntilExclusive(bparser);
                     NextStep(c, ref bparser);
-
-                    string fullFirstName = string.Concat(firstNameA.Span, "-", firstNameB.Span);
-                    return fullFirstName.AsMemory();
+                    return ret;
 
                     static void NextStep(ParsingContext c, ref Parser bparser)
                     {

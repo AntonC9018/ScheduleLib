@@ -47,14 +47,6 @@ public sealed class DocParseContext
 
     public Schedule BuildSchedule()
     {
-        {
-            var x = Schedule.RegularLessons.List.Where(x => x.Date.TimeSlot is { } t && t.Index < 0).ToArray();
-            if (x.Length > 0)
-            {
-                Console.WriteLine();
-            }
-        }
-
         var courseNamesByKey = Schedule.LookupModule!.Courses
             .GroupBy(x => x.Value)
             .Select(x =>
@@ -93,10 +85,25 @@ public sealed class DocParseContext
     {
         var nameModel = new TeacherBuilderModel.NameModel
         {
-            ShortFirstName = name.ShortFirstName.IsEmpty
-                ? null
-                : new(name.ShortFirstName.ToString()),
-            FirstName = null,
+            FirstName = name.FirstName.Map(x =>
+            {
+                var ret = default(OptionalFirstNamePart);
+                if (x.IsEmpty)
+                {
+                    return ret;
+                }
+                var w = new WordSpan(x.Span);
+                if (w.LooksFull)
+                {
+                    ret.Full = x.ToString();
+                    return ret;
+                }
+                else
+                {
+                    ret.Short = x.ToString();
+                    return ret;
+                }
+            }),
             LastName = name.LastName.ToString(),
         };
 
@@ -106,9 +113,10 @@ public sealed class DocParseContext
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;
 
-        if (!teacher.Name.LastName!.Equals(
-            nameModel.FirstName,
-            StringComparison.CurrentCultureIgnoreCase))
+        bool savedTeacherNameHasDiacritics = teacher.Name.LastName!.Equals(
+            nameModel.LastName,
+            StringComparison.CurrentCultureIgnoreCase);
+        if (!savedTeacherNameHasDiacritics)
         {
             teacher.Name.LastName = nameModel.LastName;
         }
