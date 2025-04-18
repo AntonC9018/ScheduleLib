@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Builders;
 
@@ -64,7 +65,7 @@ public struct LookupFacade(ScheduleBuilder s)
         var firstNameParts = default(FirstNameParts<Word>);
         {
             var firstNameSpan = firstName.AsSpan();
-            var splitName = firstNameSpan.Split('-');
+            var splitName = firstNameSpan.Split(TeacherConstants.DoubleNameSeparator);
             var firstNameE = firstNameParts.AsRef().GetEnumerator();
 
             foreach (var partRange in splitName)
@@ -216,6 +217,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
+    [DebuggerStepThrough]
     public static LookupFacade Lookup(this ScheduleBuilder s)
     {
         s.EnableLookupModule();

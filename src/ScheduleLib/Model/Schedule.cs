@@ -367,7 +367,7 @@ public sealed class Teacher
     public required PersonContacts Contacts;
 }
 
-public struct OptionalFirstNamePart
+public record struct OptionalFirstNamePart
 {
     public required string? Full;
     public required string? Short;
@@ -390,7 +390,7 @@ public struct OptionalFirstNamePart
     public readonly bool IsNull => Full is null && Short is null;
 }
 
-public struct FirstNameParts<T>()
+public record struct FirstNameParts<T>()
 {
     public required T A;
     public required T B;

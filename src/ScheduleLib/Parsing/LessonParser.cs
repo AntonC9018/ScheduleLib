@@ -634,7 +634,7 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        if (doubleBufferedParser.Current != '-')
+                        if (doubleBufferedParser.Current != TeacherConstants.DoubleNameSeparator)
                         {
                             NextStep(c, ref bparser);
                             return ret;
@@ -1441,7 +1441,8 @@ public class WrongFormatException : Exception
     internal static void ThrowUnclosedParenInLessonName() => throw new WrongFormatException("Unclosed paren in lesson name");
 
     [DoesNotReturn]
-    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException("Double names must have the second short name after the '-'");
+    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException($"Double names must have the second short name after the '{TeacherConstants.DoubleNameSeparator}'");
+
 }
 
 internal ref struct ParsingContext

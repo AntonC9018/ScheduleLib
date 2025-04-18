@@ -3,7 +3,7 @@ using ScheduleLib.Builders;
 
 namespace App.Tests;
 
-public sealed class ScheduleTeacherNames
+public sealed class TeacherNameTests
 {
     [Fact]
     public void LastName()

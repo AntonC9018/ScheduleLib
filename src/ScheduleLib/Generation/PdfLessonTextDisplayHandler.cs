@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using QuestPDF.Fluent;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Generation;
 
@@ -253,7 +254,7 @@ public static class LessonTextDisplayHelper
                     return false;
                 }
 
-                var list = new ListStringBuilder(p.Output, separator: '-');
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
                 AppendSpaceMaybe();
                 list.Append(a);
 
@@ -266,7 +267,7 @@ public static class LessonTextDisplayHelper
             }
             bool AppendShorter()
             {
-                var list = new ListStringBuilder(p.Output, separator: '-');
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
                 if (firstName.A.Short is not { } a)
                 {
                     return false;

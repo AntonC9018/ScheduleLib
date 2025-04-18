@@ -11,6 +11,11 @@ public partial class ScheduleBuilder
 
 public sealed class TeacherIdList : List<int>
 {
+    public new void Add(int id)
+    {
+        Debug.Assert(!Contains(id));
+        base.Add(id);
+    }
 }
 
 public readonly struct TeachersByLastName()
@@ -241,7 +246,7 @@ public static class TeacherBuilderHelper
                 Id = new(ret.Id),
                 Schedule = s,
             };
-            builder.FullName(name);
+            builder.FullName(name, updateLookup: false);
 
             // Update the lookup manually.
             list?.Add(ret.Id);
@@ -331,6 +336,7 @@ public readonly struct TeacherBuilder
         });
         TeacherNameHelper.MaybeValidateInitialsCompatibility(newName);
         Model.Name.FirstName = newName;
+
         LastName(name.LastName!, updateLookup: updateLookup);
     }
 
@@ -348,14 +354,14 @@ public readonly struct TeacherBuilder
         Model.Name.FirstName = firstName;
     }
 
-    public void FirstName(FirstNameParts<OptionalFirstNamePart> initials)
+    public void FirstName(FirstNameParts<OptionalFirstNamePart> newFirstName)
     {
         var firstName = Model.Name.FirstName;
         // I have no idea if this is right, this needs some tests
-        firstName.Update(initials, (f, i) => new()
+        firstName.Update(newFirstName, (old, new_) => new()
         {
-            Full = i.Full ?? f.Full,
-            Short = i.Full ?? f.Full,
+            Full = new_.Full ?? old.Full,
+            Short = new_.Short ?? old.Short,
         });
 
         TeacherNameHelper.MaybeValidateInitialsCompatibility(firstName);
@@ -374,8 +380,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (prevLastName == null
-            || !IgnoreDiacriticsComparer.Instance.Equals(prevLastName, lastName))
+        if (IgnoreDiacriticsComparer.Instance.Equals(prevLastName, lastName))
         {
             return;
         }
@@ -385,10 +390,12 @@ public readonly struct TeacherBuilder
             return;
         }
 
+        if (prevLastName != null)
         {
             var people = lookup.TeachersByLastName.Get(prevLastName);
             Debug.Assert(people != null);
-            people.Remove(Id.Id);
+            bool removed = people.Remove(Id.Id);
+            Debug.Assert(removed);
         }
 
         {
@@ -433,11 +440,16 @@ public static class TeacherNameHelper
     /// </summary>
     public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
     {
+        static ReadOnlySpan<char> Separators() => [
+            WordHelper.ShortenedWordCharacter,
+            ' ',
+            TeacherConstants.DoubleNameSeparator];
+
         var ret = new TeacherBuilderModel.NameModel();
         var bparser = parser.BufferedView();
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
-        var result = bparser.SkipUntil(['.', ' ', '-']);
+        var result = bparser.SkipUntil(Separators());
         if (!result.SkippedAny)
         {
             return ret;
@@ -459,7 +471,7 @@ public static class TeacherNameHelper
             }
 
             bool isShort = false;
-            if (bparser.Current == '.')
+            if (bparser.Current == WordHelper.ShortenedWordCharacter)
             {
                 bparser.Move();
                 isShort = true;
@@ -486,7 +498,7 @@ public static class TeacherNameHelper
                 break;
             }
 
-            if (bparser.Current != '-')
+            if (bparser.Current != TeacherConstants.DoubleNameSeparator)
             {
                 break;
             }
@@ -498,7 +510,7 @@ public static class TeacherNameHelper
 
             parser.MoveTo(bparser.Position);
 
-            var skipResult = bparser.SkipUntil(['.', ' ', '-']);
+            var skipResult = bparser.SkipUntil(Separators());
             if (skipResult.EndOfInput)
             {
                 break;
@@ -518,7 +530,7 @@ public static class TeacherNameHelper
         }
 
         parser.MoveTo(bparser.Position);
-        bparser.SkipUntil([' ', '-', '.']);
+        bparser.SkipUntil(Separators());
 
         {
             var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);

@@ -12,6 +12,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.WordDoc;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
@@ -97,7 +98,7 @@ public static class Tasks
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
                 var nameBuilder = new ListStringBuilder(sb, '_');
 
-                var firstNameBuilder = new ListStringBuilder(sb, '-');
+                var firstNameBuilder = new ListStringBuilder(sb, TeacherConstants.DoubleNameSeparator);
                 foreach (var fname in teacherName.FirstName)
                 {
                     if (fname.Short is not { } s)
