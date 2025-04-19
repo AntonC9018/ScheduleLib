@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
+using System.Security;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -45,9 +47,28 @@ public struct AllTeacherExcelParams()
     public required LessonTimeConfig TimeConfig;
 }
 
+public readonly struct HolidayPeriod
+{
+    public HolidayPeriod(DateOnly start, DateOnly endExclusive)
+    {
+        Start = start;
+        EndExclusive = endExclusive;
+    }
+
+    public HolidayPeriod(DateOnly singleDay)
+    {
+        Start = singleDay;
+        EndExclusive = singleDay.AddDays(1);
+    }
+
+    public readonly DateOnly Start;
+    public readonly DateOnly EndExclusive;
+}
+
 public struct ParseStudyWeekWordDocParams
 {
     public required string InputPath;
+    public required HolidayPeriod[] Holidays;
 }
 
 public static class Tasks
@@ -956,25 +977,68 @@ public static class Tasks
         return ret;
     }
 
-    public static Credentials GetCredentials()
+    public static Credentials GetCredentials(bool allowUserInput)
     {
-        var b = new ConfigurationBuilder();
-        b.AddUserSecrets<Program>();
-        var config = b.Build();
-        var ret = config.GetRequiredSection("Registry").Get<Credentials>();
-        if (ret == null)
+        var ret = CredentialsHelper.MaybeGetCredentials(typeof(Program).Assembly);
+        if (ret != null)
+        {
+            return ret;
+        }
+        if (!allowUserInput)
         {
             throw new InvalidOperationException("Credentials not found.");
         }
-        if (ret.Login == null)
+
+        Console.WriteLine("No 'Registry' key specified in user secrets.");
+        Console.WriteLine("https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-9.0&tabs=windows#secret-manager");
+        Console.WriteLine("You may input it manually for this session only:");
+
+        Console.Write("Login: ");
+        var login = Console.ReadLine() ?? throw new InvalidOperationException();
+
+        Console.Write("Password: ");
+        using var password = ReadPassword();
+
+        ret = new()
         {
-            throw new InvalidOperationException("Login not found.");
-        }
-        if (ret.Password == null)
-        {
-            throw new InvalidOperationException("Password not found.");
-        }
+            Login = login,
+            Password = password.ToString() ?? throw UnreachableHelper.Unreachable(),
+        };
         return ret;
+    }
+
+    private static SecureString ReadPassword()
+    {
+        var pwd = new SecureString();
+        while (true)
+        {
+            ConsoleKeyInfo i = Console.ReadKey(intercept: true);
+            if (i.Key == ConsoleKey.Enter)
+            {
+                break;
+            }
+
+            if (i.Key == ConsoleKey.Backspace)
+            {
+                if (pwd.Length == 0)
+                {
+                    continue;
+                }
+
+                pwd.RemoveAt(pwd.Length - 1);
+                Console.Write("\b \b");
+                continue;
+            }
+
+            // the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+            if (i.KeyChar != '\u0000')
+            {
+                pwd.AppendChar(i.KeyChar);
+                Console.Write("*");
+                continue;
+            }
+        }
+        return pwd;
     }
 
     public static void OptionallyEnrichContextWithTeacherFullNames(

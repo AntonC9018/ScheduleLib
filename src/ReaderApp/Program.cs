@@ -117,8 +117,13 @@ switch (option)
         var dateProvider = Tasks.CreateDateProviderFromWeekParityExcel(new()
         {
             InputPath = @"data\Paritate.docx",
+            Holidays = [
+                new(
+                    start: new DateOnly(year: 2025, month: 4, day: 19),
+                    endExclusive: new DateOnly(year: 2025, month: 4, day: 28)),
+            ],
         });
-        var credentials = Tasks.GetCredentials();
+        var credentials = Tasks.GetCredentials(allowUserInput: true);
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
@@ -131,6 +136,8 @@ switch (option)
             LookupModule = context.Schedule.LookupModule!,
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
+            ProcessingFlags = CommandProcessingConfig.Process
+                .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
         });
         break;
     }

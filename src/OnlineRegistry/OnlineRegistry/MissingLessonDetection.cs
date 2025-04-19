@@ -327,6 +327,17 @@ public enum LessonEquationCommandType
     Create,
     Update,
     Delete,
+    Count,
+}
+
+[Flags]
+public enum LessonEquationCommandTypes
+{
+    None = 0,
+    Create = 1 << (int) LessonEquationCommandType.Create,
+    Update = 1 << (int) LessonEquationCommandType.Update,
+    Delete = 1 << (int) LessonEquationCommandType.Delete,
+    All = Create | Update | Delete,
 }
 
 public static class LessonEquationCommandTypeHelper

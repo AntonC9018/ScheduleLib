@@ -2,4 +2,6 @@
     <ItemGroup>
         <ProjectReference Include="..\..\OnlineRegistry\OnlineRegistry.csproj" />
     </ItemGroup>
+
+    <Import Project="$(RootPath)build\UserSecrets.props" />
 </Project>

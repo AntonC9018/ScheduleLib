@@ -1,6 +1,9 @@
+using static ScheduleLib.UnreachableHelper;
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -18,8 +21,22 @@ public enum Session
     Ses2,
 }
 
-internal struct RegistryScrapingContext : IDisposable
+internal struct HttpClientDisposable : IDisposable
 {
+    public HttpClient Client { get; init; }
+    public HttpClientHandler Handler { get; init; }
+
+    public void Dispose()
+    {
+        // Because it might be null
+        Client?.Dispose();
+        Handler?.Dispose();
+    }
+}
+
+internal readonly struct RegistryScrapingContext : IDisposable
+{
+    // Takes ownership of everything.
     public required HttpClientHandler Handler { get; init; }
     public required CookieContainer CookieContainer { get; init; }
     public required HttpClient HttpClient { get; init; }
@@ -30,44 +47,46 @@ internal struct RegistryScrapingContext : IDisposable
         var cookieProvider = new MemoryCookieProvider();
         var cookieContainer = cookieProvider.Container;
 
-        HttpClientHandler? handler = null;
-        HttpClient? httpClient = null;
+        HttpClientDisposable d = default;
 
         try
         {
-            handler = new HttpClientHandler();
-            handler.CookieContainer = cookieContainer;
-            handler.UseCookies = true;
-            handler.AllowAutoRedirect = false;
-
-            httpClient = new HttpClient(handler);
+            d = CreateHttpClient(cookieContainer);
 
             var config = Configuration.Default;
             config = config.WithDefaultLoader();
             config = config.With<ICookieProvider>(_ => cookieProvider);
-            config = config.With(httpClient);
+            config = config.With(d.Client);
 
             var browsingContext = BrowsingContext.New(config);
             return new()
             {
-                Handler = handler,
+                Handler = d.Handler,
                 CookieContainer = cookieContainer,
-                HttpClient = httpClient,
+                HttpClient = d.Client,
                 Browser = browsingContext,
             };
         }
         catch
         {
-            if (httpClient != null)
-            {
-                httpClient.Dispose();
-            }
-            if (handler != null)
-            {
-                handler.Dispose();
-            }
+            d.Dispose();
             throw;
         }
+    }
+
+    internal static HttpClientDisposable CreateHttpClient(CookieContainer cookies)
+    {
+        var handler = new HttpClientHandler();
+        handler.CookieContainer = cookies;
+        handler.UseCookies = true;
+        handler.AllowAutoRedirect = false;
+
+        var httpClient = new HttpClient(handler);
+        return new()
+        {
+            Client = httpClient,
+            Handler = handler,
+        };
     }
 
     public void Dispose()
@@ -99,8 +118,8 @@ public struct AddLessonsToOnlineRegistryParams()
     public required LookupModule LookupModule;
     public required IAllScheduledDateProvider DateProvider;
     public required LessonTimeConfig TimeConfig;
+    public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
 }
-
 
 public static partial class RegistryScraping
 {
@@ -155,6 +174,38 @@ public static partial class RegistryScraping
                     ExistingLessons = existingLessonInstances,
                 });
                 foreach (var command in equationCommands)
+                {
+                    if (p.ProcessingFlags.HasDryRun(command.Type))
+                    {
+                        DryRun(command);
+                        continue;
+                    }
+
+                    if (p.ProcessingFlags.HasProcess(command.Type))
+                    {
+                        await HandleCommand(command);
+                        continue;
+                    }
+                }
+                continue;
+
+                void DryRun(LessonEquationCommand command)
+                {
+                    var commandName = command.Type switch
+                    {
+                        LessonEquationCommandType.Create => "Create",
+                        LessonEquationCommandType.Update => "Update",
+                        LessonEquationCommandType.Delete => "Delete",
+                        _ => throw Unreachable(),
+                    };
+                    var date = command.HasAll ? command.All.DateTime : command.Existing.DateTime;
+                    var dateString = date.ToString("dd.MM.yy");
+                    var course = p.Schedule.Get(courseLink.CourseId);
+                    var lessonName = course.FullName;
+                    Console.WriteLine($"{commandName}: {dateString} - {lessonName}");
+                }
+
+                async ValueTask HandleCommand(LessonEquationCommand command)
                 {
                     switch (command.Type)
                     {
@@ -310,3 +361,80 @@ public static partial class RegistryScraping
         }
     }
 }
+
+public readonly struct CommandProcessingConfig
+{
+    public int Bits { get; init; }
+
+    public readonly CommandProcessingConfig WithProcess(LessonEquationCommandTypes types)
+    {
+        var newBits = Bits | ((int) types << ProcessOffset);
+        return new()
+        {
+            Bits = newBits,
+        };
+    }
+
+    public readonly CommandProcessingConfig WithDryRun(LessonEquationCommandTypes types)
+    {
+        var newBits = Bits | ((int) types << DryRunOffset);
+        return new()
+        {
+            Bits = newBits,
+        };
+    }
+
+    private const int ProcessOffset = 0;
+    private const int ProcessMask = (1 << (int) LessonEquationCommandType.Count) - 1;
+    private const int DryRunOffset = (int) 16;
+    private const int DryRunMask = ProcessMask << DryRunOffset;
+
+
+    public static CommandProcessingConfig None => new();
+    public static CommandProcessingConfig Process => None.WithProcess(LessonEquationCommandTypes.All);
+    public static CommandProcessingConfig DryRun => None.WithDryRun(LessonEquationCommandTypes.All);
+
+    /// <summary>
+    /// Masks out the "process" that are also on "dry run".
+    /// </summary>
+    /// <value></value>
+    public readonly CommandProcessingConfig Normalized
+    {
+        get
+        {
+            int dryRunBits = DryRunMask & Bits;
+            int doNotProcessMask = dryRunBits >> DryRunOffset;
+            int doProcessMask = ~doNotProcessMask;
+            int bits = (doProcessMask & Bits) | ((~ProcessMask) & Bits);
+            return new()
+            {
+                Bits = bits,
+            };
+        }
+    }
+
+    public readonly bool HasProcess(LessonEquationCommandType type)
+    {
+        var mask = 1 << ((int) type + ProcessOffset);
+        return (Bits & mask) != 0;
+    }
+
+    public readonly bool HasAnyProcess(LessonEquationCommandTypes types)
+    {
+        var mask = (int) types << ProcessOffset;
+        return (Bits & mask) != 0;
+    }
+
+    public readonly bool HasDryRun(LessonEquationCommandType type)
+    {
+        var mask = 1 << ((int) type + DryRunOffset);
+        return (Bits & mask) != 0;
+    }
+
+    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types)
+    {
+        var mask = (int) types << DryRunOffset;
+        return (Bits & mask) != 0;
+    }
+}
+

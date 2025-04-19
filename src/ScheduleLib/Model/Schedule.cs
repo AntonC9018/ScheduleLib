@@ -596,6 +596,10 @@ public record struct PeriodId(int Value)
 
 public record struct Period
 {
+    /// <summary>
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="end">Exclusive</param>
     public Period(DateOnly start, DateOnly end = default)
     {
         if (end != default)

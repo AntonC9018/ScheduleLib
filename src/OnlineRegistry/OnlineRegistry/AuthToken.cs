@@ -45,10 +45,10 @@ internal sealed class TokenRetrievalContext
     }
     internal struct Deps
     {
-        public required NamesConfig Names;
         public required HttpClient HttpClient;
         public required CookieContainer CookieContainer;
         public required Credentials Credentials;
+        public NamesConfig? Names;
         public JsonSerializerOptions? JsonOptions;
     }
 
@@ -56,7 +56,7 @@ internal sealed class TokenRetrievalContext
     {
         _fields = new Fields
         {
-            Names = deps.Names,
+            Names = deps.Names ?? NamesConfig.Default,
             HttpClient = deps.HttpClient,
             CookieContainer = deps.CookieContainer,
             Credentials = deps.Credentials,
@@ -146,6 +146,19 @@ internal sealed class TokenRetrievalContext
         }
     }
 
+    public Cookie? TokenCookie
+    {
+        get
+        {
+            var cookies = _fields.CookieContainer.GetCookies(_fields.Names.LoginUrl);
+            if (cookies[_fields.Names.TokenCookieName] is { } token)
+            {
+                return token;
+            }
+            return null;
+        }
+    }
+
     public async Task QueryTokenAndSave(CancellationToken cancellationToken)
     {
         var success = await LogIn(cancellationToken);
@@ -154,8 +167,8 @@ internal sealed class TokenRetrievalContext
             throw new InvalidOperationException("Login failed.");
         }
 
-        var cookies = _fields.CookieContainer.GetCookies(_fields.Names.LoginUrl);
-        if (cookies[_fields.Names.TokenCookieName] is not { } token)
+        var token = TokenCookie;
+        if (token is null)
         {
             throw new InvalidOperationException("Token cookie not found.");
         }
@@ -218,27 +231,16 @@ internal sealed class TokenRetrievalContext
         }
     }
 
-    private async Task<bool> LogIn(CancellationToken cancellationToken)
+    internal async Task<bool> LogIn(CancellationToken cancellationToken)
     {
-        Uri uri;
-        {
-            var b = new UriBuilder(_fields.Names.LoginUrl);
-            b.Port = -1;
-
-            // Yup, you got it right.
-            // It gets the password through query parameters.
-            // That's the only way that the server seems to accept.
-            var parameters = HttpUtility.ParseQueryString("");
-            parameters.Add("UserLogin", _fields.Credentials.Login);
-            parameters.Add("UserPassword", _fields.Credentials.Password);
-            b.Query = parameters.ToString();
-
-            uri = b.Uri;
-        }
+        Uri uri = _fields.Names.LoginUrl;
+        using var content = new FormUrlEncodedContent([
+            new("UserLogin", _fields.Credentials.Login),
+            new("UserPassword", _fields.Credentials.Password)]);
 
         var response = await _fields.HttpClient.PostAsync(
             uri,
-            content: null,
+            content: content,
             cancellationToken: cancellationToken);
         bool success = response.StatusCode == HttpStatusCode.Redirect;
         return success;
