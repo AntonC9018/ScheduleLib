@@ -364,7 +364,7 @@ public static partial class RegistryScraping
 
 public readonly struct CommandProcessingConfig
 {
-    public int Bits { get; init; }
+    private int Bits { get; init; }
 
     public readonly CommandProcessingConfig WithProcess(LessonEquationCommandTypes types)
     {
