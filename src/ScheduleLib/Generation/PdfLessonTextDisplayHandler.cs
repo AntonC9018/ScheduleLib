@@ -254,8 +254,9 @@ public static class LessonTextDisplayHelper
                     return false;
                 }
 
-                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
                 AppendSpaceMaybe();
+
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
                 list.Append(a);
 
                 if (firstName.B.Full is { } b)
@@ -267,11 +268,14 @@ public static class LessonTextDisplayHelper
             }
             bool AppendShorter()
             {
-                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
                 if (firstName.A.Short is not { } a)
                 {
                     return false;
                 }
+
+                AppendSpaceMaybe();
+
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
 
                 {
                     var word = new WordSpan(a);

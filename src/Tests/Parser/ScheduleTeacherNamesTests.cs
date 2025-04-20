@@ -3,6 +3,8 @@ using ScheduleLib.Builders;
 
 namespace App.Tests;
 
+using static Helper;
+
 public sealed class ScheduleTeacherNamesTests
 {
     [Fact]
@@ -128,18 +130,75 @@ public sealed class ScheduleTeacherNamesTests
         Assert.Null(s.Lookup().Teacher(lastName: "Last"));
         Assert.Equal(t.Id, s.Lookup().Teacher(lastName: "Otherlast"));
     }
+}
 
-    private static FirstNameParts<OptionalFirstNamePart> CreateSinglePartName(OptionalFirstNamePart p)
+public sealed class TeacherFindIndexOfBestMatchTests
+{
+    private static TeacherBuilderModel Create(string lastName, FirstNameParts<OptionalFirstNamePart> firstName)
+    {
+        return new()
+        {
+            Name = new()
+            {
+                LastName = lastName,
+                FirstName = firstName,
+            },
+        };
+    }
+
+    [Fact]
+    public void FindBestMatch()
+    {
+        TeacherBuilderModel[] teachers = [
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "First",
+                Short = "F.",
+            })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "Irst",
+                Short = "I.",
+            })),
+            Create("Unrelated", CreateSinglePartName(new()
+            {
+                Full = "First",
+                Short = "F.",
+            })),
+        ];
+        int[] ids = teachers.WhereSelectIndex(x => x.Name.LastName == "Last").ToArray();
+
+        Check(CreateSinglePartNameWord("I."), 1);
+        Check(CreateSinglePartNameWord("F."), 0);
+        Check(CreateSinglePartNameWord("Fi."), 0);
+        Check(CreateSinglePartNameWord("Unrelated"), -1);
+        return;
+
+        void Check(FirstNameParts<Word> firstName, int expected)
+        {
+            int i = TeacherLookupHelper.FindIndexOfBestMatch(
+                teachers,
+                ids,
+                firstName);
+            Assert.Equal(expected, i);
+        }
+    }
+}
+
+file static class Helper
+{
+    public static FirstNameParts<OptionalFirstNamePart> CreateSinglePartName(OptionalFirstNamePart p)
     {
         var ret = default(FirstNameParts<OptionalFirstNamePart>);
         ret.A = p;
         return ret;
     }
 
-    private static FirstNameParts<Word> CreateSinglePartNameWord(string name)
+    public static FirstNameParts<Word> CreateSinglePartNameWord(string name)
     {
         var ret = default(FirstNameParts<Word>);
         ret.A = new(name);
+        ret.B = Word.Empty;
         return ret;
     }
 }

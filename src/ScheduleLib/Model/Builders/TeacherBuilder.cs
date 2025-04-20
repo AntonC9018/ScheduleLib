@@ -54,6 +54,7 @@ public static class TeacherLookupHelper
         FirstNameParts<Word> firstName)
     {
         Debug.Assert(firstName.A.Value.Length > 0);
+        Debug.Assert(firstName.All(w => w.Value != null));
         bool onlyContainsFullNames = firstName.All(x => x == Word.Empty || x.LooksFull);
 
         for (FirstNameComparison i = 0; i < FirstNameComparison.Count; i++)
@@ -150,6 +151,10 @@ public static class TeacherLookupHelper
                     {
                         return teacherName.EachEquals(firstName, (existingPart, newPart) =>
                         {
+                            if (existingPart.IsNull)
+                            {
+                                return true;
+                            }
                             if (existingPart.Full is { } full)
                             {
                                 if (IgnoreDiacriticsComparer.Instance.Equals(full, newPart.Value))
@@ -159,10 +164,17 @@ public static class TeacherLookupHelper
                             }
                             if (existingPart.Short is { } teacherShort)
                             {
-                                if (IgnoreDiacriticsComparer.Instance.StartsWith(
-                                        // Ignore the separators as well
-                                        new WordSpan(teacherShort).Shortened.Value,
-                                        newPart.Span.Shortened.Value))
+                                // Ignore the separators as well
+                                var longer = new WordSpan(teacherShort).Shortened.Value;
+                                var shorter = newPart.Span.Shortened.Value;
+                                if (longer.Length < shorter.Length)
+                                {
+                                    var t = longer;
+                                    longer = shorter;
+                                    shorter = t;
+                                }
+
+                                if (IgnoreDiacriticsComparer.Instance.StartsWith(longer, shorter))
                                 {
                                     return true;
                                 }
@@ -213,6 +225,12 @@ public static class TeacherBuilderHelper
         }));
 
         var list = Lookup1();
+
+        if (name.LastName == "Cucu")
+        {
+            Console.WriteLine("Hello");
+        }
+
         if (FindId(list) is { } id)
         {
             var b = new TeacherBuilder

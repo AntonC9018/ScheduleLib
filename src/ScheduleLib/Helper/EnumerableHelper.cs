@@ -145,4 +145,17 @@ public static class EnumerableHelper
         bool ret = e.SequenceEqual(ordered);
         return ret;
     }
+
+    public static IEnumerable<int> WhereSelectIndex<T>(this IEnumerable<T> t, Func<T, bool> pred)
+    {
+        int i = 0;
+        foreach (var el in t)
+        {
+            if (pred(el))
+            {
+                yield return i;
+            }
+            i++;
+        }
+    }
 }
