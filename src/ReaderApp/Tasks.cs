@@ -47,23 +47,6 @@ public struct AllTeacherExcelParams()
     public required LessonTimeConfig TimeConfig;
 }
 
-public readonly struct HolidayPeriod
-{
-    public HolidayPeriod(DateOnly start, DateOnly endExclusive)
-    {
-        Start = start;
-        EndExclusive = endExclusive;
-    }
-
-    public HolidayPeriod(DateOnly singleDay)
-    {
-        Start = singleDay;
-        EndExclusive = singleDay.AddDays(1);
-    }
-
-    public readonly DateOnly Start;
-    public readonly DateOnly EndExclusive;
-}
 
 public struct ParseStudyWeekWordDocParams
 {

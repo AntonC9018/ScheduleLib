@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using OpenHolidays;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using ReaderApp;
@@ -114,14 +115,28 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.CreateLessonsInRegistry:
     {
+        HolidayPeriod[] holidayPeriods;
+        {
+            using var holidaysHttpClient = new HttpClient();
+            var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
+            var holidaysProvider = new HolidaysProvider(holidaysClient, new()
+            {
+                TimeZone = TimeZoneInfo.Local,
+                CountryIsoCode = "MD",
+            });
+            var wholePeriod = schedule.WholePeriod();
+            holidayPeriods = await holidaysProvider.GetHolidayPeriods(new()
+            {
+                From = wholePeriod.Start,
+                To = wholePeriod.EndExclusive,
+                CancellationToken = cancellationToken,
+            });
+        }
+
         var dateProvider = Tasks.CreateDateProviderFromWeekParityExcel(new()
         {
             InputPath = @"data\Paritate.docx",
-            Holidays = [
-                new(
-                    start: new DateOnly(year: 2025, month: 4, day: 19),
-                    endExclusive: new DateOnly(year: 2025, month: 4, day: 28)),
-            ],
+            Holidays = holidayPeriods,
         });
         var credentials = Tasks.GetCredentials(allowUserInput: true);
         await RegistryScraping.AddLessonsToOnlineRegistry(new()

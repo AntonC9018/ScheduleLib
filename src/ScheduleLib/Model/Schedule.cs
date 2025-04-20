@@ -627,6 +627,55 @@ public record struct Period
     }
 }
 
+public static class PeriodHelper
+{
+    public static DateOnly GetProjectedEndExclusive(this Period period)
+    {
+        if (period.End is { } existingEnd)
+        {
+            return existingEnd;
+        }
+        return GetStudyYearEnd(period.Start).AddDays(1);
+    }
+
+    // This might be different in other countries and stuff, this should be service ideally.
+    public static DateOnly GetStudyYearEnd(DateOnly yearDate)
+    {
+        int year = yearDate.Year;
+        if (yearDate.Month >= 9)
+        {
+            year++;
+        }
+        var ret = new DateOnly(year: year, month: 8, day: 31);
+        return ret;
+    }
+
+    public static (DateOnly Start, DateOnly EndExclusive) WholePeriod(this Schedule schedule)
+    {
+        var min = DateOnly.MinValue;
+        foreach (var period in schedule.Periods)
+        {
+            if (period.Start < min)
+            {
+                min = period.Start;
+            }
+        }
+
+        // Compute semester end, which is 31 august of the year.
+        var max = min;
+        foreach (var period in schedule.Periods)
+        {
+            var end = period.GetProjectedEndExclusive();
+            if (end > max)
+            {
+                max = end;
+            }
+        }
+
+        return new(min, max);
+    }
+}
+
 public static class AccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];

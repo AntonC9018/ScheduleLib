@@ -35,7 +35,7 @@ public static class TeacherLookupHelper
         FirstNameParts<Word> firstName)
     {
         return FindIndexOfBestMatch(
-            s,
+            CollectionsMarshal.AsSpan(s.Teachers.List),
             CollectionsMarshal.AsSpan(ids),
             firstName);
     }
@@ -49,12 +49,12 @@ public static class TeacherLookupHelper
     }
 
     public static int FindIndexOfBestMatch(
-        ScheduleBuilder s,
+        ReadOnlySpan<TeacherBuilderModel> teachers,
         ReadOnlySpan<int> ids,
         FirstNameParts<Word> firstName)
     {
         Debug.Assert(firstName.A.Value.Length > 0);
-        bool onlyContainsFullNames = firstName.All(x => x.Value == "" || x.LooksFull);
+        bool onlyContainsFullNames = firstName.All(x => x == Word.Empty || x.LooksFull);
 
         for (FirstNameComparison i = 0; i < FirstNameComparison.Count; i++)
         {
@@ -66,7 +66,7 @@ public static class TeacherLookupHelper
             for (int teacherIndex = 0; teacherIndex < ids.Length; teacherIndex++)
             {
                 int id = ids[teacherIndex];
-                ref var teacher = ref s.Teachers.Ref(id);
+                var teacher = teachers[id];
                 var teacherFirstName = teacher.Name.FirstName;
                 if (CheckEquality(teacherFirstName))
                 {
@@ -103,7 +103,7 @@ public static class TeacherLookupHelper
                 bool isSameNameCount = teacherName.EachEquals(firstName, (a, b) =>
                 {
                     bool isTeacherEmpty = a.IsNull;
-                    bool isNewEmpty = b.Value == "";
+                    bool isNewEmpty = b == Word.Empty;
                     return isTeacherEmpty == isNewEmpty;
                 });
                 if (!isSameNameCount)
@@ -261,7 +261,7 @@ public static class TeacherBuilderHelper
                 return null;
             }
             var longer = name.FirstName.Longer().Map(x => new Word(x ?? ""));
-            if (longer.Any(x => x != Word.Empty))
+            if (longer.All(x => x == Word.Empty))
             {
                 if (lookup.Count > 0)
                 {
