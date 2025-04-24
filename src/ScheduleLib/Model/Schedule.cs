@@ -544,6 +544,25 @@ public static class FirstNameHelper
         return true;
     }
 
+    public static int CompareEach<T>(
+        FirstNameParts<T> a,
+        FirstNameParts<T> b,
+        IComparer<T> comparer)
+    {
+        var i = new EnumeratorState();
+        while (i.MoveNext())
+        {
+            var fa = i.GetRef(ref a);
+            var fb = i.GetRef(ref b);
+            var cmp = comparer.Compare(fa, fb);
+            if (cmp != 0)
+            {
+                return cmp;
+            }
+        }
+        return 0;
+    }
+
     private static ref T GetRef<T>(in FirstNameParts<T> parts, FirstNamePartIndex index)
     {
         ref var p = ref Unsafe.AsRef(in parts);

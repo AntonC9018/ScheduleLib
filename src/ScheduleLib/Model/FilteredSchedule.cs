@@ -37,6 +37,7 @@ public sealed class FilteredSchedule
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
+    public required TeacherId[] Teachers;
 
     public bool IsEmpty => Days.Length == 0;
 }
@@ -51,17 +52,20 @@ public static class FilterHelper
         GroupId[] groups;
         TimeSlot[] timeSlots;
         DayOfWeek[] days;
+        TeacherId[] teachers;
         if (!lessons.Any())
         {
             groups = [];
             timeSlots = [];
             days = [];
+            teachers = [];
         }
         else
         {
             groups = GroupsFromLessons();
             timeSlots = TimeSlotsFromLessons();
             days = UsedDaysOfWeek();
+            teachers = TeachersFromLessons();
         }
 
         return new()
@@ -71,6 +75,7 @@ public static class FilterHelper
             Lessons = lessons,
             TimeSlots = timeSlots,
             Days = days,
+            Teachers = teachers,
         };
 
         IEnumerable<RegularLesson> GetRegularLessons(ScheduleFilter filter)
@@ -264,6 +269,15 @@ public static class FilterHelper
                 ret.Add(lesson.Date.DayOfWeek);
             }
             return ret.Order().ToArray();
+        }
+
+        TeacherId[] TeachersFromLessons()
+        {
+            return lessons
+                .SelectMany(x => x.Lesson.Teachers)
+                .Distinct()
+                .OrderBy(x => x.Id)
+                .ToArray();
         }
     }
 }

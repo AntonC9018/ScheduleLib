@@ -173,6 +173,14 @@ public static class Tasks
         using var stream = File.Open(p.OutputFilePath, FileMode.Create, FileAccess.ReadWrite);
         using var excel = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, autoSave: true);
 
+        var teachers = p.Schedule.Teachers
+            .OrderBy(id =>
+            {
+                var teacher = p.Schedule.Source.Get(id);
+                return teacher.PersonName;
+            }, PersonNameLastFirstAlphabeticComparer.Instance)
+            .ToArray();
+
         var workbookPart = excel.AddWorkbookPart();
         var workbook = new Workbook();
         var sheetData = new SheetData();
@@ -270,7 +278,7 @@ public static class Tasks
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + p.Schedule.Source.Teachers.Length),
+                Max = (uint)(3 + teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };
@@ -322,13 +330,13 @@ public static class Tasks
             }
 
             var sb = p.StringBuilder;
-            for (int i = 0; i < p.Schedule.Source.Teachers.Length; i++)
+            foreach (var id in teachers)
             {
                 LessonTextDisplayHelper.AppendTeacherName(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Teacher = p.Schedule.Source.Teachers[i],
+                    Teacher = p.Schedule.Source.Get(id),
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -392,7 +400,7 @@ public static class Tasks
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
 
-                    for (int teacherId = 0; teacherId < p.Schedule.Source.Teachers.Length; teacherId++)
+                    foreach (var teacherId in teachers)
                     {
                         var cell = cells.NextCell();
 
@@ -408,7 +416,7 @@ public static class Tasks
 
                         cell.SetStyle(styles.Lesson.Get(option));
 
-                        var cellKey = rowKey.CellKey(new TeacherId(teacherId));
+                        var cellKey = rowKey.CellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
                         {
                             continue;
@@ -953,10 +961,9 @@ public static class Tasks
         using var stream = File.OpenRead(p.InputPath);
         using var word = WordprocessingDocument.Open(stream, isEditable: false);
         var studyWeeks = ParityExcelParser.Parse(word).ToArray();
-        var ret = new ManualAllScheduledDateProvider
-        {
-            StudyWeeks = studyWeeks,
-        };
+        var ret = new ManualAllScheduledDateProvider(
+            studyWeeks: studyWeeks,
+            holidays: p.Holidays);
         return ret;
     }
 
@@ -1099,7 +1106,6 @@ public static class Tasks
                 });
             }
         }
-
     }
 }
 
@@ -1108,4 +1114,34 @@ public enum Option
     AllTeachersExcel,
     PerGroupAndPerTeacherPdfs,
     CreateLessonsInRegistry,
+}
+
+file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
+{
+    public static readonly PersonNameLastFirstAlphabeticComparer Instance = new();
+
+    public int Compare(PersonName x, PersonName y)
+    {
+        {
+            var t = IgnoreDiacriticsComparer.Instance.Compare(x.LastName, y.LastName);
+            if (t != 0)
+            {
+                return t;
+            }
+        }
+        var ret = FirstNameHelper.CompareEach(
+            x.FirstName,
+            y.FirstName,
+            Comparer.Instance);
+        return ret;
+    }
+
+    private sealed class Comparer : IComparer<OptionalFirstNamePart>
+    {
+        public static readonly Comparer Instance = new();
+        public int Compare(OptionalFirstNamePart x, OptionalFirstNamePart y)
+        {
+            return IgnoreDiacriticsComparer.Instance.Compare(x.Longer, y.Longer);
+        }
+    }
 }

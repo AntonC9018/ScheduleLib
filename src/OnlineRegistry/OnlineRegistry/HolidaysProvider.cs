@@ -23,13 +23,15 @@ public sealed class HolidaysProvider
             validTo: p.To.ToDateTimeOffset(_config.TimeZone),
             languageIsoCode: _config.LanguageIsoCode,
             subdivisionCode: _config.SubdivisionCode);
-        var ret = response.Select(x =>
-        {
-            var ret = new HolidayPeriod(
-                x.StartDate.ToDateOnly(_config.TimeZone),
-                x.EndDate.ToDateOnly(_config.TimeZone));
-            return ret;
-        });
+        var ret = response
+            .OrderBy(x => x.StartDate)
+            .Select(x =>
+            {
+                var ret = new HolidayPeriod(
+                    x.StartDate.ToDateOnly(_config.TimeZone),
+                    x.EndDate.ToDateOnly(_config.TimeZone));
+                return ret;
+            });
         return ret.ToArray();
     }
 }

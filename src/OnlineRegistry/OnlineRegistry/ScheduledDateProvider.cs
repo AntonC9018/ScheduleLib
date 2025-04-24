@@ -18,11 +18,23 @@ public interface IAllScheduledDateProvider
 public sealed class ManualAllScheduledDateProvider
     : IAllScheduledDateProvider
 {
-    public required StudyWeek[] StudyWeeks { private get; init; }
+    private readonly StudyWeek[] _studyWeeks;
+    private readonly HolidayPeriod[] _holidays;
+
+    public ManualAllScheduledDateProvider(
+        StudyWeek[] studyWeeks,
+        HolidayPeriod[] holidays)
+    {
+        Debug.Assert(studyWeeks.IsSorted(x => x.MondayDate));
+        Debug.Assert(holidays.IsSorted(x => x.Start));
+
+        _studyWeeks = studyWeeks;
+        _holidays = holidays;
+    }
 
     public IEnumerable<DateOnly> Dates(GetScheduledDatesParams p)
     {
-        var e = new DayEnumerator(StudyWeeks, p.Day);
+        var e = new DayEnumerator(_studyWeeks, p.Day);
         while (true)
         {
             if (!e.MoveNext())
@@ -36,6 +48,8 @@ public sealed class ManualAllScheduledDateProvider
             break;
         }
 
+        var holidayE = new HolidayChecker(_holidays);
+
         while (true)
         {
             var ret = e.Date;
@@ -43,16 +57,28 @@ public sealed class ManualAllScheduledDateProvider
             {
                 break;
             }
-            if (IsParityMatch())
+            if (ShouldYield())
             {
                 yield return ret;
             }
-
             if (!e.MoveNext())
             {
                 yield break;
             }
             continue;
+
+            bool ShouldYield()
+            {
+                if (!IsParityMatch())
+                {
+                    return false;
+                }
+                if (holidayE.OrderedCheckIsHoliday(ret))
+                {
+                    return false;
+                }
+                return true;
+            }
 
             bool IsParityMatch()
             {
@@ -72,11 +98,49 @@ public sealed class ManualAllScheduledDateProvider
                     }
                     default:
                     {
-                        Debug.Fail("Impossible value of parity");
-                        return false;
+                        throw UnreachableHelper.Unreachable();
                     }
                 }
             }
+        }
+    }
+}
+
+file struct HolidayChecker
+{
+    private int _index;
+    private readonly HolidayPeriod[] _holidays;
+
+    public HolidayChecker(HolidayPeriod[] holidays)
+    {
+        Debug.Assert(holidays.IsSorted(x => x.Start));
+
+        _index = 0;
+        _holidays = holidays;
+    }
+
+    private bool HasValue => _index < _holidays.Length;
+
+    public bool OrderedCheckIsHoliday(DateOnly d)
+    {
+        while (true)
+        {
+            if (!HasValue)
+            {
+                return false;
+            }
+
+            var current = _holidays[_index];
+            if (current.Start > d)
+            {
+                return false;
+            }
+            Debug.Assert(current.Start >= d);
+            if (current.EndExclusive < d)
+            {
+                return true;
+            }
+            _index++;
         }
     }
 }

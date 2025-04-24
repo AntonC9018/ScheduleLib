@@ -53,7 +53,7 @@ public static class DiacriticsHelper
     }
 }
 
-public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>
+public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, IComparer<string>
 {
     public static readonly IgnoreDiacriticsComparer Instance = new();
 
@@ -94,5 +94,25 @@ public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>
         var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
         var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
         return x1.StartsWith(y1, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public int Compare(string? a, string? b)
+    {
+        if (a is null && b is null)
+        {
+            return 0;
+        }
+        if (a is null)
+        {
+            return -1;
+        }
+        if (b is null)
+        {
+            return 1;
+        }
+
+        var x1 = DiacriticsHelper.RemoveDiacritics(a);
+        var y1 = DiacriticsHelper.RemoveDiacritics(b);
+        return string.Compare(x1, y1, StringComparison.OrdinalIgnoreCase);
     }
 }

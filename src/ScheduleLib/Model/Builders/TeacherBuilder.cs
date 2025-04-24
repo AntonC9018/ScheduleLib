@@ -226,11 +226,6 @@ public static class TeacherBuilderHelper
 
         var list = Lookup1();
 
-        if (name.LastName == "Cucu")
-        {
-            Console.WriteLine("Hello");
-        }
-
         if (FindId(list) is { } id)
         {
             var b = new TeacherBuilder
@@ -363,8 +358,9 @@ public readonly struct TeacherBuilder
         Debug.Assert(initials.Any(x => x != Word.Empty));
 
         var firstName = Model.Name.FirstName;
-        firstName.Update(initials, (f, i) => f with
+        firstName.Update(initials, (f, i) => new()
         {
+            Full = f.Full,
             Short = i != Word.Empty ? i.Value : f.Short,
         });
 

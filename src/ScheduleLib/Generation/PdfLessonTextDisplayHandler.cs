@@ -217,6 +217,11 @@ public static class LessonTextDisplayHelper
         {
             var firstName = p.Teacher.PersonName.FirstName;
 
+            if(firstName.A.Full is not null)
+            {
+                Console.WriteLine(p.Teacher.PersonName.LastName);
+            }
+
             if (p.PreferLonger)
             {
                 if (AppendLonger())
