@@ -544,6 +544,19 @@ public static class FirstNameHelper
         return true;
     }
 
+    public static int Count<T>(this FirstNameParts<T> a, Func<T, bool> pred)
+    {
+        int c = 0;
+        foreach (var t in a)
+        {
+            if (pred(t))
+            {
+                c++;
+            }
+        }
+        return c;
+    }
+
     public static int CompareEach<T>(
         FirstNameParts<T> a,
         FirstNameParts<T> b,

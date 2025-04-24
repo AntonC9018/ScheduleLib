@@ -101,26 +101,31 @@ public static class TeacherLookupHelper
 
             bool CheckEquality(FirstNameParts<OptionalFirstNamePart> teacherName)
             {
-                bool isSameNameCount = teacherName.EachEquals(firstName, (a, b) =>
+                var nonEmptyCount = firstName.Count(x => x != Word.Empty);
+
                 {
-                    bool isTeacherEmpty = a.IsNull;
-                    bool isNewEmpty = b == Word.Empty;
-                    return isTeacherEmpty == isNewEmpty;
-                });
-                if (!isSameNameCount)
-                {
-                    return false;
+                    var teacherCount = teacherName.Count(x => !x.IsNull);
+                    if (teacherCount != nonEmptyCount)
+                    {
+                        return false;
+                    }
                 }
 
                 switch (i)
                 {
                     case FirstNameComparison.AllFull:
                     {
+                        var fullNameCount = teacherName.Count(x => x.Full != null);
+                        if (fullNameCount != nonEmptyCount)
+                        {
+                            return false;
+                        }
+
                         return teacherName.EachEquals(firstName, (existingPart, newPart) =>
                         {
                             if (existingPart.Full is not { } full)
                             {
-                                return false;
+                                return true;
                             }
                             if (!IgnoreDiacriticsComparer.Instance.Equals(full, newPart.Value))
                             {
@@ -131,11 +136,17 @@ public static class TeacherLookupHelper
                     }
                     case FirstNameComparison.AllAsShort:
                     {
+                        var shortCount = teacherName.Count(x => x.Short != null);
+                        if (shortCount != nonEmptyCount)
+                        {
+                            return false;
+                        }
+
                         return teacherName.EachEquals(firstName, (existingPart, newPart) =>
                         {
                             if (existingPart.Short is not { } teacherShort)
                             {
-                                return false;
+                                return true;
                             }
                             if (IgnoreDiacriticsComparer.Instance.Equals(
                                     // Ignore the separators as well
@@ -155,9 +166,23 @@ public static class TeacherLookupHelper
                             {
                                 return true;
                             }
+
                             if (existingPart.Full is { } full)
                             {
-                                if (IgnoreDiacriticsComparer.Instance.Equals(full, newPart.Value))
+                                bool matches = false;
+                                if (existingPart.Short is null)
+                                {
+                                    matches = IgnoreDiacriticsComparer.Instance.StartsWith(
+                                        full,
+                                        newPart.Span.Shortened.Value);
+                                }
+                                else if (newPart.LooksFull)
+                                {
+                                    matches = IgnoreDiacriticsComparer.Instance.Equals(
+                                        full,
+                                        newPart.Value);
+                                }
+                                if (matches)
                                 {
                                     return true;
                                 }
@@ -233,20 +258,7 @@ public static class TeacherBuilderHelper
                 Id = new(id),
                 Schedule = s,
             };
-
-            // The first name should be updated.
-            if (name.FirstName.Any(x => x.Full != null))
-            {
-                b.FirstName(name.FirstName);
-            }
-            else
-            {
-                var shortName = name.FirstName.Map(x => new Word(x.Short ?? ""));
-                if (shortName.Any(x => x.Value != ""))
-                {
-                    b.ShortFirstName(shortName);
-                }
-            }
+            b.FirstName(name.FirstName);
 
             return b;
         }
@@ -371,11 +383,21 @@ public readonly struct TeacherBuilder
     public void FirstName(FirstNameParts<OptionalFirstNamePart> newFirstName)
     {
         var firstName = Model.Name.FirstName;
-        // I have no idea if this is right, this needs some tests
-        firstName.Update(newFirstName, (old, new_) => new()
+        firstName.Update(newFirstName, (old, new_) =>
         {
-            Full = new_.Full ?? old.Full,
-            Short = new_.Short ?? old.Short,
+            var full = new_.Full ?? old.Full;
+            var short_ = new_.Short ?? old.Short;
+
+            if (full is not null)
+            {
+                Debug.Assert(new WordSpan(full).LooksFull);
+            }
+
+            return new()
+            {
+                Full = full,
+                Short = short_,
+            };
         });
 
         TeacherNameHelper.MaybeValidateInitialsCompatibility(firstName);
@@ -587,10 +609,12 @@ public static class TeacherNameHelper
             {
                 continue;
             }
+            Debug.Assert(full.Length > 0);
             if (x.Short is not { } short_)
             {
                 continue;
             }
+            Debug.Assert(short_.Length > 0);
             ValidateInitialsCompatibility(new()
             {
                 Full = full,

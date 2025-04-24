@@ -160,6 +160,11 @@ public sealed class TeacherFindIndexOfBestMatchTests
                 Full = "Irst",
                 Short = "I.",
             })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "Rst",
+                Short = null,
+            })),
             Create("Unrelated", CreateSinglePartName(new()
             {
                 Full = "First",
@@ -171,6 +176,9 @@ public sealed class TeacherFindIndexOfBestMatchTests
         Check(CreateSinglePartNameWord("I."), 1);
         Check(CreateSinglePartNameWord("F."), 0);
         Check(CreateSinglePartNameWord("Fi."), 0);
+        Check(CreateSinglePartNameWord("Rs"), -1);
+        Check(CreateSinglePartNameWord("Rst"), 2);
+        Check(CreateSinglePartNameWord("R."), 2);
         Check(CreateSinglePartNameWord("Unrelated"), -1);
         return;
 

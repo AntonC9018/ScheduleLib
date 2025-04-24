@@ -2,6 +2,10 @@ public readonly ref struct WordSpan(ReadOnlySpan<char> v)
 {
     public readonly ReadOnlySpan<char> Value = v;
     public readonly bool LooksFull => Value[^1] != WordHelper.ShortenedWordCharacter;
+
+    /// <summary>
+    /// Excludes the potential period at the end.
+    /// </summary>
     public readonly ShortenedWordSpan Shortened
     {
         get
