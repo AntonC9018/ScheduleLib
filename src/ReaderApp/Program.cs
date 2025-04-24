@@ -48,7 +48,7 @@ context.Schedule.ConfigureRemappings(remap =>
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.AllTeachersExcel;
+var option = Option.CreateLessonsInRegistry;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
@@ -121,7 +121,6 @@ switch (option)
             var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
             var holidaysProvider = new HolidaysProvider(holidaysClient, new()
             {
-                TimeZone = TimeZoneInfo.Local,
                 CountryIsoCode = "MD",
             });
             var wholePeriod = schedule.WholePeriod();

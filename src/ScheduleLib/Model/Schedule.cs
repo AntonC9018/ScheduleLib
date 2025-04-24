@@ -684,7 +684,7 @@ public static class PeriodHelper
 
     public static (DateOnly Start, DateOnly EndExclusive) WholePeriod(this Schedule schedule)
     {
-        var min = DateOnly.MinValue;
+        var min = DateOnly.MaxValue;
         foreach (var period in schedule.Periods)
         {
             if (period.Start < min)

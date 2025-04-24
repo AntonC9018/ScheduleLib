@@ -175,7 +175,8 @@ internal static class HtmlSearch
                     var anchor = children.OfType<IHtmlAnchorElement>().First();
                     var dateTimeText = anchor.Text;
                     var span = dateTimeText.AsSpan();
-                    const string format = "dd.MM.yyyy HH.mm";
+                    span = span.Trim();
+                    const string format = "dd.MM.yyyy HH:mm";
                     bool success = DateTime.TryParseExact(
                         format: format,
                         s: span,

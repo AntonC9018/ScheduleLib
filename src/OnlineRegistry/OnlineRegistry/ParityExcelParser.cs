@@ -1,14 +1,46 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Parsing;
-using Table = DocumentFormat.OpenXml.Spreadsheet.Table;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public record struct StudyWeek(DateOnly MondayDate, bool IsOddWeek);
+public readonly record struct StudyWeek
+{
+    public readonly DateOnly MondayDate;
+    public readonly bool IsOddWeek;
+
+    public StudyWeek(DateOnly monday, bool isOddWeek)
+    {
+        Debug.Assert(monday.DayOfWeek == DayOfWeek.Monday);
+
+        MondayDate = monday;
+        IsOddWeek = isOddWeek;
+    }
+}
+
+// TODO: Move somewhere
+public static class DayHelper
+{
+    public static DateOnly GetDayOfThisWeek(this StudyWeek d, DayOfWeek day)
+    {
+        return GetDayOfWeekFromMonday(d.MondayDate, day);
+    }
+    public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
+    {
+        var monday = d.AddDays(-(int) d.DayOfWeek + (int) DayOfWeek.Monday);
+        return GetDayOfWeekFromMonday(monday, day);
+    }
+
+    private const int weekdayCount = 7;
+    private static DateOnly GetDayOfWeekFromMonday(DateOnly monday, DayOfWeek day)
+    {
+        var offset = (day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
+        var ret = monday.AddDays(offset);
+        return ret;
+    }
+}
 
 public static class ParityExcelParser
 {
@@ -37,11 +69,9 @@ public static class ParityExcelParser
             var weekInterval = Week();
             var isOdd = IsOdd();
             previousWeekEnd = weekInterval.End;
-            yield return new()
-            {
-                MondayDate = weekInterval.Start,
-                IsOddWeek = isOdd,
-            };
+            yield return new(
+                monday: weekInterval.Start,
+                isOddWeek: isOdd);
             continue;
 
             WeekInterval Week()
@@ -163,9 +193,9 @@ public static class ParityExcelParser
             }
         }
 
-        static (Cell Week, Cell Parity) GetDataCells(TableRow dataRow)
+        static (TableCell Week, TableCell Parity) GetDataCells(TableRow dataRow)
         {
-            var cells = dataRow.ChildElements.OfType<Cell>();
+            var cells = dataRow.ChildElements.OfType<TableCell>();
             using var cellsEnumerator = cells.GetEnumerator();
 
             var weekCell = NextCell(cellsEnumerator);
@@ -177,7 +207,7 @@ public static class ParityExcelParser
                 Parity: parityCell);
         }
 
-        static Cell NextCell(IEnumerator<Cell> cells)
+        static TableCell NextCell(IEnumerator<TableCell> cells)
         {
             bool moved = cells.MoveNext();
             if (!moved)
@@ -186,7 +216,7 @@ public static class ParityExcelParser
             }
             return cells.Current;
         }
-        static void NoNextCell(IEnumerator<Cell> cells)
+        static void NoNextCell(IEnumerator<TableCell> cells)
         {
             bool moved = cells.MoveNext();
             if (moved)
@@ -324,6 +354,7 @@ public static class ParityExcelParser
             {
                 throw new NotSupportedException("Month name not recognized");
             }
+            parser.MoveTo(bparser.Position);
             return month;
         }
 

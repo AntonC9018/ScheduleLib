@@ -22,7 +22,9 @@ public struct Parser
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(ParserPosition positionExclusive)
     {
-        return _input.AsSpan()[_index .. positionExclusive.Index];
+        int start = _index;
+        int end = positionExclusive.Index;
+        return _input.AsSpan()[start .. end];
     }
 
     public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => _input.AsSpan()[_index ..];

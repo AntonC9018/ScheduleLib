@@ -177,7 +177,7 @@ public static partial class RegistryScraping
             return LessonType.Unspecified;
         }
         var bparser = parser.BufferedView();
-        _ = parser.SkipNotWhitespace();
+        _ = bparser.SkipNotWhitespace();
         var lessonTypeSpan = parser.PeekSpanUntilPosition(bparser.Position);
         var lessonType = Get(lessonTypeSpan);
         if (lessonType == LessonType.Custom)

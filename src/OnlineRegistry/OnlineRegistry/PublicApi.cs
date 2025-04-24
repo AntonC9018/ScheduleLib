@@ -3,7 +3,6 @@ using static ScheduleLib.UnreachableHelper;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -24,7 +23,7 @@ public enum Session
 internal struct HttpClientDisposable : IDisposable
 {
     public HttpClient Client { get; init; }
-    public HttpClientHandler Handler { get; init; }
+    public HttpMessageHandler Handler { get; init; }
 
     public void Dispose()
     {
@@ -37,7 +36,7 @@ internal struct HttpClientDisposable : IDisposable
 internal readonly struct RegistryScrapingContext : IDisposable
 {
     // Takes ownership of everything.
-    public required HttpClientHandler Handler { get; init; }
+    public required HttpMessageHandler Handler { get; init; }
     public required CookieContainer CookieContainer { get; init; }
     public required HttpClient HttpClient { get; init; }
     public required IBrowsingContext Browser { get; init; }
@@ -76,17 +75,40 @@ internal readonly struct RegistryScrapingContext : IDisposable
 
     internal static HttpClientDisposable CreateHttpClient(CookieContainer cookies)
     {
-        var handler = new HttpClientHandler();
-        handler.CookieContainer = cookies;
-        handler.UseCookies = true;
-        handler.AllowAutoRedirect = false;
-
-        var httpClient = new HttpClient(handler);
-        return new()
+        HttpClientHandler? mainHandler = null;
+        LoggingHandler? loggingHandler = null;
+        try
         {
-            Client = httpClient,
-            Handler = handler,
-        };
+#pragma warning disable CA2000 // Wrong dispose warning.
+            mainHandler = new HttpClientHandler();
+#pragma warning restore CA2000
+            mainHandler.CookieContainer = cookies;
+            mainHandler.UseCookies = true;
+            mainHandler.AllowAutoRedirect = false;
+
+            loggingHandler = new LoggingHandler(mainHandler);
+
+            var handler = loggingHandler;
+
+            var httpClient = new HttpClient(handler);
+            return new()
+            {
+                Client = httpClient,
+                Handler = handler,
+            };
+        }
+        catch
+        {
+            if (loggingHandler is not null)
+            {
+                loggingHandler.Dispose();
+            }
+            else if (mainHandler is not null)
+            {
+                mainHandler.Dispose();
+            }
+            throw;
+        }
     }
 
     public void Dispose()
@@ -253,7 +275,7 @@ public static partial class RegistryScraping
 
                 async Task Create(LessonInstance lessonInstance)
                 {
-                    var doc = await GetHtml(addLessonUri);
+                    var doc = await GetHtml(addLessonUri!);
                     await SendUpdatedForm(doc, lessonInstance);
                 }
 
@@ -264,10 +286,11 @@ public static partial class RegistryScraping
                     await form.SubmitAsync();
                 }
 
-                Task SendUpdatedForm(IDocument doc, LessonInstance lessonInstance)
+                async Task SendUpdatedForm(IDocument doc, LessonInstance lessonInstance)
                 {
                     var lessonDateBox = (IHtmlInputElement) doc.GetElementById("LessonDate")!;
                     lessonDateBox.ValueAsDate = lessonInstance.DateTime;
+                    Debug.Assert(lessonDateBox.Value is not null and not "");
 
                     var lessonTypeBox = (IHtmlSelectElement) doc.GetElementById("LessonMode")!;
                     var lessonType = p.Schedule.Get(lessonInstance.LessonId).Lesson.Type;
@@ -286,8 +309,8 @@ public static partial class RegistryScraping
                         }
                         option.IsSelected = false;
                     }
-                    var ret = lessonDateBox.Form!.SubmitAsync(p.CancellationToken);
-                    return ret;
+                    var form = lessonDateBox.Form!;
+                    await form.SubmitAsync();
                 }
             }
         }
@@ -350,7 +373,7 @@ public static partial class RegistryScraping
                         throw new InvalidOperationException("Failed to use the password to log in once.");
                     }
 
-                    await tokenContext.QueryTokenAndSave(p.CancellationToken);
+                    await tokenContext!.QueryTokenAndSave(p.CancellationToken);
                     failedOnce = true;
                     continue;
                 }
@@ -438,3 +461,38 @@ public readonly struct CommandProcessingConfig
     }
 }
 
+
+file class LoggingHandler : DelegatingHandler
+{
+    public LoggingHandler(HttpMessageHandler innerHandler)
+        : base(innerHandler)
+    {
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        Console.WriteLine("Request:");
+        Console.WriteLine(request.ToString());
+        if (request.Content != null)
+        {
+            var r = await request.Content.ReadAsStringAsync(cancellationToken);
+            Console.WriteLine(r);
+        }
+        Console.WriteLine();
+
+        var response = await base.SendAsync(request, cancellationToken);
+
+        Console.WriteLine("Response:");
+        Console.WriteLine(response.ToString());
+        // if (response.Content != null)
+        // {
+        //     var r = await response.Content.ReadAsStringAsync(cancellationToken);
+        //     Console.WriteLine(r);
+        // }
+        Console.WriteLine();
+
+        return response;
+    }
+}

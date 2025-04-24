@@ -135,8 +135,8 @@ file struct HolidayChecker
             {
                 return false;
             }
-            Debug.Assert(current.Start >= d);
-            if (current.EndExclusive < d)
+            Debug.Assert(current.Start <= d);
+            if (current.EndExclusive > d)
             {
                 return true;
             }
@@ -169,14 +169,5 @@ file struct DayEnumerator
     }
 
     public readonly StudyWeek Week => _weeks[_index];
-    public readonly DateOnly Date
-    {
-        get
-        {
-            const int weekdayCount = 7;
-            var offset = (_day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
-            var ret = Week.MondayDate.AddDays(offset);
-            return ret;
-        }
-    }
+    public readonly DateOnly Date => Week.GetDayOfThisWeek(_day);
 }

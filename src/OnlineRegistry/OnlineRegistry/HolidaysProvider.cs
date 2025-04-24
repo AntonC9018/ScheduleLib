@@ -19,17 +19,21 @@ public sealed class HolidaysProvider
     {
         var response = await _client.SchoolHolidaysAsync(
             countryIsoCode: _config.CountryIsoCode,
-            validFrom: p.From.ToDateTimeOffset(_config.TimeZone),
-            validTo: p.To.ToDateTimeOffset(_config.TimeZone),
+            validFrom: p.From.ToDateTimeOffset(),
+            validTo: p.To.ToDateTimeOffset(),
             languageIsoCode: _config.LanguageIsoCode,
             subdivisionCode: _config.SubdivisionCode);
         var ret = response
             .OrderBy(x => x.StartDate)
             .Select(x =>
             {
+                var end = x.EndDate.ToDateOnly();
+                // It's inclusive in the API (figured it out experimentally)
+                end = end.AddDays(1);
+
                 var ret = new HolidayPeriod(
-                    x.StartDate.ToDateOnly(_config.TimeZone),
-                    x.EndDate.ToDateOnly(_config.TimeZone));
+                    start: x.StartDate.ToDateOnly(),
+                    endExclusive: end);
                 return ret;
             });
         return ret.ToArray();
@@ -39,7 +43,6 @@ public sealed class HolidaysProvider
 public sealed class HolidayConfig
 {
     public required string CountryIsoCode { get; init; }
-    public required TimeZoneInfo TimeZone { get; init; }
     public string? SubdivisionCode { get; init; }
     public string? LanguageIsoCode { get; init; }
 }
@@ -69,22 +72,19 @@ public readonly struct HolidayPeriod
     public readonly DateOnly EndExclusive;
 }
 
-// https://stackoverflow.com/a/76164137/9731532
 file static class DateOnlyExtensions
 {
     public static DateTimeOffset ToDateTimeOffset(
-        this DateOnly dateOnly,
-        TimeZoneInfo zone)
+        this DateOnly dateOnly)
     {
-        var dateTime = dateOnly.ToDateTime(new TimeOnly(0));
-        return new DateTimeOffset(dateTime, zone.GetUtcOffset(dateTime));
+        var dateTime = dateOnly.ToDateTime(time: new TimeOnly(0));
+        return new DateTimeOffset(dateTime, offset: new TimeSpan(0));
     }
 
     public static DateOnly ToDateOnly(
-        this DateTimeOffset dto,
-        TimeZoneInfo zone)
+        this DateTimeOffset dto)
     {
-        var inTargetZone = TimeZoneInfo.ConvertTime(dto, zone);
-        return DateOnly.FromDateTime(inTargetZone.Date);
+        var ret = DateOnly.FromDateTime(dto.Date);
+        return ret;
     }
 }
