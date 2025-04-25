@@ -11,6 +11,7 @@ using AngleSharp.Io;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
+using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace ScheduleLib.OnlineRegistry;
 
@@ -20,10 +21,50 @@ public enum Session
     Ses2,
 }
 
-internal struct HttpClientDisposable : IDisposable
+internal sealed class HttpClientContext : IDisposable
 {
-    public HttpClient Client { get; init; }
-    public HttpMessageHandler Handler { get; init; }
+    public required HttpClient Client { get; init; }
+    public required HttpMessageHandler Handler { get; init; }
+    public required MemoryCookieProvider CookieProvider { get; init; }
+
+    public CookieContainer Cookies => CookieProvider.Container;
+
+    public static HttpClientContext Create()
+    {
+        var cookieProvider = new MemoryCookieProvider();
+        var cookieContainer = cookieProvider.Container;
+
+        HttpClientHandler? mainHandler = null;
+        try
+        {
+#pragma warning disable CA2000 // Wrong dispose warning.
+            mainHandler = new HttpClientHandler();
+            mainHandler.CookieContainer = cookieContainer;
+            mainHandler.UseCookies = true;
+            mainHandler.AllowAutoRedirect = false;
+
+#pragma warning restore CA2000
+
+            var handler = mainHandler;
+
+            var httpClient = new HttpClient(handler);
+            return new()
+            {
+                CookieProvider = cookieProvider,
+                Client = httpClient,
+                Handler = handler,
+            };
+        }
+        catch
+        {
+            if (mainHandler is not null)
+            {
+                mainHandler.Dispose();
+                throw;
+            }
+            throw;
+        }
+    }
 
     public void Dispose()
     {
@@ -36,86 +77,35 @@ internal struct HttpClientDisposable : IDisposable
 internal readonly struct RegistryScrapingContext : IDisposable
 {
     // Takes ownership of everything.
-    public required HttpMessageHandler Handler { get; init; }
-    public required CookieContainer CookieContainer { get; init; }
-    public required HttpClient HttpClient { get; init; }
+    public required HttpClientContext Http { get; init; }
+    public HttpClient HttpClient => Http.Client;
     public required IBrowsingContext Browser { get; init; }
 
-    public static RegistryScrapingContext Create()
+    public static RegistryScrapingContext Create(
+        HttpClientContext http,
+        TokenRetrievalContext tokenContext)
     {
-        var cookieProvider = new MemoryCookieProvider();
-        var cookieContainer = cookieProvider.Container;
+        var config = Configuration.Default;
 
-        HttpClientDisposable d = default;
+        var authHandler = new AuthHandler(tokenContext);
+        var requester = new HttpClientRequester(http.Client, authHandler);
+        config = config.With<IRequester>(_ => requester);
 
-        try
+        config = config.WithDefaultLoader();
+        config = config.With<ICookieProvider>(_ => http.CookieProvider);
+
+        var browsingContext = BrowsingContext.New(config);
+        return new()
         {
-            d = CreateHttpClient(cookieContainer);
-
-            var config = Configuration.Default;
-            config = config.WithDefaultLoader();
-            config = config.With<ICookieProvider>(_ => cookieProvider);
-            config = config.With(d.Client);
-
-            var browsingContext = BrowsingContext.New(config);
-            return new()
-            {
-                Handler = d.Handler,
-                CookieContainer = cookieContainer,
-                HttpClient = d.Client,
-                Browser = browsingContext,
-            };
-        }
-        catch
-        {
-            d.Dispose();
-            throw;
-        }
-    }
-
-    internal static HttpClientDisposable CreateHttpClient(CookieContainer cookies)
-    {
-        HttpClientHandler? mainHandler = null;
-        LoggingHandler? loggingHandler = null;
-        try
-        {
-#pragma warning disable CA2000 // Wrong dispose warning.
-            mainHandler = new HttpClientHandler();
-#pragma warning restore CA2000
-            mainHandler.CookieContainer = cookies;
-            mainHandler.UseCookies = true;
-            mainHandler.AllowAutoRedirect = false;
-
-            loggingHandler = new LoggingHandler(mainHandler);
-
-            var handler = loggingHandler;
-
-            var httpClient = new HttpClient(handler);
-            return new()
-            {
-                Client = httpClient,
-                Handler = handler,
-            };
-        }
-        catch
-        {
-            if (loggingHandler is not null)
-            {
-                loggingHandler.Dispose();
-            }
-            else if (mainHandler is not null)
-            {
-                mainHandler.Dispose();
-            }
-            throw;
-        }
+            Http = http,
+            Browser = browsingContext,
+        };
     }
 
     public void Dispose()
     {
         Browser.Dispose();
-        HttpClient.Dispose();
-        Handler.Dispose();
+        Http.Dispose();
     }
 }
 
@@ -149,17 +139,7 @@ public static partial class RegistryScraping
     {
         p.Names ??= NamesConfig.Default;
 
-        using var context = RegistryScrapingContext.Create();
-        var tokenContext = new TokenRetrievalContext(new()
-        {
-            Credentials = p.Credentials,
-            Names = p.Names,
-            CookieContainer = context.CookieContainer,
-            HttpClient = context.HttpClient,
-            JsonOptions = p.JsonOptions,
-        });
-        await tokenContext.InitializeToken(p.CancellationToken);
-
+        using var context = await CreateContext();
         var lists = new MatchingLists();
 
         var courseLinks = await QueryCourseLinks();
@@ -267,16 +247,40 @@ public static partial class RegistryScraping
                     }
                 }
 
+                // ReSharper disable once AccessToDisposedClosure
                 async Task Update(Uri editUri, LessonInstance lessonInstance)
                 {
-                    var doc = await GetHtml(editUri);
-                    await SendUpdatedForm(doc, lessonInstance);
+                    await CreateOrUpdate1(editUri, lessonInstance);
                 }
 
+                // ReSharper disable once AccessToDisposedClosure
                 async Task Create(LessonInstance lessonInstance)
                 {
-                    var doc = await GetHtml(addLessonUri!);
-                    await SendUpdatedForm(doc, lessonInstance);
+                    await CreateOrUpdate1(addLessonUri!, lessonInstance);
+                }
+
+                async Task CreateOrUpdate(
+                    Uri uri,
+                    LessonInstance lesson,
+                    Schedule schedule,
+                    HttpClient client)
+                {
+                    var doc = await GetHtml(uri);
+                    _ = client;
+                    await SendUpdatedForm(new()
+                    {
+                        // HttpClient = client,
+                        // Target = uri,
+                        Document = doc,
+                        Lesson = lesson,
+                        Schedule = schedule,
+                    });
+                }
+
+                Task CreateOrUpdate1(Uri uri, LessonInstance lesson)
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    return CreateOrUpdate(uri, lesson, p.Schedule, context.HttpClient);
                 }
 
                 async Task Delete(Uri detailsUri)
@@ -286,14 +290,14 @@ public static partial class RegistryScraping
                     await form.SubmitAsync();
                 }
 
-                async Task SendUpdatedForm(IDocument doc, LessonInstance lessonInstance)
+                static async Task SendUpdatedForm(SendUpdatedFormParams p)
                 {
-                    var lessonDateBox = (IHtmlInputElement) doc.GetElementById("LessonDate")!;
-                    lessonDateBox.ValueAsDate = lessonInstance.DateTime;
+                    var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
+                    lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
                     Debug.Assert(lessonDateBox.Value is not null and not "");
 
-                    var lessonTypeBox = (IHtmlSelectElement) doc.GetElementById("LessonMode")!;
-                    var lessonType = p.Schedule.Get(lessonInstance.LessonId).Lesson.Type;
+                    var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
+                    var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
                     var lessonName = GetLessonTypeName(lessonType);
                     foreach (var option in lessonTypeBox.Options)
                     {
@@ -310,7 +314,16 @@ public static partial class RegistryScraping
                         option.IsSelected = false;
                     }
                     var form = lessonDateBox.Form!;
-                    await form.SubmitAsync();
+                    var ret = await form.SubmitAsync();
+                    var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
+                        .SelectMany(x => x.Children)
+                        .SelectMany(x => x.Children)
+                        .Select(x => x.Text())
+                        .ToArray();
+                    if (validationErrors.Length != 0)
+                    {
+                        throw new InvalidOperationException($"Validation errors: {string.Concat("\n", validationErrors)}");
+                    }
                 }
             }
         }
@@ -359,27 +372,31 @@ public static partial class RegistryScraping
         [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
         async Task<IDocument> GetHtml(Uri uri)
         {
-            bool failedOnce = false;
-            while (true)
+            var document = await context.Browser.OpenAsync(address: uri.ToString(), p.CancellationToken);
+            return document;
+        }
+        async Task<RegistryScrapingContext> CreateContext()
+        {
+            var http = HttpClientContext.Create();
+            try
             {
-                using var req = await context.HttpClient.GetAsync(uri, cancellationToken: p.CancellationToken);
-                // if invalid token
-                if (req.StatusCode
-                    is HttpStatusCode.Unauthorized
-                    or HttpStatusCode.Redirect)
+                var tokenContext = new TokenRetrievalContext(new()
                 {
-                    if (failedOnce)
-                    {
-                        throw new InvalidOperationException("Failed to use the password to log in once.");
-                    }
+                    Credentials = p.Credentials,
+                    Names = p.Names,
+                    CookieContainer = http.CookieProvider.Container,
+                    HttpClient = http.Client,
+                    JsonOptions = p.JsonOptions,
+                });
+                await tokenContext.InitializeToken(p.CancellationToken);
 
-                    await tokenContext!.QueryTokenAndSave(p.CancellationToken);
-                    failedOnce = true;
-                    continue;
-                }
-                await using var res = await req.Content.ReadAsStreamAsync(p.CancellationToken);
-                var document = await context.Browser.OpenAsync(r => r.Content(res).Address(uri));
-                return document;
+                var c = RegistryScrapingContext.Create(http, tokenContext);
+                return c;
+            }
+            catch
+            {
+                http.Dispose();
+                throw;
             }
         }
     }
@@ -461,38 +478,158 @@ public readonly struct CommandProcessingConfig
     }
 }
 
-
-file class LoggingHandler : DelegatingHandler
+file struct SendUpdatedFormParams
 {
-    public LoggingHandler(HttpMessageHandler innerHandler)
-        : base(innerHandler)
+    public required IDocument Document { get; init; }
+    public required LessonInstance Lesson { get; init; }
+    // public required HttpClient HttpClient { get; init; }
+    // public required Uri Target { get; init; }
+    public required Schedule Schedule { get; init; }
+}
+
+// Just an abstraction over the token context.
+file sealed class AuthHandler
+{
+    private readonly TokenRetrievalContext _tokenContext;
+
+    public AuthHandler(TokenRetrievalContext tokenContext)
     {
+        _tokenContext = tokenContext;
     }
 
-    protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
+    public Task Authenticate(CancellationToken cancellationToken)
+    {
+        return _tokenContext.QueryTokenAndSave(cancellationToken: cancellationToken);
+    }
+}
+
+file sealed class HttpClientRequester : BaseRequester
+{
+    private readonly HttpClient _httpClient;
+    private readonly AuthHandler _authHandler;
+
+    public HttpClientRequester(
+        HttpClient client,
+        AuthHandler authHandler)
+    {
+        _httpClient = client;
+        _authHandler = authHandler;
+    }
+
+    public override bool SupportsProtocol(string protocol) => true;
+
+    protected override async Task<IResponse?> PerformRequestAsync(Request request, CancellationToken cancel)
+    {
+        bool failedOnce = false;
+        while (true)
+        {
+            using var httpRequest = ToHttpRequest(request);
+            var httpResponse = await _httpClient.SendAsync(
+                request: httpRequest,
+                completionOption: HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken: cancel);
+
+            bool ShouldAuthenticate()
+            {
+                if (httpResponse.StatusCode is HttpStatusCode.Unauthorized)
+                {
+                    return true;
+                }
+                if (httpRequest.Method == HttpMethod.Get
+                    && httpResponse.StatusCode == HttpStatusCode.Redirect)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            // if invalid token
+            if (ShouldAuthenticate())
+            {
+                if (failedOnce)
+                {
+                    throw new InvalidOperationException("Failed to use the password to log in once.");
+                }
+
+                await _authHandler.Authenticate(cancel);
+                failedOnce = true;
+                continue;
+            }
+
+            var response = await ToResponse(request.Address, httpResponse, cancel);
+            return response;
+        }
+    }
+
+    private static HttpRequestMessage ToHttpRequest(Request request)
+    {
+        var method = request.Method switch
+        {
+            AngleSharp.Io.HttpMethod.Get => System.Net.Http.HttpMethod.Get,
+            AngleSharp.Io.HttpMethod.Post => System.Net.Http.HttpMethod.Post,
+            AngleSharp.Io.HttpMethod.Put => System.Net.Http.HttpMethod.Put,
+            AngleSharp.Io.HttpMethod.Delete => System.Net.Http.HttpMethod.Delete,
+            AngleSharp.Io.HttpMethod.Options => System.Net.Http.HttpMethod.Options,
+            AngleSharp.Io.HttpMethod.Head => System.Net.Http.HttpMethod.Head,
+            AngleSharp.Io.HttpMethod.Trace => System.Net.Http.HttpMethod.Trace,
+            AngleSharp.Io.HttpMethod.Connect => System.Net.Http.HttpMethod.Connect,
+            _ => throw new ArgumentOutOfRangeException(nameof(request.Method)),
+        };
+
+        var ret = new HttpRequestMessage(
+            method: method,
+            requestUri: new Uri(request.Address.ToString()));
+        try
+        {
+            if (request.Content != null)
+            {
+                ret.Content = new StreamContent(request.Content);
+            }
+
+            foreach (var header in request.Headers)
+            {
+                bool added = ret.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                if (added)
+                {
+                    continue;
+                }
+
+                if (ret.Content is { } c)
+                {
+                    bool addedToContent = c.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    Debug.Assert(addedToContent);
+                    continue;
+                }
+
+                Debug.Fail("Some header ignored");
+            }
+        }
+        catch
+        {
+            ret.Dispose();
+        }
+        return ret;
+    }
+
+    private static async Task<DefaultResponse> ToResponse(
+        Url requestUrl,
+        HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine("Request:");
-        Console.WriteLine(request.ToString());
-        if (request.Content != null)
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var ret = new DefaultResponse();
+        try
         {
-            var r = await request.Content.ReadAsStringAsync(cancellationToken);
-            Console.WriteLine(r);
+            ret.Address = requestUrl;
+            ret.Content = stream;
+            ret.Headers = response.Headers.ToDictionary(x => x.Key, x => string.Join(", ", x.Value));
+            ret.StatusCode = response.StatusCode;
         }
-        Console.WriteLine();
-
-        var response = await base.SendAsync(request, cancellationToken);
-
-        Console.WriteLine("Response:");
-        Console.WriteLine(response.ToString());
-        // if (response.Content != null)
-        // {
-        //     var r = await response.Content.ReadAsStringAsync(cancellationToken);
-        //     Console.WriteLine(r);
-        // }
-        Console.WriteLine();
-
-        return response;
+        catch
+        {
+            ((IDisposable) ret).Dispose();
+            throw;
+        }
+        return ret;
     }
 }

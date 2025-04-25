@@ -8,12 +8,11 @@ public sealed class TokenTests
     [Fact]
     public async Task TokenGeneratedOnLogIn()
     {
-        var cookies = new CookieContainer();
         var credentials = CredentialsHelper.GetCredentials(Assembly.GetExecutingAssembly());
-        using var http = RegistryScrapingContext.CreateHttpClient(cookies);
+        using var http = HttpClientContext.Create();
         var context = new TokenRetrievalContext(new()
         {
-            CookieContainer = cookies,
+            CookieContainer = http.Cookies,
             Credentials = credentials,
             HttpClient = http.Client,
         });
