@@ -31,6 +31,13 @@ public class BitArray
     }
 
     [Fact]
+    public void GetUnsetEmpty()
+    {
+        var bitArray = BitArray32.AllSet(0);
+        Assert.Equal(-1, bitArray.GetUnsetAfter(-1));
+    }
+
+    [Fact]
     public void SetIndicesLowToHigh()
     {
         var bitArray = BitArray32.Empty(8);

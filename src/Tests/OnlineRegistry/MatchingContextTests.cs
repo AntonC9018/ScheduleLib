@@ -7,7 +7,7 @@ public sealed class MatchingContextTests
     private static DateTime DT3 => new(2025, 1, 3);
     private static DateTime DT4 => new(2025, 1, 4);
     private static DateTime DT5 => new(2025, 1, 5);
-    private static DateTime DT6 => new(2025, 1, 5);
+    private static DateTime DT6 => new(2025, 1, 6);
 
     [Fact]
     public void BasicCombinationsTest()
@@ -39,7 +39,9 @@ public sealed class MatchingContextTests
         lists.AddExisting(DT6);
 
         var context = lists.CreateContext();
-        context.UseUpMatch(new(1, 2));
+        context.UseUpMatch(new(
+            AllIndex: 1,
+            ExistingIndex: 2));
 
         var e = context.IteratePotentialMappings().GetEnumerator();
         e.CheckNext(DT1, DT4);
@@ -78,6 +80,30 @@ public sealed class MatchingContextTests
             e.CheckNext(DT2, DT6);
             e.CheckLast();
         }
+    }
+
+    [Fact]
+    public void EmptyAllWorks()
+    {
+        var lists = new MatchingLists();
+        lists.AddExisting(DT1);
+
+        var context = lists.CreateContext();
+
+        var e = context.IteratePotentialMappings().GetEnumerator();
+        e.CheckLast();
+    }
+
+    [Fact]
+    public void EmptyExistingWorks()
+    {
+        var lists = new MatchingLists();
+        lists.AddAll(DT1);
+
+        var context = lists.CreateContext();
+
+        var e = context.IteratePotentialMappings().GetEnumerator();
+        e.CheckLast();
     }
 }
 

@@ -35,6 +35,7 @@ internal sealed class HttpClientContext : IDisposable
         var cookieContainer = cookieProvider.Container;
 
         HttpClientHandler? mainHandler = null;
+        DelayHandler? delayHandler = null;
         try
         {
 #pragma warning disable CA2000 // Wrong dispose warning.
@@ -43,9 +44,15 @@ internal sealed class HttpClientContext : IDisposable
             mainHandler.UseCookies = true;
             mainHandler.AllowAutoRedirect = false;
 
+            // It blocks the IP-address if there are too many requests.
+            // It would only be possible to guess the limit via trial and error.
+            delayHandler = new DelayHandler(
+                mainHandler,
+                TimeSpan.FromSeconds(0.5f));
+
 #pragma warning restore CA2000
 
-            var handler = mainHandler;
+            var handler = delayHandler;
 
             var httpClient = new HttpClient(handler);
             return new()
@@ -57,6 +64,11 @@ internal sealed class HttpClientContext : IDisposable
         }
         catch
         {
+            if (delayHandler is not null)
+            {
+                delayHandler.Dispose();
+                throw;
+            }
             if (mainHandler is not null)
             {
                 mainHandler.Dispose();
@@ -500,6 +512,27 @@ file sealed class AuthHandler
     public Task Authenticate(CancellationToken cancellationToken)
     {
         return _tokenContext.QueryTokenAndSave(cancellationToken: cancellationToken);
+    }
+}
+
+file sealed class DelayHandler : DelegatingHandler
+{
+    private readonly TimeSpan _delay;
+
+    public DelayHandler(
+        HttpMessageHandler innerHandler,
+        TimeSpan delay)
+        : base(innerHandler)
+    {
+        _delay = delay;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(_delay, cancellationToken);
+        return await base.SendAsync(request, cancellationToken);
     }
 }
 

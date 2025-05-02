@@ -68,6 +68,10 @@ public record struct BitArray32
 
     public readonly int GetUnsetAfter(int index)
     {
+        if (_length == 0)
+        {
+            return -1;
+        }
         Debug.Assert(index < _length);
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1);
         var allMask = GetMask(_length);
@@ -179,7 +183,14 @@ public record struct BitArray32
 
     private static uint GetMask(int length)
     {
-        return ~default(uint) >> (sizeof(uint) * 8 - length);
+        // Shifting by 32 does nothing (or maybe it's UB?)
+        if (length == 0)
+        {
+            return 0;
+        }
+
+        int shift = sizeof(uint) * 8 - length;
+        return ~default(uint) >> shift;
     }
 
     public static BitArray32 Empty(int length)
