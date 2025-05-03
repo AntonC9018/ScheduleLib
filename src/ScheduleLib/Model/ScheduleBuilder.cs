@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Builders;
@@ -66,6 +64,7 @@ public static partial class ScheduleBuilderHelper
                 },
                 Lesson = new()
                 {
+                    Period = x.General.Period,
                     Groups = x.Group.Groups,
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
@@ -80,31 +79,40 @@ public static partial class ScheduleBuilderHelper
         var groups = s.Groups.Build();
         var teachers = s.Teachers.Build(x =>
         {
-            Word ShortFirstName()
-            {
-                if (x.Name.ShortFirstName is { } shortf)
-                {
-                    return shortf;
-                }
-                if (x.Name.FirstName is { } fullf)
-                {
-                    return new Word($"{fullf[0]}.");
-                }
-                return Word.Empty;
-            }
             var ret = new Teacher
             {
                 Contacts = x.Contacts,
                 PersonName = new()
                 {
-                    FirstName = x.Name.FirstName,
+                    FirstName = x.Name.FirstName.Map(x1 => x1 with
+                    {
+                        Short = ShortFirstName(x1),
+                    }),
                     LastName = x.Name.LastName!,
-                    ShortFirstName = ShortFirstName(),
                 },
             };
             return ret;
+
+            static string? ShortFirstName(OptionalFirstNamePart x)
+            {
+                if (x.Short is { } shortf)
+                {
+                    return shortf;
+                }
+                if (x.Full is { } fullf)
+                {
+                    return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
+                }
+                return null;
+            }
         });
         var courses = s.Courses.Build();
+
+        var periods = s.Periods.Build(x =>
+        {
+            var ret = new Period(x.Start, x.EndExclusive);
+            return ret;
+        });
 
         return new Schedule
         {
@@ -113,6 +121,7 @@ public static partial class ScheduleBuilderHelper
             Groups = groups,
             Teachers = teachers,
             Courses = courses,
+            Periods = periods,
         };
     }
 
@@ -121,6 +130,7 @@ public static partial class ScheduleBuilderHelper
         GroupBuilderHelper.ValidateGroups(s);
         LessonBuilderHelper.ValidateLessons(s);
         TeacherBuilderHelper.ValidateTeachers(s);
+        PeriodBuilderHelper.ValidatePeriods(s);
     }
 
     public static CourseId Course(this ScheduleBuilder s, params string[] names)

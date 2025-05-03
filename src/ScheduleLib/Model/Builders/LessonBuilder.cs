@@ -28,6 +28,7 @@ public record struct RegularLessonModelDiffMask()
         Day,
         TimeSlot,
         Parity,
+        Period,
         Count,
     }
 
@@ -98,6 +99,12 @@ public record struct RegularLessonModelDiffMask()
         set => Bits.Set((int) BitIndex.Parity, value);
     }
 
+    public bool Period
+    {
+        get => Bits.IsSet((int) BitIndex.Period);
+        set => Bits.Set((int) BitIndex.Period, value);
+    }
+
     public RegularLessonModelDiffMask Intersect(RegularLessonModelDiffMask mask)
     {
         return new()
@@ -128,6 +135,7 @@ public struct RegularLessonBuilderModelData()
         public List<TeacherId> Teachers = new();
         public RoomId Room;
         public LessonType Type = LessonType.Unspecified;
+        public PeriodId Period = PeriodId.Unspecified;
     }
 }
 
@@ -178,26 +186,15 @@ public sealed class RegularLessonBuilder : ILessonBuilder
 
         if (prevCourseId is { } p)
         {
-            lookupModule.LessonsByCourse[p.Id].Remove(Id);
+            lookupModule.LessonsByCourse[p.Id].Remove(new(Id));
         }
         if (Model.General.Course is { } p1)
         {
-            lookupModule.LessonsByCourse[p1.Id].Add(Id);
+            lookupModule.LessonsByCourse[p1.Id].Add(new(Id));
         }
     }
 
-    public void InitLookup()
-    {
-        if (Schedule.LookupModule is not { } lookupModule)
-        {
-            return;
-        }
-
-        if (Model.General.Course is { } p1)
-        {
-            lookupModule.LessonsByCourse[p1.Id].Add(Id);
-        }
-    }
+    public void InitLookup() => UpdateLookup(prevCourseId: null);
 }
 
 // Allows to specify defaults.
@@ -275,24 +272,9 @@ public static class LessonBuilderHelper
         b1.UpdateLookup(prev);
     }
 
-    public static void Add<T>(this ILessonBuilder b, T id) where T : struct
+    public static void Period(this ILessonBuilder b, PeriodId period)
     {
-        if (typeof(T) == typeof(TeacherId))
-        {
-            b.Teacher((TeacherId) (object) id);
-            return;
-        }
-        if (typeof(T) == typeof(RoomId))
-        {
-            b.Room((RoomId) (object) id);
-            return;
-        }
-        if (typeof(T) == typeof(CourseId))
-        {
-            b.Course((CourseId) (object) id);
-            return;
-        }
-        throw new ArgumentException("Invalid type");
+        b.Model.General.Period = period;
     }
 
     public static void ValidateLessons(ScheduleBuilder s)
@@ -518,6 +500,13 @@ public static class LessonBuilderHelper
                 ret.Parity = true;
             }
         }
+        if (whatToDiff.Period)
+        {
+            if (a.General.Period != b.General.Period)
+            {
+                ret.Period = true;
+            }
+        }
 
         return ret;
     }
@@ -636,6 +625,13 @@ public static class LessonBuilderHelper
             if (a.Date.Parity != b.Date.Parity)
             {
                 ret.Parity = true;
+            }
+        }
+        if (whatToDiff.Period)
+        {
+            if (a.Lesson.Period != b.Lesson.Period)
+            {
+                ret.Period = true;
             }
         }
 

@@ -16,7 +16,7 @@ public sealed class GroupNameParser
     public void RegularWithSpace()
     {
         var res = Parse("PMS 2401");
-        Assert.Equal(1, res.Grade);
+        Assert.Equal(1, res.Grade.Value);
         Assert.Equal(Language.Ro, res.Language);
         Assert.Equal("PMS2401", res.Name);
 
@@ -30,7 +30,7 @@ public sealed class GroupNameParser
     public void MasterWithLanguageWithSpace()
     {
         var res = Parse("MIA 2402 (ru)");
-        Assert.Equal(1, res.Grade);
+        Assert.Equal(1, res.Grade.Value);
         Assert.Equal(Language.Ru, res.Language);
         Assert.Equal("MIA2402", res.Name);
         Assert.True(res.QualificationType == QualificationType.Master);
@@ -40,7 +40,7 @@ public sealed class GroupNameParser
     public void RegularNoSpace()
     {
         var res = Parse("DJ2401");
-        Assert.Equal(1, res.Grade);
+        Assert.Equal(1, res.Grade.Value);
         Assert.Equal(Language.Ro, res.Language);
         Assert.Equal("DJ2401", res.Name);
         Assert.True(res.QualificationType == QualificationType.Licenta);

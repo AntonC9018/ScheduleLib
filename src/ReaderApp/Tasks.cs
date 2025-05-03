@@ -1,29 +1,31 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Net;
+using System.Reflection;
+using System.Security;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Web;
-using AngleSharp;
-using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Configuration;
+using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using ReaderApp.ExcelBuilder;
+using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
-using ScheduleLib.Parsing.CourseName;
-using IDocument = AngleSharp.Dom.IDocument;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.WordDoc;
+using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
+using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
+using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
+using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
+using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
 namespace ReaderApp;
 
-public struct GeneratePdfForGroupsAndTeachersParams
+public struct GeneratePdfForGroupsAndTeachersParams()
 {
     public required PdfLessonTextDisplayHandler.Services LessonTextDisplayServices;
     public required LessonTimeConfig LessonTimeConfig;
@@ -33,7 +35,7 @@ public struct GeneratePdfForGroupsAndTeachersParams
     public required string OutputPath;
 }
 
-public struct AllTeacherExcelParams
+public struct AllTeacherExcelParams()
 {
     public required string OutputFilePath;
     public required DayNameProvider DayNameProvider;
@@ -42,8 +44,15 @@ public struct AllTeacherExcelParams
     public required LessonTypeDisplayHandler LessonTypeDisplay;
     public required ParityDisplayHandler ParityDisplay;
     public required TimeSlotDisplayHandler TimeSlotDisplay;
-    public required Schedule Schedule;
+    public required FilteredSchedule Schedule;
     public required LessonTimeConfig TimeConfig;
+}
+
+
+public struct ParseStudyWeekWordDocParams
+{
+    public required string InputPath;
+    public required HolidayPeriod[] Holidays;
 }
 
 public static class Tasks
@@ -92,12 +101,22 @@ public static class Tasks
                 int teacherId1 = teacherId;
 
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
-                if (!teacherName.ShortFirstName.Span.Value.IsEmpty)
+                var nameBuilder = new ListStringBuilder(sb, '_');
+
+                var firstNameBuilder = new ListStringBuilder(sb, TeacherConstants.DoubleNameSeparator);
+                foreach (var fname in teacherName.FirstName)
                 {
-                    sb.Append(teacherName.ShortFirstName.Span.Shortened.Value);
-                    sb.Append('_');
+                    if (fname.Short is not { } s)
+                    {
+                        break;
+                    }
+
+                    var w = new Word(s);
+
+                    firstNameBuilder.Append(w.Span.Shortened.Value);
                 }
-                sb.Append(teacherName.LastName);
+
+                nameBuilder.Append(teacherName.LastName);
                 sb.Append(".pdf");
 
                 var fileName = sb.ToStringAndClear();
@@ -122,7 +141,15 @@ public static class Tasks
             PdfLessonTextDisplayHandler textDisplayHandler,
             in ScheduleFilter filter)
         {
-            var filteredSchedule = p.Schedule.Filter(filter);
+            var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
+            var filteredSchedule = p.Schedule.Filter(filter with
+            {
+                PeriodFilter = new()
+                {
+                    PeriodId = periodId,
+                    UnspecifiedIsAll = true,
+                },
+            });
             if (filteredSchedule.IsEmpty)
             {
                 return;
@@ -146,6 +173,14 @@ public static class Tasks
     {
         using var stream = File.Open(p.OutputFilePath, FileMode.Create, FileAccess.ReadWrite);
         using var excel = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, autoSave: true);
+
+        var teachers = p.Schedule.Teachers
+            .OrderBy(id =>
+            {
+                var teacher = p.Schedule.Source.Get(id);
+                return teacher.PersonName;
+            }, PersonNameLastFirstAlphabeticComparer.Instance)
+            .ToArray();
 
         var workbookPart = excel.AddWorkbookPart();
         var workbook = new Workbook();
@@ -244,7 +279,7 @@ public static class Tasks
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + p.Schedule.Teachers.Length),
+                Max = (uint)(3 + teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };
@@ -296,13 +331,13 @@ public static class Tasks
             }
 
             var sb = p.StringBuilder;
-            for (int i = 0; i < p.Schedule.Teachers.Length; i++)
+            foreach (var id in teachers)
             {
                 LessonTextDisplayHelper.AppendTeacherName(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Teacher = p.Schedule.Teachers[i],
+                    Teacher = p.Schedule.Source.Get(id),
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -316,7 +351,7 @@ public static class Tasks
         void Body()
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-                p.Schedule.RegularLessons,
+                p.Schedule.Lessons,
                 l => l.Lesson.Teachers);
             int timeSlotCount = p.TimeConfig.TimeSlotCount;
 
@@ -366,7 +401,7 @@ public static class Tasks
 
                     bool isSeminarDate = day == p.SeminarDate.Day && timeSlot == p.SeminarDate.TimeSlot;
 
-                    for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
+                    foreach (var teacherId in teachers)
                     {
                         var cell = cells.NextCell();
 
@@ -382,7 +417,7 @@ public static class Tasks
 
                         cell.SetStyle(styles.Lesson.Get(option));
 
-                        var cellKey = rowKey.CellKey(new TeacherId(teacherId));
+                        var cellKey = rowKey.CellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
                         {
                             continue;
@@ -651,7 +686,7 @@ public static class Tasks
 
             void AppendCourse(ListStringBuilder b, RegularLesson lesson)
             {
-                var course = p.Schedule.Get(lesson.Lesson.Course);
+                var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
             bool WillAppendLessonTypeName(RegularLesson lesson)
@@ -694,7 +729,7 @@ public static class Tasks
 
                 // b.MaybeAppendSeparator();
 
-                var group = p.Schedule.Get(groups.Group0);
+                var group = p.Schedule.Source.Get(groups.Group0);
                 // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 
@@ -921,376 +956,177 @@ public static class Tasks
         };
     }
 
-    public struct AddLessonsToOnlineRegistryParams()
+    public static ManualAllScheduledDateProvider CreateDateProviderFromWeekParityExcel(
+        ParseStudyWeekWordDocParams p)
     {
-        public required CancellationToken CancellationToken;
-        /// <summary>
-        /// Will be initialized from the default source if not provided.
-        /// </summary>
-        public Credentials? Credentials = null;
-        /// <summary>
-        /// Will be initialized to the default config if not provided.
-        /// </summary>
-        public JsonSerializerOptions? JsonOptions;
-        /// <summary>
-        /// Will be initialized to the default values if not provided.
-        /// </summary>
-        public NamesConfig Names = default;
-
-        public required Session Session;
-        public required FilteredSchedule Schedule;
-        public required ILogger Logger;
-        public required CourseFinder CourseFinder;
+        using var stream = File.OpenRead(p.InputPath);
+        using var word = WordprocessingDocument.Open(stream, isEditable: false);
+        var studyWeeks = ParityExcelParser.Parse(word).ToArray();
+        var ret = new ManualAllScheduledDateProvider(
+            studyWeeks: studyWeeks,
+            holidays: p.Holidays);
+        return ret;
     }
 
-    public sealed class CourseFinder
+    public static Credentials GetCredentials(bool allowUserInput)
     {
-        public required CourseNameUnifierModule Impl { get; init; }
-        public required LookupModule LookupModule { get; init; }
-
-        public CourseId? Find(string name)
+        var ret = CredentialsHelper.MaybeGetCredentials(typeof(Program).Assembly);
+        if (ret != null)
         {
-            var ret = Impl.Find(new()
-            {
-                Lookup = LookupModule,
-                CourseName = name,
-                ParseOptions = new()
-                {
-                    IgnorePunctuation = true,
-                },
-            });
             return ret;
         }
-    }
-
-    public interface ILogger
-    {
-        void CourseNotFound(string courseName);
-        void LessonWithoutName();
-    }
-
-    public struct NamesConfigSource()
-    {
-        public string TokensFile = "tokens.json";
-        public string TokenCookieName = "ForDecanat";
-        public string RegistryBaseUrl = "http://crd.usm.md/studregistry/";
-        public string RegistryLoginPath = "Account/Login";
-        public string LessonsPath = "LessonAttendance";
-
-        public readonly NamesConfig Build()
-        {
-            var reg = new Uri(RegistryBaseUrl);
-            var login = new Uri(reg, RegistryLoginPath);
-            var lessons = new Uri(reg, LessonsPath);
-            return new()
-            {
-                TokensFile = TokensFile,
-                TokenCookieName = TokenCookieName,
-                LoginUrl = login,
-                LessonsUrl = lessons,
-            };
-        }
-    }
-
-    public struct NamesConfig
-    {
-        public static readonly NamesConfig Default = new NamesConfigSource().Build();
-
-        public required string TokensFile;
-        public required string TokenCookieName;
-        public required Uri LoginUrl;
-        public required Uri LessonsUrl;
-
-        public readonly bool IsInitialized => LoginUrl != null;
-    }
-
-    public static JsonSerializerOptions DefaultJsonOptions = new()
-    {
-        IndentSize = 4,
-        WriteIndented = true,
-    };
-
-    public static async Task AddLessonsToOnlineRegistry(AddLessonsToOnlineRegistryParams p)
-    {
-        p.Credentials ??= GetCredentials();
-        if (!p.Names.IsInitialized)
-        {
-            p.Names = NamesConfig.Default;
-        }
-
-        var cookieContainer = new CookieContainer();
-
-        using var handler = new HttpClientHandler();
-        handler.CookieContainer = cookieContainer;
-        handler.UseCookies = true;
-        handler.AllowAutoRedirect = false;
-
-        using var httpClient = new HttpClient(handler);
-        await InitializeToken();
-
-        var config = Configuration.Default;
-        using var browsingContext = BrowsingContext.New(config);
-
-        var courseLinksE = await QueryCourseLinks();
-        var courseLinks = courseLinksE.ToArray();
-
-        return;
-
-        async Task<IEnumerable<CourseLink>> QueryCourseLinks()
-        {
-            var doc = await GetHtml(p.Names.LessonsUrl);
-
-            string SemString()
-            {
-                return p.Session switch
-                {
-                    Session.Ses1 => "1",
-                    Session.Ses2 => "2",
-                    _ => throw new InvalidOperationException("??"),
-                };
-            }
-            var ret = Ret();
-            return ret;
-
-            IEnumerable<CourseLink> Ret()
-            {
-                var anchors = doc.QuerySelectorAll($"#nav-{SemString()} > div > span:nth-child(2) > a");
-                foreach (var el in anchors)
-                {
-                    var anchor = (IHtmlAnchorElement) el;
-                    var url = anchor.Href;
-                    var courseName = anchor.Text;
-                    if (courseName.Length == 0)
-                    {
-                        p.Logger.LessonWithoutName();
-                        continue;
-                    }
-                    if (p.CourseFinder.Find(courseName) is not { } courseId)
-                    {
-                        p.Logger.CourseNotFound(courseName);
-                        continue;
-                    }
-                    yield return new(courseId, url);
-                }
-            }
-        }
-
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-        async Task<IDocument> GetHtml(Uri uri)
-        {
-            bool failedOnce = false;
-            while (true)
-            {
-                using var req = await httpClient.GetAsync(uri, cancellationToken: p.CancellationToken);
-                // if invalid token
-                if (req.StatusCode
-                    is HttpStatusCode.Unauthorized
-                    or HttpStatusCode.Redirect)
-                {
-                    if (failedOnce)
-                    {
-                        throw new InvalidOperationException("Failed to use the password to log in once.");
-                    }
-
-                    await QueryTokenAndSave();
-                    failedOnce = true;
-                    continue;
-                }
-                await using var res = await req.Content.ReadAsStreamAsync(p.CancellationToken);
-                var document = await browsingContext.OpenAsync(r => r.Content(res));
-                return document;
-            }
-        }
-
-        async Task InitializeToken()
-        {
-            if (await MaybeSetCookieFromFile())
-            {
-                return;
-            }
-            await QueryTokenAndSave();
-        }
-
-        async Task<bool> MaybeSetCookieFromFile()
-        {
-            var token = await LoadToken();
-            if (token is null)
-            {
-                return false;
-            }
-            if (token.Expired)
-            {
-                return false;
-            }
-            cookieContainer.Add(p.Names.LoginUrl, token);
-            return true;
-        }
-
-        async ValueTask<Cookie?> LoadToken()
-        {
-            if (!File.Exists(p.Names.TokensFile))
-            {
-                return null;
-            }
-
-            await using var stream = File.OpenRead(p.Names.TokensFile);
-            if (stream.Length == 0)
-            {
-                return null;
-            }
-
-            JsonDocument cookies;
-            try
-            {
-                cookies = await JsonDocument.ParseAsync(
-                    stream,
-                    cancellationToken: p.CancellationToken);
-                if (cookies == null)
-                {
-                    return null;
-                }
-            }
-            catch (JsonException)
-            {
-                stream.Close();
-                File.Delete(p.Names.TokensFile);
-                return null;
-            }
-
-            using var cookies_ = cookies;
-
-            var root = cookies.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return null;
-            }
-            if (!root.TryGetProperty(p.Credentials.Login, out var token))
-            {
-                return null;
-            }
-
-            try
-            {
-                var cookie = token.Deserialize<TokenCookieModel>();
-                if (cookie is null)
-                {
-                    return null;
-                }
-                return cookie.ToObject(p.Names.TokenCookieName);
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-        async Task QueryTokenAndSave()
-        {
-            var success = await LogIn(httpClient);
-            if (!success)
-            {
-                throw new InvalidOperationException("Login failed.");
-            }
-
-            var cookies = cookieContainer.GetCookies(p.Names.LoginUrl);
-            if (cookies[p.Names.TokenCookieName] is not { } token)
-            {
-                throw new InvalidOperationException("Token cookie not found.");
-            }
-
-            await using var stream = File.Open(p.Names.TokensFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-            if (await TryUpdateExisting())
-            {
-                return;
-            }
-            await CreateNew();
-            return;
-
-            async ValueTask<bool> TryUpdateExisting()
-            {
-                if (stream.Length == 0)
-                {
-                    return false;
-                }
-
-                var document = await JsonNode.ParseAsync(
-                    stream,
-                    cancellationToken: p.CancellationToken);
-                if (document is not JsonObject)
-                {
-                    return false;
-                }
-
-                var tokenModel = TokenCookieModel.FromObject(token);
-                document[p.Credentials.Login] = JsonSerializer.SerializeToNode(tokenModel);
-
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    document,
-                    cancellationToken: p.CancellationToken);
-                return true;
-            }
-
-            async Task<bool> CreateNew()
-            {
-                var root = new JsonObject();
-                return await Save(root);
-            }
-
-            async Task<bool> Save(JsonObject root)
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-                root[p.Credentials.Login] = JsonSerializer.SerializeToNode(token);
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    root,
-                    options: p.JsonOptions ?? DefaultJsonOptions,
-                    cancellationToken: p.CancellationToken);
-                return true;
-            }
-        }
-
-        async Task<bool> LogIn(HttpClient client)
-        {
-            Uri uri;
-            {
-                var b = new UriBuilder(p.Names.LoginUrl);
-                b.Port = -1;
-                var parameters = HttpUtility.ParseQueryString("");
-                parameters.Add("UserLogin", p.Credentials.Login);
-                parameters.Add("UserPassword", p.Credentials.Password);
-                b.Query = parameters.ToString();
-                uri = b.Uri;
-            }
-
-            var response = await client.PostAsync(
-                uri,
-                content: null,
-                cancellationToken: p.CancellationToken);
-            bool success = response.StatusCode == HttpStatusCode.Redirect;
-            return success;
-        }
-    }
-
-    public static Credentials GetCredentials()
-    {
-        var b = new ConfigurationBuilder();
-        b.AddUserSecrets<Program>();
-        var config = b.Build();
-        var ret = config.GetRequiredSection("Registry").Get<Credentials>();
-        if (ret == null)
+        if (!allowUserInput)
         {
             throw new InvalidOperationException("Credentials not found.");
         }
-        if (ret.Login == null)
+
+        Console.WriteLine("No 'Registry' key specified in user secrets.");
+        Console.WriteLine("https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-9.0&tabs=windows#secret-manager");
+        Console.WriteLine("You may input it manually for this session only:");
+
+        Console.Write("Login: ");
+        var login = Console.ReadLine() ?? throw new InvalidOperationException();
+
+        Console.Write("Password: ");
+        using var password = ReadPassword();
+
+        ret = new()
         {
-            throw new InvalidOperationException("Login not found.");
-        }
-        if (ret.Password == null)
+            Login = login,
+            Password = password.ToString() ?? throw UnreachableHelper.Unreachable(),
+        };
+        return ret;
+    }
+
+    private static SecureString ReadPassword()
+    {
+        var pwd = new SecureString();
+        while (true)
         {
-            throw new InvalidOperationException("Password not found.");
+            ConsoleKeyInfo i = Console.ReadKey(intercept: true);
+            if (i.Key == ConsoleKey.Enter)
+            {
+                break;
+            }
+
+            if (i.Key == ConsoleKey.Backspace)
+            {
+                if (pwd.Length == 0)
+                {
+                    continue;
+                }
+
+                pwd.RemoveAt(pwd.Length - 1);
+                Console.Write("\b \b");
+                continue;
+            }
+
+            // the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+            if (i.KeyChar != '\u0000')
+            {
+                pwd.AppendChar(i.KeyChar);
+                Console.Write("*");
+                continue;
+            }
         }
+        return pwd;
+    }
+
+    public static void OptionallyEnrichContextWithTeacherFullNames(
+        ScheduleBuilder schedule,
+        string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
+        {
+            AutoSave = false,
+            CompatibilityLevel = CompatibilityLevel.Version_2_20,
+        });
+
+        ExcelTeacherListParser.AddTeachersFromExcel(new()
+        {
+            Excel = excel,
+            Schedule = schedule,
+        });
+    }
+
+    public static void ParseDocumentDirIntoSchedule(
+        DocParseContext context,
+        string dirName)
+    {
+        ParseDirectoryToSchedule(context, dirName);
+
+        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
+            .Select(x =>
+            {
+                var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
+                Debug.Assert(lastSegmentStart != -1);
+                lastSegmentStart += 1;
+
+                var lastSegment = x.AsSpan()[lastSegmentStart ..];
+
+                if (!DateOnly.TryParseExact(
+                        lastSegment,
+                        format: "dd.MM.yy",
+                        provider: null,
+                        style: DateTimeStyles.None,
+                        result: out var startDate))
+                {
+                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
+                }
+                return (SubDirPath: x, StartDate: startDate);
+            })
+            .OrderBy(x => x.StartDate);
+
+        foreach (var t in subdirs)
+        {
+            ParseDirectoryToSchedule(context, t.SubDirPath, new()
+            {
+                StartDate = t.StartDate,
+            });
+        }
+        return;
+
+        static void ParseDirectoryToSchedule(
+            DocParseContext context,
+            string dirName,
+            PeriodBeginning? period = null)
+        {
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
+            {
+                using var document = WordprocessingDocument.Open(filePath, isEditable: false);
+                WordScheduleParser.ParseToSchedule(new()
+                {
+                    Period = period,
+                    Context = context,
+                    Document = document,
+                });
+            }
+        }
+    }
+
+    // ReSharper disable once UnusedMember.Global
+    public static async Task<HolidayPeriod[]> GetHolidayPeriodsFromApi(
+        Schedule schedule,
+        CancellationToken cancellationToken)
+    {
+        using var holidaysHttpClient = new HttpClient();
+        var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
+        var holidaysProvider = new HolidaysProvider(holidaysClient, new()
+        {
+            CountryIsoCode = "MD",
+        });
+        var wholePeriod = schedule.WholePeriod();
+        var ret = await holidaysProvider.GetHolidayPeriods(new()
+        {
+            From = wholePeriod.Start,
+            To = wholePeriod.EndExclusive,
+            CancellationToken = cancellationToken,
+        });
         return ret;
     }
 }
@@ -1302,41 +1138,32 @@ public enum Option
     CreateLessonsInRegistry,
 }
 
-public sealed class Credentials
+file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 {
-    public required string Login { get; set; }
-    public required string Password { get; set; }
-}
+    public static readonly PersonNameLastFirstAlphabeticComparer Instance = new();
 
-public sealed class TokenCookieModel
-{
-    public required string Value { get; set; }
-    public DateTime? Expires { get; set; }
-
-    public Cookie ToObject(string name)
+    public int Compare(PersonName x, PersonName y)
     {
-        var ret = new Cookie(name, Value);
-        if (Expires.HasValue)
         {
-            ret.Expires = Expires.Value;
+            var t = IgnoreDiacriticsComparer.Instance.Compare(x.LastName, y.LastName);
+            if (t != 0)
+            {
+                return t;
+            }
         }
+        var ret = FirstNameHelper.CompareEach(
+            x.FirstName,
+            y.FirstName,
+            Comparer.Instance);
         return ret;
     }
 
-    public static TokenCookieModel FromObject(Cookie cookie)
+    private sealed class Comparer : IComparer<OptionalFirstNamePart>
     {
-        return new()
+        public static readonly Comparer Instance = new();
+        public int Compare(OptionalFirstNamePart x, OptionalFirstNamePart y)
         {
-            Value = cookie.Value,
-            Expires = cookie.Expires,
-        };
+            return IgnoreDiacriticsComparer.Instance.Compare(x.Longer, y.Longer);
+        }
     }
 }
-
-public enum Session
-{
-    Ses1,
-    Ses2,
-}
-
-public readonly record struct CourseLink(CourseId CourseId, string Url);

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using QuestPDF.Fluent;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Generation;
 
@@ -214,6 +215,7 @@ public static class LessonTextDisplayHelper
         }
         WhichFirstName AppendFirstName()
         {
+            var firstName = p.Teacher.PersonName.FirstName;
             if (p.PreferLonger)
             {
                 if (AppendLonger())
@@ -240,24 +242,59 @@ public static class LessonTextDisplayHelper
 
             bool AppendLonger()
             {
-                if (p.Teacher.PersonName.FirstName is { } firstName)
+                if (firstName.A.Full is not { } a)
                 {
-                    AppendSpaceMaybe();
-                    p.Output.Append(firstName);
-                    return true;
+                    return false;
                 }
-                return false;
+
+                if (firstName.B.Full is null
+                    && firstName.B.Short is not null)
+                {
+                    return false;
+                }
+
+                AppendSpaceMaybe();
+
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
+                list.Append(a);
+
+                if (firstName.B.Full is { } b)
+                {
+                    list.Append(b);
+                }
+
+                return true;
             }
             bool AppendShorter()
             {
-                var shortName = p.Teacher.PersonName.ShortFirstName;
-                if (shortName != Word.Empty)
+                if (firstName.A.Short is not { } a)
                 {
-                    AppendSpaceMaybe();
-                    p.Output.Append(shortName.Span.Value);
+                    return false;
+                }
+
+                AppendSpaceMaybe();
+
+                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
+
+                {
+                    var word = new WordSpan(a);
+                    if (firstName.B.Short is not null)
+                    {
+                        // Skip the .
+                        list.Append(word.Shortened.Value);
+                    }
+                    else
+                    {
+                        list.Append(word.Value);
+                    }
+                }
+
+                if (firstName.B.Short is not { } b)
+                {
                     return true;
                 }
-                return false;
+                list.Append(b);
+                return true;
             }
         }
 

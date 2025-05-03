@@ -20,21 +20,29 @@ public struct Parser
         return Math.Min(remaining, desiredSize);
     }
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
-    public readonly ReadOnlySpan<char> PeekSpanUntilPosition(int positionExclusive) => _input.AsSpan()[_index .. positionExclusive];
+    public readonly ReadOnlySpan<char> PeekSpanUntilPosition(ParserPosition positionExclusive)
+    {
+        int start = _index;
+        int end = positionExclusive.Index;
+        return _input.AsSpan()[start .. end];
+    }
+
     public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => _input.AsSpan()[_index ..];
     public readonly char Current => _input[_index];
     public void Move(int x = 1) => _index += x;
-    public void MoveTo(int position)
+    public void MoveTo(ParserPosition position)
     {
-        Debug.Assert(_index <= position);
-        _index = position;
+        Debug.Assert(_index <= position.Index);
+        _index = position.Index;
     }
-    public void MovePast(int position)
+    public void MovePast(ParserPosition position)
     {
-        _index = Math.Min(_input.Length, position + 1);
+        _index = Math.Min(_input.Length, position.Index + 1);
     }
 
-    public readonly int Position => _index;
+    // Abstraction for the sake of type safety.
+    // Specifically, to prevent `PeekSpanUntilPosition(other.Current)` from compiling.
+    public readonly ParserPosition Position => new(_index);
 
     // Conceptually doesn't consume when moving, it just moves the window.
     // Currently just return a copy, because we only have a string impl and
@@ -42,6 +50,8 @@ public struct Parser
     public readonly Parser BufferedView() => this;
     public readonly override string ToString() => _input[_index ..];
 }
+
+public record struct ParserPosition(int Index);
 
 public interface IShouldSkip
 {
@@ -259,6 +269,15 @@ public static class ParserHelper
         return parser.Skip(new SkipUntilImpl(chars));
     }
 
+    private ref struct SkipLettersImpl : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => char.IsLetter(ch);
+    }
+    public static SkipResult SkipLetters(this ref Parser parser)
+    {
+        return parser.Skip(new SkipLettersImpl());
+    }
+
     public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
     {
         if (!parser.CanPeekCount(length))
@@ -337,9 +356,17 @@ public static class ParserHelper
     {
         Debug.Assert(ReferenceEquals(a.Source, b.Source));
 
-        int start = a.Position;
-        int end = b.Position;
-        return a.Source.AsMemory(start .. end);
+        var start = a.Position;
+        var end = b.Position;
+        return a.Source.AsMemory(start.Index .. end.Index);
+    }
+
+    public static ReadOnlyMemory<char> PeekSource(this Parser a, int count)
+    {
+        Debug.Assert(a.CanPeekCount(count));
+        var end = a.Position.Index + count;
+        var ret = a.Source.AsMemory(a.Position.Index .. end);
+        return ret;
     }
 
     public static bool ConsumeExactString(

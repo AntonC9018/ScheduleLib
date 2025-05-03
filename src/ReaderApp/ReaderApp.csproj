@@ -2,12 +2,14 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0-windows</TargetFramework>
-        <UserSecretsId>53030f74-39eb-4fe2-82cb-55a1c50bbc54</UserSecretsId>
+        <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
+
+    <Import Project="$(RootPath)build\UserSecrets.props" />
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
     </ItemGroup>
 
     <ItemGroup>

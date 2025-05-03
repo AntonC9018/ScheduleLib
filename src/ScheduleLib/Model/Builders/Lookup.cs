@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Builders;
 
@@ -9,9 +10,9 @@ public partial class ScheduleBuilder
     public LookupModule? LookupModule = null;
 }
 
-public sealed class LessonsByCourseMap : List<List<int>>
+public sealed class LessonsByCourseMap : List<List<RegularLessonId>>
 {
-    public List<int> this[CourseId courseId] => this[courseId.Id];
+    public List<RegularLessonId> this[CourseId courseId] => this[courseId.Id];
 }
 
 public sealed class LookupModule()
@@ -59,7 +60,48 @@ public struct LookupFacade(ScheduleBuilder s)
         {
             return null;
         }
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, new(firstName));
+
+        // TODO: Name separator constant.
+        var firstNameParts = default(FirstNameParts<Word>);
+        {
+            var firstNameSpan = firstName.AsSpan();
+            var splitName = firstNameSpan.Split(TeacherConstants.DoubleNameSeparator);
+            var firstNameE = firstNameParts.AsRef().GetEnumerator();
+
+            foreach (var partRange in splitName)
+            {
+                var span = firstNameSpan[partRange];
+                if (span.Length == 0)
+                {
+                    continue;
+                }
+                span = span.Trim();
+                if (span.Length == 0)
+                {
+                    throw new ArgumentException(
+                        message: "Don't use double dashes in the names, only use single dashes",
+                        paramName: nameof(firstName));
+                }
+
+                bool nextNamePartOk = firstNameE.MoveNext();
+                if (!nextNamePartOk)
+                {
+                    throw new ArgumentException(
+                        message: "Too many name parts",
+                        paramName: nameof(firstName));
+                }
+
+                var part = span.ToString();
+                firstNameE.Current = new(part);
+            }
+
+            while (firstNameE.MoveNext())
+            {
+                firstNameE.Current = Word.Empty;
+            }
+        }
+
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
         return new(ids[i]);
     }
 
@@ -170,11 +212,12 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(i);
+                list.Add(new(i));
             }
         }
     }
 
+    [DebuggerStepThrough]
     public static LookupFacade Lookup(this ScheduleBuilder s)
     {
         s.EnableLookupModule();
