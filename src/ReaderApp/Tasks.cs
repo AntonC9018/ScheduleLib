@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Configuration;
+using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using ReaderApp.ExcelBuilder;
@@ -1106,6 +1107,27 @@ public static class Tasks
                 });
             }
         }
+    }
+
+    // ReSharper disable once UnusedMember.Global
+    public static async Task<HolidayPeriod[]> GetHolidayPeriodsFromApi(
+        Schedule schedule,
+        CancellationToken cancellationToken)
+    {
+        using var holidaysHttpClient = new HttpClient();
+        var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
+        var holidaysProvider = new HolidaysProvider(holidaysClient, new()
+        {
+            CountryIsoCode = "MD",
+        });
+        var wholePeriod = schedule.WholePeriod();
+        var ret = await holidaysProvider.GetHolidayPeriods(new()
+        {
+            From = wholePeriod.Start,
+            To = wholePeriod.EndExclusive,
+            CancellationToken = cancellationToken,
+        });
+        return ret;
     }
 }
 

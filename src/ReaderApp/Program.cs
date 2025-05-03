@@ -116,21 +116,8 @@ switch (option)
     case Option.CreateLessonsInRegistry:
     {
         HolidayPeriod[] holidayPeriods;
-        {
-            using var holidaysHttpClient = new HttpClient();
-            var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
-            var holidaysProvider = new HolidaysProvider(holidaysClient, new()
-            {
-                CountryIsoCode = "MD",
-            });
-            var wholePeriod = schedule.WholePeriod();
-            holidayPeriods = await holidaysProvider.GetHolidayPeriods(new()
-            {
-                From = wholePeriod.Start,
-                To = wholePeriod.EndExclusive,
-                CancellationToken = cancellationToken,
-            });
-        }
+        // TODO: Get this from "calendar academic"
+        holidayPeriods = [];
 
         var dateProvider = Tasks.CreateDateProviderFromWeekParityExcel(new()
         {
