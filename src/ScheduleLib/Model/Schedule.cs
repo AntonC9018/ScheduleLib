@@ -299,8 +299,16 @@ public enum LessonType
     Custom,
 }
 
-public readonly record struct SubGroup(string? Value)
+public readonly record struct SubGroup
 {
+    public readonly string? Value { get; }
+
+    public SubGroup(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
     public static SubGroup All => new(null!);
 }
 
