@@ -6,6 +6,8 @@ using System.Web;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.Graph;
+using ScheduleLib;
+using ScheduleLib.Parsing;
 using Process = System.Diagnostics.Process;
 
 var cancellationToken = CancellationToken.None;
@@ -64,39 +66,264 @@ HttpProvider CreateHttp()
 var graphClient = new GraphServiceClient(credential, httpProvider: httpProvider);
 {
 }
-var sharedWithMeBuilder = graphClient.Me.Drive.SharedWithMe();
-var sharedItemsResponse = await sharedWithMeBuilder
+var rootFolderRef = await GetRootFolder();
+var children = await graphClient
+    .Drives[rootFolderRef.DriveId]
+    .Items[rootFolderRef.Id]
+    .Children
     .Request()
-    .Select("remoteItem")
-    .GetAsync(cancellationToken: cancellationToken);
-// sharedItems.Where(x => x.Name == "Curricula per program studii")
-var curriculaIds = sharedItemsResponse
-    .Select(x => x.RemoteItem)
-    .Where(x =>
+    .Select("name,id")
+    .GetAsync(cancellationToken);
+var childrenWithKeys = children
+    .Select(child =>
     {
-        const string path = "/Curricula DI anul universitar 2024-2025/Curricula per program studii";
-        _ = path;
+        var name = child.Name;
+        var parser = new Parser(name);
+        var qual = Qualification(ref parser);
+        parser.SkipWhitespace();
+        var code = Code(ref parser);
+        parser.SkipWhitespace();
 
-        var url = HttpUtility.UrlDecode(x.WebUrl);
-
-        if (!url.EndsWith(path))
+        ParserPosition lastSegmentPos = default;
+        ParserPosition spacePos = default;
+        bool hadSpaces = false;
         {
-            return false;
-        }
-        // The filter odata thing seems bugged
-        if (x.Shared.SharedBy.User.Id != "titu.capcelea@usm.md")
-        {
-            return false;
+            var bparser = parser.BufferedView();
+            while (true)
+            {
+                var r = bparser.SkipNotWhitespace();
+                if (r.EndOfInput)
+                {
+                    break;
+                }
+                hadSpaces = true;
+                spacePos = bparser.Position;
+                bparser.SkipWhitespace();
+                lastSegmentPos = bparser.Position;
+            }
         }
 
-        return true;
+        var attendanceModes = AttendanceModeFlags.None;
+
+        // process last segment
+        if (hadSpaces)
+        {
+            var lastSegmentParser = parser.BufferedView();
+            lastSegmentParser.MoveTo(lastSegmentPos);
+            var lastSegment = lastSegmentParser.SourceUntilEnd();
+            attendanceModes = AttendanceModes(lastSegment.Span);
+        }
+
+        ReadOnlyMemory<char> nameSegment;
+        {
+            var nameParser = parser.BufferedView();
+            if (attendanceModes == AttendanceModeFlags.None)
+            {
+                nameSegment = nameParser.SourceUntilEnd();
+            }
+            else
+            {
+                nameSegment = nameParser.SourceUntilExclusive(spacePos);
+            }
+        }
+
+        return (
+            Key: new CurriculumGroupKey
+            {
+                Code = code.ToString(),
+                Name = nameSegment.ToString(),
+                AttendanceModes = attendanceModes,
+                QualificationType = qual,
+            },
+            Value: child);
+
+        static AttendanceModeFlags AttendanceModes(ReadOnlySpan<char> lastSpan)
+        {
+            var ret = AttendanceModeFlags.None;
+            int itemCount = 0;
+            bool hasUnparsedItem = false;
+            foreach (var x in lastSpan.Split('+'))
+            {
+                var segment = lastSpan[x];
+                if (segment.Length == 0)
+                {
+                    continue;
+                }
+
+                itemCount++;
+
+                var maybeMode = GetMode(segment);
+                if (maybeMode is not { } mode)
+                {
+                    if (hasUnparsedItem)
+                    {
+                        break;
+                    }
+                    hasUnparsedItem = true;
+                    continue;
+                }
+
+
+                var flag = (AttendanceModeFlags) (1 << (int) mode);
+                if ((ret & flag) == flag)
+                {
+                    throw new NotSupportedException("The same attendance mode specified a second time");
+                }
+                ret |= flag;
+                continue;
+
+                static AttendanceMode? GetMode(ReadOnlySpan<char> s)
+                {
+                    if (s.SequenceEqual("zi"))
+                    {
+                        return AttendanceMode.Zi;
+                    }
+                    if (s.SequenceEqual("fr"))
+                    {
+                        return AttendanceMode.FrecventaRedusa;
+                    }
+                    return null;
+                }
+            }
+
+            if (hasUnparsedItem && itemCount > 1)
+            {
+                throw new NotSupportedException("'+' in the last segment without it parsing");
+            }
+
+            return ret;
+        }
     })
-    .Select(x =>
-    {
-        return x.Id;
-    })
-    .Single();
+    .ToArray();
+
 return;
+
+
+static ReadOnlyMemory<char> Code(ref Parser parser)
+{
+    var bparser = parser.BufferedView();
+
+    var skipResult = bparser.SkipNumbers();
+    if (!skipResult.SkippedAny)
+    {
+        throw new NotSupportedException("Expected code");
+    }
+    if (skipResult.EndOfInput)
+    {
+        throw new NotSupportedException("Expected '.' after first part of code");
+    }
+    if (bparser.Current == '.')
+    {
+        bparser.Move();
+
+        var secondPartSkipResult = bparser.SkipNumbers();
+        if (!secondPartSkipResult.SkippedAny)
+        {
+            throw new NotSupportedException("Expected number after '.'");
+        }
+    }
+
+    var ret = parser.SourceUntilExclusive(bparser);
+    parser.MoveTo(bparser.Position);
+    return ret;
+}
+
+static QualificationType Qualification(ref Parser parser)
+{
+    var bparser = parser.BufferedView();
+    if (!bparser.SkipLetters().SkippedAny)
+    {
+        return QualificationType.Licenta;
+    }
+
+    var s = parser.PeekSpanUntilPosition(bparser.Position);
+    parser.MoveTo(bparser.Position);
+
+    if (IgnoreDiacriticsComparer.Instance.Equals(s, "master"))
+    {
+        return QualificationType.Master;
+    }
+
+    throw new NotSupportedException("Unknown qualification");
+}
+
+async Task<ItemRef> GetRootFolder()
+{
+    var result = await graphClient
+        .Users["titu.capcelea@usm.md"]
+        .Drive
+        .Root
+        .ItemWithPath("Curricula DI anul universitar 2024-2025/Curricula per program studii")
+        .Request()
+        .Select("folder,parentReference,id")
+        .GetAsync(cancellationToken: cancellationToken);
+    var folder = result.Folder;
+    var itemId = result.Id;
+    var driveId = result.ParentReference.DriveId;
+    if (folder is null)
+    {
+        throw new InvalidOperationException("Folder null");
+    }
+
+    return new()
+    {
+        Id = itemId,
+        DriveId = driveId,
+    };
+}
+
+#pragma warning disable CS8321 // Local function is declared but never used
+async Task<string> FindItemId()
+#pragma warning restore CS8321 // Local function is declared but never used
+{
+    var sharedWithMeBuilder = graphClient.Me.Drive.SharedWithMe();
+    var sharedItemsResponse = await sharedWithMeBuilder
+        .Request()
+        .Select("remoteItem")
+        .GetAsync(cancellationToken: cancellationToken);
+// sharedItems.Where(x => x.Name == "Curricula per program studii")
+    var curriculaId = sharedItemsResponse
+        .Select(x => x.RemoteItem)
+        .Where(x =>
+        {
+            const string path = "/Curricula DI anul universitar 2024-2025/Curricula per program studii";
+            _ = path;
+
+            var url = HttpUtility.UrlDecode(x.WebUrl);
+
+            if (!url.EndsWith(path))
+            {
+                return false;
+            }
+            // The filter odata thing seems bugged
+            if (x.Shared.SharedBy.User.Id != "titu.capcelea@usm.md")
+            {
+                return false;
+            }
+
+            return true;
+        })
+        .Select(x =>
+        {
+            return x.Id;
+        })
+        .Single();
+    return curriculaId;
+}
+
+public sealed class CurriculumGroupKey
+{
+    public required QualificationType QualificationType { get; init; }
+    public required AttendanceModeFlags AttendanceModes { get; init; }
+    public required string Code { get; init; }
+    public required string Name { get; init; }
+}
+
+public sealed class ItemRef
+{
+    public required string Id { get; init; }
+    public required string DriveId { get; init; }
+}
 
 public sealed class MicrosoftAuthConfig
 {

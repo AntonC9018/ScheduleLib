@@ -352,13 +352,24 @@ public static class ParserHelper
         }
     }
 
+    public static ReadOnlyMemory<char> SourceUntilEnd(this Parser p)
+    {
+        var ret = p.Source.AsMemory(p.Position.Index);
+        return ret;
+    }
+
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, ParserPosition end)
+    {
+        var start = a.Position;
+        return a.Source.AsMemory(start.Index .. end.Index);
+    }
+
     public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
     {
         Debug.Assert(ReferenceEquals(a.Source, b.Source));
 
-        var start = a.Position;
         var end = b.Position;
-        return a.Source.AsMemory(start.Index .. end.Index);
+        return a.SourceUntilExclusive(end);
     }
 
     public static ReadOnlyMemory<char> PeekSource(this Parser a, int count)

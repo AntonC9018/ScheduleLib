@@ -353,6 +353,14 @@ public enum AttendanceMode
     FrecventaRedusa,
 }
 
+[Flags]
+public enum AttendanceModeFlags
+{
+    None,
+    Zi = 1 << AttendanceMode.Zi,
+    FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
+}
+
 public sealed class Group
 {
     /// <summary>
