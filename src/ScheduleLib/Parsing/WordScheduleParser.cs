@@ -954,7 +954,7 @@ public static class WordScheduleParser
                 var parser = new Parser(paragraphs.Current.InnerText);
                 parser.SkipWhitespace();
                 var bparser = parser.BufferedView();
-                var skipped = bparser.SkipUntil(['–', '-', '—']);
+                var skipped = bparser.SkipUntilAny(['–', '-', '—']);
                 if (skipped.EndOfInput)
                 {
                     throw new NotSupportedException("Expected interval separator");

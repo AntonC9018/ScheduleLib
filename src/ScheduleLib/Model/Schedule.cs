@@ -361,6 +361,14 @@ public enum AttendanceModeFlags
     FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
 }
 
+public static class AttendanceModeFlagsHelper
+{
+    public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
+    {
+        return (flags & (AttendanceModeFlags) mode) != 0;
+    }
+}
+
 public sealed class Group
 {
     /// <summary>

@@ -262,7 +262,7 @@ public static class ParserHelper
         public SkipUntilImpl(ReadOnlySpan<char> chars) => _chars = chars;
         public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
-    public static SkipResult SkipUntil(
+    public static SkipResult SkipUntilAny(
         this ref Parser parser,
         ReadOnlySpan<char> chars)
     {

@@ -130,7 +130,7 @@ public static partial class RegistryScraping
 
             parser.Move();
             var bparser = parser.BufferedView();
-            var skipResult = bparser.SkipUntil([')']);
+            var skipResult = bparser.SkipUntilAny([')']);
             if (skipResult.EndOfInput)
             {
                 JustThrow("subgroup number");

@@ -260,7 +260,7 @@ public static class LessonParsingHelper
 
                     while (true)
                     {
-                        var resultClosing = bparserTemp.SkipUntil([')']);
+                        var resultClosing = bparserTemp.SkipUntilAny([')']);
                         if (resultClosing.EndOfInput)
                         {
                             WrongFormatException.ThrowUnclosedParenInLessonName();
@@ -462,7 +462,7 @@ public static class LessonParsingHelper
                 }
 
                 var bparser = c.Parser.BufferedView();
-                bparser.SkipUntil([':']);
+                bparser.SkipUntilAny([':']);
                 if (!IsSubGroup(ref bparser))
                 {
                     if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
@@ -655,7 +655,7 @@ public static class LessonParsingHelper
                     }
 
                     {
-                        var skipResult = bparser.SkipUntil(['.']);
+                        var skipResult = bparser.SkipUntilAny(['.']);
                         if (skipResult.EndOfInput)
                         {
                             WrongFormatException.ThrowInvalidDoubleName();
@@ -678,7 +678,7 @@ public static class LessonParsingHelper
             case ParsingStep.TeacherLastName:
             {
                 var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.SkipUntil([' ', ',', '(']);
+                var skipResult = bparser.SkipUntilAny([' ', ',', '(']);
                 if (!skipResult.SkippedAny)
                 {
                     // Only the first name?
@@ -786,7 +786,7 @@ public static class LessonParsingHelper
 
     private static void SkipParenListItem(ref Parser p)
     {
-        var skipped = p.SkipUntil([',', ')']);
+        var skipped = p.SkipUntilAny([',', ')']);
         if (!skipped.SkippedAny || skipped.EndOfInput)
         {
             // expected non-empty parens

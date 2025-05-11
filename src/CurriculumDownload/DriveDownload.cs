@@ -53,7 +53,7 @@ public static class CurriculaDownloadTasks
         GraphServiceClient graphClient,
         CancellationToken cancellationToken)
     {
-        var rootDir = Path.GetFullPath("curricula");
+        var rootDir = Path.GetFullPath(CurriculumDirectoryHelper.DefaultRootDirName);
         if (!Directory.Exists(rootDir))
         {
             Directory.CreateDirectory(rootDir);

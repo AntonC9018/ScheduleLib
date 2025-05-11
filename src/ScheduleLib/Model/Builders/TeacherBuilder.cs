@@ -22,8 +22,21 @@ public readonly struct TeachersByLastName()
 {
     private readonly Dictionary<string, TeacherIdList> _dict = new(IgnoreDiacriticsComparer.Instance);
 
-    public TeacherIdList? Get(string lastName) => _dict.GetValueOrDefault(lastName);
-    public TeacherIdList AddOrGet(string lastName) => _dict.GetOrAdd(lastName, _ => new());
+    public TeacherIdList? Get(ReadOnlySpan<char> lastName)
+    {
+        var l = _dict.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (l.TryGetValue(lastName, out var val))
+        {
+            return val;
+        }
+        return null;
+    }
+
+    public TeacherIdList AddOrGet(ReadOnlySpan<char> lastName)
+    {
+        return _dict.GetOrAdd(lastName, _ => new());
+    }
+
     public void Clear() => _dict.Clear();
 }
 
@@ -485,7 +498,7 @@ public static class TeacherNameHelper
         var bparser = parser.BufferedView();
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
-        var result = bparser.SkipUntil(Separators());
+        var result = bparser.SkipUntilAny(Separators());
         if (!result.SkippedAny)
         {
             return ret;
@@ -546,7 +559,7 @@ public static class TeacherNameHelper
 
             parser.MoveTo(bparser.Position);
 
-            var skipResult = bparser.SkipUntil(Separators());
+            var skipResult = bparser.SkipUntilAny(Separators());
             if (skipResult.EndOfInput)
             {
                 break;
@@ -566,7 +579,7 @@ public static class TeacherNameHelper
         }
 
         parser.MoveTo(bparser.Position);
-        bparser.SkipUntil(Separators());
+        bparser.SkipUntilAny(Separators());
 
         {
             var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);

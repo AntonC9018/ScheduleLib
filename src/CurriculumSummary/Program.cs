@@ -8,5 +8,3 @@ await CurriculaDownloadTasks.PullCurriculaToDisk(
     cancellationToken: cancellationToken);
 
 return;
-
-
