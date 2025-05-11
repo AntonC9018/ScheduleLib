@@ -968,9 +968,11 @@ public static class Tasks
         return ret;
     }
 
-    public static Credentials GetCredentials(bool allowUserInput)
+    public static Credentials GetRegistryCredentials(
+        IConfiguration configuration,
+        bool allowUserInput)
     {
-        var ret = CredentialsHelper.MaybeGetCredentials(typeof(Program).Assembly);
+        var ret = configuration.MaybeGetCredentials();
         if (ret != null)
         {
             return ret;
@@ -1136,6 +1138,7 @@ public enum Option
     AllTeachersExcel,
     PerGroupAndPerTeacherPdfs,
     CreateLessonsInRegistry,
+    PullCurriculaFromOneDrive,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>

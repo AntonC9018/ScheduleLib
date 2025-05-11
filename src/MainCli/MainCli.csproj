@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net9.0-windows</TargetFramework>
+        <RootNamespace>ReaderApp</RootNamespace>
     </PropertyGroup>
 
     <Import Project="$(RootPath)build\UserSecrets.props" />
@@ -10,6 +11,8 @@
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
         <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\CurriculumDownload\CurriculumDownload.csproj" />
+        <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -7,12 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="TextCopy" Version="6.2.1" />
-        <PackageReference Include="Microsoft.Identity.Web" Version="3.8.4" />
-        <PackageReference Include="Microsoft.Graph" Version="4.54.0" />
+        <ProjectReference Include="..\CurriculumDownload\CurriculumDownload.csproj" />
     </ItemGroup>
 </Project>

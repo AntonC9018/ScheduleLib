@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using ScheduleLib.Curriculum.Download;
+using Microsoft.Extensions.Configuration;
 using OpenHolidays;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
@@ -52,6 +54,14 @@ var option = Option.CreateLessonsInRegistry;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
+
+IConfiguration config;
+{
+    var builder = new ConfigurationBuilder();
+    builder.AddUserSecrets<Program>();
+    config = builder.Build();
+}
+
 
 switch (option)
 {
@@ -124,7 +134,9 @@ switch (option)
             InputPath = @"data\Paritate.docx",
             Holidays = holidayPeriods,
         });
-        var credentials = Tasks.GetCredentials(allowUserInput: true);
+        var credentials = Tasks.GetRegistryCredentials(
+            config,
+            allowUserInput: true);
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
@@ -140,6 +152,14 @@ switch (option)
             ProcessingFlags = CommandProcessingConfig.Process
                 .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
         });
+        break;
+    }
+
+    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+    case Option.PullCurriculaFromOneDrive:
+    {
+        var c = config.GetMicrosoftGraphAuth();
+        await CurriculaDownloadTasks.PullCurriculaToDisk(c, cancellationToken);
         break;
     }
 }

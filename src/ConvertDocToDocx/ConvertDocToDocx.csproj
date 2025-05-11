@@ -3,7 +3,6 @@
         <TargetFramework>net4.8</TargetFramework>
         <OutputType>Exe</OutputType>
         <LangVersion>11</LangVersion>
-        <RootNamespace>CurriculumSummary</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

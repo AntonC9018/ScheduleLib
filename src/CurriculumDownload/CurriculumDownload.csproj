@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net9.0-windows</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TextCopy" Version="6.2.1" />
+        <PackageReference Include="Microsoft.Identity.Web" Version="3.8.4" />
+        <PackageReference Include="Microsoft.Graph" Version="4.54.0" />
+    </ItemGroup>
+</Project>
