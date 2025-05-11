@@ -5,9 +5,12 @@ using System.Text.Json;
 using System.Web;
 using Azure.Core;
 using Azure.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 using ScheduleLib;
 using ScheduleLib.Parsing;
+using Directory = System.IO.Directory;
+using File = System.IO.File;
 using Process = System.Diagnostics.Process;
 
 var cancellationToken = CancellationToken.None;
@@ -66,138 +69,235 @@ HttpProvider CreateHttp()
 var graphClient = new GraphServiceClient(credential, httpProvider: httpProvider);
 {
 }
+var rootDir = Path.GetFullPath("curricula");
+if (!Directory.Exists(rootDir))
+{
+    Directory.CreateDirectory(rootDir);
+}
+
 var rootFolderRef = await GetRootFolder();
-var children = await graphClient
-    .Drives[rootFolderRef.DriveId]
-    .Items[rootFolderRef.Id]
-    .Children
-    .Request()
-    .Select("name,id")
-    .GetAsync(cancellationToken);
-var childrenWithKeys = children
-    .Select(child =>
+var childrenWithKeys = await ChildrenWithKeys();
+
+foreach (var curriculumRef in childrenWithKeys)
+{
+    var directory = Path.Combine(rootDir, curriculumRef.Name);
+    Directory.CreateDirectory(directory);
+
+    var children = await graphClient
+        .Drives[rootFolderRef.DriveId]
+        .Items[curriculumRef.Id]
+        .Children
+        .Request()
+        .Select("name,id")
+        .GetAsync(cancellationToken);
+    foreach (var file in children)
     {
-        var name = child.Name;
-        var parser = new Parser(name);
-        var qual = Qualification(ref parser);
-        parser.SkipWhitespace();
-        var code = Code(ref parser);
-        parser.SkipWhitespace();
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
+        var filePath = Path.Combine(directory, file.Name);
 
-        ParserPosition lastSegmentPos = default;
-        ParserPosition spacePos = default;
-        bool hadSpaces = false;
+        var convertedFilePath = Path.Combine(directory, nameWithoutExtension + ".docx");
+        if (File.Exists(convertedFilePath))
         {
-            var bparser = parser.BufferedView();
-            while (true)
-            {
-                var r = bparser.SkipNotWhitespace();
-                if (r.EndOfInput)
-                {
-                    break;
-                }
-                hadSpaces = true;
-                spacePos = bparser.Position;
-                bparser.SkipWhitespace();
-                lastSegmentPos = bparser.Position;
-            }
+            continue;
         }
 
-        var attendanceModes = AttendanceModeFlags.None;
-
-        // process last segment
-        if (hadSpaces)
         {
-            var lastSegmentParser = parser.BufferedView();
-            lastSegmentParser.MoveTo(lastSegmentPos);
-            var lastSegment = lastSegmentParser.SourceUntilEnd();
-            attendanceModes = AttendanceModes(lastSegment.Span);
+            var fileStream = await graphClient
+                .Drives[rootFolderRef.DriveId]
+                .Items[file.Id]
+                .Content
+                .Request()
+                .GetAsync(cancellationToken);
+
+            await using var outputFile = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.Write);
+            await fileStream.CopyToAsync(outputFile, cancellationToken: cancellationToken);
+            outputFile.SetLength(outputFile.Position);
         }
 
-        ReadOnlyMemory<char> nameSegment;
         {
-            var nameParser = parser.BufferedView();
-            if (attendanceModes == AttendanceModeFlags.None)
+            bool shouldConvertToNewerWord = HasOldWordExtension(file.Name);
+            if (!shouldConvertToNewerWord)
             {
-                nameSegment = nameParser.SourceUntilEnd();
-            }
-            else
-            {
-                nameSegment = nameParser.SourceUntilExclusive(spacePos);
-            }
-        }
-
-        return (
-            Key: new CurriculumGroupKey
-            {
-                Code = code.ToString(),
-                Name = nameSegment.ToString(),
-                AttendanceModes = attendanceModes,
-                QualificationType = qual,
-            },
-            Value: child);
-
-        static AttendanceModeFlags AttendanceModes(ReadOnlySpan<char> lastSpan)
-        {
-            var ret = AttendanceModeFlags.None;
-            int itemCount = 0;
-            bool hasUnparsedItem = false;
-            foreach (var x in lastSpan.Split('+'))
-            {
-                var segment = lastSpan[x];
-                if (segment.Length == 0)
-                {
-                    continue;
-                }
-
-                itemCount++;
-
-                var maybeMode = GetMode(segment);
-                if (maybeMode is not { } mode)
-                {
-                    if (hasUnparsedItem)
-                    {
-                        break;
-                    }
-                    hasUnparsedItem = true;
-                    continue;
-                }
-
-
-                var flag = (AttendanceModeFlags) (1 << (int) mode);
-                if ((ret & flag) == flag)
-                {
-                    throw new NotSupportedException("The same attendance mode specified a second time");
-                }
-                ret |= flag;
                 continue;
-
-                static AttendanceMode? GetMode(ReadOnlySpan<char> s)
-                {
-                    if (s.SequenceEqual("zi"))
-                    {
-                        return AttendanceMode.Zi;
-                    }
-                    if (s.SequenceEqual("fr"))
-                    {
-                        return AttendanceMode.FrecventaRedusa;
-                    }
-                    return null;
-                }
             }
-
-            if (hasUnparsedItem && itemCount > 1)
-            {
-                throw new NotSupportedException("'+' in the last segment without it parsing");
-            }
-
-            return ret;
         }
-    })
-    .ToArray();
+
+        // TODO:
+        // 1. Embed this
+        // 2. This is only for windows
+        const string converterPath = @"C:\Users\Anton\Desktop\lessons\src\ConvertDocToDocx\bin\Debug\net4.8\ConvertDocToDocx.exe";
+        var processInfo = new ProcessStartInfo(
+            converterPath,
+            arguments: [
+                filePath,
+                convertedFilePath,
+            ]);
+        var process = Process.Start(processInfo);
+        if (process is null)
+        {
+            throw UnreachableHelper.Unreachable();
+        }
+        await process.WaitForExitAsync(cancellationToken);
+
+        // File.Delete(filePath);
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException("Conversion failed");
+        }
+        continue;
+
+        static bool HasOldWordExtension(string name)
+        {
+            var extension = Path.GetExtension(name);
+            if (extension.Equals(".doc", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            if (extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            throw new NotSupportedException("Extension not supported");
+        }
+    }
+}
 
 return;
 
+async Task<(CurriculumGroupKey Key, string Id, string Name)[]> ChildrenWithKeys()
+{
+    var children = await graphClient
+        .Drives[rootFolderRef.DriveId]
+        .Items[rootFolderRef.Id]
+        .Children
+        .Request()
+        .Select("name,id")
+        .GetAsync(cancellationToken);
+    var ret = children
+        .Select(child =>
+        {
+            var name = child.Name;
+            var parser = new Parser(name);
+            var qual = Qualification(ref parser);
+            parser.SkipWhitespace();
+            var code = Code(ref parser);
+            parser.SkipWhitespace();
+
+            ParserPosition lastSegmentPos = default;
+            ParserPosition spacePos = default;
+            bool hadSpaces = false;
+            {
+                var bparser = parser.BufferedView();
+                while (true)
+                {
+                    var r = bparser.SkipNotWhitespace();
+                    if (r.EndOfInput)
+                    {
+                        break;
+                    }
+                    hadSpaces = true;
+                    spacePos = bparser.Position;
+                    bparser.SkipWhitespace();
+                    lastSegmentPos = bparser.Position;
+                }
+            }
+
+            var attendanceModes = AttendanceModeFlags.None;
+
+            // process last segment
+            if (hadSpaces)
+            {
+                var lastSegmentParser = parser.BufferedView();
+                lastSegmentParser.MoveTo(lastSegmentPos);
+                var lastSegment = lastSegmentParser.SourceUntilEnd();
+                attendanceModes = AttendanceModes(lastSegment.Span);
+            }
+
+            ReadOnlyMemory<char> nameSegment;
+            {
+                var nameParser = parser.BufferedView();
+                if (attendanceModes == AttendanceModeFlags.None)
+                {
+                    nameSegment = nameParser.SourceUntilEnd();
+                }
+                else
+                {
+                    nameSegment = nameParser.SourceUntilExclusive(spacePos);
+                }
+            }
+
+            return (
+                Key: new CurriculumGroupKey
+                {
+                    Code = code.ToString(),
+                    Name = nameSegment.ToString(),
+                    AttendanceModes = attendanceModes,
+                    QualificationType = qual,
+                },
+                Id: child.Id,
+                Name: child.Name);
+
+            static AttendanceModeFlags AttendanceModes(ReadOnlySpan<char> lastSpan)
+            {
+                var ret = AttendanceModeFlags.None;
+                int itemCount = 0;
+                bool hasUnparsedItem = false;
+                foreach (var x in lastSpan.Split('+'))
+                {
+                    var segment = lastSpan[x];
+                    if (segment.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    itemCount++;
+
+                    var maybeMode = GetMode(segment);
+                    if (maybeMode is not { } mode)
+                    {
+                        if (hasUnparsedItem)
+                        {
+                            break;
+                        }
+                        hasUnparsedItem = true;
+                        continue;
+                    }
+
+
+                    var flag = (AttendanceModeFlags) (1 << (int) mode);
+                    if ((ret & flag) == flag)
+                    {
+                        throw new NotSupportedException("The same attendance mode specified a second time");
+                    }
+                    ret |= flag;
+                    continue;
+
+                    static AttendanceMode? GetMode(ReadOnlySpan<char> s)
+                    {
+                        if (s.SequenceEqual("zi"))
+                        {
+                            return AttendanceMode.Zi;
+                        }
+                        if (s.SequenceEqual("fr"))
+                        {
+                            return AttendanceMode.FrecventaRedusa;
+                        }
+                        return null;
+                    }
+                }
+
+                if (hasUnparsedItem && itemCount > 1)
+                {
+                    throw new NotSupportedException("'+' in the last segment without it parsing");
+                }
+
+                return ret;
+            }
+        })
+        .ToArray();
+    return ret;
+}
 
 static ReadOnlyMemory<char> Code(ref Parser parser)
 {
@@ -500,12 +600,12 @@ file class LoggingHandler : DelegatingHandler
 
         Console.WriteLine("Response:");
         Console.WriteLine(response.ToString());
-        if (response.Content != null)
-        {
-            var r = await response.Content.ReadAsStringAsync(cancellationToken);
-            Console.WriteLine(r);
-        }
-        Console.WriteLine();
+        // if (response.Content != null)
+        // {
+        //     var r = await response.Content.ReadAsStringAsync(cancellationToken);
+        //     Console.WriteLine(r);
+        // }
+        // Console.WriteLine();
 
         return response;
     }

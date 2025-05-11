@@ -1,5 +1,7 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReaderApp", "src\ReaderApp\ReaderApp.csproj", "{85193FA4-DC68-4E0E-BF67-EB3E42210567}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineRegistry", "src\OnlineRegistry\OnlineRegistry.csproj", "{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConvertDocToDocx", "src\ConvertDocToDocx\ConvertDocToDocx.csproj", "{B645B8F3-1806-45C7-AB89-D13FA4C9158D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumSummary", "src\CurriculumSummary\CurriculumSummary.csproj", "{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}"
 EndProject
@@ -9,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HolidaysClientGenerator", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManualConfigExampleApp", "src\ManualConfigExampleApp\ManualConfigExampleApp.csproj", "{A283E978-6EE6-4872-A442-BDE2BAC91374}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineRegistry", "src\OnlineRegistry\OnlineRegistry.csproj", "{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReaderApp", "src\ReaderApp\ReaderApp.csproj", "{85193FA4-DC68-4E0E-BF67-EB3E42210567}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleLib", "src\ScheduleLib\ScheduleLib.csproj", "{90D502AD-4266-4E30-856C-4162B77BDC57}"
 EndProject
@@ -25,10 +27,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B645B8F3-1806-45C7-AB89-D13FA4C9158D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B645B8F3-1806-45C7-AB89-D13FA4C9158D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B645B8F3-1806-45C7-AB89-D13FA4C9158D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B645B8F3-1806-45C7-AB89-D13FA4C9158D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,10 +51,10 @@ Global
 		{A283E978-6EE6-4872-A442-BDE2BAC91374}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A283E978-6EE6-4872-A442-BDE2BAC91374}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A283E978-6EE6-4872-A442-BDE2BAC91374}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E1D4C03A-EE9E-401C-96F9-6803D5DAFBA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85193FA4-DC68-4E0E-BF67-EB3E42210567}.Release|Any CPU.Build.0 = Release|Any CPU
 		{90D502AD-4266-4E30-856C-4162B77BDC57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{90D502AD-4266-4E30-856C-4162B77BDC57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90D502AD-4266-4E30-856C-4162B77BDC57}.Release|Any CPU.ActiveCfg = Release|Any CPU
