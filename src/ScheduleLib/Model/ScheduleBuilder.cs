@@ -25,7 +25,7 @@ public sealed class ValidationSettings()
 
 public sealed class Remappings()
 {
-    public readonly Dictionary<string, string> TeacherLastNameRemappings = new(IgnoreDiacriticsComparer.Instance);
+    public readonly Dictionary<string, string> TeacherLastNameRemappings = new(IgnoreDiacriticsAndCaseComparer.Instance);
 }
 
 public sealed partial class ScheduleBuilder()

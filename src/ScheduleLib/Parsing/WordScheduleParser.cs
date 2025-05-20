@@ -928,25 +928,12 @@ public static class WordScheduleParser
                 }
 
                 parser.SkipWhitespace();
+                var res = parser.ReadRoman();
+                if (res.Status != ReadRomanStatus.Ok)
                 {
-                    var bparser = parser.BufferedView();
-                    {
-                        var result = bparser.SkipNotWhitespace();
-                        if (!result.EndOfInput)
-                        {
-                            throw new NotSupportedException("Sem must be followed by a roman number");
-                        }
-                    }
-                    {
-                        var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                        var number = NumberHelper.FromRoman(numberSpan);
-                        if (number is not { } n)
-                        {
-                            throw new NotSupportedException("Sem must be followed by a roman number");
-                        }
-                        return n;
-                    }
+                    throw new InvalidOperationException("Sem must be followed by a roman numeral");
                 }
+                return res.Number;
             }
 
             (DateTime Start, DateTime End) ParseInterval()

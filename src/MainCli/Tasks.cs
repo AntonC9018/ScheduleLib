@@ -1148,7 +1148,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsComparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.LastName, y.LastName);
             if (t != 0)
             {
                 return t;
@@ -1166,7 +1166,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
         public static readonly Comparer Instance = new();
         public int Compare(OptionalFirstNamePart x, OptionalFirstNamePart y)
         {
-            return IgnoreDiacriticsComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
         }
     }
 }

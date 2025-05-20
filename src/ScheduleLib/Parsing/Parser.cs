@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ScheduleLib.Generation;
 
 namespace ScheduleLib.Parsing;
 
@@ -384,13 +385,21 @@ public static class ParserHelper
         ref this Parser parser,
         ReadOnlySpan<char> expectedString)
     {
+        return ConsumeExactString(ref parser, expectedString, StringComparison.Ordinal);
+    }
+
+    public static bool ConsumeExactString(
+        ref this Parser parser,
+        ReadOnlySpan<char> expectedString,
+        StringComparison stringComparison)
+    {
         if (!parser.CanPeekCount(expectedString.Length))
         {
             return false;
         }
 
         var peek = parser.PeekSpan(expectedString.Length);
-        if (!peek.SequenceEqual(expectedString))
+        if (!peek.Equals(expectedString, stringComparison))
         {
             return false;
         }
@@ -398,7 +407,60 @@ public static class ParserHelper
         parser.Move(expectedString.Length);
         return true;
     }
+
+    public static ReadRomanResult ReadRoman(this ref Parser parser)
+    {
+        var bparser = parser.BufferedView();
+        {
+            var result = bparser.SkipNotWhitespace();
+            if (!result.EndOfInput)
+            {
+                return ReadRomanResult.CreateError(ReadRomanStatus.EndOfInput);
+            }
+        }
+        {
+            var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var number = NumberHelper.FromRoman(numberSpan);
+            if (number is not { } n)
+            {
+                return ReadRomanResult.CreateError(ReadRomanStatus.NotRoman);
+            }
+            return ReadRomanResult.CreateOk(n);
+        }
+    }
 }
+
+public struct ReadRomanResult
+{
+    public int Number { get; private init; }
+    public ReadRomanStatus Status { get; private init; }
+
+    public static ReadRomanResult CreateOk(int roman)
+    {
+        return new()
+        {
+            Number = roman,
+            Status = ReadRomanStatus.Ok,
+        };
+    }
+
+    public static ReadRomanResult CreateError(ReadRomanStatus err)
+    {
+        Debug.Assert(err != ReadRomanStatus.Ok);
+        return new()
+        {
+            Status = ReadRomanStatus.Ok,
+        };
+    }
+}
+
+public enum ReadRomanStatus
+{
+    Ok,
+    EndOfInput,
+    NotRoman,
+}
+
 
 public enum ConsumeIntStatus
 {

@@ -53,9 +53,9 @@ public static class DiacriticsHelper
     }
 }
 
-public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, IComparer<string>
+public sealed class IgnoreDiacriticsAndCaseComparer : IEqualityComparer<string>, IComparer<string>
 {
-    public static readonly IgnoreDiacriticsComparer Instance = new();
+    public static readonly IgnoreDiacriticsAndCaseComparer Instance = new();
 
     public bool Equals(string? x, string? y)
     {
