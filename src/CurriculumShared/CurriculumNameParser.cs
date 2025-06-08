@@ -340,7 +340,7 @@ public sealed class FindCurriculumForLessonParams
 
 public sealed class Curriculum
 {
-    public required NameModel AuthorName;
+    public required List<NameModel> AuthorNames;
 }
 
 // For type safety.
@@ -693,18 +693,29 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("Expected author name paragraph");
         }
 
-        NameModel authorName;
+        List<NameModel> authorNames = new();
+        while (true)
         {
             var p = paragraphs.Current;
-            var (qualText, nameText) = p.ChildElements.JustTwoItems();
+            if (p.ChildElements.Count != 2)
             {
-                var t = qualText.InnerText;
-                _ = t;
+                if (authorNames.Count == 0)
+                {
+                    throw new InvalidOperationException("No author name specified");
+                }
+                break;
             }
+
+            var qualText = p.ChildElements[0];
+            var t = qualText.InnerText;
+            ValidateQualText(t);
+
+            var nameText = p.ChildElements[1];
             {
                 var name = nameText.InnerText;
                 var teacherName = TeacherNameHelper.ParseName(name);
-                authorName = teacherName;
+                var authorName = teacherName;
+                authorNames.Add(authorName);
             }
         }
 
@@ -746,19 +757,21 @@ public sealed class CurriculumCache
 
         return new Curriculum
         {
-            AuthorName = authorName,
+            AuthorNames = authorNames,
         };
 
         static Program ParseProgram(string t)
         {
             var parser = new Parser(t);
             {
-                const string programPrefix = "Program / Specialitatea: ";
+                const string programPrefix = "Program / Specialitatea:";
                 if (!parser.ConsumeExactString(programPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException($"Expected string {programPrefix}");
                 }
             }
+
+            parser.SkipWhitespace();
 
             ReadOnlyMemory<char> code;
             try
@@ -856,6 +869,69 @@ public sealed class CurriculumCache
                 if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(name, label))
                 {
                     return true;
+                }
+                return false;
+            }
+        }
+
+        static void ValidateQualText(string t)
+        {
+            ShortenedWord[] exactShortTokens = [
+                new("dr"),
+            ];
+            Word[] allowedTokens = [
+                new("doctor"),
+                new("conferențiar"),
+                new("asistent"),
+            ];
+            Word[] ignoredTokens = [
+                new("asistent"),
+            ];
+            var span = t.AsSpan();
+            foreach (var range in span.Split(' '))
+            {
+                var part = span[range];
+                if (part.Length == 0)
+                {
+                    continue;
+                }
+
+                if (!ValidateWord(part))
+                {
+                    throw new InvalidOperationException($"Disallowed teacher qualification token: {part}");
+                }
+            }
+            return;
+
+
+            bool ValidateWord(ReadOnlySpan<char> part)
+            {
+                var partWord = new WordSpan(part);
+                foreach (var ignoredToken in ignoredTokens)
+                {
+                    if (ignoredToken.Span.IsEqual(partWord))
+                    {
+                        return true;
+                    }
+                }
+                if (!partWord.LooksFull)
+                {
+                    foreach (var shortToken in exactShortTokens)
+                    {
+                        if (shortToken.Span.Value.Equals(
+                                partWord.Value,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                foreach (var allowedToken in allowedTokens)
+                {
+                    if (allowedToken.Span.IsEqual(partWord))
+                    {
+                        return true;
+                    }
                 }
                 return false;
             }
