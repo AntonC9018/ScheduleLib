@@ -32,10 +32,14 @@ public sealed class Curriculum
 {
     public required List<NameModel> AuthorNames;
     public required string PreliminaryPassage;
-    public required DisciplineProvisions DisciplineProvisions;
+    public required AllDisciplineProvisions DisciplineProvisions;
+    public required AllLessonPlan Lessons;
+    public required AllLabsPlan Labs;
+    public required AllStudiedUnits StudiedUnits;
+    public required CompetenceCollection Competences;
 }
 
-public sealed class DisciplineProvisions
+public sealed class AllDisciplineProvisions
 {
     public required List<DisciplineProvision> Provisions;
 }
@@ -93,7 +97,7 @@ public sealed class LessonPlanTimeDistribution
 
 public sealed class CompetenceCollection
 {
-    public required List<Competence> Competences;
+    public required List<Competence> Values;
 }
 
 public sealed class Competence
@@ -105,6 +109,49 @@ public sealed class Competence
 }
 
 public readonly record struct CompetenceId(string Value);
+
+
+public sealed class AllStudiedUnits
+{
+    public required List<StudiedUnit> Units;
+}
+
+public sealed class StudiedUnit
+{
+    public required string Topic;
+    public required List<CompetenceId> Competences;
+    public required List<KeyTerm> KeyTerms;
+    public required List<ContentUnit> ContentUnits; // the dot-separated list
+    public required List<LearnedAbility> LearnedAbilities;
+    public required List<StudentResponsibility> StudentResponsibilities;
+}
+
+public readonly record struct ContentUnit(string Value);
+public readonly record struct KeyTerm(string Value);
+public readonly record struct LearnedAbility(string Value);
+public readonly record struct StudentResponsibility(string Value);
+
+
+public sealed class AllLabsPlan
+{
+    public required List<LabPlan> Labs;
+}
+
+public sealed class LabPlan
+{
+    public required string Name;
+    public required string Description;
+    public required string? EvaluationCriteria;
+    public required Term Term;
+}
+
+public readonly record struct Term(StartOrEnd At, int Week);
+
+public enum StartOrEnd
+{
+    Start,
+    End,
+}
 
 public static class CurriculumNameParser
 {
