@@ -47,12 +47,12 @@ public sealed class DisciplineProvision
     public required DisciplineCode DisciplineCode;
     public required UnsizedBitArray32 TeachersMask;
     public required Semester Semester;
-    public required LessonDistribution LessonDistribution;
+    public required DisciplineTimeDistribution TimeDistribution;
     public required EvaluationMode EvaluationMode;
     public required Credits Credits;
 }
 
-public sealed class LessonDistribution
+public sealed class DisciplineTimeDistribution
 {
     public required int Total;
     public required int Course;
@@ -65,6 +65,46 @@ public readonly record struct DisciplineCode(string Value);
 public readonly record struct Semester(int Number);
 public readonly record struct EvaluationMode(bool HasExam);
 public readonly record struct Credits(int Value);
+
+
+public sealed class AllLessonPlan
+{
+    public required List<LessonUnitPlan> Units;
+}
+
+public sealed class LessonUnitPlan
+{
+    public required string Name;
+    public required List<LessonPlan> Lessons;
+}
+
+public sealed class LessonPlan
+{
+    public required string Name;
+    public required OneForEachAttendanceMode<LessonPlanTimeDistribution?> TimeDistributions;
+}
+
+public sealed class LessonPlanTimeDistribution
+{
+    public required int Course;
+    public required int Lab;
+    public required int IndividualWork;
+}
+
+public sealed class CompetenceCollection
+{
+    public required List<Competence> Competences;
+}
+
+public sealed class Competence
+{
+    public required string Category;
+    public required CompetenceId Id;
+    public required string Name;
+    public required string Description;
+}
+
+public readonly record struct CompetenceId(string Value);
 
 public static class CurriculumNameParser
 {
@@ -790,6 +830,8 @@ public sealed class CurriculumCache
         return new Curriculum
         {
             AuthorNames = authorNames,
+            DisciplineProvisions = null!,
+            PreliminaryPassage = "",
         };
 
         static Program ParseProgram(string t)

@@ -353,6 +353,45 @@ public enum AttendanceMode
     FrecventaRedusa,
 }
 
+public record struct OneForEachAttendanceMode<T>
+{
+    public required T Zi;
+    public required T FrecventaRedusa;
+
+    public T this[AttendanceMode mode]
+    {
+        readonly get
+        {
+            return mode switch
+            {
+                AttendanceMode.Zi => Zi,
+                AttendanceMode.FrecventaRedusa => FrecventaRedusa,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+            };
+        }
+        set
+        {
+            switch (mode)
+            {
+                case AttendanceMode.Zi:
+                {
+                    Zi = value;
+                    break;
+                }
+                case AttendanceMode.FrecventaRedusa:
+                {
+                    FrecventaRedusa = value;
+                    break;
+                }
+                default:
+                {
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+                }
+            }
+        }
+    }
+}
+
 [Flags]
 public enum AttendanceModeFlags
 {
