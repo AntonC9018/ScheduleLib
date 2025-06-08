@@ -18,28 +18,33 @@ public readonly struct Interval
     public int Length => EndInclusive - Start + 1;
 }
 
-public record struct BitArray32
+public record struct UnsizedBitArray32
 {
     private uint _bits;
-    private readonly int _length;
 
-    private BitArray32(uint bits, int length)
+    public UnsizedBitArray32(uint bits)
     {
-        Debug.Assert(length <= sizeof(uint) * 8);
         _bits = bits;
-        _length = length;
     }
-
-    public readonly int Length => _length;
 
     public readonly int SetCount => BitOperations.PopCount(_bits);
 
-    public void Set(int index, bool value = true)
+    private static void ValidateIndex(int index)
     {
-        Debug.Assert(index < _length);
+        Debug.Assert(index <= sizeof(uint) * 8);
+    }
+    internal static void ValidateLength(int len)
+    {
+        Debug.Assert(len <= sizeof(uint) * 8);
+    }
+
+    public void Set(int index, bool value)
+    {
+        ValidateIndex(index);
+
         if (value)
         {
-            _bits |= (1u << index);
+            Set(index);
         }
         else
         {
@@ -47,112 +52,276 @@ public record struct BitArray32
         }
     }
 
+    public void Set(int index)
+    {
+        ValidateIndex(index);
+        _bits |= (1u << index);
+    }
+
+    public void Clear(int index)
+    {
+        ValidateIndex(index);
+        _bits &= ~(1u << index);
+    }
+
     public readonly bool IsSet(int index)
     {
-        Debug.Assert(index < _length);
+        ValidateIndex(index);
         return (_bits & (1u << index)) != 0;
     }
 
     public readonly int GetSetAfter(int index)
     {
-        Debug.Assert(index < _length);
+        ValidateIndex(index);
+
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1);
         var set = _bits & ~ignoredMask;
         if (set == 0)
         {
             return -1;
         }
-        var ret = BitOperations.TrailingZeroCount(set);
-        return ret;
+
+        return BitOperations.TrailingZeroCount(set);
     }
 
-    public readonly int GetUnsetAfter(int index)
+    public readonly int GetUnsetAfter(int index, int length)
     {
-        if (_length == 0)
+        ValidateIndex(index);
+        Debug.Assert(index < length);
+
+        if (length == 0)
         {
             return -1;
         }
-        Debug.Assert(index < _length);
+
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1);
-        var allMask = GetMask(_length);
+        var allMask = GetMask(length);
         var mask = ~ignoredMask & allMask;
         var unset = ~_bits & mask;
         if (unset == 0)
         {
             return -1;
         }
-        var ret = BitOperations.TrailingZeroCount(unset);
-        return ret;
+
+        return BitOperations.TrailingZeroCount(unset);
+    }
+
+    public readonly UnsizedBitArray32 WithSet(int index)
+    {
+        ValidateIndex(index);
+
+        var copy = this;
+        copy.Set(index);
+        return copy;
+    }
+
+    public readonly UnsizedBitArray32 WithClear(int index)
+    {
+        ValidateIndex(index);
+
+        var copy = this;
+        copy.Clear(index);
+        return copy;
+    }
+
+    public readonly UnsizedBitArray32 Flipped(int length)
+    {
+        var not = (~_bits) & GetMask(length);
+        return new(not);
+    }
+
+    public readonly UnsizedBitArray32 Slice(int offset, int length)
+    {
+        ValidateIndex(offset);
+        var bits = _bits >> offset;
+        var mask = GetMask(length);
+        return new(bits & mask);
+    }
+
+    public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other)
+    {
+        return new(_bits & other._bits);
+    }
+
+    public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other, int length)
+    {
+        var r = Intersect(other);
+        return new(r._bits & GetMask(length));
+    }
+
+    public readonly bool AreAllSet(int length) => _bits == GetMask(length);
+    public readonly bool AreNoneSet => _bits == 0;
+
+    public readonly uint Bits => _bits;
+
+    public static uint GetMask(int length)
+    {
+        ValidateLength(length);
+
+        if (length == 0)
+        {
+            return 0;
+        }
+
+        int shift = sizeof(uint) * 8 - length;
+        return ~default(uint) >> shift;
+    }
+}
+
+public record struct BitArray32
+{
+    private UnsizedBitArray32 _array;
+    private readonly int _length;
+
+    private BitArray32(UnsizedBitArray32 array, int length)
+    {
+        UnsizedBitArray32.ValidateLength(length);
+        _array = array;
+        _length = length;
+    }
+
+    public BitArray32(uint bits, int length) :
+        this(new UnsizedBitArray32(bits), length)
+    {
+    }
+
+    private readonly void ValidateIndex(int index)
+    {
+        Debug.Assert(index >= 0 && index < _length);
+    }
+
+    public readonly int Length => _length;
+
+    public readonly int SetCount => _array.SetCount;
+
+    public void Set(int index, bool value = true)
+    {
+        ValidateIndex(index);
+        _array.Set(index, value);
+    }
+
+    public readonly bool IsSet(int index)
+    {
+        ValidateIndex(index);
+        return _array.IsSet(index);
+    }
+
+    public readonly int GetSetAfter(int index)
+    {
+        ValidateIndex(index);
+        return _array.GetSetAfter(index);
+    }
+
+    public readonly int GetUnsetAfter(int index)
+    {
+        Debug.Assert(index >= -1 && index <= _length);
+        return _array.GetUnsetAfter(index, _length);
     }
 
     public readonly int GetUnsetAtOrAfter(int index)
     {
+        ValidateIndex(index);
         return GetUnsetAfter(index - 1);
     }
 
     public readonly BitArray32 WithSet(int index)
     {
-        var r = this;
-        r.Set(index);
-        return r;
+        ValidateIndex(index);
+        var s = _array.WithSet(index);
+        return new(s, _length);
+    }
+
+    public readonly BitArray32 WithClear(int index)
+    {
+        ValidateIndex(index);
+        var s = _array.WithClear(index);
+        return new(s, _length);
     }
 
     public void Clear(int index)
     {
-        Debug.Assert(index < _length);
-        _bits &= ~(1u << index);
+        ValidateIndex(index);
+        _array.Clear(index);
     }
 
     public void ClearAll()
     {
-        _bits = 0;
+        _array = new UnsizedBitArray32(0);
     }
 
     public readonly BitArray32 Flipped
     {
         get
         {
-            var not = (~_bits) & GetMask(_length);
-            return new(not, _length);
+            var r = _array.Flipped(_length);
+            return new(r, _length);
         }
     }
 
     public readonly bool CanSlice(int offset, int length)
     {
+        ValidateIndex(offset);
         return offset + length <= _length;
     }
+
     public readonly BitArray32 Slice(int offset, int length)
     {
         Debug.Assert(CanSlice(offset, length));
-        var bits = _bits >> offset;
-        var mask = GetMask(length);
-        return new(bits & mask, length);
+
+        var ret = _array.Slice(offset, length);
+        return new(ret, length);
     }
 
     public readonly BitArray32 Intersect(BitArray32 other)
     {
         Debug.Assert(other.Length == Length);
-        var and = other._bits & _bits;
-        Debug.Assert((GetMask(other._length) & and) == and);
-        return new BitArray32(and, other._length);
+        var ret = _array.Intersect(other._array, _length);
+        return new(ret, _length);
     }
 
     public readonly BitArray32 IntersectAtOffset(BitArray32 other, int offset)
     {
         var slice = Slice(offset, other.Length);
-        var ret = other.Intersect(slice);
-        return ret;
+        return slice.Intersect(other);
     }
 
-    public readonly bool AreAllSet => _bits == GetMask(_length);
-    public readonly bool AreNoneSet => _bits == 0;
+    public readonly bool AreAllSet => _array.AreAllSet(_length);
+    public readonly bool AreNoneSet => _array.AreNoneSet;
 
-    public readonly BitArray32 WithClear(int index)
+    public readonly bool IsEmpty => _array.Bits == 0;
+
+    public static BitArray32 AllSet(int length)
     {
-        var r = this;
-        r.Clear(index);
-        return r;
+        var s = UnsizedBitArray32.GetMask(length);
+        return new(s, length);
     }
+
+    public static BitArray32 NSet(int length, int set)
+    {
+        Debug.Assert(set <= length);
+        var s = UnsizedBitArray32.GetMask(set);
+        return new(s, length);
+    }
+
+    public static BitArray32 Empty(int length)
+    {
+        return new(0, length);
+    }
+
+    private readonly bool PrintMembers(StringBuilder sb)
+    {
+        sb.Append("Bits: ");
+        sb.Append(_array.Bits);
+        sb.Append(", Length: ");
+        sb.Append(_length);
+        return true;
+    }
+
+    // These would wrap custom enumerable structs if needed
+    public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(_array.Bits);
+    public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(_array.Bits);
+    public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped._array.Bits);
+    public readonly SlidingWindowLowToHighEnumerable SlidingWindowLowToHigh(int length) => new(this, length);
 
     public readonly Interval SetBitInterval
     {
@@ -162,56 +331,6 @@ public record struct BitArray32
             var lastSetBit = SetBitIndicesHighToLow.First();
             return new Interval(firstSetBit, lastSetBit);
         }
-    }
-    public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(_bits);
-    public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(_bits);
-    public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped._bits);
-    public readonly SlidingWindowLowToHighEnumerable SlidingWindowLowToHigh(int length) => new(this, length);
-
-    public bool IsEmpty => _bits == 0;
-
-    public static BitArray32 AllSet(int length)
-    {
-        return new BitArray32(GetMask(length), length);
-    }
-
-    public static BitArray32 NSet(int length, int set)
-    {
-        Debug.Assert(set <= length);
-        return new BitArray32(GetMask(set), length);
-    }
-
-    private static uint GetMask(int length)
-    {
-        // Shifting by 32 does nothing (or maybe it's UB?)
-        if (length == 0)
-        {
-            return 0;
-        }
-
-        int shift = sizeof(uint) * 8 - length;
-        return ~default(uint) >> shift;
-    }
-
-    public static BitArray32 Empty(int length)
-    {
-        return new BitArray32(default, length);
-    }
-
-    public static bool CanCreate(int length)
-    {
-        return length <= MaxLength;
-    }
-
-    public const int MaxLength = sizeof(uint) * 8;
-
-    private bool PrintMembers(StringBuilder sb)
-    {
-        sb.Append("Bits: ");
-        sb.Append(_bits);
-        sb.Append(", Length: ");
-        sb.Append(_length);
-        return true;
     }
 }
 

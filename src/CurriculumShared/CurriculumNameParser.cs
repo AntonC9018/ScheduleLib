@@ -28,6 +28,43 @@ public sealed class ParsedCurriculumKey1
     public required int Year;
 }
 
+public sealed class Curriculum
+{
+    public required List<NameModel> AuthorNames;
+    public required string PreliminaryPassage;
+    public required DisciplineProvisions DisciplineProvisions;
+}
+
+public sealed class DisciplineProvisions
+{
+    public required List<DisciplineProvision> Provisions;
+}
+
+public sealed class DisciplineProvision
+{
+    public required string CourseName;
+    public required AttendanceMode AttendanceMode;
+    public required DisciplineCode DisciplineCode;
+    public required UnsizedBitArray32 TeachersMask;
+    public required Semester Semester;
+    public required LessonDistribution LessonDistribution;
+    public required EvaluationMode EvaluationMode;
+    public required Credits Credits;
+}
+
+public sealed class LessonDistribution
+{
+    public required int Total;
+    public required int Course;
+    public required int Seminar;
+    public required int Lab;
+    public required int IndividualWork;
+}
+
+public readonly record struct DisciplineCode(string Value);
+public readonly record struct Semester(int Number);
+public readonly record struct EvaluationMode(bool HasExam);
+public readonly record struct Credits(int Value);
 
 public static class CurriculumNameParser
 {
@@ -336,11 +373,6 @@ public sealed class FindCurriculumForLessonParams
     public required RegularLessonId LessonId { get; init; }
     public required Schedule Schedule { get; init; }
     public required LookupFacade Lookup { get; init; }
-}
-
-public sealed class Curriculum
-{
-    public required List<NameModel> AuthorNames;
 }
 
 // For type safety.
