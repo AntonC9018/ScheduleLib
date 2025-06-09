@@ -847,8 +847,8 @@ public sealed class CurriculumCache
         var potentialPageTypes = BitArray32.AllSet((int) PageType.Count);
         OneForEachPageType<int> readPositions = default;
 
-        // This is wrong, it might be split up, have to check each.
-        bool isFirst = true;
+        // It might be split up into multiple text segments, have to check each.
+        bool isFirstCheck = true;
         bool skipRoman = true;
         foreach (var textItem in para.Descendants<Text>())
         {
@@ -857,8 +857,6 @@ public sealed class CurriculumCache
             {
                 continue;
             }
-
-            isFirst = false;
 
             // Some of them might have a roman numeral in front. Skip it.
             if (skipRoman && parser.ReadRoman().Status == ReadRomanStatus.Ok)
@@ -870,6 +868,12 @@ public sealed class CurriculumCache
             skipRoman = false;
 
             var remainingSpan = parser.PeekSpanUntilEnd().Trim();
+            if (remainingSpan.Length == 0)
+            {
+                continue;
+            }
+
+            isFirstCheck = false;
 
             // For now, check for an exact equality.
             // Maybe look for keywords later?
@@ -908,10 +912,20 @@ public sealed class CurriculumCache
             }
         }
 
-        if (isFirst)
+        if (isFirstCheck)
         {
             // Not a single Text descendant.
             return default;
+        }
+
+        if (potentialPageTypes.SetCount > 1)
+        {
+            return new()
+            {
+                PageType = PageType.Unknown,
+                MissingText = null,
+                UnmatchedText = null,
+            };
         }
 
         foreach (var pageIndex in potentialPageTypes.SetBitIndicesLowToHigh)
@@ -919,7 +933,7 @@ public sealed class CurriculumCache
             var pageType = (PageType) pageIndex;
             var str = pages.Get(pageType);
             var start = readPositions.Get(pageType);
-            Debug.Assert(start != 0);
+            Debug.Assert(start != 0, "Can only happen if only checked empty strings");
             return new()
             {
                 PageType = pageType,
