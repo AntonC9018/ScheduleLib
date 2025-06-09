@@ -1,5 +1,5 @@
+using System.Collections;
 using System.Diagnostics;
-using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -43,12 +43,20 @@ public sealed class CurriculumGeneralInfo
 public sealed class Curriculum
 {
     public required CurriculumGeneralInfo General;
-    public required string PreliminaryPassage;
+    public required Preliminary Preliminary;
     public required AllDisciplineProvisions DisciplineProvisions;
     public required AllLessonPlan Lessons;
     public required AllLabsPlan Labs;
     public required AllStudiedUnits StudiedUnits;
     public required CompetenceCollection Competences;
+}
+
+public sealed class Preliminary
+{
+    public string? Overview;
+    public string? Importance;
+    public string? Languages;
+    public string? Beneficiaries;
 }
 
 public sealed class AllDisciplineProvisions
@@ -755,7 +763,8 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("No body found.");
         }
 
-        using var source = body.Descendants().GetEnumerator();
+        // ReSharper disable once GenericEnumeratorNotDisposed
+        using var source = body.ChildElements.GetEnumerator().Wrap(default(OpenXmlElement));
 
         CurriculumGeneralInfo general;
         {
@@ -763,11 +772,30 @@ public sealed class CurriculumCache
             general = ParseGeneralInfo(paragraphs);
         }
 
+        while (source.MoveNext())
+        {
+            var headingResult = MaybeParsePageType(source.Current);
+            if (headingResult.PageType == null)
+            {
+                continue;
+            }
+            if (headingResult.PageType == PageType.Unknown)
+            {
+                throw new NotSupportedException($"Unrecognized heading '{headingResult.UnmatchedText}'.");
+            }
+            if (!headingResult.MissingText.IsEmpty)
+            {
+                throw new NotSupportedException($"Partially matched heading '{headingResult.MissingText}'.");
+            }
+            Console.WriteLine($"Found page type {headingResult.PageType!.Value}");
+            continue;
+        }
+
         return new Curriculum
         {
             General = general,
             DisciplineProvisions = null!,
-            PreliminaryPassage = "",
+            Preliminary = null!,
             Competences = new()
             {
                 Values = new(),
@@ -785,6 +813,206 @@ public sealed class CurriculumCache
                 Units = new(),
             },
         };
+    }
+
+    private record struct HeadingParseResult
+    {
+        public required PageType? PageType;
+        public required ReadOnlyMemory<char> UnmatchedText;
+        public required ReadOnlyMemory<char> MissingText;
+    }
+    private static HeadingParseResult MaybeParsePageType(OpenXmlElement current)
+    {
+        if (current is not Paragraph para)
+        {
+            return default;
+        }
+        if (!IsHeading())
+        {
+            return default;
+        }
+
+        // Check for one of the allowed headings.
+        OneForEachPageType<string> pages = new()
+        {
+            Bibliography = "bibliografie recomandata",
+            Competences = "competente generale, profesionale si rezultatele invatarii",
+            Labs = "lucrul individual al studentului",
+            Suggestions = "sugestii metodologice de predare-invatare-evaluare",
+            DisciplineProvisions = "administrarea disciplinei",
+            LessonPlans = "tematica si repartizarea orientativa a orelor",
+            PreliminaryPassage = "preliminarii",
+            StudyUnits = "unitati de invatare",
+        };
+        var potentialPageTypes = BitArray32.AllSet((int) PageType.Count);
+        OneForEachPageType<int> readPositions = default;
+
+        // This is wrong, it might be split up, have to check each.
+        bool isFirst = true;
+        bool skipRoman = true;
+        foreach (var textItem in para.Descendants<Text>())
+        {
+            var parser = new Parser(textItem.Text);
+            if (parser.SkipWhitespace().EndOfInput)
+            {
+                continue;
+            }
+
+            isFirst = false;
+
+            // Some of them might have a roman numeral in front. Skip it.
+            if (skipRoman && parser.ReadRoman().Status == ReadRomanStatus.Ok)
+            {
+                // The dot is optional.
+                parser.ConsumeExactString(".");
+                parser.SkipWhitespace();
+            }
+            skipRoman = false;
+
+            var remainingSpan = parser.PeekSpanUntilEnd().Trim();
+
+            // For now, check for an exact equality.
+            // Maybe look for keywords later?
+            foreach (var pageIndex in potentialPageTypes.SetBitIndicesLowToHigh)
+            {
+                var pageType = (PageType) pageIndex;
+                ref var refStartIndex = ref readPositions.Ref(pageType);
+                var pagesString = pages.Get(pageType);
+                var currentSlice = pagesString.AsSpan(refStartIndex);
+
+                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(currentSlice, remainingSpan))
+                {
+                    // TODO: This is pretty hard to implement correctly.
+                    // I need to get the character positions IN THE ORIGINAL string.
+                    // This is currently NOT CORRECT.
+                    refStartIndex += remainingSpan.Length;
+                    var p = new Parser(pagesString);
+                    p.MoveTo(new(refStartIndex));
+                    p.SkipWhitespace();
+                    refStartIndex = p.Position.Index;
+                }
+                else
+                {
+                    potentialPageTypes.Unset(pageIndex);
+                }
+            }
+
+            if (potentialPageTypes.IsEmpty)
+            {
+                return new()
+                {
+                    PageType = PageType.Unknown,
+                    UnmatchedText = parser.SourceUntilEnd(),
+                    MissingText = null,
+                };
+            }
+        }
+
+        if (isFirst)
+        {
+            // Not a single Text descendant.
+            return default;
+        }
+
+        foreach (var pageIndex in potentialPageTypes.SetBitIndicesLowToHigh)
+        {
+            var pageType = (PageType) pageIndex;
+            var str = pages.Get(pageType);
+            var start = readPositions.Get(pageType);
+            Debug.Assert(start != 0);
+            return new()
+            {
+                PageType = pageType,
+                UnmatchedText = null,
+                MissingText = str.Length == start ? null : str.AsMemory(start),
+            };
+        }
+
+        throw UnreachableHelper.Unreachable();
+
+
+        bool IsHeading()
+        {
+            foreach (var textItem in para.Descendants<Text>())
+            {
+                if (IsTextBoldAndUppercase(textItem))
+                {
+                    return true;
+                }
+            }
+
+            // If there's a style indicator, check if it's a heading.
+            // TODO: No precedents yet, idk if this actually works.
+            // NOTE: Cannot be first, since some of them have a ListParagraph style.
+            var isHeadingStyle = IsHeadingStyle();
+            switch (isHeadingStyle)
+            {
+                case IsHeadingStyleResult.NotHeading:
+                    return false;
+                case IsHeadingStyleResult.Heading:
+                    return true;
+            }
+
+            return false;
+        }
+
+        static bool IsTextBoldAndUppercase(Text text)
+        {
+            if (text.Parent is not Run run)
+            {
+                return false;
+            }
+            if (run.GetFirstChild<RunProperties>() is not { } props)
+            {
+                return false;
+            }
+            if (props.Bold is not { })
+            {
+                return false;
+            }
+            if (props.Caps is { })
+            {
+                return true;
+            }
+
+            // Manually check if each letter is uppercase.
+            var textContent = text.Text;
+            foreach (var c in textContent.AsSpan())
+            {
+                if (char.IsLetter(c) && !char.IsUpper(c))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        IsHeadingStyleResult IsHeadingStyle()
+        {
+            var props = para.GetFirstChild<ParagraphProperties>();
+            if (props is null)
+            {
+                return IsHeadingStyleResult.NoStyle;
+            }
+            if (props.GetFirstChild<ParagraphStyleId>() is not { } styleId)
+            {
+                return IsHeadingStyleResult.NoStyle;
+            }
+            if (styleId.Val is not { } styleIdVal)
+            {
+                return IsHeadingStyleResult.NotHeading;
+            }
+            if (styleIdVal.Value is not { } styleIdString)
+            {
+                return IsHeadingStyleResult.NotHeading;
+            }
+            if (!styleIdString.StartsWith("Heading", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsHeadingStyleResult.NotHeading;
+            }
+            return IsHeadingStyleResult.Heading;
+        }
     }
 
     private static CurriculumGeneralInfo ParseGeneralInfo(IEnumerator<Paragraph> paragraphs)
@@ -1162,17 +1390,38 @@ public sealed class CurriculumCache
             {
                 yield break;
             }
-            if (source.Current is Break)
+            var c = source.Current;
+
+            bool hadNestedParagraphs = false;
+            bool hadBreak = false;
+            foreach (var d in c.Descendants())
+            {
+                if (d is Break)
+                {
+                    hadBreak = true;
+                    break;
+                }
+                if (d is not Paragraph p)
+                {
+                    continue;
+                }
+                hadNestedParagraphs = true;
+                yield return p;
+            }
+
+            if (!hadNestedParagraphs)
+            {
+                if (c is Paragraph para)
+                {
+                    yield return para;
+                }
+            }
+            if (hadBreak)
             {
                 yield break;
             }
-            if (source.Current is Paragraph p)
-            {
-                yield return p;
-            }
         }
     }
-
 }
 
 public readonly record struct YearAndQualificationType(
@@ -1182,3 +1431,158 @@ public readonly record struct YearAndQualificationType(
 public readonly record struct Program(
     ProgramCode Code,
     SpecializationName Name);
+
+internal enum PageType
+{
+    Unknown = -1,
+    PreliminaryPassage,
+    DisciplineProvisions,
+    LessonPlans,
+    Competences,
+    StudyUnits,
+    Labs,
+    Suggestions,
+    Bibliography,
+    Count,
+}
+
+internal record struct OneForEachPageType<T>
+{
+    public required T PreliminaryPassage;
+    public required T DisciplineProvisions;
+    public required T LessonPlans;
+    public required T Competences;
+    public required T StudyUnits;
+    public required T Labs;
+    public required T Suggestions;
+    public required T Bibliography;
+}
+
+internal static class PageHelper
+{
+    public static ref T Ref<T>(this ref OneForEachPageType<T> item, PageType p)
+    {
+        switch (p)
+        {
+            case PageType.PreliminaryPassage:
+                return ref item.PreliminaryPassage;
+            case PageType.DisciplineProvisions:
+                return ref item.DisciplineProvisions;
+            case PageType.LessonPlans:
+                return ref item.LessonPlans;
+            case PageType.Competences:
+                return ref item.Competences;
+            case PageType.StudyUnits:
+                return ref item.StudyUnits;
+            case PageType.Labs:
+                return ref item.Labs;
+            case PageType.Suggestions:
+                return ref item.Suggestions;
+            case PageType.Bibliography:
+                return ref item.Bibliography;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown page type");
+        }
+    }
+
+    public static T Get<T>(this in OneForEachPageType<T> item, PageType p)
+    {
+        switch (p)
+        {
+            case PageType.PreliminaryPassage:
+                return item.PreliminaryPassage;
+            case PageType.DisciplineProvisions:
+                return item.DisciplineProvisions;
+            case PageType.LessonPlans:
+                return item.LessonPlans;
+            case PageType.Competences:
+                return item.Competences;
+            case PageType.StudyUnits:
+                return item.StudyUnits;
+            case PageType.Labs:
+                return item.Labs;
+            case PageType.Suggestions:
+                return item.Suggestions;
+            case PageType.Bibliography:
+                return item.Bibliography;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown page type");
+        }
+    }
+
+    public static Enumerator<T> GetEnumerator<T>(this ref readonly OneForEachPageType<T> item)
+    {
+        return new(in item);
+    }
+
+    public ref struct Enumerator<T>
+    {
+        private readonly ref readonly OneForEachPageType<T> _item;
+        private int _index;
+
+        public Enumerator(ref readonly OneForEachPageType<T> item)
+        {
+            _item = ref item;
+            _index = -1;
+        }
+
+        public PageType CurrentType => (PageType) _index;
+        public T Current => _item.Get((PageType) _index);
+
+        public bool MoveNext()
+        {
+            _index++;
+            return _index < (int) PageType.Count;
+        }
+
+        public void Reset() => _index = -1;
+    }
+}
+
+public sealed class ClassEnumeratorWrapper<T, TEnumerator> : IEnumerator<T>
+    where TEnumerator : struct, IEnumerator<T>
+
+{
+    private TEnumerator _enumerator;
+    public ClassEnumeratorWrapper(TEnumerator enumerator)
+    {
+        _enumerator = enumerator;
+    }
+    public T Current => _enumerator.Current;
+    object? IEnumerator.Current => _enumerator.Current;
+    public void Dispose() => _enumerator.Dispose();
+    public bool MoveNext() => _enumerator.MoveNext();
+    public void Reset() => _enumerator.Reset();
+}
+
+public static class EnumeratorHelper1
+{
+    public static ClassEnumeratorWrapper<T, TEnumerator> Wrap<T, TEnumerator>(
+        this TEnumerator e,
+        T? tag = default(T))
+
+        where TEnumerator : struct, IEnumerator<T>
+        where T : notnull
+    {
+        _ = tag;
+        return new(e);
+    }
+
+    public static ClassEnumeratorWrapper<T, TEnumerator> WrapNullable<T, TEnumerator>(
+        this TEnumerator e,
+        T tag = default(T)!)
+
+        where TEnumerator : struct, IEnumerator<T>
+    {
+        _ = tag;
+        return new(e);
+    }
+}
+
+
+public enum IsHeadingStyleResult
+{
+    Heading,
+    NotHeading,
+    NoStyle,
+}

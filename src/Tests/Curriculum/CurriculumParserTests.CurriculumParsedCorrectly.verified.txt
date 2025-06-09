@@ -40,7 +40,7 @@
       }
     ]
   },
-  PreliminaryPassage: ,
+  Preliminary: null,
   DisciplineProvisions: null,
   Lessons: {
     Units: null

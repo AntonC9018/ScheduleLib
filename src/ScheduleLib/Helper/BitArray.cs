@@ -154,6 +154,12 @@ public record struct UnsizedBitArray32
 
     public readonly uint Bits => _bits;
 
+    public static UnsizedBitArray32 AllSet(int length = BitArray32.MaxLength)
+    {
+        var s = GetMask(length);
+        return new(s);
+    }
+
     public static uint GetMask(int length)
     {
         ValidateLength(length);
@@ -193,6 +199,12 @@ public record struct BitArray32
     public readonly int Length => _length;
 
     public readonly int SetCount => _array.SetCount;
+
+    public void Unset(int index)
+    {
+        ValidateIndex(index);
+        _array.Set(index, false);
+    }
 
     public void Set(int index, bool value = true)
     {
@@ -292,7 +304,7 @@ public record struct BitArray32
 
     public static BitArray32 AllSet(int length)
     {
-        var s = UnsizedBitArray32.GetMask(length);
+        var s = UnsizedBitArray32.AllSet(length);
         return new(s, length);
     }
 

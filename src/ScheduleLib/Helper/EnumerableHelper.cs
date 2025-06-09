@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib;
@@ -145,6 +146,25 @@ public static class EnumerableHelper
     }
 
     public static RememberIsDoneEnumerator<T> RememberIsDone<T>(this IEnumerator<T> e) => new(e);
+    public static RememberIsDoneEnumeratorClass<T> RememberIsDoneClass<T>(this IEnumerator<T> e) => new(e);
+
+    public sealed class RememberIsDoneEnumeratorClass<T> : IEnumerator<T>
+    {
+        private RememberIsDoneEnumerator<T> _e;
+
+        public RememberIsDoneEnumeratorClass(IEnumerator<T> e)
+        {
+            _e = new(e);
+        }
+
+        // TODO: [Forward]
+        public bool IsDone => _e.IsDone;
+        public bool MoveNext() => _e.MoveNext();
+        public T Current => _e.Current;
+        object? IEnumerator.Current => Current;
+        public void Dispose() => _e.Dispose();
+        public void Reset() => _e.Reset();
+    }
 
     public struct RememberIsDoneEnumerator<T> : IDisposable
     {
@@ -170,6 +190,11 @@ public static class EnumerableHelper
         public void Dispose()
         {
             _e.Dispose();
+        }
+
+        public void Reset()
+        {
+            _e.Reset();
         }
     }
 
