@@ -31,11 +31,11 @@ public record struct UnsizedBitArray32
 
     private static void ValidateIndex(int index)
     {
-        Debug.Assert(index <= sizeof(uint) * 8);
+        Debug.Assert(index <= BitArray32.MaxLength);
     }
     internal static void ValidateLength(int len)
     {
-        Debug.Assert(len <= sizeof(uint) * 8);
+        Debug.Assert(len <= BitArray32.MaxLength);
     }
 
     public void Set(int index, bool value)
@@ -332,6 +332,8 @@ public record struct BitArray32
             return new Interval(firstSetBit, lastSetBit);
         }
     }
+
+    public const int MaxLength = sizeof(uint) * 8;
 }
 
 public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>

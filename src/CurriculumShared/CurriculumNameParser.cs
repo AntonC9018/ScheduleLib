@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Globalization;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
@@ -28,9 +31,18 @@ public sealed class ParsedCurriculumKey1
     public required int Year;
 }
 
+public sealed class CurriculumGeneralInfo
+{
+    public required string CourseName;
+    public required List<NameModel> AuthorNames;
+    public required uint Year;
+    public required YearAndQualificationType YearAndQual;
+    public required List<Program> Programs;
+}
+
 public sealed class Curriculum
 {
-    public required List<NameModel> AuthorNames;
+    public required CurriculumGeneralInfo General;
     public required string PreliminaryPassage;
     public required AllDisciplineProvisions DisciplineProvisions;
     public required AllLessonPlan Lessons;
@@ -419,7 +431,7 @@ public static class CurriculumNameParser
                 throw new NotSupportedException("Number in front too large");
             }
 
-            parser.MoveTo(parser.Position);
+            parser.MoveTo(bparser.Position);
             if (!parser.ConsumeExactString("_"))
             {
                 return null;
@@ -449,6 +461,7 @@ public static class CurriculumNameParser
             }
 
             var ret = parser.SourceUntilExclusive(bparser.Position);
+            parser.MoveTo(bparser.Position);
             return ret;
         }
     }
@@ -466,7 +479,18 @@ public sealed class FindCurriculumForLessonParams
 public readonly record struct RootCurriculumDirectory(string FullPath);
 public readonly record struct CurriculumGroupDirectory(string FullPath);
 public readonly record struct CurriculumGroup(CurriculumGroupKey Key, CurriculumGroupDirectory Directory);
-public readonly record struct CurriculumFile(ParsedCurriculumKey1 Key, string FilePath);
+public readonly record struct CurriculumFile(ParsedCurriculumKey1 Key, string FilePath)
+{
+    public static CurriculumFile? FromFilePath(string filePath)
+    {
+        var r = CurriculumDirectoryHelper.ParseCurriculumFileKey(filePath);
+        if (r is null)
+        {
+            return null;
+        }
+        return new(r, filePath);
+    }
+}
 
 public static class CurriculumDirectoryHelper
 {
@@ -491,29 +515,40 @@ public static class CurriculumDirectoryHelper
         }
     }
 
+    private const string CurriculumDocumentExtension = ".docx";
+
+    internal static ParsedCurriculumKey1? ParseCurriculumFileKey(string filePath)
+    {
+        Debug.Assert(filePath.EndsWith(CurriculumDocumentExtension));
+        var lastSegmentStart = filePath.IndexOf(Path.DirectorySeparatorChar) + 1;
+        var parser = new Parser(filePath);
+        parser.Move(lastSegmentStart);
+        var key = CurriculumNameParser.TryParseCurriculumKey(ref parser);
+        if (key is null)
+        {
+            return null;
+        }
+        if (!parser.ConsumeExactString(CurriculumDocumentExtension))
+        {
+            throw new ArgumentException(
+                message: "Curriculum file name not parsed fully",
+                paramName: nameof(filePath));
+        }
+        return key;
+    }
+
     public static IEnumerable<CurriculumFile> ListFiles(this CurriculumGroupDirectory directory)
     {
-        var dirs = Directory.EnumerateDirectories(directory.FullPath);
+        var dirs = Directory.EnumerateFiles(
+            path: directory.FullPath,
+            searchPattern: $"*{CurriculumDocumentExtension}");
         foreach (var fileFullPath in dirs)
         {
-            const string extension = ".docx";
-            if (!fileFullPath.EndsWith(extension))
+            var key = ParseCurriculumFileKey(fileFullPath);
+            if (key == null)
             {
                 continue;
             }
-            var lastSegmentStart = fileFullPath.IndexOf(Path.DirectorySeparatorChar) + 1;
-            var parser = new Parser(fileFullPath);
-            parser.Move(lastSegmentStart);
-            var key = CurriculumNameParser.TryParseCurriculumKey(ref parser);
-            if (key is null)
-            {
-                continue;
-            }
-            if (parser.ConsumeExactString(extension))
-            {
-                throw new InvalidOperationException("Directory name not parsed fully.");
-            }
-
             yield return new(key, fileFullPath);
         }
     }
@@ -699,7 +734,7 @@ public sealed class CurriculumCache
         return ret;
     }
 
-    private static async Task<Curriculum> ReadFile(CurriculumFile file)
+    internal static async Task<Curriculum> ReadFile(CurriculumFile file)
     {
         await using var fileStream = File.OpenRead(file.FilePath);
         using var word = WordprocessingDocument.Open(fileStream, isEditable: false, new()
@@ -720,28 +755,40 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("No body found.");
         }
 
-        IEnumerable<Paragraph> FirstPageParagraphs()
+        using var source = body.Descendants().GetEnumerator();
+
+        CurriculumGeneralInfo general;
         {
-            var elems = body.Descendants();
-            using var elemsE = elems.GetEnumerator();
-            while (true)
-            {
-                if (!elemsE.MoveNext())
-                {
-                    yield break;
-                }
-                if (elemsE.Current is Break)
-                {
-                    yield break;
-                }
-                if (elemsE.Current is Paragraph p)
-                {
-                    yield return p;
-                }
-            }
+            using var paragraphs = FirstPageParagraphs(source);
+            general = ParseGeneralInfo(paragraphs);
         }
 
-        using var paragraphs = FirstPageParagraphs().GetEnumerator();
+        return new Curriculum
+        {
+            General = general,
+            DisciplineProvisions = null!,
+            PreliminaryPassage = "",
+            Competences = new()
+            {
+                Values = new(),
+            },
+            Labs = new()
+            {
+                Labs = new(),
+            },
+            Lessons = new()
+            {
+                Units = new(),
+            },
+            StudiedUnits = new()
+            {
+                Units = new(),
+            },
+        };
+    }
+
+    private static CurriculumGeneralInfo ParseGeneralInfo(IEnumerator<Paragraph> paragraphs)
+    {
         if (!SkipUntilCurriculum())
         {
             throw new InvalidOperationException("Document does not contain CURRICULUM");
@@ -753,7 +800,7 @@ public sealed class CurriculumCache
         }
 
         {
-            var t = paragraphs.Current.InnerText;
+            var t = paragraphs.Current!.InnerText;
             const string expected = "la unitatea de curs / modulul";
             if (t != expected)
             {
@@ -787,10 +834,10 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("Expected the program & specialty after year");
         }
 
-        Program program;
+        List<Program> programs;
         {
             var t = paragraphs.Current.InnerText;
-            program = ParseProgram(t);
+            programs = ParseProgram(t);
         }
 
         if (!paragraphs.MoveNext())
@@ -798,25 +845,31 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("Expected author after the program");
         }
 
+        while (true)
         {
             var t = paragraphs.Current.InnerText;
             var parser = new Parser(t);
-            if (!parser.ConsumeExactString("autor:", StringComparison.OrdinalIgnoreCase))
+            if (parser.ConsumeExactString("autor:", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            if (!paragraphs.MoveNext())
             {
                 throw new InvalidOperationException("Expected AUTOR:");
             }
         }
 
-        if (!paragraphs.MoveNext())
-        {
-            throw new InvalidOperationException("Expected author name paragraph");
-        }
-
         List<NameModel> authorNames = new();
         while (true)
         {
+            if (!paragraphs.MoveNext())
+            {
+                throw new InvalidOperationException("Expected author name paragraph");
+            }
+
             var p = paragraphs.Current;
-            if (p.ChildElements.Count != 2)
+            if (p.ChildElements.OfType<Run>().MaybeJustTwoItems() is not { } runs)
             {
                 if (authorNames.Count == 0)
                 {
@@ -825,11 +878,11 @@ public sealed class CurriculumCache
                 break;
             }
 
-            var qualText = p.ChildElements[0];
+            var qualText = runs.First;
             var t = qualText.InnerText;
             ValidateQualText(t);
 
-            var nameText = p.ChildElements[1];
+            var nameText = runs.Second;
             {
                 var name = nameText.InnerText;
                 var teacherName = TeacherNameHelper.ParseName(name);
@@ -874,14 +927,16 @@ public sealed class CurriculumCache
             year = yearResult.Value;
         }
 
-        return new Curriculum
+        return new()
         {
+            CourseName = realFullCourseName,
+            Programs = programs,
+            Year = year,
+            YearAndQual = yearAndQualificationType,
             AuthorNames = authorNames,
-            DisciplineProvisions = null!,
-            PreliminaryPassage = "",
         };
 
-        static Program ParseProgram(string t)
+        static List<Program> ParseProgram(string t)
         {
             var parser = new Parser(t);
             {
@@ -892,24 +947,50 @@ public sealed class CurriculumCache
                 }
             }
 
-            parser.SkipWhitespace();
+            var ret = new List<Program>();
+            while (true)
+            {
+                {
+                    var r = parser.SkipWhitespace();
+                    if (!r.SkippedAny)
+                    {
+                        throw new InvalidOperationException("Expected whitespace around programs");
+                    }
+                }
 
-            ReadOnlyMemory<char> code;
-            try
-            {
-                code = CurriculumNameParser.ParseProgramCode(ref parser);
-            }
-            catch (NotSupportedException e)
-            {
-                throw new InvalidOperationException($"Error while parsing program code: {e}", e);
-            }
+                ReadOnlyMemory<char> code;
+                try
+                {
+                    code = CurriculumNameParser.ParseProgramCode(ref parser);
+                }
+                catch (NotSupportedException e)
+                {
+                    throw new InvalidOperationException($"Error while parsing program code: {e}", e);
+                }
 
-            var specialty = parser.SourceUntilEnd();
-            return new()
-            {
-                Code = new(code.ToString()),
-                Name = new(specialty.ToString()),
-            };
+                parser.SkipWhitespace();
+
+                var bparser = parser.BufferedView();
+                var nextResult = bparser.SkipUntilAny([',']);
+                if (!nextResult.SkippedAny)
+                {
+                    throw new InvalidOperationException("Expected specialty name after the code");
+                }
+
+                var specialty = parser.SourceUntilExclusive(bparser.Position);
+                ret.Add(new()
+                {
+                    Code = new(code.ToString()),
+                    Name = new(specialty.ToString()),
+                });
+
+                if (nextResult.EndOfInput)
+                {
+                    return ret;
+                }
+
+                parser.MovePast(bparser.Position);
+            }
         }
 
         static YearAndQualificationType ParseYearAndQualificationType(string t)
@@ -1006,10 +1087,10 @@ public sealed class CurriculumCache
                 new("asistent"),
             ];
             Word[] ignoredTokens = [
-                new("asistent"),
+                new("universitar"),
             ];
             var span = t.AsSpan();
-            foreach (var range in span.Split(' '))
+            foreach (var range in span.SplitAny(" ,;"))
             {
                 var part = span[range];
                 if (part.Length == 0)
@@ -1037,10 +1118,11 @@ public sealed class CurriculumCache
                 }
                 if (!partWord.LooksFull)
                 {
+                    var short_ = partWord.Shortened.Value;
                     foreach (var shortToken in exactShortTokens)
                     {
                         if (shortToken.Span.Value.Equals(
-                                partWord.Value,
+                                short_,
                                 StringComparison.OrdinalIgnoreCase))
                         {
                             return true;
@@ -1062,7 +1144,7 @@ public sealed class CurriculumCache
         {
             while (paragraphs.MoveNext())
             {
-                var t = paragraphs.Current.InnerText;
+                var t = paragraphs.Current!.InnerText;
                 if (t.Equals("curriculum", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
@@ -1072,9 +1154,30 @@ public sealed class CurriculumCache
         }
     }
 
+    private static IEnumerator<Paragraph> FirstPageParagraphs(IEnumerator<OpenXmlElement> source)
+    {
+        while (true)
+        {
+            if (!source.MoveNext())
+            {
+                yield break;
+            }
+            if (source.Current is Break)
+            {
+                yield break;
+            }
+            if (source.Current is Paragraph p)
+            {
+                yield return p;
+            }
+        }
+    }
+
 }
 
-public readonly record struct YearAndQualificationType(int Year, QualificationType QualificationType);
+public readonly record struct YearAndQualificationType(
+    int Year,
+    QualificationType QualificationType);
 
 public readonly record struct Program(
     ProgramCode Code,

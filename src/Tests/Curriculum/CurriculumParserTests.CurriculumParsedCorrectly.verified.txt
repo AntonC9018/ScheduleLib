@@ -1,0 +1,57 @@
+﻿{
+  General: {
+    CourseName: Rețele de calculatoare,
+    AuthorNames: [
+      {
+        FirstName: {
+          A: {
+            Full: Titu,
+            Short: null
+          },
+          B: {
+            Full: null,
+            Short: null
+          }
+        },
+        LastName: Capcelea
+      }
+    ],
+    Year: 2024,
+    YearAndQual: {
+      Year: 1,
+      QualificationType: Licenta
+    },
+    Programs: [
+      {
+        Code: {
+          Value: 0613.4
+        },
+        Name: {
+          Value: Informatică
+        }
+      },
+      {
+        Code: {
+          Value: 0613.5
+        },
+        Name: {
+          Value: Informatică Aplicată
+        }
+      }
+    ]
+  },
+  PreliminaryPassage: ,
+  DisciplineProvisions: null,
+  Lessons: {
+    Units: null
+  },
+  Labs: {
+    Labs: null
+  },
+  StudiedUnits: {
+    Units: null
+  },
+  Competences: {
+    Values: null
+  }
+}

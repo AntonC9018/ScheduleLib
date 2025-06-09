@@ -14,6 +14,42 @@ public static class EnumerableHelper
         return source.Select((x, i) => (i, x));
     }
 
+    public static (T First, T Second)? MaybeJustTwoItems<T>(this IEnumerable<T> source)
+    {
+        if (source is IList<T> l)
+        {
+            int count = l.Count;
+            switch (count)
+            {
+                case 2:
+                    return (l[0], l[1]);
+                default:
+                    return null;
+            }
+        }
+        {
+            using var e = source.GetEnumerator();
+
+            if (!e.MoveNext())
+            {
+                return null;
+            }
+            var first = e.Current;
+
+            if (!e.MoveNext())
+            {
+                return null;
+            }
+            var second = e.Current;
+
+            if (e.MoveNext())
+            {
+                return null;
+            }
+            return (first, second);
+        }
+    }
+
     public static (T First, T Second) JustTwoItems<T>(this IEnumerable<T> source)
     {
         if (source is IList<T> l)

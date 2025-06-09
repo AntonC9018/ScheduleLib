@@ -933,6 +933,12 @@ public static class WordScheduleParser
                 {
                     throw new InvalidOperationException("Sem must be followed by a roman numeral");
                 }
+
+                if (!parser.IsEmpty)
+                {
+                    throw new InvalidOperationException("Roman numeral after sem must be the last thing");
+                }
+
                 return res.Number;
             }
 

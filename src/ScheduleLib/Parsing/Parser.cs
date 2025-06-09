@@ -270,6 +270,19 @@ public static class ParserHelper
         return parser.Skip(new SkipUntilImpl(chars));
     }
 
+    private ref struct SkipUntilNotImpl : IShouldSkip
+    {
+        private readonly ReadOnlySpan<char> _chars;
+        public SkipUntilNotImpl(ReadOnlySpan<char> chars) => _chars = chars;
+        public bool ShouldSkip(char ch) => _chars.Contains(ch);
+    }
+    public static SkipResult SkipUntilNotAny(
+        this ref Parser parser,
+        ReadOnlySpan<char> chars)
+    {
+        return parser.Skip(new SkipUntilNotImpl(chars));
+    }
+
     private ref struct SkipLettersImpl : IShouldSkip
     {
         public bool ShouldSkip(char ch) => char.IsLetter(ch);
@@ -412,10 +425,10 @@ public static class ParserHelper
     {
         var bparser = parser.BufferedView();
         {
-            var result = bparser.SkipNotWhitespace();
-            if (!result.EndOfInput)
+            var result = bparser.SkipUntilNotAny("IVX");
+            if (!result.SkippedAny)
             {
-                return ReadRomanResult.CreateError(ReadRomanStatus.EndOfInput);
+                return ReadRomanResult.CreateError(ReadRomanStatus.NotRomanNumeralStart);
             }
         }
         {
@@ -425,6 +438,7 @@ public static class ParserHelper
             {
                 return ReadRomanResult.CreateError(ReadRomanStatus.NotRoman);
             }
+            parser.MoveTo(bparser.Position);
             return ReadRomanResult.CreateOk(n);
         }
     }
@@ -449,7 +463,7 @@ public struct ReadRomanResult
         Debug.Assert(err != ReadRomanStatus.Ok);
         return new()
         {
-            Status = ReadRomanStatus.Ok,
+            Status = err,
         };
     }
 }
@@ -457,7 +471,7 @@ public struct ReadRomanResult
 public enum ReadRomanStatus
 {
     Ok,
-    EndOfInput,
+    NotRomanNumeralStart,
     NotRoman,
 }
 
