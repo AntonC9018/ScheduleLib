@@ -18,7 +18,7 @@ public sealed class CurriculumParserTests
     public async Task CurriculumParsedCorrectly()
     {
         var file = CurriculumFile.FromFilePath(TestCurriculumFileName);
-        var curriculum = await CurriculumCache.ReadFile(file!.Value);
+        var curriculum = await CurriculumParser.ReadFile(file!.Value);
         await Verify(curriculum);
     }
 }

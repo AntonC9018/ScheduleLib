@@ -351,6 +351,7 @@ public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
+    Count,
 }
 
 public record struct OneForEachAttendanceMode<T>
