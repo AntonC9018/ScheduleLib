@@ -35,16 +35,16 @@ public struct LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(Lookup.Courses, name);
 
-    public IEnumerable<TeacherId> Teachers(ReadOnlyMemory<char> lastName)
+    public IEnumerable<TeacherId> Teachers(ReadOnlySpan<char> lastName)
     {
-        if (Lookup.TeachersByLastName.Get(lastName.Span) is not { } ids)
+        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
         {
             return [];
         }
         return ids.Select(id => new TeacherId(id));
     }
 
-    public TeacherId? Teacher(ReadOnlyMemory<char> lastName)
+    public TeacherId? Teacher(ReadOnlySpan<char> lastName)
     {
         using var e = Teachers(lastName).GetEnumerator();
         if (!e.MoveNext())

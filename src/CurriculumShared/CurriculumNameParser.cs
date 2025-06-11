@@ -1,4 +1,4 @@
-using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using DocumentFormat.OpenXml;
@@ -44,7 +44,7 @@ public sealed class CurriculumGeneralInfo
 public sealed class Curriculum
 {
     public required CurriculumGeneralInfo General;
-    public required Preliminary Preliminary;
+    public required Preliminary? Preliminary;
     public required AllDisciplineProvisions DisciplineProvisions;
     public required AllLessonPlan Lessons;
     public required AllLabsPlan Labs;
@@ -62,7 +62,6 @@ internal struct ParsingState()
     public OpenXmlElementList.Enumerator SectionContentStart = default;
 
     public readonly StringBuilder Accumulator = new();
-    public PreliminaryState PreliminaryState = new();
 }
 
 internal struct CurriculumInParsing()
@@ -79,6 +78,7 @@ internal struct PreliminaryState()
 {
     public PreliminaryField Field = PreliminaryField.None;
     public UnsizedBitArray32 Processed = default;
+    public Preliminary Preliminary = new();
 }
 public enum PreliminaryField
 {
@@ -87,6 +87,7 @@ public enum PreliminaryField
     Importance,
     Languages,
     Beneficiaries,
+    Count,
 }
 
 public sealed class Preliminary
@@ -765,7 +766,7 @@ public sealed class CurriculumCache
             {
                 foreach (var teacher in x.Key.Teachers)
                 {
-                    if (p.Lookup.Teacher(teacher) is not { } teacherId)
+                    if (p.Lookup.Teacher(teacher.Span) is not { } teacherId)
                     {
                         // throw new InvalidOperationException("Teacher not found!");
                         continue;
@@ -835,30 +836,13 @@ public sealed class CurriculumCache
 
         static void ProcessSection(
             ref ParsingState parsingState,
-            SectionItemsEnumerator items)
+            SectionItemsEnumerable items)
         {
             switch (parsingState.CurrentSectionType)
             {
                 case SectionType.PreliminaryPassage:
                 {
-                    parsingState.Curriculum.Preliminary = new();
-                    while (items.MoveNext())
-                    {
-                    }
-
-                    ref var s = ref parsingState.PreliminaryState;
-                    if (s.Field == PreliminaryField.None)
-                    {
-                        break;
-                    }
-
-                    var str = parsingState.Accumulator.ToStringAndClear();
-                    if (str.Length == 0)
-                    {
-                        throw new NotSupportedException("Subsections in preliminary must not be empty");
-                    }
-
-                    parsingState.Curriculum.Preliminary!.Set(s.Field, str);
+                    parsingState.Curriculum.Preliminary = PreliminarySectionProcessing.Process(ref parsingState, items);
                     break;
                 }
             }
@@ -893,7 +877,7 @@ public sealed class CurriculumCache
         {
             General = general,
             DisciplineProvisions = null!,
-            Preliminary = null!,
+            Preliminary = parsingState.Curriculum.Preliminary,
             Competences = new()
             {
                 Values = new(),
@@ -912,7 +896,6 @@ public sealed class CurriculumCache
             },
         };
 
-
         static void MaybeProcessCurrentSection(
             ref ParsingState state,
             OpenXmlElement? currentItem)
@@ -922,50 +905,27 @@ public sealed class CurriculumCache
                 return;
             }
 
-            var children = new SectionItemsEnumerator(state.SectionContentStart, currentItem);
+            var children = new SectionItemsEnumerable(state.SectionContentStart, currentItem);
             ProcessSection(ref state, children);
             state.CurrentSectionType = null;
         }
 
         static SectionType? CheckNewSection(OpenXmlElement currentChild)
         {
-            var headingResult = MaybeParseSectionType(currentChild);
-            if (headingResult.SectionType == null)
+            var sectionResult = MaybeParseSectionType(currentChild);
+            if (!sectionResult.IsSection)
             {
                 return null;
             }
-            if (headingResult.SectionType == SectionType.Unknown)
-            {
-                throw new NotSupportedException($"Unrecognized heading '{headingResult.UnmatchedText}'.");
-            }
-            if (!headingResult.MissingText.IsEmpty)
-            {
-                throw new NotSupportedException($"Partially matched heading '{headingResult.MissingText}'.");
-            }
-            var section = headingResult.SectionType!.Value;
+            var section = (SectionType) sectionResult.SectionType;
             // Console.WriteLine($"Found section type {section}");
             return section;
         }
     }
 
-    private record struct HeadingParseResult
+    private static readonly ImmutableArray<string> SectionStrings = CreateSectionStrings();
+    private static ImmutableArray<string> CreateSectionStrings()
     {
-        public required SectionType? SectionType;
-        public required ReadOnlyMemory<char> UnmatchedText;
-        public required ReadOnlyMemory<char> MissingText;
-    }
-    private static HeadingParseResult MaybeParseSectionType(OpenXmlElement current)
-    {
-        if (current is not Paragraph para)
-        {
-            return default;
-        }
-        if (!IsHeading())
-        {
-            return default;
-        }
-
-        // Check for one of the allowed headings.
         OneForEachSectionType<string> sections = new()
         {
             Bibliography = "bibliografie recomandata",
@@ -977,106 +937,53 @@ public sealed class CurriculumCache
             PreliminaryPassage = "preliminarii",
             StudyUnits = "unitati de invatare",
         };
-        var potentialSectionTypes = BitArray32.AllSet((int) SectionType.Count);
-        OneForEachSectionType<int> readPositions = default;
 
-        // It might be split up into multiple text segments, have to check each.
-        bool isFirstCheck = true;
-        bool skipRoman = true;
-        foreach (var textItem in para.Descendants<Text>())
+        var e = sections.GetEnumerator();
+        var ret = ImmutableArray.CreateBuilder<string>(sections.Count());
+        while (e.MoveNext())
         {
-            var parser = new Parser(textItem.Text);
-            if (parser.SkipWhitespace().EndOfInput)
+            ret.Add(e.Current);
+        }
+        return ret.MoveToImmutable();
+    }
+
+    private struct PreprocessIgnoreRomanOnce() : IPreprocess
+    {
+        private bool _skipRoman = false;
+
+        public void Preprocess(ref Parser parser)
+        {
+            if (_skipRoman)
             {
-                continue;
+                return;
             }
 
+            _skipRoman = true;
             // Some of them might have a roman numeral in front. Skip it.
-            if (skipRoman && parser.ReadRoman().Status == ReadRomanStatus.Ok)
+            if (parser.ReadRoman().Status == ReadRomanStatus.Ok)
             {
                 // The dot is optional.
                 parser.ConsumeExactString(".");
                 parser.SkipWhitespace();
             }
-            skipRoman = false;
-
-            var remainingSpan = parser.PeekSpanUntilEnd().Trim();
-            if (remainingSpan.Length == 0)
-            {
-                continue;
-            }
-
-            isFirstCheck = false;
-
-            // For now, check for an exact equality.
-            // Maybe look for keywords later?
-            foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
-            {
-                var sectionType = (SectionType) sectionIndex;
-                ref var refStartIndex = ref readPositions.Ref(sectionType);
-                var sectionsString = sections.Get(sectionType);
-                var currentSlice = sectionsString.AsSpan(refStartIndex);
-
-                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(currentSlice, remainingSpan))
-                {
-                    // TODO: This is pretty hard to implement correctly.
-                    // I need to get the character positions IN THE ORIGINAL string.
-                    // This is currently NOT CORRECT.
-                    refStartIndex += remainingSpan.Length;
-                    var p = new Parser(sectionsString);
-                    p.MoveTo(new(refStartIndex));
-                    p.SkipWhitespace();
-                    refStartIndex = p.Position.Index;
-                }
-                else
-                {
-                    potentialSectionTypes.Unset(sectionIndex);
-                }
-            }
-
-            if (potentialSectionTypes.IsEmpty)
-            {
-                return new()
-                {
-                    SectionType = SectionType.Unknown,
-                    UnmatchedText = parser.SourceUntilEnd(),
-                    MissingText = null,
-                };
-            }
         }
+    }
 
-        if (isFirstCheck)
+    private static SectionParseResult MaybeParseSectionType(
+        OpenXmlElement current)
+    {
+        if (current is not Paragraph para)
         {
-            // Not a single Text descendant.
-            return default;
+            return SectionParseResult.CreateNotHeading();
         }
-
-        if (potentialSectionTypes.SetCount > 1)
+        if (!IsHeading())
         {
-            return new()
-            {
-                SectionType = SectionType.Unknown,
-                MissingText = null,
-                UnmatchedText = null,
-            };
+            return SectionParseResult.CreateNotHeading();
         }
 
-        foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
-        {
-            var sectionType = (SectionType) sectionIndex;
-            var str = sections.Get(sectionType);
-            var start = readPositions.Get(sectionType);
-            Debug.Assert(start != 0, "Can only happen if only checked empty strings");
-            return new()
-            {
-                SectionType = sectionType,
-                UnmatchedText = null,
-                MissingText = str.Length == start ? null : str.AsMemory(start),
-            };
-        }
-
-        throw UnreachableHelper.Unreachable();
-
+        var ret = SectionParser.Parse(para, new PreprocessIgnoreRomanOnce(), SectionStrings);
+        SectionParser.DefaultHandleError(ret);
+        return ret;
 
         bool IsHeading()
         {
@@ -1496,9 +1403,10 @@ public sealed class CurriculumCache
                     var short_ = partWord.Shortened.Value;
                     foreach (var shortToken in exactShortTokens)
                     {
-                        if (shortToken.Span.Value.Equals(
-                                short_,
-                                StringComparison.OrdinalIgnoreCase))
+                        bool equal = shortToken.Span.Value.Equals(
+                            short_,
+                            StringComparison.OrdinalIgnoreCase);
+                        if (equal)
                         {
                             return true;
                         }
@@ -1607,6 +1515,8 @@ internal record struct OneForEachSectionType<T>
 
 internal static class SectionTypeHelper
 {
+    public static int Count<T>(this in OneForEachSectionType<T> _) => (int) SectionType.Count;
+
     public static ref T Ref<T>(this ref OneForEachSectionType<T> item, SectionType p)
     {
         switch (p)
@@ -1694,12 +1604,12 @@ internal enum IsHeadingStyleResult
 }
 
 
-internal struct SectionItemsEnumerator
+internal readonly struct SectionItemsEnumerable
 {
-    private OpenXmlElementList.Enumerator _e;
+    private readonly OpenXmlElementList.Enumerator _e;
     private readonly OpenXmlElement? _nextSectionStart;
 
-    public SectionItemsEnumerator(
+    public SectionItemsEnumerable(
         OpenXmlElementList.Enumerator e,
         OpenXmlElement? nextSectionStart)
     {
@@ -1707,18 +1617,333 @@ internal struct SectionItemsEnumerator
         _e = e;
     }
 
-    public bool MoveNext()
+    public Enumerator GetEnumerator() => new(this);
+
+    public struct Enumerator
     {
-        if (!_e.MoveNext())
+        private OpenXmlElementList.Enumerator _e;
+        private readonly OpenXmlElement? _nextSectionStart;
+
+        public Enumerator(SectionItemsEnumerable e)
         {
-            return false;
+            _e = e._e;
+            _nextSectionStart = e._nextSectionStart;
         }
-        if (_e.Current == _nextSectionStart)
+
+        public bool MoveNext()
         {
-            return false;
+            if (!_e.MoveNext())
+            {
+                return false;
+            }
+            if (_e.Current == _nextSectionStart)
+            {
+                return false;
+            }
+            return true;
         }
-        return true;
+
+        public OpenXmlElement Current => _e.Current;
+    }
+}
+
+internal static class PreliminarySectionProcessing
+{
+    public static Preliminary Process(
+        ref ParsingState parsingState,
+        SectionItemsEnumerable items)
+    {
+        PreliminaryState state = new();
+        foreach (var it in items)
+        {
+            if (it is not Paragraph para)
+            {
+                throw new InvalidOperationException("Only expected paragraphs in the preliminary");
+            }
+            var parseResult = ParseFieldType(para);
+            if (parseResult.IsSection)
+            {
+                MaybeEndField(parsingState.Accumulator);
+
+                var newType = (PreliminaryField) parseResult.SectionType;
+                if (state.Processed.IsSet((int) newType))
+                {
+                    throw new InvalidOperationException($"'{newType}' field appears twice in the preliminary");
+                }
+
+                state.Field = newType;
+                state.Processed.Set((int) newType);
+            }
+            else
+            {
+                var a = parsingState.Accumulator;
+                foreach (var text in para.Descendants<Text>())
+                {
+                    a.Append(text.Text);
+                }
+                a.Append('\n');
+            }
+        }
+
+        MaybeEndField(parsingState.Accumulator);
+        return state.Preliminary;
+
+        void MaybeEndField(StringBuilder accumulator)
+        {
+            if (state.Field == PreliminaryField.None)
+            {
+                return;
+            }
+
+            var str = accumulator.ToStringAndClear();
+            if (str.Length == 0)
+            {
+                throw new NotSupportedException("Subsections in preliminary must not be empty");
+            }
+
+            state.Preliminary.Set(state.Field, str);
+        }
+
+        static SectionParseResult ParseFieldType(Paragraph para)
+        {
+            if (!IsHeading(para))
+            {
+                return SectionParseResult.CreateNotHeading();
+            }
+
+            var ret = SectionParser.Parse(para, new PreprocessDoNothing(), PreliminaryFieldStrings);
+            SectionParser.DefaultHandleError(ret);
+            return ret;
+        }
+
+        static bool IsHeading(OpenXmlElement para)
+        {
+            foreach (var textItem in para.Descendants<Text>())
+            {
+                if (!HasStyling(textItem))
+                {
+                    return false;
+                }
+            }
+            return true;
+
+            static bool HasStyling(Text text)
+            {
+                if (text.Parent is not Run run)
+                {
+                    return false;
+                }
+                if (run.GetFirstChild<RunProperties>() is not { } props)
+                {
+                    return false;
+                }
+                if (props.Bold is { })
+                {
+                    return true;
+                }
+                if (props.Italic is { })
+                {
+                    return true;
+                }
+                return false;
+            }
+        }
     }
 
-    public OpenXmlElement Current => _e.Current;
+
+    private static readonly ImmutableArray<string> PreliminaryFieldStrings = CreatePreliminaryFieldStrings();
+    private static ImmutableArray<string> CreatePreliminaryFieldStrings()
+    {
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var ret = ImmutableArray.CreateBuilder<string>((int) PreliminaryField.Count);
+        ret.Count = (int) PreliminaryField.Count;
+        void Set(PreliminaryField field, string value)
+        {
+            ret[(int) field] = value;
+        }
+        Set(PreliminaryField.Overview, "Prezentarea generală a cursului");
+        Set(PreliminaryField.Importance, "Locul și rolul cursului în formarea rezultatelor învățării ale specialității și misiunea curriculumului în formarea profesională");
+        Set(PreliminaryField.Languages, "Limba de predare a cursului");
+        Set(PreliminaryField.Beneficiaries, "Beneficiarii");
+        Debug.Assert(ret.All(x => x != null));
+        return ret.MoveToImmutable();
+    }
+
+    private struct PreprocessDoNothing() : IPreprocess
+    {
+        public void Preprocess(ref Parser parser)
+        {
+        }
+    }
+}
+
+internal readonly struct SectionParseResult
+{
+    public readonly int SectionType;
+    public readonly bool IsSection;
+    public readonly ReadOnlyMemory<char> UnmatchedText;
+    public readonly ReadOnlyMemory<char> MissingText;
+
+    public readonly bool IsUnknown => IsSection && SectionType == -1;
+
+    private SectionParseResult(
+        int sectionType,
+        bool isSection,
+        ReadOnlyMemory<char> unmatchedText = default,
+        ReadOnlyMemory<char> missingText = default)
+    {
+        SectionType = sectionType;
+        IsSection = isSection;
+        UnmatchedText = unmatchedText;
+        MissingText = missingText;
+    }
+
+    public static SectionParseResult CreateOk(int sectionType)
+    {
+        return new(
+            sectionType: sectionType,
+            isSection: true);
+    }
+    public static SectionParseResult CreateNotHeading()
+    {
+        return new(
+            sectionType: -1,
+            isSection: false);
+    }
+    public static SectionParseResult CreateUnknown(
+        ReadOnlyMemory<char> unmatchedText = default,
+        ReadOnlyMemory<char> missingText = default)
+    {
+        return new(
+            sectionType: -1,
+            isSection: true,
+            unmatchedText: unmatchedText,
+            missingText: missingText);
+    }
+    public static SectionParseResult CreatePartialMatch(
+        int sectionType,
+        ReadOnlyMemory<char> missingText)
+    {
+        return new(
+            sectionType: sectionType,
+            isSection: true,
+            missingText: missingText);
+    }
+}
+
+internal interface IPreprocess
+{
+    public void Preprocess(ref Parser parser);
+}
+
+internal static class SectionParser
+{
+    public static SectionParseResult Parse<TPreprocess>(
+        Paragraph para,
+        TPreprocess preprocess,
+        ImmutableArray<string> strings)
+
+        where TPreprocess : IPreprocess
+    {
+        var potentialSectionTypes = BitArray32.AllSet(strings.Length);
+        using var readPositions = new RentedBuffer<int>(strings.Length);
+        readPositions.Span.Fill(0);
+
+        // It might be split up into multiple text segments, have to check each.
+        bool isFirstCheck = true;
+        foreach (var textItem in para.Descendants<Text>())
+        {
+            var parser = new Parser(textItem.Text);
+            if (parser.SkipWhitespace().EndOfInput)
+            {
+                continue;
+            }
+
+            preprocess.Preprocess(ref parser);
+
+            var remainingSpan = parser.PeekSpanUntilEnd().Trim();
+            if (remainingSpan.Length == 0)
+            {
+                continue;
+            }
+
+            isFirstCheck = false;
+
+            // For now, check for an exact equality.
+            // Maybe look for keywords later?
+            foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
+            {
+                ref var refStartIndex = ref readPositions.Array[sectionIndex];
+                var sectionsString = strings[sectionIndex];
+                var currentSlice = sectionsString.AsSpan(refStartIndex);
+
+                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(currentSlice, remainingSpan))
+                {
+                    // TODO: This is pretty hard to implement correctly.
+                    // I need to get the character positions IN THE ORIGINAL string.
+                    // This is currently NOT CORRECT.
+                    refStartIndex += remainingSpan.Length;
+                    var p = new Parser(sectionsString);
+                    p.MoveTo(new(refStartIndex));
+                    p.SkipWhitespace();
+                    refStartIndex = p.Position.Index;
+                }
+                else
+                {
+                    potentialSectionTypes.Unset(sectionIndex);
+                }
+            }
+
+            if (potentialSectionTypes.IsEmpty)
+            {
+                return SectionParseResult.CreateUnknown(
+                    unmatchedText: parser.SourceUntilEnd());
+            }
+        }
+
+        if (isFirstCheck)
+        {
+            // Not a single Text descendant.
+            return SectionParseResult.CreateNotHeading();
+        }
+
+        if (potentialSectionTypes.SetCount > 1)
+        {
+            return SectionParseResult.CreateUnknown();
+        }
+
+        foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
+        {
+            var str = strings[sectionIndex];
+            var start = readPositions.Array[sectionIndex];
+            Debug.Assert(start != 0, "Can only happen if only checked empty strings");
+
+            if (str.Length == start)
+            {
+                return SectionParseResult.CreateOk(sectionIndex);
+            }
+            else
+            {
+                return SectionParseResult.CreatePartialMatch(sectionIndex, str.AsMemory(start));
+            }
+        }
+
+        throw UnreachableHelper.Unreachable();
+    }
+
+    public static void DefaultHandleError(SectionParseResult x)
+    {
+        if (!x.IsSection)
+        {
+            return;
+        }
+        if (x.IsUnknown)
+        {
+            throw new NotSupportedException($"Unrecognized heading '{x.UnmatchedText}'.");
+        }
+        if (!x.MissingText.IsEmpty)
+        {
+            throw new NotSupportedException($"Partially matched heading '{x.MissingText}'.");
+        }
+    }
 }
