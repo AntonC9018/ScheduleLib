@@ -220,3 +220,43 @@ public static class EnumerableHelper
         }
     }
 }
+
+public sealed class ClassEnumeratorWrapper<T, TEnumerator> : IEnumerator<T>
+    where TEnumerator : struct, IEnumerator<T>
+{
+    private TEnumerator _enumerator;
+    public ClassEnumeratorWrapper(TEnumerator enumerator)
+    {
+        _enumerator = enumerator;
+    }
+    public T Current => _enumerator.Current;
+    object? IEnumerator.Current => _enumerator.Current;
+    public void Dispose() => _enumerator.Dispose();
+    public bool MoveNext() => _enumerator.MoveNext();
+    public void Reset() => _enumerator.Reset();
+    public TEnumerator EnumeratorState => _enumerator;
+}
+
+public static class EnumeratorHelper1
+{
+    public static ClassEnumeratorWrapper<T, TEnumerator> Wrap<T, TEnumerator>(
+        this TEnumerator e,
+        T? tag = default(T))
+
+        where TEnumerator : struct, IEnumerator<T>
+        where T : notnull
+    {
+        _ = tag;
+        return new(e);
+    }
+
+    public static ClassEnumeratorWrapper<T, TEnumerator> WrapNullable<T, TEnumerator>(
+        this TEnumerator e,
+        T? tag = default(T))
+
+        where TEnumerator : struct, IEnumerator<T>
+    {
+        _ = tag;
+        return new(e);
+    }
+}

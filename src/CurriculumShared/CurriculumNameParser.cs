@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -51,12 +52,70 @@ public sealed class Curriculum
     public required CompetenceCollection Competences;
 }
 
+internal struct ParsingState()
+{
+    public SectionType? CurrentSectionType = null;
+    public UnsizedBitArray32 ProcessedSections = new();
+    public CurriculumInParsing Curriculum = new();
+
+    // Used internally.
+    public OpenXmlElementList.Enumerator SectionContentStart = default;
+
+    public readonly StringBuilder Accumulator = new();
+    public PreliminaryState PreliminaryState = new();
+}
+
+internal struct CurriculumInParsing()
+{
+    public Preliminary? Preliminary = null;
+    public List<DisciplineProvision> DisciplineProvisions = new();
+    public List<LessonPlan> Lessons = new();
+    public List<LabPlan> Labs = new();
+    public List<StudiedUnit> StudiedUnits = new();
+    public List<Competence> Values = new();
+}
+
+internal struct PreliminaryState()
+{
+    public PreliminaryField Field = PreliminaryField.None;
+    public UnsizedBitArray32 Processed = default;
+}
+public enum PreliminaryField
+{
+    None = -1,
+    Overview,
+    Importance,
+    Languages,
+    Beneficiaries,
+}
+
 public sealed class Preliminary
 {
     public string? Overview;
     public string? Importance;
     public string? Languages;
     public string? Beneficiaries;
+
+    public void Set(PreliminaryField field, string str)
+    {
+        switch (field)
+        {
+            case PreliminaryField.Overview:
+                Overview = str;
+                break;
+            case PreliminaryField.Importance:
+                Importance = str;
+                break;
+            case PreliminaryField.Languages:
+                Languages = str;
+                break;
+            case PreliminaryField.Beneficiaries:
+                Beneficiaries = str;
+                break;
+            default:
+                throw new NotSupportedException($"Unknown preliminary field {field}");
+        }
+    }
 }
 
 public sealed class AllDisciplineProvisions
@@ -768,28 +827,67 @@ public sealed class CurriculumCache
 
         CurriculumGeneralInfo general;
         {
-            using var paragraphs = FirstPageParagraphs(source);
+            using var paragraphs = FirstSectionParagraphs(source);
             general = ParseGeneralInfo(paragraphs);
+        }
+
+        var parsingState = new ParsingState();
+
+        static void ProcessSection(
+            ref ParsingState parsingState,
+            SectionItemsEnumerator items)
+        {
+            switch (parsingState.CurrentSectionType)
+            {
+                case SectionType.PreliminaryPassage:
+                {
+                    parsingState.Curriculum.Preliminary = new();
+                    while (items.MoveNext())
+                    {
+                    }
+
+                    ref var s = ref parsingState.PreliminaryState;
+                    if (s.Field == PreliminaryField.None)
+                    {
+                        break;
+                    }
+
+                    var str = parsingState.Accumulator.ToStringAndClear();
+                    if (str.Length == 0)
+                    {
+                        throw new NotSupportedException("Subsections in preliminary must not be empty");
+                    }
+
+                    parsingState.Curriculum.Preliminary!.Set(s.Field, str);
+                    break;
+                }
+            }
+        }
+
+        static void SetCurrentSection(
+            ref ParsingState parsingState,
+            SectionType newSectionType)
+        {
+            if (parsingState.ProcessedSections.IsSet((int) newSectionType))
+            {
+                throw new NotSupportedException("The same section appears twice, which is not allowed");
+            }
+            parsingState.CurrentSectionType = newSectionType;
+            parsingState.ProcessedSections.Set((int) newSectionType);
         }
 
         while (source.MoveNext())
         {
-            var headingResult = MaybeParsePageType(source.Current);
-            if (headingResult.PageType == null)
+            var currentItem = source.Current;
+            if (CheckNewSection(currentItem) is not { } section)
             {
                 continue;
             }
-            if (headingResult.PageType == PageType.Unknown)
-            {
-                throw new NotSupportedException($"Unrecognized heading '{headingResult.UnmatchedText}'.");
-            }
-            if (!headingResult.MissingText.IsEmpty)
-            {
-                throw new NotSupportedException($"Partially matched heading '{headingResult.MissingText}'.");
-            }
-            Console.WriteLine($"Found page type {headingResult.PageType!.Value}");
-            continue;
+            MaybeProcessCurrentSection(ref parsingState, currentItem);
+            SetCurrentSection(ref parsingState, section);
+            parsingState.SectionContentStart = source.EnumeratorState;
         }
+        MaybeProcessCurrentSection(ref parsingState, null);
 
         return new Curriculum
         {
@@ -813,15 +911,50 @@ public sealed class CurriculumCache
                 Units = new(),
             },
         };
+
+
+        static void MaybeProcessCurrentSection(
+            ref ParsingState state,
+            OpenXmlElement? currentItem)
+        {
+            if (state.CurrentSectionType == null)
+            {
+                return;
+            }
+
+            var children = new SectionItemsEnumerator(state.SectionContentStart, currentItem);
+            ProcessSection(ref state, children);
+            state.CurrentSectionType = null;
+        }
+
+        static SectionType? CheckNewSection(OpenXmlElement currentChild)
+        {
+            var headingResult = MaybeParseSectionType(currentChild);
+            if (headingResult.SectionType == null)
+            {
+                return null;
+            }
+            if (headingResult.SectionType == SectionType.Unknown)
+            {
+                throw new NotSupportedException($"Unrecognized heading '{headingResult.UnmatchedText}'.");
+            }
+            if (!headingResult.MissingText.IsEmpty)
+            {
+                throw new NotSupportedException($"Partially matched heading '{headingResult.MissingText}'.");
+            }
+            var section = headingResult.SectionType!.Value;
+            // Console.WriteLine($"Found section type {section}");
+            return section;
+        }
     }
 
     private record struct HeadingParseResult
     {
-        public required PageType? PageType;
+        public required SectionType? SectionType;
         public required ReadOnlyMemory<char> UnmatchedText;
         public required ReadOnlyMemory<char> MissingText;
     }
-    private static HeadingParseResult MaybeParsePageType(OpenXmlElement current)
+    private static HeadingParseResult MaybeParseSectionType(OpenXmlElement current)
     {
         if (current is not Paragraph para)
         {
@@ -833,7 +966,7 @@ public sealed class CurriculumCache
         }
 
         // Check for one of the allowed headings.
-        OneForEachPageType<string> pages = new()
+        OneForEachSectionType<string> sections = new()
         {
             Bibliography = "bibliografie recomandata",
             Competences = "competente generale, profesionale si rezultatele invatarii",
@@ -844,8 +977,8 @@ public sealed class CurriculumCache
             PreliminaryPassage = "preliminarii",
             StudyUnits = "unitati de invatare",
         };
-        var potentialPageTypes = BitArray32.AllSet((int) PageType.Count);
-        OneForEachPageType<int> readPositions = default;
+        var potentialSectionTypes = BitArray32.AllSet((int) SectionType.Count);
+        OneForEachSectionType<int> readPositions = default;
 
         // It might be split up into multiple text segments, have to check each.
         bool isFirstCheck = true;
@@ -877,12 +1010,12 @@ public sealed class CurriculumCache
 
             // For now, check for an exact equality.
             // Maybe look for keywords later?
-            foreach (var pageIndex in potentialPageTypes.SetBitIndicesLowToHigh)
+            foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
             {
-                var pageType = (PageType) pageIndex;
-                ref var refStartIndex = ref readPositions.Ref(pageType);
-                var pagesString = pages.Get(pageType);
-                var currentSlice = pagesString.AsSpan(refStartIndex);
+                var sectionType = (SectionType) sectionIndex;
+                ref var refStartIndex = ref readPositions.Ref(sectionType);
+                var sectionsString = sections.Get(sectionType);
+                var currentSlice = sectionsString.AsSpan(refStartIndex);
 
                 if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(currentSlice, remainingSpan))
                 {
@@ -890,22 +1023,22 @@ public sealed class CurriculumCache
                     // I need to get the character positions IN THE ORIGINAL string.
                     // This is currently NOT CORRECT.
                     refStartIndex += remainingSpan.Length;
-                    var p = new Parser(pagesString);
+                    var p = new Parser(sectionsString);
                     p.MoveTo(new(refStartIndex));
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
                 }
                 else
                 {
-                    potentialPageTypes.Unset(pageIndex);
+                    potentialSectionTypes.Unset(sectionIndex);
                 }
             }
 
-            if (potentialPageTypes.IsEmpty)
+            if (potentialSectionTypes.IsEmpty)
             {
                 return new()
                 {
-                    PageType = PageType.Unknown,
+                    SectionType = SectionType.Unknown,
                     UnmatchedText = parser.SourceUntilEnd(),
                     MissingText = null,
                 };
@@ -918,25 +1051,25 @@ public sealed class CurriculumCache
             return default;
         }
 
-        if (potentialPageTypes.SetCount > 1)
+        if (potentialSectionTypes.SetCount > 1)
         {
             return new()
             {
-                PageType = PageType.Unknown,
+                SectionType = SectionType.Unknown,
                 MissingText = null,
                 UnmatchedText = null,
             };
         }
 
-        foreach (var pageIndex in potentialPageTypes.SetBitIndicesLowToHigh)
+        foreach (var sectionIndex in potentialSectionTypes.SetBitIndicesLowToHigh)
         {
-            var pageType = (PageType) pageIndex;
-            var str = pages.Get(pageType);
-            var start = readPositions.Get(pageType);
+            var sectionType = (SectionType) sectionIndex;
+            var str = sections.Get(sectionType);
+            var start = readPositions.Get(sectionType);
             Debug.Assert(start != 0, "Can only happen if only checked empty strings");
             return new()
             {
-                PageType = pageType,
+                SectionType = sectionType,
                 UnmatchedText = null,
                 MissingText = str.Length == start ? null : str.AsMemory(start),
             };
@@ -1396,7 +1529,7 @@ public sealed class CurriculumCache
         }
     }
 
-    private static IEnumerator<Paragraph> FirstPageParagraphs(IEnumerator<OpenXmlElement> source)
+    private static IEnumerator<Paragraph> FirstSectionParagraphs(IEnumerator<OpenXmlElement> source)
     {
         while (true)
         {
@@ -1446,7 +1579,7 @@ public readonly record struct Program(
     ProgramCode Code,
     SpecializationName Name);
 
-internal enum PageType
+internal enum SectionType
 {
     Unknown = -1,
     PreliminaryPassage,
@@ -1460,7 +1593,7 @@ internal enum PageType
     Count,
 }
 
-internal record struct OneForEachPageType<T>
+internal record struct OneForEachSectionType<T>
 {
     public required T PreliminaryPassage;
     public required T DisciplineProvisions;
@@ -1472,131 +1605,120 @@ internal record struct OneForEachPageType<T>
     public required T Bibliography;
 }
 
-internal static class PageHelper
+internal static class SectionTypeHelper
 {
-    public static ref T Ref<T>(this ref OneForEachPageType<T> item, PageType p)
+    public static ref T Ref<T>(this ref OneForEachSectionType<T> item, SectionType p)
     {
         switch (p)
         {
-            case PageType.PreliminaryPassage:
+            case SectionType.PreliminaryPassage:
                 return ref item.PreliminaryPassage;
-            case PageType.DisciplineProvisions:
+            case SectionType.DisciplineProvisions:
                 return ref item.DisciplineProvisions;
-            case PageType.LessonPlans:
+            case SectionType.LessonPlans:
                 return ref item.LessonPlans;
-            case PageType.Competences:
+            case SectionType.Competences:
                 return ref item.Competences;
-            case PageType.StudyUnits:
+            case SectionType.StudyUnits:
                 return ref item.StudyUnits;
-            case PageType.Labs:
+            case SectionType.Labs:
                 return ref item.Labs;
-            case PageType.Suggestions:
+            case SectionType.Suggestions:
                 return ref item.Suggestions;
-            case PageType.Bibliography:
+            case SectionType.Bibliography:
                 return ref item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown page type");
+                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown section type");
         }
     }
 
-    public static T Get<T>(this in OneForEachPageType<T> item, PageType p)
+    public static T Get<T>(this in OneForEachSectionType<T> item, SectionType p)
     {
         switch (p)
         {
-            case PageType.PreliminaryPassage:
+            case SectionType.PreliminaryPassage:
                 return item.PreliminaryPassage;
-            case PageType.DisciplineProvisions:
+            case SectionType.DisciplineProvisions:
                 return item.DisciplineProvisions;
-            case PageType.LessonPlans:
+            case SectionType.LessonPlans:
                 return item.LessonPlans;
-            case PageType.Competences:
+            case SectionType.Competences:
                 return item.Competences;
-            case PageType.StudyUnits:
+            case SectionType.StudyUnits:
                 return item.StudyUnits;
-            case PageType.Labs:
+            case SectionType.Labs:
                 return item.Labs;
-            case PageType.Suggestions:
+            case SectionType.Suggestions:
                 return item.Suggestions;
-            case PageType.Bibliography:
+            case SectionType.Bibliography:
                 return item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown page type");
+                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown section type");
         }
     }
 
-    public static Enumerator<T> GetEnumerator<T>(this ref readonly OneForEachPageType<T> item)
+    public static Enumerator<T> GetEnumerator<T>(this ref readonly OneForEachSectionType<T> item)
     {
         return new(in item);
     }
 
     public ref struct Enumerator<T>
     {
-        private readonly ref readonly OneForEachPageType<T> _item;
+        private readonly ref readonly OneForEachSectionType<T> _item;
         private int _index;
 
-        public Enumerator(ref readonly OneForEachPageType<T> item)
+        public Enumerator(ref readonly OneForEachSectionType<T> item)
         {
             _item = ref item;
             _index = -1;
         }
 
-        public PageType CurrentType => (PageType) _index;
-        public T Current => _item.Get((PageType) _index);
+        public SectionType CurrentType => (SectionType) _index;
+        public T Current => _item.Get((SectionType) _index);
 
         public bool MoveNext()
         {
             _index++;
-            return _index < (int) PageType.Count;
+            return _index < (int) SectionType.Count;
         }
 
         public void Reset() => _index = -1;
     }
 }
 
-public sealed class ClassEnumeratorWrapper<T, TEnumerator> : IEnumerator<T>
-    where TEnumerator : struct, IEnumerator<T>
-
-{
-    private TEnumerator _enumerator;
-    public ClassEnumeratorWrapper(TEnumerator enumerator)
-    {
-        _enumerator = enumerator;
-    }
-    public T Current => _enumerator.Current;
-    object? IEnumerator.Current => _enumerator.Current;
-    public void Dispose() => _enumerator.Dispose();
-    public bool MoveNext() => _enumerator.MoveNext();
-    public void Reset() => _enumerator.Reset();
-}
-
-public static class EnumeratorHelper1
-{
-    public static ClassEnumeratorWrapper<T, TEnumerator> Wrap<T, TEnumerator>(
-        this TEnumerator e,
-        T? tag = default(T))
-
-        where TEnumerator : struct, IEnumerator<T>
-        where T : notnull
-    {
-        _ = tag;
-        return new(e);
-    }
-
-    public static ClassEnumeratorWrapper<T, TEnumerator> WrapNullable<T, TEnumerator>(
-        this TEnumerator e,
-        T tag = default(T)!)
-
-        where TEnumerator : struct, IEnumerator<T>
-    {
-        _ = tag;
-        return new(e);
-    }
-}
-
-
-public enum IsHeadingStyleResult
+internal enum IsHeadingStyleResult
 {
     Heading,
     NotHeading,
     NoStyle,
+}
+
+
+internal struct SectionItemsEnumerator
+{
+    private OpenXmlElementList.Enumerator _e;
+    private readonly OpenXmlElement? _nextSectionStart;
+
+    public SectionItemsEnumerator(
+        OpenXmlElementList.Enumerator e,
+        OpenXmlElement? nextSectionStart)
+    {
+        _nextSectionStart = nextSectionStart;
+        _e = e;
+    }
+
+    public bool MoveNext()
+    {
+        if (!_e.MoveNext())
+        {
+            return false;
+        }
+        if (_e.Current == _nextSectionStart)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public OpenXmlElement Current => _e.Current;
 }
