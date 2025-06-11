@@ -798,10 +798,13 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("Could not narrow down the curriculum.");
         }
 
-        var ret = await ReadFile(candidateFiles[0]);
+        var ret = await CurriculumParser.ReadFile(candidateFiles[0]);
         return ret;
     }
+}
 
+internal static class CurriculumParser
+{
     internal static async Task<Curriculum> ReadFile(CurriculumFile file)
     {
         await using var fileStream = File.OpenRead(file.FilePath);
@@ -938,11 +941,10 @@ public sealed class CurriculumCache
             StudyUnits = "unitati de invatare",
         };
 
-        var e = sections.GetEnumerator();
         var ret = ImmutableArray.CreateBuilder<string>(sections.Count());
-        while (e.MoveNext())
+        foreach (var s in sections)
         {
-            ret.Add(e.Current);
+            ret.Add(s);
         }
         return ret.MoveToImmutable();
     }
@@ -969,8 +971,7 @@ public sealed class CurriculumCache
         }
     }
 
-    private static SectionParseResult MaybeParseSectionType(
-        OpenXmlElement current)
+    private static SectionParseResult MaybeParseSectionType(OpenXmlElement current)
     {
         if (current is not Paragraph para)
         {
