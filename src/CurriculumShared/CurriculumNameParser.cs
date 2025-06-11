@@ -930,7 +930,7 @@ internal static class CurriculumParser
         static SectionType? CheckNewSection(OpenXmlElement currentChild)
         {
             var sectionResult = MaybeParseSectionType(currentChild);
-            if (!sectionResult.IsEmpty)
+            if (!sectionResult.IsNotEmpty)
             {
                 return null;
             }
@@ -1674,7 +1674,7 @@ internal static class PreliminarySectionProcessing
                 throw new InvalidOperationException("Only expected paragraphs in the preliminary");
             }
             var parseResult = ParseFieldType(para);
-            if (parseResult.IsEmpty)
+            if (parseResult.IsNotEmpty)
             {
                 MaybeEndField(parsingState.Accumulator);
 
@@ -1956,7 +1956,7 @@ internal static class DisciplineProvisionsProcessing
                             });
                         var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), Strings());
                         StringSearchHelper.DefaultHandleError(attendanceResult);
-                        if (attendanceResult.IsEmpty)
+                        if (attendanceResult.IsNotEmpty)
                         {
                             throw new NotSupportedException("Attendance mode must not be empty");
                         }
@@ -2029,7 +2029,7 @@ internal static class DisciplineProvisionsProcessing
                     continue;
                 }
                 var sectionResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), strings);
-                if (!sectionResult.IsEmpty)
+                if (sectionResult.IsEmpty)
                 {
                     continue;
                 }
@@ -2171,20 +2171,21 @@ internal static class DisciplineProvisionsProcessing
 internal readonly struct SectionParseResult
 {
     public readonly int MatchIndex;
-    public readonly bool IsEmpty;
+    public readonly bool IsNotEmpty;
     public readonly ReadOnlyMemory<char> UnmatchedText;
     public readonly ReadOnlyMemory<char> MissingText;
 
-    public readonly bool IsUnknown => IsEmpty && MatchIndex == -1;
+    public readonly bool IsEmpty => !IsNotEmpty;
+    public readonly bool IsUnknown => IsNotEmpty && MatchIndex == -1;
 
     private SectionParseResult(
         int matchIndex,
-        bool isEmpty,
+        bool isNotEmpty,
         ReadOnlyMemory<char> unmatchedText = default,
         ReadOnlyMemory<char> missingText = default)
     {
         MatchIndex = matchIndex;
-        IsEmpty = isEmpty;
+        IsNotEmpty = isNotEmpty;
         UnmatchedText = unmatchedText;
         MissingText = missingText;
     }
@@ -2193,13 +2194,13 @@ internal readonly struct SectionParseResult
     {
         return new(
             matchIndex: sectionType,
-            isEmpty: true);
+            isNotEmpty: true);
     }
     public static SectionParseResult CreateNotHeading()
     {
         return new(
             matchIndex: -1,
-            isEmpty: false);
+            isNotEmpty: false);
     }
     public static SectionParseResult CreateUnknown(
         ReadOnlyMemory<char> unmatchedText = default,
@@ -2207,7 +2208,7 @@ internal readonly struct SectionParseResult
     {
         return new(
             matchIndex: -1,
-            isEmpty: true,
+            isNotEmpty: true,
             unmatchedText: unmatchedText,
             missingText: missingText);
     }
@@ -2217,7 +2218,7 @@ internal readonly struct SectionParseResult
     {
         return new(
             matchIndex: sectionType,
-            isEmpty: true,
+            isNotEmpty: true,
             missingText: missingText);
     }
 }
@@ -2324,7 +2325,7 @@ internal static class StringSearchHelper
 
     public static void DefaultHandleError(SectionParseResult x)
     {
-        if (!x.IsEmpty)
+        if (x.IsEmpty)
         {
             return;
         }
