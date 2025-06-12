@@ -1913,7 +1913,7 @@ internal static class DisciplineProvisionsProcessing
                 throw new NotSupportedException("Table without data");
             }
 
-            if (!IsCurrentColumnNotHeader())
+            if (IsCurrentColumnNotHeader())
             {
                 break;
             }
@@ -2018,6 +2018,11 @@ internal static class DisciplineProvisionsProcessing
         {
             foreach (var (col, colPosition) in row.Elements<TableCell>().WithPosition())
             {
+                if (colPosition == 1)
+                {
+                    Console.WriteLine("Hello");
+                }
+
                 if (Skip())
                 {
                     continue;
@@ -2214,12 +2219,14 @@ internal readonly struct SectionParseResult
     }
     public static SectionParseResult CreatePartialMatch(
         int sectionType,
-        ReadOnlyMemory<char> missingText)
+        ReadOnlyMemory<char> missingText = default,
+        ReadOnlyMemory<char> unmatchedText = default)
     {
         return new(
             matchIndex: sectionType,
             isNotEmpty: true,
-            missingText: missingText);
+            missingText: missingText,
+            unmatchedText: unmatchedText);
     }
 }
 
@@ -2240,6 +2247,8 @@ internal static class StringSearchHelper
         var potentialSectionTypes = BitArray32.AllSet(strings.Length);
         using var readPositions = new RentedBuffer<int>(strings.Length);
         readPositions.Span.Fill(0);
+        using var extraStuffFromMatch = new RentedBuffer<ReadOnlyMemory<char>>(strings.Length);
+        extraStuffFromMatch.Span.Fill(null);
 
         // It might be split up into multiple text segments, have to check each.
         bool isFirstCheck = true;
@@ -2253,7 +2262,8 @@ internal static class StringSearchHelper
 
             preprocess.Preprocess(ref parser);
 
-            var remainingSpan = parser.PeekSpanUntilEnd().Trim();
+            var remainingMem = parser.SourceUntilEnd().Trim();
+            var remainingSpan = remainingMem.Span;
             if (remainingSpan.Length == 0)
             {
                 continue;
@@ -2269,16 +2279,35 @@ internal static class StringSearchHelper
                 var sectionsString = strings[sectionIndex];
                 var currentSlice = sectionsString.AsSpan(refStartIndex);
 
-                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(currentSlice, remainingSpan))
+                // Partial match is still a match.
+                var longer = currentSlice;
+                var shorter = remainingSpan;
+                if (longer.Length < shorter.Length)
+                {
+                    var t = longer;
+                    longer = shorter;
+                    shorter = t;
+                }
+
+                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
                 {
                     // TODO: This is pretty hard to implement correctly.
                     // I need to get the character positions IN THE ORIGINAL string.
                     // This is currently NOT CORRECT.
-                    refStartIndex += remainingSpan.Length;
+                    refStartIndex += shorter.Length;
                     var p = new Parser(sectionsString);
                     p.MoveTo(new(refStartIndex));
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
+
+                    if (p.IsEmpty && remainingMem.Length > currentSlice.Length)
+                    {
+                        ref var x = ref extraStuffFromMatch.Array[sectionIndex];
+                        if (x.IsEmpty)
+                        {
+                             x = remainingMem[currentSlice.Length ..];
+                        }
+                    }
                 }
                 else
                 {
@@ -2310,14 +2339,22 @@ internal static class StringSearchHelper
             var start = readPositions.Array[sectionIndex];
             Debug.Assert(start != 0, "Can only happen if only checked empty strings");
 
-            if (str.Length == start)
+            if (str.Length != start)
             {
-                return SectionParseResult.CreateOk(sectionIndex);
+                return SectionParseResult.CreatePartialMatch(
+                    sectionIndex,
+                    missingText: str.AsMemory(start));
             }
-            else
+
+            var x = extraStuffFromMatch.Array[sectionIndex];
+            if (!x.IsEmpty)
             {
-                return SectionParseResult.CreatePartialMatch(sectionIndex, str.AsMemory(start));
+                return SectionParseResult.CreatePartialMatch(
+                    sectionIndex,
+                    unmatchedText: x);
             }
+
+            return SectionParseResult.CreateOk(sectionIndex);
         }
 
         throw UnreachableHelper.Unreachable();
