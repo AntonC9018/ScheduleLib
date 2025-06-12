@@ -1,4 +1,4 @@
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public class BitArray
 {

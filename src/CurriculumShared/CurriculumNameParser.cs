@@ -1875,7 +1875,7 @@ internal static class DisciplineProvisionsProcessing
 
     private struct HeaderState(int cap = 0)
     {
-        public readonly SizedColumnLookup<Column> ColumnMappings = new(cap);
+        public readonly SizedItemArray<Column> ColumnMappings = new(cap);
         public UnsizedBitArray32 FoundColumns = default;
     }
 
@@ -2109,7 +2109,7 @@ internal static class DisciplineProvisionsProcessing
                         x.Set(Column.CourseName, "Denumirea disciplinei");
                         x.Set(Column.AttendanceMode, "Forma de invatamant");
                         x.Set(Column.DisciplineCode, "Codul disciplinei");
-                        x.Set(Column.Teachers, "Teachers");
+                        x.Set(Column.Teachers, "Responsabili de disciplină");
                         x.Set(Column.Semester, "Semestrul");
                         x.Set(Column.DistributionHeader, "Ore total");
                         x.Set(Column.EvaluationMode, "Evaluarea");
