@@ -82,4 +82,32 @@ public sealed class CurriculumParserTests
         Assert.Equal("Hello (explicatie)", r.Ro.Span);
         Assert.Equal("Привет (explicatie)", r.Ru.Span);
     }
+
+    [Fact]
+    public void ExplicitLanguage()
+    {
+        var r = ThesisListParser.ParseThesisNames("ro: Hello (explicatie) ru: Привет (explicatie)");
+        Assert.Equal("Hello (explicatie)", r.Ro.Span);
+        Assert.Equal("Привет (explicatie)", r.Ru.Span);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData(@"\")]
+    [InlineData("/")]
+    public void ExplicitLanguage_Separated(string sep)
+    {
+        var r = ThesisListParser.ParseThesisNames($"ro: Hello (explicatie){sep}ru: Привет (explicatie)");
+        Assert.Equal("Hello (explicatie)", r.Ro.Span);
+        Assert.Equal("Привет (explicatie)", r.Ru.Span);
+    }
+
+    [Fact]
+    public void ExplicitLanguage_Separated_DifferentOrderOfLanguage()
+    {
+        var r = ThesisListParser.ParseThesisNames("ru: Привет (explicatie)/ro: Hello (explicatie)");
+        Assert.Equal("Hello (explicatie)", r.Ro.Span);
+        Assert.Equal("Привет (explicatie)", r.Ru.Span);
+    }
 }

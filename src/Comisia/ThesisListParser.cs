@@ -461,6 +461,18 @@ public static class ThesisListParser
         return false;
     }
 
+    private readonly struct SearchSep() : IShouldSkip
+    {
+        public bool ShouldSkip(char ch)
+        {
+            if (IsSep(ch))
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
     private readonly struct SearchRussianOrSep(bool searchRussian, bool searchSeparators) : IShouldSkip
     {
         public bool ShouldSkip(char ch)
@@ -530,6 +542,91 @@ public static class ThesisListParser
 
         ThesisParsingState state = new(initialParser);
 
+        // Explicit ru: ro: syntax
+        {
+            var bparser = parser.BufferedView();
+            string[] options = ["ro:", "ru:"];
+            const int ro = 0;
+            const int ru = 1;
+            for (int i = ro; i <= ru; i++)
+            {
+                ThesisNames ResultHelper(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
+                {
+                    a = a.Trim();
+                    b = b.Trim();
+                    if (i == ru)
+                    {
+                        (a, b) = (b, a);
+                    }
+                    return new(a, b);
+                }
+
+                var opt = options[i];
+                var otherOpt = options[1 - i];
+                if (!bparser.ConsumeExactString(opt))
+                {
+                    continue;
+                }
+                bparser.SkipWhitespace();
+
+                {
+                    var bparserWorkingCopy = bparser.BufferedView();
+                    while (true)
+                    {
+                        var loopParser = bparserWorkingCopy.BufferedView();
+                        var res = loopParser.Skip(new SearchSep());
+                        if (!res.Satisfied)
+                        {
+                            break;
+                        }
+                        var potentialEndPos = loopParser.Position;
+
+                        loopParser.Move();
+                        loopParser.SkipWhitespace();
+                        bparserWorkingCopy.MoveTo(loopParser.Position);
+
+                        if (!loopParser.ConsumeExactString(otherOpt))
+                        {
+                            continue;
+                        }
+
+                        var str1 = bparser.SourceUntilExclusive(potentialEndPos);
+                        var str2 = loopParser.SourceUntilEnd();
+                        return ResultHelper(str1, str2);
+                    }
+                }
+
+                // No matching separator, just search for the other string.
+                {
+                    var bparser1 = bparser.BufferedView();
+                    var skipResult = bparser1.SkipUntilSequence([otherOpt]);
+                    if (!skipResult.Satisfied)
+                    {
+                        if (i == ru)
+                        {
+                            throw new InvalidOperationException("Expected ro when specifying ru explicitly");
+                        }
+                        else
+                        {
+                            // this is fine
+                            return new(bparser1.SourceUntilEnd(), null);
+                        }
+                    }
+
+                    // Found the LANG: bit
+                    var potentialEndPos = bparser1.Position;
+
+                    bparser1.Move(otherOpt.Length);
+                    bparser1.SkipWhitespace();
+
+                    var str1 = bparser.SourceUntilExclusive(potentialEndPos);
+                    var str2 = bparser1.SourceUntilEnd();
+                    return ResultHelper(str1, str2);
+                }
+            }
+        }
+
+        // separator-based syntax with russian letters checks (see the tests)
         while (true)
         {
             var bparser = parser.BufferedView();
