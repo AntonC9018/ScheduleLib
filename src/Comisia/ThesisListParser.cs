@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -259,82 +260,10 @@ public static class ThesisListParser
                                 {
                                     continue;
                                 }
-
-                                (ReadOnlyMemory<char> ro, ReadOnlyMemory<char> ru) ParseNames()
-                                {
-                                    var initialParser = new Parser(text);
-
-                                    var parser = initialParser.BufferedView();
-
-                                    int parenDepth = 0;
-
-                                    ParserPosition? roEndPosition = null;
-                                    ParserPosition roStartPosition = parser.Position;
-                                    ParserPosition? ruStartPosition = null;
-
-                                    while (true)
-                                    {
-                                        var bparser = parser.BufferedView();
-                                        var skipResult = bparser.Skip(new SearchRussianOrSep());
-                                        if (skipResult.EndOfInput)
-                                        {
-                                            if (parenDepth != 0)
-                                            {
-                                                throw new InvalidOperationException("Unclosed parentheses");
-                                            }
-                                            return (initialParser.SourceUntilEnd(), null);
-                                        }
-
-                                        var x = bparser.Current;
-
-                                        if (ruStartPosition is { } p && IsRussian(x))
-                                        {
-                                            if (parenDepth == 0)
-                                            {
-                                                var ro = initialParser.SourceUntilExclusive(roEndPosition!.Value);
-
-                                                var t = initialParser.BufferedView();
-                                                t.MoveTo(p);
-                                                var ru = t.SourceUntilEnd();
-
-                                                return (ro, ru);
-                                            }
-                                        }
-                                        else if (IsSep(x))
-                                        {
-                                            if (x != ')' && parenDepth == 0)
-                                            {
-                                                roEndPosition = bparser.Position;
-                                                bparser.Move();
-                                                ruStartPosition = bparser.Position;
-                                            }
-                                            else
-                                            {
-                                                bparser.Move();
-                                            }
-
-                                            switch (x)
-                                            {
-                                                case '(':
-                                                {
-                                                    parenDepth += 1;
-                                                    break;
-                                                }
-                                                case ')':
-                                                {
-                                                    if (parenDepth == 0)
-                                                    {
-                                                        throw new InvalidOperationException("Closing paren without opening paren");
-                                                    }
-                                                    parenDepth -= 1;
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        parser.MoveTo(bparser.Position);
-                                    }
-                                }
+                                var ret = ParseThesisNames(text);
+                                thesis.ThesisNameRomanian = ret.Ro.ToString();
+                                thesis.ThesisNameRussian = ret.Ru.Length > 0 ? ret.Ru.ToString() : null;
+                                break;
                             }
                             case Column.ThesisNameEnglish:
                             {
@@ -343,9 +272,24 @@ public static class ThesisListParser
                             }
                         }
                     }
+
+                    state.Result.Add(new()
+                    {
+                        GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                        StudentName = thesis.StudentName ?? throw new InvalidOperationException("Student name is required"),
+                        TeacherName = thesis.TeacherName,
+                        ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
+                        ThesisNameRussian = thesis.ThesisNameRussian,
+                        ThesisNameEnglish = thesis.ThesisNameEnglish,
+                    });
+                    break;
                 }
             }
         }
+        return new ThesisList
+        {
+            Items = state.Result.DrainToImmutable(),
+        };
     }
 
     private static Column MatchColumn(string text)
@@ -465,6 +409,7 @@ public static class ThesisListParser
         public readonly SizedItemArray<Column> ColumnMappings = new();
         public UnsizedBitArray32 PresentColumns = default;
         public StringBuilder StringBuilder = new();
+        public ImmutableArray<Thesis>.Builder Result = ImmutableArray.CreateBuilder<Thesis>();
     }
 
     private sealed class SearchFilter
@@ -473,7 +418,7 @@ public static class ThesisListParser
         public string? ExactString = null;
     }
 
-    private static bool IsSep(char ch)
+    private static bool IsParen(char ch)
     {
         if (ch == ')')
         {
@@ -483,11 +428,20 @@ public static class ThesisListParser
         {
             return true;
         }
+        return false;
+    }
+
+    private static bool IsSep(char ch)
+    {
         if (ch == '/')
         {
             return true;
         }
         if (ch == '\\')
+        {
+            return true;
+        }
+        if (ch == '\r')
         {
             return true;
         }
@@ -507,19 +461,172 @@ public static class ThesisListParser
         return false;
     }
 
-    private struct SearchRussianOrSep : IShouldSkip
+    private readonly struct SearchRussianOrSep(bool searchRussian, bool searchSeparators) : IShouldSkip
     {
         public bool ShouldSkip(char ch)
         {
-            if (IsSep(ch))
+            if (IsParen(ch))
             {
                 return false;
             }
-            if (IsRussian(ch))
+            if (searchSeparators && IsSep(ch))
+            {
+                return false;
+            }
+            if (searchRussian && IsRussian(ch))
             {
                 return false;
             }
             return true;
+        }
+    }
+
+    private struct ThesisParsingState(Parser p)
+    {
+        public ParserPosition? RoEnd;
+        public ParserPosition RoStart = p.Position;
+        public ParserPosition? RuStart;
+        public bool SawRussian = false;
+        public bool RussianSeenInParens = false;
+        public int ParenDepth = 0;
+        public ParserPosition? RuEnd;
+
+        public bool HasRu => RuStart is not null;
+
+        public ThesisNames GetResult(Parser p)
+        {
+            return new(Ro(p), Ru(p));
+        }
+
+        public ReadOnlyMemory<char> Ro(Parser p)
+        {
+            var t = p.BufferedView();
+            t.MoveTo(RoStart);
+            var roEnd = RoEnd ?? t.EndPosition;
+            return t.SourceUntilExclusive(roEnd).Trim();
+        }
+
+        public ReadOnlyMemory<char> Ru(Parser p)
+        {
+            if (RuStart is not { } start)
+            {
+                return null;
+            }
+            var t = p.BufferedView();
+            t.MoveTo(start);
+            var end = RuEnd ?? t.EndPosition;
+            return t.SourceUntilExclusive(end).Trim();
+        }
+    }
+
+    internal record struct ThesisNames(ReadOnlyMemory<char> Ro, ReadOnlyMemory<char> Ru);
+
+    internal static ThesisNames ParseThesisNames(string text)
+    {
+        var initialParser = new Parser(text);
+        initialParser.SkipWhitespace();
+
+        var parser = initialParser.BufferedView();
+
+        ThesisParsingState state = new(initialParser);
+
+        while (true)
+        {
+            var bparser = parser.BufferedView();
+            var skipResult = bparser.Skip(
+                new SearchRussianOrSep(
+                    searchRussian: !state.SawRussian,
+                    searchSeparators: !state.HasRu && state.ParenDepth == 0));
+            if (skipResult.EndOfInput)
+            {
+                if (state.ParenDepth != 0)
+                {
+                    throw new InvalidOperationException("Unclosed parentheses");
+                }
+                if (!state.SawRussian)
+                {
+                    state.RoEnd = null;
+                    state.RuStart = null;
+                    state.RuEnd = null;
+                }
+                return state.GetResult(initialParser);
+            }
+
+            var x = bparser.Current;
+
+            if (!state.SawRussian)
+            {
+                if (IsRussian(x))
+                {
+                    if (state.RuStart is null)
+                    {
+                        throw new InvalidOperationException("Some separator must be provided before using russian symbols");
+                    }
+                    state.SawRussian = true;
+                    state.RussianSeenInParens = state.ParenDepth > 0;
+                }
+            }
+            if (state.SawRussian)
+            {
+                Debug.Assert(state.HasRu);
+            }
+
+            if (IsParen(x))
+            {
+                switch (x)
+                {
+                    case '(':
+                    {
+                        if (state.ParenDepth == 0)
+                        {
+                            state.RoEnd = bparser.Position;
+                            bparser.Move();
+                            bparser.SkipWhitespace(); // repeated \r, \n and friends
+                            state.RuStart = bparser.Position;
+                        }
+                        else
+                        {
+                            bparser.Move();
+                        }
+                        state.ParenDepth += 1;
+                        break;
+                    }
+                    case ')':
+                    {
+                        if (state.ParenDepth == 0)
+                        {
+                            throw new InvalidOperationException("Closing paren without opening paren");
+                        }
+                        state.ParenDepth -= 1;
+                        if (state.ParenDepth == 0 && !state.SawRussian)
+                        {
+                            state.RuStart = null;
+                            state.RoEnd = null;
+                        }
+                        else if (state.ParenDepth == 0 && state.RussianSeenInParens)
+                        {
+                            state.RuEnd = bparser.Position;
+                        }
+                        bparser.Move();
+                        break;
+                    }
+                }
+            }
+            else if (IsSep(x))
+            {
+                state.RoEnd = bparser.Position;
+                bparser.Move();
+                bparser.SkipWhitespace(); // repeated \r, \n and friends
+                state.RuStart = bparser.Position;
+            }
+
+            if (state.SawRussian && state.ParenDepth == 0)
+            {
+                state.RuEnd ??= bparser.EndPosition;
+                return state.GetResult(initialParser);
+            }
+
+            parser.MoveTo(bparser.Position);
         }
     }
 }

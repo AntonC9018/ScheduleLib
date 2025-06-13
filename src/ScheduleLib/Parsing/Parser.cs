@@ -44,6 +44,7 @@ public struct Parser
     // Abstraction for the sake of type safety.
     // Specifically, to prevent `PeekSpanUntilPosition(other.Current)` from compiling.
     public readonly ParserPosition Position => new(_index);
+    public readonly ParserPosition EndPosition => new(_input.Length);
 
     // Conceptually doesn't consume when moving, it just moves the window.
     // Currently just return a copy, because we only have a string impl and
