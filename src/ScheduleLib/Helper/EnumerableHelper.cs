@@ -17,6 +17,24 @@ public static class EnumerableHelper
         return source.Select((x, i) => new Indexed<T>(i, x));
     }
 
+    public static bool MoreThanOneItem<T>(this IEnumerable<T> source)
+    {
+        if (source.TryGetNonEnumeratedCount(out int count))
+        {
+            return count >= 2;
+        }
+        using var e = source.GetEnumerator();
+        if (!e.MoveNext())
+        {
+            return false;
+        }
+        if (!e.MoveNext())
+        {
+            return false;
+        }
+        return true;
+    }
+
     public static (T First, T Second)? MaybeJustTwoItems<T>(this IEnumerable<T> source)
     {
         if (source is IList<T> l)

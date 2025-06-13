@@ -271,7 +271,7 @@ public static class CommissionParser
         NameRow,
     }
 
-    private static StudentName ParseStudentName(ref Parser parser)
+    internal static StudentName ParseStudentName(ref Parser parser)
     {
         var ret = new StudentName();
 

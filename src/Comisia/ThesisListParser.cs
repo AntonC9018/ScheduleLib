@@ -1,0 +1,525 @@
+using System.Collections.Immutable;
+using System.Text;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using ScheduleLib;
+using ScheduleLib.Builders;
+using ScheduleLib.Curriculum;
+using ScheduleLib.Helper;
+using ScheduleLib.Helper.Excel;
+using ScheduleLib.Parsing;
+
+namespace Comisia;
+
+public sealed class ThesisList
+{
+    public required ImmutableArray<Thesis> Items;
+}
+public sealed class Thesis
+{
+    public required StudentName StudentName;
+    public required TeacherBuilderModel.NameModel TeacherName;
+    public required string GroupName;
+    public required string ThesisNameRomanian;
+    public required string? ThesisNameRussian; // \ / ignore any " \n  also (russian text) is allowed?
+    public required string? ThesisNameEnglish;
+}
+
+internal struct ThesisInParsing
+{
+    public StudentName? StudentName;
+    public TeacherBuilderModel.NameModel TeacherName;
+    public string? GroupName;
+    public string? ThesisNameRomanian;
+    public string? ThesisNameRussian;
+    public string? ThesisNameEnglish;
+}
+
+public enum ThesisType
+{
+    An,
+    Licenta,
+    Master,
+}
+
+public static class ThesisListParser
+{
+    private enum Column
+    {
+        Unknown = -1,
+        Number,
+        Group,
+        StudentName,
+        Mentor,
+        ThesisName,
+        ThesisNameEnglish,
+        Count,
+    }
+
+    public static ThesisList Parse(string filePath, ThesisType targetThesisType)
+    {
+        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
+        {
+            AutoSave = false,
+            CompatibilityLevel = CompatibilityLevel.Version_2_20,
+        });
+
+        var workbook = excel.WorkbookPart;
+        if (workbook is null)
+        {
+            throw new InvalidOperationException("Excel is wrong");
+        }
+        if (workbook.Workbook.Sheets is not { } sheets)
+        {
+            throw new InvalidOperationException("No sheets in excel");
+        }
+        var sheet = sheets.Elements<Sheet>().FirstOrDefault(x =>
+        {
+            if (x.Name?.Value is not { } name)
+            {
+                return false;
+            }
+            if (x.State is { } state
+                && state != SheetStateValues.Visible)
+            {
+                return false;
+            }
+            if (x.Id?.Value is null)
+            {
+                return false;
+            }
+            var comparer = IgnoreDiacriticsAndCaseComparer.Instance;
+            switch (targetThesisType)
+            {
+                case ThesisType.An:
+                    return comparer.Contains(name, "an");
+                case ThesisType.Licenta:
+                    return comparer.Contains(name, "licenta");
+                case ThesisType.Master:
+                    return comparer.Contains(name, "master");
+                default:
+                    throw UnreachableHelper.Unreachable();
+            }
+        });
+
+        if (sheet is null)
+        {
+            throw new InvalidOperationException("Sheet not found");
+        }
+
+        var stringTable = ParsedStringTable.Create(workbook);
+        var worksheetPart = (WorksheetPart) workbook.GetPartById(sheet.Id!.Value!);
+        var widths = MergeCellMap.Create(worksheetPart);
+        var worksheet = worksheetPart.Worksheet;
+        var sheetData = worksheet.GetFirstChild<SheetData>();
+        if (sheetData is null)
+        {
+            throw new InvalidOperationException("SheetData not found");
+        }
+
+        var rows = sheetData.IndexedRows();
+        var state = new State();
+        foreach (var row in rows)
+        {
+            if (state.Action == Action.MeaninglessHeaders)
+            {
+                if (row.SizedCells(widths).MoreThanOneItem())
+                {
+                    state.Action = Action.MeaningfulHeaders;
+                }
+            }
+
+            switch (state.Action)
+            {
+                case Action.MeaninglessHeaders:
+                {
+                    break;
+                }
+                case Action.MeaningfulHeaders:
+                {
+                    foreach (var cell in row.SizedCells(widths))
+                    {
+                        var text = stringTable.GetStringValue(cell.Cell);
+                        if (text is null)
+                        {
+                            throw new InvalidOperationException("Text must not be null");
+                        }
+                        var column = MatchColumn(text);
+                        state.ColumnMappings.Add(new(column, cell.Size));
+                        if (column != Column.Unknown)
+                        {
+                            state.PresentColumns.Set((int) column);
+                        }
+                    }
+
+                    var requiredColumns = BitArray32.AllSet((int) Column.Count);
+                    if (targetThesisType != ThesisType.An)
+                    {
+                        requiredColumns.Set((int) Column.ThesisNameEnglish, false);
+                    }
+
+                    var presentColumns = state.PresentColumns.WithFixedSize((int) Column.Count);
+                    var missingColumns = presentColumns.Flipped;
+                    if (!missingColumns.Intersect(requiredColumns).IsEmpty)
+                    {
+                        // TODO: Wrap bit array with enum to present these.
+                        throw new InvalidOperationException("There are missing columns");
+                    }
+
+                    state.Action = Action.Data;
+                    break;
+                }
+                case Action.Data:
+                {
+                    var thesis = new ThesisInParsing();
+                    foreach (var cell in row.SizedCells(widths))
+                    {
+                        var column = state.ColumnMappings.Find(cell.Position);
+                        var text = stringTable.GetStringValue(cell.Cell);
+                        switch (column)
+                        {
+                            case Column.Number:
+                                continue;
+
+                            case Column.StudentName:
+                            {
+                                if (text is null or "")
+                                {
+                                    throw new InvalidOperationException("Student name is required");
+                                }
+                                var parser = new Parser(text);
+                                thesis.StudentName = CommissionParser.ParseStudentName(ref parser);
+                                if (!parser.IsEmpty)
+                                {
+                                    throw new InvalidOperationException("Parser not empty after name");
+                                }
+                                break;
+                            }
+                            case Column.Mentor:
+                            {
+                                if (text is null or "")
+                                {
+                                    continue;
+                                }
+                                thesis.TeacherName = TeacherNameHelper.ParseName(text);
+                                break;
+                            }
+                            case Column.Group:
+                            {
+                                if (text is null or "")
+                                {
+                                    throw new InvalidOperationException("Group is required");
+                                }
+
+                                var parser = new Parser(text);
+                                var sb = state.StringBuilder;
+                                int parenDepth = 0;
+                                while (true)
+                                {
+                                    if (parser.IsEmpty)
+                                    {
+                                        break;
+                                    }
+                                    switch (parser.Current)
+                                    {
+                                        case '(':
+                                            parenDepth += 1;
+                                            break;
+                                        case ')':
+                                            parenDepth -= 1;
+                                            break;
+
+                                        case '-':
+                                            break;
+
+                                        default:
+                                        {
+                                            if (char.IsWhiteSpace(parser.Current))
+                                            {
+                                                break;
+                                            }
+                                            if (parenDepth > 0)
+                                            {
+                                                break;
+                                            }
+                                            sb.Append(parser.Current);
+                                            break;
+                                        }
+                                    }
+                                    parser.Move();
+                                }
+
+                                var groupName = sb.ToStringAndClear();
+                                thesis.GroupName = groupName;
+                                break;
+                            }
+                            case Column.ThesisName:
+                            {
+                                if (text is null or "")
+                                {
+                                    continue;
+                                }
+
+                                (ReadOnlyMemory<char> ro, ReadOnlyMemory<char> ru) ParseNames()
+                                {
+                                    var initialParser = new Parser(text);
+
+                                    var parser = initialParser.BufferedView();
+
+                                    int parenDepth = 0;
+
+                                    ParserPosition? roEndPosition = null;
+                                    ParserPosition roStartPosition = parser.Position;
+                                    ParserPosition? ruStartPosition = null;
+
+                                    while (true)
+                                    {
+                                        var bparser = parser.BufferedView();
+                                        var skipResult = bparser.Skip(new SearchRussianOrSep());
+                                        if (skipResult.EndOfInput)
+                                        {
+                                            if (parenDepth != 0)
+                                            {
+                                                throw new InvalidOperationException("Unclosed parentheses");
+                                            }
+                                            return (initialParser.SourceUntilEnd(), null);
+                                        }
+
+                                        var x = bparser.Current;
+
+                                        if (ruStartPosition is { } p && IsRussian(x))
+                                        {
+                                            if (parenDepth == 0)
+                                            {
+                                                var ro = initialParser.SourceUntilExclusive(roEndPosition!.Value);
+
+                                                var t = initialParser.BufferedView();
+                                                t.MoveTo(p);
+                                                var ru = t.SourceUntilEnd();
+
+                                                return (ro, ru);
+                                            }
+                                        }
+                                        else if (IsSep(x))
+                                        {
+                                            if (x != ')' && parenDepth == 0)
+                                            {
+                                                roEndPosition = bparser.Position;
+                                                bparser.Move();
+                                                ruStartPosition = bparser.Position;
+                                            }
+                                            else
+                                            {
+                                                bparser.Move();
+                                            }
+
+                                            switch (x)
+                                            {
+                                                case '(':
+                                                {
+                                                    parenDepth += 1;
+                                                    break;
+                                                }
+                                                case ')':
+                                                {
+                                                    if (parenDepth == 0)
+                                                    {
+                                                        throw new InvalidOperationException("Closing paren without opening paren");
+                                                    }
+                                                    parenDepth -= 1;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        parser.MoveTo(bparser.Position);
+                                    }
+                                }
+                            }
+                            case Column.ThesisNameEnglish:
+                            {
+                                thesis.ThesisNameEnglish = text;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static Column MatchColumn(string text)
+    {
+        for (int index = 0; index < _headerKeys.Length; index++)
+        {
+            var key = _headerKeys[index];
+            var column = (Column) index;
+            var it = _headerKeys[index];
+            if (it.ExactString is { } exactString)
+            {
+                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(text, exactString))
+                {
+                    return column;
+                }
+            }
+            else if (it.OrderedKeywords.Length > 0)
+            {
+                if (CheckKeywords(text, key))
+                {
+                    return column;
+                }
+            }
+            else
+            {
+                throw UnreachableHelper.Unreachable();
+            }
+        }
+        return Column.Unknown;
+    }
+
+    private static bool CheckKeywords(string text, SearchFilter key)
+    {
+        int keywordIndex = 0;
+        var parser = new Parser(text);
+
+        while (true)
+        {
+            if (keywordIndex >= key.OrderedKeywords.Length)
+            {
+                return true;
+            }
+
+            var keyword = key.OrderedKeywords[keywordIndex];
+            if (!CheckKeyword())
+            {
+                break;
+            }
+            keywordIndex += 1;
+            continue;
+
+            bool CheckKeyword()
+            {
+                while (true)
+                {
+                    parser.SkipWhitespace();
+
+                    var bparser = parser.BufferedView();
+                    if (!bparser.SkipUntilAny(" ").SkippedAny)
+                    {
+                        return false;
+                    }
+
+                    var word = parser.PeekSpanUntilPosition(bparser.Position);
+                    parser.MoveTo(bparser.Position);
+
+                    if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(word, keyword))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly ImmutableArray<SearchFilter> _headerKeys =
+        StringSearchHelper.SetupSearchArray<Column, SearchFilter>(b =>
+        {
+            b.Set(Column.Number, new()
+            {
+                ExactString = "nr.",
+            });
+            b.Set(Column.Group, new()
+            {
+                ExactString = "grupa",
+            });
+            b.Set(Column.StudentName, new()
+            {
+                ExactString = "numele studentului",
+            });
+            b.Set(Column.Mentor, new()
+            {
+                ExactString = "numele conducatorului stiintific",
+            });
+            b.Set(Column.ThesisName, new()
+            {
+                OrderedKeywords = ["denumirea", "romana"],
+            });
+            b.Set(Column.ThesisNameEnglish, new()
+            {
+                OrderedKeywords = ["denumirea", "engleza"],
+            });
+        });
+
+    private enum Action
+    {
+        MeaninglessHeaders,
+        MeaningfulHeaders,
+        Data,
+    }
+
+    private struct State()
+    {
+        public Action Action = Action.MeaninglessHeaders;
+        public readonly SizedItemArray<Column> ColumnMappings = new();
+        public UnsizedBitArray32 PresentColumns = default;
+        public StringBuilder StringBuilder = new();
+    }
+
+    private sealed class SearchFilter
+    {
+        public ImmutableArray<string> OrderedKeywords = default;
+        public string? ExactString = null;
+    }
+
+    private static bool IsSep(char ch)
+    {
+        if (ch == ')')
+        {
+            return true;
+        }
+        if (ch == '(')
+        {
+            return true;
+        }
+        if (ch == '/')
+        {
+            return true;
+        }
+        if (ch == '\\')
+        {
+            return true;
+        }
+        if (ch == '\n')
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private static bool IsRussian(char ch)
+    {
+        if (ch >= 'А' && ch <= 'я')
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private struct SearchRussianOrSep : IShouldSkip
+    {
+        public bool ShouldSkip(char ch)
+        {
+            if (IsSep(ch))
+            {
+                return false;
+            }
+            if (IsRussian(ch))
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+}

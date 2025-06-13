@@ -27,6 +27,8 @@ public record struct UnsizedBitArray32
         _bits = bits;
     }
 
+    public BitArray32 WithFixedSize(int size) => new(this, size);
+
     public readonly int SetCount => BitOperations.PopCount(_bits);
 
     private static void ValidateIndex(int index)
@@ -179,9 +181,10 @@ public record struct BitArray32
     private UnsizedBitArray32 _array;
     private readonly int _length;
 
-    private BitArray32(UnsizedBitArray32 array, int length)
+    internal BitArray32(UnsizedBitArray32 array, int length)
     {
         UnsizedBitArray32.ValidateLength(length);
+        Debug.Assert(array.Bits <= UnsizedBitArray32.GetMask(length));
         _array = array;
         _length = length;
     }

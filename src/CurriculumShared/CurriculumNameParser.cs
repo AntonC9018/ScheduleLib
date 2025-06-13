@@ -2173,7 +2173,7 @@ internal static class DisciplineProvisionsProcessing
     }
 }
 
-internal readonly struct SectionParseResult
+public readonly struct SectionParseResult
 {
     public readonly int MatchIndex;
     public readonly bool IsNotEmpty;
@@ -2230,12 +2230,12 @@ internal readonly struct SectionParseResult
     }
 }
 
-internal interface IPreprocess
+public interface IPreprocess
 {
     public void Preprocess(ref Parser parser);
 }
 
-internal static class StringSearchHelper
+public static class StringSearchHelper
 {
     public static SectionParseResult Search<TPreprocess>(
         Paragraph para,
@@ -2376,28 +2376,32 @@ internal static class StringSearchHelper
         }
     }
 
-    internal struct SearchArrayBuilder<T> where T : struct, Enum
+    public struct SearchArrayBuilder<T, U> where T : struct, Enum
     {
-        internal ImmutableArray<string>.Builder _builder;
+        internal readonly ImmutableArray<U>.Builder _builder;
 
         public SearchArrayBuilder()
         {
-            _builder = ImmutableArray.CreateBuilder<string>(AllEnumEnumerable<T>.Count);
+            _builder = ImmutableArray.CreateBuilder<U>(AllEnumEnumerable<T>.Count);
             _builder.Count = _builder.Capacity;
         }
 
-        public void Set(T tag, string str)
+        public readonly void Set(T tag, U str)
         {
             int index = AllEnumEnumerable<T>.EnumAsInt(tag);
             Debug.Assert(index >= 0 && index < _builder.Capacity);
             _builder[index] = str;
         }
     }
-    internal delegate void BuilderDelegate<T>(SearchArrayBuilder<T> builder) where T : struct, Enum;
+    public delegate void BuilderDelegate<T, U>(SearchArrayBuilder<T, U> builder) where T : struct, Enum;
 
-    internal static ImmutableArray<string> SetupSearchArray<T>(BuilderDelegate<T> f) where T : struct, Enum
+    public static ImmutableArray<string> SetupSearchArray<T>(BuilderDelegate<T, string> f) where T : struct, Enum
     {
-        var builder = new SearchArrayBuilder<T>();
+        return SetupSearchArray<T, string>(f);
+    }
+    public static ImmutableArray<U> SetupSearchArray<T, U>(BuilderDelegate<T, U> f) where T : struct, Enum
+    {
+        var builder = new SearchArrayBuilder<T, U>();
         f(builder);
         if (!builder._builder.All(x => x is not null))
         {

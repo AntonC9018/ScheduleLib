@@ -96,6 +96,13 @@ public sealed class IgnoreDiacriticsAndCaseComparer : IEqualityComparer<string>,
         return x1.StartsWith(y1, StringComparison.OrdinalIgnoreCase);
     }
 
+    public bool Contains(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
+        var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
+        return x1.Contains(y1, StringComparison.OrdinalIgnoreCase);
+    }
+
     public int Compare(string? a, string? b)
     {
         if (a is null && b is null)
