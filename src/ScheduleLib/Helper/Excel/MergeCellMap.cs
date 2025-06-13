@@ -46,23 +46,14 @@ public sealed class MergeCellMap
         }
     }
 
+    public int GetCellWidth(CellPosition pos)
+    {
+        return _cellWidths.GetValueOrDefault(pos, 1);
+    }
+
     public int GetCellWidth(Indexed<Cell> cell, Indexed<Row> row)
     {
-        CellPosition pos;
-        if (cell.Item.CellReference?.Value is { } val)
-        {
-            var parser = new Parser(val);
-            pos = parser.ParseCellPosition();
-            if (!parser.IsEmpty)
-            {
-                throw new InvalidOperationException("Expected valid cell position syntax.");
-            }
-        }
-        else
-        {
-            uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
-            pos = new((uint)(cell.Index + 1), rowIndex);
-        }
-        return _cellWidths.GetValueOrDefault(pos, 1);
+        var pos = ExcelRangeHelper.GetPosition(cell, row);
+        return GetCellWidth(pos);
     }
 }

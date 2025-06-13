@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Helper.Excel;
@@ -80,6 +81,26 @@ public static class ExcelRangeHelper
         AppendCellRange(p);
         var ret = p.StringBuilder.ToStringAndClear();
         return new StringValue(ret);
+    }
+
+    public static CellPosition GetPosition(Indexed<Cell> cell, Indexed<Row> row)
+    {
+        CellPosition pos;
+        if (cell.Item.CellReference?.Value is { } val)
+        {
+            var parser = new Parser(val);
+            pos = parser.ParseCellPosition();
+            if (!parser.IsEmpty)
+            {
+                throw new InvalidOperationException("Expected valid cell position syntax.");
+            }
+        }
+        else
+        {
+            uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
+            pos = new((uint)(cell.Index + 1), rowIndex);
+        }
+        return pos;
     }
 
     public static CellPosition ParseCellPosition(this ref Parser parser)

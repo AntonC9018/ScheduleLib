@@ -1,7 +1,20 @@
 using System.Collections;
+using System.Diagnostics;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace ScheduleLib.Helper.Excel;
+
+public static class SizedCellHelper
+{
+    public static SizedCellEnumerable SizedCells(this IndexedRow row, MergeCellMap mergeCells)
+    {
+        return SizedCells((Indexed<Row>) row, mergeCells);
+    }
+    public static SizedCellEnumerable SizedCells(this Indexed<Row> row, MergeCellMap mergeCells)
+    {
+        return new(mergeCells, row);
+    }
+}
 
 public struct CellInfo
 {
@@ -31,16 +44,20 @@ public readonly struct SizedCellEnumerable : IEnumerable<CellInfo>
         private readonly Indexed<Row> _row;
         private readonly MergeCellMap _map;
         private int _index;
-        private int _sizeAccum;
         private int _colIndex;
 
         public Enumerator(MergeCellMap map, Indexed<Row> row)
         {
             _map = map;
             _row = row;
-            _index = -1;
+            _index = -1 + 1; // adding -1 as the first step, adjusting for that here.
             _colIndex = 0;
-            _sizeAccum = 0;
+            Current = new()
+            {
+                Cell = null!,
+                Position = 0,
+                Size = 0,
+            };
         }
 
         public CellInfo Current { get; private set; }
@@ -50,9 +67,13 @@ public readonly struct SizedCellEnumerable : IEnumerable<CellInfo>
         public bool MoveNext()
         {
             var e = _row.Item.ChildElements;
+            _index += Current.Size - 1;
+            _colIndex += Current.Size;
+
             while (true)
             {
                 _index++;
+
                 if (_index >= e.Count)
                 {
                     return false;
@@ -63,15 +84,20 @@ public readonly struct SizedCellEnumerable : IEnumerable<CellInfo>
                     continue;
                 }
 
-                var size = _map.GetCellWidth(new(_colIndex, cell), _row);
+                var pos = ExcelRangeHelper.GetPosition(new(_colIndex, cell), _row);
+                if (pos.Col != _colIndex)
+                {
+                    _colIndex = (int) pos.Col;
+                }
+
+                var size = _map.GetCellWidth(pos);
+                Debug.Assert(size >= 1);
                 Current = new()
                 {
                     Cell = cell,
-                    Position = _sizeAccum,
+                    Position = _colIndex,
                     Size = size,
                 };
-                _sizeAccum += size;
-                _colIndex += 1;
                 return true;
             }
         }

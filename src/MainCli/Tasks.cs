@@ -15,6 +15,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.WordDoc;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
@@ -233,7 +234,7 @@ public static class Tasks
             {
                 VerticalSplit = 1,
                 HorizontalSplit = 2,
-                TopLeftCell = ExcelHelper.GetCellReference(new()
+                TopLeftCell = ExcelRangeHelper.GetCellReference(new()
                 {
                     Position = new(Col: 2, Row: 1),
                     StringBuilder = p.StringBuilder,
@@ -304,7 +305,7 @@ public static class Tasks
                 var merge = new MergeCell();
                 uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
                 uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
-                merge.Reference = ExcelHelper.GetCellRange(new()
+                merge.Reference = ExcelRangeHelper.GetCellRange(new()
                 {
                     Start = new(Col: 0, Row: rowIndexStart),
                     EndInclusive = new(Col: 0, Row: rowIndexEnd),

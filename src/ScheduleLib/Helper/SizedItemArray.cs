@@ -45,6 +45,9 @@ public readonly struct SizedItemArray<T>
         _items.Clear();
     }
 
+    public int Count => _items.Count;
+    public bool IsEmpty => Count == 0;
+
     private (int Index, int StartIndex)? FindPosition(int colIndex)
     {
         Debug.Assert(colIndex >= 0);
@@ -90,6 +93,23 @@ public readonly struct SizedItemArray<T>
 
     public void Add(SizedItem<T> it)
     {
+        _items.Add(it);
+    }
+
+    public void AddAt(int position, SizedItem<T> it, T? fillerValue = default)
+    {
+        var totalSize = TotalSize;
+        if (position < totalSize)
+        {
+            throw new ArgumentException("Must be after the last element", nameof(position));
+        }
+
+        var diff = position - totalSize;
+        if (diff > 0)
+        {
+            _items.Add(new(fillerValue!, diff));
+        }
+
         _items.Add(it);
     }
 
@@ -215,6 +235,7 @@ public readonly struct SizedItemArray<T>
     }
 
     public Enumerator GetEnumerator() => new(this);
+    public WithPositionEnumerable EnumerateWithPosition() => new(this);
 
     public struct Enumerator
     {
@@ -228,4 +249,41 @@ public readonly struct SizedItemArray<T>
         public SizedItem<T> Current => _enumerator.Current;
         public bool MoveNext() => _enumerator.MoveNext();
     }
+
+    public struct WithPositionEnumerable
+    {
+        private readonly SizedItemArray<T> _arr;
+
+        public WithPositionEnumerable(SizedItemArray<T> arr)
+        {
+            _arr = arr;
+        }
+
+        public WithPositionEnumerator GetEnumerator() => new(_arr);
+    }
+    public struct WithPositionEnumerator
+    {
+        private Enumerator _enumerator;
+        private int _accum;
+
+        public WithPositionEnumerator(SizedItemArray<T> arr)
+        {
+            _enumerator = arr.GetEnumerator();
+            _accum = 0;
+        }
+
+        public SizedItemWithPosition<T> Current => new(_enumerator.Current, _accum);
+
+        public bool MoveNext()
+        {
+            _accum += Current.Size;
+            return _enumerator.MoveNext();
+        }
+    }
+}
+
+public readonly record struct SizedItemWithPosition<T>(SizedItem<T> SizedItem, int Position)
+{
+    public readonly T Item => SizedItem.Item;
+    public readonly int Size => SizedItem.Size;
 }
