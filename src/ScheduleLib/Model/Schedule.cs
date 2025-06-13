@@ -454,7 +454,7 @@ public record struct OptionalFirstNamePart
     public readonly bool IsNull => Full is null && Short is null;
 }
 
-public record struct FirstNameParts<T>()
+public record struct NameParts<T>()
 {
     public required T A;
     public required T B;
@@ -473,15 +473,15 @@ public static class FirstNameHelper
 {
     public ref struct RefEnumerable<T>
     {
-        internal readonly ref FirstNameParts<T> _parts;
+        internal readonly ref NameParts<T> _parts;
 
-        public RefEnumerable(ref FirstNameParts<T> parts)
+        public RefEnumerable(ref NameParts<T> parts)
         {
             _parts = ref parts;
         }
     }
 
-    public static RefEnumerable<T> AsRef<T>(this ref FirstNameParts<T> parts)
+    public static RefEnumerable<T> AsRef<T>(this ref NameParts<T> parts)
     {
         return new(ref parts);
     }
@@ -491,7 +491,7 @@ public static class FirstNameHelper
         return new(ref parts._parts);
     }
 
-    public static Enumerator<T> GetEnumerator<T>(this FirstNameParts<T> parts)
+    public static Enumerator<T> GetEnumerator<T>(this NameParts<T> parts)
     {
         return new(parts);
     }
@@ -500,7 +500,7 @@ public static class FirstNameHelper
     {
         private int _value = -1;
 
-        public ref T GetRef<T>(ref FirstNameParts<T> parts)
+        public ref T GetRef<T>(ref NameParts<T> parts)
         {
             return ref FirstNameHelper.GetRef(parts, (FirstNamePartIndex) _value);
         }
@@ -514,10 +514,10 @@ public static class FirstNameHelper
 
     public ref struct RefEnumerator<T>
     {
-        private readonly ref FirstNameParts<T> _parts;
+        private readonly ref NameParts<T> _parts;
         private EnumeratorState _enumeratorState;
 
-        public RefEnumerator(ref FirstNameParts<T> parts)
+        public RefEnumerator(ref NameParts<T> parts)
         {
             _parts = ref parts;
             _enumeratorState = new();
@@ -529,10 +529,10 @@ public static class FirstNameHelper
 
     public struct Enumerator<T>
     {
-        private readonly FirstNameParts<T> _parts;
+        private readonly NameParts<T> _parts;
         private EnumeratorState _enumeratorState;
 
-        public Enumerator(FirstNameParts<T> parts)
+        public Enumerator(NameParts<T> parts)
         {
             _parts = parts;
             _enumeratorState = new();
@@ -542,9 +542,9 @@ public static class FirstNameHelper
         public bool MoveNext() => _enumeratorState.MoveNext();
     }
 
-    public static FirstNameParts<U> Map<T, U>(this FirstNameParts<T> n, Func<T, U> map)
+    public static NameParts<U> Map<T, U>(this NameParts<T> n, Func<T, U> map)
     {
-        var ret = default(FirstNameParts<U>);
+        var ret = default(NameParts<U>);
         var i = new EnumeratorState();
         while (i.MoveNext())
         {
@@ -556,8 +556,8 @@ public static class FirstNameHelper
     }
 
     public static void Update<T, U>(
-        this ref FirstNameParts<T> a,
-        FirstNameParts<U> input,
+        this ref NameParts<T> a,
+        NameParts<U> input,
         Func<T, U, T> update)
     {
         var i = new EnumeratorState();
@@ -569,7 +569,7 @@ public static class FirstNameHelper
         }
     }
 
-    public static bool All<T>(this FirstNameParts<T> a, Func<T, bool> pred)
+    public static bool All<T>(this NameParts<T> a, Func<T, bool> pred)
     {
         foreach (var x in a)
         {
@@ -581,7 +581,7 @@ public static class FirstNameHelper
         return true;
     }
 
-    public static bool Any<T>(this FirstNameParts<T> a, Func<T, bool> pred)
+    public static bool Any<T>(this NameParts<T> a, Func<T, bool> pred)
     {
         foreach (var x in a)
         {
@@ -593,7 +593,7 @@ public static class FirstNameHelper
         return false;
     }
 
-    public static bool EachEquals<T, U>(this FirstNameParts<T> a, FirstNameParts<U> b, Func<T, U, bool> pred)
+    public static bool EachEquals<T, U>(this NameParts<T> a, NameParts<U> b, Func<T, U, bool> pred)
     {
         var i = new EnumeratorState();
         while (i.MoveNext())
@@ -608,7 +608,7 @@ public static class FirstNameHelper
         return true;
     }
 
-    public static int Count<T>(this FirstNameParts<T> a, Func<T, bool> pred)
+    public static int Count<T>(this NameParts<T> a, Func<T, bool> pred)
     {
         int c = 0;
         foreach (var t in a)
@@ -622,8 +622,8 @@ public static class FirstNameHelper
     }
 
     public static int CompareEach<T>(
-        FirstNameParts<T> a,
-        FirstNameParts<T> b,
+        NameParts<T> a,
+        NameParts<T> b,
         IComparer<T> comparer)
     {
         var i = new EnumeratorState();
@@ -640,13 +640,13 @@ public static class FirstNameHelper
         return 0;
     }
 
-    private static ref T GetRef<T>(in FirstNameParts<T> parts, FirstNamePartIndex index)
+    private static ref T GetRef<T>(in NameParts<T> parts, FirstNamePartIndex index)
     {
         ref var p = ref Unsafe.AsRef(in parts);
         return ref p.Ref(index);
     }
 
-    public static ref T Ref<T>(this ref FirstNameParts<T> n, FirstNamePartIndex index)
+    public static ref T Ref<T>(this ref NameParts<T> n, FirstNamePartIndex index)
     {
         switch (index)
         {
@@ -659,12 +659,12 @@ public static class FirstNameHelper
         }
     }
 
-    public static T Get<T>(this FirstNameParts<T> n, FirstNamePartIndex index)
+    public static T Get<T>(this NameParts<T> n, FirstNamePartIndex index)
     {
         return n.Ref(index);
     }
 
-    public static FirstNameParts<string?> Longer(this FirstNameParts<OptionalFirstNamePart> name)
+    public static NameParts<string?> Longer(this NameParts<OptionalFirstNamePart> name)
     {
         return name.Map(x => x.Longer);
     }
@@ -672,7 +672,7 @@ public static class FirstNameHelper
 
 public struct PersonName
 {
-    public required FirstNameParts<OptionalFirstNamePart> FirstName;
+    public required NameParts<OptionalFirstNamePart> Name;
     public required string LastName;
 }
 

@@ -215,7 +215,7 @@ public static class LessonTextDisplayHelper
         }
         WhichFirstName AppendFirstName()
         {
-            var firstName = p.Teacher.PersonName.FirstName;
+            var firstName = p.Teacher.PersonName.Name;
             if (p.PreferLonger)
             {
                 if (AppendLonger())
@@ -255,7 +255,7 @@ public static class LessonTextDisplayHelper
 
                 AppendSpaceMaybe();
 
-                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
+                var list = new ListStringBuilder(p.Output, separator: NameConstants.DoubleNameSeparator);
                 list.Append(a);
 
                 if (firstName.B.Full is { } b)
@@ -274,7 +274,7 @@ public static class LessonTextDisplayHelper
 
                 AppendSpaceMaybe();
 
-                var list = new ListStringBuilder(p.Output, separator: TeacherConstants.DoubleNameSeparator);
+                var list = new ListStringBuilder(p.Output, separator: NameConstants.DoubleNameSeparator);
 
                 {
                     var word = new WordSpan(a);

@@ -84,7 +84,7 @@ public static partial class ScheduleBuilderHelper
                 Contacts = x.Contacts,
                 PersonName = new()
                 {
-                    FirstName = x.Name.FirstName.Map(x1 => x1 with
+                    Name = x.Name.Name.Map(x1 => x1 with
                     {
                         Short = ShortFirstName(x1),
                     }),

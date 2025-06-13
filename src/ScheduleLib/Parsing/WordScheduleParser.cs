@@ -86,7 +86,7 @@ public sealed class DocParseContext
     {
         var nameModel = new TeacherBuilderModel.NameModel
         {
-            FirstName = name.FirstName.Map(x =>
+            Name = name.Name.Map(x =>
             {
                 var ret = default(OptionalFirstNamePart);
                 if (x.IsEmpty)

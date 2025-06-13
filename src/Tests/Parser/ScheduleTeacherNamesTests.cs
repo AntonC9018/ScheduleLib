@@ -26,7 +26,7 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = "F.",
         });
-        Assert.Equal(expected, t.Model.Name.FirstName);
+        Assert.Equal(expected, t.Model.Name.Name);
     }
 
     [Fact]
@@ -34,14 +34,14 @@ public sealed class ScheduleTeacherNamesTests
     {
         var s = new ScheduleBuilder();
         var t = s.Teacher("First Last");
-        var nameBefore = t.Model.Name.FirstName;
+        var nameBefore = t.Model.Name.Name;
         var newName = CreateSinglePartName(new()
         {
             Full = null,
             Short = "L.",
         });
         Assert.Throws<ArgumentException>(() => t.FirstName(newName));
-        Assert.Equal(nameBefore, t.Model.Name.FirstName);
+        Assert.Equal(nameBefore, t.Model.Name.Name);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class ScheduleTeacherNamesTests
         // Doesn't throw
         t.ShortFirstName(name);
 
-        Assert.Equal("Fi.", t.Model.Name.FirstName.A.Short);
+        Assert.Equal("Fi.", t.Model.Name.Name.A.Short);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class ScheduleTeacherNamesTests
         var t = s.Teacher("First Last");
         var name = CreateSinglePartNameWord("La.");
         Assert.Throws<ArgumentException>(() => t.ShortFirstName(name));
-        Assert.Null(t.Model.Name.FirstName.A.Short);
+        Assert.Null(t.Model.Name.Name.A.Short);
     }
 
     [Fact]
@@ -77,14 +77,14 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.Name.A.Full);
 
         t.FirstName(CreateSinglePartName(new()
         {
             Full = "Fist",
             Short = null,
         }));
-        Assert.Equal("Fist", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("Fist", t.Model.Name.Name.A.Full);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.Name.A.Full);
 
         Assert.Throws<ArgumentException>(() =>
             t.FirstName(CreateSinglePartName(new()
@@ -106,7 +106,7 @@ public sealed class ScheduleTeacherNamesTests
                 Full = "Irst",
                 Short = null,
             })));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.Name.A.Full);
     }
 
     [Fact]
@@ -134,14 +134,14 @@ public sealed class ScheduleTeacherNamesTests
 
 public sealed class TeacherFindIndexOfBestMatchTests
 {
-    private static TeacherBuilderModel Create(string lastName, FirstNameParts<OptionalFirstNamePart> firstName)
+    private static TeacherBuilderModel Create(string lastName, NameParts<OptionalFirstNamePart> name)
     {
         return new()
         {
             Name = new()
             {
                 LastName = lastName,
-                FirstName = firstName,
+                Name = name,
             },
         };
     }
@@ -182,7 +182,7 @@ public sealed class TeacherFindIndexOfBestMatchTests
         Check(CreateSinglePartNameWord("Unrelated"), -1);
         return;
 
-        void Check(FirstNameParts<Word> firstName, int expected)
+        void Check(NameParts<Word> firstName, int expected)
         {
             int i = TeacherLookupHelper.FindIndexOfBestMatch(
                 teachers,
@@ -195,16 +195,16 @@ public sealed class TeacherFindIndexOfBestMatchTests
 
 file static class Helper
 {
-    public static FirstNameParts<OptionalFirstNamePart> CreateSinglePartName(OptionalFirstNamePart p)
+    public static NameParts<OptionalFirstNamePart> CreateSinglePartName(OptionalFirstNamePart p)
     {
-        var ret = default(FirstNameParts<OptionalFirstNamePart>);
+        var ret = default(NameParts<OptionalFirstNamePart>);
         ret.A = p;
         return ret;
     }
 
-    public static FirstNameParts<Word> CreateSinglePartNameWord(string name)
+    public static NameParts<Word> CreateSinglePartNameWord(string name)
     {
-        var ret = default(FirstNameParts<Word>);
+        var ret = default(NameParts<Word>);
         ret.A = new(name);
         ret.B = Word.Empty;
         return ret;

@@ -448,7 +448,7 @@ public sealed class LessonParserTests
 
         bool ShortNameEqual()
         {
-            return expectedName.FirstName.EachEquals(actual.FirstName, (e, a) =>
+            return expectedName.Name.EachEquals(actual.Name, (e, a) =>
             {
                 if (e.IsNull)
                 {

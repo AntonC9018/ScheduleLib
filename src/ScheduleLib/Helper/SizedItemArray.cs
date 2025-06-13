@@ -213,4 +213,19 @@ public readonly struct SizedItemArray<T>
             return ret;
         }
     }
+
+    public Enumerator GetEnumerator() => new(this);
+
+    public struct Enumerator
+    {
+        private List<SizedItem<T>>.Enumerator _enumerator;
+
+        public Enumerator(SizedItemArray<T> arr)
+        {
+            _enumerator = arr._items.GetEnumerator();
+        }
+
+        public SizedItem<T> Current => _enumerator.Current;
+        public bool MoveNext() => _enumerator.MoveNext();
+    }
 }

@@ -17,7 +17,7 @@ public struct ParseLessonsParams()
 
 public struct TeacherName
 {
-    public FirstNameParts<ReadOnlyMemory<char>> FirstName;
+    public NameParts<ReadOnlyMemory<char>> Name;
     public ReadOnlyMemory<char> LastName;
 }
 
@@ -561,7 +561,7 @@ public static class LessonParsingHelper
                         var firstName = FirstName(c, ref bparser);
                         if (firstName.Any(x => !x.IsEmpty))
                         {
-                            teacher.FirstName = firstName;
+                            teacher.Name = firstName;
                             return true;
                         }
                     }
@@ -602,7 +602,7 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static FirstNameParts<ReadOnlyMemory<char>> FirstName(ParsingContext c, ref Parser bparser)
+                static NameParts<ReadOnlyMemory<char>> FirstName(ParsingContext c, ref Parser bparser)
                 {
                     Debug.Assert(!bparser.IsEmpty);
 
@@ -612,7 +612,7 @@ public static class LessonParsingHelper
                     }
                     bparser.Move();
 
-                    var ret = default(FirstNameParts<ReadOnlyMemory<char>>);
+                    var ret = default(NameParts<ReadOnlyMemory<char>>);
 
                     ret.A = c.Parser.SourceUntilExclusive(bparser);
                     if (bparser.IsEmpty)
@@ -634,7 +634,7 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        if (doubleBufferedParser.Current != TeacherConstants.DoubleNameSeparator)
+                        if (doubleBufferedParser.Current != NameConstants.DoubleNameSeparator)
                         {
                             NextStep(c, ref bparser);
                             return ret;
@@ -1441,7 +1441,7 @@ public class WrongFormatException : Exception
     internal static void ThrowUnclosedParenInLessonName() => throw new WrongFormatException("Unclosed paren in lesson name");
 
     [DoesNotReturn]
-    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException($"Double names must have the second short name after the '{TeacherConstants.DoubleNameSeparator}'");
+    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException($"Double names must have the second short name after the '{NameConstants.DoubleNameSeparator}'");
 
 }
 

@@ -103,8 +103,8 @@ public static class Tasks
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
                 var nameBuilder = new ListStringBuilder(sb, '_');
 
-                var firstNameBuilder = new ListStringBuilder(sb, TeacherConstants.DoubleNameSeparator);
-                foreach (var fname in teacherName.FirstName)
+                var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+                foreach (var fname in teacherName.Name)
                 {
                     if (fname.Short is not { } s)
                     {
@@ -235,7 +235,7 @@ public static class Tasks
                 HorizontalSplit = 2,
                 TopLeftCell = ExcelHelper.GetCellReference(new()
                 {
-                    Position = new(ColIndex: 2, RowIndex: 1),
+                    Position = new(Col: 2, Row: 1),
                     StringBuilder = p.StringBuilder,
                 }),
                 ActivePane = PaneValues.BottomRight,
@@ -306,8 +306,8 @@ public static class Tasks
                 uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
                 merge.Reference = ExcelHelper.GetCellRange(new()
                 {
-                    Start = new(ColIndex: 0, RowIndex: rowIndexStart),
-                    EndInclusive = new(ColIndex: 0, RowIndex: rowIndexEnd),
+                    Start = new(Col: 0, Row: rowIndexStart),
+                    EndInclusive = new(Col: 0, Row: rowIndexEnd),
                     StringBuilder = p.StringBuilder,
                 });
                 mergeCells.AppendChild(merge);
@@ -1155,8 +1155,8 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
             }
         }
         var ret = FirstNameHelper.CompareEach(
-            x.FirstName,
-            y.FirstName,
+            x.Name,
+            y.Name,
             Comparer.Instance);
         return ret;
     }

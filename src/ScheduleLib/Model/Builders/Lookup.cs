@@ -62,10 +62,10 @@ public struct LookupFacade(ScheduleBuilder s)
         }
 
         // TODO: Name separator constant.
-        var firstNameParts = default(FirstNameParts<Word>);
+        var firstNameParts = default(NameParts<Word>);
         {
             var firstNameSpan = firstName.AsSpan();
-            var splitName = firstNameSpan.Split(TeacherConstants.DoubleNameSeparator);
+            var splitName = firstNameSpan.Split(NameConstants.DoubleNameSeparator);
             var firstNameE = firstNameParts.AsRef().GetEnumerator();
 
             foreach (var partRange in splitName)

@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib;
 
+public readonly record struct Indexed<T>(int Index, T Item);
+
 public static class EnumerableHelper
 {
     public static bool None<T>(this IEnumerable<T> source, Func<T, bool> pred)
@@ -10,9 +12,9 @@ public static class EnumerableHelper
         return !source.Any(pred);
     }
 
-    public static IEnumerable<(int Index, T Item)> WithIndex<T>(this IEnumerable<T> source)
+    public static IEnumerable<Indexed<T>> WithIndex<T>(this IEnumerable<T> source)
     {
-        return source.Select((x, i) => (i, x));
+        return source.Select((x, i) => new Indexed<T>(i, x));
     }
 
     public static (T First, T Second)? MaybeJustTwoItems<T>(this IEnumerable<T> source)
