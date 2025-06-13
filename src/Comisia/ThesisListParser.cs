@@ -498,19 +498,19 @@ public static class ThesisListParser
         public ParserPosition? RoEnd;
         public ParserPosition RoStart = p.Position;
         public ParserPosition? RuStart;
+        public ParserPosition? RuEnd;
         public bool SawRussian = false;
         public bool RussianSeenInParens = false;
         public int ParenDepth = 0;
-        public ParserPosition? RuEnd;
 
-        public bool HasRu => RuStart is not null;
+        public readonly bool HasRu => RuStart is not null;
 
-        public ThesisNames GetResult(Parser p)
+        public readonly ThesisNames GetResult(Parser p)
         {
             return new(Ro(p), Ru(p));
         }
 
-        public ReadOnlyMemory<char> Ro(Parser p)
+        public readonly ReadOnlyMemory<char> Ro(Parser p)
         {
             var t = p.BufferedView();
             t.MoveTo(RoStart);
@@ -518,7 +518,7 @@ public static class ThesisListParser
             return t.SourceUntilExclusive(roEnd).Trim();
         }
 
-        public ReadOnlyMemory<char> Ru(Parser p)
+        public readonly ReadOnlyMemory<char> Ru(Parser p)
         {
             if (RuStart is not { } start)
             {
@@ -539,8 +539,6 @@ public static class ThesisListParser
         initialParser.SkipWhitespace();
 
         var parser = initialParser.BufferedView();
-
-        ThesisParsingState state = new(initialParser);
 
         // Explicit ru: ro: syntax
         {
@@ -626,7 +624,8 @@ public static class ThesisListParser
             }
         }
 
-        // separator-based syntax with russian letters checks (see the tests)
+        ThesisParsingState state = new(initialParser);
+        // separator-based syntax with russian letter checks (see the tests)
         while (true)
         {
             var bparser = parser.BufferedView();
@@ -651,21 +650,26 @@ public static class ThesisListParser
 
             var x = bparser.Current;
 
-            if (!state.SawRussian)
+            if (!state.SawRussian && IsRussian(x))
             {
-                if (IsRussian(x))
+                if (state.RuStart is null)
                 {
-                    if (state.RuStart is null)
-                    {
-                        throw new InvalidOperationException("Some separator must be provided before using russian symbols");
-                    }
-                    state.SawRussian = true;
-                    state.RussianSeenInParens = state.ParenDepth > 0;
+                    throw new InvalidOperationException("Some separator must be provided before using russian symbols");
                 }
+                state.SawRussian = true;
+                state.RussianSeenInParens = state.ParenDepth > 0;
             }
             if (state.SawRussian)
             {
                 Debug.Assert(state.HasRu);
+            }
+
+            void SkipForSepOrParen()
+            {
+                state.RoEnd = bparser.Position;
+                bparser.Move();
+                bparser.SkipWhitespace(); // repeated \r, \n and friends
+                state.RuStart = bparser.Position;
             }
 
             if (IsParen(x))
@@ -676,10 +680,7 @@ public static class ThesisListParser
                     {
                         if (state.ParenDepth == 0)
                         {
-                            state.RoEnd = bparser.Position;
-                            bparser.Move();
-                            bparser.SkipWhitespace(); // repeated \r, \n and friends
-                            state.RuStart = bparser.Position;
+                            SkipForSepOrParen();
                         }
                         else
                         {
@@ -711,10 +712,7 @@ public static class ThesisListParser
             }
             else if (IsSep(x))
             {
-                state.RoEnd = bparser.Position;
-                bparser.Move();
-                bparser.SkipWhitespace(); // repeated \r, \n and friends
-                state.RuStart = bparser.Position;
+                SkipForSepOrParen();
             }
 
             if (state.SawRussian && state.ParenDepth == 0)
