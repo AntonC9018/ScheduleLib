@@ -29,22 +29,24 @@ public sealed class StudentName
     {
         StringBuilder ret = new();
         var spacesB = new ListStringBuilder(ret, ' ');
-        AppendName(FirstName);
         AppendName(LastName);
+        AppendName(FirstName);
         AppendName(Patronymic);
         return ret.ToString();
 
         void AppendName(NameParts<string?> parts)
         {
             spacesB.MaybeAppendSeparator();
+            spacesB = new(ret, ' ');
 
             var list = new ListStringBuilder(ret, '-');
-            foreach (var x in FirstName)
+            foreach (var x in parts)
             {
-                list.Append(x);
+                if (x != null)
+                {
+                    list.Append(x);
+                }
             }
-
-            spacesB = new ListStringBuilder(ret, ' ');
         }
     }
 }
@@ -309,21 +311,8 @@ public static class CommissionParser
         }
 
         parser.SkipWhitespace();
+        IgnoreParenthesizedText(ref parser);
         FirstNameCheck(ref parser);
-
-        if (parser.Current == '(')
-        {
-            var s = parser.SkipUntilAny([')']);
-            if (!s.Satisfied)
-            {
-                throw new NotSupportedException("Unclosed parenthesis");
-            }
-
-            parser.Move();
-
-            parser.SkipWhitespace();
-            FirstNameCheck(ref parser);
-        }
 
         ret.FirstName.A = ParseNamePart(ref parser, "No first name");
 
@@ -339,6 +328,8 @@ public static class CommissionParser
         }
 
         parser.SkipWhitespace();
+        IgnoreParenthesizedText(ref parser);
+
         if (parser.IsEmpty)
         {
             return ret;
@@ -358,27 +349,51 @@ public static class CommissionParser
 
         return ret;
 
+        static void IgnoreParenthesizedText(ref Parser parser)
+        {
+            if (parser.IsEmpty)
+            {
+                return;
+            }
+
+            if (parser.Current != '(')
+            {
+                return;
+            }
+
+            var s = parser.SkipUntilAny([')']);
+            if (!s.Satisfied)
+            {
+                throw new InvalidOperationException("Unclosed parenthesis");
+            }
+
+            parser.Move();
+            parser.SkipWhitespace();
+        }
+
         static void FirstNameCheck(ref Parser parser)
         {
             if (parser.IsEmpty)
             {
-                throw new NotSupportedException("First name expected");
+                throw new InvalidOperationException("First name expected");
             }
         }
+
         static void LastNameCheck(ref Parser parser)
         {
             if (parser.IsEmpty)
             {
-                throw new NotSupportedException("Last name expected");
+                throw new InvalidOperationException("Last name expected");
             }
         }
+
         static string ParseNamePart(ref Parser parser, string error)
         {
             var bparser = parser.BufferedView();
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
-                throw new NotSupportedException(error);
+                throw new InvalidOperationException(error);
             }
 
             var ret = parser.PeekSpanUntilPosition(bparser.Position).ToString();

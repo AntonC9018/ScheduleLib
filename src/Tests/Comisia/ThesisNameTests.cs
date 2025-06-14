@@ -1,6 +1,6 @@
 namespace Comisia.Tests;
 
-public sealed class CurriculumParserTests
+public sealed class ThesisNameTests
 {
     [Fact]
     public void NewLineParsedOk()

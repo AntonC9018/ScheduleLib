@@ -146,7 +146,7 @@ public static class ThesisListParser
                             throw new InvalidOperationException("Text must not be null");
                         }
                         var column = MatchColumn(text);
-                        state.ColumnMappings.Add(new(column, cell.Size));
+                        state.ColumnMappings.AddAt(cell.Position, new(column, cell.Size));
                         if (column != Column.Unknown)
                         {
                             state.PresentColumns.Set((int) column);
@@ -294,6 +294,8 @@ public static class ThesisListParser
 
     private static Column MatchColumn(string text)
     {
+        text = text.Replace("\n", " ");
+
         for (int index = 0; index < _headerKeys.Length; index++)
         {
             var key = _headerKeys[index];

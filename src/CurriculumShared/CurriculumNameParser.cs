@@ -801,12 +801,12 @@ public sealed class CurriculumCache
             throw new InvalidOperationException("Could not narrow down the curriculum.");
         }
 
-        var ret = await CurriculumParser.ReadFile(candidateFiles[0]);
+        var ret = await ThesisName.ReadFile(candidateFiles[0]);
         return ret;
     }
 }
 
-internal static class CurriculumParser
+internal static class ThesisName
 {
     internal static async Task<Curriculum> ReadFile(CurriculumFile file)
     {
