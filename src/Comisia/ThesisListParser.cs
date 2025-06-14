@@ -435,6 +435,10 @@ public static class ThesisListParser
 
     private static bool IsSep(char ch)
     {
+        if (ch == '.')
+        {
+            return true;
+        }
         if (ch == '/')
         {
             return true;
@@ -495,10 +499,10 @@ public static class ThesisListParser
         }
     }
 
-    private struct ThesisParsingState(Parser p)
+    private struct ThesisParsingState()
     {
         public ParserPosition? RoEnd;
-        public ParserPosition RoStart = p.Position;
+        public ParserPosition? RoStart;
         public ParserPosition? RuStart;
         public ParserPosition? RuEnd;
         public bool SawRussian = false;
@@ -514,8 +518,12 @@ public static class ThesisListParser
 
         public readonly ReadOnlyMemory<char> Ro(Parser p)
         {
+            if (RoStart is not { } start)
+            {
+                throw new InvalidOperationException("Romanian name is required");
+            }
             var t = p.BufferedView();
-            t.MoveTo(RoStart);
+            t.MoveTo(start);
             var roEnd = RoEnd ?? t.EndPosition;
             return t.SourceUntilExclusive(roEnd).Trim();
         }
@@ -626,7 +634,7 @@ public static class ThesisListParser
             }
         }
 
-        ThesisParsingState state = new(initialParser);
+        ThesisParsingState state = new();
         // separator-based syntax with russian letter checks (see the tests)
         while (true)
         {
@@ -634,7 +642,7 @@ public static class ThesisListParser
             var skipResult = bparser.Skip(
                 new SearchRussianOrSep(
                     searchRussian: !state.SawRussian,
-                    searchSeparators: !state.HasRu && state.ParenDepth == 0));
+                    searchSeparators: state.ParenDepth == 0));
             if (skipResult.EndOfInput)
             {
                 if (state.ParenDepth != 0)
@@ -656,7 +664,7 @@ public static class ThesisListParser
             {
                 if (state.RuStart is null)
                 {
-                    throw new InvalidOperationException("Some separator must be provided before using russian symbols");
+                    state.RuStart = initialParser.Position;
                 }
                 state.SawRussian = true;
                 state.RussianSeenInParens = state.ParenDepth > 0;
@@ -666,12 +674,27 @@ public static class ThesisListParser
                 Debug.Assert(state.HasRu);
             }
 
-            void SkipForSepOrParen()
+            void SkipForSep()
             {
-                state.RoEnd = bparser.Position;
+                if (state.SawRussian)
+                {
+                    state.RuEnd = bparser.Position;
+                }
+                else
+                {
+                    state.RoStart = initialParser.Position;
+                    state.RoEnd = bparser.Position;
+                }
                 bparser.Move();
                 bparser.SkipWhitespace(); // repeated \r, \n and friends
-                state.RuStart = bparser.Position;
+                if (state.SawRussian)
+                {
+                    state.RoStart = bparser.Position;
+                }
+                else
+                {
+                    state.RuStart = bparser.Position;
+                }
             }
 
             if (IsParen(x))
@@ -680,9 +703,13 @@ public static class ThesisListParser
                 {
                     case '(':
                     {
-                        if (state.ParenDepth == 0)
+                        if (state.ParenDepth == 0 && !state.SawRussian)
                         {
-                            SkipForSepOrParen();
+                            state.RoStart = initialParser.Position;
+                            state.RoEnd = bparser.Position;
+                            bparser.Move();
+                            bparser.SkipWhitespace(); // repeated \r, \n and friends
+                            state.RuStart = bparser.Position;
                         }
                         else
                         {
@@ -714,13 +741,11 @@ public static class ThesisListParser
             }
             else if (IsSep(x))
             {
-                SkipForSepOrParen();
+                SkipForSep();
             }
-
-            if (state.SawRussian && state.ParenDepth == 0)
+            else
             {
-                state.RuEnd ??= bparser.EndPosition;
-                return state.GetResult(initialParser);
+                bparser.Move();
             }
 
             parser.MoveTo(bparser.Position);

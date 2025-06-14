@@ -45,6 +45,7 @@ public sealed class ThesisNameTests
     [Theory]
     [InlineData('\\')]
     [InlineData('/')]
+    [InlineData('.')]
     public void TestingAllSeparators(char sep)
     {
         var r = ThesisListParser.ParseThesisNames($"Hello{sep}Рус");
@@ -96,6 +97,7 @@ public sealed class ThesisNameTests
     [InlineData("\r\n")]
     [InlineData(@"\")]
     [InlineData("/")]
+    [InlineData(".")]
     public void ExplicitLanguage_Separated(string sep)
     {
         var r = ThesisListParser.ParseThesisNames($"ro: Hello (explicatie){sep}ru: Привет (explicatie)");
@@ -109,5 +111,26 @@ public sealed class ThesisNameTests
         var r = ThesisListParser.ParseThesisNames("ru: Привет (explicatie)/ro: Hello (explicatie)");
         Assert.Equal("Hello (explicatie)", r.Ro.Span);
         Assert.Equal("Привет (explicatie)", r.Ru.Span);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData(".")]
+    [InlineData("\r\n")]
+    [InlineData(@"\")]
+    [InlineData("/")]
+    public void InvertedLanguageOrder_Separators(string sep)
+    {
+        var r = ThesisListParser.ParseThesisNames($"Привет{sep}Hello");
+        Assert.Equal("Привет", r.Ru.Span);
+        Assert.Equal("Hello", r.Ro.Span);
+    }
+
+    // Even though russian translation in parens is ok, romanian is not.
+    [Fact]
+    public void RoInParens_NotAllowed()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            ThesisListParser.ParseThesisNames($"Привет (Hello)"));
     }
 }
