@@ -141,4 +141,13 @@ public sealed class ThesisNameTests
         Assert.Equal("ASP.NET aplicatie", r.Ro.Span);
         Assert.Equal("ASP.NET приложение", r.Ru.Span);
     }
+
+    [Fact]
+    public void QuotesTrimmed()
+    {
+        var t = @"""Звуковая стилизация: как звуковой дизайн формирует узнаваемость игрового мира""\„Stilizarea sunetului: modul în care designul sunetului modelează recunoașterea lumii jocului";
+        var r = ThesisListParser.ParseThesisNames(t);
+        Assert.Equal("Звуковая стилизация: как звуковой дизайн формирует узнаваемость игрового мира", r.Ru.Span);
+        Assert.Equal("Stilizarea sunetului: modul în care designul sunetului modelează recunoașterea lumii jocului", r.Ro.Span);
+    }
 }

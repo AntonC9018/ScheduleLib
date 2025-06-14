@@ -516,16 +516,58 @@ public static class ThesisListParser
             return new(Ro(p), Ru(p));
         }
 
+        private readonly ReadOnlyMemory<char> Trim(ReadOnlyMemory<char> s)
+        {
+            var span = s.Span;
+
+            // BUG: if it ends on a quoted word, the closing quote is still removed
+
+            int start = 0;
+            while (start < span.Length && Check(span[start]))
+            {
+                start += 1;
+            }
+
+            int end = span.Length - 1;
+            while (end >= start && Check(span[end]))
+            {
+                end -= 1;
+            }
+
+            return s[start .. (end + 1)];
+
+            bool Check(char ch)
+            {
+                if (char.IsWhiteSpace(ch))
+                {
+                    return true;
+                }
+                if ("\"«»„“”‟‹›❝❞❮❯".Contains(ch))
+                {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        private readonly ReadOnlyMemory<char> Slice(Parser p, ParserPosition start, ParserPosition? end)
+        {
+            var t = p.BufferedView();
+            t.MoveTo(start);
+            var end1 = end ?? t.EndPosition;
+            var ret = t.SourceUntilExclusive(end1);
+            ret = Trim(ret);
+            return ret;
+        }
+
         public readonly ReadOnlyMemory<char> Ro(Parser p)
         {
             if (RoStart is not { } start)
             {
                 throw new InvalidOperationException("Romanian name is required");
             }
-            var t = p.BufferedView();
-            t.MoveTo(start);
-            var roEnd = RoEnd ?? t.EndPosition;
-            return t.SourceUntilExclusive(roEnd).Trim();
+            var ret = Slice(p, start, RoEnd);
+            return ret;
         }
 
         public readonly ReadOnlyMemory<char> Ru(Parser p)
@@ -534,10 +576,8 @@ public static class ThesisListParser
             {
                 return null;
             }
-            var t = p.BufferedView();
-            t.MoveTo(start);
-            var end = RuEnd ?? t.EndPosition;
-            return t.SourceUntilExclusive(end).Trim();
+            var ret = Slice(p, start, RuEnd);
+            return ret;
         }
     }
 
