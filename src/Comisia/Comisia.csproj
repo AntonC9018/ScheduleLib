@@ -15,4 +15,7 @@
         </AssemblyAttribute>
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
+    </ItemGroup>
 </Project>

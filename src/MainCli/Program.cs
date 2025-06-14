@@ -95,10 +95,7 @@ switch (option)
             TimeConfig = context.TimeConfig,
         });
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            ExplorerHelper.OpenFolderAndSelectFile(outputFileFullPath);
-        }
+        ExplorerHelper.TryOpenExplorerAndSelectFile(outputFileFullPath);
         break;
     }
 

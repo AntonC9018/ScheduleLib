@@ -6,15 +6,15 @@ namespace Comisia;
 
 public sealed class MatchedData
 {
-    public required ImmutableArray<MatchedCommission> Commissions;
+    public required ImmutableArray<MatchedCommission> Commissions { get; init; }
 }
 
 public sealed class MatchedCommission
 {
-    public required int CommissionNumber;
-    public required DateOnly Date;
-    public required ImmutableArray<Thesis> Theses;
-    public required ImmutableArray<Name> MissingStudents;
+    public required int CommissionNumber { get; init; }
+    public required DateOnly Date { get; init; }
+    public required ImmutableArray<Thesis> Theses { get; init; }
+    public required ImmutableArray<Name> MissingStudents { get; init; }
 }
 
 public static class DataMatcher

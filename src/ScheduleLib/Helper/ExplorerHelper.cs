@@ -4,6 +4,16 @@ namespace ReaderApp.Helper;
 
 public static class ExplorerHelper
 {
+    public static bool TryOpenExplorerAndSelectFile(string file)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            ExplorerHelper.OpenFolderAndSelectFile(file);
+            return true;
+        }
+        return false;
+    }
+
     // https://stackoverflow.com/a/14601675
     public static void OpenFolderAndSelectFile(string filePath)
     {

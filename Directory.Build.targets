@@ -1,0 +1,5 @@
+<Project>
+    <ItemGroup>
+        <None Include="$(ProjectDir)data\**\*.*" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+</Project>
