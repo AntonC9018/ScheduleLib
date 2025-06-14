@@ -18,18 +18,17 @@ public sealed class ThesisList
 }
 public sealed class Thesis
 {
-    public required StudentName StudentName;
-    public required TeacherBuilderModel.NameModel TeacherName;
+    public required Name StudentName;
+    public required Name TeacherName;
     public required string GroupName;
     public required string ThesisNameRomanian;
     public required string? ThesisNameRussian; // \ / ignore any " \n  also (russian text) is allowed?
     public required string? ThesisNameEnglish;
 }
 
-internal struct ThesisInParsing
+internal struct ThesisInParsing()
 {
-    public StudentName? StudentName;
-    public TeacherBuilderModel.NameModel TeacherName;
+    public Name? TeacherName;
     public string? GroupName;
     public string? ThesisNameRomanian;
     public string? ThesisNameRussian;
@@ -173,9 +172,16 @@ public static class ThesisListParser
                 case Action.Data:
                 {
                     var thesis = new ThesisInParsing();
+                    if (row.SizedCells(widths).All(x => x.Cell.CellValue == null))
+                    {
+                        break;
+                    }
                     foreach (var cell in row.SizedCells(widths))
                     {
-                        var column = state.ColumnMappings.Find(cell.Position);
+                        if (!state.ColumnMappings.TryFind(cell.Position, out var column))
+                        {
+                            break;
+                        }
                         var text = stringTable.GetStringValue(cell.Cell);
                         switch (column)
                         {
@@ -189,10 +195,28 @@ public static class ThesisListParser
                                     throw new InvalidOperationException("Student name is required");
                                 }
                                 var parser = new Parser(text);
-                                thesis.StudentName = CommissionParser.ParseStudentName(ref parser);
+                                while (true)
+                                {
+                                    parser.SkipWhitespace();
+                                    if (parser.IsEmpty)
+                                    {
+                                        break;
+                                    }
+
+                                    var studentName = CommissionParser.ParseStudentName(ref parser);
+                                    state.StudentNames.Add(studentName);
+                                    if (!parser.SkipWhitespace().SkippedAny)
+                                    {
+                                        break;
+                                    }
+                                }
                                 if (!parser.IsEmpty)
                                 {
-                                    throw new InvalidOperationException("Parser not empty after name");
+                                    throw new InvalidOperationException("Parser not empty after student name");
+                                }
+                                if (state.StudentNames.Count == 0)
+                                {
+                                    throw new InvalidOperationException("No student names found");
                                 }
                                 break;
                             }
@@ -202,7 +226,7 @@ public static class ThesisListParser
                                 {
                                     continue;
                                 }
-                                thesis.TeacherName = TeacherNameHelper.ParseName(text);
+                                thesis.TeacherName = ParseName(text);
                                 break;
                             }
                             case Column.Group:
@@ -273,15 +297,19 @@ public static class ThesisListParser
                         }
                     }
 
-                    state.Result.Add(new()
+                    foreach (var studentName in state.StudentNames)
                     {
-                        GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
-                        StudentName = thesis.StudentName ?? throw new InvalidOperationException("Student name is required"),
-                        TeacherName = thesis.TeacherName,
-                        ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
-                        ThesisNameRussian = thesis.ThesisNameRussian,
-                        ThesisNameEnglish = thesis.ThesisNameEnglish,
-                    });
+                        state.Result.Add(new()
+                        {
+                            GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                            StudentName = studentName,
+                            TeacherName = thesis.TeacherName ?? throw new InvalidOperationException("Teacher name is required"),
+                            ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
+                            ThesisNameRussian = thesis.ThesisNameRussian,
+                            ThesisNameEnglish = thesis.ThesisNameEnglish,
+                        });
+                    }
+                    state.StudentNames.Clear();
                     break;
                 }
             }
@@ -290,6 +318,20 @@ public static class ThesisListParser
         {
             Items = state.Result.DrainToImmutable(),
         };
+    }
+
+    private static Name ParseName(string text)
+    {
+        var parser = new Parser(text);
+        parser.SkipWhitespace();
+        var studentName = CommissionParser.ParseStudentName(ref parser);
+        parser.SkipWhitespace();
+        if (!parser.IsEmpty)
+        {
+            throw new InvalidOperationException("Parser not empty after name");
+        }
+
+        return studentName;
     }
 
     private static Column MatchColumn(string text)
@@ -412,6 +454,7 @@ public static class ThesisListParser
         public UnsizedBitArray32 PresentColumns = default;
         public StringBuilder StringBuilder = new();
         public ImmutableArray<Thesis>.Builder Result = ImmutableArray.CreateBuilder<Thesis>();
+        public readonly List<Name> StudentNames = new();
     }
 
     private sealed class SearchFilter
@@ -461,6 +504,10 @@ public static class ThesisListParser
     private static bool IsRussian(char ch)
     {
         if (ch >= 'А' && ch <= 'я')
+        {
+            return true;
+        }
+        if (ch == 'Ё' || ch == 'ё')
         {
             return true;
         }
@@ -691,6 +738,7 @@ public static class ThesisListParser
                 }
                 if (!state.SawRussian)
                 {
+                    state.RoStart = initialParser.Position;
                     state.RoEnd = null;
                     state.RuStart = null;
                     state.RuEnd = null;

@@ -2,9 +2,9 @@ using ScheduleLib.Parsing;
 
 namespace Comisia.Tests;
 
-public sealed class StudentNameTests
+public sealed class NameTests
 {
-    private StudentName ParseName(string s)
+    private Name ParseName(string s)
     {
         var p = new Parser(s);
         var r = CommissionParser.ParseStudentName(ref p);

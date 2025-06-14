@@ -150,4 +150,12 @@ public sealed class ThesisNameTests
         Assert.Equal("Звуковая стилизация: как звуковой дизайн формирует узнаваемость игрового мира", r.Ru.Span);
         Assert.Equal("Stilizarea sunetului: modul în care designul sunetului modelează recunoașterea lumii jocului", r.Ro.Span);
     }
+
+    [Fact]
+    public void NoRussianSymbolsHere()
+    {
+        var t = "Dezvoltarea aplicației WEB cu baza de date “Cartela medicală a pacientului” in mediul de program ASP.NET – DOT.NET";
+        var r = ThesisListParser.ParseThesisNames(t);
+        Assert.Equal("Dezvoltarea aplicației WEB cu baza de date “Cartela medicală a pacientului” in mediul de program ASP.NET – DOT.NET", r.Ro.Span);
+    }
 }

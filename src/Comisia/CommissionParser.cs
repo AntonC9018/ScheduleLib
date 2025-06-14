@@ -16,10 +16,10 @@ public sealed class Commission
 {
     public required int Number;
     public required DateOnly Date;
-    public required ImmutableArray<StudentName> Students;
+    public required ImmutableArray<Name> Students;
 }
 
-public sealed class StudentName
+public sealed class Name
 {
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
@@ -208,7 +208,7 @@ public static class CommissionParser
                     {
                         foreach (var x in NonEmptyCells())
                         {
-                            var b = ImmutableArray.CreateBuilder<StudentName>();
+                            var b = ImmutableArray.CreateBuilder<Name>();
                             state.StudentColumns.AddAt(x.Cell.Position, new(b, x.Cell.Size));
                         }
                     }
@@ -286,7 +286,7 @@ public static class CommissionParser
         public Action Action = Action.Date;
         public SizedItemArray<int> CommissionNumberMappings = new();
         public SizedItemArray<DateOnly?> DateMappings = new();
-        public SizedItemArray<ImmutableArray<StudentName>.Builder?> StudentColumns = new();
+        public SizedItemArray<ImmutableArray<Name>.Builder?> StudentColumns = new();
     }
 
     private enum Action
@@ -297,9 +297,9 @@ public static class CommissionParser
         NameRow,
     }
 
-    internal static StudentName ParseStudentName(ref Parser parser)
+    internal static Name ParseStudentName(ref Parser parser)
     {
-        var ret = new StudentName();
+        var ret = new Name();
 
         ret.LastName.A = ParseNamePart(ref parser, "No last name");
 

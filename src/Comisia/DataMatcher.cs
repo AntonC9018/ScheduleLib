@@ -14,6 +14,7 @@ public sealed class MatchedCommission
     public required int CommissionNumber;
     public required DateOnly Date;
     public required ImmutableArray<Thesis> Theses;
+    public required ImmutableArray<Name> MissingStudents;
 }
 
 public static class DataMatcher
@@ -21,11 +22,42 @@ public static class DataMatcher
     private readonly record struct NameKey(NameParts<string?> StudentLast);
     private readonly record struct ThesisByStudentName(NameParts<string?> StudentFirst, Thesis Thesis);
 
+    private static bool AreEqual(NameParts<string?> x, NameParts<string?> y)
+    {
+        return x.EachEquals(y, static (a, b) =>
+        {
+            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(a, b);
+        });
+    }
+
+    private sealed class Comparer : IEqualityComparer<NameKey>
+    {
+        public static readonly Comparer Instance = new();
+
+        public bool Equals(NameKey x, NameKey y)
+        {
+            return AreEqual(x.StudentLast, y.StudentLast);
+        }
+
+        public int GetHashCode(NameKey obj)
+        {
+            var hash = 0;
+            foreach (var part in obj.StudentLast)
+            {
+                if (part is not null)
+                {
+                    hash ^= IgnoreDiacriticsAndCaseComparer.Instance.GetHashCode(part);
+                }
+            }
+            return hash;
+        }
+    }
+
     public static MatchedData Match(
         CommissionSchedule commissionSchedule,
         ThesisList theses)
     {
-        var dict = new Dictionary<NameKey, List<ThesisByStudentName>>();
+        var dict = new Dictionary<NameKey, List<ThesisByStudentName>>(Comparer.Instance);
         foreach (var thesis in theses.Items)
         {
             var key = new NameKey(thesis.StudentName.LastName);
@@ -58,16 +90,22 @@ public static class DataMatcher
         foreach (var commission in commissionSchedule.Commissions)
         {
             var thesesOfCommission = ImmutableArray.CreateBuilder<Thesis>(commission.Students.Length);
+            var missingStudents = ImmutableArray.CreateBuilder<Name>();
             foreach (var studentName in commission.Students)
             {
                 if (!dict.TryGetValue(new(studentName.LastName), out var thesesOfStudentsWithName))
                 {
-                    throw new InvalidOperationException($"Student not found: {studentName}");
+                    missingStudents.Add(studentName);
+                    continue;
                 }
-                var thesisInfo = thesesOfStudentsWithName.Find(x => x.StudentFirst == studentName.FirstName);
-                if (thesisInfo == default)
+                var thesisInfo = thesesOfStudentsWithName.Find(x =>
                 {
-                    throw new InvalidOperationException($"Thesis not found for student {studentName}");
+                    return AreEqual(x.StudentFirst, studentName.FirstName);
+                });
+                if (thesisInfo.Thesis == null)
+                {
+                    missingStudents.Add(studentName);
+                    continue;
                 }
 
                 var thesis = thesisInfo.Thesis;
@@ -83,7 +121,8 @@ public static class DataMatcher
             {
                 Date = commission.Date,
                 CommissionNumber = commission.Number,
-                Theses = thesesOfCommission.MoveToImmutable(),
+                Theses = thesesOfCommission.DrainToImmutable(),
+                MissingStudents = missingStudents.DrainToImmutable(),
             });
         }
         return new()

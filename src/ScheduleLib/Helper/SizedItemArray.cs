@@ -69,11 +69,22 @@ public readonly struct SizedItemArray<T>
 
     public T Find(int colIndex)
     {
-        if (FindPosition(colIndex) is not { } i)
+        if (TryFind(colIndex, out var item))
         {
-            throw new ArgumentOutOfRangeException(nameof(colIndex));
+            return item;
         }
-        return _items[i.Index].Item;
+        throw new ArgumentOutOfRangeException(nameof(colIndex));
+    }
+
+    public bool TryFind(int colIndex, out T item)
+    {
+        if (FindPosition(colIndex) is { } i)
+        {
+            item = _items[i.Index].Item;
+            return true;
+        }
+        item = default!;
+        return false;
     }
 
     public int? FindPosition(T item)
