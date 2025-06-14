@@ -739,6 +739,22 @@ public static class ThesisListParser
                     }
                 }
             }
+            else if (x == '.')
+            {
+                // Check for whitespace after dot.
+                var copy = bparser.BufferedView();
+                copy.Move();
+                var whitespaceRes = copy.SkipWhitespace();
+                if (!whitespaceRes.SkippedAny)
+                {
+                    // It's just part of a word like ASP.NET
+                    bparser.Move();
+                }
+                else
+                {
+                    SkipForSep();
+                }
+            }
             else if (IsSep(x))
             {
                 SkipForSep();

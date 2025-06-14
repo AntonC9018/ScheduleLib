@@ -43,10 +43,10 @@ public sealed class ThesisNameTests
     }
 
     [Theory]
-    [InlineData('\\')]
-    [InlineData('/')]
-    [InlineData('.')]
-    public void TestingAllSeparators(char sep)
+    [InlineData("\\")]
+    [InlineData("/")]
+    [InlineData(". ")]
+    public void TestingAllSeparators(string sep)
     {
         var r = ThesisListParser.ParseThesisNames($"Hello{sep}Рус");
         Assert.Equal("Hello", r.Ro.Span);
@@ -115,7 +115,7 @@ public sealed class ThesisNameTests
 
     [Theory]
     [InlineData("\n")]
-    [InlineData(".")]
+    [InlineData(". ")]
     [InlineData("\r\n")]
     [InlineData(@"\")]
     [InlineData("/")]
@@ -132,5 +132,13 @@ public sealed class ThesisNameTests
     {
         Assert.Throws<InvalidOperationException>(() =>
             ThesisListParser.ParseThesisNames($"Привет (Hello)"));
+    }
+
+    [Fact]
+    public void Dot_OnlyCountsAsSeparator_WhenFollowedByWhitespace()
+    {
+        var r = ThesisListParser.ParseThesisNames("ASP.NET aplicatie. ASP.NET приложение");
+        Assert.Equal("ASP.NET aplicatie", r.Ro.Span);
+        Assert.Equal("ASP.NET приложение", r.Ru.Span);
     }
 }
