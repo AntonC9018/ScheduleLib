@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
@@ -23,6 +24,29 @@ public sealed class StudentName
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
     public NameParts<string?> Patronymic;
+
+    public override string ToString()
+    {
+        StringBuilder ret = new();
+        var spacesB = new ListStringBuilder(ret, ' ');
+        AppendName(FirstName);
+        AppendName(LastName);
+        AppendName(Patronymic);
+        return ret.ToString();
+
+        void AppendName(NameParts<string?> parts)
+        {
+            spacesB.MaybeAppendSeparator();
+
+            var list = new ListStringBuilder(ret, '-');
+            foreach (var x in FirstName)
+            {
+                list.Append(x);
+            }
+
+            spacesB = new ListStringBuilder(ret, ' ');
+        }
+    }
 }
 
 public static class CommissionParser
