@@ -19,19 +19,35 @@ public sealed class Commission
     public required ImmutableArray<Name> Students;
 }
 
+public struct NameToStringParams()
+{
+    public bool IncludeLast = true;
+    public bool IncludeFirst = true;
+    public bool IncludePatronymic = true;
+}
+
 public sealed class Name
 {
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
     public NameParts<string?> Patronymic;
 
-    public override string ToString()
+    public string ToString(NameToStringParams p)
     {
         StringBuilder ret = new();
         var spacesB = new ListStringBuilder(ret, ' ');
-        AppendName(LastName);
-        AppendName(FirstName);
-        AppendName(Patronymic);
+        if (p.IncludeLast)
+        {
+            AppendName(LastName);
+        }
+        if (p.IncludeFirst)
+        {
+            AppendName(FirstName);
+        }
+        if (p.IncludePatronymic)
+        {
+            AppendName(Patronymic);
+        }
         return ret.ToString();
 
         void AppendName(NameParts<string?> parts)
@@ -48,6 +64,14 @@ public sealed class Name
                 }
             }
         }
+    }
+
+    public override string ToString()
+    {
+        return ToString(new NameToStringParams()
+        {
+            IncludePatronymic = false,
+        });
     }
 }
 

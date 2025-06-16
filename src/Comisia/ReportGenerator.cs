@@ -57,6 +57,9 @@ public static class XmlModels
         [XmlArrayItem("Thesis")]
         public required ImmutableArray<Thesis> Theses { get; init; }
 
+        [XmlElement("HasMissingStudents")]
+        public required bool HasMissingStudents { get; init; }
+
         [XmlArray("MissingStudents")]
         [XmlArrayItem("StudentName")]
         public required ImmutableArray<string> MissingStudents { get; init; }
@@ -64,6 +67,9 @@ public static class XmlModels
 
     public sealed class Thesis
     {
+        [XmlElement("Number")]
+        public required int Number { get; init; }
+
         [XmlElement("StudentName")]
         public required string StudentName { get; init; }
 
@@ -90,8 +96,9 @@ public static class XmlModels
                     CommissionName = $"Comisia {NumberHelper.ToRoman(c.CommissionNumber)}",
                     Date = c.Date.ToString("dd.MM.yy"),
                     Theses = [
-                        .. c.Theses.Select(t => new Thesis
+                        .. c.Theses.Select((t, i) => new Thesis
                         {
+                            Number = i + 1,
                             StudentName = t.StudentName.ToString(),
                             TeacherName = t.TeacherName.ToString(),
                             ThesisNameRo = t.ThesisNameRomanian,
@@ -99,6 +106,7 @@ public static class XmlModels
                             ThesisNameEn = t.ThesisNameEnglish ?? "",
                         }),
                     ],
+                    HasMissingStudents = !c.MissingStudents.IsEmpty,
                     MissingStudents = [.. c.MissingStudents.Select(s => s.ToString())],
                 }),
             ],
