@@ -4,7 +4,6 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
-using ScheduleLib.Builders;
 using ScheduleLib.Curriculum;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;

@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
 using System.Xml;
 using System.Xml.Serialization;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Validation;
 using OpenXmlPowerTools;
 using ReaderApp.Helper;
 using ScheduleLib.Generation;
