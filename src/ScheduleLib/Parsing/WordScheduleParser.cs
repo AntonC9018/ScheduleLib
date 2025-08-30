@@ -651,7 +651,9 @@ public static class WordScheduleParser
         modelData.Date.Parity = lesson.Parity;
 
         ref var g = ref modelData.Group;
-        if (lesson.GroupName.IsEmpty)
+        var groupFullName = lesson.GroupName.Span.Trim().ToString();
+        if (groupFullName.Length == 0
+            || HandleSpecialSubGroup(ref g, lesson))
         {
             var groups = new LessonGroups();
             for (int i = 0; i < colSpan; i++)
@@ -670,9 +672,27 @@ public static class WordScheduleParser
         }
         else
         {
-            var groupFullName = lesson.GroupName.Span.Trim().ToString();
             var groupId = c.Schedule.Group(groupFullName);
             g.Groups.Add(groupId);
+        }
+
+        // Check for special case when it's a subgroup.
+        // Currently only happens for "începători".
+        bool HandleSpecialSubGroup(
+            ref RegularLessonBuilderModelData.GroupData g,
+            in ParsedLesson lesson)
+        {
+            const string specialSubGroup = "începători";
+            if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(specialSubGroup, groupFullName))
+            {
+                return false;
+            }
+            if (lesson.SubGroup.Value is not null)
+            {
+                throw new NotImplementedException("Multiple subgroups as a single group");
+            }
+            g.SubGroup = new(specialSubGroup);
+            return true;
         }
 
         modelData.General.Period = periodId;
