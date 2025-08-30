@@ -11,7 +11,18 @@ public static class DictionaryHelper
         ReadOnlySpan<char> key,
         AddFunc<T> add)
     {
-        var l = dict.GetAlternateLookup<ReadOnlySpan<char>>();
+        var hasLookup = dict.TryGetAlternateLookup<ReadOnlySpan<char>>(out var l);
+        if (!hasLookup)
+        {
+            Console.WriteLine("No alternate lookup");
+            var k = key.ToString();
+            if (!dict.TryGetValue(k, out var value))
+            {
+                value = add(key);
+                dict.Add(k, add(key));
+            }
+            return value;
+        }
         ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(l, key, out bool exists);
         if (exists)
         {

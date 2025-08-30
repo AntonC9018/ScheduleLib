@@ -433,27 +433,25 @@ public static class WordScheduleParser
                         // I
                         // 8:00-9:30
 
-                        // Two paragraphs
+                        // May be two paragraphs, may be one
                         using var paragraphs = cell.ChildElements.OfType<Paragraph>().GetEnumerator();
                         if (!paragraphs.MoveNext())
                         {
                             throw new NotSupportedException("Invalid time slot cell");
                         }
 
+                        var timeSlotCellText = cell.InnerText;
+                        var parser = new Parser(timeSlotCellText);
+
                         int newTimeSlotOrdinal;
                         {
-                            var numberParagraph = paragraphs.Current;
-                            if (numberParagraph.InnerText is not { } numberText)
-                            {
-                                throw new NotSupportedException("The time slot must contain the ordinal first");
-                            }
-
-                            var maybeNum = NumberHelper.FromRoman(numberText);
-                            if (maybeNum is not { } num)
+                            var maybeNum = parser.ReadRoman();
+                            if (maybeNum.Status != ReadRomanStatus.Ok)
                             {
                                 throw new NotSupportedException("The time slot number should be a roman numeral");
                             }
                             int currentOrdinal = currentTime?.TimeSlotOrdinal ?? 0;
+                            int num = maybeNum.Number;
                             if (num != currentOrdinal + 1)
                             {
                                 throw new NotSupportedException("The time slot number must be in order");
@@ -462,12 +460,12 @@ public static class WordScheduleParser
                             newTimeSlotOrdinal = num;
                         }
 
-                        if (!paragraphs.MoveNext())
+                        if (!parser.SkipWhitespace().SkippedAny)
                         {
-                            throw new NotSupportedException("");
+                            throw new InvalidOperationException("Expected time after the time slot");
                         }
 
-                        var parsedTime = Time();
+                        var parsedTime = Time(ref parser);
 
                         if (paragraphs.MoveNext())
                         {
@@ -495,17 +493,9 @@ public static class WordScheduleParser
                             };
                         }
 
-                        (TimeOnly Start, TimeOnly End) Time()
+                        static (TimeOnly Start, TimeOnly End) Time(ref Parser parser)
                         {
-                            var timeParagraph = paragraphs.Current;
-                            if (timeParagraph.InnerText is not { } timeText)
-                            {
-                                timeText = "";
-                                TimeSlotError();
-                            }
-
                             // HH:MM-HH:MM
-                            var parser = new Parser(timeText);
                             parser.SkipWhitespace();
                             if (ParserHelper.ParseTime(ref parser) is not { } startTime)
                             {

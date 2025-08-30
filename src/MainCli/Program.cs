@@ -43,14 +43,14 @@ context.Schedule.ConfigureRemappings(remap =>
 {
     context.Schedule.SetStudyYear(2024);
 
-    const string dirName = @"data\2024_sem2";
+    const string dirName = @"data\2025_sem1";
     Tasks.ParseDocumentDirIntoSchedule(context, dirName);
 }
 
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.CreateLessonsInRegistry;
+var option = Option.AllTeachersExcel;
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;

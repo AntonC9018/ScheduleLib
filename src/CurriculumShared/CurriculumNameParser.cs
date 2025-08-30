@@ -1970,6 +1970,11 @@ internal static class DisciplineProvisionsProcessing
                         state.AttendanceMode = (AttendanceMode) attendanceResult.MatchIndex;
                         break;
                     }
+                    case Column.CourseName:
+                    {
+                        //TODO:
+                        throw null!;
+                    }
                 }
             }
 
