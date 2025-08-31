@@ -2362,7 +2362,7 @@ public static class StringSearchHelper
             return SectionParseResult.CreateOk(sectionIndex);
         }
 
-        throw UnreachableHelper.Unreachable();
+        throw Unreachable();
     }
 
     public static void DefaultHandleError(SectionParseResult x)

@@ -434,10 +434,12 @@ public static class WordScheduleParser
                         // 8:00-9:30
 
                         // May be two paragraphs, may be one
-                        using var paragraphs = cell.ChildElements.OfType<Paragraph>().GetEnumerator();
-                        if (!paragraphs.MoveNext())
                         {
-                            throw new NotSupportedException("Invalid time slot cell");
+                            using var paragraphs = cell.ChildElements.OfType<Paragraph>().GetEnumerator();
+                            if (!paragraphs.MoveNext())
+                            {
+                                throw new NotSupportedException("Invalid time slot cell");
+                            }
                         }
 
                         var timeSlotCellText = cell.InnerText;
@@ -460,17 +462,12 @@ public static class WordScheduleParser
                             newTimeSlotOrdinal = num;
                         }
 
-                        if (!parser.SkipWhitespace().SkippedAny)
+                        if (parser.SkipWhitespace().EndOfInput)
                         {
                             throw new InvalidOperationException("Expected time after the time slot");
                         }
 
                         var parsedTime = Time(ref parser);
-
-                        if (paragraphs.MoveNext())
-                        {
-                            throw new NotSupportedException("Extra paragraphs");
-                        }
 
                         {
                             var timeStarts = c.TimeConfig.TimeSlotStarts;

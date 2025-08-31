@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Security;
 using System.Text;
+using ConvertDocToDocx;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -15,6 +16,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.WordDoc;
@@ -996,7 +998,7 @@ public static class Tasks
         ret = new()
         {
             Login = login,
-            Password = password.ToString() ?? throw UnreachableHelper.Unreachable(),
+            Password = password.ToString() ?? throw Unreachable(),
         };
         return ret;
     }
@@ -1057,11 +1059,15 @@ public static class Tasks
         });
     }
 
-    public static void ParseDocumentDirIntoSchedule(
+    public static async Task ParseDocumentDirIntoSchedule(
         DocParseContext context,
-        string dirName)
+        string dirName,
+        CancellationToken cancellationToken)
     {
-        ParseDirectoryToSchedule(context, dirName);
+        await ParseDirectoryToSchedule(
+            context,
+            dirName,
+            cancellationToken: cancellationToken);
 
         var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
             .Select(x =>
@@ -1087,18 +1093,37 @@ public static class Tasks
 
         foreach (var t in subdirs)
         {
-            ParseDirectoryToSchedule(context, t.SubDirPath, new()
-            {
-                StartDate = t.StartDate,
-            });
+            await ParseDirectoryToSchedule(
+                context,
+                t.SubDirPath,
+                cancellationToken: cancellationToken,
+                period: new()
+                {
+                    StartDate = t.StartDate,
+                });
         }
         return;
 
-        static void ParseDirectoryToSchedule(
+        static async Task ParseDirectoryToSchedule(
             DocParseContext context,
             string dirName,
+            CancellationToken cancellationToken,
             PeriodBeginning? period = null)
         {
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
+            {
+                var outputPath = PathHelper.WithExtension(filePath, ".docx");
+                var conversionSuccessful = await DocToDocxConversionHelper.TryConvertFile(
+                    inputPath: filePath,
+                    outputPath: outputPath,
+                    cancellationToken: cancellationToken);
+                if (!conversionSuccessful)
+                {
+                    throw new InvalidOperationException("Could not convert doc to docx");
+                }
+                File.Delete(filePath);
+            }
+
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
             {
                 using var document = WordprocessingDocument.Open(filePath, isEditable: false);

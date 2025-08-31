@@ -76,6 +76,7 @@ public static class CredentialHelper
             var context = contextFactory();
             authRecord = await credential.AuthenticateAsync(context, cancellationToken);
         }
+        _ = authRecord;
         return credential;
     }
 

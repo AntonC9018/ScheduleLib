@@ -97,7 +97,7 @@ public static class ThesisListParser
                 case ThesisType.Master:
                     return comparer.Contains(name, "master");
                 default:
-                    throw UnreachableHelper.Unreachable();
+                    throw Unreachable();
             }
         });
 
@@ -358,7 +358,7 @@ public static class ThesisListParser
             }
             else
             {
-                throw UnreachableHelper.Unreachable();
+                throw Unreachable();
             }
         }
         return Column.Unknown;

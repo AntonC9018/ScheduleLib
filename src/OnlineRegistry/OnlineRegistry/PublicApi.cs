@@ -1,5 +1,3 @@
-using static ScheduleLib.UnreachableHelper;
-
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;

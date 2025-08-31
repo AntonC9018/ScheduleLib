@@ -2,4 +2,12 @@
     <ItemGroup>
         <None Include="$(ProjectDir)data\**\*.*" CopyToOutputDirectory="Always" />
     </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeHelpers)' == 'true'">
+        <Using Include="ScheduleLib.UnreachableHelper" Static="true" />
+        <ProjectReference
+            Condition="'$(MSBuildProjectFullPath)' != '$(RootPath)src\ScheduleLib\ScheduleLib.csproj'"
+            Include="$(RootPath)src\ScheduleLib\ScheduleLib.csproj" />
+    </ItemGroup>
+
 </Project>

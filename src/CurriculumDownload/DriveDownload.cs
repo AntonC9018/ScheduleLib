@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Web;
 using Azure.Identity;
+using ConvertDocToDocx;
 using Microsoft.Graph;
+using ScheduleLib.Helper;
 using Directory = System.IO.Directory;
 using File = System.IO.File;
 using Process = System.Diagnostics.Process;
@@ -80,10 +82,9 @@ public static class CurriculaDownloadTasks
 
             foreach (var file in children)
             {
-                var nameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
                 var filePath = Path.Combine(directory, file.Name);
+                var convertedFilePath = PathHelper.WithExtension(file.Name, ".docx");
 
-                var convertedFilePath = Path.Combine(directory, nameWithoutExtension + ".docx");
                 if (File.Exists(convertedFilePath))
                 {
                     continue;
@@ -110,28 +111,13 @@ public static class CurriculaDownloadTasks
                     }
                 }
 
-                // TODO:
-                // 1. Embed this
-                // 2. This is only for windows
-                const string converterPath = @"C:\Users\Anton\Desktop\lessons\src\ConvertDocToDocx\bin\Debug\net4.8\ConvertDocToDocx.exe";
-                var processInfo = new ProcessStartInfo(
-                    converterPath,
-                    arguments: [
-                        filePath,
-                        convertedFilePath,
-                    ]);
-                var process = Process.Start(processInfo);
-                if (process is null)
+                var converted = await DocToDocxConversionHelper.TryConvertFile(
+                    inputPath: filePath,
+                    outputPath: convertedFilePath,
+                    cancellationToken: cancellationToken);
+                if (!converted)
                 {
-                    throw UnreachableHelper.Unreachable();
-                }
-                await process.WaitForExitAsync(cancellationToken);
-
-                // File.Delete(filePath);
-
-                if (process.ExitCode != 0)
-                {
-                    throw new InvalidOperationException("Conversion failed");
+                    throw new InvalidOperationException("Conversion to docx failed");
                 }
                 continue;
 

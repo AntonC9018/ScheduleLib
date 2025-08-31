@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
+        <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 
     <ItemGroup>

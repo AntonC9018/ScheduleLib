@@ -40,11 +40,17 @@ context.Schedule.ConfigureRemappings(remap =>
     Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
 }
 
+var cancellationToken = CancellationToken.None;
+_ = cancellationToken;
+
 {
     context.Schedule.SetStudyYear(2024);
 
     const string dirName = @"data\2025_sem1";
-    Tasks.ParseDocumentDirIntoSchedule(context, dirName);
+    await Tasks.ParseDocumentDirIntoSchedule(
+        context,
+        dirName,
+        cancellationToken: cancellationToken);
 }
 
 var schedule = context.BuildSchedule();
@@ -52,8 +58,6 @@ Console.WriteLine("Schedule built");
 
 var option = Option.AllTeachersExcel;
 
-var cancellationToken = CancellationToken.None;
-_ = cancellationToken;
 
 IConfiguration config;
 {
