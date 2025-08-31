@@ -53,7 +53,7 @@ public static class DiacriticsHelper
     }
 }
 
-public sealed class IgnoreDiacriticsAndCaseComparer : IEqualityComparer<string>, IComparer<string>
+public sealed class IgnoreDiacriticsAndCaseComparer : IEqualityComparer<string>, IComparer<string>, IAlternateEqualityComparer<ReadOnlySpan<char>, string>
 {
     public static readonly IgnoreDiacriticsAndCaseComparer Instance = new();
 
@@ -121,5 +121,23 @@ public sealed class IgnoreDiacriticsAndCaseComparer : IEqualityComparer<string>,
         var x1 = DiacriticsHelper.RemoveDiacritics(a);
         var y1 = DiacriticsHelper.RemoveDiacritics(b);
         return string.Compare(x1, y1, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool Equals(ReadOnlySpan<char> alternate, string other)
+    {
+        var alt = DiacriticsHelper.RemoveDiacritics(alternate.ToString());
+        var oth = DiacriticsHelper.RemoveDiacritics(other);
+        return alt.Equals(oth, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public int GetHashCode(ReadOnlySpan<char> alternate)
+    {
+        var alt = DiacriticsHelper.RemoveDiacritics(alternate.ToString());
+        return alt.GetHashCode();
+    }
+
+    public string Create(ReadOnlySpan<char> alternate)
+    {
+        return alternate.ToString();
     }
 }
