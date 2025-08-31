@@ -123,63 +123,38 @@ public record struct OneTimeLessonDate
     public required TimeSlot TimeSlot;
 }
 
-// [StructLayout(LayoutKind.Sequential)]
-public record struct LessonGroups() : IEnumerable<GroupId>
+[InlineArray(_Capacity)]
+internal struct LessonGroupsImpl
 {
-    public GroupId Group0 = GroupId.Invalid;
-    public GroupId Group1 = GroupId.Invalid;
-    public GroupId Group2 = GroupId.Invalid;
-    public GroupId Group3 = GroupId.Invalid;
-    public GroupId Group4 = GroupId.Invalid;
-    public GroupId Group5 = GroupId.Invalid;
-
-    public readonly int Capacity => 6;
+    public const int _Capacity = 15;
+    public GroupId _value;
+}
+// [StructLayout(LayoutKind.Sequential)]
+public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
+{
+    private LessonGroupsImpl _impl;
 
     // indexer
     public GroupId this[int index]
     {
-        readonly get
+        readonly get => _impl[index];
+        set => _impl[index] = value;
+    }
+
+    public LessonGroups()
+    {
+        for (int i = 0; i < Capacity; i++)
         {
-            return index switch
-            {
-                0 => Group0,
-                1 => Group1,
-                2 => Group2,
-                3 => Group3,
-                4 => Group4,
-                5 => Group5,
-                _ => throw new ArgumentOutOfRangeException(nameof(index)),
-            };
-        }
-        set
-        {
-            switch (index)
-            {
-                case 0:
-                    Group0 = value;
-                    break;
-                case 1:
-                    Group1 = value;
-                    break;
-                case 2:
-                    Group2 = value;
-                    break;
-                case 3:
-                    Group3 = value;
-                    break;
-                case 4:
-                    Group4 = value;
-                    break;
-                case 5:
-                    Group5 = value;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            this[i] = GroupId.Invalid;
         }
     }
 
-    public readonly bool IsSingleGroup => Group1 == GroupId.Invalid;
+    public GroupId Group0 => this[0];
+
+    public const int _Capacity = 15;
+    public readonly int Capacity => _Capacity;
+
+    public readonly bool IsSingleGroup => this[1] == GroupId.Invalid;
 
     public readonly int Count
     {
@@ -201,7 +176,7 @@ public record struct LessonGroups() : IEnumerable<GroupId>
         int count = Count;
         if (count == Capacity)
         {
-            Debug.Fail("Can't add more than 3 groups per lesson");
+            Debug.Fail($"Can't add more than {Capacity} groups per lesson");
         }
         this[count] = id;
     }
@@ -247,8 +222,41 @@ public record struct LessonGroups() : IEnumerable<GroupId>
 
         public void Reset() => throw new NotImplementedException();
         object? IEnumerator.Current => Current;
-
     }
+
+    public bool Equals(LessonGroups other) => this == other;
+
+    public override bool Equals(object? o)
+    {
+        if (o is LessonGroups other)
+        {
+            return this == other;
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        int hash = 17;
+        for (int i = 0; i < Capacity; i++)
+        {
+            hash = hash * 31 + this[i].GetHashCode();
+        }
+        return hash;
+    }
+
+    public static bool operator==(in LessonGroups a, in LessonGroups b)
+    {
+        for (int i = 0; i < a.Capacity; i++)
+        {
+            if (a[i] != b[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    public static bool operator!=(in LessonGroups a, in LessonGroups b) => !(a == b);
 }
 
 public readonly record struct CourseId(int Id);

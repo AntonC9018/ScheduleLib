@@ -246,6 +246,7 @@ public readonly struct SizedItemArray<T>
     }
 
     public Enumerator GetEnumerator() => new(this);
+    public NotEmptyEnumerable EnumerateNotEmpty(T? empty = default) => new(this, empty);
     public WithPositionEnumerable EnumerateWithPosition() => new(this);
 
     public struct Enumerator
@@ -259,6 +260,55 @@ public readonly struct SizedItemArray<T>
 
         public SizedItem<T> Current => _enumerator.Current;
         public bool MoveNext() => _enumerator.MoveNext();
+    }
+
+    public readonly struct NotEmptyEnumerable
+    {
+        private readonly SizedItemArray<T> _arr;
+        private readonly T? _empty;
+
+        public NotEmptyEnumerable(SizedItemArray<T> arr, T? empty)
+        {
+            _arr = arr;
+            _empty = empty;
+        }
+
+        public NotEmptyEnumerator GetEnumerator() => new(_arr, _empty);
+    }
+
+    public struct NotEmptyEnumerator
+    {
+        private Enumerator _enumerator;
+        private readonly T? _empty;
+
+        public NotEmptyEnumerator(SizedItemArray<T> arr, T? empty)
+        {
+            if (arr.IsEmpty)
+            {
+                throw new InvalidOperationException("Array is empty");
+            }
+            _enumerator = arr.GetEnumerator();
+            _empty = empty;
+        }
+
+        public SizedItem<T> Current => _enumerator.Current;
+        public bool MoveNext()
+        {
+            while (true)
+            {
+                if (!_enumerator.MoveNext())
+                {
+                    return false;
+                }
+                var v = Current;
+                if (EqualityComparer<T>.Default.Equals(v.Item, _empty))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+        }
     }
 
     public struct WithPositionEnumerable

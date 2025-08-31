@@ -230,10 +230,7 @@ public static class LessonBuilderHelper
 
     public static void Group(this ILessonBuilder b, GroupId group, SubGroup? subGroup = null)
     {
-        b.Model.Group.Groups = new()
-        {
-            Group0 = group,
-        };
+        b.Model.Group.Groups = [group];
         b.Model.Group.SubGroup = subGroup ?? SubGroup.All;
     }
 

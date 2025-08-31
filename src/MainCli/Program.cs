@@ -44,9 +44,10 @@ var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
 
 {
-    context.Schedule.SetStudyYear(2024);
+    const int year = 2025;
+    context.Schedule.SetStudyYear(year);
 
-    const string dirName = @"data\2025_sem1";
+    string dirName = @$"data\{year}_sem1";
     await Tasks.ParseDocumentDirIntoSchedule(
         context,
         dirName,
@@ -56,7 +57,7 @@ _ = cancellationToken;
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.AllTeachersExcel;
+var option = Option.PerGroupAndPerTeacherPdfs;
 
 
 IConfiguration config;

@@ -78,22 +78,14 @@ public sealed class LessonDiffTests
         {
             Group = new()
             {
-                Groups = new()
-                {
-                    Group0 = new(1),
-                    Group1 = new(2),
-                },
+                Groups = [new(1), new(2)],
             },
         };
         var lesson2 = new RegularLessonBuilderModelData
         {
             Group = new()
             {
-                Groups = new()
-                {
-                    Group0 = new(2),
-                    Group1 = new(3),
-                },
+                Groups = [new(2), new(3)],
             },
         };
         LessonBuilderHelper.Merge(ref lesson1, lesson2, new()
@@ -102,8 +94,8 @@ public sealed class LessonDiffTests
         });
 
         var g = lesson1.Group.Groups;
-        Assert.Equal(new GroupId(1), g.Group0);
-        Assert.Equal(new GroupId(2), g.Group1);
-        Assert.Equal(new GroupId(3), g.Group2);
+        Assert.Equal(new GroupId(1), g[0]);
+        Assert.Equal(new GroupId(2), g[1]);
+        Assert.Equal(new GroupId(3), g[2]);
     }
 }
