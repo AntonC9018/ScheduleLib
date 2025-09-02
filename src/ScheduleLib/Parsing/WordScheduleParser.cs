@@ -739,10 +739,6 @@ public static class WordScheduleParser
         }
         if (!lesson.RoomName.IsEmpty)
         {
-            if (lesson.RoomName.Span is "15:00")
-            {
-                Console.WriteLine("Hello");
-            }
             var roomName = lesson.RoomName.ToString();
             var roomId = c.Room(roomName);
             modelData.General.Room = roomId;

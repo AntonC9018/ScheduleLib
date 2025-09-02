@@ -186,7 +186,8 @@ public static class CourseNameParsing
 
                 if (s.Length < config.MinUsefulWordLength)
                 {
-                    return false;
+                    segment.Flags.CanBeIgnored = true;
+                    return true;
                 }
 
                 // Regular word.
