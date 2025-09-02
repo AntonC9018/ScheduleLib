@@ -67,7 +67,7 @@ IConfiguration config;
     config = builder.Build();
 }
 
-var option = Option.PerGroupAndPerTeacherPdfs;
+var option = Option.FreeRooms;
 
 switch (option)
 {
@@ -176,7 +176,9 @@ switch (option)
         var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
         var allRooms = rooms.Distinct();
         var roomsToday = schedule.RegularLessons
-            .Where(x => x.Date.DayOfWeek == DayOfWeek.Tuesday && x.Date.TimeSlot == timeConfig.T9_45)
+            .Where(x => x.Date.DayOfWeek == DayOfWeek.Tuesday
+                && x.Date.TimeSlot == timeConfig.T11_30
+                && x.Date.Parity.IsMatch(Parity.EvenWeek))
             .Select(x => x.Lesson.Room);
         var freeRooms = allRooms.Except(roomsToday);
         foreach (var room in freeRooms)
