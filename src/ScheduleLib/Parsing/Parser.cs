@@ -20,7 +20,14 @@ public struct Parser
         int remaining = _input.Length - _index;
         return Math.Min(remaining, desiredSize);
     }
+    private readonly int AvailableCount => _input.Length - _index;
     public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
+    public readonly ReadOnlySpan<char> PeekSpanMaxSize(int size)
+    {
+        int s = Math.Min(AvailableCount, size);
+        return _input.AsSpan(_index, s);
+    }
+
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(ParserPosition positionExclusive)
     {
         int start = _index;

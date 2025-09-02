@@ -628,4 +628,31 @@ public sealed class LessonParserTests
         var lesson = Assert.Single(lessons);
         AssertEqualName("G.-M. Lastname", Assert.Single(lesson.TeacherNames));
     }
+
+    [Fact]
+    public void TimeAfterNoRoom_NoRoomSpecifiedForLesson()
+    {
+        var lessons = LessonParsingHelper.ParseLessons(new()
+        {
+            Lines = [
+                "Lesson One",
+                "15:00 Lesson Two 123Room",
+            ],
+        });
+
+        Assert.Collection(lessons,
+            lesson1 =>
+            {
+                Assert.Equal("Lesson One", lesson1.LessonName.Span);
+                Assert.True(lesson1.RoomName.IsEmpty);
+            },
+            lesson2 =>
+            {
+                Assert.Equal("Lesson Two", lesson2.LessonName.Span);
+                Assert.Equal("123Room", lesson2.RoomName.Span);
+
+                var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(15));
+                Assert.Equal(time, lesson2.StartTime);
+            });
+    }
 }

@@ -30,6 +30,7 @@ context.Schedule.ConfigureRemappings(remap =>
 {
     var teach = remap.TeacherLastNameRemappings;
     teach.Add("Curmanschi", "Curmanschii");
+    teach.Add("Vișnevschi", "Vișnevschii");
     teach.Add("Băț", "Beț");
     teach.Add("Spincean", "Sprîncean");
     teach.Add("Anghelova", "Anghelov");
@@ -43,11 +44,12 @@ context.Schedule.ConfigureRemappings(remap =>
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
 
+const Session semester = Session.Ses1;
 {
     const int year = 2025;
     context.Schedule.SetStudyYear(year);
 
-    string dirName = @$"data\{year}_sem1";
+    string dirName = @$"data\{year}_sem{(int) semester}";
     await Tasks.ParseDocumentDirIntoSchedule(
         context,
         dirName,
@@ -57,8 +59,6 @@ _ = cancellationToken;
 var schedule = context.BuildSchedule();
 Console.WriteLine("Schedule built");
 
-var option = Option.PerGroupAndPerTeacherPdfs;
-
 
 IConfiguration config;
 {
@@ -67,6 +67,7 @@ IConfiguration config;
     config = builder.Build();
 }
 
+var option = Option.PerGroupAndPerTeacherPdfs;
 
 switch (option)
 {
@@ -144,7 +145,7 @@ switch (option)
             CancellationToken = cancellationToken,
             Credentials = credentials,
             Schedule = schedule,
-            Session = Session.Ses2,
+            Session = semester,
             ErrorHandler = new RegistryErrorLogger(),
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
@@ -162,6 +163,26 @@ switch (option)
     {
         var c = config.GetMicrosoftGraphAuth();
         await CurriculaDownloadTasks.PullCurriculaToDisk(c, cancellationToken);
+        break;
+    }
+
+    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+    case Option.FreeRooms:
+    {
+        // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
+        // var group = room.Select(x => schedule.Get(x.Lesson.Group)).ToArray();
+        // _ = group;
+        var rooms = schedule.RegularLessons.Select(x => x.Lesson.Room);
+        var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
+        var allRooms = rooms.Distinct();
+        var roomsToday = schedule.RegularLessons
+            .Where(x => x.Date.DayOfWeek == DayOfWeek.Tuesday && x.Date.TimeSlot == timeConfig.T9_45)
+            .Select(x => x.Lesson.Room);
+        var freeRooms = allRooms.Except(roomsToday);
+        foreach (var room in freeRooms)
+        {
+            Console.WriteLine($"Free room: {room.Id}");
+        }
         break;
     }
 }

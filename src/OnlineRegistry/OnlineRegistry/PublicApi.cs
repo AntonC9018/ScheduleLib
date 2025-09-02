@@ -12,8 +12,8 @@ namespace ScheduleLib.OnlineRegistry;
 
 public enum Session
 {
-    Ses1,
-    Ses2,
+    Ses1 = 1,
+    Ses2 = 2,
 }
 
 public struct AddLessonsToOnlineRegistryParams()

@@ -1165,6 +1165,7 @@ public enum Option
     PerGroupAndPerTeacherPdfs,
     CreateLessonsInRegistry,
     PullCurriculaFromOneDrive,
+    FreeRooms,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
