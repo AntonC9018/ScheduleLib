@@ -12,6 +12,7 @@ using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using ReaderApp.ExcelBuilder;
+using ReaderApp.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -21,6 +22,7 @@ using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.WordDoc;
+using SpreadCheetah;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
@@ -1162,6 +1164,128 @@ public static class Tasks
             CancellationToken = cancellationToken,
         });
         return ret;
+    }
+
+    public struct GenerateFreeRoomsParams
+    {
+        public required string OutputPath;
+        public required ParityDisplayHandler ParityDisplay;
+        public required TimeSlotDisplayHandler TimeSlotDisplay;
+        public required DayNameProvider DayNameProvider;
+        public required CancellationToken CancellationToken;
+        public required Schedule Schedule;
+        public required LessonTimeConfig TimeConfig;
+    }
+
+    public static async Task GenerateFreeRoomsExcel(GenerateFreeRoomsParams p)
+    {
+        p.OutputPath = Path.GetFullPath(p.OutputPath);
+
+        {
+            var dirName = Path.GetDirectoryName(p.OutputPath);
+            if (dirName != null)
+            {
+                Debug.Assert(dirName.Length > 0);
+                Directory.CreateDirectory(dirName);
+            }
+        }
+
+        {
+            var rooms = PreprocessedRooms(p.Schedule.RegularLessons);
+            var allRooms = rooms.Distinct().ToHashSet();
+
+            await using var outputDoc = File.Create(p.OutputPath);
+            await using var spreadsheet = await Spreadsheet.CreateNewAsync(
+                outputDoc,
+                cancellationToken: p.CancellationToken);
+            var headerStyle = spreadsheet.AddStyle(new()
+            {
+            });
+
+            Parity[] parities = [Parity.EvenWeek, Parity.OddWeek];
+            List<DataCell> dataCells = new();
+
+            foreach (var parity in parities)
+            {
+                string parityLabel = p.ParityDisplay.Get(parity)!;
+                await spreadsheet.StartWorksheetAsync(parityLabel, new()
+                {
+                }, p.CancellationToken);
+
+                foreach (var day in new AllEnumEnumerable<DayOfWeek>())
+                {
+                    var lessonsThisDay = p.Schedule.RegularLessons
+                        .Where(x => x.Date.DayOfWeek == day)
+                        .ToArray();
+                    if (lessonsThisDay.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var dayName = p.DayNameProvider.GetDayName(day);
+                    await spreadsheet.AddHeaderRowAsync([dayName], headerStyle, p.CancellationToken);
+
+                    foreach (var timeSlot in p.TimeConfig.TimeSlots)
+                    {
+                        var interval = p.TimeConfig.GetTimeSlotInterval(timeSlot);
+                        var intervalText = p.TimeSlotDisplay.IntervalDisplay(interval);
+                        dataCells.Add(new(intervalText));
+
+                        var lessons = lessonsThisDay
+                            .Where(x => x.Date.TimeSlot == timeSlot
+                                && x.Date.Parity.IsMatch(parity));
+                        var occupiedRooms = PreprocessedRooms(lessons);
+                        var freeRooms = allRooms.Except(occupiedRooms);
+                        var orderedFreeRooms = freeRooms.OrderBy(roomId =>
+                        {
+                            var id = roomId.Id!;
+                            // TODO: Maybe store this in the model?
+                            var blockIndex = id.IndexOf('/');
+                            var block = blockIndex >= 0 ? id[(blockIndex + 1) ..] : null;
+                            var room = id[.. blockIndex];
+                            return (block, room);
+                        });
+                        foreach (var freeRoom in orderedFreeRooms)
+                        {
+                            dataCells.Add(new(freeRoom.Id!));
+                        }
+
+                        await spreadsheet.AddRowAsync(dataCells, p.CancellationToken);
+                        dataCells.Clear();
+                    }
+                    await spreadsheet.AddRowAsync(dataCells, p.CancellationToken);
+                }
+            }
+            await spreadsheet.FinishAsync();
+        }
+        ExplorerHelper.TryOpenExplorerAndSelectFile(p.OutputPath);
+        return;
+
+        // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
+        // var group = room.Select(x => schedule.Get(x.Lesson.Group)).ToArray();
+        // _ = group;
+        RoomId S(RoomId r)
+        {
+            if (!r.IsValid)
+            {
+                return r;
+            }
+            if (r.Id!.Contains("/"))
+            {
+                return r;
+            }
+            var updated = $"{r.Id}/4";
+            return new RoomId(updated);
+        }
+
+        IEnumerable<RoomId> PreprocessedRooms(IEnumerable<RegularLesson> lessons)
+        {
+            var preprocessed = lessons
+                .Select(x => x.Lesson.Room)
+                .Select(S)
+                .Where(x => x.IsValid);
+            return preprocessed;
+        }
     }
 }
 

@@ -109,6 +109,30 @@ public sealed class LessonTimeConfig
         ];
     }
 
+    // TODO: remove IEnumerable
+    public IEnumerable<TimeSlot> TimeSlots
+    {
+        get
+        {
+            for (int i = 0; i < TimeSlotStarts.Length; i++)
+            {
+                yield return new TimeSlot(i);
+            }
+        }
+    }
+
+    // TODO: remove IEnumerable
+    public IEnumerable<TimeSlotInterval> Intervals
+    {
+        get
+        {
+            for (int i = 0; i < TimeSlotStarts.Length; i++)
+            {
+                yield return GetTimeSlotInterval(new TimeSlot(i));
+            }
+        }
+    }
+
     public TimeSlotInterval GetTimeSlotInterval(TimeSlot index)
     {
         var start = TimeSlotStarts[index.Index];

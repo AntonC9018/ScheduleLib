@@ -1,3 +1,5 @@
+using System.Collections;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
 using QuestPDF.Fluent;
@@ -10,6 +12,8 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation.TeacherCute;
+using ScheduleLib.Helper;
+using SpreadCheetah;
 
 Console.WriteLine("Start");
 
@@ -68,7 +72,7 @@ IConfiguration config;
     config = builder.Build();
 }
 
-var option = Option.PerGroupAndPerTeacherPdfs;
+var option = Option.FreeRooms;
 
 switch (option)
 {
@@ -170,37 +174,16 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.FreeRooms:
     {
-        // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
-        // var group = room.Select(x => schedule.Get(x.Lesson.Group)).ToArray();
-        // _ = group;
-        RoomId S(RegularLesson x)
+        await Tasks.GenerateFreeRoomsExcel(new()
         {
-            var r = x.Lesson.Room;
-            if (!r.IsValid)
-            {
-                return r;
-            }
-            if (r.Id!.Contains("/"))
-            {
-                return r;
-            }
-            var updated = $"{r.Id}/4";
-            return new RoomId(updated);
-        }
-
-        var rooms = schedule.RegularLessons.Select(S);
-        var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
-        var allRooms = rooms.Distinct();
-        var roomsToday = schedule.RegularLessons
-            .Where(x => x.Date.DayOfWeek == DayOfWeek.Wednesday
-                && x.Date.TimeSlot == timeConfig.T15_00
-                && x.Date.Parity.IsMatch(Parity.EvenWeek))
-            .Select(S);
-        var freeRooms = allRooms.Except(roomsToday);
-        foreach (var room in freeRooms)
-        {
-            Console.WriteLine($"Free room: {room.Id}");
-        }
+            Schedule = schedule,
+            TimeConfig = context.TimeConfig,
+            DayNameProvider = dayNameProvider,
+            OutputPath = "output/free_rooms.xlsx",
+            CancellationToken = cancellationToken,
+            ParityDisplay = new ParityDisplayHandler(),
+            TimeSlotDisplay = new(),
+        });
         break;
     }
 }

@@ -35,5 +35,6 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
         <PackageReference Include="AngleSharp" Version="1.2.0" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+        <PackageReference Include="SpreadCheetah" Version="1.22.0" />
     </ItemGroup>
 </Project>
