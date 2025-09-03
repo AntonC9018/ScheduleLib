@@ -16,6 +16,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
@@ -73,7 +74,11 @@ public static class Tasks
 
         var tasks = new List<Task>();
         {
-            var textDisplayHandler = new PdfLessonTextDisplayHandler(p.LessonTextDisplayServices, new());
+            var textDisplayHandler = new PdfLessonTextDisplayHandler(
+                p.LessonTextDisplayServices,
+                new()
+                {
+                });
             for (int groupId = 0; groupId < p.Schedule.Groups.Length; groupId++)
             {
                 int groupId1 = groupId;
@@ -97,6 +102,7 @@ public static class Tasks
             var textDisplayHandler = new PdfLessonTextDisplayHandler(p.LessonTextDisplayServices, new()
             {
                 PrintsTeacherName = false,
+                PrintsGroupNames = true,
             });
             var sb = new StringBuilder();
             for (int teacherId = 0; teacherId < p.Schedule.Teachers.Length; teacherId++)
@@ -158,14 +164,14 @@ public static class Tasks
                 return;
             }
 
-            var generator = new GroupColumnScheduleTableDocument(filteredSchedule, new()
+            var generator = new Generator(new()
             {
                 StringBuilder = new(),
+                DayNameProvider = p.DayNameProvider,
                 LessonTextDisplayHandler = textDisplayHandler,
                 LessonTimeConfig = p.LessonTimeConfig,
                 TimeSlotDisplay = p.TimeSlotDisplay,
-                DayNameProvider = p.DayNameProvider,
-            });
+            }, filteredSchedule);
 
             var path = Path.Combine(outputDirPath, name);
             generator.GeneratePdf(path);
@@ -368,7 +374,7 @@ public static class Tasks
                 for (int timeSlotIndex = 0; timeSlotIndex < timeSlotCount; timeSlotIndex++)
                 {
                     var timeSlot = new TimeSlot(timeSlotIndex);
-                    var rowKey = new RowKey
+                    var rowKey = new DefaultRowKey
                     {
                         TimeSlot = timeSlot,
                         DayOfWeek = day,
@@ -420,7 +426,7 @@ public static class Tasks
 
                         cell.SetStyle(styles.Lesson.Get(option));
 
-                        var cellKey = rowKey.CellKey(teacherId);
+                        var cellKey = rowKey.DefaultCellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
                         {
                             continue;
@@ -1166,6 +1172,7 @@ public enum Option
     CreateLessonsInRegistry,
     PullCurriculaFromOneDrive,
     FreeRooms,
+    CuteTeachersExcel,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>

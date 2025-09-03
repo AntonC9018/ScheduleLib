@@ -2,13 +2,13 @@ using System.Runtime.InteropServices;
 
 namespace ScheduleLib.Generation;
 
-public record struct CellKey<TColumnKey>
+public record struct CellKey<TRowKey, TColumnKey>
 {
-    public required RowKey RowKey;
+    public required TRowKey RowKey;
     public required TColumnKey ColumnKey;
 }
 
-public record struct RowKey
+public record struct DefaultRowKey
 {
     public required TimeSlot TimeSlot;
     public required DayOfWeek DayOfWeek;
@@ -16,18 +16,18 @@ public record struct RowKey
 
 public static class KeyHelper
 {
-    public static RowKey RowKey(this in RegularLessonDate date)
+    public static DefaultRowKey DefaultRowKey(this in RegularLessonDate date)
     {
-        return new RowKey
+        return new DefaultRowKey
         {
             TimeSlot = date.TimeSlot,
             DayOfWeek = date.DayOfWeek,
         };
     }
 
-    public static CellKey<T> CellKey<T>(this RowKey rowKey, T columnKey)
+    public static CellKey<DefaultRowKey, T> DefaultCellKey<T>(this DefaultRowKey rowKey, T columnKey)
     {
-        return new CellKey<T>
+        return new CellKey<DefaultRowKey, T>
         {
             RowKey = rowKey,
             ColumnKey = columnKey,
@@ -35,13 +35,13 @@ public static class KeyHelper
     }
 }
 
-public readonly struct ColumnOrderBuilder()
+public readonly struct ColumnOrderBuilder<TKey>() where TKey : IComparable<TKey>
 {
-    public readonly Dictionary<GroupId, int> Dict = new();
+    public readonly Dictionary<TKey, int> Dict = new();
 
-    private GroupId[] ToArray()
+    private TKey[] ToArray()
     {
-        var ret = new GroupId[Dict.Count];
+        var ret = new TKey[Dict.Count];
         foreach (var (group, index) in Dict)
         {
             ret[index] = group;
@@ -49,13 +49,13 @@ public readonly struct ColumnOrderBuilder()
         return ret;
     }
 
-    public bool ContainsKey(GroupId key) => Dict.ContainsKey(key);
-    public ref int GetRefOrAddDefault(GroupId key, out bool exists)
+    public bool ContainsKey(TKey key) => Dict.ContainsKey(key);
+    public ref int GetRefOrAddDefault(TKey key, out bool exists)
     {
         return ref CollectionsMarshal.GetValueRefOrAddDefault(Dict, key, out exists);
     }
 
-    public int? MaybeGet(GroupId key)
+    public int? MaybeGet(TKey key)
     {
         if (Dict.TryGetValue(key, out int value))
         {
@@ -63,42 +63,42 @@ public readonly struct ColumnOrderBuilder()
         }
         return null;
     }
-    public void Add(GroupId key, int value) => Dict.Add(key, value);
-    public void Remove(GroupId key) => Dict.Remove(key);
+    public void Add(TKey key, int value) => Dict.Add(key, value);
+    public void Remove(TKey key) => Dict.Remove(key);
     public int Count => Dict.Count;
 
-    public ColumnOrder Build() => new(Dict, ToArray());
+    public ColumnOrder<TKey> Build() => new(Dict, ToArray());
 }
 
-public readonly struct ColumnOrder
+public readonly struct ColumnOrder<TKey> where TKey : IComparable<TKey>
 {
-    private readonly GroupId[] _columns;
-    private readonly Dictionary<GroupId, int> _dict;
+    private readonly TKey[] _columns;
+    private readonly Dictionary<TKey, int> _dict;
 
-    public ColumnOrder(Dictionary<GroupId, int> dict, GroupId[] columns)
+    public ColumnOrder(Dictionary<TKey, int> dict, TKey[] columns)
     {
         _dict = dict;
         _columns = columns;
     }
 
-    public int this[GroupId key] => _dict[key];
-    public GroupId[] Columns => _columns;
+    public int this[TKey key] => _dict[key];
+    public TKey[] Columns => _columns;
 }
 
-public sealed class RegularLessonsByCellKey<ColumnKey>
-    : Dictionary<CellKey<ColumnKey>, List<RegularLesson>>
+public sealed class RegularLessonsByCellKey<TRowKey, TColumnKey>
+    : Dictionary<CellKey<TRowKey, TColumnKey>, List<RegularLesson>>
 {
 }
 
 public struct GeneratorCacheMappings<TColumnKey>()
 {
-    public required RegularLessonsByCellKey<TColumnKey> MappingByCell;
+    public required RegularLessonsByCellKey<DefaultRowKey, TColumnKey> MappingByCell;
 }
 
 public struct GeneratorCache
 {
     public required GeneratorCacheMappings<GroupId> Mappings;
-    public required ColumnOrder ColumnOrder;
+    public required ColumnOrder<GroupId> ColumnOrder;
     public required int MaxRowsInOneCell;
     public required SharedLayout? SharedLayout;
 
@@ -152,19 +152,24 @@ public struct GeneratorCache
 
 public static class MappingsCreationHelper
 {
-    public static RegularLessonsByCellKey<TColumnKey> CreateCellMappings<TColumnKey>(
+    public static RegularLessonsByCellKey<TRowKey, TColumnKey> CreateCellMappings<TRowKey, TColumnKey>(
         IEnumerable<RegularLesson> lessons,
         // TODO: Remove the use of this IEnumerable
+        Func<RegularLesson, TRowKey> rowFunc,
         Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
     {
-        var ret = new RegularLessonsByCellKey<TColumnKey>();
+        var ret = new RegularLessonsByCellKey<TRowKey, TColumnKey>();
         foreach (var lesson in lessons)
         {
-            var rowKey = lesson.Date.RowKey();
+            var rowKey = rowFunc(lesson);
             var columnKeys = colFunc(lesson);
             foreach (var columnKey in columnKeys)
             {
-                var cellKey = rowKey.CellKey(columnKey);
+                var cellKey = new CellKey<TRowKey, TColumnKey>
+                {
+                    RowKey = rowKey,
+                    ColumnKey = columnKey,
+                };
                 ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, cellKey, out bool exists);
                 if (!exists)
                 {
@@ -175,5 +180,16 @@ public static class MappingsCreationHelper
             }
         }
         return ret;
+    }
+
+    public static RegularLessonsByCellKey<DefaultRowKey, TColumnKey> CreateCellMappings<TColumnKey>(
+        IEnumerable<RegularLesson> lessons,
+        // TODO: Remove the use of this IEnumerable
+        Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
+    {
+        return CreateCellMappings(
+            lessons,
+            rowFunc: x => x.Date.DefaultRowKey(),
+            colFunc: colFunc);
     }
 }

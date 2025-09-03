@@ -804,9 +804,14 @@ public static class PeriodHelper
 
         return new(min, max);
     }
+
+    public static PeriodId LatestPeriodId(this Schedule schedule)
+    {
+        return new(schedule.Periods.Length - 1);
+    }
 }
 
-public static class AccessorHelper
+public static class ScheduleAccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
     public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];

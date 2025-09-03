@@ -17,6 +17,7 @@ public sealed class PdfLessonTextDisplayHandler
     {
         public bool PrintsTeacherName = true;
         public bool PreferLongerTeacherName = false;
+        public bool PrintsGroupNames = false;
     }
 
     private readonly Services _services;
@@ -115,6 +116,18 @@ public sealed class PdfLessonTextDisplayHandler
 
                 Write(lessonType);
                 Write(parity);
+
+                if (_config.PrintsGroupNames)
+                {
+                    var groupIds = p.Lesson.Lesson.Groups;
+                    _ = groupIds;
+                    foreach (var groupId in groupIds)
+                    {
+                        var group = p.Schedule.Get(groupId);
+                        Write(group.Name);
+                    }
+                }
+
                 sb.Append(")");
             }
         }

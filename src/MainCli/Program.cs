@@ -1,7 +1,7 @@
-using System.Runtime.InteropServices;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
-using OpenHolidays;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using ReaderApp;
@@ -9,6 +9,7 @@ using ReaderApp.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Generation.TeacherCute;
 
 Console.WriteLine("Start");
 
@@ -67,7 +68,7 @@ IConfiguration config;
     config = builder.Build();
 }
 
-var option = Option.FreeRooms;
+var option = Option.PerGroupAndPerTeacherPdfs;
 
 switch (option)
 {
@@ -192,7 +193,7 @@ switch (option)
         var allRooms = rooms.Distinct();
         var roomsToday = schedule.RegularLessons
             .Where(x => x.Date.DayOfWeek == DayOfWeek.Wednesday
-                && x.Date.TimeSlot == timeConfig.T11_30
+                && x.Date.TimeSlot == timeConfig.T15_00
                 && x.Date.Parity.IsMatch(Parity.EvenWeek))
             .Select(S);
         var freeRooms = allRooms.Except(roomsToday);

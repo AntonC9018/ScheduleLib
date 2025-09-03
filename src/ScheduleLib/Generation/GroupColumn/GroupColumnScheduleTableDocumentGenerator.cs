@@ -146,7 +146,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             for (int columnIndex = 0; columnIndex < context.Columns.Count; columnIndex++)
             {
                 var columnKey = context.Columns[columnIndex];
-                var cellKey = rowKey.CellKey(columnKey);
+                var cellKey = rowKey.DefaultCellKey(columnKey);
                 var columnNumber = GetLessonCol(columnIndex);
 
                 if (!_cache.Mappings.MappingByCell.TryGetValue(cellKey, out var lessons))
@@ -378,7 +378,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
         public uint CellsPerTimeSlot => RowGroupIter.CellsPerTimeSlot;
 
-        public RowKey Key => new()
+        public DefaultRowKey Key => new()
         {
             TimeSlot = TimeSlot,
             DayOfWeek = RowGroupIter.Day,
@@ -508,34 +508,6 @@ public struct SchedulePdfSizesConfig()
     public float FontSize = 10f;
 
     public readonly float UsefulGroupsWidth => PageSize.Width - 2 * PageMargin - WeekDayColumnWidth - TimeSlotColumnWidth;
-}
-
-
-public readonly struct SizeComputer
-{
-    private readonly int _maxRowsInOneCell;
-    private readonly int _lessonCount;
-
-    public SizeComputer(int maxRowsInOneCell, int lessonCount)
-    {
-        _maxRowsInOneCell = maxRowsInOneCell;
-        _lessonCount = lessonCount;
-    }
-
-    public int ComputeRowOffsetOf(int lessonIndex)
-    {
-        var total = _maxRowsInOneCell;
-        var x = (float) lessonIndex / (float) _lessonCount;
-        return (int)(x * total);
-    }
-
-    public uint ComputeRowSpan(int lessonIndex)
-    {
-        var a = ComputeRowOffsetOf(lessonIndex);
-        var b = ComputeRowOffsetOf(lessonIndex + 1);
-        return (uint)(b - a);
-    }
-
 }
 
 file record struct OwnedLesson(RegularLesson Lesson, uint LessonOrder, uint RowSpan);

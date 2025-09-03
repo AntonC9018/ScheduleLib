@@ -7,15 +7,15 @@ public sealed class SharedLayout
 {
     // For cell size
     public required HashSet<(RegularLesson Lesson, int Order)> SharedCellStart;
-    public required Dictionary<CellKey<GroupId>, int> SharedMaxOrder;
+    public required Dictionary<CellKey<DefaultRowKey, GroupId>, int> SharedMaxOrder;
     // For position
     public required Dictionary<RegularLesson, uint> LessonVerticalOrder;
 
     public static SharedLayout Create(
         IEnumerable<RegularLesson> lessons,
-        ColumnOrder columnOrder)
+        ColumnOrder<GroupId> columnOrder)
     {
-        Dict<CellKey<GroupId>, int> perGroupCounters = new();
+        Dict<CellKey<DefaultRowKey, GroupId>, int> perGroupCounters = new();
         var layout = new SharedLayout
         {
             LessonVerticalOrder = new(),
@@ -36,7 +36,7 @@ public sealed class SharedLayout
 
                 void ProcessLesson()
                 {
-                    var dayKey = lesson.Date.RowKey();
+                    var dayKey = lesson.Date.DefaultRowKey();
 
                     int max = MoveToAfterFurthestInGrouping(dayKey);
                     layout.LessonVerticalOrder.Add(lesson, (uint) max);
@@ -59,12 +59,12 @@ public sealed class SharedLayout
                     return order;
                 }
 
-                int MoveToAfterFurthestInGrouping(RowKey dayKey)
+                int MoveToAfterFurthestInGrouping(DefaultRowKey dayKey)
                 {
                     int maxAmongGroups = -1;
                     foreach (var groupId in lesson.Lesson.Groups)
                     {
-                        var allKey = dayKey.CellKey(groupId);
+                        var allKey = dayKey.DefaultCellKey(groupId);
                         var counter = perGroupCounters.Add(allKey, out bool justAdded);
                         if (justAdded)
                         {
@@ -77,7 +77,7 @@ public sealed class SharedLayout
 
                     foreach (var groupId in lesson.Lesson.Groups)
                     {
-                        var allKey = dayKey.CellKey(groupId);
+                        var allKey = dayKey.DefaultCellKey(groupId);
                         ref var counter = ref perGroupCounters.Ref(allKey);
                         counter = maxCurrent;
                     }
@@ -95,9 +95,9 @@ public static class ColumnArrangementHelper
 {
     // TODO: Integrate the max columns per page feature.
     // TODO: Doesn't work actually, make tests for this thing.
-    public static (ColumnOrder ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
+    public static (ColumnOrder<GroupId> ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
     {
-        ColumnOrderBuilder columnOrder = new();
+        ColumnOrderBuilder<GroupId> columnOrder = new();
 
         bool success = false;
         // bool success = Search(schedule, columnOrder);
@@ -115,7 +115,7 @@ public static class ColumnArrangementHelper
         }
     }
 
-    private static void DoDefaultOrder(FilteredSchedule schedule, ColumnOrderBuilder columnOrder)
+    private static void DoDefaultOrder(FilteredSchedule schedule, ColumnOrderBuilder<GroupId> columnOrder)
     {
         var groups = schedule.Groups;
         for (int gindex = 0; gindex < groups.Length; gindex++)
@@ -125,9 +125,9 @@ public static class ColumnArrangementHelper
         }
     }
 
-    public static bool Search(FilteredSchedule schedule, ColumnOrderBuilder columnOrder)
+    public static bool Search(FilteredSchedule schedule, ColumnOrderBuilder<GroupId> columnOrder)
     {
-        var groupings = new Dictionary<RowKey, HashSet<GroupId>>();
+        var groupings = new Dictionary<DefaultRowKey, HashSet<GroupId>>();
 
         foreach (var lesson in schedule.Lessons)
         {
@@ -136,7 +136,7 @@ public static class ColumnArrangementHelper
                 continue;
             }
 
-            var day = lesson.Date.RowKey();
+            var day = lesson.Date.DefaultRowKey();
 
             ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(groupings, day, out bool exists);
             if (!exists)
@@ -169,7 +169,7 @@ public static class ColumnArrangementHelper
     private struct SearchContext
     {
         public required BitArray32 OccupiedGroupPositions;
-        public required ColumnOrderBuilder ColumnOrder;
+        public required ColumnOrderBuilder<GroupId> ColumnOrder;
         public required HashSet<GroupId>[] AllGroupingSets;
         public required GroupId[][] AllGroupingArrays;
         public required GroupId[] Groups;
