@@ -1,7 +1,7 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
 
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public sealed class TeacherNameTests
 {

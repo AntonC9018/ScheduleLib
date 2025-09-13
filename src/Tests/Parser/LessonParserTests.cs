@@ -2,7 +2,7 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.Lesson;
 
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public sealed class LessonParserTests
 {

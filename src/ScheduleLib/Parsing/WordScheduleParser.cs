@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 
@@ -213,21 +214,12 @@ internal struct TableParsingState()
     public DayOfWeek? CurrentDay;
     public TimeParsingState? Time;
     public ColumnCounts? ColumnCounts;
-    public List<(GroupId Id, int Size)> CurrentGroups = new();
+    public SizedItemArray<GroupId> CurrentGroups = new();
 
     public readonly GroupId GroupId(int colIndex)
     {
         int i = colIndex - ColumnCounts!.Value.SkippedSize;
-        foreach (var g in CurrentGroups)
-        {
-            i -= g.Size;
-            if (i < 0)
-            {
-                return g.Id;
-            }
-        }
-        Debug.Fail("Something wrong with the sizes.");
-        throw null!;
+        return CurrentGroups.Find(i);
     }
 }
 
@@ -928,25 +920,18 @@ public static class WordScheduleParser
                 }
 
                 parser.SkipWhitespace();
+                var res = parser.ReadRoman();
+                if (res.Status != ReadRomanStatus.Ok)
                 {
-                    var bparser = parser.BufferedView();
-                    {
-                        var result = bparser.SkipNotWhitespace();
-                        if (!result.EndOfInput)
-                        {
-                            throw new NotSupportedException("Sem must be followed by a roman number");
-                        }
-                    }
-                    {
-                        var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                        var number = NumberHelper.FromRoman(numberSpan);
-                        if (number is not { } n)
-                        {
-                            throw new NotSupportedException("Sem must be followed by a roman number");
-                        }
-                        return n;
-                    }
+                    throw new InvalidOperationException("Sem must be followed by a roman numeral");
                 }
+
+                if (!parser.IsEmpty)
+                {
+                    throw new InvalidOperationException("Roman numeral after sem must be the last thing");
+                }
+
+                return res.Number;
             }
 
             (DateTime Start, DateTime End) ParseInterval()
@@ -954,7 +939,7 @@ public static class WordScheduleParser
                 var parser = new Parser(paragraphs.Current.InnerText);
                 parser.SkipWhitespace();
                 var bparser = parser.BufferedView();
-                var skipped = bparser.SkipUntil(['–', '-', '—']);
+                var skipped = bparser.SkipUntilAny(['–', '-', '—']);
                 if (skipped.EndOfInput)
                 {
                     throw new NotSupportedException("Expected interval separator");
@@ -997,22 +982,19 @@ public static class WordScheduleParser
             }
         }
 
-        int AddGroups(List<(GroupId Id, int Size)> outputGroups)
+        int AddGroups(SizedItemArray<GroupId> outputGroups)
         {
-            int goodSize = 0;
             while (true)
             {
                 var cell = cellEnumerator.Current;
                 var groupName = cell.InnerText;
                 var group = c.Schedule.Group(groupName);
                 var colSpan = cell.GetWidth();
-                outputGroups.Add((group, colSpan));
-
-                goodSize += colSpan;
+                outputGroups.Add(new(group, colSpan));
 
                 if (!cellEnumerator.MoveNext())
                 {
-                    return goodSize;
+                    return outputGroups.TotalSize;
                 }
             }
         }
@@ -1025,10 +1007,23 @@ public static class WordScheduleParser
         SkipTable,
     }
     private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status);
+}
 
-    private static int GetWidth(this TableCell cell)
+public static class WordprocessingHelper
+{
+    public static int GetWidth(this TableCell cell)
     {
         return cell.TableCellProperties?.GridSpan?.Val ?? 1;
+    }
+
+    public static IEnumerable<(TableCell Cell, int Position)> WithPosition(this IEnumerable<TableCell> e)
+    {
+        var pos = 0;
+        foreach (var x in e)
+        {
+            yield return (x, pos);
+            pos += x.GetWidth();
+        }
     }
 }
 

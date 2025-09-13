@@ -249,7 +249,7 @@ public static class ExcelTeacherListParser
         var parser = new Parser(s);
         var bparser = parser.BufferedView();
         {
-            var r = bparser.SkipUntil([' ']);
+            var r = bparser.SkipUntilAny([' ']);
             if (!r.Satisfied)
             {
                 throw new NotSupportedException("Wrong teacher name format");
@@ -308,7 +308,7 @@ public static class ExcelTeacherListParser
 
         var bparser = parser.BufferedView();
 
-        var parenSkipResult = bparser.SkipUntil([')']);
+        var parenSkipResult = bparser.SkipUntilAny([')']);
         if (parenSkipResult.EndOfInput)
         {
             throw new ArgumentException("The opening parenthesis must be closed.");

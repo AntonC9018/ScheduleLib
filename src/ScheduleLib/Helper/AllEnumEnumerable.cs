@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ReaderApp.Helper;
+namespace ScheduleLib.Helper;
 
 public readonly struct AllEnumEnumerable<T>
     where T : struct, Enum
@@ -13,19 +13,25 @@ public readonly struct AllEnumEnumerable<T>
     {
         Debug.Assert(typeof(T).GetEnumUnderlyingType() == typeof(int));
 
-        var values = Enum.GetValues(typeof(T)).OfType<T>().OrderBy(EnumAsInt).ToArray();
+        var values = Enum.GetValues(typeof(T)).OfType<T>().OrderBy(EnumAsInt).Distinct().ToArray();
         Debug.Assert(values.Length > 0, "Empty enum?");
 
         bool adjustForCount = Enum.GetName(typeof(T), values[^1]) == "Count";
+        bool adjustForUnknown = Enum.GetName(typeof(T), values[0]) is "Unknown" or "None";
+
         int length = values.Length;
         if (adjustForCount)
+        {
+            length -= 1;
+        }
+        if (adjustForUnknown)
         {
             length -= 1;
         }
 
         Debug.Assert(length >= 1, "Empty enum can't be enumerated");
 
-        T start = values[0];
+        T start = adjustForUnknown ? values[1] : values[0];
         T end = adjustForCount ? values[^2] : values[^1];
 
         Start = start;
@@ -34,12 +40,12 @@ public readonly struct AllEnumEnumerable<T>
         Debug.Assert(Count == length, "Values are not consecutive");
     }
 
-    private static int EnumAsInt(T e)
+    public static int EnumAsInt(T e)
     {
         return (int) (object) e;
     }
 
-    private static T IntAsEnum(int e)
+    public static T IntAsEnum(int e)
     {
         return (T) (object) e;
     }

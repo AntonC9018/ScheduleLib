@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Security;
 using Microsoft.Extensions.Configuration;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -12,11 +11,8 @@ public sealed class Credentials
 
 public static class CredentialsHelper
 {
-    public static Credentials? MaybeGetCredentials(Assembly userSecretsAssembly)
+    public static Credentials? MaybeGetCredentials(this IConfiguration config)
     {
-        var b = new ConfigurationBuilder();
-        b.AddUserSecrets(userSecretsAssembly);
-        var config = b.Build();
         var ret = config.GetRequiredSection("Registry").Get<Credentials>();
         if (ret == null)
         {
@@ -30,6 +26,15 @@ public static class CredentialsHelper
         {
             throw new InvalidOperationException("Password not found.");
         }
+        return ret;
+    }
+
+    public static Credentials? MaybeGetCredentials(Assembly userSecretsAssembly)
+    {
+        var b = new ConfigurationBuilder();
+        b.AddUserSecrets(userSecretsAssembly);
+        var config = b.Build();
+        var ret = config.MaybeGetCredentials();
         return ret;
     }
 

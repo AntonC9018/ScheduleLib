@@ -299,8 +299,16 @@ public enum LessonType
     Custom,
 }
 
-public readonly record struct SubGroup(string? Value)
+public readonly record struct SubGroup
 {
+    public readonly string? Value { get; }
+
+    public SubGroup(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
     public static SubGroup All => new(null!);
 }
 
@@ -343,6 +351,62 @@ public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
+    Count,
+}
+
+public record struct OneForEachAttendanceMode<T>
+{
+    public required T Zi;
+    public required T FrecventaRedusa;
+
+    public T this[AttendanceMode mode]
+    {
+        readonly get
+        {
+            return mode switch
+            {
+                AttendanceMode.Zi => Zi,
+                AttendanceMode.FrecventaRedusa => FrecventaRedusa,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+            };
+        }
+        set
+        {
+            switch (mode)
+            {
+                case AttendanceMode.Zi:
+                {
+                    Zi = value;
+                    break;
+                }
+                case AttendanceMode.FrecventaRedusa:
+                {
+                    FrecventaRedusa = value;
+                    break;
+                }
+                default:
+                {
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+                }
+            }
+        }
+    }
+}
+
+[Flags]
+public enum AttendanceModeFlags
+{
+    None,
+    Zi = 1 << AttendanceMode.Zi,
+    FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
+}
+
+public static class AttendanceModeFlagsHelper
+{
+    public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
+    {
+        return (flags & (AttendanceModeFlags) mode) != 0;
+    }
 }
 
 public sealed class Group

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ScheduleLib.Generation;
 
 namespace ScheduleLib.Parsing;
 
@@ -262,11 +263,24 @@ public static class ParserHelper
         public SkipUntilImpl(ReadOnlySpan<char> chars) => _chars = chars;
         public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
-    public static SkipResult SkipUntil(
+    public static SkipResult SkipUntilAny(
         this ref Parser parser,
         ReadOnlySpan<char> chars)
     {
         return parser.Skip(new SkipUntilImpl(chars));
+    }
+
+    private ref struct SkipUntilNotImpl : IShouldSkip
+    {
+        private readonly ReadOnlySpan<char> _chars;
+        public SkipUntilNotImpl(ReadOnlySpan<char> chars) => _chars = chars;
+        public bool ShouldSkip(char ch) => _chars.Contains(ch);
+    }
+    public static SkipResult SkipUntilNotAny(
+        this ref Parser parser,
+        ReadOnlySpan<char> chars)
+    {
+        return parser.Skip(new SkipUntilNotImpl(chars));
     }
 
     private ref struct SkipLettersImpl : IShouldSkip
@@ -352,13 +366,24 @@ public static class ParserHelper
         }
     }
 
+    public static ReadOnlyMemory<char> SourceUntilEnd(this Parser p)
+    {
+        var ret = p.Source.AsMemory(p.Position.Index);
+        return ret;
+    }
+
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, ParserPosition end)
+    {
+        var start = a.Position;
+        return a.Source.AsMemory(start.Index .. end.Index);
+    }
+
     public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
     {
         Debug.Assert(ReferenceEquals(a.Source, b.Source));
 
-        var start = a.Position;
         var end = b.Position;
-        return a.Source.AsMemory(start.Index .. end.Index);
+        return a.SourceUntilExclusive(end);
     }
 
     public static ReadOnlyMemory<char> PeekSource(this Parser a, int count)
@@ -373,13 +398,21 @@ public static class ParserHelper
         ref this Parser parser,
         ReadOnlySpan<char> expectedString)
     {
+        return ConsumeExactString(ref parser, expectedString, StringComparison.Ordinal);
+    }
+
+    public static bool ConsumeExactString(
+        ref this Parser parser,
+        ReadOnlySpan<char> expectedString,
+        StringComparison stringComparison)
+    {
         if (!parser.CanPeekCount(expectedString.Length))
         {
             return false;
         }
 
         var peek = parser.PeekSpan(expectedString.Length);
-        if (!peek.SequenceEqual(expectedString))
+        if (!peek.Equals(expectedString, stringComparison))
         {
             return false;
         }
@@ -387,7 +420,61 @@ public static class ParserHelper
         parser.Move(expectedString.Length);
         return true;
     }
+
+    public static ReadRomanResult ReadRoman(this ref Parser parser)
+    {
+        var bparser = parser.BufferedView();
+        {
+            var result = bparser.SkipUntilNotAny("IVX");
+            if (!result.SkippedAny)
+            {
+                return ReadRomanResult.CreateError(ReadRomanStatus.NotRomanNumeralStart);
+            }
+        }
+        {
+            var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var number = NumberHelper.FromRoman(numberSpan);
+            if (number is not { } n)
+            {
+                return ReadRomanResult.CreateError(ReadRomanStatus.NotRoman);
+            }
+            parser.MoveTo(bparser.Position);
+            return ReadRomanResult.CreateOk(n);
+        }
+    }
 }
+
+public struct ReadRomanResult
+{
+    public int Number { get; private init; }
+    public ReadRomanStatus Status { get; private init; }
+
+    public static ReadRomanResult CreateOk(int roman)
+    {
+        return new()
+        {
+            Number = roman,
+            Status = ReadRomanStatus.Ok,
+        };
+    }
+
+    public static ReadRomanResult CreateError(ReadRomanStatus err)
+    {
+        Debug.Assert(err != ReadRomanStatus.Ok);
+        return new()
+        {
+            Status = err,
+        };
+    }
+}
+
+public enum ReadRomanStatus
+{
+    Ok,
+    NotRomanNumeralStart,
+    NotRoman,
+}
+
 
 public enum ConsumeIntStatus
 {

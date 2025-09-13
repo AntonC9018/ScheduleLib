@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ReaderApp.Helper;
+using ScheduleLib.Helper;
 
 namespace ReaderApp.ExcelBuilder;
 

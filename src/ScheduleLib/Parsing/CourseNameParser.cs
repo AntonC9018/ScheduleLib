@@ -40,6 +40,19 @@ public struct CourseNameSegment()
         Debug.Assert(Flags.IsInitials);
         return Word.Value;
     }
+
+    public static CourseNameSegment AsInitials(char ch)
+    {
+        Debug.Assert(char.IsUpper(ch));
+        return new()
+        {
+            Word = new Word(ch.ToString()),
+            Flags = new CourseNameSegmentFlags
+            {
+                IsInitials = true,
+            },
+        };
+    }
 }
 
 public struct CourseNameSegmentFlags()

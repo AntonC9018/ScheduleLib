@@ -33,9 +33,9 @@ public sealed class LookupModule()
 
 public struct LookupFacade(ScheduleBuilder s)
 {
-    public CourseId? Course(string name) => Find<CourseId>(Lookup.Courses, name);
+    public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(Lookup.Courses, name);
 
-    public IEnumerable<TeacherId> Teachers(string lastName)
+    public IEnumerable<TeacherId> Teachers(ReadOnlySpan<char> lastName)
     {
         if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
         {
@@ -44,7 +44,7 @@ public struct LookupFacade(ScheduleBuilder s)
         return ids.Select(id => new TeacherId(id));
     }
 
-    public TeacherId? Teacher(string lastName)
+    public TeacherId? Teacher(ReadOnlySpan<char> lastName)
     {
         using var e = Teachers(lastName).GetEnumerator();
         if (!e.MoveNext())
@@ -121,10 +121,14 @@ public struct LookupFacade(ScheduleBuilder s)
         }
     }
 
-    private T? Find<T>(Dictionary<string, int> dict, string val)
+    private T? Find<T>(Dictionary<string, int> dict, ReadOnlySpan<char> val)
         where T : struct
     {
-        if (!dict.TryGetValue(val, out var id))
+        bool t = dict.TryGetAlternateLookup<ReadOnlySpan<char>>(out var d);
+        Debug.Assert(t);
+        _ = t;
+
+        if (!d.TryGetValue(val, out var id))
         {
             return null;
         }

@@ -968,9 +968,11 @@ public static class Tasks
         return ret;
     }
 
-    public static Credentials GetCredentials(bool allowUserInput)
+    public static Credentials GetRegistryCredentials(
+        IConfiguration configuration,
+        bool allowUserInput)
     {
-        var ret = CredentialsHelper.MaybeGetCredentials(typeof(Program).Assembly);
+        var ret = configuration.MaybeGetCredentials();
         if (ret != null)
         {
             return ret;
@@ -1136,6 +1138,7 @@ public enum Option
     AllTeachersExcel,
     PerGroupAndPerTeacherPdfs,
     CreateLessonsInRegistry,
+    PullCurriculaFromOneDrive,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
@@ -1145,7 +1148,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsComparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.LastName, y.LastName);
             if (t != 0)
             {
                 return t;
@@ -1163,7 +1166,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
         public static readonly Comparer Instance = new();
         public int Compare(OptionalFirstNamePart x, OptionalFirstNamePart y)
         {
-            return IgnoreDiacriticsComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
         }
     }
 }

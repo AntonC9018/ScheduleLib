@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\..\CurriculumShared\CurriculumShared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="data\**\*.*" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+</Project>

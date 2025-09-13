@@ -1,7 +1,6 @@
 using Argon;
-using ScheduleLib;
 
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public sealed class PermutationTests
 {

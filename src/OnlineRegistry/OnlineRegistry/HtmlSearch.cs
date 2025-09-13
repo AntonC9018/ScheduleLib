@@ -117,12 +117,23 @@ internal static class HtmlSearch
             }
 
             var uri = new Uri(url);
-            var subgroup = new SubGroup(groupForSearch.SubGroupName.ToString());
+
+            SubGroup SubGroup()
+            {
+                string? subgroupName = null;
+                if (!groupForSearch.SubGroupName.IsEmpty)
+                {
+                    subgroupName = groupForSearch.SubGroupName.ToString();
+                }
+                var subgroup = new SubGroup(subgroupName);
+                return subgroup;
+            }
+
             yield return new()
             {
                 Uri = uri,
                 GroupId = groupId,
-                SubGroup = subgroup,
+                SubGroup = SubGroup(),
             };
         }
     }
@@ -131,7 +142,7 @@ internal static class HtmlSearch
     {
         var anchor = doc
             .QuerySelectorAll<IHtmlAnchorElement>("div > a")
-            .First(a => IgnoreDiacriticsComparer.Instance.Equals(a.TextContent, "Adaugare"));
+            .First(a => IgnoreDiacriticsAndCaseComparer.Instance.Equals(a.TextContent, "Adaugare"));
         var href = anchor.Href;
         var uri = new Uri(href);
         return uri;
