@@ -1,8 +1,9 @@
+using System.Collections;
 using System.Diagnostics;
 
 namespace ScheduleLib.Helper;
 
-public readonly struct AllEnumEnumerable<T>
+public readonly struct AllEnumEnumerable<T> : IEnumerable<T>
     where T : struct, Enum
 {
     public static readonly T Start;
@@ -50,7 +51,7 @@ public readonly struct AllEnumEnumerable<T>
         return (T) (object) e;
     }
 
-    public struct Enumerator
+    public struct Enumerator : IEnumerator<T>
     {
         private int _index;
 
@@ -71,7 +72,16 @@ public readonly struct AllEnumEnumerable<T>
         }
 
         public readonly T Current => IntAsEnum(_index);
+
+        object IEnumerator.Current => Current;
+
+        public void Dispose()
+        {
+        }
     }
+
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public Enumerator GetEnumerator()
     {

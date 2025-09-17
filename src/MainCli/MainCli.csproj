@@ -27,6 +27,18 @@
             Include="data\**\*.xlsx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
+        <None Update="data\2025_sem1\08.09.25\Orar_An_III Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
+        <None Update="data\2025_sem1\08.09.25\Orar_An_I Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
+        <None Update="data\2025_sem1\08.09.25\Orar_An_II Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

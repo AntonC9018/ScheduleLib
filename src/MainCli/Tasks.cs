@@ -1297,6 +1297,7 @@ public enum Option
     PullCurriculaFromOneDrive,
     FreeRooms,
     CuteTeachersExcel,
+    FreeHoursOfGroup,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>

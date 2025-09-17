@@ -1,9 +1,7 @@
 using System.Collections;
-using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using ReaderApp;
@@ -11,9 +9,7 @@ using ReaderApp.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
-using SpreadCheetah;
 
 Console.WriteLine("Start");
 
@@ -72,7 +68,8 @@ IConfiguration config;
     config = builder.Build();
 }
 
-var option = Option.FreeRooms;
+// var option = Option.FreeRooms;
+foreach (var option in new[] { Option.FreeHoursOfGroup }) {
 
 switch (option)
 {
@@ -186,6 +183,118 @@ switch (option)
         });
         break;
     }
+
+    case Option.FreeHoursOfGroup:
+    {
+        var sb = new StringBuilder();
+        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        {
+            foreach (var group in new[] { "IA2401", "I2301" })
+            {
+                foreach (var isOptional in new[] { true, false })
+                {
+                    var displayHandler = new TimeSlotDisplayHandler();
+                    var groupId = schedule.Groups
+                        .WithIndex()
+                        .Where(x => x.Item.Name == group)
+                        .Select(x => new GroupId(x.Index))
+                        .Single();
+                    var lessons = schedule.RegularLessons
+                        .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
+                        .Where(x =>
+                        {
+                            if (!isOptional)
+                            {
+                                return true;
+                            }
+                            var sg = x.Lesson.SubGroup;
+                            if (sg == SubGroup.All)
+                            {
+                                return true;
+                            }
+                            if (sg.Value == "opțional")
+                            {
+                                return true;
+                            }
+                            return false;
+                        });
+
+                    var allTimes = context.TimeConfig.TimeSlots
+                        .SelectMany(x => new[]
+                            {
+                                DayOfWeek.Monday,
+                                DayOfWeek.Tuesday,
+                                DayOfWeek.Wednesday,
+                                DayOfWeek.Thursday,
+                                DayOfWeek.Friday,
+                            }
+                            .Select(y => (Day: y, Time: x)));
+
+                    var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
+                    var unusedTimes = allTimes.Except(usedTimes);
+
+                    var orderedTimes = unusedTimes.OrderBy(x => (x.Day, x.Time));
+                    var byDay = orderedTimes
+                        .GroupBy(x => x.Day)
+                        .Select(x => (Day: x.Key, Times: MergeConsecutive(x.Select(y => y.Time))));
+
+                    var parityDisplay = new ParityDisplayHandler();
+                    sb.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
+                    foreach (var day in byDay)
+                    {
+                        sb.Append(dayNameProvider.GetDayName(day.Day));
+                        sb.Append(":");
+
+                        var listBuilder = new ListStringBuilder(sb, ',');
+                        foreach (var time in day.Times)
+                        {
+                            var start = time.Start;
+                            var end = time.EndInclusive;
+                            var startTime = context.TimeConfig.GetTimeSlotInterval(start).Start;
+                            var endTime = context.TimeConfig.GetTimeSlotInterval(end).End;
+                            var duration = endTime - startTime;
+                            var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
+                            listBuilder.Append(intervalStr);
+                        }
+                        sb.AppendLine();
+                    }
+                    sb.AppendLine();
+                    continue;
+
+
+                    IEnumerable<(TimeSlot Start, TimeSlot EndInclusive)> MergeConsecutive(IEnumerable<TimeSlot> x)
+                    {
+                        using var e = x.GetEnumerator();
+                        if (!e.MoveNext())
+                        {
+                            yield break;
+                        }
+                        var start = e.Current;
+                        var prev = start;
+                        while (true)
+                        {
+                            if (!e.MoveNext())
+                            {
+                                yield return (start, prev);
+                                yield break;
+                            }
+                            var c = e.Current;
+                            if (c.Index - prev.Index > 1)
+                            {
+                                yield return (start, prev);
+                                start = c;
+                            }
+                            prev = c;
+                        }
+                    }
+                }
+            }
+        }
+        Console.WriteLine(sb.ToStringAndClear());
+
+        break;
+    }
 }
 
 
+}

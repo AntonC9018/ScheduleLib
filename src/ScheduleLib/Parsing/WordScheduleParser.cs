@@ -750,8 +750,7 @@ public static class WordScheduleParser
         ref var g = ref modelData.Group;
         var groupFullName = lesson.GroupName.Span.Trim().ToString();
         if (groupFullName.Length == 0
-            || HandleSpecialSubGroup(ref g, lesson)
-            || IsOptional())
+            || HandleSpecialSubGroup(ref g, lesson))
         {
             var groups = new LessonGroups();
             for (int i = 0; i < colSpan; i++)
@@ -775,29 +774,32 @@ public static class WordScheduleParser
         }
 
         // Check for special case when it's a subgroup.
-        // Currently only happens for "începători".
         bool HandleSpecialSubGroup(
             ref RegularLessonBuilderModelData.GroupData g,
             in ParsedLesson lesson)
         {
-            const string specialSubGroup = "începători";
-            if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(specialSubGroup, groupFullName))
+            var specialGroups = new[]
             {
-                return false;
-            }
-            if (lesson.SubGroup.Value is not null)
+                "începători",
+                "ro",
+                "ru",
+                "eng",
+                "opțional",
+            };
+            foreach (var group in specialGroups)
             {
-                throw new NotImplementedException("Multiple subgroups as a single group");
+                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group, groupFullName))
+                {
+                    continue;
+                }
+                if (lesson.SubGroup.Value is not null)
+                {
+                    throw new NotImplementedException("Multiple subgroups as a single group");
+                }
+                g.SubGroup = new(group);
+                return true;
             }
-            g.SubGroup = new(specialSubGroup);
-            return true;
-        }
-
-        bool IsOptional()
-        {
-            const string optionalMarker = "opțional";
-            bool ret = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(optionalMarker, groupFullName);
-            return ret;
+            return false;
         }
 
         modelData.General.Period = periodId;
