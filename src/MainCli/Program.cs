@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Text;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +8,6 @@ using ReaderApp.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Helper;
 
 Console.WriteLine("Start");
 
@@ -69,7 +67,7 @@ IConfiguration config;
 }
 
 // var option = Option.FreeRooms;
-foreach (var option in new[] { Option.FreeHoursOfGroup }) {
+foreach (var option in new Option[] {}) {
 
 switch (option)
 {

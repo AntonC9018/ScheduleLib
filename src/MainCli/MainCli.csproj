@@ -15,6 +15,7 @@
         <ProjectReference Include="..\CurriculumDownload\CurriculumDownload.csproj" />
         <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
         <ProjectReference Include="..\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
+        <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -27,18 +28,6 @@
             Include="data\**\*.xlsx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
-        <None Update="data\2025_sem1\08.09.25\Orar_An_III Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem1\08.09.25\Orar_An_I Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem1\08.09.25\Orar_An_II Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -48,5 +37,6 @@
         <PackageReference Include="AngleSharp" Version="1.2.0" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
+        <PackageReference Include="ClosedXML" Version="0.105.0" />
     </ItemGroup>
 </Project>

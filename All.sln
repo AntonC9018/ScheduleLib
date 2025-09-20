@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumDownload", "src\C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumShared", "src\CurriculumShared\CurriculumShared.csproj", "{018232D4-4E06-44C0-A288-C5B8BD3A30B9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocsTemplates", "src\DocsTemplates\DocsTemplates.csproj", "{8E89304F-7E14-436A-B98A-540495AB147A}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HolidaysClient", "src\HolidaysClient\HolidaysClient.csproj", "{5DFD1170-3FD4-465B-8C57-A8B1E4AF4869}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HolidaysClientGenerator", "src\HolidaysClientGenerator\HolidaysClientGenerator.csproj", "{A8004E27-6CDD-487D-A9A8-268151520727}"
@@ -63,6 +65,10 @@ Global
 		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E89304F-7E14-436A-B98A-540495AB147A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E89304F-7E14-436A-B98A-540495AB147A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E89304F-7E14-436A-B98A-540495AB147A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E89304F-7E14-436A-B98A-540495AB147A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5DFD1170-3FD4-465B-8C57-A8B1E4AF4869}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5DFD1170-3FD4-465B-8C57-A8B1E4AF4869}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5DFD1170-3FD4-465B-8C57-A8B1E4AF4869}.Release|Any CPU.ActiveCfg = Release|Any CPU
