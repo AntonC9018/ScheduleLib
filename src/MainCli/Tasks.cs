@@ -111,10 +111,10 @@ public static class Tasks
                 int teacherId1 = teacherId;
 
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
-                var nameBuilder = new ListStringBuilder(sb, '_');
+                var nameBuilder = new ListStringBuilder(sb, "_");
 
                 var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
-                foreach (var fname in teacherName.Name)
+                foreach (var fname in teacherName.FirstName)
                 {
                     if (fname.Short is not { } s)
                     {
@@ -343,11 +343,11 @@ public static class Tasks
             var sb = p.StringBuilder;
             foreach (var id in teachers)
             {
-                LessonTextDisplayHelper.AppendTeacherName(new()
+                NameDisplayHelper.Append(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Teacher = p.Schedule.Source.Get(id),
+                    Name = p.Schedule.Source.Get(id).PersonName,
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -672,7 +672,7 @@ public static class Tasks
                         var parityName = GetParityName(lesson);
                         sb.Append($"{parityName}: ");
 
-                        var commaList = new ListStringBuilder(sb, ',');
+                        var commaList = new ListStringBuilder(sb, ",");
                         if (diff.LessonType)
                         {
                             AppendLessonTypeName(commaList, lesson);
@@ -1312,9 +1312,9 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
                 return t;
             }
         }
-        var ret = FirstNameHelper.CompareEach(
-            x.Name,
-            y.Name,
+        var ret = NameHelper.CompareEach(
+            x.FirstName,
+            y.FirstName,
             Comparer.Instance);
         return ret;
     }

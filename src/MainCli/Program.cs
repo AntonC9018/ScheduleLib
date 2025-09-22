@@ -228,7 +228,7 @@ switch (option)
                         sb.Append(dayNameProvider.GetDayName(day.Day));
                         sb.Append(":");
 
-                        var listBuilder = new ListStringBuilder(sb, ',');
+                        var listBuilder = new ListStringBuilder(sb, ",");
                         foreach (var time in day.Times)
                         {
                             var start = time.Start;

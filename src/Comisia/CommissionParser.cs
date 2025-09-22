@@ -35,7 +35,7 @@ public sealed class Name
     public string ToString(NameToStringParams p)
     {
         StringBuilder ret = new();
-        var spacesB = new ListStringBuilder(ret, ' ');
+        var spacesB = new ListStringBuilder(ret, " ");
         if (p.IncludeLast)
         {
             AppendName(LastName);
@@ -53,9 +53,9 @@ public sealed class Name
         void AppendName(NameParts<string?> parts)
         {
             spacesB.MaybeAppendSeparator();
-            spacesB = new(ret, ' ');
+            spacesB = new(ret, " ");
 
-            var list = new ListStringBuilder(ret, '-');
+            var list = new ListStringBuilder(ret, "-");
             foreach (var x in parts)
             {
                 if (x != null)
@@ -328,9 +328,8 @@ public static class CommissionParser
         ret.LastName.A = ParseNamePart(ref parser, "No last name");
 
         LastNameCheck(ref parser);
-        if (parser.Current == NameConstants.DoubleNameSeparator)
+        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            parser.Move();
             ret.LastName.B = ParseNamePart(ref parser, "Last name incomplete");
         }
 
@@ -345,9 +344,8 @@ public static class CommissionParser
         {
             return ret;
         }
-        if (parser.Current == NameConstants.DoubleNameSeparator)
+        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            parser.Move();
             ret.FirstName.B = ParseNamePart(ref parser, "First name incomplete");
         }
 
@@ -365,9 +363,8 @@ public static class CommissionParser
             return ret;
         }
 
-        if (parser.Current == NameConstants.DoubleNameSeparator)
+        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            parser.Move();
             ret.Patronymic.B = ParseNamePart(ref parser, "Patronymic incomplete");
         }
 

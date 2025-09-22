@@ -646,14 +646,13 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        if (doubleBufferedParser.Current != NameConstants.DoubleNameSeparator)
+                        if (!doubleBufferedParser.ConsumeExactString(NameConstants.DoubleNameSeparator))
                         {
                             NextStep(c, ref bparser);
                             return ret;
                         }
 
-                        // Confirmed double first name.
-                        bparser.MovePast(doubleBufferedParser.Position);
+                        bparser.MoveTo(doubleBufferedParser.Position);
                         c.Parser.MoveTo(bparser.Position);
                     }
 

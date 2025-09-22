@@ -492,7 +492,7 @@ public static class TeacherNameHelper
         static ReadOnlySpan<char> Separators() => [
             WordHelper.ShortenedWordCharacter,
             ' ',
-            NameConstants.DoubleNameSeparator];
+            NameConstants.DoubleNameSeparatorChar];
 
         var ret = new TeacherBuilderModel.NameModel();
         var bparser = parser.BufferedView();
@@ -547,7 +547,7 @@ public static class TeacherNameHelper
                 break;
             }
 
-            if (bparser.Current != NameConstants.DoubleNameSeparator)
+            if (!bparser.ConsumeExactString(NameConstants.DoubleNameSeparator))
             {
                 break;
             }

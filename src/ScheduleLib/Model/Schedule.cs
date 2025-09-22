@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
 
@@ -344,9 +346,10 @@ public sealed class Teacher
     public required PersonContacts Contacts;
 }
 
+
 public struct PersonName
 {
-    public required NameParts<OptionalFirstNamePart> Name;
+    public required NameParts<OptionalFirstNamePart> FirstName;
     public required string LastName;
 }
 
