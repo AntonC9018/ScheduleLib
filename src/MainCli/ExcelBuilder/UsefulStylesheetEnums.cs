@@ -1,4 +1,4 @@
-namespace ReaderApp.ExcelBuilder;
+namespace MainCli.ExcelBuilder;
 
 public enum OddEdge
 {

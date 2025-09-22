@@ -8,7 +8,7 @@ using ScheduleLib;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
 
-namespace ReaderApp.ExcelBuilder;
+namespace MainCli.ExcelBuilder;
 
 public readonly struct Spaces : ISpanFormattable
 {

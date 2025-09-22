@@ -46,27 +46,6 @@ public sealed class DocParseContext
         };
     }
 
-    public Schedule BuildSchedule()
-    {
-        var courseNamesByKey = Schedule.LookupModule!.Courses
-            .GroupBy(x => x.Value)
-            .Select(x =>
-            {
-                var names = x.Select(x1 => x1.Key).ToArray();
-                Array.Sort(names, static (a, b) => b.Length - a.Length);
-                return (x.Key, Names: names);
-            });
-
-        foreach (var t in courseNamesByKey)
-        {
-            ref var b = ref Schedule.Courses.Ref(t.Key);
-            b.Names = t.Names;
-        }
-
-        var ret = Schedule.Build();
-        return ret;
-    }
-
     internal CourseId Course(string name)
     {
         var ret = CourseNameUnifierModule.FindOrAdd(new()

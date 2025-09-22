@@ -1,4 +1,4 @@
-namespace ReaderApp.Helper;
+namespace MainCli.Helper;
 
 public static class DateHelpers
 {

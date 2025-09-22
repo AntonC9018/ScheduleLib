@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace ReaderApp.ExcelBuilder;
+namespace MainCli.ExcelBuilder;
 
 public readonly record struct SharedStringItemId(int Value);
 

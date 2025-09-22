@@ -3,10 +3,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using ReaderApp.Helper;
+using MainCli.Helper;
 using ScheduleLib.Helper;
 
-namespace ReaderApp.ExcelBuilder;
+namespace MainCli.ExcelBuilder;
 
 public readonly struct StyleIds<TEnum, TId> where TEnum : struct, Enum
 {

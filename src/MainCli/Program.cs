@@ -3,11 +3,11 @@ using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
-using ReaderApp;
-using ReaderApp.Helper;
+using MainCli;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
 
 Console.WriteLine("Start");
 
@@ -15,25 +15,10 @@ var dayNameProvider = new DayNameProvider();
 var context = DocParseContext.Create(new()
 {
     DayNameProvider = dayNameProvider,
-    CourseNameParserConfig = new(new()
-    {
-        ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
-        IgnoredFullWords = ["p/u", "pentru"],
-        IgnoredShortenedWords = ["Opț"],
-        IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
-        MinUsefulWordLength = 3,
-    }),
+    CourseNameParserConfig = Config.CourseNameParser,
 });
 
-context.Schedule.ConfigureRemappings(remap =>
-{
-    var teach = remap.TeacherLastNameRemappings;
-    teach.Add("Curmanschi", "Curmanschii");
-    teach.Add("Vișnevschi", "Vișnevschii");
-    teach.Add("Băț", "Beț");
-    teach.Add("Spincean", "Sprîncean");
-    teach.Add("Anghelova", "Anghelov");
-});
+context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
 
 {
     const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
@@ -55,7 +40,7 @@ const Session semester = Session.Ses1;
         cancellationToken: cancellationToken);
 }
 
-var schedule = context.BuildSchedule();
+var schedule = context.Schedule.Build();
 Console.WriteLine("Schedule built");
 
 
@@ -67,7 +52,7 @@ IConfiguration config;
 }
 
 // var option = Option.FreeRooms;
-foreach (var option in new Option[] {}) {
+foreach (var option in new Option[] { Option.AllTeachersExcel }) {
 
 switch (option)
 {

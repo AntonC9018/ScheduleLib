@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace ReaderApp.Helper;
+namespace ScheduleLib.Helper;
 
 public static class ExplorerHelper
 {

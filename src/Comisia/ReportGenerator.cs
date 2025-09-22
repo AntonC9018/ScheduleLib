@@ -2,8 +2,8 @@ using System.Collections.Immutable;
 using System.Xml;
 using System.Xml.Serialization;
 using OpenXmlPowerTools;
-using ReaderApp.Helper;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 
 namespace Comisia;
 

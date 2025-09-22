@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
 using System.Security;
 using System.Text;
 using ConvertDocToDocx;
@@ -11,8 +10,8 @@ using Microsoft.Extensions.Configuration;
 using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-using ReaderApp.ExcelBuilder;
-using ReaderApp.Helper;
+using MainCli.ExcelBuilder;
+using MainCli.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -29,7 +28,7 @@ using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
-namespace ReaderApp;
+namespace MainCli;
 
 public struct GeneratePdfForGroupsAndTeachersParams()
 {
