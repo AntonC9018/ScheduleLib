@@ -18,7 +18,7 @@ public sealed class ScheduleFromDocTests
             CourseNameParserConfig = Config.CourseNameParser,
         });
 
-        const int year = 2025;
+        const int year = 2024;
         context.Schedule.SetStudyYear(year);
 
         string dirName = @$"data\{year}_sem2";

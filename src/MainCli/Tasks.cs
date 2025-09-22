@@ -1134,9 +1134,10 @@ public static class Tasks
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
             {
                 using var document = WordprocessingDocument.Open(filePath, isEditable: false);
+                context.SetPeriod(period);
+
                 WordScheduleParser.ParseToSchedule(new()
                 {
-                    Period = period,
                     Context = context,
                     Document = document,
                 });

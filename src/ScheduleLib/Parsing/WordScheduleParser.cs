@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -18,6 +19,20 @@ public sealed class DocParseContext
     public required LessonTimeConfig TimeConfig { get; init; }
     public required DayNameParser DayNameParser { get; init; }
     public required CourseNameUnifierModule CourseNameUnifierModule { get; init; }
+    internal PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
+
+    public void SetPeriod(PeriodBeginning? period)
+    {
+        if (period is { } per)
+        {
+            CurrentPeriodId = Period(per.StartDate);
+        }
+        else
+        {
+            CurrentPeriodId = PeriodId.Unspecified;
+        }
+    }
+
 
     public struct CreateParams
     {
@@ -106,7 +121,7 @@ public sealed class DocParseContext
 
     internal RoomId Room(string name) => Schedule.Room(name);
 
-    internal PeriodId Period(DateOnly start)
+    private PeriodId Period(DateOnly start)
     {
         // Currently, assume that periods are going to be ordered.
         var periods = Schedule.Periods.List;
@@ -210,27 +225,32 @@ public struct PeriodBeginning
 
 public struct ParseWordParams
 {
-    public PeriodBeginning? Period { get; init; }
     public required DocParseContext Context { get; init; }
     public required WordprocessingDocument Document { get; init; }
 }
 
 public static class WordScheduleParser
 {
-    public static void ParseToSchedule(ParseWordParams p)
+    private sealed class CopyableRowEnumerator : IEnumerator<TableRow>
     {
-        PeriodId periodId;
+        private List<TableRow>.Enumerator _enumerator;
+
+        public CopyableRowEnumerator(List<TableRow>.Enumerator enumerator)
         {
-            if (p.Period is { } per)
-            {
-                periodId = p.Context.Period(per.StartDate);
-            }
-            else
-            {
-                periodId = PeriodId.Unspecified;
-            }
+            _enumerator = enumerator;
         }
 
+        public List<TableRow>.Enumerator Copy() => _enumerator;
+
+        public void Dispose() => _enumerator.Dispose();
+        public bool MoveNext() => _enumerator.MoveNext();
+        public TableRow Current => _enumerator.Current;
+        object IEnumerator.Current => Current;
+        public void Reset() => throw new NotSupportedException();
+    }
+
+    public static void ParseToSchedule(ParseWordParams p)
+    {
         var doc = p.Document;
         var c = p.Context;
 
@@ -251,7 +271,8 @@ public static class WordScheduleParser
         foreach (var table in tables)
         {
             var rows = table.ChildElements.OfType<TableRow>().ToList();
-            var rowEnumerator = rows.GetEnumerator();
+            // NOTE: has to be copyable, but also pass-by-reference.
+            using var rowEnumerator = new CopyableRowEnumerator(rows.GetEnumerator());
             if (!rowEnumerator.MoveNext())
             {
                 break;
@@ -273,25 +294,22 @@ public static class WordScheduleParser
                 }
                 case HeaderRowParseStatus.NoHeaderParsed:
                 {
-                    // Update column sizes by observing the sizes of the first column.
-                    if (state.Format != 0)
-                    {
-                        throw new NotImplementedException("Format other than 1 not supported this");
-                    }
-                    if (!Update())
+                    // if (state.Format != 0)
+                    // {
+                    //     throw new NotImplementedException("Format other than 1 not supported this");
+                    // }
+                    if (!UpdateSizesByInspectingFutureCells())
                     {
                         throw new NotImplementedException("A more intelligent way to figure out the widths");
                     }
                     break;
 
-                    bool Update()
+                    bool UpdateSizesByInspectingFutureCells()
                     {
-                        var rowEnumeratorCopy = rowEnumerator;
+                        var rowEnumeratorCopy = rowEnumerator.Copy();
                         var newGroupsArr = new SizedItemArray<GroupId>();
                         while (true)
                         {
-                            newGroupsArr.Clear();
-                            var group = state.CurrentGroups.GetEnumerator();
                             int skippedSize = 0;
 
                             foreach (var cell in IterateCellColumns(rowEnumeratorCopy.Current))
@@ -300,13 +318,18 @@ public static class WordScheduleParser
                                 {
                                     case ColumnType.Regular:
                                     {
-                                        if (!group.MoveNext())
-                                        {
-                                            throw new InvalidOperationException("Wrong column count!");
-                                        }
-                                        var groupId = group.Current.Item;
                                         var size = cell.ColSpan;
-                                        newGroupsArr.Add(new(groupId, size));
+                                        int pos = cell.ColumnSizeCounter - skippedSize;
+                                        // Add an invalid id, just to set up the breakpoints
+                                        var result = newGroupsArr.ReplaceAt(
+                                            pos,
+                                            new(GroupId.Invalid, size),
+                                            allowAddToEnd: true);
+                                        Debug.Assert(result is ReplaceItemStatus.Spliced
+                                            or ReplaceItemStatus.FullyReplaced
+                                            or ReplaceItemStatus.PartlyReplaced
+                                            or ReplaceItemStatus.AddedAtEnd
+                                            or ReplaceItemStatus.ExistingItemTooSmall);
                                         break;
                                     }
                                     case ColumnType.TimeSlot:
@@ -318,13 +341,32 @@ public static class WordScheduleParser
                                 }
                             }
 
-                            if (group.MoveNext())
+                            if (state.CurrentGroups.Count != newGroupsArr.Count)
                             {
                                 if (!rowEnumeratorCopy.MoveNext())
                                 {
                                     return false;
                                 }
                                 continue;
+                            }
+
+                            {
+                                var group = state.CurrentGroups.GetEnumerator();
+                                var newGroup = newGroupsArr.EnumerateWithPosition().GetEnumerator();
+                                while (true)
+                                {
+                                    bool g = group.MoveNext();
+                                    bool ng = newGroup.MoveNext();
+                                    Debug.Assert(g == ng);
+                                    if (!g)
+                                    {
+                                        break;
+                                    }
+
+                                    newGroupsArr.ReplaceItem(
+                                        newGroup.Current.Position,
+                                        group.Current.Item);
+                                }
                             }
 
                             state.ColumnCounts = new(
@@ -389,7 +431,6 @@ public static class WordScheduleParser
 
                     yield return new ColumnCell(
                         ColumnType: colType,
-                        ColumnIndex: columnIndex,
                         ColumnSizeCounter: columnSizeCounter,
                         ColSpan: colSpan,
                         Cell: cell);
@@ -632,7 +673,7 @@ public static class WordScheduleParser
                                 in lesson,
                                 columnIndex: cell.ColumnSizeCounter,
                                 colSpan: colSpan1,
-                                periodId: periodId);
+                                periodId: p.Context.CurrentPeriodId);
                         }
                         return;
 
@@ -1140,7 +1181,6 @@ internal enum ColumnType
 }
 internal readonly record struct ColumnCell(
     ColumnType ColumnType,
-    int ColumnIndex,
     int ColumnSizeCounter,
     int ColSpan,
     TableCell Cell);

@@ -25,6 +25,8 @@ public enum ReplaceItemStatus
     FullyReplaced,
     PartlyReplaced,
     Spliced,
+    AddedAtEnd,
+    ExistingItemTooSmall,
 }
 
 public readonly struct SizedItemArray<T>
@@ -146,17 +148,30 @@ public readonly struct SizedItemArray<T>
 
     public ReplaceItemStatus ReplaceAt(
         int colIndex,
-        SizedItem<T> item)
+        SizedItem<T> item,
+        bool allowAddToEnd = false)
     {
-        return ReplaceAtRange(colIndex, [item]);
+        return ReplaceAtRange(
+            colIndex,
+            [item],
+            allowAddToEnd);
     }
 
     // Disallows growth.
     // Throws if the new items don't fit in the indicated item's size.
     public ReplaceItemStatus ReplaceAtRange(
         int colIndex,
-        ReadOnlySpan<SizedItem<T>> items)
+        ReadOnlySpan<SizedItem<T>> items,
+        bool allowAddToEnd = false)
     {
+        if (allowAddToEnd && colIndex == TotalSize)
+        {
+            foreach (var it in items)
+            {
+                Add(it);
+            }
+            return ReplaceItemStatus.AddedAtEnd;
+        }
         if (items.Length == 0)
         {
             return ReplaceItemStatus.DidNothing;
@@ -174,7 +189,7 @@ public readonly struct SizedItemArray<T>
 
         if (availableSize < sizeOfItems)
         {
-            throw new ArgumentException("The indicated item cannot hold all the items", nameof(items));
+            return ReplaceItemStatus.ExistingItemTooSmall;
         }
 
         // Equivalent check: offset == 0 && availableSize == sizeOfItems
