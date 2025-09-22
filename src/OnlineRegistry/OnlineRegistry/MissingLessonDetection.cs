@@ -51,7 +51,7 @@ public static class MissingLessonDetection
                 Parity = lessonDate.Parity,
             };
             {
-                var periodId = lesson.Lesson.Period;
+                var periodId = lessonDate.Period;
                 if (periodId.IsSpecified)
                 {
                     var period = p.Schedule.Get(periodId);

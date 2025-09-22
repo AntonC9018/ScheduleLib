@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\MainCli\data\2024_sem2\**\*.*">
+            <Link>data\2024_sem2\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>
+
+

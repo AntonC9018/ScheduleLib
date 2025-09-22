@@ -626,7 +626,7 @@ public static class LessonBuilderHelper
         }
         if (whatToDiff.Period)
         {
-            if (a.Lesson.Period != b.Lesson.Period)
+            if (a.Date.Period != b.Date.Period)
             {
                 ret.Period = true;
             }

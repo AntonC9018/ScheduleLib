@@ -15,156 +15,12 @@ public sealed class Schedule
     public required ImmutableArray<Period> Periods { get; init; }
 }
 
-public enum Parity
-{
-    OddWeek,
-    EvenWeek,
-    EveryWeek,
-}
-
-public static class ParityHelper
-{
-    public static bool IsMatch(this Parity parity, Parity check)
-    {
-        switch (check)
-        {
-            case Parity.EveryWeek:
-            {
-                return true;
-            }
-            default:
-            {
-                if (parity == Parity.EveryWeek)
-                {
-                    return true;
-                }
-                if (parity == check)
-                {
-                    return true;
-                }
-                return false;
-            }
-        }
-    }
-}
-
-public struct DefaultLessonTimeConfig(LessonTimeConfig b)
-{
-    public readonly LessonTimeConfig Base = b;
-    public TimeSlot T8_00 => new(0);
-    public TimeSlot T9_45 => new(1);
-    public TimeSlot T11_30 => new(2);
-    public TimeSlot T13_15 => new(3);
-    public TimeSlot T15_00 => new(4);
-    public TimeSlot T16_45 => new(5);
-    public TimeSlot T18_30 => new(6);
-
-    public static implicit operator LessonTimeConfig(DefaultLessonTimeConfig c) => c.Base;
-}
-
-public sealed class LessonTimeConfig
-{
-    public required TimeSpan LessonDuration;
-    public required TimeOnly[] TimeSlotStarts;
-
-    public int TimeSlotCount => TimeSlotStarts.Length;
-
-    public static DefaultLessonTimeConfig CreateDefault()
-    {
-        var ret = new LessonTimeConfig
-        {
-            LessonDuration = TimeSpan.FromMinutes(90),
-            TimeSlotStarts = CreateDefaultTimeSlots(),
-        };
-        return new(ret);
-    }
-
-    public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)
-    {
-        var i = Array.BinarySearch(TimeSlotStarts, startTime);
-        if (i < 0)
-        {
-            return null;
-        }
-        return new(i);
-    }
-
-    public static TimeOnly[] CreateDefaultTimeSlots()
-    {
-        TimeOnly New(int hour, int min)
-        {
-            var t = new TimeSpan(hours: hour, minutes: min, seconds: 0);
-            var ret = TimeOnly.FromTimeSpan(t);
-            return ret;
-        }
-
-        return [
-            New(8, 00),
-            New(9, 45),
-            New(11, 30),
-            New(13, 15),
-            New(15, 00),
-            New(16, 45),
-            New(18, 30),
-        ];
-    }
-
-    // TODO: remove IEnumerable
-    public IEnumerable<TimeSlot> TimeSlots
-    {
-        get
-        {
-            for (int i = 0; i < TimeSlotStarts.Length; i++)
-            {
-                yield return new TimeSlot(i);
-            }
-        }
-    }
-
-    // TODO: remove IEnumerable
-    public IEnumerable<TimeSlotInterval> Intervals
-    {
-        get
-        {
-            for (int i = 0; i < TimeSlotStarts.Length; i++)
-            {
-                yield return GetTimeSlotInterval(new TimeSlot(i));
-            }
-        }
-    }
-
-    public TimeSlotInterval GetTimeSlotInterval(TimeSlot index)
-    {
-        var start = TimeSlotStarts[index.Index];
-        var ret = new TimeSlotInterval(start, LessonDuration);
-        return ret;
-    }
-}
-
-public record struct TimeSlotInterval(TimeOnly Start, TimeSpan Duration)
-{
-    public TimeOnly End => Start.Add(Duration);
-}
-
-public record struct TimeSlot(int Index) : IComparable<TimeSlot>
-{
-    public static TimeSlot First => new(0);
-    public static bool operator<(TimeSlot left, TimeSlot right) => left.Index < right.Index;
-    public static bool operator>(TimeSlot left, TimeSlot right) => left.Index > right.Index;
-    public static bool operator<=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
-    public static bool operator>=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
-
-    public int CompareTo(TimeSlot other)
-    {
-        return Index.CompareTo(other.Index);
-    }
-}
-
 public record struct RegularLessonDate()
 {
     public Parity Parity = Parity.EveryWeek;
     public required DayOfWeek DayOfWeek;
     public required TimeSlot TimeSlot;
+    public required PeriodId Period;
 }
 
 public record struct OneTimeLessonDate
@@ -176,7 +32,7 @@ public record struct OneTimeLessonDate
 [InlineArray(_Capacity)]
 internal struct LessonGroupsImpl
 {
-    public const int _Capacity = 15;
+    internal const int _Capacity = 15;
     public GroupId _value;
 }
 // [StructLayout(LayoutKind.Sequential)]
@@ -201,8 +57,7 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 
     public GroupId Group0 => this[0];
 
-    public const int _Capacity = 15;
-    public readonly int Capacity => _Capacity;
+    public readonly int Capacity => LessonGroupsImpl._Capacity;
 
     public readonly bool IsSingleGroup => this[1] == GroupId.Invalid;
 
@@ -328,7 +183,6 @@ public struct LessonData()
     public required ImmutableArray<TeacherId> Teachers;
     public required RoomId Room;
     public required LessonType Type;
-    public required PeriodId Period;
 
     public SubGroup SubGroup = SubGroup.All;
     public readonly GroupId Group => Groups.Group0;
@@ -354,6 +208,7 @@ public enum LessonType
     Seminar,
     Curs,
     Unspecified,
+    Prelegere,
     Custom,
 }
 
@@ -489,245 +344,6 @@ public sealed class Teacher
     public required PersonContacts Contacts;
 }
 
-public record struct OptionalFirstNamePart
-{
-    public required string? Full;
-    public required string? Short;
-
-    public readonly string? Longer
-    {
-        get
-        {
-            if (Full is { } full)
-            {
-                return full;
-            }
-            if (Short is { } shortName)
-            {
-                return shortName;
-            }
-            return null;
-        }
-    }
-    public readonly bool IsNull => Full is null && Short is null;
-}
-
-public record struct NameParts<T>()
-{
-    public required T A;
-    public required T B;
-}
-
-public enum FirstNamePartIndex
-{
-    A,
-    B,
-    Count,
-}
-
-// This amount of boilerplate is seriously concerning.
-// This should just work automatically, time to write a source gen.
-public static class FirstNameHelper
-{
-    public ref struct RefEnumerable<T>
-    {
-        internal readonly ref NameParts<T> _parts;
-
-        public RefEnumerable(ref NameParts<T> parts)
-        {
-            _parts = ref parts;
-        }
-    }
-
-    public static RefEnumerable<T> AsRef<T>(this ref NameParts<T> parts)
-    {
-        return new(ref parts);
-    }
-
-    public static RefEnumerator<T> GetEnumerator<T>(this RefEnumerable<T> parts)
-    {
-        return new(ref parts._parts);
-    }
-
-    public static Enumerator<T> GetEnumerator<T>(this NameParts<T> parts)
-    {
-        return new(parts);
-    }
-
-    public struct EnumeratorState()
-    {
-        private int _value = -1;
-
-        public ref T GetRef<T>(ref NameParts<T> parts)
-        {
-            return ref FirstNameHelper.GetRef(parts, (FirstNamePartIndex) _value);
-        }
-
-        public bool MoveNext()
-        {
-            _value++;
-            return _value < 2;
-        }
-    }
-
-    public ref struct RefEnumerator<T>
-    {
-        private readonly ref NameParts<T> _parts;
-        private EnumeratorState _enumeratorState;
-
-        public RefEnumerator(ref NameParts<T> parts)
-        {
-            _parts = ref parts;
-            _enumeratorState = new();
-        }
-
-        public ref T Current => ref _enumeratorState.GetRef(ref _parts);
-        public bool MoveNext() => _enumeratorState.MoveNext();
-    }
-
-    public struct Enumerator<T>
-    {
-        private readonly NameParts<T> _parts;
-        private EnumeratorState _enumeratorState;
-
-        public Enumerator(NameParts<T> parts)
-        {
-            _parts = parts;
-            _enumeratorState = new();
-        }
-
-        public T Current => _enumeratorState.GetRef(ref Unsafe.AsRef(in _parts));
-        public bool MoveNext() => _enumeratorState.MoveNext();
-    }
-
-    public static NameParts<U> Map<T, U>(this NameParts<T> n, Func<T, U> map)
-    {
-        var ret = default(NameParts<U>);
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var a = i.GetRef(ref n);
-            ref var b = ref i.GetRef(ref ret);
-            b = map(a);
-        }
-        return ret;
-    }
-
-    public static void Update<T, U>(
-        this ref NameParts<T> a,
-        NameParts<U> input,
-        Func<T, U, T> update)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            ref var fa = ref i.GetRef(ref a);
-            var fb = i.GetRef(ref input);
-            fa = update(fa, fb);
-        }
-    }
-
-    public static bool All<T>(this NameParts<T> a, Func<T, bool> pred)
-    {
-        foreach (var x in a)
-        {
-            if (!pred(x))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static bool Any<T>(this NameParts<T> a, Func<T, bool> pred)
-    {
-        foreach (var x in a)
-        {
-            if (pred(x))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static bool EachEquals<T, U>(this NameParts<T> a, NameParts<U> b, Func<T, U, bool> pred)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var fa = i.GetRef(ref a);
-            var fb = i.GetRef(ref b);
-            if (!pred(fa, fb))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static int Count<T>(this NameParts<T> a, Func<T, bool> pred)
-    {
-        int c = 0;
-        foreach (var t in a)
-        {
-            if (pred(t))
-            {
-                c++;
-            }
-        }
-        return c;
-    }
-
-    public static int CompareEach<T>(
-        NameParts<T> a,
-        NameParts<T> b,
-        IComparer<T> comparer)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var fa = i.GetRef(ref a);
-            var fb = i.GetRef(ref b);
-            var cmp = comparer.Compare(fa, fb);
-            if (cmp != 0)
-            {
-                return cmp;
-            }
-        }
-        return 0;
-    }
-
-    private static ref T GetRef<T>(in NameParts<T> parts, FirstNamePartIndex index)
-    {
-        ref var p = ref Unsafe.AsRef(in parts);
-        return ref p.Ref(index);
-    }
-
-    public static ref T Ref<T>(this ref NameParts<T> n, FirstNamePartIndex index)
-    {
-        switch (index)
-        {
-            case FirstNamePartIndex.A:
-                return ref n.A;
-            case FirstNamePartIndex.B:
-                return ref n.B;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(index));
-        }
-    }
-
-    public static T Get<T>(this NameParts<T> n, FirstNamePartIndex index)
-    {
-        return n.Ref(index);
-    }
-
-    public static NameParts<string?> Longer(this NameParts<OptionalFirstNamePart> name)
-    {
-        return name.Map(x => x.Longer);
-    }
-}
-
 public struct PersonName
 {
     public required NameParts<OptionalFirstNamePart> Name;
@@ -739,100 +355,6 @@ public struct PersonContacts
     public string? PersonalEmail;
     public string? CorporateEmail;
     public string? PhoneNumber;
-}
-
-public record struct PeriodId(int Value)
-{
-    public static PeriodId Unspecified => new(-1);
-    public bool IsUnspecified => this == Unspecified;
-    public bool IsSpecified => !IsUnspecified;
-}
-
-public record struct Period
-{
-    /// <summary>
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="end">Exclusive</param>
-    public Period(DateOnly start, DateOnly end = default)
-    {
-        if (end != default)
-        {
-            Debug.Assert(start <= end);
-        }
-
-        _end = end;
-        Start = start;
-    }
-
-    public readonly DateOnly Start;
-    public readonly DateOnly _end;
-
-    public readonly DateOnly? End
-    {
-        get
-        {
-            if (_end == default)
-            {
-                return null;
-            }
-            return _end;
-        }
-    }
-}
-
-public static class PeriodHelper
-{
-    public static DateOnly GetProjectedEndExclusive(this Period period)
-    {
-        if (period.End is { } existingEnd)
-        {
-            return existingEnd;
-        }
-        return GetStudyYearEnd(period.Start).AddDays(1);
-    }
-
-    // This might be different in other countries and stuff, this should be service ideally.
-    public static DateOnly GetStudyYearEnd(DateOnly yearDate)
-    {
-        int year = yearDate.Year;
-        if (yearDate.Month >= 9)
-        {
-            year++;
-        }
-        var ret = new DateOnly(year: year, month: 8, day: 31);
-        return ret;
-    }
-
-    public static (DateOnly Start, DateOnly EndExclusive) WholePeriod(this Schedule schedule)
-    {
-        var min = DateOnly.MaxValue;
-        foreach (var period in schedule.Periods)
-        {
-            if (period.Start < min)
-            {
-                min = period.Start;
-            }
-        }
-
-        // Compute semester end, which is 31 august of the year.
-        var max = min;
-        foreach (var period in schedule.Periods)
-        {
-            var end = period.GetProjectedEndExclusive();
-            if (end > max)
-            {
-                max = end;
-            }
-        }
-
-        return new(min, max);
-    }
-
-    public static PeriodId LatestPeriodId(this Schedule schedule)
-    {
-        return new(schedule.Periods.Length - 1);
-    }
 }
 
 public static class ScheduleAccessorHelper

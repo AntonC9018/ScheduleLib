@@ -175,7 +175,7 @@ public static class FilterHelper
 
                 bool PassesPeriodFilter()
                 {
-                    var p = regularLesson.Lesson.Period;
+                    var p = regularLesson.Date.Period;
                     if (p.IsUnspecified
                         && filter.PeriodFilter.UnspecifiedIsAll)
                     {

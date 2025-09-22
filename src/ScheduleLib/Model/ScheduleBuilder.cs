@@ -61,10 +61,10 @@ public static partial class ScheduleBuilderHelper
                     TimeSlot = x.Date.TimeSlot!.Value,
                     DayOfWeek = x.Date.DayOfWeek!.Value,
                     Parity = x.Date.Parity ?? Parity.EveryWeek,
+                    Period = x.General.Period,
                 },
                 Lesson = new()
                 {
-                    Period = x.General.Period,
                     Groups = x.Group.Groups,
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
