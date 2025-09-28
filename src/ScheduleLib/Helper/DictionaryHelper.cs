@@ -22,10 +22,11 @@ public static class DictionaryHelper
         return val!;
     }
 
-    public static T GetOrAdd<T>(
-        this Dictionary<string, T> dict,
-        string key,
-        Func<string, T> add)
+    public static T GetOrAdd<T, TKey>(
+        this Dictionary<TKey, T> dict,
+        TKey key,
+        Func<TKey, T> add)
+        where TKey : notnull
     {
         ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, key, out bool exists);
         if (exists)

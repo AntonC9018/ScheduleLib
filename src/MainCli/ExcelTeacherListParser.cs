@@ -119,19 +119,14 @@ public static class ExcelTeacherListParser
                                 throw new NotSupportedException("Expected a teacher name in the cell.");
                             }
                             var parsedName = ParseTeacherName(teacherName);
-                            builder = p.Schedule.Teacher(new TeacherBuilderModel.NameModel
+                            var model = new TeacherBuilderModel.NameModel();
+                            model.FirstName[0] = new()
                             {
-                                Name = new()
-                                {
-                                    A = new()
-                                    {
-                                        Full = parsedName.FirstName.ToString(),
-                                        Short = null,
-                                    },
-                                    B = default,
-                                },
-                                LastName = parsedName.LastName.ToString(),
-                            });
+                                Full = parsedName.FirstName.ToString(),
+                                Short = null,
+                            };
+                            model.LastName[0] = parsedName.LastName.ToString();
+                            builder = p.Schedule.Teacher(model);
                             return true;
                         }
                         // E-mail

@@ -5,49 +5,46 @@ namespace ScheduleLib.Tests;
 
 public sealed class TeacherNameTests
 {
+    private void Test(string input, TeacherBuilderModel.NameModel expected)
+    {
+        var name = TeacherNameHelper.ParseName(input);
+        Assert.Equal(expected, name);
+    }
+
     [Fact]
     public void LastName()
     {
-        var name = TeacherNameHelper.ParseName("Lastname");
-        Assert.Equal("Lastname", name.LastName);
-        Assert.True(name.Name.All(x => x.IsNull));
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Lastname";
+        Test("Lastname", model);
     }
 
     [Fact]
     public void RegularFirstLast()
     {
-        var name = TeacherNameHelper.ParseName("First Last");
-        Assert.Equal("First", name.Name.A.Full);
-        Assert.True(name.Name.B.IsNull);
-        Assert.Equal("Last", name.LastName);
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Last";
+        model.FirstName[0].Full = "First";
+        Test("First Last", model);
     }
 
     [Fact]
     public void ShortFirstName()
     {
-        var name = TeacherNameHelper.ParseName("F. Last");
-        Assert.Equal("F.", name.Name.A.Short);
-        Assert.True(name.Name.B.IsNull);
-        Assert.Equal("Last", name.LastName);
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Last";
+        model.FirstName[0].Short = "F.";
+        Test("F. Last", model);
     }
 
     [Fact]
     public void DoubleFirstName()
     {
-        var name = TeacherNameHelper.ParseName("Firsta-Firstb Last");
-        Assert.Equal("Firsta", name.Name.A.Full);
-        Assert.Equal("Firstb", name.Name.B.Full);
-        Assert.Equal("Last", name.LastName);
-    }
-
-    [Fact]
-    public void DoubleLastName_NotAllowed()
-    {
-        Assert.Throws<ArgumentException>(() =>
-        {
-            var name = TeacherNameHelper.ParseName("First Lasta-Lastb");
-            _ = name;
-        });
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Last";
+        model.FirstName[0].Full = "Firsta";
+        model.FirstName[1].Full = "Firstb";
+        Test("Firsta-Firstb Last", model);
     }
 
     [Fact]
@@ -63,9 +60,41 @@ public sealed class TeacherNameTests
     [Fact]
     public void CanMixShortAndFullInDoubleNames()
     {
-        var name = TeacherNameHelper.ParseName("F.-Firstb Last");
-        Assert.Equal("F.", name.Name.A.Short);
-        Assert.Equal("Firstb", name.Name.B.Full);
-        Assert.Equal("Last", name.LastName);
+        // "F.-Firstb Last"
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Last";
+        model.FirstName[0].Short = "F.";
+        model.FirstName[1].Full = "Firstb";
+        Test("F.-Firstb Last", model);
+    }
+
+    [Fact]
+    public void DoubleLastName_SimpleShortName()
+    {
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Lasta";
+        model.LastName[1] = "Lastb";
+        model.FirstName[0].Full = "First";
+        Test("First Lasta-Lastb", model);
+    }
+
+    [Fact]
+    public void ShortFirstName_DoubleLastName()
+    {
+        var model = new TeacherBuilderModel.NameModel();
+        model.LastName[0] = "Lasta";
+        model.LastName[1] = "Lastb";
+        model.FirstName[0].Short = "F.";
+        Test("F. Lasta-Lastb", model);
+    }
+
+    [Fact]
+    public void DoubleShortenedLastName_NotAllowed()
+    {
+        Assert.Throws<ArgumentException>(() =>
+        {
+            var name = TeacherNameHelper.ParseName("First L.-Lastb");
+            _ = name;
+        });
     }
 }

@@ -113,20 +113,33 @@ public static class Tasks
                 var teacherName = p.Schedule.Teachers[teacherId1].PersonName;
                 var nameBuilder = new ListStringBuilder(sb, "_");
 
-                var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
-                foreach (var fname in teacherName.FirstName)
                 {
-                    if (fname.Short is not { } s)
+                    var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+                    foreach (var fname in teacherName.FirstName)
                     {
-                        break;
+                        if (fname.Short is not { } s)
+                        {
+                            break;
+                        }
+
+                        var w = new Word(s);
+
+                        firstNameBuilder.Append(w.Span.Shortened.Value);
                     }
-
-                    var w = new Word(s);
-
-                    firstNameBuilder.Append(w.Span.Shortened.Value);
+                }
+                nameBuilder.MaybeAppendSeparator();
+                {
+                    var lastNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+                    foreach (var lname in teacherName.LastName)
+                    {
+                        if (lname is not { } s)
+                        {
+                            break;
+                        }
+                        lastNameBuilder.Append(s);
+                    }
                 }
 
-                nameBuilder.Append(teacherName.LastName);
                 sb.Append(".pdf");
 
                 var fileName = sb.ToStringAndClear();
@@ -1307,7 +1320,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(x.LastName, y.LastName);
             if (t != 0)
             {
                 return t;
@@ -1320,10 +1333,10 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
         return ret;
     }
 
-    private sealed class Comparer : IComparer<OptionalFirstNamePart>
+    private sealed class Comparer : IComparer<OptionalNamePart>
     {
         public static readonly Comparer Instance = new();
-        public int Compare(OptionalFirstNamePart x, OptionalFirstNamePart y)
+        public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
             return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
         }

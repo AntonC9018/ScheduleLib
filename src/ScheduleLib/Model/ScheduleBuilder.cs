@@ -25,7 +25,23 @@ public sealed class ValidationSettings()
 
 public sealed class Remappings()
 {
-    public readonly Dictionary<string, string> TeacherLastNameRemappings = new(IgnoreDiacriticsAndCaseComparer.Instance);
+    public readonly TeacherNameRemappings TeacherLastNameRemappings = new();
+}
+
+public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastName>
+{
+    public TeacherNameRemappings() : base(IgnoreDiacriticsAndCase_Name_Comparer.Instance)
+    {
+    }
+
+    public void Add(string a, string b)
+    {
+        var x = new NameParts<string?>();
+        var y = x;
+        x[0] = a;
+        y[0] = b;
+        this[x] = new(y);
+    }
 }
 
 public sealed partial class ScheduleBuilder()
@@ -134,16 +150,16 @@ public static partial class ScheduleBuilderHelper
                 Contacts = x.Contacts,
                 PersonName = new()
                 {
-                    FirstName = x.Name.Name.Map(x1 => x1 with
+                    FirstName = x.Name.FirstName.Map(x1 => x1 with
                     {
-                        Short = ShortFirstName(x1),
+                        Short = ShortName(x1),
                     }),
-                    LastName = x.Name.LastName!,
+                    LastName = x.Name.LastName,
                 },
             };
             return ret;
 
-            static string? ShortFirstName(OptionalFirstNamePart x)
+            static string? ShortName(OptionalNamePart x)
             {
                 if (x.Short is { } shortf)
                 {
@@ -226,7 +242,7 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static string RemapTeacherName(this ScheduleBuilder s, string lastName)
+    public static LastName RemapTeacherName(this ScheduleBuilder s, LastName lastName)
     {
         return s.Remappings.TeacherLastNameRemappings.GetValueOrDefault(lastName, lastName);
     }

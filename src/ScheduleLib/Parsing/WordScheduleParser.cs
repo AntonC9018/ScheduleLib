@@ -80,9 +80,9 @@ public sealed class DocParseContext
     {
         var nameModel = new TeacherBuilderModel.NameModel
         {
-            Name = name.Name.Map(x =>
+            FirstName = name.Name.Map(x =>
             {
-                var ret = default(OptionalFirstNamePart);
+                var ret = default(OptionalNamePart);
                 if (x.IsEmpty)
                 {
                     return ret;
@@ -99,7 +99,14 @@ public sealed class DocParseContext
                     return ret;
                 }
             }),
-            LastName = name.LastName.ToString(),
+            LastName = new(name.LastName.Map(x =>
+            {
+                if (x.IsEmpty)
+                {
+                    return null;
+                }
+                return x.ToString();
+            })),
         };
 
         // Need to remap explicitly, because we do the check for diacritics later.
@@ -108,9 +115,16 @@ public sealed class DocParseContext
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;
 
-        bool savedTeacherNameHasDiacritics = teacher.Name.LastName!.Equals(
-            nameModel.LastName,
-            StringComparison.CurrentCultureIgnoreCase);
+        bool savedTeacherNameHasDiacritics = teacher.Name.LastName.Parts.EachEquals(
+            nameModel.LastName.Parts,
+            (a, b) =>
+            {
+                if (a is null)
+                {
+                    return b is null;
+                }
+                return a.Equals(b, StringComparison.CurrentCultureIgnoreCase);
+            });
         if (!savedTeacherNameHasDiacritics)
         {
             teacher.Name.LastName = nameModel.LastName;

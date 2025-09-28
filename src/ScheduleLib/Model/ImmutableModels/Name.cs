@@ -4,7 +4,7 @@ using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
 
-public record struct OptionalFirstNamePart
+public record struct OptionalNamePart
 {
     public required string? Full;
     public required string? Short;
@@ -25,12 +25,106 @@ public record struct OptionalFirstNamePart
         }
     }
     public readonly bool IsNull => Full is null && Short is null;
+
+    public override string ToString()
+    {
+        if (Full is null && Short is not null)
+        {
+            return Short;
+        }
+        var sb = new StringBuilder();
+        sb.Append(Full);
+        if (Short is not null)
+        {
+            sb.Append($" ({Short})");
+        }
+        return sb.ToString();
+    }
 }
 
-public record struct NameParts<T>()
+[InlineArray((int) FirstNamePartIndex.Count)]
+public struct NameParts<T>() : IEquatable<NameParts<T>>
 {
-    public required T A;
-    public required T B;
+    private T _items = default!;
+
+    public bool Equals(NameParts<T> other)
+    {
+        return this.EachEquals(other, EqualityComparer<T>.Default.Equals);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is NameParts<T> other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var item in this)
+        {
+            hash.Add(item);
+        }
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(NameParts<T> left, NameParts<T> right) => left.Equals(right);
+    public static bool operator !=(NameParts<T> left, NameParts<T> right) => !(left == right);
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.Append("[");
+        var list = new ListStringBuilder(sb, ", ");
+        foreach (var t in this)
+        {
+            if (t is not null)
+            {
+                list.Append($"{t}");
+            }
+        }
+        sb.Append("]");
+        return sb.ToString();
+    }
+}
+
+public record struct LastName
+{
+    public NameParts<string?> Parts;
+
+    public LastName() : this(default)
+    {
+    }
+
+    public LastName(NameParts<string?> parts)
+    {
+        Parts = parts;
+    }
+
+    public static implicit operator LastName(string a)
+    {
+        var parts = default(NameParts<string?>);
+        parts[0] = a;
+        parts[1] = null;
+        return new LastName(parts);
+    }
+
+    public static implicit operator NameParts<string?>(LastName n)
+    {
+        return n.Parts;
+    }
+
+    public readonly bool IsNull => Parts.All(x => x is null);
+
+    public string? this[int index]
+    {
+        get => Parts[index];
+        set => Parts[index] = value;
+    }
+
+    public override string ToString()
+    {
+        return Parts.ToString();
+    }
 }
 
 public enum FirstNamePartIndex
@@ -221,23 +315,10 @@ public static class NameHelper
 
     public static ref T Ref<T>(this ref NameParts<T> n, FirstNamePartIndex index)
     {
-        switch (index)
-        {
-            case FirstNamePartIndex.A:
-                return ref n.A;
-            case FirstNamePartIndex.B:
-                return ref n.B;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(index));
-        }
+        return ref n[(int) index];
     }
 
-    public static T Get<T>(this NameParts<T> n, FirstNamePartIndex index)
-    {
-        return n.Ref(index);
-    }
-
-    public static NameParts<string?> Longer(this NameParts<OptionalFirstNamePart> name)
+    public static NameParts<string?> Longer(this NameParts<OptionalNamePart> name)
     {
         return name.Map(x => x.Longer);
     }
@@ -295,37 +376,37 @@ public static class NameDisplayHelper
             var firstName = p.Name.FirstName;
             if (p.PreferLonger)
             {
-                if (AppendLonger())
+                if (AppendLonger(firstName))
                 {
                     return WhichFirstName.Full;
                 }
-                if (AppendShorter())
+                if (AppendShorter(firstName))
                 {
                     return WhichFirstName.Short;
                 }
                 return WhichFirstName.None;
             }
             {
-                if (AppendShorter())
+                if (AppendShorter(firstName))
                 {
                     return WhichFirstName.Short;
                 }
-                if (AppendLonger())
+                if (AppendLonger(firstName))
                 {
                     return WhichFirstName.Full;
                 }
                 return WhichFirstName.None;
             }
 
-            bool AppendLonger()
+            bool AppendLonger(NameParts<OptionalNamePart> f)
             {
-                if (firstName.A.Full is not { } a)
+                if (f[0].Full is not { } a)
                 {
                     return false;
                 }
 
-                if (firstName.B.Full is null
-                    && firstName.B.Short is not null)
+                if (f[1].Full is null
+                    && f[1].Short is not null)
                 {
                     return false;
                 }
@@ -335,16 +416,16 @@ public static class NameDisplayHelper
                 var list = new ListStringBuilder(p.Output, separator: NameConstants.DoubleNameSeparator);
                 list.Append(a);
 
-                if (firstName.B.Full is { } b)
+                if (f[1].Full is { } b)
                 {
                     list.Append(b);
                 }
 
                 return true;
             }
-            bool AppendShorter()
+            bool AppendShorter(NameParts<OptionalNamePart> f)
             {
-                if (firstName.A.Short is not { } a)
+                if (f[0].Short is not { } a)
                 {
                     return false;
                 }
@@ -355,7 +436,7 @@ public static class NameDisplayHelper
 
                 {
                     var word = new WordSpan(a);
-                    if (firstName.B.Short is not null)
+                    if (f[1].Short is not null)
                     {
                         // Skip the .
                         list.Append(word.Shortened.Value);
@@ -366,7 +447,7 @@ public static class NameDisplayHelper
                     }
                 }
 
-                if (firstName.B.Short is not { } b)
+                if (f[1].Short is not { } b)
                 {
                     return true;
                 }

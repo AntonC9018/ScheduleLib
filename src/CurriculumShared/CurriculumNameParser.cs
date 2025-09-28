@@ -769,7 +769,10 @@ public sealed class CurriculumCache
             {
                 foreach (var teacher in x.Key.Teachers)
                 {
-                    if (p.Lookup.Teacher(teacher.Span) is not { } teacherId)
+                    var l = new LastName();
+                    l.Parts[0] = teacher.Span.ToString();
+
+                    if (p.Lookup.Teacher(l) is not { } teacherId)
                     {
                         // throw new InvalidOperationException("Teacher not found!");
                         continue;

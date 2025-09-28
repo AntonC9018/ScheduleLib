@@ -35,7 +35,7 @@ public struct LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(Lookup.Courses, name);
 
-    public IEnumerable<TeacherId> Teachers(ReadOnlySpan<char> lastName)
+    public IEnumerable<TeacherId> Teachers(LastName lastName)
     {
         if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
         {
@@ -44,7 +44,7 @@ public struct LookupFacade(ScheduleBuilder s)
         return ids.Select(id => new TeacherId(id));
     }
 
-    public TeacherId? Teacher(ReadOnlySpan<char> lastName)
+    public TeacherId? Teacher(LastName lastName)
     {
         using var e = Teachers(lastName).GetEnumerator();
         if (!e.MoveNext())
@@ -183,11 +183,11 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Teachers.Count; i++)
             {
                 ref var teacher = ref s.Teachers.Ref(i);
-                if (teacher.Name.LastName is not { } lastName)
+                if (teacher.Name.LastName != default)
                 {
                     continue;
                 }
-                var list = teachersMap.AddOrGet(lastName);
+                var list = teachersMap.AddOrGet(teacher.Name.LastName);
                 list.Add(i);
             }
         }

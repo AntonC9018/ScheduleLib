@@ -448,7 +448,7 @@ public sealed class LessonParserTests
 
         bool ShortNameEqual()
         {
-            return expectedName.Name.EachEquals(actual.Name, (e, a) =>
+            return expectedName.FirstName.EachEquals(actual.Name, (e, a) =>
             {
                 if (e.IsNull)
                 {
@@ -471,17 +471,17 @@ public sealed class LessonParserTests
 
         bool LastNameEqual()
         {
-            if (actual.LastName.IsEmpty)
+            if (actual.LastName.All(x => x.IsEmpty))
             {
-                return expectedName.LastName is null;
+                return expectedName.LastName == default;
             }
 
-            var lastNameSpan = expectedName.LastName!.AsSpan();
-            if (!lastNameSpan.Equals(actual.LastName.Span, StringComparison.Ordinal))
+            return expectedName.LastName.Parts.EachEquals(actual.LastName, (a, b) =>
             {
-                return false;
-            }
-            return true;
+                var a1 = a.AsSpan();
+                var b1 = b.Span;
+                return a1.Equals(b1, StringComparison.Ordinal);
+            });
         }
     }
 
@@ -514,7 +514,7 @@ public sealed class LessonParserTests
 
         var lesson = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson.LessonName.Span);
-        Assert.Equal("Teacher", Assert.Single(lesson.TeacherNames).LastName.Span);
+        Assert.Equal("Teacher", Assert.Single(lesson.TeacherNames).LastName[0].Span);
         Assert.Equal("Mediacor, etajul I", lesson.RoomName.Span);
     }
 

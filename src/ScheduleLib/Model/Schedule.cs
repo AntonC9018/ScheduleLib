@@ -349,8 +349,9 @@ public sealed class Teacher
 
 public struct PersonName
 {
-    public required NameParts<OptionalFirstNamePart> FirstName;
-    public required string LastName;
+    public required NameParts<OptionalNamePart> FirstName;
+    // One is required
+    public required NameParts<string?> LastName;
 }
 
 public struct PersonContacts

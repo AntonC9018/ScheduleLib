@@ -20,19 +20,18 @@ public sealed class TeacherIdList : List<int>
 
 public readonly struct TeachersByLastName()
 {
-    private readonly Dictionary<string, TeacherIdList> _dict = new(IgnoreDiacriticsAndCaseComparer.Instance);
+    private readonly Dictionary<NameParts<string?>, TeacherIdList> _dict = new(IgnoreDiacriticsAndCase_Name_Comparer.Instance);
 
-    public TeacherIdList? Get(ReadOnlySpan<char> lastName)
+    // TODO:
+    // Restore span overloads.
+    // The problem is that generic NameParts<T> where T : allows ref struct is impossible.
+    public TeacherIdList? Get(LastName lastName)
     {
-        var l = _dict.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (l.TryGetValue(lastName, out var val))
-        {
-            return val;
-        }
-        return null;
+        _dict.TryGetValue(lastName, out var ret);
+        return ret;
     }
 
-    public TeacherIdList AddOrGet(ReadOnlySpan<char> lastName)
+    public TeacherIdList AddOrGet(LastName lastName)
     {
         return _dict.GetOrAdd(lastName, _ => new());
     }
@@ -66,7 +65,7 @@ public static class TeacherLookupHelper
         ReadOnlySpan<int> ids,
         NameParts<Word> name)
     {
-        Debug.Assert(name.A.Value.Length > 0);
+        Debug.Assert(name[0].Value.Length > 0);
         Debug.Assert(name.All(w => w.Value != null));
         bool onlyContainsFullNames = name.All(x => x == Word.Empty || x.LooksFull);
 
@@ -81,7 +80,7 @@ public static class TeacherLookupHelper
             {
                 int id = ids[teacherIndex];
                 var teacher = teachers[id];
-                var teacherFirstName = teacher.Name.Name;
+                var teacherFirstName = teacher.Name.FirstName;
                 if (CheckEquality(teacherFirstName))
                 {
                     return teacherIndex;
@@ -112,7 +111,7 @@ public static class TeacherLookupHelper
                 }
             }
 
-            bool CheckEquality(NameParts<OptionalFirstNamePart> teacherName)
+            bool CheckEquality(NameParts<OptionalNamePart> teacherName)
             {
                 var nonEmptyCount = name.Count(x => x != Word.Empty);
 
@@ -237,10 +236,11 @@ public sealed class TeacherBuilderModel
     public NameModel Name;
     public PersonContacts Contacts;
 
-    public struct NameModel
+    public record struct NameModel
     {
-        public NameParts<OptionalFirstNamePart> Name;
-        public string? LastName;
+        // Includes the . at the end
+        public NameParts<OptionalNamePart> FirstName;
+        public LastName LastName;
     }
 }
 
@@ -248,12 +248,12 @@ public static class TeacherBuilderHelper
 {
     public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        if (name.LastName is { } lastName)
+        if (!name.LastName.IsNull)
         {
-            name.LastName = s.RemapTeacherName(lastName);
+            name.LastName = s.RemapTeacherName(name.LastName);
         }
 
-        Debug.Assert(name.Name.All(x =>
+        Debug.Assert(name.FirstName.All(x =>
         {
             if (x.Longer is { } l)
             {
@@ -271,7 +271,7 @@ public static class TeacherBuilderHelper
                 Id = new(id),
                 Schedule = s,
             };
-            b.FirstName(name.Name);
+            b.FirstName(name.FirstName);
 
             return b;
         }
@@ -298,7 +298,7 @@ public static class TeacherBuilderHelper
             {
                 return null;
             }
-            var longer = name.Name.Longer().Map(x => new Word(x ?? ""));
+            var longer = name.FirstName.Longer().Map(x => new Word(x ?? ""));
             if (longer.All(x => x == Word.Empty))
             {
                 if (lookup.Count > 0)
@@ -340,7 +340,7 @@ public static class TeacherBuilderHelper
     {
         foreach (ref var teacher in CollectionsMarshal.AsSpan(s.Teachers.List))
         {
-            if (teacher.Name.LastName == null)
+            if (teacher.Name.LastName.IsNull)
             {
                 throw new InvalidOperationException("The teacher last name must be initialized.");
             }
@@ -366,23 +366,23 @@ public readonly struct TeacherBuilder
 
     public void FullName(TeacherBuilderModel.NameModel name, bool updateLookup = true)
     {
-        var newName = name.Name;
-        newName.Update(Model.Name.Name, (a, b) => new()
+        var newName = name.FirstName;
+        newName.Update(Model.Name.FirstName, (a, b) => new()
         {
             Full = a.Full ?? b.Full,
             Short = a.Short ?? b.Short,
         });
         TeacherNameHelper.MaybeValidateInitialsCompatibility(newName);
-        Model.Name.Name = newName;
+        Model.Name.FirstName = newName;
 
-        LastName(name.LastName!, updateLookup: updateLookup);
+        LastName(name.LastName, updateLookup: updateLookup);
     }
 
     public void ShortFirstName(NameParts<Word> initials)
     {
         Debug.Assert(initials.Any(x => x != Word.Empty));
 
-        var firstName = Model.Name.Name;
+        var firstName = Model.Name.FirstName;
         firstName.Update(initials, (f, i) => new()
         {
             Full = f.Full,
@@ -390,12 +390,12 @@ public readonly struct TeacherBuilder
         });
 
         TeacherNameHelper.MaybeValidateInitialsCompatibility(firstName);
-        Model.Name.Name = firstName;
+        Model.Name.FirstName = firstName;
     }
 
-    public void FirstName(NameParts<OptionalFirstNamePart> newName)
+    public void FirstName(NameParts<OptionalNamePart> newName)
     {
-        var firstName = Model.Name.Name;
+        var firstName = Model.Name.FirstName;
         firstName.Update(newName, (old, new_) =>
         {
             var full = new_.Full ?? old.Full;
@@ -414,10 +414,10 @@ public readonly struct TeacherBuilder
         });
 
         TeacherNameHelper.MaybeValidateInitialsCompatibility(firstName);
-        Model.Name.Name = firstName;
+        Model.Name.FirstName = firstName;
     }
 
-    public void LastName(string lastName, bool updateLookup = true)
+    public void LastName(LastName lastName, bool updateLookup = true)
     {
         lastName = Schedule.RemapTeacherName(lastName);
 
@@ -429,7 +429,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(prevLastName, lastName))
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(prevLastName, lastName))
         {
             return;
         }
@@ -439,7 +439,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (prevLastName != null)
+        if (prevLastName != default)
         {
             var people = lookup.TeachersByLastName.Get(prevLastName);
             Debug.Assert(people != null);
@@ -469,7 +469,7 @@ public static class TeacherNameHelper
         {
             throw new ArgumentException("The full name must contain a correct name syntax.", nameof(fullName));
         }
-        if (name.LastName is null)
+        if (name.LastName == default)
         {
             throw new ArgumentException("Last name must be provided.", nameof(fullName));
         }
@@ -486,6 +486,9 @@ public static class TeacherNameHelper
     /// F.-Name Last
     /// First-Name Last
     /// First-N. Last
+    /// First Last-Name
+    /// F.-N. Last-Name
+    /// etc.
     /// </summary>
     public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
     {
@@ -495,103 +498,57 @@ public static class TeacherNameHelper
             NameConstants.DoubleNameSeparatorChar];
 
         var ret = new TeacherBuilderModel.NameModel();
-        var bparser = parser.BufferedView();
+        var nameA = ReadName(ref parser);
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
-        var result = bparser.SkipUntilAny(Separators());
-        if (!result.SkippedAny)
+        if (nameA.All(x => x.IsNull))
         {
             return ret;
         }
-
-        if (result.EndOfInput)
+        // If only a single name has been given, it's the last name.
+        if (parser.IsEmpty)
         {
-            ret.LastName = parser.Source;
-            parser.MoveTo(bparser.Position);
+            ret.LastName = new(MakeSureWithoutShortName(nameA));
             return ret;
         }
 
-        var firstNamePartE = ret.Name.AsRef().GetEnumerator();
-        while (true)
+        ret.FirstName = nameA;
+
+        RequireSpaceAfterFirstName(ref parser);
+        if (parser.Current == ' ')
         {
-            if (!firstNamePartE.MoveNext())
-            {
-                throw new InvalidOperationException("Too many name parts.");
-            }
-
-            bool isShort = false;
-            if (bparser.Current == WordHelper.ShortenedWordCharacter)
-            {
-                bparser.Move();
-                isShort = true;
-            }
-
-            var nameSpan = parser.PeekSpanUntilPosition(bparser.Position);
-            var namePartString = nameSpan.ToString();
-
-            ref var currentOutput = ref firstNamePartE.Current;
-            if (isShort)
-            {
-                currentOutput.Short = namePartString;
-            }
-            else
-            {
-                currentOutput.Full = namePartString;
-            }
-
-            bparser.SkipWhitespace();
-
-            if (bparser.IsEmpty)
-            {
-                parser.MoveTo(bparser.Position);
-                break;
-            }
-
-            if (!bparser.ConsumeExactString(NameConstants.DoubleNameSeparator))
-            {
-                break;
-            }
-            bparser.Move();
-
-            RequireFirstNameAfterDash(ref bparser);
-            bparser.SkipWhitespace();
-            RequireFirstNameAfterDash(ref bparser);
-
-            parser.MoveTo(bparser.Position);
-
-            var skipResult = bparser.SkipUntilAny(Separators());
-            if (skipResult.EndOfInput)
-            {
-                break;
-            }
+            parser.Move();
         }
+        RequireSpaceAfterFirstName(ref parser);
 
-        RequireSpaceAfterFirstName(ref bparser);
-        if (bparser.Current == ' ')
-        {
-            bparser.Move();
-        }
-        RequireSpaceAfterFirstName(ref bparser);
-
-        if (bparser.Current == ' ')
+        if (parser.Current == ' ')
         {
             throw new ArgumentException("Only a single space in between first and last name allowed.");
         }
 
-        parser.MoveTo(bparser.Position);
-        bparser.SkipUntilAny(Separators());
-
+        var nameB = ReadName(ref parser);
+        if (nameB == default)
         {
-            var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);
-            var lastName = lastNameSpan.ToString();
-            ret.LastName = lastName;
+            throw new ArgumentException("The last name must be provided.");
         }
-
-        parser.MoveTo(bparser.Position);
+        ret.LastName = new(MakeSureWithoutShortName(nameB));
 
         return ret;
 
-        static void RequireFirstNameAfterDash(ref Parser parser)
+        static NameParts<string?> MakeSureWithoutShortName(NameParts<OptionalNamePart> x)
+        {
+            foreach (var a in x)
+            {
+                if (a.Short != null)
+                {
+                    throw new ArgumentException("Short names are not allowed in the last name.");
+                }
+            }
+
+            return x.Map(a => a.Full);
+        }
+
+        static void IncompleteDoubleName(ref Parser parser)
         {
             if (parser.IsEmpty)
             {
@@ -606,6 +563,72 @@ public static class TeacherNameHelper
                 throw new ArgumentException("The last name is required after the first name.");
             }
         }
+
+        static NameParts<OptionalNamePart> ReadName(ref Parser parser)
+        {
+            var bparser = parser.BufferedView();
+            var result = bparser.SkipUntilAny(Separators());
+            if (!result.SkippedAny)
+            {
+                return default;
+            }
+
+            var ret = new NameParts<OptionalNamePart>();
+            var retPartE = ret.AsRef().GetEnumerator();
+            while (true)
+            {
+                if (!retPartE.MoveNext())
+                {
+                    throw new InvalidOperationException("Too many name parts.");
+                }
+
+                bool isShort = false;
+                if (!bparser.IsEmpty && bparser.Current == WordHelper.ShortenedWordCharacter)
+                {
+                    bparser.Move();
+                    isShort = true;
+                }
+
+                var nameSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                var namePartString = nameSpan.ToString();
+
+                ref var currentOutput = ref retPartE.Current;
+                if (isShort)
+                {
+                    currentOutput.Short = namePartString;
+                }
+                else
+                {
+                    currentOutput.Full = namePartString;
+                }
+
+                bparser.SkipWhitespace();
+
+                if (bparser.IsEmpty)
+                {
+                    break;
+                }
+
+                if (!bparser.ConsumeExactString(NameConstants.DoubleNameSeparator))
+                {
+                    break;
+                }
+
+                IncompleteDoubleName(ref bparser);
+                bparser.SkipWhitespace();
+                IncompleteDoubleName(ref bparser);
+
+                parser.MoveTo(bparser.Position);
+
+                var skipResult = bparser.SkipUntilAny(Separators());
+                if (!skipResult.SkippedAny)
+                {
+                    return ret;
+                }
+            }
+            parser.MoveTo(bparser.Position);
+            return ret;
+        }
     }
 
     public struct RequiredFirstNamePart
@@ -614,7 +637,7 @@ public static class TeacherNameHelper
         public required Word Short;
     }
 
-    public static void MaybeValidateInitialsCompatibility(NameParts<OptionalFirstNamePart> name)
+    public static void MaybeValidateInitialsCompatibility(NameParts<OptionalNamePart> name)
     {
         foreach (var x in name)
         {

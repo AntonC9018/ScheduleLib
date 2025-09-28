@@ -325,19 +325,19 @@ public static class CommissionParser
     {
         var ret = new Name();
 
-        ret.LastName.A = ParseNamePart(ref parser, "No last name");
+        ret.LastName[0] = ParseNamePart(ref parser, "No last name");
 
         LastNameCheck(ref parser);
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            ret.LastName.B = ParseNamePart(ref parser, "Last name incomplete");
+            ret.LastName[1] = ParseNamePart(ref parser, "Last name incomplete");
         }
 
         parser.SkipWhitespace();
         IgnoreParenthesizedText(ref parser);
         FirstNameCheck(ref parser);
 
-        ret.FirstName.A = ParseNamePart(ref parser, "No first name");
+        ret.FirstName[0] = ParseNamePart(ref parser, "No first name");
 
         parser.SkipWhitespace();
         if (parser.IsEmpty)
@@ -346,7 +346,7 @@ public static class CommissionParser
         }
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            ret.FirstName.B = ParseNamePart(ref parser, "First name incomplete");
+            ret.FirstName[1] = ParseNamePart(ref parser, "First name incomplete");
         }
 
         parser.SkipWhitespace();
@@ -357,7 +357,7 @@ public static class CommissionParser
             return ret;
         }
 
-        ret.Patronymic.A = ParseNamePart(ref parser, "No patronymic");
+        ret.Patronymic[0] = ParseNamePart(ref parser, "No patronymic");
         if (parser.IsEmpty)
         {
             return ret;
@@ -365,7 +365,7 @@ public static class CommissionParser
 
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
-            ret.Patronymic.B = ParseNamePart(ref parser, "Patronymic incomplete");
+            ret.Patronymic[1] = ParseNamePart(ref parser, "Patronymic incomplete");
         }
 
         return ret;

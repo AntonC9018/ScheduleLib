@@ -48,11 +48,11 @@ internal static class VerifyInit
         }
     }
 
-    private sealed class TeacherNameConverter : JsonConverter<OptionalFirstNamePart>
+    private sealed class TeacherNameConverter : JsonConverter<OptionalNamePart>
     {
         public override void WriteJson(
             JsonWriter writer,
-            OptionalFirstNamePart value,
+            OptionalNamePart value,
             JsonSerializer serializer)
         {
             writer.WriteStartObject();
@@ -63,10 +63,10 @@ internal static class VerifyInit
             writer.WriteEndObject();
         }
 
-        public override OptionalFirstNamePart ReadJson(
+        public override OptionalNamePart ReadJson(
             JsonReader reader,
             Type type,
-            OptionalFirstNamePart existingValue,
+            OptionalNamePart existingValue,
             bool hasExisting,
             JsonSerializer serializer)
         {
