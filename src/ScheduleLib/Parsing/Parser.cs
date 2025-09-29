@@ -3,16 +3,17 @@ using ScheduleLib.Generation;
 
 namespace ScheduleLib.Parsing;
 
-public struct Parser
+public record struct Parser
 {
-    private readonly string _input;
+    private readonly ReadOnlyMemory<char> _input;
     private int _index;
 
-    public Parser(string input) => _input = input;
+    public Parser(string input) => _input = input.AsMemory();
 
-    public readonly string Source => _input;
+    public readonly ReadOnlyMemory<char> Source => _input;
+    public readonly ReadOnlySpan<char> WholeSpan => _input.Span;
     public readonly bool IsEmpty => _index >= _input.Length;
-    public readonly char PeekAt(int offset) => _input[_index + offset];
+    public readonly char PeekAt(int offset) => WholeSpan[_index + offset];
     public readonly bool CanPeekAt(int offset) => _index + offset < _input.Length;
     public readonly bool CanPeekCount(int size) => CanPeekAt(size - 1);
     public readonly int GetPeekCount(int desiredSize)
@@ -21,22 +22,22 @@ public struct Parser
         return Math.Min(remaining, desiredSize);
     }
     private readonly int AvailableCount => _input.Length - _index;
-    public readonly ReadOnlySpan<char> PeekSpan(int size) => _input.AsSpan(_index, size);
+    public readonly ReadOnlySpan<char> PeekSpan(int size) => WholeSpan[_index .. size];
     public readonly ReadOnlySpan<char> PeekSpanMaxSize(int size)
     {
         int s = Math.Min(AvailableCount, size);
-        return _input.AsSpan(_index, s);
+        return WholeSpan[_index .. s];
     }
 
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(ParserPosition positionExclusive)
     {
         int start = _index;
         int end = positionExclusive.Index;
-        return _input.AsSpan()[start .. end];
+        return WholeSpan[start .. end];
     }
 
-    public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => _input.AsSpan()[_index ..];
-    public readonly char Current => _input[_index];
+    public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => WholeSpan[_index ..];
+    public readonly char Current => WholeSpan[_index];
     public void Move(int x = 1) => _index += x;
     public void MoveTo(ParserPosition position)
     {
@@ -57,7 +58,7 @@ public struct Parser
     // Currently just return a copy, because we only have a string impl and
     // I don't want it to get more abstract at this point.
     public readonly Parser BufferedView() => this;
-    public readonly override string ToString() => _input[_index ..];
+    public readonly override string ToString() => WholeSpan[_index ..].ToString();
 }
 
 public record struct ParserPosition(int Index);
@@ -212,7 +213,7 @@ public static class ParserHelper
         }
     }
 
-    private static bool All<T>(this ReadOnlySpan<T> s, Func<T, bool> action)
+    public static bool All<T>(ReadOnlySpan<T> s, Func<T, bool> action)
     {
         foreach (var item in s)
         {
@@ -376,19 +377,19 @@ public static class ParserHelper
 
     public static ReadOnlyMemory<char> SourceUntilEnd(this Parser p)
     {
-        var ret = p.Source.AsMemory(p.Position.Index);
+        var ret = p.Source[p.Position.Index ..];
         return ret;
     }
 
     public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, ParserPosition end)
     {
         var start = a.Position;
-        return a.Source.AsMemory(start.Index .. end.Index);
+        return a.Source[start.Index .. end.Index];
     }
 
     public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
     {
-        Debug.Assert(ReferenceEquals(a.Source, b.Source));
+        Debug.Assert(a.Source.Equals(b.Source));
 
         var end = b.Position;
         return a.SourceUntilExclusive(end);
@@ -398,8 +399,23 @@ public static class ParserHelper
     {
         Debug.Assert(a.CanPeekCount(count));
         var end = a.Position.Index + count;
-        var ret = a.Source.AsMemory(a.Position.Index .. end);
+        var ret = a.Source[a.Position.Index .. end];
         return ret;
+    }
+
+    public static bool ConsumeExactChar(
+        ref this Parser parser,
+        char expectedChar)
+    {
+        if (parser.IsEmpty)
+        {
+            return false;
+        }
+        if (parser.Current == expectedChar)
+        {
+            return true;
+        }
+        return false;
     }
 
     public static bool ConsumeExactString(
