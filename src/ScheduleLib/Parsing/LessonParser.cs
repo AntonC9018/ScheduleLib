@@ -69,16 +69,6 @@ public record struct Token
         return $"{Type} - {Value.Span}";
     }
 
-    public readonly bool IsType(char ch)
-    {
-        Debug.Assert((int) Type < (1 << sizeof(char)));
-        if ((char) Type == ch)
-        {
-            return true;
-        }
-        return false;
-    }
-
     public readonly bool Is(char ch)
     {
         if (Value.Length == 1)
@@ -93,27 +83,27 @@ public readonly record struct LexerPosition(int Value)
 {
 }
 
-public ref struct LexerScope
+public struct LexerScope
 {
     internal LexerPosition _position;
-    internal ref LessonLexer _lexer;
+    internal LessonLexer _lexer;
 
     public readonly LexerPosition Position => _position;
-    private int PositionIndex
+    internal int PositionIndex
     {
         readonly get => _position.Value;
         set => _position = new(value);
     }
 
-    public LexerScope(ref LessonLexer lexer, LexerPosition position = default)
+    public LexerScope(LessonLexer lexer, LexerPosition position = default)
     {
-        _lexer = ref lexer;
+        _lexer = lexer;
         PositionIndex = position.Value;
     }
 
     public void MoveTo(LexerPosition position)
     {
-        int offset = position.Value - 1;
+        int offset = position.Value;
         Debug.Assert(offset >= 0);
         Debug.Assert(_lexer.CanPeek(offset + 1));
         Debug.Assert(PositionIndex <= offset);
@@ -126,13 +116,7 @@ public ref struct LexerScope
         PositionIndex += amount;
     }
 
-    public bool IsEmpty
-    {
-        get
-        {
-            return !CanPeek(1);
-        }
-    }
+    public bool IsEmpty => !CanPeek(1);
 
     public Token Current => Peek(1);
 
@@ -159,7 +143,7 @@ public ref struct LexerScope
         return true;
     }
 
-    public bool Consume(LessonTokenType type)
+    public bool TryConsume(LessonTokenType type)
     {
         if (Current.Type == type)
         {
@@ -169,7 +153,7 @@ public ref struct LexerScope
         return false;
     }
 
-    public bool Consume(char ch)
+    public bool TryConsume(char ch)
     {
         if (Current.Is(ch))
         {
@@ -192,11 +176,11 @@ public ref struct LexerScope
 
     public readonly override string ToString()
     {
-        return new LimitedLexerScope(this, Position).ToString();
+        return _lexer.ToStringImpl(start: _position);
     }
 }
 
-public struct LessonLexer
+public sealed class LessonLexer
 {
     private readonly IEnumerator<string> _lines;
     // Just removing from start, since not much is queued usually
@@ -215,10 +199,35 @@ public struct LessonLexer
         _rowIndex = 0;
     }
 
+    internal string ToStringImpl(
+        LexerPosition start = default,
+        LexerPosition end = default)
+    {
+        if (start == default)
+        {
+            start = new(0);
+        }
+        if (end == default)
+        {
+            end = new(_queue.Count);
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("[");
+        var list = new ListStringBuilder(sb, ", ");
+        var span = CollectionsMarshal.AsSpan(_queue);
+        var spanSlice = span[start.Value .. end.Value];
+        foreach (var t in spanSlice)
+        {
+            list.Append($"{t}");
+        }
+        sb.Append("]");
+        return sb.ToString();
+    }
+
     public override string ToString()
     {
-        var scope = new LexerScope(ref this);
-        return scope.ToString();
+        return ToStringImpl();
     }
 
     private TokenSpan SpanUntil(ParserPosition end)
@@ -463,9 +472,14 @@ public struct LessonLexer
 
 internal static class LessonLexerHelper
 {
-    public static LexerScope Scope(this ref LessonLexer lexer)
+    public static LexerScope Scope(this LessonLexer lexer)
     {
-        return new LexerScope(ref lexer);
+        return new LexerScope(lexer);
+    }
+
+    public static LimitedLexerScope Until(this LexerScope lexer, LexerPosition end)
+    {
+        return new LimitedLexerScope(lexer, end);
     }
 
     public static bool IsAnyWord(this in Token token)
@@ -495,6 +509,7 @@ internal static class LessonLexerHelper
         {
             return false;
         }
+        lexer.Move();
         return true;
     }
 
@@ -520,7 +535,7 @@ internal static class LessonLexerHelper
         {
             foreach (var t in types)
             {
-                if (lexer.Consume(t))
+                if (lexer.TryConsume(t))
                 {
                     return true;
                 }
@@ -533,35 +548,31 @@ internal static class LessonLexerHelper
 
 internal ref struct ListEnumerable
 {
-    private LexerScope _lexer;
-    private ref LexerPosition _end;
+    private ref LexerScope _lexer;
 
     public ListEnumerable(ref LexerScope lexer)
     {
-        _lexer = lexer;
-        _end = ref lexer._position;
+        _lexer = ref lexer;
     }
 
     public ListEnumerator GetEnumerator()
     {
-        return new(_lexer, ref _end);
+        return new(ref _lexer);
     }
 }
 
 internal ref struct ListEnumerator
 {
-    private LexerScope _lexer;
+    private ref LexerScope _lexer;
     private LexerPosition _end;
     private bool _isLast;
-    private ref LexerPosition _endOutput;
 
-    public ListEnumerator(LexerScope lexer, ref LexerPosition end)
+    public ListEnumerator(ref LexerScope lexer)
     {
-        _lexer = lexer;
+        _lexer = ref lexer;
 
         // Undo the first move
         _end = new(lexer.Position.Value - 1);
-        _endOutput = ref end;
     }
 
     public bool MoveNext()
@@ -569,7 +580,6 @@ internal ref struct ListEnumerator
         _lexer._position = new(_end.Value + 1);
         if (_isLast)
         {
-            _endOutput = _lexer._position;
             return false;
         }
 
@@ -614,21 +624,6 @@ internal ref struct LimitedLexerScope
         _endPosition = endPosition;
     }
 
-    public readonly override string ToString()
-    {
-        var sb = new StringBuilder();
-        sb.Append("[");
-        var list = new ListStringBuilder(sb, ", ");
-        var span = CollectionsMarshal.AsSpan(_lexer._lexer._queue);
-        var spanSlice = span[_lexer.Position.Value .. _endPosition.Value];
-        foreach (var t in spanSlice)
-        {
-            list.Append($"{t}");
-        }
-        sb.Append("]");
-        return sb.ToString();
-    }
-
     public readonly Token Current => _lexer.Current;
     public readonly bool IsEmpty => !CanPeek(1);
 
@@ -649,9 +644,14 @@ internal ref struct LimitedLexerScope
         return _lexer.Peek(offset);
     }
 
-    public void Move(int amount = 1)
+    public void Move(int amount = 1) => _lexer.Move(amount);
+    public void TryConsume(LessonTokenType type) => _lexer.TryConsume(type);
+
+    public readonly override string ToString()
     {
-        _lexer.Move(amount);
+        return _lexer._lexer.ToStringImpl(
+            _lexer._position,
+            _endPosition);
     }
 }
 
@@ -673,6 +673,12 @@ public static class LessonParsingHelper
                 continue;
             }
 
+            if (lexer.Peek().Type == LessonTokenType.EndOfStream)
+            {
+                lexer.Move();
+                break;
+            }
+
             if (state.Step == ParsingStep.Output)
             {
                 state.Reset();
@@ -680,20 +686,21 @@ public static class LessonParsingHelper
 
             var stepBefore = state.Step;
 
+            var lexerScope = lexer.Scope();
             var context = new ParsingContext
             {
                 Params = ref p,
-                Lexer = lexer.Scope(),
+                Lexer = ref lexerScope,
                 State = ref state,
             };
             DoParsingIter(ref context);
 
             if (stepBefore == state.Step
-                && context.Lexer.Position == default)
+                && lexerScope.Position == default)
             {
                 throw new InvalidOperationException("Infinite loop in the parser");
             }
-            context.Lexer.Apply();
+            lexerScope.Apply();
 
             if (state.Step != ParsingStep.Output)
             {
@@ -864,7 +871,7 @@ public static class LessonParsingHelper
             }
             case ParsingStep.OptionalStarBeforeLessonName:
             {
-                if (c.Lexer.Consume('*'))
+                if (c.Lexer.TryConsume('*'))
                 {
                     c.State.CommonLesson.HasStar = true;
                 }
@@ -875,7 +882,7 @@ public static class LessonParsingHelper
             {
                 var endPosition = FindPositionOfLastModifierGroup(c.Lexer);
                 var name = CleanName(
-                    new LimitedLexerScope(c.Lexer, endPosition),
+                    c.Lexer.Until(endPosition),
                     c.Params.StringBuilder);
                 if (name.Length == 0)
                 {
@@ -905,6 +912,7 @@ public static class LessonParsingHelper
                     {
                         WrongFormatException.EmptyListItem();
                     }
+                    lexer.TryConsume(LessonTokenType.Whitespace);
 
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
@@ -926,7 +934,7 @@ public static class LessonParsingHelper
 
                 static bool EarlyExitNextStep(ref ParsingContext c)
                 {
-                    if (c.Lexer.Consume('('))
+                    if (c.Lexer.TryConsume('('))
                     {
                         return false;
                     }
@@ -938,7 +946,7 @@ public static class LessonParsingHelper
                         c.State.Step = ParsingStep.OptionalRoomName;
                         return true;
                     }
-                    if (c.Lexer.Consume(','))
+                    if (c.Lexer.TryConsume(','))
                     {
                         c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         return true;
@@ -977,7 +985,7 @@ public static class LessonParsingHelper
                         };
                     }
 
-                    var subGroup = new SubGroup(t.Span.ToString());
+                    var subGroup = new SubGroup(t.Value.Span.ToString());
                     return new()
                     {
                         SubGroup = subGroup,
@@ -1042,7 +1050,7 @@ public static class LessonParsingHelper
                 if (c.State.Step == ParsingStep.OptionalSubGroup)
                 {
                     // Lesson names might be delimited by a comma.
-                    if (c.Lexer.Consume(','))
+                    if (c.Lexer.TryConsume(','))
                     {
                         c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         break;
@@ -1052,7 +1060,7 @@ public static class LessonParsingHelper
                 {
                     // Just ignore the comma if we're here again.
                     // This handles the case where there are multiple subgroups.
-                    if (c.Lexer.Consume(','))
+                    if (c.Lexer.TryConsume(','))
                     {
                         // Skip whitespace
                         break;
@@ -1060,34 +1068,34 @@ public static class LessonParsingHelper
                 }
 
                 var t = c.Lexer.Current;
+                var lexer = c.Lexer;
                 if (t.Type != LessonTokenType.Word
                     || char.IsNumber(t.Value.Span[0])
-                    || !VerifyColon(c.Lexer))
+                    || !VerifyColon(ref lexer))
                 {
                     SetNoSubgroup(ref c);
                     break;
                 }
 
-                c.Lexer.Move(2);
-
                 var subgroup = new SubGroup(t.Value.Span.ToString());
                 c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(subgroup);
 
+                c.Lexer.MoveTo(lexer.Position);
                 c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                 break;
 
-                static bool VerifyColon(LexerScope lexer)
+                static bool VerifyColon(ref LexerScope lexer)
                 {
                     lexer.Move();
                     if (lexer.IsEmpty)
                     {
                         return false;
                     }
-                    if (!lexer.Consume(':'))
+                    if (!lexer.TryConsume(':'))
                     {
                         return false;
                     }
-                    if (lexer.Current.Type != LessonTokenType.Whitespace)
+                    if (!lexer.TryConsume(LessonTokenType.Whitespace))
                     {
                         return false;
                     }
@@ -1112,13 +1120,13 @@ public static class LessonParsingHelper
             {
                 if (TryParseAndSetRoomName(ref c))
                 {
-                    c.Lexer.Consume(LessonTokenType.Whitespace);
+                    c.Lexer.TryConsume(LessonTokenType.Whitespace);
                     if (c.Lexer.IsEmpty)
                     {
                         AdvanceStepAfterRoom(ref c);
                         break;
                     }
-                    if (c.Lexer.Consume(','))
+                    if (c.Lexer.TryConsume(','))
                     {
                         // Continue the list.
                         c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
@@ -1133,30 +1141,31 @@ public static class LessonParsingHelper
                 bool success = Teacher(ref c, ref lexer);
                 if (success)
                 {
-                    c.Lexer = lexer;
+                    c.State.Step = NextStep(ref lexer);
+                    c.Lexer.MoveTo(lexer.Position);
 
-                    if (lexer.IsEmpty)
+                    static ParsingStep NextStep(ref LexerScope lexer)
                     {
-                        return;
+                        if (lexer.TryConsume(LessonTokenType.EndOfLine))
+                        {
+                            return ParsingStep.OptionalRoomName;
+                        }
+                        ParsingStep? ret = null;
+                        if (lexer.TryConsume(LessonTokenType.Whitespace))
+                        {
+                            ret = ParsingStep.OptionalParensBeforeRoom;
+                        }
+                        if (lexer.TryConsume(','))
+                        {
+                            ret = ParsingStep.RequiredTeacherNameOrRoomName;
+                        }
+                        if (ret is not { } step)
+                        {
+                            WrongFormatException.InvalidToken();
+                            return default;
+                        }
+                        return step;
                     }
-                    var t = lexer.Current;
-
-                    if (t.Type == LessonTokenType.EndOfLine)
-                    {
-                        c.State.Step = ParsingStep.OptionalRoomName;
-                        return;
-                    }
-                    if (t.Type == LessonTokenType.Whitespace)
-                    {
-                        c.State.Step = ParsingStep.OptionalParensBeforeRoom;
-                        return;
-                    }
-                    if (t.Is(','))
-                    {
-                        c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
-                        return;
-                    }
-                    WrongFormatException.InvalidToken();
                 }
                 else
                 {
@@ -1180,6 +1189,15 @@ public static class LessonParsingHelper
 
                     ValidateNotShort(result.LastName);
                     ValidateIfOneIsShortAllAreShort(result.FirstName);
+
+                    {
+                        var copy = lexer;
+                        copy.TryConsume(LessonTokenType.Whitespace);
+                        if (copy.TryConsume(':'))
+                        {
+                            return false;
+                        }
+                    }
 
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
                     teacher = result;
@@ -1215,9 +1233,10 @@ public static class LessonParsingHelper
                     res.LastName = name1;
                     var copy = lexer;
 
-                    copy.ConsumeMultiple([
-                        LessonTokenType.Whitespace,
-                        LessonTokenType.EndOfLine]);
+                    if (WhitespaceHandling_IsDone(ref copy))
+                    {
+                        return true;
+                    }
 
                     var name2 = Name(ref copy);
                     if (name2 == default)
@@ -1225,10 +1244,30 @@ public static class LessonParsingHelper
                         return true;
                     }
 
-                    lexer = copy;
+                    lexer.MoveTo(copy.Position);
                     res.FirstName = name1;
                     res.LastName = name2;
                     return true;
+
+                    static bool WhitespaceHandling_IsDone(ref LexerScope lexer)
+                    {
+                        if (lexer.IsEmpty)
+                        {
+                            return true;
+                        }
+                        var t = lexer.Current;
+                        if (t.Type != LessonTokenType.Whitespace)
+                        {
+                            return false;
+                        }
+
+                        if (t.Value.Length > 1)
+                        {
+                            return true;
+                        }
+                        lexer.Move();
+                        return false;
+                    }
                 }
             }
             case ParsingStep.OptionalRoomName:
@@ -1262,23 +1301,27 @@ public static class LessonParsingHelper
                         continue;
                     }
                     // The only allowed separators
-                    if (t.Is(',') || t.Is('-'))
+                    if (t.Is(',') || t.Is(')'))
                     {
                         sb.Append(t.Value.Span);
-                        // No space after commas
+                        continue;
+                    }
+                    if (t.Is('('))
+                    {
+                        listBuilder.Append(t.Value.Span);
                         listBuilder = new(sb, " ");
                         continue;
                     }
-                    if (t.Is('(') || t.Is(')'))
+                    if (t.Is('-'))
                     {
-                        listBuilder.Append(t.Value.Span);
+                        sb.Append(t.Value.Span);
+                        listBuilder = new(sb, " ");
                         continue;
                     }
                     if (t.Type == LessonTokenType.Whitespace)
                     {
                         continue;
                     }
-
                     WrongFormatException.InvalidToken();
                 }
             }
@@ -1308,7 +1351,23 @@ public static class LessonParsingHelper
                 {
                     break;
                 }
-                if (t.Is('('))
+                if (t.Type == LessonTokenType.Word
+                    && t.Value.Length >= 2
+                    && !isInsideParen)
+                {
+                    if (ParserHelper.All(t.Value.Span[.. 2], char.IsNumber))
+                    {
+                        break;
+                    }
+                }
+                else if (t.Is(',') && !isInsideParen)
+                {
+                    if (lexer.CanPeek(2) && lexer.Peek(2).Type == LessonTokenType.Whitespace)
+                    {
+                        break;
+                    }
+                }
+                else if (t.Is('('))
                 {
                     endPosition = lexer.Position;
                     if (isInsideParen)
@@ -1317,7 +1376,7 @@ public static class LessonParsingHelper
                     }
                     isInsideParen = true;
                 }
-                if (t.Is(')'))
+                else if (t.Is(')'))
                 {
                     isInsideParen = false;
                 }
@@ -1363,7 +1422,7 @@ public static class LessonParsingHelper
                 return ret;
             }
 
-            if (!lexer.Current.Is(NameConstants.DoubleNameSeparatorChar))
+            if (!lexer.TryConsume(NameConstants.DoubleNameSeparatorChar))
             {
                 return ret;
             }
@@ -1400,9 +1459,9 @@ public static class LessonParsingHelper
             }
 
             var roomName = CleanName(
-                new LimitedLexerScope(c.Lexer, lexer.Position),
+                c.Lexer.Until(lexer.Position),
                 c.Params.StringBuilder);
-            c.Lexer = lexer;
+            c.Lexer.MoveTo(lexer.Position);
 
             ref var roomNameMem = ref c.State.LastModifiers.Specific.RoomName;
             if (!roomNameMem.IsEmpty)
@@ -1416,26 +1475,28 @@ public static class LessonParsingHelper
 
     static TimeOnly? ParseTime(ref LexerScope lexer)
     {
-        if (lexer.IsEmpty)
+        var copy = lexer;
+        if (copy.IsEmpty)
         {
             return null;
         }
-        if (TimePart(ref lexer) is not { } hours)
+        if (TimePart(ref copy) is not { } hours)
         {
             return null;
         }
-        if (lexer.IsEmpty)
+        if (copy.IsEmpty)
         {
             return null;
         }
-        if (!lexer.Consume(':'))
+        if (!copy.TryConsume(':'))
         {
             return null;
         }
-        if (TimePart(ref lexer) is not { } mins)
+        if (TimePart(ref copy) is not { } mins)
         {
             return null;
         }
+        lexer.MoveTo(copy.Position);
         return new TimeOnly(
             hour: (int) hours,
             minute: (int) mins);
@@ -1443,8 +1504,6 @@ public static class LessonParsingHelper
         static uint? TimePart(ref LexerScope lexer)
         {
             var t = lexer.Current;
-            lexer.Move();
-
             if (t.Type != LessonTokenType.Word)
             {
                 return null;
@@ -1456,6 +1515,7 @@ public static class LessonParsingHelper
             }
             if (uint.TryParse(span, NumberStyles.None, provider: null, out uint result))
             {
+                lexer.Move();
                 return result;
             }
             return null;
@@ -1489,81 +1549,6 @@ public static class LessonParsingHelper
             return true;
         }
         return false;
-    }
-
-    private struct SkipTeacher : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
-        {
-            // if (IsTeacherSeparator(ch))
-            // {
-            //     return false;
-            // }
-            if (IsTeacherNameChar(ch))
-            {
-                return true;
-            }
-            return false;
-        }
-    }
-
-    private static ReadOnlyMemory<char> CleanCourseName(ReadOnlyMemory<char> input)
-    {
-        input = input.TrimEnd();
-
-        int newLength = NewLength();
-        var ret = string.Create(newLength, input, static (output, input) =>
-        {
-            int writePos = 0;
-            foreach (var ch in input.Span.WordsSeparatedWithSpaces())
-            {
-                output[writePos] = ch;
-                writePos++;
-            }
-
-            Debug.Assert(writePos == output.Length);
-        });
-        return ret.AsMemory();
-
-        int NewLength()
-        {
-            int count = 0;
-            foreach (var ch in input.Span.WordsSeparatedWithSpaces())
-            {
-                // For each dot in the middle, we need to add a space
-                _ = ch;
-                count++;
-            }
-            return count;
-        }
-    }
-
-    private static ReadOnlyMemory<char> CleanTeacherName(ReadOnlyMemory<char> input)
-    {
-        input = input.TrimEnd();
-
-        var spaceCount = input.Span.Count(' ');
-        if (spaceCount == 0)
-        {
-            return input;
-        }
-        var ret = string.Create(input.Length - spaceCount, input, static (output, input) =>
-        {
-            var inputSpan = input.Span;
-
-            int writePos = 0;
-            for (int readPos = 0; readPos < input.Length; readPos++)
-            {
-                if (inputSpan[readPos] != ' ')
-                {
-                    output[writePos] = inputSpan[readPos];
-                    writePos++;
-                }
-            }
-
-            Debug.Assert(writePos == output.Length);
-        });
-        return ret.AsMemory();
     }
 }
 
@@ -1683,12 +1668,28 @@ public sealed class RoomParser
         }
         else
         {
-            var t = lexer.Current;
-            if (t.Type != LessonTokenType.Word)
             {
-                return false;
+                var t = lexer.Current;
+                if (t.Type != LessonTokenType.Word)
+                {
+                    return false;
+                }
+                lexer.Move();
             }
-            return true;
+            {
+                if (lexer.IsEmpty)
+                {
+                    return true;
+                }
+                var t = lexer.Current;
+                if (t.Is(',')
+                    || t.Type == LessonTokenType.Whitespace
+                    || t.Type == LessonTokenType.EndOfLine)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -1714,13 +1715,13 @@ public sealed class RoomParser
         {
             return MediacorParseProgress.AfterConfirmFail;
         }
-        lexer.Consume(LessonTokenType.Whitespace);
-        if (!lexer.Consume(','))
+        lexer.TryConsume(LessonTokenType.Whitespace);
+        if (!lexer.TryConsume(','))
         {
             return MediacorParseProgress.AfterConfirmFail;
         }
-        lexer.Consume(LessonTokenType.Whitespace);
-        if (lexer.ConsumeExactWord("etajul"))
+        lexer.TryConsume(LessonTokenType.Whitespace);
+        if (!lexer.ConsumeExactWord("etajul"))
         {
             return MediacorParseProgress.AfterConfirmFail;
         }
@@ -1729,6 +1730,7 @@ public sealed class RoomParser
         {
             return MediacorParseProgress.AfterConfirmFail;
         }
+        lexer.TryConsume(LessonTokenType.Whitespace);
 
         {
             var t = lexer.Current;
@@ -1742,6 +1744,8 @@ public sealed class RoomParser
             {
                 return MediacorParseProgress.AfterConfirmFail;
             }
+
+            lexer.Move();
         }
         return MediacorParseProgress.Ok;
     }
@@ -2113,5 +2117,7 @@ internal ref struct ParsingContext
 {
     public required ref readonly ParseLessonsParams Params;
     public required ref ParsingState State;
-    public required LexerScope Lexer;
+    public required ref LexerScope Lexer;
+
+    internal readonly LexerScope LexerCopy => Lexer;
 }

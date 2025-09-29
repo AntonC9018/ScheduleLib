@@ -550,17 +550,13 @@ public sealed class LessonParserTests
     [Fact]
     public void NoMultipleRoomName()
     {
-        var lessons = ParseLessons([
-            "Lesson",
-            "Teacher, 123Room, 124Room",
-        ]);
-
         Assert.Throws<RoomAlreadySpecifiedException>(() =>
         {
-            foreach (var x in lessons)
-            {
-                _ = x;
-            }
+            var lessons = ParseLessons([
+                "Lesson",
+                "Teacher, 123Room, 124Room",
+            ]);
+            _ = lessons;
         });
     }
 
@@ -578,7 +574,6 @@ public sealed class LessonParserTests
     [Fact]
     public void TeacherNameCommaRoomNameSupported_EvenWithTerribleFormatting()
     {
-
         // Managementul proiectelor (sem)
         // Iu.Drăgălina ,  213a/4
         var lessons = ParseLessons([
@@ -604,12 +599,12 @@ public sealed class LessonParserTests
     }
 
     [Fact]
-public void TimeAfterNoRoom_NoRoomSpecifiedForLesson()
-{
-    var lessons = ParseLessons([
-        "Lesson One",
-        "15:00 Lesson Two 123Room",
-    ]);
+    public void TimeAfterNoRoom_NoRoomSpecifiedForLesson()
+    {
+        var lessons = ParseLessons([
+            "Lesson One",
+            "15:00 Lesson Two 123Room",
+        ]);
 
         Assert.Collection(lessons,
             lesson1 =>
