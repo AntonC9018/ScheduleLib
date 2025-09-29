@@ -58,11 +58,16 @@ public struct TokenSpan
     public required ParserPosition ColEnd;
 }
 
-public struct Token
+public record struct Token
 {
     public required LessonTokenType Type;
     public required ReadOnlyMemory<char> Value;
     public required TokenSpan Span;
+
+    public override string ToString()
+    {
+        return $"{Type} - {Value.Span}";
+    }
 
     public readonly bool IsType(char ch)
     {
@@ -87,13 +92,14 @@ public struct Token
 public readonly record struct LexerPosition(int Value)
 {
 }
+
 public ref struct LexerScope
 {
     internal LexerPosition _position;
-    private ref LessonLexer _lexer;
+    internal ref LessonLexer _lexer;
 
     public readonly LexerPosition Position => _position;
-    private int _positionIndex
+    private int PositionIndex
     {
         readonly get => _position.Value;
         set => _position = new(value);
@@ -102,48 +108,55 @@ public ref struct LexerScope
     public LexerScope(ref LessonLexer lexer, LexerPosition position = default)
     {
         _lexer = ref lexer;
-        _positionIndex = position.Value;
+        PositionIndex = position.Value;
+    }
+
+    public void MoveTo(LexerPosition position)
+    {
+        int offset = position.Value - 1;
+        Debug.Assert(offset >= 0);
+        Debug.Assert(_lexer.CanPeek(offset + 1));
+        Debug.Assert(PositionIndex <= offset);
+        PositionIndex = offset;
     }
 
     public void Move(int amount = 1)
     {
-        Debug.Assert(_lexer.CanPeek(amount));
-        _positionIndex += amount;
+        Debug.Assert(CanPeek(amount));
+        PositionIndex += amount;
     }
 
     public bool IsEmpty
     {
         get
         {
-            if (!_lexer.CanPeek(_positionIndex))
-            {
-                return false;
-            }
-            var current = _lexer.Peek(_positionIndex);
-            if (current.Type == LessonTokenType.EndOfStream)
-            {
-                return false;
-            }
-            return true;
+            return !CanPeek(1);
         }
     }
 
-    public Token Current => _lexer.Peek(_positionIndex);
+    public Token Current => Peek(1);
 
     public readonly Token Peek(int offset)
     {
-        int i = _positionIndex - 1 + offset;
+        int i = PositionIndex + offset;
         return _lexer.Peek(i);
     }
 
     public readonly bool CanPeek(int offset)
     {
-        int i = _positionIndex - 1 + offset;
+        int i = PositionIndex + offset;
         if (!_lexer.CanPeek(i))
         {
-            return true;
+            return false;
         }
-        return false;
+
+        var current = _lexer.Peek(i);
+        if (current.Type == LessonTokenType.EndOfStream)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public bool Consume(LessonTokenType type)
@@ -171,16 +184,27 @@ public ref struct LexerScope
     /// </summary>
     public void Apply()
     {
-        _lexer.Move(_positionIndex);
+        if (PositionIndex > 0)
+        {
+            _lexer.Move(PositionIndex);
+        }
+    }
+
+    public readonly override string ToString()
+    {
+        return new LimitedLexerScope(this, Position).ToString();
     }
 }
 
 public struct LessonLexer
 {
     private readonly IEnumerator<string> _lines;
-    private readonly List<Token> _queue;
+    // Just removing from start, since not much is queued usually
+    // It's better to use a ring queue
+    internal readonly List<Token> _queue;
     private Parser _parser;
     private bool _hasOutputEndOfLine = true;
+    private bool _hasOutputEndOfStream = false;
     private int _rowIndex;
 
     public LessonLexer(IEnumerator<string> lines)
@@ -189,6 +213,12 @@ public struct LessonLexer
         _queue = new();
         _parser = new("");
         _rowIndex = 0;
+    }
+
+    public override string ToString()
+    {
+        var scope = new LexerScope(ref this);
+        return scope.ToString();
     }
 
     private TokenSpan SpanUntil(ParserPosition end)
@@ -230,6 +260,7 @@ public struct LessonLexer
             AddEndOfStream();
             return false;
         }
+        _rowIndex += 1;
         _parser = new(_lines.Current);
         _hasOutputEndOfLine = false;
         return true;
@@ -239,7 +270,7 @@ public struct LessonLexer
     {
         while (true)
         {
-            if (_queue.Count < count)
+            if (_queue.Count >= count)
             {
                 return true;
             }
@@ -333,11 +364,7 @@ public struct LessonLexer
 
         public static bool IsRegular(char ch)
         {
-            if (char.IsNumber(ch))
-            {
-                return true;
-            }
-            if (char.IsAscii(ch))
+            if (char.IsLetterOrDigit(ch))
             {
                 return true;
             }
@@ -357,21 +384,11 @@ public struct LessonLexer
         }
     }
 
-    private bool HasEndOfStream
-    {
-        get
-        {
-            if (_queue.Count == 0)
-            {
-                return false;
-            }
-            return _queue[^1].Type == LessonTokenType.EndOfStream;
-        }
-    }
+    private bool HasEndOfStream => _hasOutputEndOfStream;
 
     private bool AddEndOfStream()
     {
-        Debug.Assert(HasEndOfStream);
+        Debug.Assert(!HasEndOfStream);
         _queue.Add(new Token
         {
             Span = new()
@@ -384,6 +401,7 @@ public struct LessonLexer
             Type = LessonTokenType.EndOfStream,
             Value = ReadOnlyMemory<char>.Empty,
         });
+        _hasOutputEndOfStream = true;
         return true;
     }
 
@@ -596,14 +614,29 @@ internal ref struct LimitedLexerScope
         _endPosition = endPosition;
     }
 
+    public readonly override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.Append("[");
+        var list = new ListStringBuilder(sb, ", ");
+        var span = CollectionsMarshal.AsSpan(_lexer._lexer._queue);
+        var spanSlice = span[_lexer.Position.Value .. _endPosition.Value];
+        foreach (var t in spanSlice)
+        {
+            list.Append($"{t}");
+        }
+        sb.Append("]");
+        return sb.ToString();
+    }
+
     public readonly Token Current => _lexer.Current;
     public readonly bool IsEmpty => !CanPeek(1);
 
     public readonly bool CanPeek(int offset)
     {
         // Check doesn't exceed end
-        int i = _lexer.Position.Value - 1 + offset;
-        if (i > _endPosition.Value)
+        int i = _lexer.Position.Value + offset - 1;
+        if (i >= _endPosition.Value)
         {
             return false;
         }
@@ -656,7 +689,7 @@ public static class LessonParsingHelper
             DoParsingIter(ref context);
 
             if (stepBefore == state.Step
-                && context.Lexer.Position != default)
+                && context.Lexer.Position == default)
             {
                 throw new InvalidOperationException("Infinite loop in the parser");
             }
@@ -821,7 +854,7 @@ public static class LessonParsingHelper
             case ParsingStep.TimeOverride:
             case ParsingStep.Start:
             {
-                if (ParseTime(c.Lexer) is { } time)
+                if (ParseTime(ref c.Lexer) is { } time)
                 {
                     c.State.CommonLesson.StartTime = time;
                 }
@@ -853,12 +886,13 @@ public static class LessonParsingHelper
                     LessonName = name.AsMemory(),
                 });
                 c.State.Step = ParsingStep.OptionalParens;
+                c.Lexer.MoveTo(endPosition);
                 break;
             }
             case ParsingStep.OptionalParens:
             case ParsingStep.OptionalParensBeforeRoom:
             {
-                if (EarlyExitNextStep(c))
+                if (EarlyExitNextStep(ref c))
                 {
                     break;
                 }
@@ -887,9 +921,10 @@ public static class LessonParsingHelper
                         WrongFormatException.ExtraWordsInModifier();
                     }
                 }
+
                 break;
 
-                static bool EarlyExitNextStep(ParsingContext c)
+                static bool EarlyExitNextStep(ref ParsingContext c)
                 {
                     if (c.Lexer.Consume('('))
                     {
@@ -978,6 +1013,8 @@ public static class LessonParsingHelper
                         WrongFormatException.InvalidToken();
                     }
 
+                    lexer.Move();
+
                     if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
                     {
                         return new()
@@ -1027,7 +1064,7 @@ public static class LessonParsingHelper
                     || char.IsNumber(t.Value.Span[0])
                     || !VerifyColon(c.Lexer))
                 {
-                    SetNoSubgroup(c);
+                    SetNoSubgroup(ref c);
                     break;
                 }
 
@@ -1057,7 +1094,7 @@ public static class LessonParsingHelper
                     return true;
                 }
 
-                static void SetNoSubgroup(ParsingContext c)
+                static void SetNoSubgroup(ref ParsingContext c)
                 {
                     if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
                     {
@@ -1093,7 +1130,7 @@ public static class LessonParsingHelper
                 }
 
                 var lexer = c.Lexer;
-                bool success = Teacher(c, ref lexer);
+                bool success = Teacher(ref c, ref lexer);
                 if (success)
                 {
                     c.Lexer = lexer;
@@ -1133,7 +1170,7 @@ public static class LessonParsingHelper
                 }
                 break;
 
-                static bool Teacher(ParsingContext c, ref LexerScope lexer)
+                static bool Teacher(ref ParsingContext c, ref LexerScope lexer)
                 {
                     TeacherName result = new();
                     if (!ParseTeacherName(ref result, ref lexer))
@@ -1146,7 +1183,7 @@ public static class LessonParsingHelper
 
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
                     teacher = result;
-                    return false;
+                    return true;
                 }
 
                 static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
@@ -1177,12 +1214,10 @@ public static class LessonParsingHelper
 
                     res.LastName = name1;
                     var copy = lexer;
-                    if (!copy.ConsumeMultiple([
+
+                    copy.ConsumeMultiple([
                         LessonTokenType.Whitespace,
-                        LessonTokenType.EndOfLine]))
-                    {
-                        return true;
-                    }
+                        LessonTokenType.EndOfLine]);
 
                     var name2 = Name(ref copy);
                     if (name2 == default)
@@ -1239,6 +1274,10 @@ public static class LessonParsingHelper
                         listBuilder.Append(t.Value.Span);
                         continue;
                     }
+                    if (t.Type == LessonTokenType.Whitespace)
+                    {
+                        continue;
+                    }
 
                     WrongFormatException.InvalidToken();
                 }
@@ -1256,7 +1295,7 @@ public static class LessonParsingHelper
         {
             var startPosition = lexer.Position;
             var endPosition = lexer.Position;
-            bool isInsideParen = true;
+            bool isInsideParen = false;
 
             while (true)
             {
@@ -1265,7 +1304,10 @@ public static class LessonParsingHelper
                     break;
                 }
                 var t = lexer.Current;
-
+                if (t.Type == LessonTokenType.EndOfLine)
+                {
+                    break;
+                }
                 if (t.Is('('))
                 {
                     endPosition = lexer.Position;
@@ -1275,14 +1317,11 @@ public static class LessonParsingHelper
                     }
                     isInsideParen = true;
                 }
-                if (t.Type == LessonTokenType.EndOfLine)
+                if (t.Is(')'))
                 {
-                    break;
+                    isInsideParen = false;
                 }
-                if (lexer.Current.Is(')'))
-                {
-                    isInsideParen = true;
-                }
+
                 lexer.Move();
             }
 
@@ -1307,7 +1346,7 @@ public static class LessonParsingHelper
 
             {
                 var c = lexer.Current;
-                if (c.IsAnyWord())
+                if (!c.IsAnyWord())
                 {
                     return ret;
                 }
@@ -1319,7 +1358,12 @@ public static class LessonParsingHelper
                 lexer.Move();
             }
 
-            if (!lexer.Consume('-'))
+            if (lexer.IsEmpty)
+            {
+                return ret;
+            }
+
+            if (!lexer.Current.Is(NameConstants.DoubleNameSeparatorChar))
             {
                 return ret;
             }
@@ -1370,13 +1414,13 @@ public static class LessonParsingHelper
         }
     }
 
-    static TimeOnly? ParseTime(LexerScope lexer)
+    static TimeOnly? ParseTime(ref LexerScope lexer)
     {
         if (lexer.IsEmpty)
         {
             return null;
         }
-        if (TimePart(lexer) is not { } hours)
+        if (TimePart(ref lexer) is not { } hours)
         {
             return null;
         }
@@ -1388,7 +1432,7 @@ public static class LessonParsingHelper
         {
             return null;
         }
-        if (TimePart(lexer) is not { } mins)
+        if (TimePart(ref lexer) is not { } mins)
         {
             return null;
         }
@@ -1396,7 +1440,7 @@ public static class LessonParsingHelper
             hour: (int) hours,
             minute: (int) mins);
 
-        static uint? TimePart(LexerScope lexer)
+        static uint? TimePart(ref LexerScope lexer)
         {
             var t = lexer.Current;
             lexer.Move();

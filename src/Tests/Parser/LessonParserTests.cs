@@ -1,4 +1,4 @@
-using ScheduleLib;
+using Argon;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.Lesson;
 
@@ -12,16 +12,53 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public async Task LexerTest()
+    {
+        var strings = new List<string>
+        {
+            "15:00 Opț.psihol. (curs,imp),",
+            "Psihologie (sem,par)",
+            "V.Miron  433/3",
+        };
+        var lexer = new LessonLexer(strings.GetEnumerator());
+        List<Token> result = new();
+        while (!lexer.IsEmpty())
+        {
+            result.Add(lexer.Peek(1));
+            lexer.Move();
+        }
+        Assert.DoesNotContain(result, x => x.Type == LessonTokenType.Invalid);
+
+        var verifyModels = result.Select(x => new
+        {
+            x.Type,
+            Value = x.Value.ToString(),
+            x.Span.Row,
+            ColStart = x.Span.ColStart.Index,
+            ColEnd = x.Span.ColEnd.Index,
+        });
+        await Verify(verifyModels)
+            .UseStrictJson()
+            .AddExtraSettings(x => x.DefaultValueHandling = DefaultValueHandling.Include);
+    }
+
+    private ParsedLesson[] ParseLessons(string[] lines)
+    {
+        return LessonParsingHelper.ParseLessons(new()
+        {
+            StringBuilder = new(),
+            Lines = lines,
+        }).ToArray();
+    }
+
+    [Fact]
     public void LessonListEachWithModifiers()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "15:00 Opț.psihol. (curs,imp),",
-                "Psihologie (sem,par)",
-                "V.Miron  433/3",
-            ],
-        });
+        var lessons = ParseLessons([
+            "15:00 Opț.psihol. (curs,imp),",
+            "Psihologie (sem,par)",
+            "V.Miron  433/3",
+        ]);
 
         var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(15));
 
@@ -54,13 +91,10 @@ public sealed class LessonParserTests
     [Fact]
     public void ParenthesesInLessonName()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Matematica discretă (Logica)  (curs)",
-                "I.Cucu  404/4",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Matematica discretă (Logica)  (curs)",
+            "I.Cucu  404/4",
+        ]);
 
         Assert.Collection(lessons,
             lesson =>
@@ -76,13 +110,10 @@ public sealed class LessonParserTests
     [Fact]
     public void RoomNameMayBeUnderscores()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Option.didact. (curs)",
-                "A.Dabija  ____",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Option.didact. (curs)",
+            "A.Dabija  ____",
+        ]);
 
         Assert.Collection(lessons,
             lesson =>
@@ -98,15 +129,12 @@ public sealed class LessonParserTests
     [Fact]
     public void TimeSlotThatLooksLikeGroupIsParseProperly()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "8:00 Containerizare și virtualizare (lab,imp)",
-                "CV: M.Croitor  326/4",
-                "15:00 Dezvoltare de aplicații WEB cu React (curs)",
-                "WR: A.Donu  213a/4",
-            ],
-        });
+        var lessons = ParseLessons([
+            "8:00 Containerizare și virtualizare (lab,imp)",
+            "CV: M.Croitor  326/4",
+            "15:00 Dezvoltare de aplicații WEB cu React (curs)",
+            "WR: A.Donu  213a/4",
+        ]);
 
         TimeOnly Time(int hours)
         {
@@ -140,13 +168,10 @@ public sealed class LessonParserTests
     [Fact]
     public void SubGroupList()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Dezvoltare de aplicații WEB cu React (lab)",
-                "WR1: A.Donu  143/4,  WR2: Cr.Crudu  145a/4",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Dezvoltare de aplicații WEB cu React (lab)",
+            "WR1: A.Donu  143/4,  WR2: Cr.Crudu  145a/4",
+        ]);
 
         void CheckCommon(ParsedLesson lesson)
         {
@@ -174,14 +199,11 @@ public sealed class LessonParserTests
     [Fact]
     public void NoLessonModifiers_MultipleDefaultModifiers()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "LessonA, LessonB",
-                "A: TeacherA",
-                "B: TeacherB",
-            ],
-        }).ToArray();
+        var lessons = ParseLessons([
+            "LessonA, LessonB",
+            "A: TeacherA",
+            "B: TeacherB",
+        ]);
 
         bool Check(in ParsedLesson lesson, string lessonName, string groupName, string teacherName)
         {
@@ -216,14 +238,11 @@ public sealed class LessonParserTests
     [Fact]
     public void AllLessonModifiers_MultipleDefaultModifiers()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson (par,curs)",
-                "A: TeacherA",
-                "B: TeacherB",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson (par,curs)",
+            "A: TeacherA",
+            "B: TeacherB",
+        ]);
 
         void Lesson(in ParsedLesson lesson)
         {
@@ -250,14 +269,11 @@ public sealed class LessonParserTests
     [Fact]
     public void PerGroupLessonModifiers_MultipleDefaultModifiers()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson (A-par,B-impar)",
-                "A: TeacherA",
-                "B: TeacherB",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson (A-par,B-impar)",
+            "A: TeacherA",
+            "B: TeacherB",
+        ]);
 
         Assert.Collection(lessons,
             lesson1 =>
@@ -279,13 +295,10 @@ public sealed class LessonParserTests
     [Fact]
     public void AdditionalSubGroupInModifiers_SingleOtherGroup()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson (A-par)",
-                "B: TeacherA",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson (A-par)",
+            "B: TeacherA",
+        ]);
 
         Assert.Collection(lessons,
             lesson1 =>
@@ -307,13 +320,10 @@ public sealed class LessonParserTests
     [Fact]
     public void LessonSubGroupModifiers_DefaultNoSubGroup()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson (A-par)",
-                "TeacherA",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson (A-par)",
+            "TeacherA",
+        ]);
 
         void Common(in ParsedLesson lesson)
         {
@@ -333,13 +343,10 @@ public sealed class LessonParserTests
     [Fact]
     public void LessonTypeInSubGroupModifierKey_Works()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "LessonA (curs-par,sem-imp)",
-                "TeacherA",
-            ],
-        });
+        var lessons = ParseLessons([
+            "LessonA (curs-par,sem-imp)",
+            "TeacherA",
+        ]);
 
         void Common(in ParsedLesson lesson)
         {
@@ -365,13 +372,10 @@ public sealed class LessonParserTests
     [Fact]
     public void BothGeneralAndSubGroupModifiers()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "MTA 3D (lab, I-imp, II-par)",
-                "A.Schiopu  251/4",
-            ],
-        }).ToArray();
+        var lessons = ParseLessons([
+            "MTA 3D (lab, I-imp, II-par)",
+            "A.Schiopu  251/4",
+        ]);
 
         void Common(in ParsedLesson lesson)
         {
@@ -399,12 +403,9 @@ public sealed class LessonParserTests
     [Fact]
     public void NoTeacherNoRoom()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+        ]);
 
         Assert.Collection(lessons,
             lesson =>
@@ -416,13 +417,10 @@ public sealed class LessonParserTests
     [Fact]
     public void TeacherAll()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Teacher",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Teacher",
+        ]);
 
         Assert.Collection(lessons,
             lesson =>
@@ -488,13 +486,10 @@ public sealed class LessonParserTests
     [Fact]
     public void MediacorRoom()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Mediacor, etajul II",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Mediacor, etajul II",
+        ]);
 
         var lesson = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson.LessonName.Span);
@@ -504,13 +499,10 @@ public sealed class LessonParserTests
     [Fact]
     public void MediacorRoomWithTeacher()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Teacher  Mediacor, etajul I",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Teacher  Mediacor, etajul I",
+        ]);
 
         var lesson = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson.LessonName.Span);
@@ -521,15 +513,12 @@ public sealed class LessonParserTests
     [Fact]
     public void LessonWithCommasInName()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Teacher",
-                "Other,Lesson",
-                "Teacher",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Teacher",
+            "Other,Lesson",
+            "Teacher",
+        ]);
 
         Assert.Collection(lessons,
             lesson1 =>
@@ -547,13 +536,10 @@ public sealed class LessonParserTests
     [Fact]
     public void RoomNameAfterTeacherNameWithComma()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Teacher, 123Room",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Teacher, 123Room",
+        ]);
 
         var lesson1 = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson1.LessonName.Span);
@@ -564,13 +550,10 @@ public sealed class LessonParserTests
     [Fact]
     public void NoMultipleRoomName()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson",
-                "Teacher, 123Room, 124Room",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Lesson",
+            "Teacher, 123Room, 124Room",
+        ]);
 
         Assert.Throws<RoomAlreadySpecifiedException>(() =>
         {
@@ -584,12 +567,9 @@ public sealed class LessonParserTests
     [Fact]
     public void StarInFrontOfLessonIsIgnored()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "*Lesson",
-            ],
-        });
+        var lessons = ParseLessons([
+            "*Lesson",
+        ]);
 
         var lesson = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson.LessonName.Span);
@@ -601,13 +581,10 @@ public sealed class LessonParserTests
 
         // Managementul proiectelor (sem)
         // Iu.Drăgălina ,  213a/4
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Managementul proiectelor (sem)",
-                "Iu.Drăgălina ,  213a/4",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Managementul proiectelor (sem)",
+            "Iu.Drăgălina ,  213a/4",
+        ]);
 
         var lesson = Assert.Single(lessons);
         AssertEqualName("Iu.Drăgălina", Assert.Single(lesson.TeacherNames));
@@ -617,28 +594,22 @@ public sealed class LessonParserTests
     [Fact]
     public void DoubleTeacherFirstName()
     {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Montajul și imaginea video (lab, par)",
-                "G.-M. Lastname",
-            ],
-        });
+        var lessons = ParseLessons([
+            "Montajul și imaginea video (lab, par)",
+            "G.-M. Lastname",
+        ]);
 
         var lesson = Assert.Single(lessons);
         AssertEqualName("G.-M. Lastname", Assert.Single(lesson.TeacherNames));
     }
 
     [Fact]
-    public void TimeAfterNoRoom_NoRoomSpecifiedForLesson()
-    {
-        var lessons = LessonParsingHelper.ParseLessons(new()
-        {
-            Lines = [
-                "Lesson One",
-                "15:00 Lesson Two 123Room",
-            ],
-        });
+public void TimeAfterNoRoom_NoRoomSpecifiedForLesson()
+{
+    var lessons = ParseLessons([
+        "Lesson One",
+        "15:00 Lesson Two 123Room",
+    ]);
 
         Assert.Collection(lessons,
             lesson1 =>

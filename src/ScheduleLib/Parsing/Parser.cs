@@ -22,7 +22,7 @@ public record struct Parser
         return Math.Min(remaining, desiredSize);
     }
     private readonly int AvailableCount => _input.Length - _index;
-    public readonly ReadOnlySpan<char> PeekSpan(int size) => WholeSpan[_index .. size];
+    public readonly ReadOnlySpan<char> PeekSpan(int size) => WholeSpan[_index .. (_index + size)];
     public readonly ReadOnlySpan<char> PeekSpanMaxSize(int size)
     {
         int s = Math.Min(AvailableCount, size);
@@ -179,7 +179,7 @@ public static class ParserHelper
     public static SkipSequenceResult SkipUntilSequence(this ref Parser parser, ReadOnlySpan<string> strings)
     {
         Debug.Assert(!strings.IsEmpty);
-        Debug.Assert(strings.All(x => x.Length != 0));
+        Debug.Assert(All(strings, x => x.Length != 0));
 
         int min = MinSize(strings);
         int max = MaxSize(strings);
@@ -413,6 +413,7 @@ public static class ParserHelper
         }
         if (parser.Current == expectedChar)
         {
+            parser.Move();
             return true;
         }
         return false;

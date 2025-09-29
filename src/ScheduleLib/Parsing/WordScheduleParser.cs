@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -678,6 +679,7 @@ public static class WordScheduleParser
                             Lines = lines,
                             ParityParser = ParityParser.Instance,
                             LessonTypeParser = LessonTypeParser.Instance,
+                            StringBuilder = new StringBuilder(),
                         });
 
                         foreach (var lesson in lessons)
