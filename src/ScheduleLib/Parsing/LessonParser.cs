@@ -21,7 +21,7 @@ public struct ParseLessonsParams()
 
 public struct TeacherName
 {
-    public NameParts<ReadOnlyMemory<char>> Name;
+    public NameParts<ReadOnlyMemory<char>> FirstName;
     public NameParts<ReadOnlyMemory<char>> LastName;
 }
 
@@ -479,6 +479,38 @@ internal static class LessonLexerHelper
         }
         return true;
     }
+
+    public static bool ConsumeMultiple(this ref LexerScope lexer, ReadOnlySpan<LessonTokenType> types)
+    {
+        bool consumed = false;
+        while (true)
+        {
+            if (C(ref lexer, types))
+            {
+                consumed = true;
+                continue;
+            }
+            break;
+        }
+        if (consumed)
+        {
+            return true;
+        }
+        return false;
+
+        static bool C(ref LexerScope lexer, ReadOnlySpan<LessonTokenType> types)
+        {
+            foreach (var t in types)
+            {
+                if (lexer.Consume(t))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
 }
 
 internal ref struct ListEnumerable
@@ -809,7 +841,9 @@ public static class LessonParsingHelper
             case ParsingStep.LessonName:
             {
                 var endPosition = FindPositionOfLastModifierGroup(c.Lexer);
-                var name = CleanCourseName(ref c.Lexer, c.Params.StringBuilder, endPosition);
+                var name = CleanName(
+                    new LimitedLexerScope(c.Lexer, endPosition),
+                    c.Params.StringBuilder);
                 if (name.Length == 0)
                 {
                     WrongFormatException.ThrowEmptyCourseName();
@@ -1039,180 +1073,145 @@ public static class LessonParsingHelper
             case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
             {
-                if (TryParseAndSetRoomName(c))
+                if (TryParseAndSetRoomName(ref c))
                 {
-                    c.Parser.SkipWhitespace();
-                    if (c.Parser.IsEmpty)
+                    c.Lexer.Consume(LessonTokenType.Whitespace);
+                    if (c.Lexer.IsEmpty)
                     {
-                        AdvanceStepAfterRoom(c);
+                        AdvanceStepAfterRoom(ref c);
                         break;
                     }
-                    if (c.Parser.Current == ',')
+                    if (c.Lexer.Consume(','))
                     {
                         // Continue the list.
                         c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
-                        c.Parser.Move();
                         break;
                     }
 
-                    AdvanceStepAfterRoom(c);
+                    AdvanceStepAfterRoom(ref c);
                     break;
                 }
 
-                var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.Skip(new SkipTeacher());
-                if (!skipResult.SkippedAny
-                    || (!bparser.IsEmpty && !IsTeacherSeparator(bparser.Current)))
+                var lexer = c.Lexer;
+                bool success = Teacher(c, ref lexer);
+                if (success)
                 {
-                    Debug.Assert(!IsTeacherNameChar(bparser.Current));
+                    c.Lexer = lexer;
+
+                    if (lexer.IsEmpty)
+                    {
+                        return;
+                    }
+                    var t = lexer.Current;
+
+                    if (t.Type == LessonTokenType.EndOfLine)
+                    {
+                        c.State.Step = ParsingStep.OptionalRoomName;
+                        return;
+                    }
+                    if (t.Type == LessonTokenType.Whitespace)
+                    {
+                        c.State.Step = ParsingStep.OptionalParensBeforeRoom;
+                        return;
+                    }
+                    if (t.Is(','))
+                    {
+                        c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
+                        return;
+                    }
+                    WrongFormatException.InvalidToken();
+                }
+                else
+                {
                     if (c.State.Step == ParsingStep.RequiredTeacherNameOrRoomName)
                     {
                         throw new WrongFormatException("Required teacher name after comma");
                     }
 
                     // We've already tried for room name.
-                    AdvanceStepAfterRoom(c);
-                    break;
+                    AdvanceStepAfterRoom(ref c);
                 }
-
-                bool success = Teacher(c, ref bparser);
-                Debug.Assert(success, "Don't think this is possible");
                 break;
 
-                static bool Teacher(ParsingContext c, ref Parser bparser)
+                static bool Teacher(ParsingContext c, ref LexerScope lexer)
                 {
+                    TeacherName result = new();
+                    if (!ParseTeacherName(ref result, ref lexer))
+                    {
+                        return false;
+                    }
+
+                    ValidateNotShort(result.LastName);
+                    ValidateIfOneIsShortAllAreShort(result.FirstName);
+
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
-
-                    {
-                        var lastName = LastName(c, ref bparser);
-                        if (!lastName.Any(x => x.IsEmpty))
-                        {
-                            teacher.LastName = lastName;
-                            NextStep(c, ref bparser);
-                            return true;
-                        }
-
-                        static void NextStep(ParsingContext c, ref Parser bparser)
-                        {
-                            if (bparser.IsEmpty)
-                            {
-                                c.State.Step = ParsingStep.OptionalRoomName;
-                                c.Parser.MoveTo(bparser.Position);
-                                return;
-                            }
-                            if (bparser.Current == ' ')
-                            {
-                                c.State.Step = ParsingStep.OptionalParensBeforeRoom;
-                                c.Parser.MoveTo(bparser.Position);
-                                return;
-                            }
-
-                            Debug.Assert(bparser.Current == ',');
-                            c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
-                            bparser.Move();
-                        }
-                    }
-
-                    {
-                        var firstName = FirstName(c, ref bparser);
-                        if (firstName.Any(x => !x.IsEmpty))
-                        {
-                            NextStep(c, ref bparser);
-                            teacher.Name = firstName;
-                            return true;
-                        }
-
-                        static void NextStep(ParsingContext c, ref Parser bparser)
-                        {
-                            c.Parser.MoveTo(bparser.Position);
-                            c.State.Step = ParsingStep.TeacherLastName;
-                        }
-                    }
-
+                    teacher = result;
                     return false;
                 }
 
-                static NameParts<ReadOnlyMemory<char>> LastName(ParsingContext c, ref Parser bparser)
+                static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
                 {
-                    if (!bparser.IsEmpty
-                        && bparser.Current is not (' ' or ','))
+                    if (name.Any(x => !x.IsEmpty && x.Span[^1] == WordHelper.ShortenedWordCharacter))
                     {
-                        return default;
+                        WrongFormatException.InvalidLastName();
+                    }
+                }
+
+                static void ValidateIfOneIsShortAllAreShort(NameParts<ReadOnlyMemory<char>> name)
+                {
+                    bool oneIsShort = name.Any(x => !x.IsEmpty && !new WordSpan(x.Span).LooksFull);
+                    bool allAreShortOrEmpty = name.All(x => x.IsEmpty || !new WordSpan(x.Span).LooksFull);
+                    if (oneIsShort && !allAreShortOrEmpty)
+                    {
+                        WrongFormatException.ThrowInvalidDoubleName();
+                    }
+                }
+
+                static bool ParseTeacherName(ref TeacherName res, ref LexerScope lexer)
+                {
+                    var name1 = Name(ref lexer);
+                    if (name1 == default)
+                    {
+                        return false;
                     }
 
-                    return Name(c, ref bparser);
-                }
-
-                static NameParts<ReadOnlyMemory<char>> FirstName(ParsingContext c, ref Parser bparser)
-                {
-                    Debug.Assert(!bparser.IsEmpty);
-
-                    if (bparser.Current != '.')
+                    res.LastName = name1;
+                    var copy = lexer;
+                    if (!copy.ConsumeMultiple([
+                        LessonTokenType.Whitespace,
+                        LessonTokenType.EndOfLine]))
                     {
-                        return default;
+                        return true;
                     }
-                    bparser.Move();
 
-                    return Name(c, ref bparser);
+                    var name2 = Name(ref copy);
+                    if (name2 == default)
+                    {
+                        return true;
+                    }
+
+                    lexer = copy;
+                    res.FirstName = name1;
+                    res.LastName = name2;
+                    return true;
                 }
-
-            }
-            case ParsingStep.TeacherLastName:
-            {
-                var bparser = c.Parser.BufferedView();
-                var skipResult = bparser.SkipUntilAny([' ', ',', '(']);
-                if (!skipResult.SkippedAny)
-                {
-                    // Only the first name?
-                    // This only works because it's a forward parser (no backtracking)
-                    throw new WrongFormatException();
-                }
-
-                var lastName = Name(c, ref bparser);
-                c.Parser.MoveTo(bparser.Position);
-                ref var teacher = ref c.State.LastModifiers.Value.Specific.LastTeacher;
-                teacher.LastName = lastName;
-
-                // Handles the case when there's a space before the comma.
-                // It's a case of terrible formatting, but we have got precedents.
-                // Could move this into a separate step.
-                c.Parser.SkipWhitespace();
-
-                if (c.Parser.IsEmpty)
-                {
-                    c.State.Step = ParsingStep.OptionalParensBeforeRoom;
-                    break;
-                }
-
-                // Keep doing the list if found a comma.
-                if (c.Parser.Current == ',')
-                {
-                    c.Parser.Move();
-                    c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
-                    break;
-                }
-
-                c.State.Step = ParsingStep.OptionalParensBeforeRoom;
-                break;
             }
             case ParsingStep.OptionalRoomName:
             {
-                TryParseAndSetRoomName(c);
-                AdvanceStepAfterRoom(c);
+                TryParseAndSetRoomName(ref c);
+                AdvanceStepAfterRoom(ref c);
                 break;
             }
         }
 
-        static string CleanCourseName(
-            ref LexerScope lexer,
-            StringBuilder sb,
-            LexerPosition endPosition)
+        static string CleanName(
+            LimitedLexerScope lexer,
+            StringBuilder sb)
         {
             try
             {
-
                 var listBuilder = new ListStringBuilder(sb);
-                while (lexer.Position != endPosition)
+                while (!lexer.IsEmpty)
                 {
                     var t = lexer.Current;
                     lexer.Move();
@@ -1298,65 +1297,56 @@ public static class LessonParsingHelper
             return endPosition;
         }
 
-        static NameParts<ReadOnlyMemory<char>> Name(ParsingContext c, ref Parser bparser)
+        static NameParts<ReadOnlyMemory<char>> Name(ref LexerScope lexer)
         {
             var ret = default(NameParts<ReadOnlyMemory<char>>);
-
-            ret[0] = c.Parser.SourceUntilExclusive(bparser);
-            if (bparser.IsEmpty)
+            if (lexer.IsEmpty)
             {
                 return ret;
             }
 
             {
-                // G.-M. is a precedent for a doubled first name.
-                var doubleBufferedParser = bparser.BufferedView();
-
-                {
-                    var skipResult = doubleBufferedParser.SkipWhitespace();
-                    if (skipResult.EndOfInput)
-                    {
-                        return ret;
-                    }
-                }
-
-                if (!doubleBufferedParser.ConsumeExactString(NameConstants.DoubleNameSeparator))
+                var c = lexer.Current;
+                if (c.IsAnyWord())
                 {
                     return ret;
                 }
+                if (!ParserHelper.All(c.Value.Span, IsTeacherNameChar))
+                {
+                    return ret;
+                }
+                ret[0] = lexer.Current.Value;
+                lexer.Move();
+            }
 
-                bparser.MoveTo(doubleBufferedParser.Position);
-                c.Parser.MoveTo(bparser.Position);
+            if (!lexer.Consume('-'))
+            {
+                return ret;
             }
 
             {
-                var skipResult = bparser.SkipWhitespace();
-                if (skipResult.EndOfInput)
+                var c = lexer.Current;
+                if (lexer.IsEmpty
+                    || !c.IsAnyWord())
                 {
-                    WrongFormatException.ThrowInvalidDoubleName();
-                    return default;
+                    WrongFormatException.ExpectedWordToken();
                 }
+                if (!ParserHelper.All(c.Value.Span, IsTeacherNameChar))
+                {
+                    WrongFormatException.InvalidCharactersInTeacherName();
+                }
+                ret[1] = lexer.Current.Value;
+                lexer.Move();
             }
 
-            {
-                var skipResult = bparser.SkipUntilAny(['.']);
-                if (skipResult.EndOfInput)
-                {
-                    WrongFormatException.ThrowInvalidDoubleName();
-                    return default;
-                }
-                bparser.Move();
-            }
-
-            ret[1] = c.Parser.SourceUntilExclusive(bparser);
             return ret;
         }
 
-        static void AdvanceStepAfterRoom(ParsingContext c)
+        static void AdvanceStepAfterRoom(ref ParsingContext c)
         {
             c.State.Step = ParsingStep.MaybeSubGroupAgain;
         }
-        static bool TryParseAndSetRoomName(ParsingContext c)
+        static bool TryParseAndSetRoomName(ref ParsingContext c)
         {
             var lexer = c.Lexer;
             bool isRoom = c.Params.RoomParser.TryParseRoom(ref lexer);
@@ -1365,15 +1355,17 @@ public static class LessonParsingHelper
                 return false;
             }
 
-            var roomName = c.Parser.SourceUntilExclusive(lexer);
-            c.Parser.MoveTo(lexer.Position);
+            var roomName = CleanName(
+                new LimitedLexerScope(c.Lexer, lexer.Position),
+                c.Params.StringBuilder);
+            c.Lexer = lexer;
 
             ref var roomNameMem = ref c.State.LastModifiers.Specific.RoomName;
             if (!roomNameMem.IsEmpty)
             {
                 WrongFormatException.ThrowRoomAlreadySpecified();
             }
-            roomNameMem = roomName;
+            roomNameMem = roomName.AsMemory();
             return true;
         }
     }
@@ -1444,7 +1436,7 @@ public static class LessonParsingHelper
     }
     private static bool IsTeacherNameChar(char ch)
     {
-        if (ch is '-')
+        if (ch is '.')
         {
             return true;
         }
@@ -1647,55 +1639,8 @@ public sealed class RoomParser
         }
         else
         {
-            SkipRoom(ref lexer);
-            if (lexer.IsEmpty)
-            {
-                return true;
-            }
-            if (IsNotRoom(lexer.Current))
-            {
-                return false;
-            }
-            return true;
-        }
-    }
-
-
-    private static ParserHelper.SkipResult SkipRoom(ref Parser parser)
-    {
-        return parser.Skip(new SkipRoomImpl());
-    }
-
-    private static bool IsNotRoom(char ch)
-    {
-        if (ch is ';' or ':')
-        {
-            return true;
-        }
-        return false;
-    }
-    private static bool IsRoomSeparator(char ch)
-    {
-        if (ch is ',')
-        {
-            return true;
-        }
-        if (char.IsWhiteSpace(ch))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private readonly struct SkipRoomImpl : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
-        {
-            if (IsRoomSeparator(ch))
-            {
-                return false;
-            }
-            if (IsNotRoom(ch))
+            var t = lexer.Current;
+            if (t.Type != LessonTokenType.Word)
             {
                 return false;
             }
@@ -1742,107 +1687,19 @@ public sealed class RoomParser
         }
 
         {
-            var lexerCopy = lexer;
-            // Maybe limit the max count to skip?
-            var res = SkipRoom(ref lexerCopy);
-            if (!res.SkippedAny)
+            var t = lexer.Current;
+            if (t.Type != LessonTokenType.Word)
             {
                 return MediacorParseProgress.AfterConfirmFail;
             }
 
-            var numberSpan = bparser.PeekSpanUntilPosition(bparser1.Position);
-            var romanResult = NumberHelper.FromRoman(numberSpan);
+            var romanResult = NumberHelper.FromRoman(t.Value.Span);
             if (romanResult is null)
             {
                 return MediacorParseProgress.AfterConfirmFail;
             }
-
-            bparser.MoveTo(bparser1.Position);
         }
-
-        parser.MoveTo(bparser.Position);
         return MediacorParseProgress.Ok;
-    }
-}
-
-file enum LessonEndSequence
-{
-    None,
-    OpeningParen,
-    Comma,
-    Numbers,
-}
-
-file static class LessonEnd
-{
-    public static SkipResult SkipUntilLessonEnd(this ref Parser parser)
-    {
-        var algorithm = new SkipLessonImpl();
-        var result = parser.SkipWindow(
-            ref algorithm,
-            minWindowSize: 1,
-            maxWindowSize: 2);
-        var match = parser.IsEmpty
-            ? LessonEndSequence.None
-            : WhichSequence(parser.PeekSpanMaxSize(2));
-        return new()
-        {
-            EndOfInput = result.EndOfInput,
-            Match = match,
-        };
-    }
-
-    public static LessonEndSequence WhichSequence(ReadOnlySpan<char> window)
-    {
-        bool Compare(ReadOnlySpan<char> a, ReadOnlySpan<char> w)
-        {
-            if (a.Length > w.Length)
-            {
-                return false;
-            }
-            if (w[.. a.Length].Equals(a, StringComparison.CurrentCultureIgnoreCase))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        if (Compare("(", window))
-        {
-            return LessonEndSequence.OpeningParen;
-        }
-        if (Compare(", ", window))
-        {
-            return LessonEndSequence.Comma;
-        }
-        if (window.Length == 1)
-        {
-            return LessonEndSequence.None;
-        }
-        // 2D, 3D but not 423Room
-        if (char.IsNumber(window[0]) && char.IsNumber(window[1]))
-        {
-            return LessonEndSequence.Numbers;
-        }
-        return LessonEndSequence.None;
-    }
-
-    private struct SkipLessonImpl : IShouldSkipSequence
-    {
-        public bool ShouldSkip(ReadOnlySpan<char> window)
-        {
-            if (WhichSequence(window) == LessonEndSequence.None)
-            {
-                return true;
-            }
-            return false;
-        }
-    }
-
-    public readonly struct SkipResult
-    {
-        public required bool EndOfInput { get; init; }
-        public required LessonEndSequence Match { get; init; }
     }
 }
 
@@ -2112,9 +1969,6 @@ internal enum ParsingStep
     RequiredTeacherNameOrRoomName,
     OptionalTeacherNameOrRoomName,
 
-    // Teachers often have "F.Last" as the name format.
-    TeacherLastName,
-
     // Room modifiers.
     OptionalParensBeforeRoom,
     // Only room allowed after room modifiers.
@@ -2184,6 +2038,9 @@ public class WrongFormatException : Exception
     internal static void ExpectedWordToken() => throw new WrongFormatException("Expected name token");
 
     [DoesNotReturn]
+    internal static void InvalidCharactersInTeacherName() => throw new WrongFormatException("Invalid characters in teacher name");
+
+    [DoesNotReturn]
     internal static void ThrowEmptyCourseName() => throw new WrongFormatException("Empty course name");
 
     [DoesNotReturn]
@@ -2204,6 +2061,8 @@ public class WrongFormatException : Exception
     [DoesNotReturn]
     internal static void ThrowInvalidDoubleName() => throw new WrongFormatException($"Double names must have the second short name after the '{NameConstants.DoubleNameSeparator}'");
 
+    [DoesNotReturn]
+    internal static void InvalidLastName() => throw new WrongFormatException($"Last name must not be short");
 }
 
 internal ref struct ParsingContext
