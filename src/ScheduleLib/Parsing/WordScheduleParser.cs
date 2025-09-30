@@ -116,20 +116,23 @@ public sealed class DocParseContext
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;
 
-        bool savedTeacherNameHasDiacritics = teacher.Name.LastName.Parts.EachEquals(
-            nameModel.LastName.Parts,
-            (a, b) =>
+        var before = teacher.Name.LastName;
+        _ = before;
+
+        teacher.Name.LastName.Parts.Update(
+            nameModel.LastName.Parts, (a, b) =>
             {
-                if (a is null)
+                if (a == "Șchiopu" || b == "Șchiopu")
                 {
-                    return b is null;
+                    Console.WriteLine("hello");
                 }
-                return a.Equals(b, StringComparison.CurrentCultureIgnoreCase);
+                if (a == null || b == null)
+                {
+                    return a ?? b;
+                }
+                var ret = DiacriticsHelper.SelectWithDiacritics(a, b);
+                return ret;
             });
-        if (!savedTeacherNameHasDiacritics)
-        {
-            teacher.Name.LastName = nameModel.LastName;
-        }
 
         return teacherBuilder.Id;
     }

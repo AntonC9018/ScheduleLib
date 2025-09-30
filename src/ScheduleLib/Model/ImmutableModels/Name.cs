@@ -368,7 +368,14 @@ public static class NameDisplayHelper
         bool AppendLastName()
         {
             AppendSpaceMaybe();
-            p.Output.Append(p.Name.LastName);
+            var listBuilder = new ListStringBuilder(p.Output, NameConstants.DoubleNameSeparator);
+            foreach (var n in p.Name.LastName)
+            {
+                if (n != null)
+                {
+                    listBuilder.Append(n);
+                }
+            }
             return true;
         }
         WhichFirstName AppendFirstName()

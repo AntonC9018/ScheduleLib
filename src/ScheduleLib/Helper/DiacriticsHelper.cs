@@ -29,27 +29,25 @@ public static class DiacriticsHelper
             .Normalize(NormalizationForm.FormC);
     }
 
-    public static string SelectOneWithMostDiacritics(string s1, string s2)
+    public static string SelectWithDiacritics(string a, string b)
     {
-        var d1 = CountDiacritics(s1);
-        var d2 = CountDiacritics(s2);
-        return d1 > d2 ? s1 : s2;
+        if (HasDiacritics(a))
+        {
+            return a;
+        }
+        return b;
     }
 
-    public static int CountDiacritics(string s)
+    public static bool HasDiacritics(string input)
     {
-        var normalizedString = s.Normalize(NormalizationForm.FormD);
-        int count = 0;
-        for (int i = 0; i < normalizedString.Length; i++)
+        foreach (char c in input.Normalize(NormalizationForm.FormD))
         {
-            char c = normalizedString[i];
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory == UnicodeCategory.NonSpacingMark)
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
             {
-                count++;
+                return true;
             }
         }
-        return count;
+        return false;
     }
 }
 
@@ -70,7 +68,7 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
             {
                 return y1 is null;
             }
-            return x1.Equals(y1, StringComparison.OrdinalIgnoreCase);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x1, y1);
         });
     }
 

@@ -1,5 +1,6 @@
 // TODO: Remove the use of lists.
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -371,21 +372,14 @@ public sealed class LessonLexer
             }
         }
 
+        private static readonly SearchValues<char> _regularChars = SearchValues.Create(@"/\_+#@&");
         public static bool IsRegular(char ch)
         {
             if (char.IsLetterOrDigit(ch))
             {
                 return true;
             }
-            if (ch == '_')
-            {
-                return true;
-            }
-            if (ch == '/')
-            {
-                return true;
-            }
-            if (ch == '\\')
+            if (_regularChars.Contains(ch))
             {
                 return true;
             }
@@ -693,7 +687,7 @@ public static class LessonParsingHelper
                 Lexer = ref lexerScope,
                 State = ref state,
             };
-            DoParsingIter(ref context);
+            DoParsingIter(context);
 
             if (stepBefore == state.Step
                 && lexerScope.Position == default)
@@ -854,7 +848,7 @@ public static class LessonParsingHelper
         }
     }
 
-    private static void DoParsingIter(ref ParsingContext c)
+    private static void DoParsingIter(ParsingContext c)
     {
         switch (c.State.Step)
         {
@@ -899,7 +893,7 @@ public static class LessonParsingHelper
             case ParsingStep.OptionalParens:
             case ParsingStep.OptionalParensBeforeRoom:
             {
-                if (EarlyExitNextStep(ref c))
+                if (EarlyExitNextStep(c))
                 {
                     break;
                 }
@@ -932,7 +926,7 @@ public static class LessonParsingHelper
 
                 break;
 
-                static bool EarlyExitNextStep(ref ParsingContext c)
+                static bool EarlyExitNextStep(ParsingContext c)
                 {
                     if (c.Lexer.TryConsume('('))
                     {
@@ -1073,7 +1067,7 @@ public static class LessonParsingHelper
                     || char.IsNumber(t.Value.Span[0])
                     || !VerifyColon(ref lexer))
                 {
-                    SetNoSubgroup(ref c);
+                    SetNoSubgroup(c);
                     break;
                 }
 
@@ -1102,7 +1096,7 @@ public static class LessonParsingHelper
                     return true;
                 }
 
-                static void SetNoSubgroup(ref ParsingContext c)
+                static void SetNoSubgroup(ParsingContext c)
                 {
                     if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
                     {
@@ -1118,12 +1112,12 @@ public static class LessonParsingHelper
             case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
             {
-                if (TryParseAndSetRoomName(ref c))
+                if (TryParseAndSetRoomName(c))
                 {
                     c.Lexer.TryConsume(LessonTokenType.Whitespace);
                     if (c.Lexer.IsEmpty)
                     {
-                        AdvanceStepAfterRoom(ref c);
+                        AdvanceStepAfterRoom(c);
                         break;
                     }
                     if (c.Lexer.TryConsume(','))
@@ -1133,12 +1127,12 @@ public static class LessonParsingHelper
                         break;
                     }
 
-                    AdvanceStepAfterRoom(ref c);
+                    AdvanceStepAfterRoom(c);
                     break;
                 }
 
                 var lexer = c.Lexer;
-                bool success = Teacher(ref c, ref lexer);
+                bool success = Teacher(c, ref lexer);
                 if (success)
                 {
                     c.State.Step = NextStep(ref lexer);
@@ -1175,14 +1169,14 @@ public static class LessonParsingHelper
                     }
 
                     // We've already tried for room name.
-                    AdvanceStepAfterRoom(ref c);
+                    AdvanceStepAfterRoom(c);
                 }
                 break;
 
-                static bool Teacher(ref ParsingContext c, ref LexerScope lexer)
+                static bool Teacher(ParsingContext c, ref LexerScope lexer)
                 {
                     TeacherName result = new();
-                    if (!ParseTeacherName(ref result, ref lexer))
+                    if (!ParseTeacherName(c, ref result, ref lexer))
                     {
                         return false;
                     }
@@ -1222,7 +1216,10 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static bool ParseTeacherName(ref TeacherName res, ref LexerScope lexer)
+                static bool ParseTeacherName(
+                    ParsingContext c,
+                    ref TeacherName res,
+                    ref LexerScope lexer)
                 {
                     var name1 = Name(ref lexer);
                     if (name1 == default)
@@ -1233,7 +1230,7 @@ public static class LessonParsingHelper
                     res.LastName = name1;
                     var copy = lexer;
 
-                    if (WhitespaceHandling_IsDone(ref copy))
+                    if (WhitespaceHandling_IsDone(c, ref copy))
                     {
                         return true;
                     }
@@ -1249,7 +1246,7 @@ public static class LessonParsingHelper
                     res.LastName = name2;
                     return true;
 
-                    static bool WhitespaceHandling_IsDone(ref LexerScope lexer)
+                    static bool WhitespaceHandling_IsDone(ParsingContext c, ref LexerScope lexer)
                     {
                         if (lexer.IsEmpty)
                         {
@@ -1261,19 +1258,26 @@ public static class LessonParsingHelper
                             return false;
                         }
 
-                        if (t.Value.Length > 1)
+                        var copy = lexer;
+                        // Skip whitespace
+                        copy.Move();
+                        // If the next token is a room, it's not last name.
+                        if (c.Params.RoomParser.TryParseRoom(ref copy))
                         {
                             return true;
                         }
-                        lexer.Move();
+
+                        // Apply skip whitespace
+                        lexer.MoveTo(copy.Position);
+
                         return false;
                     }
                 }
             }
             case ParsingStep.OptionalRoomName:
             {
-                TryParseAndSetRoomName(ref c);
-                AdvanceStepAfterRoom(ref c);
+                TryParseAndSetRoomName(c);
+                AdvanceStepAfterRoom(c);
                 break;
             }
         }
@@ -1445,11 +1449,11 @@ public static class LessonParsingHelper
             return ret;
         }
 
-        static void AdvanceStepAfterRoom(ref ParsingContext c)
+        static void AdvanceStepAfterRoom(ParsingContext c)
         {
             c.State.Step = ParsingStep.MaybeSubGroupAgain;
         }
-        static bool TryParseAndSetRoomName(ref ParsingContext c)
+        static bool TryParseAndSetRoomName(ParsingContext c)
         {
             var lexer = c.Lexer;
             bool isRoom = c.Params.RoomParser.TryParseRoom(ref lexer);
