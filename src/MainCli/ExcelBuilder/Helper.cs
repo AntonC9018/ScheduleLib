@@ -1,12 +1,4 @@
-using System.Collections;
-using System.Diagnostics;
-using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using ScheduleLib;
-using ScheduleLib.Helper.Excel;
-using ScheduleLib.Parsing;
 
 namespace MainCli.ExcelBuilder;
 

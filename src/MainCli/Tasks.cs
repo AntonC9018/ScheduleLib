@@ -194,6 +194,10 @@ public static class Tasks
 
     public static void GenerateAllTeacherExcel(AllTeacherExcelParams p)
     {
+        {
+            var dir = Path.GetDirectoryName(p.OutputFilePath)!;
+            Directory.CreateDirectory(dir);
+        }
         using var stream = File.Open(p.OutputFilePath, FileMode.Create, FileAccess.ReadWrite);
         using var excel = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, autoSave: true);
 
@@ -1304,6 +1308,7 @@ public static class Tasks
 
 public enum Option
 {
+    UploadDocsToDrive,
     AllTeachersExcel,
     PerGroupAndPerTeacherPdfs,
     CreateLessonsInRegistry,

@@ -39,4 +39,9 @@
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
         <PackageReference Include="ClosedXML" Version="0.105.0" />
     </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.71.0.3905" />
+    </ItemGroup>
 </Project>

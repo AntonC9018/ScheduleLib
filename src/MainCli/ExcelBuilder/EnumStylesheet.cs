@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using MainCli.Helper;
 using ScheduleLib.Helper;
 
 namespace MainCli.ExcelBuilder;

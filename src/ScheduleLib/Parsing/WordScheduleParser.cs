@@ -122,10 +122,6 @@ public sealed class DocParseContext
         teacher.Name.LastName.Parts.Update(
             nameModel.LastName.Parts, (a, b) =>
             {
-                if (a == "Șchiopu" || b == "Șchiopu")
-                {
-                    Console.WriteLine("hello");
-                }
                 if (a == null || b == null)
                 {
                     return a ?? b;

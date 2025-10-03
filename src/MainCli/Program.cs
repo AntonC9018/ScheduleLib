@@ -1,9 +1,14 @@
 using System.Text;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
+using Google.Apis.Util.Store;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using MainCli.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -34,10 +39,11 @@ const Session semester = Session.Ses1;
     context.Schedule.SetStudyYear(year);
 
     string dirName = @$"data\{year}_sem{(int) semester}";
-    await Tasks.ParseDocumentDirIntoSchedule(
-        context,
-        dirName,
-        cancellationToken: cancellationToken);
+    _ = dirName;
+    // await Tasks.ParseDocumentDirIntoSchedule(
+    //     context,
+    //     dirName,
+    //     cancellationToken: cancellationToken);
 }
 
 var schedule = context.Schedule.Build();
@@ -51,19 +57,129 @@ IConfiguration config;
     config = builder.Build();
 }
 
-// var option = Option.FreeRooms;
-foreach (var option in new Option[] { Option.AllTeachersExcel }) {
+const string outputDirectory = "output";
+// if (Directory.Exists(outputDirectory))
+// {
+//     Directory.Delete(outputDirectory, recursive: true);
+// }
+
+var options = new Option[]
+{
+    // Option.AllTeachersExcel,
+    // Option.PerGroupAndPerTeacherPdfs,
+    // Option.FreeRooms,
+    Option.UploadDocsToDrive,
+};
+foreach (var option in options) {
 
 switch (option)
 {
+    case Option.UploadDocsToDrive:
+    {
+        string[] scopes = [
+            DriveService.Scope.DriveFile,
+            DriveService.Scope.Drive,
+        ];
+        var credPath = "google_token_store";
+
+        var clientSecrets = config.GetSection("Google").Get<ClientSecrets>();
+        if (clientSecrets is null
+            || clientSecrets.ClientId == null
+            || clientSecrets.ClientSecret == null)
+        {
+            throw new InvalidOperationException("Configuration for google is missing");
+        }
+
+        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+            clientSecrets: clientSecrets,
+            scopes: scopes,
+            user: "user",
+            taskCancellationToken: CancellationToken.None,
+            dataStore: new FileDataStore(credPath, fullPath: true));
+
+        using var driveService = new DriveService(
+            new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "ScheduleLib",
+            });
+        _ = driveService;
+
+        var folderId = await driveService.FindFolderId("orar", cancellationToken);
+        var files = await driveService.GetFiles(folderId, cancellationToken);
+
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var existingLocalFiles = Directory.EnumerateFiles(outputDirectory)
+            .Select(x => Path.GetFileName(x))
+            .ToHashSet(comparer);
+        var existingCloudFiles = files.Select(x => x.Name).ToHashSet(comparer);
+        var cloudFilesToDelete = new List<BasicDriveFile>();
+        var cloudFilesToUpdate = new List<BasicDriveFile>();
+        var cloudFilesToCreate = new List<string>();
+        foreach (var file in files)
+        {
+            if (existingLocalFiles.Contains(file.Name))
+            {
+                cloudFilesToUpdate.Add(file);
+            }
+            else
+            {
+                cloudFilesToDelete.Add(file);
+            }
+        }
+        foreach (var local in existingLocalFiles)
+        {
+            if (!existingCloudFiles.Contains(local))
+            {
+                cloudFilesToCreate.Add(local);
+            }
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
+            driveService,
+            cloudFilesToDelete,
+            cts.Token);
+        var taskBuilder = ArrayBuilder.Create<Task>(
+            cloudFilesToCreate.Count
+            + cloudFilesToUpdate.Count
+            + batchDeleteOperation.BatchCount);
+        try
+        {
+            foreach (var deleteTask in batchDeleteOperation.Tasks)
+            {
+                taskBuilder.Add(deleteTask);
+            }
+            foreach (var fileName in cloudFilesToCreate)
+            {
+                var t = driveService.UploadFile(
+                    inputFilePath: Path.Combine(outputDirectory, fileName),
+                    outputFileName: fileName,
+                    folderId: folderId,
+                    cancellationToken: cts.Token);
+                taskBuilder.Add(t);
+            }
+            foreach (var file in cloudFilesToUpdate)
+            {
+                var t = driveService.UpdateFile(
+                    fileInputPath: Path.Combine(outputDirectory, file.Name),
+                    fileId: file.Id,
+                    cancellationToken: cts.Token);
+                taskBuilder.Add(t);
+            }
+            await Task.WhenAll(taskBuilder.Complete());
+        }
+        catch (Exception)
+        {
+            cts.Cancel();
+            throw;
+        }
+
+        continue;
+    }
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.AllTeachersExcel:
     {
-        const string outputFile = "all_teachers_orar.xlsx";
-        string outputFileFullPath = Path.GetFullPath(outputFile);
-
-        var timeConfig = new DefaultLessonTimeConfig(context.TimeConfig);
-
         var filteredSchedule = schedule.Filter(new()
         {
             PeriodFilter = new()
@@ -73,6 +189,12 @@ switch (option)
             },
         });
 
+        const string allTeachersOutputFile = "all_teachers_orar.xlsx";
+        string allTeachersOutputFileFullPath = Path.GetFullPath($"{outputDirectory}/{allTeachersOutputFile}");
+
+        var timeConfig = context.TimeConfig;
+        var seminarTime = new TimeOnly(hour: 15, minute: 00);
+        var seminarTimeSlot = timeConfig.FindTimeSlotByStartTime(seminarTime)!.Value;
         Tasks.GenerateAllTeacherExcel(new()
         {
             DayNameProvider = new DayNameProvider(),
@@ -80,13 +202,13 @@ switch (option)
             LessonTypeDisplay = new(),
             ParityDisplay = new(),
             TimeSlotDisplay = new(),
-            SeminarDate = (DayOfWeek.Wednesday, timeConfig.T15_00),
-            OutputFilePath = outputFileFullPath,
+            SeminarDate = (DayOfWeek.Wednesday, seminarTimeSlot),
+            OutputFilePath = allTeachersOutputFileFullPath,
             Schedule = filteredSchedule,
             TimeConfig = context.TimeConfig,
         });
 
-        ExplorerHelper.TryOpenExplorerAndSelectFile(outputFileFullPath);
+        ExplorerHelper.TryOpenExplorerAndSelectFile(allTeachersOutputFileFullPath);
         break;
     }
 
@@ -105,7 +227,7 @@ switch (option)
             LessonTimeConfig = context.TimeConfig,
             TimeSlotDisplay = new(),
             DayNameProvider = dayNameProvider,
-            OutputPath = "output",
+            OutputPath = outputDirectory,
         });
         break;
     }
@@ -117,11 +239,32 @@ switch (option)
         // TODO: Get this from "calendar academic"
         holidayPeriods = [];
 
-        var dateProvider = Tasks.CreateDateProviderFromWeekParityExcel(new()
-        {
-            InputPath = @"data\Paritate.docx",
-            Holidays = holidayPeriods,
-        });
+        static StudyWeek Week(int month, int day, bool isOddWeek) =>
+            new(monday: new(2025, month, day), isOddWeek: isOddWeek);
+        StudyWeek[] studyWeeks =
+        [
+            Week(month: 9,  day: 1,  isOddWeek: false),
+            Week(month: 9,  day: 8,  isOddWeek: true),
+            Week(month: 9,  day: 15, isOddWeek: false),
+            Week(month: 9,  day: 22, isOddWeek: true),
+            Week(month: 9,  day: 29, isOddWeek: false),
+            Week(month: 10, day: 6,  isOddWeek: true),
+            Week(month: 10, day: 13, isOddWeek: false),
+            Week(month: 10, day: 20, isOddWeek: true),
+            Week(month: 10, day: 27, isOddWeek: false),
+            Week(month: 11, day: 3,  isOddWeek: true),
+            Week(month: 11, day: 10, isOddWeek: false),
+            Week(month: 11, day: 17, isOddWeek: true),
+            Week(month: 11, day: 24, isOddWeek: false),
+            Week(month: 12, day: 1,  isOddWeek: true),
+            Week(month: 12, day: 8,  isOddWeek: false),
+            Week(month: 12, day: 15, isOddWeek: true),
+            Week(month: 12, day: 22, isOddWeek: false),
+        ];
+        var dateProvider = new ManualAllScheduledDateProvider(
+            studyWeeks: studyWeeks,
+            holidays: holidayPeriods);
+
         var credentials = Tasks.GetRegistryCredentials(
             config,
             allowUserInput: true);
@@ -159,7 +302,7 @@ switch (option)
             Schedule = schedule,
             TimeConfig = context.TimeConfig,
             DayNameProvider = dayNameProvider,
-            OutputPath = "output/free_rooms.xlsx",
+            OutputPath = $"{outputDirectory}/free_rooms.xlsx",
             CancellationToken = cancellationToken,
             ParityDisplay = new ParityDisplayHandler(),
             TimeSlotDisplay = new(),

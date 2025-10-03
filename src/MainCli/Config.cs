@@ -10,7 +10,7 @@ public static class Config
         ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
         IgnoredFullWords = ["p/u", "pentru"],
         IgnoredShortenedWords = ["Opț"],
-        IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
+        IgnoredProgrammingRelatedWords = ["Programare", "limbaj", "modele"],
         MinUsefulWordLength = 3,
     });
 
