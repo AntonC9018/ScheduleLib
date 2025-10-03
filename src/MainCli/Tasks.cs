@@ -6,6 +6,10 @@ using ConvertDocToDocx;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
+using Google.Apis.Util.Store;
 using Microsoft.Extensions.Configuration;
 using OpenHolidays;
 using QuestPDF.Fluent;
@@ -64,13 +68,6 @@ public static class Tasks
 {
     public static async Task GeneratePdfForGroupsAndTeachers(GeneratePdfForGroupsAndTeachersParams p)
     {
-        var outputDirPath = p.OutputPath;
-        Directory.CreateDirectory(outputDirPath);
-        foreach (var filePath in Directory.EnumerateFiles(outputDirPath, "*.pdf", SearchOption.TopDirectoryOnly))
-        {
-            File.Delete(filePath);
-        }
-
         QuestPDF.Settings.License = LicenseType.Community;
 
         var tasks = new List<Task>();
@@ -187,7 +184,7 @@ public static class Tasks
                 TimeSlotDisplay = p.TimeSlotDisplay,
             }, filteredSchedule);
 
-            var path = Path.Combine(outputDirPath, name);
+            var path = Path.Combine(p.OutputPath, name);
             generator.GeneratePdf(path);
         }
     }
@@ -1275,7 +1272,6 @@ public static class Tasks
             }
             await spreadsheet.FinishAsync();
         }
-        ExplorerHelper.TryOpenExplorerAndSelectFile(p.OutputPath);
         return;
 
         // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
@@ -1302,6 +1298,231 @@ public static class Tasks
                 .Select(S)
                 .Where(x => x.IsValid);
             return preprocessed;
+        }
+    }
+
+    public struct UploadStuffToDriveParams
+    {
+        public required IConfiguration Configuration;
+        public required string OutputDirectory;
+        public required CancellationToken CancellationToken;
+    }
+
+    public static async Task UploadStuffToDrive(UploadStuffToDriveParams p)
+    {
+        string[] scopes = [
+            DriveService.Scope.DriveFile,
+            DriveService.Scope.Drive,
+        ];
+        var credPath = "google_token_store";
+
+        var clientSecrets = p.Configuration.GetSection("Google").Get<ClientSecrets>();
+        if (clientSecrets is null
+            || clientSecrets.ClientId == null
+            || clientSecrets.ClientSecret == null)
+        {
+            throw new InvalidOperationException("Configuration for google is missing");
+        }
+
+        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+            clientSecrets: clientSecrets,
+            scopes: scopes,
+            user: "user",
+            taskCancellationToken: CancellationToken.None,
+            dataStore: new FileDataStore(credPath, fullPath: true));
+
+        using var driveService = new DriveService(
+            new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "ScheduleLib",
+            });
+        _ = driveService;
+
+        var folderId = await driveService.FindFolderId("orar", p.CancellationToken);
+        var files = await driveService.GetFiles(folderId, p.CancellationToken);
+
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var existingLocalFiles = Directory.EnumerateFiles(p.OutputDirectory)
+            .Select(x => Path.GetFileName(x))
+            .ToHashSet(comparer);
+        var existingCloudFiles = files.Select(x => x.Name).ToHashSet(comparer);
+        var cloudFilesToDelete = new List<BasicDriveFile>();
+        var cloudFilesToUpdate = new List<BasicDriveFile>();
+        var cloudFilesToCreate = new List<string>();
+        foreach (var file in files)
+        {
+            if (existingLocalFiles.Contains(file.Name))
+            {
+                cloudFilesToUpdate.Add(file);
+            }
+            else
+            {
+                cloudFilesToDelete.Add(file);
+            }
+        }
+        foreach (var local in existingLocalFiles)
+        {
+            if (!existingCloudFiles.Contains(local))
+            {
+                cloudFilesToCreate.Add(local);
+            }
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(p.CancellationToken);
+        var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
+            driveService,
+            cloudFilesToDelete,
+            cts.Token);
+        var taskBuilder = ArrayBuilder.Create<Task>(
+            cloudFilesToCreate.Count
+            + cloudFilesToUpdate.Count
+            + batchDeleteOperation.BatchCount);
+        try
+        {
+            foreach (var deleteTask in batchDeleteOperation.Tasks)
+            {
+                taskBuilder.Add(deleteTask);
+            }
+            foreach (var fileName in cloudFilesToCreate)
+            {
+                var t = driveService.UploadFile(
+                    inputFilePath: Path.Combine(p.OutputDirectory, fileName),
+                    outputFileName: fileName,
+                    folderId: folderId,
+                    cancellationToken: cts.Token);
+                taskBuilder.Add(t);
+            }
+            foreach (var file in cloudFilesToUpdate)
+            {
+                var t = driveService.UpdateFile(
+                    fileInputPath: Path.Combine(p.OutputDirectory, file.Name),
+                    fileId: file.Id,
+                    cancellationToken: cts.Token);
+                taskBuilder.Add(t);
+            }
+            await Task.WhenAll(taskBuilder.Complete());
+        }
+        catch (Exception)
+        {
+            cts.Cancel();
+            throw;
+        }
+    }
+
+    public struct PrintFreeHoursOfGroupParams
+    {
+        public required Schedule Schedule;
+        public required DayNameProvider DayNameProvider;
+        public required LessonTimeConfig TimeConfig;
+        public required string[] Groups;
+        public required StringBuilder StringBuilder;
+    }
+
+    public static void PrintFreeHoursOfGroup(PrintFreeHoursOfGroupParams p)
+    {
+        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        {
+            foreach (var group in p.Groups)
+            {
+                foreach (var isOptional in new[] { true, false })
+                {
+                    var displayHandler = new TimeSlotDisplayHandler();
+                    var groupId = p.Schedule.Groups
+                        .WithIndex()
+                        .Where(x => x.Item.Name == group)
+                        .Select(x => new GroupId(x.Index))
+                        .Single();
+                    var lessons = p.Schedule.RegularLessons
+                        .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
+                        .Where(x =>
+                        {
+                            if (!isOptional)
+                            {
+                                return true;
+                            }
+                            var sg = x.Lesson.SubGroup;
+                            if (sg == SubGroup.All)
+                            {
+                                return true;
+                            }
+                            if (sg.Value == "opțional")
+                            {
+                                return true;
+                            }
+                            return false;
+                        });
+
+                    var allTimes = p.TimeConfig.TimeSlots
+                        .SelectMany(x => new[]
+                            {
+                                DayOfWeek.Monday,
+                                DayOfWeek.Tuesday,
+                                DayOfWeek.Wednesday,
+                                DayOfWeek.Thursday,
+                                DayOfWeek.Friday,
+                            }
+                            .Select(y => (Day: y, Time: x)));
+
+                    var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
+                    var unusedTimes = allTimes.Except(usedTimes);
+
+                    var orderedTimes = unusedTimes.OrderBy(x => (x.Day, x.Time));
+                    var byDay = orderedTimes
+                        .GroupBy(x => x.Day)
+                        .Select(x => (Day: x.Key, Times: MergeConsecutive(x.Select(y => y.Time))));
+
+                    var parityDisplay = new ParityDisplayHandler();
+                    p.StringBuilder.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
+                    foreach (var day in byDay)
+                    {
+                        p.StringBuilder.Append(p.DayNameProvider.GetDayName(day.Day));
+                        p.StringBuilder.Append(":");
+
+                        var listBuilder = new ListStringBuilder(p.StringBuilder, ",");
+                        foreach (var time in day.Times)
+                        {
+                            var start = time.Start;
+                            var end = time.EndInclusive;
+                            var startTime = p.TimeConfig.GetTimeSlotInterval(start).Start;
+                            var endTime = p.TimeConfig.GetTimeSlotInterval(end).End;
+                            var duration = endTime - startTime;
+                            var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
+                            listBuilder.Append(intervalStr);
+                        }
+                        p.StringBuilder.AppendLine();
+                    }
+                    p.StringBuilder.AppendLine();
+                    continue;
+
+
+                    IEnumerable<(TimeSlot Start, TimeSlot EndInclusive)> MergeConsecutive(IEnumerable<TimeSlot> x)
+                    {
+                        using var e = x.GetEnumerator();
+                        if (!e.MoveNext())
+                        {
+                            yield break;
+                        }
+                        var start = e.Current;
+                        var prev = start;
+                        while (true)
+                        {
+                            if (!e.MoveNext())
+                            {
+                                yield return (start, prev);
+                                yield break;
+                            }
+                            var c = e.Current;
+                            if (c.Index - prev.Index > 1)
+                            {
+                                yield return (start, prev);
+                                start = c;
+                            }
+                            prev = c;
+                        }
+                    }
+                }
+            }
         }
     }
 }

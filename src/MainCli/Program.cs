@@ -40,10 +40,10 @@ const Session semester = Session.Ses1;
 
     string dirName = @$"data\{year}_sem{(int) semester}";
     _ = dirName;
-    // await Tasks.ParseDocumentDirIntoSchedule(
-    //     context,
-    //     dirName,
-    //     cancellationToken: cancellationToken);
+    await Tasks.ParseDocumentDirIntoSchedule(
+        context,
+        dirName,
+        cancellationToken: cancellationToken);
 }
 
 var schedule = context.Schedule.Build();
@@ -58,11 +58,13 @@ IConfiguration config;
 }
 
 const string outputDirectory = "output";
-// if (Directory.Exists(outputDirectory))
-// {
-//     Directory.Delete(outputDirectory, recursive: true);
-// }
 
+const string allTeachersOutputFile = "all_teachers_orar.xlsx";
+string allTeachersOutputFileFullPath = Path.GetFullPath($"{outputDirectory}/{allTeachersOutputFile}");
+
+const string freeRoomExcelOutputPath = $"{outputDirectory}/free_rooms.xlsx";
+
+// TODO: Use DI
 var options = new Option[]
 {
     // Option.AllTeachersExcel,
@@ -76,138 +78,28 @@ switch (option)
 {
     case Option.UploadDocsToDrive:
     {
-        string[] scopes = [
-            DriveService.Scope.DriveFile,
-            DriveService.Scope.Drive,
+        if (Directory.Exists(outputDirectory))
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+        Task[] tasks = [
+            GenerateAllTeacherExcel(),
+            GenerateFreeRoomsExcel(),
+            GeneratePdfsForGroupsAndTeachers(),
         ];
-        var credPath = "google_token_store";
-
-        var clientSecrets = config.GetSection("Google").Get<ClientSecrets>();
-        if (clientSecrets is null
-            || clientSecrets.ClientId == null
-            || clientSecrets.ClientSecret == null)
+        await Task.WhenAll(tasks);
+        await Tasks.UploadStuffToDrive(new()
         {
-            throw new InvalidOperationException("Configuration for google is missing");
-        }
-
-        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-            clientSecrets: clientSecrets,
-            scopes: scopes,
-            user: "user",
-            taskCancellationToken: CancellationToken.None,
-            dataStore: new FileDataStore(credPath, fullPath: true));
-
-        using var driveService = new DriveService(
-            new BaseClientService.Initializer
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "ScheduleLib",
-            });
-        _ = driveService;
-
-        var folderId = await driveService.FindFolderId("orar", cancellationToken);
-        var files = await driveService.GetFiles(folderId, cancellationToken);
-
-        var comparer = StringComparer.OrdinalIgnoreCase;
-        var existingLocalFiles = Directory.EnumerateFiles(outputDirectory)
-            .Select(x => Path.GetFileName(x))
-            .ToHashSet(comparer);
-        var existingCloudFiles = files.Select(x => x.Name).ToHashSet(comparer);
-        var cloudFilesToDelete = new List<BasicDriveFile>();
-        var cloudFilesToUpdate = new List<BasicDriveFile>();
-        var cloudFilesToCreate = new List<string>();
-        foreach (var file in files)
-        {
-            if (existingLocalFiles.Contains(file.Name))
-            {
-                cloudFilesToUpdate.Add(file);
-            }
-            else
-            {
-                cloudFilesToDelete.Add(file);
-            }
-        }
-        foreach (var local in existingLocalFiles)
-        {
-            if (!existingCloudFiles.Contains(local))
-            {
-                cloudFilesToCreate.Add(local);
-            }
-        }
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
-            driveService,
-            cloudFilesToDelete,
-            cts.Token);
-        var taskBuilder = ArrayBuilder.Create<Task>(
-            cloudFilesToCreate.Count
-            + cloudFilesToUpdate.Count
-            + batchDeleteOperation.BatchCount);
-        try
-        {
-            foreach (var deleteTask in batchDeleteOperation.Tasks)
-            {
-                taskBuilder.Add(deleteTask);
-            }
-            foreach (var fileName in cloudFilesToCreate)
-            {
-                var t = driveService.UploadFile(
-                    inputFilePath: Path.Combine(outputDirectory, fileName),
-                    outputFileName: fileName,
-                    folderId: folderId,
-                    cancellationToken: cts.Token);
-                taskBuilder.Add(t);
-            }
-            foreach (var file in cloudFilesToUpdate)
-            {
-                var t = driveService.UpdateFile(
-                    fileInputPath: Path.Combine(outputDirectory, file.Name),
-                    fileId: file.Id,
-                    cancellationToken: cts.Token);
-                taskBuilder.Add(t);
-            }
-            await Task.WhenAll(taskBuilder.Complete());
-        }
-        catch (Exception)
-        {
-            cts.Cancel();
-            throw;
-        }
-
+            Configuration = config,
+            CancellationToken = cancellationToken,
+            OutputDirectory = outputDirectory,
+        });
         continue;
     }
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.AllTeachersExcel:
     {
-        var filteredSchedule = schedule.Filter(new()
-        {
-            PeriodFilter = new()
-            {
-                PeriodId = new(schedule.Periods.Length - 1),
-                UnspecifiedIsAll = true,
-            },
-        });
-
-        const string allTeachersOutputFile = "all_teachers_orar.xlsx";
-        string allTeachersOutputFileFullPath = Path.GetFullPath($"{outputDirectory}/{allTeachersOutputFile}");
-
-        var timeConfig = context.TimeConfig;
-        var seminarTime = new TimeOnly(hour: 15, minute: 00);
-        var seminarTimeSlot = timeConfig.FindTimeSlotByStartTime(seminarTime)!.Value;
-        Tasks.GenerateAllTeacherExcel(new()
-        {
-            DayNameProvider = new DayNameProvider(),
-            StringBuilder = new(),
-            LessonTypeDisplay = new(),
-            ParityDisplay = new(),
-            TimeSlotDisplay = new(),
-            SeminarDate = (DayOfWeek.Wednesday, seminarTimeSlot),
-            OutputFilePath = allTeachersOutputFileFullPath,
-            Schedule = filteredSchedule,
-            TimeConfig = context.TimeConfig,
-        });
-
+        await GenerateAllTeacherExcel();
         ExplorerHelper.TryOpenExplorerAndSelectFile(allTeachersOutputFileFullPath);
         break;
     }
@@ -215,20 +107,8 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.PerGroupAndPerTeacherPdfs:
     {
-        await Tasks.GeneratePdfForGroupsAndTeachers(new()
-        {
-            LessonTextDisplayServices = new()
-            {
-                ParityDisplay = new(),
-                LessonTypeDisplay = new(),
-                SubGroupNumberDisplay = new(),
-            },
-            Schedule = schedule,
-            LessonTimeConfig = context.TimeConfig,
-            TimeSlotDisplay = new(),
-            DayNameProvider = dayNameProvider,
-            OutputPath = outputDirectory,
-        });
+        await GeneratePdfsForGroupsAndTeachers();
+        ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
         break;
     }
 
@@ -297,130 +177,88 @@ switch (option)
     // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
     case Option.FreeRooms:
     {
-        await Tasks.GenerateFreeRoomsExcel(new()
-        {
-            Schedule = schedule,
-            TimeConfig = context.TimeConfig,
-            DayNameProvider = dayNameProvider,
-            OutputPath = $"{outputDirectory}/free_rooms.xlsx",
-            CancellationToken = cancellationToken,
-            ParityDisplay = new ParityDisplayHandler(),
-            TimeSlotDisplay = new(),
-        });
+        await GenerateFreeRoomsExcel();
+        ExplorerHelper.TryOpenExplorerAndSelectFile(freeRoomExcelOutputPath);
         break;
     }
 
     case Option.FreeHoursOfGroup:
     {
         var sb = new StringBuilder();
-        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        Tasks.PrintFreeHoursOfGroup(new()
         {
-            foreach (var group in new[] { "IA2401", "I2301" })
-            {
-                foreach (var isOptional in new[] { true, false })
-                {
-                    var displayHandler = new TimeSlotDisplayHandler();
-                    var groupId = schedule.Groups
-                        .WithIndex()
-                        .Where(x => x.Item.Name == group)
-                        .Select(x => new GroupId(x.Index))
-                        .Single();
-                    var lessons = schedule.RegularLessons
-                        .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
-                        .Where(x =>
-                        {
-                            if (!isOptional)
-                            {
-                                return true;
-                            }
-                            var sg = x.Lesson.SubGroup;
-                            if (sg == SubGroup.All)
-                            {
-                                return true;
-                            }
-                            if (sg.Value == "opțional")
-                            {
-                                return true;
-                            }
-                            return false;
-                        });
-
-                    var allTimes = context.TimeConfig.TimeSlots
-                        .SelectMany(x => new[]
-                            {
-                                DayOfWeek.Monday,
-                                DayOfWeek.Tuesday,
-                                DayOfWeek.Wednesday,
-                                DayOfWeek.Thursday,
-                                DayOfWeek.Friday,
-                            }
-                            .Select(y => (Day: y, Time: x)));
-
-                    var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
-                    var unusedTimes = allTimes.Except(usedTimes);
-
-                    var orderedTimes = unusedTimes.OrderBy(x => (x.Day, x.Time));
-                    var byDay = orderedTimes
-                        .GroupBy(x => x.Day)
-                        .Select(x => (Day: x.Key, Times: MergeConsecutive(x.Select(y => y.Time))));
-
-                    var parityDisplay = new ParityDisplayHandler();
-                    sb.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
-                    foreach (var day in byDay)
-                    {
-                        sb.Append(dayNameProvider.GetDayName(day.Day));
-                        sb.Append(":");
-
-                        var listBuilder = new ListStringBuilder(sb, ",");
-                        foreach (var time in day.Times)
-                        {
-                            var start = time.Start;
-                            var end = time.EndInclusive;
-                            var startTime = context.TimeConfig.GetTimeSlotInterval(start).Start;
-                            var endTime = context.TimeConfig.GetTimeSlotInterval(end).End;
-                            var duration = endTime - startTime;
-                            var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
-                            listBuilder.Append(intervalStr);
-                        }
-                        sb.AppendLine();
-                    }
-                    sb.AppendLine();
-                    continue;
-
-
-                    IEnumerable<(TimeSlot Start, TimeSlot EndInclusive)> MergeConsecutive(IEnumerable<TimeSlot> x)
-                    {
-                        using var e = x.GetEnumerator();
-                        if (!e.MoveNext())
-                        {
-                            yield break;
-                        }
-                        var start = e.Current;
-                        var prev = start;
-                        while (true)
-                        {
-                            if (!e.MoveNext())
-                            {
-                                yield return (start, prev);
-                                yield break;
-                            }
-                            var c = e.Current;
-                            if (c.Index - prev.Index > 1)
-                            {
-                                yield return (start, prev);
-                                start = c;
-                            }
-                            prev = c;
-                        }
-                    }
-                }
-            }
-        }
+            Groups = [ "IA2401", "I2301" ],
+            Schedule = schedule,
+            StringBuilder = sb,
+            TimeConfig = context.TimeConfig,
+            DayNameProvider = dayNameProvider,
+        });
         Console.WriteLine(sb.ToStringAndClear());
-
         break;
     }
 }
 
+}
 
+async Task GenerateFreeRoomsExcel()
+{
+    await Tasks.GenerateFreeRoomsExcel(new()
+    {
+        Schedule = schedule,
+        TimeConfig = context.TimeConfig,
+        DayNameProvider = dayNameProvider,
+        OutputPath = freeRoomExcelOutputPath,
+        CancellationToken = cancellationToken,
+        ParityDisplay = new ParityDisplayHandler(),
+        TimeSlotDisplay = new(),
+    });
+}
+
+async Task GeneratePdfsForGroupsAndTeachers()
+{
+    await Tasks.GeneratePdfForGroupsAndTeachers(new()
+    {
+        LessonTextDisplayServices = new()
+        {
+            ParityDisplay = new(),
+            LessonTypeDisplay = new(),
+            SubGroupNumberDisplay = new(),
+        },
+        Schedule = schedule,
+        LessonTimeConfig = context.TimeConfig,
+        TimeSlotDisplay = new(),
+        DayNameProvider = dayNameProvider,
+        OutputPath = outputDirectory,
+    });
+}
+
+Task GenerateAllTeacherExcel()
+{
+    return Task.Run(() =>
+    {
+        var filteredSchedule = schedule.Filter(new()
+        {
+            PeriodFilter = new()
+            {
+                PeriodId = new(schedule.Periods.Length - 1),
+                UnspecifiedIsAll = true,
+            },
+        });
+
+        var timeConfig = context.TimeConfig;
+        var seminarTime = new TimeOnly(hour: 15, minute: 00);
+        var seminarTimeSlot = timeConfig.FindTimeSlotByStartTime(seminarTime)!.Value;
+        Tasks.GenerateAllTeacherExcel(new()
+        {
+            DayNameProvider = new DayNameProvider(),
+            StringBuilder = new(),
+            LessonTypeDisplay = new(),
+            ParityDisplay = new(),
+            TimeSlotDisplay = new(),
+            SeminarDate = (DayOfWeek.Wednesday, seminarTimeSlot),
+            OutputFilePath = allTeachersOutputFileFullPath,
+            Schedule = filteredSchedule,
+            TimeConfig = context.TimeConfig,
+        });
+    });
 }
