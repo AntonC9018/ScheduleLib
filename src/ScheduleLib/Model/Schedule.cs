@@ -248,6 +248,8 @@ public enum QualificationType
     Licenta,
     Master,
     Doctor,
+    Count,
+    Invalid = -1,
 }
 
 public enum Language
@@ -261,12 +263,17 @@ public enum Language
 public readonly record struct Faculty(string Name);
 public readonly record struct Specialty(string? Name);
 
-public readonly record struct Grade(int Value);
+public readonly record struct Grade(int Value)
+{
+    public static Grade Invalid => new(-1);
+}
+
 public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
     Count,
+    Invalid = -1,
 }
 
 public record struct OneForEachAttendanceMode<T>

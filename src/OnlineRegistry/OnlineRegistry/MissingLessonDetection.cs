@@ -9,6 +9,8 @@ internal readonly struct GetDateTimesOfScheduledLessonsParams
     public required Schedule Schedule { get; init; }
     public required LessonTimeConfig TimeConfig { get; init; }
     public required IAllScheduledDateProvider DateProvider { get; init; }
+    public required SemesterIntervalProvider SemesterIntervalProvider { get; init; }
+    public required Semester Semester { get; init; }
 }
 
 internal interface IDateTime
@@ -40,8 +42,8 @@ public static class MissingLessonDetection
         foreach (var lessonId in p.Lessons)
         {
             var lesson = p.Schedule.Get(lessonId);
-            var lessonDate = lesson.Date;
 
+            var lessonDate = lesson.Date;
             var timeSlot = lessonDate.TimeSlot;
             var startTime = p.TimeConfig.GetTimeSlotInterval(timeSlot).Start;
 
@@ -63,6 +65,23 @@ public static class MissingLessonDetection
                     }
                 }
             }
+            {
+                var semester = p.SemesterIntervalProvider.GetSemesterInterval(new()
+                {
+                    Schedule = p.Schedule,
+                    GroupId = lesson.Lesson.Group,
+                    Semester = p.Semester,
+                });
+                if (semester.End < datesParams.To)
+                {
+                    datesParams.To = semester.End;
+                }
+                if (semester.Start > datesParams.From)
+                {
+                    datesParams.From = semester.Start;
+                }
+            }
+
             var dates = p.DateProvider.Dates(datesParams);
             foreach (var date in dates)
             {

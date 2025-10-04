@@ -38,7 +38,7 @@ const Semester semester = Semester.Sem1;
     const int year = 2025;
     context.Schedule.SetStudyYear(year);
 
-    string dirName = @$"data\{year}_sem{(int) semester}";
+    string dirName = @$"data\{year}_sem{semester.AsOrdinal()}";
     _ = dirName;
     await Tasks.ParseDocumentDirIntoSchedule(
         context,
@@ -117,7 +117,10 @@ switch (option)
     {
         HolidayPeriod[] holidayPeriods;
         // TODO: Get this from "calendar academic"
-        holidayPeriods = [];
+        holidayPeriods = [
+            new(new(2026, 1, 1), new(2026, 1, 26)),
+            new(new(2026, 4, 12), new(2026, 4, 21)),
+        ];
 
         static StudyWeek Week(int month, int day, bool isOddWeek) =>
             new(monday: new(2025, month, day), isOddWeek: isOddWeek);
@@ -148,6 +151,49 @@ switch (option)
         var credentials = Tasks.GetRegistryCredentials(
             config,
             allowUserInput: true);
+
+        // TODO: read from image??
+        static SemesterIntervalProvider SemesterIntervalProvider()
+        {
+            var s = new SemesterIntervalBuilder();
+            s.Scope(x =>
+            {
+                x.Semester(Semester.Sem1);
+                x.AttendanceMode(AttendanceMode.Zi);
+                x.QualificationType(QualificationType.Licenta);
+
+                {
+                    x.Year(2025);
+                    x.LessonsStart(month: 9, day: 1);
+                    x.LessonsEnd(month: 12, day: 14);
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        var r = x.Range();
+                        r.Grade(new(i));
+                    }
+                }
+                {
+                    x.Year(2026);
+
+                    x.LessonsStart(month: 2, day: 2);
+                    x.LessonsEnd(month: 5, day: 10);
+                    for (int i = 1; i <= 2; i++)
+                    {
+                        var r = x.Range();
+                        r.Grade(new(i));
+                    }
+
+                    x.Range(r =>
+                    {
+                        r.Grade(new(3));
+                        r.LessonsStart(month: 2, day: 23);
+                        r.LessonsEnd(month: 4, day: 11);
+                    });
+                }
+            });
+            return s.Build();
+        }
+
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
@@ -162,6 +208,7 @@ switch (option)
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process
                 .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
+            SemesterIntervalProvider = SemesterIntervalProvider(),
         });
         break;
     }

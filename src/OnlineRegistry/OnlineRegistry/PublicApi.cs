@@ -10,10 +10,20 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public enum Session
+public enum Semester
 {
-    Ses1 = 1,
-    Ses2 = 2,
+    Sem1,
+    Sem2,
+    Count = 2,
+    Invalid = -1,
+}
+
+public static class SemesterHelper
+{
+    public static int AsOrdinal(this Semester semester)
+    {
+        return (int) semester + 1;
+    }
 }
 
 public struct AddLessonsToOnlineRegistryParams()
@@ -29,7 +39,7 @@ public struct AddLessonsToOnlineRegistryParams()
     /// </summary>
     public NamesConfig? Names = null;
 
-    public required Session Session;
+    public required Semester Semester;
     public required Schedule Schedule;
     public required IRegistryErrorHandler ErrorHandler;
     public required CourseNameUnifierModule CourseNameUnifier;
@@ -37,6 +47,7 @@ public struct AddLessonsToOnlineRegistryParams()
     public required LookupModule LookupModule;
     public required IAllScheduledDateProvider DateProvider;
     public required LessonTimeConfig TimeConfig;
+    public required SemesterIntervalProvider SemesterIntervalProvider;
     public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
 }
 
@@ -73,6 +84,8 @@ public static partial class RegistryScraping
                     Schedule = p.Schedule,
                     DateProvider = p.DateProvider,
                     TimeConfig = p.TimeConfig,
+                    SemesterIntervalProvider = p.SemesterIntervalProvider,
+                    Semester = p.Semester,
                 });
 
                 var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
@@ -264,7 +277,7 @@ public static partial class RegistryScraping
             var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
             {
                 Document = doc,
-                Session = p.Session,
+                Semester = p.Semester,
                 ErrorHandler = p.ErrorHandler,
                 LookupModule = p.LookupModule,
                 CourseNameUnifier = p.CourseNameUnifier,

@@ -32,7 +32,7 @@ internal readonly struct ScanCoursesParams
     public required IRegistryErrorHandler ErrorHandler { get; init; }
     public required LookupModule LookupModule { private get; init; }
     public required CourseNameUnifierModule CourseNameUnifier { private get; init; }
-    public required Session Session { get; init; }
+    public required Semester Semester { get; init; }
 
     internal CourseId? FindCourse(string name)
     {
@@ -68,7 +68,7 @@ internal static class HtmlSearch
 {
     internal static IEnumerable<CourseLink> ScanCoursesDocumentForLinks(ScanCoursesParams p)
     {
-        var queryString = $"#nav-{SemString(p.Session)} > div > span:nth-of-type(2) > a";
+        var queryString = $"#nav-{SemString(p.Semester)} > div > span:nth-of-type(2) > a";
         var anchors = p.Document.QuerySelectorAll(queryString);
         foreach (var el in anchors)
         {
@@ -88,12 +88,12 @@ internal static class HtmlSearch
             yield return new(courseId, new(url));
         }
 
-        static string SemString(Session session)
+        static string SemString(Semester session)
         {
             return session switch
             {
-                Session.Ses1 => "1",
-                Session.Ses2 => "2",
+                Semester.Sem1 => "1",
+                Semester.Sem2 => "2",
                 _ => throw new InvalidOperationException("??"),
             };
         }
