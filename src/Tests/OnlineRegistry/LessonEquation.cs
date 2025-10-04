@@ -267,7 +267,7 @@ file sealed class Context
     private const int Year = 2024;
     public static readonly DefaultLessonTimeConfig TimeConfig = LessonTimeConfig.CreateDefault();
     private readonly List<LessonConfig> _lessonConfigs = new();
-    private readonly List<LessonInstanceLink> _existingLessons = new();
+    private readonly List<RemoteLessonInstance> _existingLessons = new();
     private static DateOnly BaseDate
     {
         get
@@ -311,12 +311,14 @@ file sealed class Context
     {
         var date = GetDate(config.Day);
         var time = TimeConfig.Base.GetTimeSlotInterval(config.TimeSlot).Start;
-        var l = new LessonInstanceLink
+        var l = new RemoteLessonInstance
         {
             DateTime = new DateTime(date: date, time: time),
             LessonType = config.Type,
             EditUri = null!,
             ViewUri = null!,
+            Attendance = [],
+            Topic = "",
         };
         _existingLessons.Add(l);
     }
@@ -415,6 +417,8 @@ file sealed class Context
             {
                 DateTime = new DateTime(date, time),
                 LessonId = new(lessonId),
+                Attendance = [],
+                Topic = "",
             });
         }
 

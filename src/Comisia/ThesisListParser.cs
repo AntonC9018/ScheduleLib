@@ -202,7 +202,7 @@ public static class ThesisListParser
                                         break;
                                     }
 
-                                    var studentName = CommissionParser.ParseStudentName(ref parser);
+                                    var studentName = NameHelper.ParseName(ref parser);
                                     state.StudentNames.Add(studentName);
                                     if (!parser.SkipWhitespace().SkippedAny)
                                     {
@@ -323,7 +323,7 @@ public static class ThesisListParser
     {
         var parser = new Parser(text);
         parser.SkipWhitespace();
-        var studentName = CommissionParser.ParseStudentName(ref parser);
+        var studentName = NameHelper.ParseName(ref parser);
         parser.SkipWhitespace();
         if (!parser.IsEmpty)
         {

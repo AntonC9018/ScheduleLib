@@ -87,7 +87,7 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
 
     public int Compare(NameParts<string?> a, NameParts<string?> b)
     {
-        return NameHelper.CompareEach<string?>(
+        return NamePartHelper.CompareEach<string?>(
             a,
             b,
             // Handles nulls just fine.

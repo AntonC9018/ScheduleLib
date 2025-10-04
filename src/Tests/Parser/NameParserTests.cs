@@ -2,12 +2,12 @@ using ScheduleLib.Parsing;
 
 namespace Comisia.Tests;
 
-public sealed class NameTests
+public sealed class NameParserTests
 {
     private Name ParseName(string s)
     {
         var p = new Parser(s);
-        var r = CommissionParser.ParseStudentName(ref p);
+        var r = NameHelper.ParseName(ref p);
         Assert.True(p.IsEmpty);
         return r;
     }
@@ -61,7 +61,7 @@ public sealed class NameTests
     public void StuffAfterIgnored()
     {
         var p = new Parser("Last First Patro (ABC) Extra Stuff");
-        var s = CommissionParser.ParseStudentName(ref p);
+        var s = NameHelper.ParseName(ref p);
         _ = s;
         Assert.True(p.ConsumeExactString(" (ABC) Extra Stuff"));
     }

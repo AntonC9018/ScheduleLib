@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using ScheduleLib;
+using ScheduleLib.Parsing;
 
 namespace Comisia;
 

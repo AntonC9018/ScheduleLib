@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace MainCli.Helper;
+namespace ScheduleLib.Helper;
 
 public struct ArrayBuilder<T>
 {

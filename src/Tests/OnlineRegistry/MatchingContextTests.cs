@@ -115,6 +115,8 @@ file static class Extensions
         {
             LessonId = default,
             DateTime = dt,
+            Attendance = [],
+            Topic = "",
         });
     }
 
@@ -126,6 +128,8 @@ file static class Extensions
             DateTime = dt,
             EditUri = default!,
             ViewUri = default!,
+            Attendance = [],
+            Topic = "",
         });
     }
 

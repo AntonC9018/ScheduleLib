@@ -2,6 +2,8 @@ using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -18,12 +20,14 @@ internal readonly record struct GroupLink
     public required Uri Uri { get; init; }
 }
 
-internal readonly record struct LessonInstanceLink : IDateTime
+internal readonly record struct RemoteLessonInstance : IDateTime
 {
     public required DateTime DateTime { get; init; }
     public required LessonType LessonType { get; init; }
     public required Uri EditUri { get; init; }
     public required Uri ViewUri { get; init; }
+    public required Attendance[] Attendance { get; init; }
+    public required string? Topic { get; init; }
 }
 
 internal readonly struct ScanCoursesParams
@@ -64,11 +68,18 @@ internal readonly struct ScanLessonsParams
     public required IRegistryErrorHandler ErrorHandler { get; init; }
 }
 
+internal readonly struct ScanLessonResult
+{
+    public required IEnumerable<RemoteLessonInstance> Lessons { get; init; }
+    public required string[] StudentNames { get; init; }
+}
+
 internal static class HtmlSearch
 {
     internal static IEnumerable<CourseLink> ScanCoursesDocumentForLinks(ScanCoursesParams p)
     {
         var queryString = $"#nav-{SemString(p.Semester)} > div > span:nth-of-type(2) > a";
+
         var anchors = p.Document.QuerySelectorAll(queryString);
         foreach (var el in anchors)
         {
@@ -148,69 +159,148 @@ internal static class HtmlSearch
         return uri;
     }
 
-    internal static IEnumerable<LessonInstanceLink> ScanLessonsDocumentForLessonInstances(
+
+    internal static ScanLessonResult ScanLessonsDocumentForLessonInstances(
         ScanLessonsParams p)
     {
-        const string rowPath = """main > div:nth-of-type(3) > table > tbody > tr""";
-        var rows = p.Document.QuerySelectorAll(rowPath).Skip(1);
-        foreach (var row in rows)
+        const string attendanceTablePath = """main > div:last-of-type table""";
+        var attendanceTable = (IHtmlTableElement) (
+            p.Document.QuerySelector(attendanceTablePath)
+                ?? throw new InvalidOperationException("Attendance table not found in the page"));
+        var headerRow = attendanceTable.Rows[0];
+        var columnCount = headerRow.Cells.Length;
+        int attendanceStartColIndex = 3;
+        int attendanceLessonCount = columnCount - attendanceStartColIndex;
+        int attendanceStartRowIndex = 1; // skip header
+        int studentCount = attendanceTable.Rows.Length - attendanceStartRowIndex;
+
+        const string lessonTablePath = """main > div:nth-of-type(3) > table""";
+        var lessonTable = (IHtmlTableElement) (p.Document.QuerySelector(lessonTablePath)
+            ?? throw new InvalidOperationException("Lesson table not found in the page"));
+        int lessonRowStart = 1;
+        int lessonCount = lessonTable.Rows.Length - lessonRowStart;
+
+        IEnumerable<IHtmlTableCellElement> AttendanceCells(int column)
         {
-            var cells = row.Children;
-            // NOTE: these are going to throw an invalid cast if anything is weird with the nodes.
-            var first = ProcessFirst();
-            var editUri = ProcessEdit();
-            yield return new()
+            for (int i = 0; i < studentCount; i++)
             {
-                EditUri = editUri,
-                ViewUri = first.ViewUri,
-                DateTime = first.DateTime,
-                LessonType = first.LessonType,
-            };
-            continue;
+                var row = attendanceTable.Rows[attendanceStartRowIndex + i];
+                var cell = row.Cells[column];
+                yield return cell;
+            }
+        }
 
-            (LessonType LessonType, DateTime DateTime, Uri ViewUri) ProcessFirst()
+        if (attendanceLessonCount != lessonCount)
+        {
+            throw new InvalidOperationException("Attendance and lesson count mismatch");
+        }
+
+        var studentNames = AttendanceCells(1).Select(x => x.Text()).ToArray();
+        var ret = new ScanLessonResult
+        {
+           Lessons = E(),
+           StudentNames = studentNames,
+        };
+        return ret;
+
+        IEnumerable<RemoteLessonInstance> E()
+        {
+            for (int i = 0; i < lessonCount; i++)
             {
-                var dateTimeAndTypeCell = (IHtmlTableDataCellElement) cells[0];
-                var children = dateTimeAndTypeCell.ChildNodes;
-
-                LessonType lessonType;
+                // NOTE: these are going to throw an invalid cast if anything is weird with the nodes.
+                var lessonRow = lessonTable.Rows[lessonRowStart + i];
+                var attendanceCells = AttendanceCells(attendanceStartColIndex + i);
+                var first = ProcessFirst(lessonRow.Cells[0], p.ErrorHandler);
+                var topic = ExtractTopic(lessonRow.Cells[1]);
+                var editUri = ProcessEdit(lessonRow.Cells[2]);
+                var attendance = ExtractAttendance(attendanceCells);
+                yield return new()
                 {
-                    var typeNode = children[^1];
-                    var typeText = typeNode.TextContent;
-                    lessonType = RegistryScraping.ParseLessonType(typeText, p.ErrorHandler);
+                    EditUri = editUri,
+                    ViewUri = first.ViewUri,
+                    DateTime = first.DateTime,
+                    LessonType = first.LessonType,
+                    Attendance = attendance,
+                    Topic = topic,
+                };
+                continue;
+            }
+        }
+
+        static (LessonType LessonType, DateTime DateTime, Uri ViewUri) ProcessFirst(
+            IHtmlTableCellElement cell,
+            IRegistryErrorHandler errorHandler)
+        {
+            var dateTimeAndTypeCell = (IHtmlTableDataCellElement) cell;
+            var children = dateTimeAndTypeCell.ChildNodes;
+
+            LessonType lessonType;
+            {
+                var typeNode = children[^1];
+                var typeText = typeNode.TextContent;
+                lessonType = RegistryScraping.ParseLessonType(typeText, errorHandler);
+            }
+
+            DateTime dateTime;
+            Uri viewUri;
+            {
+                var anchor = children.OfType<IHtmlAnchorElement>().First();
+                var dateTimeText = anchor.Text;
+                var span = dateTimeText.AsSpan();
+                span = span.Trim();
+                const string format = "dd.MM.yyyy HH:mm";
+                bool success = DateTime.TryParseExact(
+                    format: format,
+                    s: span,
+                    provider: null,
+                    style: DateTimeStyles.AssumeLocal,
+                    result: out dateTime);
+                if (!success)
+                {
+                    throw new NotSupportedException("The date time didn't parse properly");
                 }
 
-                DateTime dateTime;
-                Uri viewUri;
-                {
-                    var anchor = children.OfType<IHtmlAnchorElement>().First();
-                    var dateTimeText = anchor.Text;
-                    var span = dateTimeText.AsSpan();
-                    span = span.Trim();
-                    const string format = "dd.MM.yyyy HH:mm";
-                    bool success = DateTime.TryParseExact(
-                        format: format,
-                        s: span,
-                        provider: null,
-                        style: DateTimeStyles.AssumeLocal,
-                        result: out dateTime);
-                    if (!success)
-                    {
-                        throw new NotSupportedException("The date time didn't parse properly");
-                    }
-
-                    viewUri = new(anchor.Href);
-                }
-
-                return (lessonType, dateTime, viewUri);
+                viewUri = new(anchor.Href);
             }
-            Uri ProcessEdit()
+
+            return (lessonType, dateTime, viewUri);
+        }
+
+        static string ExtractTopic(IHtmlTableCellElement cell)
+        {
+            var topicRaw = cell.Text();
+            var parser = new Parser(topicRaw);
+
+            // Number in front.
+            parser.SkipWhitespace();
+            parser.SkipNumbers();
+            parser.SkipWhitespace();
+
+            // Padded with space at the end.
+            var t = parser.PeekSpanUntilEnd().TrimEnd();
+            var topic = t.ToString();
+            return topic;
+        }
+
+        static Uri ProcessEdit(
+            IHtmlTableCellElement cell)
+        {
+            var editCell = (IHtmlTableDataCellElement) cell;
+            var editAnchor = (IHtmlAnchorElement) editCell.Children[0];
+            var ret = new Uri(editAnchor.Href);
+            return ret;
+        }
+
+        Attendance[] ExtractAttendance(IEnumerable<IHtmlTableCellElement> attendanceValues)
+        {
+            var b = ArrayBuilder.Create<Attendance>(studentCount);
+            foreach (var x in attendanceValues)
             {
-                var editCell = (IHtmlTableDataCellElement) cells[2];
-                var editAnchor = (IHtmlAnchorElement) editCell.Children[0];
-                var ret = new Uri(editAnchor.Href);
-                return ret;
+                var t = x.Text();
+                var attendance = AttendanceHelper.Parse(t);
+                b.Add(attendance);
             }
+            return b.Complete();
         }
     }
 

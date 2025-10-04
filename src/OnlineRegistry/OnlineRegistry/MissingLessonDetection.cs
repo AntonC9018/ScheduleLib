@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib.OnlineRegistry;
 
@@ -18,11 +19,18 @@ internal interface IDateTime
     DateTime DateTime { get; }
 }
 
+internal readonly record struct LessonWithDate : IDateTime
+{
+    public required RegularLessonId LessonId { get; init; }
+    public required DateTime DateTime { get; init; }
+}
+
 internal readonly record struct LessonInstance : IDateTime
 {
     public required RegularLessonId LessonId { get; init; }
     public required DateTime DateTime { get; init; }
-    // TODO: add topics
+    public required string? Topic { get; init; }
+    public required Attendance[]? Attendance { get; init; }
 }
 
 internal readonly record struct LessonMatchParams
@@ -36,7 +44,7 @@ internal readonly record struct LessonMatchParams
 
 public static class MissingLessonDetection
 {
-    internal static IEnumerable<LessonInstance> GetDateTimesOfScheduledLessons(
+    internal static IEnumerable<LessonWithDate> GetDateTimesOfScheduledLessons(
         GetDateTimesOfScheduledLessonsParams p)
     {
         foreach (var lessonId in p.Lessons)
@@ -122,7 +130,7 @@ public static class MissingLessonDetection
     {
         public required Schedule Schedule;
         public required MatchingLists Lists;
-        public required IEnumerable<LessonInstanceLink> ExistingLessons;
+        public required IEnumerable<RemoteLessonInstance> ExistingLessons;
         public required IEnumerable<LessonInstance> AllLessons;
     }
 
@@ -215,21 +223,16 @@ public static class MissingLessonDetection
 
             void AddPartialMatches()
             {
-                foreach (var x in matchingContext.IteratePotentialMappings())
+                foreach (var criteria in new AllEnumEnumerable<LessonProperty>())
                 {
-                    if (!x.TimeEquals())
+                    foreach (var x in matchingContext.IteratePotentialMappings())
                     {
-                        continue;
+                        if (!x.CriteriaEquals(criteria, p.Schedule))
+                        {
+                            continue;
+                        }
+                        matchingContext.AddMatch(x.Mapping);
                     }
-                    matchingContext.AddMatch(x.Mapping);
-                }
-                foreach (var x in matchingContext.IteratePotentialMappings())
-                {
-                    if (!x.LessonTypesEqual(p.Schedule))
-                    {
-                        continue;
-                    }
-                    matchingContext.AddMatch(x.Mapping);
                 }
             }
 
@@ -237,16 +240,22 @@ public static class MissingLessonDetection
             {
                 foreach (var x in matchingContext.IteratePotentialMappings())
                 {
-                    if (!x.TimeEquals())
+                    bool AllEquals()
                     {
-                        continue;
-                    }
-                    if (!x.LessonTypesEqual(p.Schedule))
-                    {
-                        continue;
+                        foreach (var t in new AllEnumEnumerable<LessonProperty>())
+                        {
+                            if (!x.CriteriaEquals(t, p.Schedule))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
                     }
 
-                    matchingContext.UseUpMatch(x.Mapping);
+                    if (AllEquals())
+                    {
+                        matchingContext.UseUpMatch(x.Mapping);
+                    }
                 }
             }
 
@@ -308,11 +317,31 @@ internal struct Matches
     }
 }
 
+internal enum LessonProperty
+{
+    Time,
+    Type,
+    Topic,
+    Attendance,
+}
+
 internal struct MappedLesson
 {
     public required Mapping Mapping;
     public required LessonInstance All;
-    public required LessonInstanceLink Existing;
+    public required RemoteLessonInstance Existing;
+
+    public readonly bool CriteriaEquals(LessonProperty x, Schedule s)
+    {
+        return x switch
+        {
+            LessonProperty.Time => TimeEquals(),
+            LessonProperty.Type => LessonTypesEqual(s),
+            LessonProperty.Topic => TopicEquals(),
+            LessonProperty.Attendance => AttendanceEquals(),
+            _ => throw new NotSupportedException(),
+        };
+    }
 
     public readonly bool TimeEquals() => All.DateTime == Existing.DateTime;
     public readonly bool LessonTypesEqual(Schedule s)
@@ -325,13 +354,38 @@ internal struct MappedLesson
         var lesson = s.Get(All.LessonId).Lesson;
         return lesson.Type == Existing.LessonType;
     }
+    public readonly bool TopicEquals()
+    {
+        if (All.Topic is null)
+        {
+            return true;
+        }
+        if (All.Topic == Existing.Topic)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public readonly bool AttendanceEquals()
+    {
+        if (All.Attendance is null)
+        {
+            return true;
+        }
+        if (All.Attendance.SequenceEqual(Existing.Attendance))
+        {
+            return true;
+        }
+        return false;
+    }
 }
 
 internal readonly struct MatchingLists()
 {
     public readonly List<Mapping> Matches = new();
     public readonly List<LessonInstance> AllToday = new();
-    public readonly List<LessonInstanceLink> ExistingToday = new();
+    public readonly List<RemoteLessonInstance> ExistingToday = new();
 
     public readonly void Clear()
     {
@@ -375,12 +429,12 @@ public static class LessonEquationCommandTypeHelper
 internal readonly struct LessonEquationCommand
 {
     public readonly LessonEquationCommandType Type;
-    private readonly LessonInstanceLink _existing;
+    private readonly RemoteLessonInstance _existing;
     private readonly LessonInstance _all;
 
     private LessonEquationCommand(
         LessonEquationCommandType type,
-        LessonInstanceLink existing = default,
+        RemoteLessonInstance existing = default,
         LessonInstance all = default)
     {
         Type = type;
@@ -399,7 +453,7 @@ internal readonly struct LessonEquationCommand
     }
 
     public bool HasExisting => Type.HasExisting();
-    public LessonInstanceLink Existing
+    public RemoteLessonInstance Existing
     {
         get
         {
@@ -414,12 +468,12 @@ internal readonly struct LessonEquationCommand
         return new(LessonEquationCommandType.Create, all: all);
     }
 
-    public static LessonEquationCommand Update(LessonInstanceLink existing, LessonInstance all)
+    public static LessonEquationCommand Update(RemoteLessonInstance existing, LessonInstance all)
     {
         return new(LessonEquationCommandType.Update, existing: existing, all: all);
     }
 
-    public static LessonEquationCommand Delete(LessonInstanceLink existing)
+    public static LessonEquationCommand Delete(RemoteLessonInstance existing)
     {
         return new(LessonEquationCommandType.Delete, existing: existing);
     }
@@ -441,7 +495,7 @@ internal struct MatchingResult
         return new(_matches.AllMapped, _lists.AllToday);
     }
 
-    public readonly UnusedEnumerable<LessonInstanceLink> UnusedExisting()
+    public readonly UnusedEnumerable<RemoteLessonInstance> UnusedExisting()
     {
         return new(_matches.ExistingMapped, _lists.ExistingToday);
     }
@@ -488,7 +542,7 @@ internal struct MatchingResult
     public struct MappingsEnumerator
     {
         private List<Mapping>.Enumerator _e;
-        private readonly List<LessonInstanceLink> _existing;
+        private readonly List<RemoteLessonInstance> _existing;
         private readonly List<LessonInstance> _all;
 
         public MappingsEnumerator(MatchingLists lists)

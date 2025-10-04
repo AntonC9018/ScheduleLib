@@ -136,7 +136,7 @@ public enum FirstNamePartIndex
 
 // This amount of boilerplate is seriously concerning.
 // This should just work automatically, time to write a source gen.
-public static class NameHelper
+public static class NamePartHelper
 {
     public ref struct RefEnumerable<T>
     {
@@ -169,7 +169,7 @@ public static class NameHelper
 
         public ref T GetRef<T>(ref NameParts<T> parts)
         {
-            return ref NameHelper.GetRef(parts, (FirstNamePartIndex) _value);
+            return ref NamePartHelper.GetRef(parts, (FirstNamePartIndex) _value);
         }
 
         public bool MoveNext()

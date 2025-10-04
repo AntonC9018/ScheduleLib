@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -5,6 +6,7 @@ using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -49,7 +51,148 @@ public struct AddLessonsToOnlineRegistryParams()
     public required LessonTimeConfig TimeConfig;
     public required SemesterIntervalProvider SemesterIntervalProvider;
     public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
+
+    public required StudentAttendanceList Attendance;
+    public required LessonTopics LessonTopics;
+
+
 }
+
+public enum Attendance
+{
+    None,
+    NotApplicable, // na
+    NotPresent, // a
+    Present, // <empty>
+    Grade, // left alone if this is found
+}
+
+public static class AttendanceHelper
+{
+    public static Attendance Parse(string value)
+    {
+        switch (value)
+        {
+            case "a":
+                return Attendance.NotPresent;
+            case null or "":
+                return Attendance.Present;
+            case "na":
+                return Attendance.NotApplicable;
+            default:
+                return Attendance.Grade;
+        }
+    }
+
+    public static string ToStringValue(this Attendance attendance)
+    {
+        return attendance switch
+        {
+            Attendance.NotApplicable => "na",
+            Attendance.NotPresent => "a",
+            Attendance.Present => "",
+            Attendance.Grade => "grade",
+            _ => throw Unreachable(),
+        };
+    }
+}
+
+internal readonly record struct Key(
+    NameParts<string> Name,
+    CourseId CourseId,
+    SubGroup SubGroup);
+
+public readonly struct StudentAttendanceBuilder
+{
+}
+
+public readonly struct StudentAttendanceListBuilder()
+{
+    private readonly List<Dictionary<Key, Attendance>> _values = new();
+
+    public StudentAttendanceBuilder Day(int index)
+    {
+        Debug.Assert(index > _values.Count, "Build consecutive indices!");
+        if (_values.Count == index)
+        {
+            _values.Add(new());
+        }
+        return new();
+    }
+}
+
+public readonly struct StudentAttendanceList
+{
+    public NamesInDb StudentNames(LookupKey1 key)
+    {
+    }
+    public ImmutableArray<Attendance> Get(LookupKey key)
+    {
+    }
+}
+
+public readonly struct NamesInDb
+{
+    public int NameToIndex(Name name)
+    {
+    }
+
+    public int Count
+    {
+        get
+        {
+
+        }
+    }
+}
+
+public readonly struct StudentNameRemapHelper
+{
+    private readonly int Count;
+    private readonly int[] DbToHtmlIndexMap;
+
+    internal StudentNameRemapHelper(int count, int[] dbToHtmlIndexMap)
+    {
+        Count = count;
+        DbToHtmlIndexMap = dbToHtmlIndexMap;
+    }
+
+    public static StudentNameRemapHelper Create(
+        string[] namesInHtml,
+        NamesInDb namesInDb)
+    {
+        var dbToHtmlIndexMap = new int[namesInDb.Count];
+        var count = namesInHtml.Length;
+
+        for (int i = 0; i < namesInHtml.Length; i++)
+        {
+            var parser = new Parser(namesInHtml[i]);
+            var name = NameHelper.ParseName(ref parser);
+            var remappedIndex = namesInDb.NameToIndex(name);
+            dbToHtmlIndexMap[i] = remappedIndex;
+        }
+        return new(count, dbToHtmlIndexMap);
+    }
+
+    public Attendance[] RemapToHtml(ImmutableArray<Attendance> attendanceInDb)
+    {
+        var result = new Attendance[Count];
+        for (int i = 0; i < attendanceInDb.Length; i++)
+        {
+            var outIndex = DbToHtmlIndexMap[i];
+            result[outIndex] = attendanceInDb[i];
+        }
+        return result;
+    }
+}
+
+public readonly struct LessonTopics
+{
+    public string? Get(LookupKey key)
+    {
+    }
+}
+
 
 public static partial class RegistryScraping
 {
@@ -67,7 +210,7 @@ public static partial class RegistryScraping
             var groups = await QueryGroupLinksOfCourse(groupsUrl);
             foreach (var group in groups)
             {
-                var (existingLessonInstances, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
+                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 var lessons = MissingLessonDetection.MatchLessonsInSchedule(new()
                 {
                     Lookup = p.LookupModule.LessonsByCourse,
@@ -78,7 +221,7 @@ public static partial class RegistryScraping
                 });
 
                 // Figure out the exact dates the lessons will occur on.
-                var times = MissingLessonDetection.GetDateTimesOfScheduledLessons(new()
+                var lessonsWithTimes = MissingLessonDetection.GetDateTimesOfScheduledLessons(new()
                 {
                     Lessons = lessons,
                     Schedule = p.Schedule,
@@ -88,12 +231,45 @@ public static partial class RegistryScraping
                     Semester = p.Semester,
                 });
 
+                var studentNamesRemapHelper = StudentNameRemapHelper.Create(
+                    namesInHtml: scanResult.StudentNames,
+                    namesInDb: p.Attendance.StudentNames(new()
+                    {
+                        CourseId = courseLink.CourseId,
+                        GroupId = group.GroupId,
+                    }));
+
+                var completeLessons = lessonsWithTimes.WithIndex().Select(x =>
+                {
+                    var lesson = p.Schedule.Get(x.Item.LessonId);
+                    var courseId = lesson.Lesson.Course;
+                    var lessonType = lesson.Lesson.Type;
+                    var key = new LookupKey
+                    {
+                        GroupId = group.GroupId,
+                        CourseId = courseId,
+                        LessonType = lessonType,
+                        Index = x.Index,
+                    };
+                    var attendance = p.Attendance.Get(key);
+                    var attendanceForHtml = studentNamesRemapHelper.RemapToHtml(attendance);
+                    var topic = p.LessonTopics.Get(key);
+                    return new LessonInstance
+                    {
+                        DateTime = x.Item.DateTime,
+                        LessonId = x.Item.LessonId,
+                        Attendance = attendanceForHtml,
+                        Topic = topic,
+                    };
+                });
+
+                // Update
                 var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
                 {
                     Lists = lists,
                     Schedule = p.Schedule,
-                    AllLessons = times,
-                    ExistingLessons = existingLessonInstances,
+                    AllLessons = completeLessons,
+                    ExistingLessons = scanResult.Lessons,
                 });
                 foreach (var command in equationCommands)
                 {
@@ -156,7 +332,7 @@ public static partial class RegistryScraping
             }
         }
 
-        async ValueTask HandleExtraLesson(LessonInstanceLink x)
+        async ValueTask HandleExtraLesson(RemoteLessonInstance x)
         {
             var action = p.ErrorHandler.ExtraLessonInstanceFound(x.DateTime);
             if (action == ExtraLessonInstanceAction.Delete)
@@ -212,28 +388,81 @@ public static partial class RegistryScraping
 
         static async Task SendUpdatedForm(SendUpdatedFormParams p)
         {
-            var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
-            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
-            Debug.Assert(lessonDateBox.Value is not null and not "");
-
-            var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
-            var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
-            var lessonName = GetLessonTypeName(lessonType);
-            foreach (var option in lessonTypeBox.Options)
+            IHtmlFormElement form;
             {
-                if (lessonName is null)
-                {
-                    option.IsSelected = false;
-                    continue;
-                }
-                if (option.Value.Equals(lessonName, StringComparison.Ordinal))
-                {
-                    option.IsSelected = true;
-                    continue;
-                }
-                option.IsSelected = false;
+                var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
+                lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
+                Debug.Assert(lessonDateBox.Value is not null and not "");
+                form = lessonDateBox.Form!;
             }
-            var form = lessonDateBox.Form!;
+
+            {
+                var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
+                var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
+                var lessonName = GetLessonTypeName(lessonType);
+                foreach (var option in lessonTypeBox.Options)
+                {
+                    if (lessonName is null)
+                    {
+                        option.IsSelected = false;
+                        continue;
+                    }
+                    if (option.Value.Equals(lessonName, StringComparison.Ordinal))
+                    {
+                        option.IsSelected = true;
+                        continue;
+                    }
+                    option.IsSelected = false;
+                }
+            }
+            if (p.Lesson.Topic is { } topic)
+            {
+                var topicInput = (IHtmlTextAreaElement) p.Document.GetElementById("LessonTopic")!;
+                topicInput.Value = topic;
+            }
+            if (p.Lesson.Attendance is { } attendance)
+            {
+                var table = (IHtmlTableElement) p.Document.QuerySelectorAll("table").Last();
+                int firstIndex = 1;
+                if (attendance.Length != table.Rows.Length - firstIndex)
+                {
+                    throw new InvalidOperationException("Attendance length does not match the number of students in the HTML");
+                }
+                // Find column with name frecvența/nota
+                var headerRow = table.Rows[0];
+                int attendanceColumnIndex = FindIndexOfAttendance();
+                for (int i = 0; i < attendance.Length; i++)
+                {
+                    var a = attendance[i];
+                    if (a == Attendance.None)
+                    {
+                        continue;
+                    }
+                    if (a == Attendance.Grade)
+                    {
+                        throw new NotImplementedException();
+                    }
+
+                    var row = table.Rows[i + firstIndex];
+                    var cell = row.Cells[attendanceColumnIndex];
+                    var input = (IHtmlInputElement) cell.Children[0];
+                    input.TextContent = a.ToStringValue();
+                }
+
+                int FindIndexOfAttendance()
+                {
+                    for (int i = 0; i < headerRow.Cells.Length; i++)
+                    {
+                        var cell = headerRow.Cells[i];
+                        if (cell.TextContent == "frecvența/nota")
+                        {
+                            return i;
+                        }
+                    }
+                    throw new InvalidOperationException("Could not find attendance/grade column");
+                }
+            }
+
             var ret = await form.SubmitAsync();
             var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
                 .SelectMany(x => x.Children)
@@ -246,7 +475,8 @@ public static partial class RegistryScraping
             }
         }
 
-        async Task<(IEnumerable<LessonInstanceLink> Lessons, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(Uri groupUri)
+        async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
+            Uri groupUri)
         {
             var doc = await GetHtml(groupUri);
             var lessons = HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
@@ -317,6 +547,21 @@ public static partial class RegistryScraping
             }
         }
     }
+}
+
+
+public readonly record struct LookupKey1
+{
+    public required GroupId GroupId { get; init; }
+    public required CourseId CourseId { get; init; }
+}
+
+public readonly record struct LookupKey
+{
+    public required GroupId GroupId { get; init; }
+    public required CourseId CourseId { get; init; }
+    public required LessonType LessonType { get; init; }
+    public required int Index { get; init; }
 }
 
 public readonly struct CommandProcessingConfig

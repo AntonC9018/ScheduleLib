@@ -1552,7 +1552,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
                 return t;
             }
         }
-        var ret = NameHelper.CompareEach(
+        var ret = NamePartHelper.CompareEach(
             x.FirstName,
             y.FirstName,
             Comparer.Instance);

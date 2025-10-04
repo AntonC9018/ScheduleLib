@@ -138,6 +138,8 @@ switch (option)
             ProcessingFlags = CommandProcessingConfig.Process
                 .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
+            Attendance = ,
+            LessonTopics = ,
         });
         break;
     }
