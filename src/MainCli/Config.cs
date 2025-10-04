@@ -10,7 +10,7 @@ public static class Config
         ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
         IgnoredFullWords = ["p/u", "pentru"],
         IgnoredShortenedWords = ["Opț"],
-        IgnoredProgrammingRelatedWords = ["Programare", "limbaj", "modele"],
+        IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
         MinUsefulWordLength = 3,
     });
 
@@ -21,6 +21,6 @@ public static class Config
         teach.Add("Vișnevschi", "Vișnevschii");
         teach.Add("Băț", "Beț");
         teach.Add("Spincean", "Sprîncean");
-        teach.Add("Anghelova", "Anghelov");
+        teach.Add("Anghelov", "Anghelova");
     }
 }

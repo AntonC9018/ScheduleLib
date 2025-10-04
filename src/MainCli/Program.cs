@@ -33,7 +33,7 @@ context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
 
-const Session semester = Session.Ses1;
+const Semester semester = Semester.Sem1;
 {
     const int year = 2025;
     context.Schedule.SetStudyYear(year);
@@ -153,7 +153,7 @@ switch (option)
             CancellationToken = cancellationToken,
             Credentials = credentials,
             Schedule = schedule,
-            Session = semester,
+            Semester = semester,
             ErrorHandler = new RegistryErrorLogger(),
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,

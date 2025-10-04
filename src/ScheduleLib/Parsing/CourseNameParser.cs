@@ -148,7 +148,7 @@ public static class CourseNameParsing
 
             if (config.IgnoredFullWords.Contains(s))
             {
-                continue;
+                segment.Flags.CanBeIgnored = true;
             }
             if (ShouldIgnoreShort())
             {
@@ -273,46 +273,64 @@ public static class CourseNameParsing
         }
     }
 
+    private static bool IsEqualRecursion(
+        CourseIter a,
+        CourseIter b)
+    {
+        if (a.IsDone && b.IsDone)
+        {
+            return true;
+        }
+        if (a.IsDone)
+        {
+            return false;
+        }
+        if (b.IsDone)
+        {
+            return false;
+        }
+
+        if (a.CanIgnoreCurrent)
+        {
+            var acopy = a;
+            acopy.Move();
+            if (IsEqualRecursion(acopy, b))
+            {
+                return true;
+            }
+        }
+        if (b.CanIgnoreCurrent)
+        {
+            var bcopy = b;
+            bcopy.Move();
+            if (IsEqualRecursion(a, bcopy))
+            {
+                return true;
+            }
+        }
+
+        var selfword = a.CurrentWord;
+        var otherword = b.CurrentWord;
+        if (selfword.IsEqual(otherword))
+        {
+            var acopy = a;
+            var bcopy = b;
+            acopy.Move();
+            bcopy.Move();
+            if (IsEqualRecursion(acopy, bcopy))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static bool IsEqual(this ParsedCourseName self, ParsedCourseName other)
     {
         var iself = new CourseIter(self);
         var iother = new CourseIter(other);
-
-        while (true)
-        {
-            if (iself.IsDone && iother.IsDone)
-            {
-                return true;
-            }
-            if (iself.IsDone)
-            {
-                return false;
-            }
-            if (iother.IsDone)
-            {
-                return false;
-            }
-
-            var selfword = iself.CurrentWord;
-            var otherword = iother.CurrentWord;
-            if (selfword.IsEqual(otherword))
-            {
-                iself.Move();
-                iother.Move();
-                continue;
-            }
-            if (iself.CanIgnoreCurrent)
-            {
-                iself.Move();
-                continue;
-            }
-            if (iother.CanIgnoreCurrent)
-            {
-                iother.Move();
-                continue;
-            }
-            return false;
-        }
+        return IsEqualRecursion(iself, iother);
     }
 
     private struct CourseIter(ParsedCourseName c)

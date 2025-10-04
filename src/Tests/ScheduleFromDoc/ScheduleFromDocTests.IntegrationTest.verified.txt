@@ -4,7 +4,7 @@
       Day: Friday,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 145/4,
       Type: Lab,
       Groups: [
@@ -19,7 +19,7 @@
       Day: Friday,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 145/4,
       Type: Lab,
       Groups: [
@@ -300,7 +300,7 @@
       Day: Friday,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 143/4,
       Type: Lab,
       Groups: [
@@ -314,7 +314,7 @@
       Day: Friday,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 143/4,
       Type: Lab,
       Groups: [
@@ -385,7 +385,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 145/4,
       Type: Lab,
       Groups: [
@@ -400,7 +400,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 145/4,
       Type: Lab,
       Groups: [
@@ -855,7 +855,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -871,7 +871,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -947,7 +947,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: Algoritmi și SD,
+      Course: Algoritmi și Struct. de Date,
       Room: 113/4,
       Type: Curs,
       Groups: [
@@ -962,7 +962,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: Algoritmi și SD,
+      Course: Algoritmi și Struct. de Date,
       Room: 113/4,
       Type: Curs,
       Groups: [
@@ -1971,7 +1971,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -1987,7 +1987,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -2425,7 +2425,7 @@
       Time: 4,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -2441,7 +2441,7 @@
       Time: 4,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -3507,7 +3507,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -3523,7 +3523,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -4237,7 +4237,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -4253,7 +4253,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -4841,7 +4841,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -4857,7 +4857,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 219/4a,
       Type: Lab,
       Groups: [
@@ -5637,7 +5637,7 @@
       Day: Saturday,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 143/4,
       Type: Lab,
       Groups: [
@@ -5651,7 +5651,7 @@
       Day: Saturday,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 143/4,
       Type: Lab,
       Groups: [
@@ -12734,7 +12734,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 350/4,
       Type: Lab,
       Groups: [
@@ -12750,7 +12750,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 423/4,
       Type: Lab,
       Groups: [
@@ -12765,7 +12765,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 350/4,
       Type: Lab,
       Groups: [
@@ -12781,7 +12781,7 @@
       Time: 1,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: ASD,
+      Course: Algoritmi și Struct. de Date,
       Room: 423/4,
       Type: Lab,
       Groups: [
@@ -14026,7 +14026,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 218/4a,
       Type: Lab,
       Groups: [
@@ -14042,7 +14042,7 @@
       Time: 2,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 218/4a,
       Type: Lab,
       Groups: [
@@ -14656,7 +14656,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 218/4a,
       Type: Lab,
       Groups: [
@@ -14672,7 +14672,7 @@
       Time: 3,
       Parity: EveryWeek,
       Period: 19-03-25,
-      Course: SGBD,
+      Course: Sisteme de gestiune a bazelor de date,
       Room: 218/4a,
       Type: Lab,
       Groups: [

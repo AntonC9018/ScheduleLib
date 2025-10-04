@@ -1,9 +1,8 @@
-using ScheduleLib;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Tests;
 
-public sealed class GroupNameParser
+public sealed class GroupNameParserTests
 {
     private readonly GroupParseContext _context = GroupParseContext.Create(new()
     {
