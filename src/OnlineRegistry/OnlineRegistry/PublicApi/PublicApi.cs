@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -317,6 +316,8 @@ public static partial class RegistryScraping
                 {
                     throw new InvalidOperationException("Attendance length does not match the number of students in the HTML");
                 }
+                var actualStudents = HtmlSearch.FindStudents(table);
+
                 // Find column with name frecvența/nota
                 var headerRow = table.Rows[0];
                 int attendanceColumnIndex = FindIndexOfAttendance();
@@ -332,10 +333,13 @@ public static partial class RegistryScraping
                         throw new NotImplementedException();
                     }
 
-                    var student = p.ExpectedStudents[i];
-                    // Let's just trust it's going to be this.
-                    // Parsing this again is kind of annoying.
-                    if (student.IsExpelled)
+                    var expectedStudent = p.ExpectedStudents[i];
+                    var actualStudent = actualStudents[i];
+                    if (!actualStudent.Equals(expectedStudent))
+                    {
+                        throw new InvalidOperationException($"Student mismatch at index {i}: expected {expectedStudent}, got {actualStudent}");
+                    }
+                    if (actualStudent.IsExpelled)
                     {
                         continue;
                     }
@@ -376,12 +380,17 @@ public static partial class RegistryScraping
             Uri groupUri)
         {
             var doc = await GetHtml(groupUri);
-            var lessons = HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
+            var addLessonLink = HtmlSearch.ScanForLessonAddLink(doc);
+            var lessons = await HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
             {
                 Document = doc,
                 ErrorHandler = p.ErrorHandler,
+                GetAddLessonDocument = () =>
+                {
+                    var t = GetHtml(addLessonLink);
+                    return t;
+                },
             });
-            var addLessonLink = HtmlSearch.ScanForLessonAddLink(doc);
             return (lessons, addLessonLink);
         }
 
@@ -415,7 +424,9 @@ public static partial class RegistryScraping
         [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
         async Task<IDocument> GetHtml(Uri uri)
         {
-            var document = await context.Browser.OpenAsync(address: uri.ToString(), p.CancellationToken);
+            var document = await context.Browser.OpenAsync(
+                address: uri.ToString(),
+                p.CancellationToken);
             return document;
         }
 

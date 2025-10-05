@@ -21,7 +21,8 @@ public sealed class LessonParserTests
             "Psihologie (sem,par)",
             "V.Miron  433/3",
         };
-        var lexer = LessonParsingHelper.CreateLexer(strings.GetEnumerator());
+        var lexer = LessonParsingHelper.CreateLexer();
+        lexer.Reset(strings.GetEnumerator());
         List<Token> result = new();
         while (!lexer.IsEmpty())
         {
@@ -45,10 +46,13 @@ public sealed class LessonParserTests
 
     private ParsedLesson[] ParseLessons(string[] lines)
     {
+        var lexer = LessonParsingHelper.CreateLexer();
+        using var enumerator = ((IEnumerable<string>) lines).GetEnumerator();
+        lexer.Reset(enumerator);
         return LessonParsingHelper.ParseLessons(new()
         {
             StringBuilder = new(),
-            Lines = lines,
+            Lexer = lexer,
         }).ToArray();
     }
 

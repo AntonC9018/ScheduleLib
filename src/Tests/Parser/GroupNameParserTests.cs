@@ -9,7 +9,7 @@ public sealed class GroupNameParserTests
         CurrentStudyYear = 2024,
     });
 
-    private Group Parse(string s) => _context.Parse(s);
+    private Group Parse(string s) => _context.Parse(s.AsMemory());
 
     [Fact]
     public void RegularWithSpace()

@@ -4,7 +4,6 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
@@ -68,6 +67,7 @@ internal readonly struct ScanLessonsParams
 {
     public required IDocument Document { get; init; }
     public required IRegistryErrorHandler ErrorHandler { get; init; }
+    public required Func<Task<IDocument>> GetAddLessonDocument { get; init; }
 }
 
 internal readonly struct ScanLessonResult
@@ -76,7 +76,9 @@ internal readonly struct ScanLessonResult
     public required HtmlStudent[] Students { get; init; }
 }
 
-internal readonly record struct HtmlStudent(string Name, bool IsExpelled);
+internal readonly record struct HtmlStudent(
+    string Name,
+    bool IsExpelled);
 
 internal static class HtmlSearch
 {
@@ -163,8 +165,7 @@ internal static class HtmlSearch
         return uri;
     }
 
-
-    internal static ScanLessonResult ScanLessonsDocumentForLessonInstances(
+    internal static async ValueTask<ScanLessonResult> ScanLessonsDocumentForLessonInstances(
         ScanLessonsParams p)
     {
         const string attendanceTablePath = """main > div:last-of-type table""";
@@ -200,19 +201,16 @@ internal static class HtmlSearch
         }
 
         var studentNames = AttendanceCells(1)
-            .Select(x =>
-            {
-                var t = x.TextContent;
-                Debug.Assert(!t.EndsWith(" exmatr"));
-                var i = x.QuerySelector("i.text-danger");
-                bool isExtmatr = false;
-                if (i != null)
-                {
-                    isExtmatr = i.TextContent == "exmatr";
-                }
-                return new HtmlStudent(x.TextContent, isExtmatr);
-            })
+            .Select(ParseCellAsStudent)
             .ToArray();
+        if (studentNames.Length == 0)
+        {
+            // Must query this from the lesson add thing.
+            var addDoc = await p.GetAddLessonDocument();
+            var table = (IHtmlTableElement) addDoc.QuerySelectorAll("table").Last();
+            studentNames = FindStudents(table);
+        }
+
         var ret = new ScanLessonResult
         {
            Lessons = E(),
@@ -366,5 +364,30 @@ internal static class HtmlSearch
         }
 
         return true;
+    }
+
+    internal static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
+    {
+        var t = x.TextContent;
+        Debug.Assert(!t.EndsWith(" exmatr"));
+        var i = x.QuerySelector("i.text-danger");
+        bool isExtmatr = false;
+        if (i != null)
+        {
+            isExtmatr = i.TextContent == "exmatr";
+        }
+        return new HtmlStudent(x.TextContent, isExtmatr);
+    }
+
+    internal static HtmlStudent[] FindStudents(IHtmlTableElement table)
+    {
+        int firstRow = 1;
+        var ret = new HtmlStudent[table.Rows.Length - firstRow];
+        for (int i = 0; i < ret.Length; i++)
+        {
+            var row = table.Rows[i];
+            ret[i] = ParseCellAsStudent(row.Cells[1]);
+        }
+        return ret;
     }
 }

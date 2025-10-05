@@ -1,14 +1,10 @@
 using System.Text;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
+using ClosedXML.Excel;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
-using MainCli.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -123,6 +119,24 @@ switch (option)
             config,
             allowUserInput: true);
 
+        using var workbook = new XLWorkbook(@"C:\Users\Anton\Desktop\lipse.xlsx");
+        var teacherId =  context.Schedule.Lookup().Teacher("Curmanschii Anton")!.Value;
+        var filteredSchedule = schedule.Filter(new()
+        {
+            TeacherFilter = new()
+            {
+                IncludeIds = [teacherId],
+            },
+        });
+        var attendance = Tasks.ParseAttendanceListsExcel(new()
+        {
+            Schedule = filteredSchedule,
+            Workbook = workbook,
+            CourseNames = context.CourseNameUnifierModule,
+            LookupModule = context.Schedule.LookupModule!,
+            GroupParseContext = context.Schedule.GroupParseContext!,
+        });
+
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
@@ -138,8 +152,8 @@ switch (option)
             ProcessingFlags = CommandProcessingConfig.Process
                 .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
-            Attendance = ,
-            LessonTopics = ,
+            Attendance = attendance,
+            LessonTopics = new([]),
         });
         break;
     }

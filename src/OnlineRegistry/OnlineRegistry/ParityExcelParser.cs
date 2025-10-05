@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.OnlineRegistry;
