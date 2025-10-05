@@ -1839,7 +1839,10 @@ public static class Tasks
 
             foreach (var lesson in schedule.Lessons)
             {
-
+                if (schedule.Source.Get(lesson.Lesson.Course).FullName.Contains("Design"))
+                {
+                    Console.WriteLine("hello");
+                }
                 if (result != null)
                 {
                     var differences = LessonBuilderHelper.Diff(lesson, result, resultDiffMask);
@@ -1851,6 +1854,7 @@ public static class Tasks
                     {
                         throw new InvalidOperationException("Multiple matches to the partial key");
                     }
+                    continue;
                 }
                 {
 
@@ -1879,6 +1883,10 @@ public static class Tasks
 
         foreach (var sheet in p.Workbook.Worksheets)
         {
+            if (sheet.Name.StartsWith("Design Soft"))
+            {
+                Console.WriteLine("?");
+            }
             if (helper.LookupLessonByExcelName(sheet.Name) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
@@ -1923,7 +1931,7 @@ public static class Tasks
                         if (attendance == Attendance.Grade
                             || attendance == Attendance.None)
                         {
-                            throw new InvalidOperationException("Expecting either empty or 'a' or 'na'");
+                            throw new InvalidOperationException($"Expecting either empty or 'a' or 'na', got '{attendanceStr}'");
                         }
 
                         student.Day(attendance);
@@ -1942,12 +1950,17 @@ public static class Tasks
         string scheduleSourcesDir,
         string serializedSchedulePath,
         Action<DocParseContext> beforeEndAction,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool bypassCache = false)
     {
         var scheduleSourcesDirFullPath = Path.GetFullPath(scheduleSourcesDir);
 
         async ValueTask<SerializationModels.ScheduleModel?> GetValidModel()
         {
+            if (bypassCache)
+            {
+                return null;
+            }
             if (!Path.Exists(serializedSchedulePath))
             {
                 return null;
@@ -1994,7 +2007,6 @@ public static class Tasks
             return schedule;
         }
     }
-
 }
 
 public enum Option

@@ -20,7 +20,7 @@ public static class AttendanceHelper
     {
         switch (value)
         {
-            case "a":
+            case "a" or "np":
                 return Attendance.NotPresent;
             case null or "":
                 return Attendance.Present;

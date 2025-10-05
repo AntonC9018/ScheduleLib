@@ -66,8 +66,8 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    // Option.UploadDocsToDrive,
-    Option.CreateLessonsInRegistry,
+    Option.UploadDocsToDrive,
+    // Option.CreateLessonsInRegistry,
 };
 foreach (var option in options) {
 
@@ -121,7 +121,7 @@ switch (option)
             allowUserInput: true);
 
         using var workbook = new XLWorkbook(@"C:\Users\Anton\Desktop\lipse.xlsx");
-        var teacherId =  context.Schedule.Lookup().Teacher("Anton", "Curmanschii")!.Value;
+        var teacherId = context.Schedule.Lookup().Teacher("Anton", "Curmanschii")!.Value;
         var filteredSchedule = schedule.Filter(new()
         {
             TeacherFilter = new()

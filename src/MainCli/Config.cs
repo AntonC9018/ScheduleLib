@@ -10,7 +10,7 @@ public static class Config
     public static CourseNameParserConfig CourseNameParser => new(new()
     {
         ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
-        IgnoredFullWords = ["p/u", "pentru"],
+        IgnoredFullWords = ["p/u", "pentru", "Modele"],
         IgnoredShortenedWords = ["Opț"],
         IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
         MinUsefulWordLength = 3,
