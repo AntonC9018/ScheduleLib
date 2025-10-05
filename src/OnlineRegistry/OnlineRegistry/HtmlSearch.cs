@@ -5,6 +5,7 @@ using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 

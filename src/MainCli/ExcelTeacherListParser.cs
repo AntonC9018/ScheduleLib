@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace MainCli;
 

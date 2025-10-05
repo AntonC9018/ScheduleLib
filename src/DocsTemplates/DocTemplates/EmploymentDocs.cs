@@ -3,6 +3,7 @@ using System.Xml.Serialization;
 using OpenXmlPowerTools;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace EmploymentDocs;
 

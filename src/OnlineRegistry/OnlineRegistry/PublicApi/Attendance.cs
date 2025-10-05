@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.OnlineRegistry;
 

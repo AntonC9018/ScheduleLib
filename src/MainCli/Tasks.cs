@@ -1538,7 +1538,6 @@ public static class Tasks
         foreach (var sheet in p.Workbook.Worksheets)
         {
             var name = sheet.Name;
-
         }
 
         static RegularLesson LookupLesson(
