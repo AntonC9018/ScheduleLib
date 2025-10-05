@@ -1,5 +1,6 @@
 using Argon;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Tests;
@@ -20,18 +21,18 @@ public sealed class LessonParserTests
             "Psihologie (sem,par)",
             "V.Miron  433/3",
         };
-        var lexer = new LessonLexer(strings.GetEnumerator());
+        var lexer = LessonParsingHelper.CreateLexer(strings.GetEnumerator());
         List<Token> result = new();
         while (!lexer.IsEmpty())
         {
             result.Add(lexer.Peek(1));
             lexer.Move();
         }
-        Assert.DoesNotContain(result, x => x.Type == LessonTokenType.Invalid);
+        Assert.DoesNotContain(result, x => x.Type == TokenType.Invalid);
 
         var verifyModels = result.Select(x => new
         {
-            x.Type,
+            Type = lexer.TokenTypeLabels.Get(x.Type),
             Value = x.Value.ToString(),
             x.Span.Row,
             ColStart = x.Span.ColStart.Index,

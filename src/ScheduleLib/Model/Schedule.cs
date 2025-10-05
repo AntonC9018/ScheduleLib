@@ -166,7 +166,11 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
     public static bool operator!=(in LessonGroups a, in LessonGroups b) => !(a == b);
 }
 
-public readonly record struct CourseId(int Id);
+public readonly record struct CourseId(int Id)
+{
+    public static CourseId Invalid => new(-1);
+    public bool IsInvalid => this == Invalid;
+}
 
 public struct Course
 {
@@ -230,6 +234,7 @@ public readonly record struct SubGroup
 public readonly record struct GroupId(int Value) : IComparable<GroupId>
 {
     public static GroupId Invalid => new(-1);
+    public bool IsInvalid => this == Invalid;
     public int CompareTo(GroupId other) => Value.CompareTo(other.Value);
 }
 

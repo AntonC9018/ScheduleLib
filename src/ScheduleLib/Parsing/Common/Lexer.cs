@@ -1,0 +1,482 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using ScheduleLib.Parsing.Lesson;
+
+namespace ScheduleLib.Parsing.Common;
+
+public struct TokenSpan
+{
+    public required int Row;
+    public required ParserPosition ColStart;
+    public required ParserPosition ColEnd;
+}
+
+public record struct Token
+{
+    public required TokenType Type;
+    public required ReadOnlyMemory<char> Value;
+    public required TokenSpan Span;
+
+    public readonly bool Is(char ch)
+    {
+        if (Value.Length == 1)
+        {
+            return Value.Span[0] == ch;
+        }
+        return false;
+    }
+}
+
+public readonly record struct LexerPosition(int Value)
+{
+}
+
+public struct LexerScope
+{
+    internal LexerPosition _position;
+    internal Lexer _lexer;
+
+    public readonly LexerPosition Position => _position;
+    internal int PositionIndex
+    {
+        readonly get => _position.Value;
+        set => _position = new(value);
+    }
+
+    public LexerScope(Lexer lexer, LexerPosition position = default)
+    {
+        _lexer = lexer;
+        PositionIndex = position.Value;
+    }
+
+    public void MoveTo(LexerPosition position)
+    {
+        int offset = position.Value;
+        Debug.Assert(offset >= 0);
+        Debug.Assert(_lexer.CanPeek(offset + 1));
+        Debug.Assert(PositionIndex <= offset);
+        PositionIndex = offset;
+    }
+
+    public void Move(int amount = 1)
+    {
+        Debug.Assert(CanPeek(amount));
+        PositionIndex += amount;
+    }
+
+    public bool IsEmpty => !CanPeek(1);
+
+    public Token Current => Peek(1);
+
+    public readonly Token Peek(int offset)
+    {
+        int i = PositionIndex + offset;
+        return _lexer.Peek(i);
+    }
+
+    public readonly bool CanPeek(int offset)
+    {
+        int i = PositionIndex + offset;
+        if (!_lexer.CanPeek(i))
+        {
+            return false;
+        }
+
+        var current = _lexer.Peek(i);
+        if (current.Type == TokenType.EndOfStream)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public bool TryConsume(TokenType type)
+    {
+        if (Current.Type == type)
+        {
+            Move();
+            return true;
+        }
+        return false;
+    }
+
+    public bool TryConsume(char ch)
+    {
+        if (Current.Is(ch))
+        {
+            Move();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Actually consumes the tokens.
+    /// </summary>
+    public void Apply()
+    {
+        if (PositionIndex > 0)
+        {
+            _lexer.Move(PositionIndex);
+        }
+    }
+
+    public readonly override string ToString()
+    {
+        return _lexer.ToStringImpl(start: _position);
+    }
+}
+
+public enum TokenType
+{
+    Whitespace = ' ',
+    EndOfLine = 0x100,
+    EndOfStream,
+    Invalid,
+}
+
+public interface ITokenReader
+{
+    public TokenType Read(ref Parser parser);
+}
+
+public sealed class Lexer
+{
+    public readonly TokenTypeLabels TokenTypeLabels;
+
+    private readonly IEnumerator<string> _lines;
+    private readonly ITokenReader _readImpl;
+    // Just removing from start, since not much is queued usually
+    // It's better to use a ring queue
+    internal readonly List<Token> _queue;
+    private Parser _parser;
+    private bool _hasOutputEndOfLine = true;
+    private bool _hasOutputEndOfStream = false;
+    private int _rowIndex;
+
+    public Lexer(
+        IEnumerator<string> lines,
+        ITokenReader readImpl,
+        TokenTypeLabels tokenTypeLabels)
+    {
+        _lines = lines;
+        _queue = new();
+        _parser = new("");
+        _rowIndex = 0;
+        TokenTypeLabels = tokenTypeLabels;
+        _readImpl = readImpl;
+    }
+
+    internal string ToStringImpl(
+        LexerPosition start = default,
+        LexerPosition end = default)
+    {
+        if (start == default)
+        {
+            start = new(0);
+        }
+        if (end == default)
+        {
+            end = new(_queue.Count);
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("[");
+        var list = new ListStringBuilder(sb, ", ");
+        var span = CollectionsMarshal.AsSpan(_queue);
+        var spanSlice = span[start.Value .. end.Value];
+        foreach (var t in spanSlice)
+        {
+            list.Append($"{t.Type} - {t.Value.Span}");
+        }
+        sb.Append("]");
+        return sb.ToString();
+    }
+
+    public override string ToString()
+    {
+        return ToStringImpl();
+    }
+
+    private TokenSpan SpanUntil(ParserPosition end)
+    {
+        return new()
+        {
+            Row = _rowIndex,
+            ColStart = _parser.Position,
+            ColEnd = end,
+        };
+    }
+
+    private void AddCurrentToken(ParserPosition end, TokenType type = default)
+    {
+        var span = SpanUntil(end);
+        var value = _parser.SourceUntilExclusive(end);
+        if (type == default)
+        {
+            Debug.Assert(value.Length == 1);
+            type = (TokenType) value.Span[0];
+        }
+        _queue.Add(new()
+        {
+            Type = type,
+            Value = value,
+            Span = span,
+        });
+        _parser.MoveTo(end);
+    }
+
+    private bool TryReadNextLine()
+    {
+        if (HasEndOfStream)
+        {
+            return false;
+        }
+        if (!_lines.MoveNext())
+        {
+            AddEndOfStream();
+            return false;
+        }
+        _rowIndex += 1;
+        _parser = new(_lines.Current);
+        _hasOutputEndOfLine = false;
+        return true;
+    }
+
+
+    public bool ReadTokens(int count)
+    {
+        while (true)
+        {
+            if (_queue.Count >= count)
+            {
+                return true;
+            }
+            if (HasEndOfStream)
+            {
+                return false;
+            }
+
+            if (_parser.IsEmpty)
+            {
+                TryAddEndOfLine();
+                TryReadNextLine();
+                continue;
+            }
+            var bparser = _parser.BufferedView();
+            var tokenType = _readImpl.Read(ref bparser);
+            AddCurrentToken(bparser.Position, tokenType);
+        }
+    }
+
+
+    private bool HasEndOfStream => _hasOutputEndOfStream;
+
+    private bool AddEndOfStream()
+    {
+        Debug.Assert(!HasEndOfStream);
+        _queue.Add(new Token
+        {
+            Span = new()
+            {
+                Row = _rowIndex,
+                // Gives 0 when reading from default.
+                ColStart = _parser.Position,
+                ColEnd = _parser.Position,
+            },
+            Type = TokenType.EndOfStream,
+            Value = ReadOnlyMemory<char>.Empty,
+        });
+        _hasOutputEndOfStream = true;
+        return true;
+    }
+
+    private bool TryAddEndOfLine()
+    {
+        if (_hasOutputEndOfLine)
+        {
+            return false;
+        }
+        _queue.Add(new Token
+        {
+            Span = new()
+            {
+                Row = _rowIndex,
+                ColStart = _parser.EndPosition,
+                ColEnd = _parser.EndPosition,
+            },
+            Type = TokenType.EndOfLine,
+            Value = ReadOnlyMemory<char>.Empty,
+        });
+        _hasOutputEndOfLine = true;
+        return true;
+    }
+
+    public bool CanPeek(int offset = 1)
+    {
+        Debug.Assert(offset >= 1);
+        return ReadTokens(offset);
+    }
+
+    public Token Peek(int offset = 1)
+    {
+        Debug.Assert(offset >= 1);
+        if (ReadTokens(offset))
+        {
+            return _queue[offset - 1];
+        }
+        throw new InvalidOperationException("Not enough tokens");
+    }
+
+    public void Move(int amount = 1)
+    {
+        if (!CanPeek(amount))
+        {
+            Debug.Fail("Not enough tokens to skip");
+            _queue.Clear();
+            return;
+        }
+
+        _queue.RemoveRange(0, amount);
+    }
+
+    public bool IsEmpty()
+    {
+        return !CanPeek(1);
+    }
+}
+
+public static class LexerHelper
+{
+    public static LexerScope Scope(this Lexer lexer)
+    {
+        return new LexerScope(lexer);
+    }
+
+    public static LimitedLexerScope Until(this LexerScope lexer, LexerPosition end)
+    {
+        return new LimitedLexerScope(lexer, end);
+    }
+
+    public static bool ConsumeMultiple(this ref LexerScope lexer, ReadOnlySpan<TokenType> types)
+    {
+        bool consumed = false;
+        while (true)
+        {
+            if (C(ref lexer, types))
+            {
+                consumed = true;
+                continue;
+            }
+            break;
+        }
+        if (consumed)
+        {
+            return true;
+        }
+        return false;
+
+        static bool C(ref LexerScope lexer, ReadOnlySpan<TokenType> types)
+        {
+            foreach (var t in types)
+            {
+                if (lexer.TryConsume(t))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    public static TokenTypeLabels CreateLabelDict(Type type)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<TokenType, string>();
+        foreach (var baseValue in Enum.GetValues(typeof(TokenType)))
+        {
+            var v = (TokenType) baseValue;
+            builder.Add(v, v.ToString());
+        }
+
+        if (type.IsEnum)
+        {
+            var values = Enum.GetValues(type);
+            foreach (var v in values)
+            {
+                var name = Enum.GetName(type, v)!;
+                builder.Add((TokenType) v, name);
+            }
+        }
+        else
+        {
+            var fields = type.GetFields(BindingFlags.Static | BindingFlags.Public);
+            foreach (var field in fields)
+            {
+                if (field.FieldType != typeof(TokenType))
+                {
+                    continue;
+                }
+                var value = (TokenType) field.GetValue(null)!;
+                builder.Add(value, field.Name);
+            }
+        }
+
+        return new(builder.ToImmutable());
+    }
+}
+
+public readonly record struct TokenTypeLabels(
+    ImmutableDictionary<TokenType, string> Dict)
+{
+    public readonly string Get(TokenType t)
+    {
+        return Dict.GetValueOrDefault(t) ?? t.ToString();
+    }
+}
+
+public ref struct LimitedLexerScope
+{
+    private LexerScope _lexer;
+    private readonly LexerPosition _endPosition;
+
+    public LimitedLexerScope(LexerScope lexer, LexerPosition endPosition)
+    {
+        _lexer = lexer;
+        _endPosition = endPosition;
+    }
+
+    public readonly Token Current => _lexer.Current;
+    public readonly bool IsEmpty => !CanPeek(1);
+
+    public readonly bool CanPeek(int offset)
+    {
+        // Check doesn't exceed end
+        int i = _lexer.Position.Value + offset - 1;
+        if (i >= _endPosition.Value)
+        {
+            return false;
+        }
+        return _lexer.CanPeek(offset);
+    }
+
+    public readonly Token Peek(int offset = 1)
+    {
+        Debug.Assert(CanPeek(offset));
+        return _lexer.Peek(offset);
+    }
+
+    public void Move(int amount = 1) => _lexer.Move(amount);
+    public void TryConsume(TokenType type) => _lexer.TryConsume(type);
+
+    public readonly override string ToString()
+    {
+        return _lexer._lexer.ToStringImpl(
+            _lexer._position,
+            _endPosition);
+    }
+}
+

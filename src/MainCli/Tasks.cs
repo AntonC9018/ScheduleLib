@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security;
 using System.Text;
+using ClosedXML.Excel;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -1523,6 +1524,75 @@ public static class Tasks
                     }
                 }
             }
+        }
+    }
+
+    public readonly struct ParseAttendanceListsExcelParams
+    {
+        public required FilteredSchedule Schedule { get; init; }
+        public required XLWorkbook Workbook { get; init; }
+    }
+
+    public static StudentAttendanceList ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
+    {
+        foreach (var sheet in p.Workbook.Worksheets)
+        {
+            var name = sheet.Name;
+
+        }
+
+        static RegularLesson LookupLesson(
+            CourseId? courseId,
+            GroupId? groupId,
+            SubGroup? subGroup,
+            FilteredSchedule schedule)
+        {
+            var diffLesson = new RegularLesson
+            {
+                Date = default,
+                Lesson = default,
+            };
+            var diffMask = new RegularLessonModelDiffMask();
+            {
+                if (courseId is { } x)
+                {
+                    diffLesson.Lesson.Course = x;
+                }
+                diffMask.Course = true;
+            }
+            {
+                if (groupId is { } x)
+                {
+                    diffLesson.Lesson.Groups = [x];
+                }
+                // Matching all groups here, because "curs" won't use this
+                diffMask.AllGroups = true;
+            }
+            {
+                if (subGroup is { } x)
+                {
+                    diffLesson.Lesson.SubGroup = x;
+                }
+                diffMask.SubGroup = true;
+            }
+
+            RegularLesson? result = null;
+
+            foreach (var lesson in schedule.Lessons)
+            {
+                var differences = LessonBuilderHelper.Diff(lesson, diffLesson, diffMask);
+                if (!differences.TheyAreEqual)
+                {
+                    continue;
+                }
+                if (result != null)
+                {
+                    throw new InvalidOperationException("Multiple matches to the partial key");
+                }
+                result = lesson;
+            }
+
+            return result;
         }
     }
 }

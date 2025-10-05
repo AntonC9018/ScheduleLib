@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using ScheduleLib.Generation;
 
-namespace ScheduleLib.Parsing;
+namespace ScheduleLib.Parsing.Common;
 
 public record struct Parser
 {
