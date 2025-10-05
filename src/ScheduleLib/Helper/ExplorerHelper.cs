@@ -17,6 +17,7 @@ public static class ExplorerHelper
     // https://stackoverflow.com/a/14601675
     public static void OpenFolderAndSelectFile(string filePath)
     {
+        filePath = Path.GetFullPath(filePath);
         ArgumentNullException.ThrowIfNull(filePath);
         IntPtr pidl = ILCreateFromPathW(filePath);
         SHOpenFolderAndSelectItems(pidl, 0, IntPtr.Zero, 0);

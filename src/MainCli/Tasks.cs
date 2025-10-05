@@ -1,6 +1,8 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security;
+using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using ConvertDocToDocx;
@@ -1086,6 +1088,54 @@ public static class Tasks
         });
     }
 
+    public static string GetDirectoryHash(
+        string srcFullPath,
+        string searchPattern = "*",
+        bool hashPaths = true,
+        bool hashContents = true)
+    {
+        Debug.Assert(srcFullPath == Path.GetFullPath(srcFullPath));
+
+        var filePaths = Directory.GetFiles(
+                srcFullPath,
+                searchPattern: searchPattern,
+                SearchOption.AllDirectories)
+            .OrderBy(p => p)
+            .ToArray();
+
+        const int MaxPathBytes = 4096;
+        const int BufferSize = 8192;
+        using var pathBuffer = new RentedBuffer<byte>(MaxPathBytes);
+        using var readBuffer = new RentedBuffer<byte>(BufferSize);
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+
+        foreach (var filePath in filePaths)
+        {
+            if (hashPaths)
+            {
+                var relativePath = filePath.AsSpan(srcFullPath.Length + 1);
+                int byteCount = Encoding.UTF8.GetBytes(relativePath, pathBuffer.Span);
+                hasher.AppendData(pathBuffer.Span[.. byteCount]);
+            }
+
+            if (hashContents)
+            {
+                using var fs = File.OpenRead(filePath);
+                int read;
+                while ((read = fs.Read(readBuffer.Span)) > 0)
+                {
+                    hasher.AppendData(readBuffer.Span[.. read]);
+                }
+            }
+        }
+
+        var hashLen = hasher.HashLengthInBytes;
+        using var hash = new RentedBuffer<byte>(hashLen);
+        int len = hasher.GetCurrentHash(hash.Span);
+        Debug.Assert(len == hashLen);
+        return Convert.ToHexStringLower(hash.Span);
+    }
+
     public static async Task ParseDocumentDirIntoSchedule(
         DocParseContext context,
         string dirName,
@@ -1862,6 +1912,59 @@ public static class Tasks
         var ret = builder.Build();
         return ret;
     }
+
+    public static async Task<Schedule> LoadSchedule(
+        DocParseContext context,
+        string serializedPath,
+        Semester semester,
+        CancellationToken cancellationToken)
+    {
+        var serializedScheduleFullPath = Path.GetFullPath(serializedPath);
+
+        var filesHash = GetDirectoryHash(serializedScheduleFullPath);
+        async ValueTask<SerializationModels.ScheduleModel?> GetValidModel()
+        {
+            if (!Path.Exists(serializedScheduleFullPath))
+            {
+                return null;
+            }
+
+            await using var inputFile = File.OpenRead(serializedScheduleFullPath);
+            var serializedModel = await ScheduleSerializer.Deserialize(inputFile, cancellationToken);
+            if (serializedModel.Hash != filesHash)
+            {
+                return null;
+            }
+
+            return serializedModel;
+        }
+
+        if (await GetValidModel() is { } scheduleSerializedModel)
+        {
+            ScheduleSerializer.ConvertWithLookup(
+                context.Schedule,
+                scheduleSerializedModel,
+                context.CourseNameUnifierModule);
+            var schedule = context.Schedule.Build();
+            return schedule;
+        }
+
+        {
+            string dirName = @$"data\{context.Schedule.StudyYear()}_sem{semester.AsOrdinal()}";
+            _ = dirName;
+            await ParseDocumentDirIntoSchedule(
+                context,
+                dirName,
+                cancellationToken: cancellationToken);
+
+            var schedule = context.Schedule.Build();
+
+            await using var outputFile = File.OpenWrite(serializedScheduleFullPath);
+            await ScheduleSerializer.Serialize(schedule, outputFile, filesHash, cancellationToken);
+            return schedule;
+        }
+    }
+
 }
 
 public enum Option

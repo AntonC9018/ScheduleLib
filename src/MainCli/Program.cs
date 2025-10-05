@@ -29,20 +29,18 @@ context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
 
+const int year = 2025;
 const Semester semester = Semester.Sem1;
-{
-    const int year = 2025;
-    context.Schedule.SetStudyYear(year);
 
-    string dirName = @$"data\{year}_sem{semester.AsOrdinal()}";
-    _ = dirName;
-    await Tasks.ParseDocumentDirIntoSchedule(
-        context,
-        dirName,
-        cancellationToken: cancellationToken);
-}
+context.Schedule.SetStudyYear(year);
 
-var schedule = context.Schedule.Build();
+string serializedSchedulePath = @$"data\schedule_{year}_{semester.AsOrdinal()}.json";
+var schedule = await Tasks.LoadSchedule(
+    context,
+    serializedSchedulePath,
+    semester: semester,
+    cancellationToken);
+
 Console.WriteLine("Schedule built");
 
 
@@ -243,7 +241,7 @@ Task GenerateAllTeacherExcel()
         var seminarTimeSlot = timeConfig.FindTimeSlotByStartTime(seminarTime)!.Value;
         Tasks.GenerateAllTeacherExcel(new()
         {
-            DayNameProvider = new DayNameProvider(),
+            DayNameProvider = dayNameProvider,
             StringBuilder = new(),
             LessonTypeDisplay = new(),
             ParityDisplay = new(),

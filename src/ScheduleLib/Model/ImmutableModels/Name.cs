@@ -6,8 +6,8 @@ namespace ScheduleLib;
 
 public record struct OptionalNamePart
 {
-    public required string? Full;
-    public required string? Short;
+    public required string? Full { get; set; }
+    public required string? Short { get; set; }
 
     public readonly string? Longer
     {
@@ -46,6 +46,8 @@ public record struct OptionalNamePart
 public struct NameParts<T>() : IEquatable<NameParts<T>>
 {
     private T _items = default!;
+
+    public readonly int Length => (int) FirstNamePartIndex.Count;
 
     public bool Equals(NameParts<T> other)
     {

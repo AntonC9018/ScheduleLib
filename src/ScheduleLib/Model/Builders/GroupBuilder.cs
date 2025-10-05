@@ -19,6 +19,11 @@ public struct GroupBuilder
 
 public static class GroupBuilderHelper
 {
+    public static int StudyYear(this ScheduleBuilder s)
+    {
+        return s.GroupParseContext!.CurrentStudyYear;
+    }
+
     public static void SetStudyYear(this ScheduleBuilder s, int year)
     {
         if (s.Groups.Count != 0)

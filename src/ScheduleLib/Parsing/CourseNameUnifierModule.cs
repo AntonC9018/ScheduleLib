@@ -44,6 +44,19 @@ public sealed class CourseNameUnifierModule
         _parserConfig = parserConfig;
     }
 
+    public void AddSlow(string courseName, CourseId id)
+    {
+        var parsedCourse = ParseCourseName(new()
+        {
+            CourseName = courseName,
+            ParseOptions = new()
+            {
+                IgnorePunctuation = true,
+            },
+        });
+        SlowCourses.Add(new(parsedCourse, id));
+    }
+
     public ref struct FindParams()
     {
         public required LookupModule Lookup;

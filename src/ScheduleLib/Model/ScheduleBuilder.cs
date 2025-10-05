@@ -90,9 +90,8 @@ public static partial class ScheduleBuilderHelper
             .GroupBy(x => x.Value)
             .Select(x =>
             {
-                var names = x.Select(x1 => x1.Key).ToArray();
-                Array.Sort(names, static (a, b) => b.Length - a.Length);
-                return (x.Key, Names: names);
+                var names = x.Select(x1 => x1.Key).OrderByDescending(static a => a.Length);
+                return (x.Key, Names: names.ToImmutableArray());
             });
 
         foreach (var t in courseNamesByKey)
@@ -191,7 +190,7 @@ public static partial class ScheduleBuilderHelper
         };
     }
 
-    public static CourseId Course(this ScheduleBuilder s, params string[] names)
+    public static CourseId Course(this ScheduleBuilder s, params ImmutableArray<string> names)
     {
         Debug.Assert(names.Length > 0, "Must provide a course name");
 

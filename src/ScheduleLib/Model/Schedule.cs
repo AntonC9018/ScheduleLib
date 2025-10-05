@@ -178,7 +178,7 @@ public struct Course
     /// <summary>
     /// Sorted from longest to least long.
     /// </summary>
-    public required string[] Names;
+    public required ImmutableArray<string> Names;
 }
 
 public struct LessonData()
