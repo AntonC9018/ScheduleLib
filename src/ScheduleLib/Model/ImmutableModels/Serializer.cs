@@ -463,8 +463,18 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
             {
                 throw new JsonException("Too many elements in NameParts array");
             }
-            var item = JsonSerializer.Deserialize<T>(ref reader, options)!;
-            nameParts[i] = item;
+            T? item;
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                reader.Read();
+                item = default;
+            }
+            else
+            {
+                item = JsonSerializer.Deserialize<T?>(ref reader, options);
+            }
+
+            nameParts[i] = item!;
             i++;
         }
 
@@ -474,9 +484,25 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
     public override void Write(Utf8JsonWriter writer, NameParts<T> value, JsonSerializerOptions options)
     {
         writer.WriteStartArray();
-        foreach (var item in value)
+        int lastNullStart = -1;
+        for (int i = 0; i < value.Length; i++)
         {
-            JsonSerializer.Serialize(writer, item, options);
+            if (!EqualityComparer<T>.Default.Equals(value[i], default))
+            {
+                lastNullStart = -1;
+                continue;
+            }
+            if (lastNullStart == -1)
+            {
+                lastNullStart = i;
+            }
+        }
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (i < lastNullStart)
+            {
+                JsonSerializer.Serialize(writer, value[i], options);
+            }
         }
         writer.WriteEndArray();
     }
