@@ -673,10 +673,15 @@ public static class WordScheduleParser
                             return;
                         }
 
-                        var lines = Lines();
+                        using var lines = Lines().GetEnumerator();
+
+                        // TODO: can reuse this.
+                        var lexer = LessonParsingHelper.CreateLexer();
+                        lexer.Reset(lines);
+
                         var lessons = LessonParsingHelper.ParseLessons(new()
                         {
-                            Lines = lines,
+                            Lexer = lexer,
                             ParityParser = ParityParser.Instance,
                             LessonTypeParser = LessonTypeParser.Instance,
                             StringBuilder = new StringBuilder(),

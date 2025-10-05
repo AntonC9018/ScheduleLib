@@ -1,4 +1,5 @@
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace Comisia.Tests;
 

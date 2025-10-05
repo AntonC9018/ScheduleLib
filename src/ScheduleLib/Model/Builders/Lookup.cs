@@ -18,9 +18,9 @@ public sealed class LessonsByCourseMap : List<List<RegularLessonId>>
 public sealed class LookupModule()
 {
     public readonly LessonsByCourseMap LessonsByCourse = new();
-    public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, CourseId> Courses = new(StringComparer.CurrentCultureIgnoreCase);
     public readonly TeachersByLastName TeachersByLastName = new();
-    public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
+    public readonly Dictionary<string, GroupId> Groups = new(StringComparer.OrdinalIgnoreCase);
 
     public void Clear()
     {
@@ -31,7 +31,7 @@ public sealed class LookupModule()
     }
 }
 
-public struct LookupFacade(ScheduleBuilder s)
+public readonly struct LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(Lookup.Courses, name);
 
@@ -108,7 +108,7 @@ public struct LookupFacade(ScheduleBuilder s)
     public GroupId? Group(string fullName)
     {
         var group = s.ParseGroup(fullName);
-        return Find<GroupId>(Lookup.Groups, group.Name);
+        return Find(Lookup.Groups, group.Name);
     }
 
     private LookupModule Lookup
@@ -121,7 +121,7 @@ public struct LookupFacade(ScheduleBuilder s)
         }
     }
 
-    private T? Find<T>(Dictionary<string, int> dict, ReadOnlySpan<char> val)
+    private T? Find<T>(Dictionary<string, T> dict, ReadOnlySpan<char> val)
         where T : struct
     {
         bool t = dict.TryGetAlternateLookup<ReadOnlySpan<char>>(out var d);
@@ -133,8 +133,7 @@ public struct LookupFacade(ScheduleBuilder s)
             return null;
         }
         Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
-        T ret = Unsafe.As<int, T>(ref id);
-        return ret;
+        return id;
     }
 }
 
@@ -174,7 +173,7 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    coursesMap.Add(name, i);
+                    coursesMap.Add(name, new(i));
                 }
             }
         }
@@ -196,7 +195,7 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                groupsMap.Add(group.Name, i);
+                groupsMap.Add(group.Name, new(i));
             }
         }
         {

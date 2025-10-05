@@ -94,6 +94,18 @@ public sealed record Name
 
 public static class NameHelper
 {
+    public static Name? TryParseName(ref Parser parser)
+    {
+        try
+        {
+            return ParseName(ref parser);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     // LastName FirstName Patronymic
     public static Name ParseName(ref Parser parser)
     {

@@ -3,6 +3,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Helper.Excel;
 

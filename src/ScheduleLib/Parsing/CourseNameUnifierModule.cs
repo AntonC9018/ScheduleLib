@@ -4,6 +4,36 @@ using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing.CourseName;
 
+public readonly struct CourseNameUnifierModuleWithDeps
+{
+    private readonly CourseNameUnifierModule _a;
+    private readonly LookupModule _b;
+
+    public CourseNameUnifierModuleWithDeps(
+        CourseNameUnifierModule a,
+        LookupModule b)
+    {
+        _a = a;
+        _b = b;
+    }
+
+    public CourseId? Find(
+        string courseName,
+        CourseNameParseOptions? parseOptions = null)
+    {
+        CourseNameUnifierModule.FindParams p = new()
+        {
+            Lookup = _b,
+            CourseName = courseName,
+        };
+        if (parseOptions is { } x)
+        {
+            p.ParseOptions = x;
+        }
+        return _a.Find(p);
+    }
+}
+
 public sealed class CourseNameUnifierModule
 {
     internal readonly List<SlowCourse> SlowCourses = new();
@@ -31,13 +61,13 @@ public sealed class CourseNameUnifierModule
     {
         if (p.Lookup.Courses.TryGetValue(p.CourseName, out var courseId))
         {
-            return new(courseId);
+            return courseId;
         }
 
         var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
         if (FindSlow(parsedCourseName) is { } slowCourseId)
         {
-            p.Lookup.Courses.Add(p.CourseName, slowCourseId.Id);
+            p.Lookup.Courses.Add(p.CourseName, slowCourseId);
             return slowCourseId;
         }
 
@@ -92,18 +122,18 @@ public sealed class CourseNameUnifierModule
 
         if (exists)
         {
-            return new(courseId);
+            return courseId;
         }
 
         var parsedCourse = ParseCourseName(p.CourseNameForParsing);
         if (FindSlow(parsedCourse) is { } slowCourseId)
         {
-            courseId = slowCourseId.Id;
+            courseId = slowCourseId;
             return slowCourseId;
         }
 
         var result = p.Schedule.Courses.New();
-        courseId = result.Id;
+        courseId = new(result.Id);
         ScheduleBuilderHelper.UpdateLookupAfterCourseAdded(p.Schedule);
 
         SlowCourses.Add(new(parsedCourse, new(result.Id)));

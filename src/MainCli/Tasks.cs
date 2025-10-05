@@ -25,11 +25,16 @@ using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 using SpreadCheetah;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
+using Group = ScheduleLib.Group;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
@@ -1531,19 +1536,192 @@ public static class Tasks
     {
         public required FilteredSchedule Schedule { get; init; }
         public required XLWorkbook Workbook { get; init; }
+        public required GroupParseContext GroupParseContext { get; init; }
+        public required LookupModule LookupModule { get; init; }
+        public required CourseNameUnifierModule CourseNames { get; init; }
     }
 
-    public static StudentAttendanceList ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
+    private static class NameTokenType
     {
-        foreach (var sheet in p.Workbook.Worksheets)
+        public const TokenType NamePart = TokenType.Invalid + 1;
+    }
+
+    private static readonly TokenTypeLabels _labels =
+        LexerHelper.CreateLabelDict(typeof(NameTokenType));
+
+    private sealed class NameTokenReader : ITokenReader
+    {
+        public static readonly NameTokenReader Instance = new();
+
+        public TokenType Read(ref Parser parser)
         {
-            var name = sheet.Name;
+            if (parser.SkipWhitespace().SkippedAny)
+            {
+                return TokenType.Whitespace;
+            }
+            if (parser.ConsumeExactChar('('))
+            {
+                return (TokenType) '(';
+            }
+            if (parser.ConsumeExactChar(')'))
+            {
+                return (TokenType) ')';
+            }
+            parser.SkipNotWhitespace();
+            return NameTokenType.NamePart;
+        }
+    }
+
+    private struct Key()
+    {
+        public CourseId CourseId = CourseId.Invalid;
+        public LessonGroups Groups = [];
+        public SubGroup SubGroup = SubGroup.All;
+        public LessonType LessonType = LessonType.Lab;
+    }
+
+    private struct ParsedName
+    {
+        public required (ParserPosition Start, ParserPosition End)? NameRange;
+        public required LessonType LessonType;
+        public required SubGroup SubGroup;
+        public required Group? Group;
+    }
+
+    private static ParsedName ParseName(
+        Lexer lexer,
+        GroupParseContext groupParser)
+    {
+        ParserPosition? nameStart = null;
+        ParserPosition? nameEnd = null;
+        bool isInParens = false;
+        var lessonType = LessonType.Lab;
+        var subGroup = SubGroup.All;
+        Group? group = null;
+
+        while (!lexer.IsEmpty())
+        {
+            var token = lexer.Peek();
+            switch (token.Type)
+            {
+                case NameTokenType.NamePart:
+                {
+                    if (isInParens)
+                    {
+                        lessonType = LessonTypeParser.Instance.Parse(token.Value.Span)!.Value;
+                        break;
+                    }
+                    if (NumberHelper.FromRoman(token.Value.Span) is { } ord)
+                    {
+                        _ = ord;
+                        subGroup = new(token.Value.ToString());
+                        break;
+                    }
+                    if (groupParser.TryParse(token.Value) is { } x)
+                    {
+                        group = x;
+                        break;
+                    }
+
+                    if (nameStart == null)
+                    {
+                        nameStart = token.Span.ColStart;
+                    }
+                    nameEnd = token.Span.ColEnd;
+                    break;
+                }
+                case (TokenType) '(':
+                {
+                    isInParens = true;
+                    break;
+                }
+                case (TokenType) ')':
+                {
+                    isInParens = false;
+                    break;
+                }
+            }
+            lexer.Move();
         }
 
-        static RegularLesson LookupLesson(
-            CourseId? courseId,
-            GroupId? groupId,
-            SubGroup? subGroup,
+        return new()
+        {
+            Group = group,
+            LessonType = lessonType,
+            NameRange = nameStart is null ? null : (nameStart.Value, nameEnd!.Value),
+            SubGroup = subGroup,
+        };
+    }
+
+#pragma warning disable CA1001 // undisposed field
+    private struct ParseNameHelper
+#pragma warning restore CA1001
+    {
+        private readonly SingleItemEnumerator<string> _nameE;
+        private readonly Lexer _lexer;
+
+        private readonly FilteredSchedule _schedule;
+        private readonly CourseNameUnifierModule _courseNames;
+        private readonly GroupParseContext _groupParseContext;
+        private readonly LookupModule _lookupModule;
+
+        public ParseNameHelper(
+            FilteredSchedule schedule,
+            CourseNameUnifierModule courseNames,
+            GroupParseContext groupParseContext,
+            LookupModule lookupModule)
+        {
+            _nameE = new SingleItemEnumerator<string>();
+            _lexer = new Lexer(NameTokenReader.Instance, _labels);
+            _schedule = schedule;
+            _courseNames = courseNames;
+            _groupParseContext = groupParseContext;
+            _lookupModule = lookupModule;
+        }
+
+        public RegularLesson? LookupLessonByExcelName(string excelName)
+        {
+            _nameE.Reset(excelName);
+            _lexer.Reset(_nameE);
+
+            var parsedName = ParseName(_lexer, _groupParseContext);
+            var courseId = CourseId.Invalid;
+            if (parsedName.NameRange is { } nameRange)
+            {
+                var courseName = excelName[nameRange.Start.Index .. nameRange.End.Index];
+                if (_courseNames.Find(new()
+                    {
+                        CourseName = courseName,
+                        Lookup = _lookupModule,
+                    }) is not { } x)
+                {
+                    throw new InvalidOperationException($"Course {courseName} not found");
+                }
+                courseId = x;
+            }
+
+            var groups = new LessonGroups();
+            if (parsedName.Group is { } group)
+            {
+                if (!_lookupModule.Groups.TryGetValue(group.Name, out var x))
+                {
+                    throw new InvalidOperationException($"Group {group.Name} not found");
+                }
+                groups = [x];
+            }
+
+            var key = new Key
+            {
+                CourseId = courseId,
+                Groups = groups,
+                LessonType = parsedName.LessonType,
+                SubGroup = parsedName.SubGroup,
+            };
+            return LookupLesson(key, _schedule);
+        }
+
+        private static RegularLesson? LookupLesson(
+            Key key,
             FilteredSchedule schedule)
         {
             var diffLesson = new RegularLesson
@@ -1553,46 +1731,136 @@ public static class Tasks
             };
             var diffMask = new RegularLessonModelDiffMask();
             {
-                if (courseId is { } x)
+                if (!key.CourseId.IsInvalid)
                 {
-                    diffLesson.Lesson.Course = x;
+                    diffLesson.Lesson.Course = key.CourseId;
+                    diffMask.Course = true;
                 }
-                diffMask.Course = true;
             }
             {
-                if (groupId is { } x)
+                if (key.Groups.Count > 0)
                 {
-                    diffLesson.Lesson.Groups = [x];
+                    diffLesson.Lesson.Groups = key.Groups;
+                    diffMask.AllGroups = true;
                 }
-                // Matching all groups here, because "curs" won't use this
-                diffMask.AllGroups = true;
             }
             {
-                if (subGroup is { } x)
-                {
-                    diffLesson.Lesson.SubGroup = x;
-                }
+                diffLesson.Lesson.SubGroup = key.SubGroup;
                 diffMask.SubGroup = true;
+            }
+            {
+                diffLesson.Lesson.Type = key.LessonType;
+                diffMask.LessonType = true;
             }
 
             RegularLesson? result = null;
+            var resultDiffMask = new RegularLessonModelDiffMask
+            {
+                LessonType = true,
+                SubGroup = true,
+                AllGroups = true,
+                Course = true,
+                AllTeachers = true,
+            };
 
             foreach (var lesson in schedule.Lessons)
             {
-                var differences = LessonBuilderHelper.Diff(lesson, diffLesson, diffMask);
-                if (!differences.TheyAreEqual)
-                {
-                    continue;
-                }
+
                 if (result != null)
                 {
-                    throw new InvalidOperationException("Multiple matches to the partial key");
+                    var differences = LessonBuilderHelper.Diff(lesson, result, resultDiffMask);
+                    if (differences.Intersect(diffMask).TheyDiffer)
+                    {
+                        continue;
+                    }
+                    if (differences.TheyDiffer)
+                    {
+                        throw new InvalidOperationException("Multiple matches to the partial key");
+                    }
                 }
-                result = lesson;
+                {
+
+                    var differences = LessonBuilderHelper.Diff(lesson, diffLesson, diffMask);
+                    if (!differences.TheyAreEqual)
+                    {
+                        continue;
+                    }
+                    result = lesson;
+                }
             }
 
             return result;
         }
+    }
+
+    public static StudentAttendanceList ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
+    {
+        var helper = new ParseNameHelper(
+            schedule: p.Schedule,
+            courseNames: p.CourseNames,
+            groupParseContext: p.GroupParseContext,
+            lookupModule: p.LookupModule);
+
+        var builder = new AllStudentAttendanceListBuilder();
+
+        foreach (var sheet in p.Workbook.Worksheets)
+        {
+            if (helper.LookupLessonByExcelName(sheet.Name) is not { } lesson)
+            {
+                throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
+            }
+
+            foreach (var group in lesson.Lesson.Groups)
+            {
+                var list = builder.List(new()
+                {
+                    CourseId = lesson.Lesson.Course,
+                    GroupId = group,
+                    SubGroup = lesson.Lesson.SubGroup,
+                });
+
+                foreach (var row in sheet.Rows())
+                {
+                    using var cells = row.Cells().GetEnumerator();
+                    if (!cells.MoveNext())
+                    {
+                        break;
+                    }
+
+                    if (!cells.Current!.TryGetValue(out string value))
+                    {
+                        break;
+                    }
+                    var parser = new Parser(value);
+                    if (NameHelper.TryParseName(ref parser) is not { } name)
+                    {
+                        break;
+                    }
+
+                    var student = list.Student(name);
+
+                    while (cells.MoveNext())
+                    {
+                        if (!cells.Current!.TryGetValue(out string attendanceStr))
+                        {
+                            throw new InvalidOperationException("Expecting a string in cell");
+                        }
+                        var attendance = AttendanceHelper.Parse(attendanceStr);
+                        if (attendance == Attendance.Grade
+                            || attendance == Attendance.None)
+                        {
+                            throw new InvalidOperationException("Expecting either empty or 'a' or 'na'");
+                        }
+
+                        student.Day(attendance);
+                    }
+
+                }
+            }
+
+        }
+        var ret = builder.Build();
+        return ret;
     }
 }
 

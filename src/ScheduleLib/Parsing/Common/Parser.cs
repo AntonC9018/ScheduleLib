@@ -9,6 +9,7 @@ public record struct Parser
     private int _index;
 
     public Parser(string input) => _input = input.AsMemory();
+    public Parser(ReadOnlyMemory<char> input) => _input = input;
 
     public readonly ReadOnlyMemory<char> Source => _input;
     public readonly ReadOnlySpan<char> WholeSpan => _input.Span;

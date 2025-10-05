@@ -148,27 +148,36 @@ public sealed class Lexer
 {
     public readonly TokenTypeLabels TokenTypeLabels;
 
-    private readonly IEnumerator<string> _lines;
+    private IEnumerator<string>? _lines;
     private readonly ITokenReader _readImpl;
     // Just removing from start, since not much is queued usually
     // It's better to use a ring queue
     internal readonly List<Token> _queue;
     private Parser _parser;
-    private bool _hasOutputEndOfLine = true;
-    private bool _hasOutputEndOfStream = false;
+    private bool _hasOutputEndOfLine;
+    private bool _hasOutputEndOfStream;
     private int _rowIndex;
 
     public Lexer(
-        IEnumerator<string> lines,
         ITokenReader readImpl,
         TokenTypeLabels tokenTypeLabels)
     {
-        _lines = lines;
+        _lines = null;
         _queue = new();
-        _parser = new("");
+        Reset(null!);
         _rowIndex = 0;
         TokenTypeLabels = tokenTypeLabels;
         _readImpl = readImpl;
+    }
+
+    public void Reset(IEnumerator<string> lines)
+    {
+        _lines = lines;
+        _queue.Clear();
+        _parser = new("");
+        _rowIndex = 0;
+        _hasOutputEndOfLine = true;
+        _hasOutputEndOfStream = false;
     }
 
     internal string ToStringImpl(
@@ -232,6 +241,8 @@ public sealed class Lexer
 
     private bool TryReadNextLine()
     {
+        Debug.Assert(_lines is not null, "Initialize before use");
+
         if (HasEndOfStream)
         {
             return false;

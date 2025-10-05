@@ -97,7 +97,7 @@ public static partial class ScheduleBuilderHelper
 
         foreach (var t in courseNamesByKey)
         {
-            ref var course = ref b.Courses.Ref(t.Key);
+            ref var course = ref b.Courses.Ref(t.Key.Id);
             course.Names = t.Names;
         }
     }
@@ -198,9 +198,9 @@ public static partial class ScheduleBuilderHelper
         {
             if (s.LookupModule is { } lookupModule)
             {
-                if (lookupModule.Courses.TryGetValue(names[0], out int val))
+                if (lookupModule.Courses.TryGetValue(names[0], out var val))
                 {
-                    return new(val);
+                    return val;
                 }
             }
         }
@@ -217,7 +217,7 @@ public static partial class ScheduleBuilderHelper
                 foreach (var name in names)
                 {
                     // Let it throw on duplicates here for now.
-                    lookupModule.Courses.Add(name, r.Id);
+                    lookupModule.Courses.Add(name, new(r.Id));
                 }
                 UpdateLookupAfterCourseAdded(s);
             }

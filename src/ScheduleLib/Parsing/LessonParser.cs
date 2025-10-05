@@ -1,12 +1,9 @@
 // TODO: Remove the use of lists.
 
 using System.Buffers;
-using System.Collections.Frozen;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using ScheduleLib.Generation;
@@ -20,7 +17,7 @@ public struct ParseLessonsParams()
     public LessonTypeParser LessonTypeParser = LessonTypeParser.Instance;
     public ParityParser ParityParser = ParityParser.Instance;
     public RoomParser RoomParser = RoomParser.Instance;
-    public required IEnumerable<string> Lines;
+    public required Lexer Lexer;
     public required StringBuilder StringBuilder;
 }
 
@@ -246,19 +243,15 @@ public static class LessonParsingHelper
     private static readonly TokenTypeLabels _labels =
         LexerHelper.CreateLabelDict(typeof(LessonTokenType));
 
-    public static Lexer CreateLexer(IEnumerator<string> lines)
+    public static Lexer CreateLexer()
     {
-        return new(
-            lines,
-            LessonTokenReader.Instance,
-            _labels);
+        return new(LessonTokenReader.Instance, _labels);
     }
 
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
         ParsingState state = new();
-        using var lines = p.Lines.GetEnumerator();
-        var lexer = CreateLexer(lines);
+        var lexer = p.Lexer;
 
         while (lexer.CanPeek())
         {

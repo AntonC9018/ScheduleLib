@@ -8,6 +8,7 @@ using ScheduleLib.Curriculum;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace Comisia;
 

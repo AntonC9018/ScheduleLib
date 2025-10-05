@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Builders;
 

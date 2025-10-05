@@ -6,6 +6,7 @@ using ScheduleLib;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 public sealed class CommissionSchedule
 {

@@ -83,46 +83,61 @@ public readonly struct DayAttendanceBuilder
     }
 }
 
+public readonly struct StudentAttendanceBuilder(Name name)
+{
+    internal Name? Name { get; } = name;
+    internal readonly ImmutableArray<Attendance>.Builder Attendances =
+        ImmutableArray.CreateBuilder<Attendance>();
+
+    public void Day(Attendance attendance)
+    {
+        Attendances.Add(attendance);
+    }
+}
+
 public readonly struct StudentAttendanceListBuilder()
 {
-    private readonly ImmutableArray<Name>.Builder Students =
-        ImmutableArray.CreateBuilder<Name>();
-    private readonly List<DayAttendanceBuilder> Attendances = new();
+    private readonly List<StudentAttendanceBuilder> _students = new();
+    private readonly HashSet<Name> _allNames = new();
 
-    public StudentIndex Student(Name name)
+    public StudentAttendanceBuilder Student(Name name)
     {
-        Debug.Assert(Attendances.Count != 0, "Set students before attendances");
-        var index = Students.Count;
-        Students.Add(name);
-        return new(index);
-    }
-
-    public DayAttendanceBuilder Day(Action<DayAttendanceBuilder>? b = null)
-    {
-        if (Attendances.Count == 0)
+        if (!_allNames.Add(name))
         {
-            var set = new HashSet<Name>();
-            foreach (var s in Students)
-            {
-                if (!set.Add(s))
-                {
-                    throw new InvalidOperationException($"Duplicate student name: {s}");
-                }
-            }
+            throw new InvalidOperationException($"Duplicate student name: {name}");
         }
-        var dayBuilder = new DayAttendanceBuilder(Students.Count);
-        b?.Invoke(dayBuilder);
-        Attendances.Add(dayBuilder);
-        return dayBuilder;
+        var s = new StudentAttendanceBuilder(name);
+        _students.Add(s);
+        return s;
     }
 
     public (ImmutableArray<Name> Names, ImmutableArray<ImmutableArray<Attendance>> Attendance) Build()
     {
-        var names = Students.MoveToImmutable();
-        var attendance = Attendances
-            .Select(x => x.Build(names))
-            .ToImmutableArray();
-        return (names, attendance);
+        var names = ImmutableArray.CreateBuilder<Name>(_students.Count);
+        var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(_students.Count);
+
+        int dayCount = -1;
+        foreach (var student in _students)
+        {
+            if (student.Name is null)
+            {
+                throw new InvalidOperationException("Student name not set");
+            }
+            if (dayCount != -1
+                && student.Attendances.Count != dayCount)
+            {
+                throw new InvalidOperationException(
+                    $"Inconsistent day count for student {student.Name}: {student.Attendances.Count} (expected {dayCount})");
+            }
+            if (dayCount == -1)
+            {
+                dayCount = student.Attendances.Count;
+            }
+            names.Add(student.Name);
+            attendance.Add(student.Attendances.MoveToImmutable());
+        }
+
+        return (names.MoveToImmutable(), attendance.MoveToImmutable());
     }
 }
 
