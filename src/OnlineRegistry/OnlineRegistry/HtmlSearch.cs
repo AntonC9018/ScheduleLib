@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -71,8 +72,10 @@ internal readonly struct ScanLessonsParams
 internal readonly struct ScanLessonResult
 {
     public required IEnumerable<RemoteLessonInstance> Lessons { get; init; }
-    public required string[] StudentNames { get; init; }
+    public required HtmlStudent[] Students { get; init; }
 }
+
+internal readonly record struct HtmlStudent(string Name, bool IsExpelled);
 
 internal static class HtmlSearch
 {
@@ -195,11 +198,24 @@ internal static class HtmlSearch
             throw new InvalidOperationException("Attendance and lesson count mismatch");
         }
 
-        var studentNames = AttendanceCells(1).Select(x => x.Text()).ToArray();
+        var studentNames = AttendanceCells(1)
+            .Select(x =>
+            {
+                var t = x.TextContent;
+                Debug.Assert(!t.EndsWith(" exmatr"));
+                var i = x.QuerySelector("i.text-danger");
+                bool isExtmatr = false;
+                if (i != null)
+                {
+                    isExtmatr = i.TextContent == "exmatr";
+                }
+                return new HtmlStudent(x.TextContent, isExtmatr);
+            })
+            .ToArray();
         var ret = new ScanLessonResult
         {
            Lessons = E(),
-           StudentNames = studentNames,
+           Students = studentNames,
         };
         return ret;
 

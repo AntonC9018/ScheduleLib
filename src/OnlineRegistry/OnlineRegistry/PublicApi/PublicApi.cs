@@ -12,21 +12,6 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public enum Semester
-{
-    Sem1,
-    Sem2,
-    Count = 2,
-    Invalid = -1,
-}
-
-public static class SemesterHelper
-{
-    public static int AsOrdinal(this Semester semester)
-    {
-        return (int) semester + 1;
-    }
-}
 
 public struct AddLessonsToOnlineRegistryParams()
 {
@@ -54,151 +39,30 @@ public struct AddLessonsToOnlineRegistryParams()
 
     public required StudentAttendanceList Attendance;
     public required LessonTopics LessonTopics;
-
-
-}
-
-public enum Attendance
-{
-    None,
-    NotApplicable, // na
-    NotPresent, // a
-    Present, // <empty>
-    Grade, // left alone if this is found
-}
-
-public static class AttendanceHelper
-{
-    public static Attendance Parse(string value)
-    {
-        switch (value)
-        {
-            case "a":
-                return Attendance.NotPresent;
-            case null or "":
-                return Attendance.Present;
-            case "na":
-                return Attendance.NotApplicable;
-            default:
-                return Attendance.Grade;
-        }
-    }
-
-    public static string ToStringValue(this Attendance attendance)
-    {
-        return attendance switch
-        {
-            Attendance.NotApplicable => "na",
-            Attendance.NotPresent => "a",
-            Attendance.Present => "",
-            Attendance.Grade => "grade",
-            _ => throw Unreachable(),
-        };
-    }
-}
-
-internal readonly record struct Key(
-    NameParts<string> Name,
-    CourseId CourseId,
-    SubGroup SubGroup);
-
-public readonly struct StudentAttendanceBuilder
-{
-}
-
-public readonly struct StudentAttendanceListBuilder()
-{
-    private readonly List<Dictionary<Key, Attendance>> _values = new();
-
-    public StudentAttendanceBuilder Day(int index)
-    {
-        Debug.Assert(index > _values.Count, "Build consecutive indices!");
-        if (_values.Count == index)
-        {
-            _values.Add(new());
-        }
-        return new();
-    }
-}
-
-public readonly struct StudentAttendanceList
-{
-    public NamesInDb StudentNames(LookupKey1 key)
-    {
-    }
-    public ImmutableArray<Attendance> Get(LookupKey key)
-    {
-    }
-}
-
-public readonly struct NamesInDb
-{
-    public int NameToIndex(Name name)
-    {
-    }
-
-    public int Count
-    {
-        get
-        {
-
-        }
-    }
-}
-
-public readonly struct StudentNameRemapHelper
-{
-    private readonly int Count;
-    private readonly int[] DbToHtmlIndexMap;
-
-    internal StudentNameRemapHelper(int count, int[] dbToHtmlIndexMap)
-    {
-        Count = count;
-        DbToHtmlIndexMap = dbToHtmlIndexMap;
-    }
-
-    public static StudentNameRemapHelper Create(
-        string[] namesInHtml,
-        NamesInDb namesInDb)
-    {
-        var dbToHtmlIndexMap = new int[namesInDb.Count];
-        var count = namesInHtml.Length;
-
-        for (int i = 0; i < namesInHtml.Length; i++)
-        {
-            var parser = new Parser(namesInHtml[i]);
-            var name = NameHelper.ParseName(ref parser);
-            var remappedIndex = namesInDb.NameToIndex(name);
-            dbToHtmlIndexMap[i] = remappedIndex;
-        }
-        return new(count, dbToHtmlIndexMap);
-    }
-
-    public Attendance[] RemapToHtml(ImmutableArray<Attendance> attendanceInDb)
-    {
-        var result = new Attendance[Count];
-        for (int i = 0; i < attendanceInDb.Length; i++)
-        {
-            var outIndex = DbToHtmlIndexMap[i];
-            result[outIndex] = attendanceInDb[i];
-        }
-        return result;
-    }
 }
 
 public readonly struct LessonTopics
 {
-    public string? Get(LookupKey key)
+    private readonly Dictionary<AttendanceLookupKey, string> _topics;
+
+    public LessonTopics(Dictionary<AttendanceLookupKey, string> topics)
     {
+        _topics = topics;
+    }
+
+    public string? Get(AttendanceLookupKey key)
+    {
+        return _topics.GetValueOrDefault(key);
     }
 }
-
 
 public static partial class RegistryScraping
 {
     public static async Task AddLessonsToOnlineRegistry(AddLessonsToOnlineRegistryParams p)
     {
         p.Names ??= NamesConfig.Default;
+
+        var notFoundStudents = new List<Name>();
 
         using var context = await CreateContext();
         var lists = new MatchingLists();
@@ -232,24 +96,32 @@ public static partial class RegistryScraping
                 });
 
                 var studentNamesRemapHelper = StudentNameRemapHelper.Create(
-                    namesInHtml: scanResult.StudentNames,
+                    namesInHtml: scanResult.Students,
                     namesInDb: p.Attendance.StudentNames(new()
                     {
                         CourseId = courseLink.CourseId,
                         GroupId = group.GroupId,
-                    }));
+                        SubGroup = group.SubGroup,
+                    }),
+                    outNotFoundIndices: notFoundStudents);
+                if (notFoundStudents.Count != 0)
+                {
+                    p.ErrorHandler.StudentsNotInDbButInRegistry(notFoundStudents);
+                }
 
                 var completeLessons = lessonsWithTimes.WithIndex().Select(x =>
                 {
                     var lesson = p.Schedule.Get(x.Item.LessonId);
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
-                    var key = new LookupKey
+                    var key = new AttendanceLookupKey
                     {
                         GroupId = group.GroupId,
+                        SubGroup = group.SubGroup,
                         CourseId = courseId,
                         LessonType = lessonType,
-                        Index = x.Index,
+                        DayIndex = x.Index,
+                        DateTime = x.Item.DateTime,
                     };
                     var attendance = p.Attendance.Get(key);
                     var attendanceForHtml = studentNamesRemapHelper.RemapToHtml(attendance);
@@ -281,7 +153,10 @@ public static partial class RegistryScraping
 
                     if (p.ProcessingFlags.HasProcess(command.Type))
                     {
-                        await HandleCommand(command, addLessonUri);
+                        await HandleCommand(
+                            command,
+                            addLessonUri,
+                            expectedStudents: scanResult.Students);
                         continue;
                     }
                 }
@@ -305,18 +180,23 @@ public static partial class RegistryScraping
             Console.WriteLine($"{commandName}: {dateString} - {lessonName}");
         }
 
-        async ValueTask HandleCommand(LessonEquationCommand command, Uri addLessonUri)
+        async ValueTask HandleCommand(
+            LessonEquationCommand command,
+            Uri addLessonUri,
+            HtmlStudent[] expectedStudents)
         {
             switch (command.Type)
             {
                 case LessonEquationCommandType.Create:
                 {
-                    await Create(addLessonUri, command.All);
+                    await Create(command.All);
                     break;
                 }
                 case LessonEquationCommandType.Update:
                 {
-                    await Update(command.Existing.EditUri, command.All);
+                    await Update(
+                        command.Existing.EditUri,
+                        command.All);
                     break;
                 }
                 case LessonEquationCommandType.Delete:
@@ -329,6 +209,23 @@ public static partial class RegistryScraping
                     Debug.Fail("Unreachable");
                     break;
                 }
+            }
+
+
+            async Task Update(Uri editUri, LessonInstance lessonInstance)
+            {
+                await CreateOrUpdate1(
+                    editUri,
+                    lessonInstance,
+                    expectedStudents);
+            }
+
+            async Task Create(LessonInstance lessonInstance)
+            {
+                await CreateOrUpdate1(
+                    addLessonUri,
+                    lessonInstance,
+                    expectedStudents);
             }
         }
 
@@ -345,21 +242,12 @@ public static partial class RegistryScraping
             }
         }
 
-        async Task Update(Uri editUri, LessonInstance lessonInstance)
-        {
-            await CreateOrUpdate1(editUri, lessonInstance);
-        }
-
-        async Task Create(Uri addLessonUri, LessonInstance lessonInstance)
-        {
-            await CreateOrUpdate1(addLessonUri, lessonInstance);
-        }
-
         async Task CreateOrUpdate(
             Uri uri,
             LessonInstance lesson,
             Schedule schedule,
-            HttpClient client)
+            HttpClient client,
+            HtmlStudent[] expectedStudents)
         {
             var doc = await GetHtml(uri);
             _ = client;
@@ -370,13 +258,14 @@ public static partial class RegistryScraping
                 Document = doc,
                 Lesson = lesson,
                 Schedule = schedule,
+                ExpectedStudents = expectedStudents,
             });
         }
 
-        Task CreateOrUpdate1(Uri uri, LessonInstance lesson)
+        Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents)
         {
             // ReSharper disable once AccessToDisposedClosure
-            return CreateOrUpdate(uri, lesson, p.Schedule, context.HttpClient);
+            return CreateOrUpdate(uri, lesson, p.Schedule, context.HttpClient, expectedStudents);
         }
 
         async Task Delete(Uri detailsUri)
@@ -441,6 +330,14 @@ public static partial class RegistryScraping
                     if (a == Attendance.Grade)
                     {
                         throw new NotImplementedException();
+                    }
+
+                    var student = p.ExpectedStudents[i];
+                    // Let's just trust it's going to be this.
+                    // Parsing this again is kind of annoying.
+                    if (student.IsExpelled)
+                    {
+                        continue;
                     }
 
                     var row = table.Rows[i + firstIndex];
@@ -550,18 +447,23 @@ public static partial class RegistryScraping
 }
 
 
-public readonly record struct LookupKey1
+public readonly record struct StudentsLookupKey
 {
     public required GroupId GroupId { get; init; }
+    public required SubGroup SubGroup { get; init; }
     public required CourseId CourseId { get; init; }
 }
 
-public readonly record struct LookupKey
+public readonly record struct AttendanceLookupKey
 {
     public required GroupId GroupId { get; init; }
+    public required SubGroup SubGroup { get; init; }
     public required CourseId CourseId { get; init; }
     public required LessonType LessonType { get; init; }
-    public required int Index { get; init; }
+
+    // The program may use any of this info to get the right data.
+    public required int DayIndex { get; init; }
+    public required DateTime DateTime { get; init; }
 }
 
 public readonly struct CommandProcessingConfig
@@ -647,4 +549,5 @@ file struct SendUpdatedFormParams
     // public required HttpClient HttpClient { get; init; }
     // public required Uri Target { get; init; }
     public required Schedule Schedule { get; init; }
+    public required HtmlStudent[] ExpectedStudents { get; init; }
 }

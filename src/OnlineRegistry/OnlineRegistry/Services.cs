@@ -1,8 +1,11 @@
+using ScheduleLib.Parsing;
+
 namespace ScheduleLib.OnlineRegistry;
 
 public interface IRegistryErrorHandler
 {
     void CourseNotFound(string courseName);
+    void StudentsNotInDbButInRegistry(IEnumerable<Name> students);
     void GroupNotFound(string groupName);
     void LessonWithoutName();
 
@@ -27,6 +30,14 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
     public void CourseNotFound(string courseName)
     {
         Console.WriteLine($"Course not found: {courseName}");
+    }
+
+    public void StudentsNotInDbButInRegistry(IEnumerable<Name> students)
+    {
+        foreach (var student in students)
+        {
+            Console.WriteLine($"Student not in DB but in registry: {student}");
+        }
     }
 
     public void LessonWithoutName()

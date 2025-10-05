@@ -223,11 +223,17 @@ public static class MissingLessonDetection
 
             void AddPartialMatches()
             {
-                foreach (var criteria in new AllEnumEnumerable<LessonProperty>())
+                ReadOnlySpan<LessonProperty> criteria = [
+                    LessonProperty.Time,
+                    LessonProperty.Type,
+                    LessonProperty.Topic,
+                    // Not doing this by attendance.
+                ];
+                foreach (var criterion in criteria)
                 {
                     foreach (var x in matchingContext.IteratePotentialMappings())
                     {
-                        if (!x.CriteriaEquals(criteria, p.Schedule))
+                        if (!x.CriterionEquals(criterion, p.Schedule))
                         {
                             continue;
                         }
@@ -244,7 +250,7 @@ public static class MissingLessonDetection
                     {
                         foreach (var t in new AllEnumEnumerable<LessonProperty>())
                         {
-                            if (!x.CriteriaEquals(t, p.Schedule))
+                            if (!x.CriterionEquals(t, p.Schedule))
                             {
                                 return false;
                             }
@@ -331,9 +337,9 @@ internal struct MappedLesson
     public required LessonInstance All;
     public required RemoteLessonInstance Existing;
 
-    public readonly bool CriteriaEquals(LessonProperty x, Schedule s)
+    public readonly bool CriterionEquals(LessonProperty criterion, Schedule s)
     {
-        return x switch
+        return criterion switch
         {
             LessonProperty.Time => TimeEquals(),
             LessonProperty.Type => LessonTypesEqual(s),
