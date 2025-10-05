@@ -229,13 +229,13 @@ public record struct BitArray32
 
     public readonly int GetUnsetAfter(int index)
     {
-        Debug.Assert(index >= -1 && index <= _length);
+        Debug.Assert(index <= _length);
         return _array.GetUnsetAfter(index, _length);
     }
 
     public readonly int GetUnsetAtOrAfter(int index)
     {
-        ValidateIndex(index);
+        Debug.Assert(index <= _length);
         return GetUnsetAfter(index - 1);
     }
 
