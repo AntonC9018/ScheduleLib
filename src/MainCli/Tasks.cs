@@ -76,6 +76,8 @@ public static class Tasks
 {
     public static async Task GeneratePdfForGroupsAndTeachers(GeneratePdfForGroupsAndTeachersParams p)
     {
+        Directory.CreateDirectory(p.OutputPath);
+
         QuestPDF.Settings.License = LicenseType.Community;
 
         var tasks = new List<Task>();
@@ -1141,6 +1143,8 @@ public static class Tasks
         string dirName,
         CancellationToken cancellationToken)
     {
+        dirName = Path.GetFullPath(dirName);
+
         await ParseDirectoryToSchedule(
             context,
             dirName,
@@ -1617,8 +1621,24 @@ public static class Tasks
             {
                 return (TokenType) ')';
             }
-            parser.SkipNotWhitespace();
+            parser.Skip(new SkipNotWhitespaceOrSep());
             return NameTokenType.NamePart;
+        }
+
+        private struct SkipNotWhitespaceOrSep : IShouldSkip
+        {
+            public bool ShouldSkip(char ch)
+            {
+                if (ch is '(' or ')')
+                {
+                    return false;
+                }
+                if (char.IsWhiteSpace(ch))
+                {
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -1658,8 +1678,12 @@ public static class Tasks
                 {
                     if (isInParens)
                     {
-                        lessonType = LessonTypeParser.Instance.Parse(token.Value.Span)!.Value;
-                        break;
+                        if (LessonTypeParser.Instance.Parse(token.Value.Span) is { } lessonType1)
+                        {
+                            lessonType = lessonType1;
+                            break;
+                        }
+                        throw new InvalidOperationException($"Lesson type {token.Value.Span} is not a valid lesson type");
                     }
                     if (NumberHelper.FromRoman(token.Value.Span) is { } ord)
                     {
@@ -1915,21 +1939,23 @@ public static class Tasks
 
     public static async Task<Schedule> LoadSchedule(
         DocParseContext context,
-        string serializedPath,
-        Semester semester,
+        string scheduleSourcesDir,
+        string serializedSchedulePath,
+        Action<DocParseContext> beforeEndAction,
         CancellationToken cancellationToken)
     {
-        var serializedScheduleFullPath = Path.GetFullPath(serializedPath);
+        var scheduleSourcesDirFullPath = Path.GetFullPath(scheduleSourcesDir);
 
-        var filesHash = GetDirectoryHash(serializedScheduleFullPath);
         async ValueTask<SerializationModels.ScheduleModel?> GetValidModel()
         {
-            if (!Path.Exists(serializedScheduleFullPath))
+            if (!Path.Exists(serializedSchedulePath))
             {
                 return null;
             }
 
-            await using var inputFile = File.OpenRead(serializedScheduleFullPath);
+            var filesHash = GetDirectoryHash(scheduleSourcesDirFullPath);
+
+            await using var inputFile = File.OpenRead(serializedSchedulePath);
             var serializedModel = await ScheduleSerializer.Deserialize(inputFile, cancellationToken);
             if (serializedModel.Hash != filesHash)
             {
@@ -1945,22 +1971,26 @@ public static class Tasks
                 context.Schedule,
                 scheduleSerializedModel,
                 context.CourseNameUnifierModule);
+
+            beforeEndAction(context);
             var schedule = context.Schedule.Build();
             return schedule;
         }
 
         {
-            string dirName = @$"data\{context.Schedule.StudyYear()}_sem{semester.AsOrdinal()}";
-            _ = dirName;
             await ParseDocumentDirIntoSchedule(
                 context,
-                dirName,
+                scheduleSourcesDirFullPath,
                 cancellationToken: cancellationToken);
+
+            beforeEndAction(context);
 
             var schedule = context.Schedule.Build();
 
-            await using var outputFile = File.OpenWrite(serializedScheduleFullPath);
-            await ScheduleSerializer.Serialize(schedule, outputFile, filesHash, cancellationToken);
+            // I think word resaves them in some way.
+            var newFilesHash = GetDirectoryHash(scheduleSourcesDirFullPath);
+            await using var outputFile = new FileStream(serializedSchedulePath, FileMode.Create);
+            await ScheduleSerializer.Serialize(schedule, outputFile, newFilesHash, cancellationToken);
             return schedule;
         }
     }

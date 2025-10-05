@@ -21,11 +21,6 @@ var context = DocParseContext.Create(new()
 
 context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
 
-{
-    const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
-    Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
-}
-
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;
 
@@ -34,11 +29,18 @@ const Semester semester = Semester.Sem1;
 
 context.Schedule.SetStudyYear(year);
 
+string scheduleSourcesDir = @$"data\{year}_sem{semester.AsOrdinal()}";
 string serializedSchedulePath = @$"data\schedule_{year}_{semester.AsOrdinal()}.json";
 var schedule = await Tasks.LoadSchedule(
     context,
-    serializedSchedulePath,
-    semester: semester,
+    scheduleSourcesDir: scheduleSourcesDir,
+    serializedSchedulePath: serializedSchedulePath,
+    beforeEndAction: static context =>
+    {
+        // TODO: This is not included in the hash
+        const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
+        Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
+    },
     cancellationToken);
 
 Console.WriteLine("Schedule built");

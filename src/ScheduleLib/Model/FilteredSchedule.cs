@@ -10,13 +10,17 @@ public struct ScheduleFilter()
     public Grade? Grade;
     public TeacherFilter TeacherFilter = new();
     public GroupFilter GroupFilter = new();
-    public PeriodFilter PeriodFilter = new();
+    public PeriodFilter PeriodFilter = new()
+    {
+        MatchAny = true,
+    };
 }
 
 public struct PeriodFilter()
 {
     public PeriodId PeriodId = PeriodId.Unspecified;
     public bool UnspecifiedIsAll = false;
+    public bool MatchAny = false;
 }
 
 public struct GroupFilter()
@@ -175,6 +179,10 @@ public static class FilterHelper
 
                 bool PassesPeriodFilter()
                 {
+                    if (filter.PeriodFilter.MatchAny)
+                    {
+                        return true;
+                    }
                     var p = regularLesson.Date.Period;
                     if (p.IsUnspecified
                         && filter.PeriodFilter.UnspecifiedIsAll)
