@@ -132,67 +132,31 @@ public sealed class ScheduleTeacherNamesTests
     }
 }
 
-public sealed class TeacherFindIndexOfBestMatchTests
+public sealed class TeacherFindIndexOfBestMatchTests : IClassFixture<Db>
 {
-    private static TeacherBuilderModel Create(string lastName, NameParts<OptionalNamePart> name)
-    {
-        var l = new LastName();
-        l[0] = lastName;
+    private readonly Db _db;
 
-        return new()
-        {
-            Name = new()
-            {
-                LastName = l,
-                FirstName = name,
-            },
-        };
+    public TeacherFindIndexOfBestMatchTests(Db db)
+    {
+        _db = db;
     }
 
     [Fact]
     public void FindBestMatch()
     {
-        TeacherBuilderModel[] teachers = [
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "First",
-                Short = "F.",
-            })),
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "Irst",
-                Short = "I.",
-            })),
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "Rst",
-                Short = null,
-            })),
-            Create("Unrelated", CreateSinglePartName(new()
-            {
-                Full = "First",
-                Short = "F.",
-            })),
-        ];
-        int[] ids = teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last").ToArray();
+        _db.Check(CreateSinglePartNameWord("I."), 1);
+        _db.Check(CreateSinglePartNameWord("F."), 0);
+        _db.Check(CreateSinglePartNameWord("Fi."), 0);
+        _db.Check(CreateSinglePartNameWord("Rs"), -1);
+        _db.Check(CreateSinglePartNameWord("Rst"), 2);
+        _db.Check(CreateSinglePartNameWord("R."), 2);
+        _db.Check(CreateSinglePartNameWord("Unrelated"), -1);
+    }
 
-        Check(CreateSinglePartNameWord("I."), 1);
-        Check(CreateSinglePartNameWord("F."), 0);
-        Check(CreateSinglePartNameWord("Fi."), 0);
-        Check(CreateSinglePartNameWord("Rs"), -1);
-        Check(CreateSinglePartNameWord("Rst"), 2);
-        Check(CreateSinglePartNameWord("R."), 2);
-        Check(CreateSinglePartNameWord("Unrelated"), -1);
-        return;
-
-        void Check(NameParts<Word> firstName, int expected)
-        {
-            int i = TeacherLookupHelper.FindIndexOfBestMatch(
-                teachers,
-                ids,
-                firstName);
-            Assert.Equal(expected, i);
-        }
+    [Fact]
+    public void SearchByFullFirstName_WithShortFirstNameInDb()
+    {
+        _db.Check(CreateSinglePartNameWord("Other"), 3);
     }
 }
 
@@ -213,3 +177,68 @@ file static class Helper
         return ret;
     }
 }
+
+
+public sealed class Db
+{
+    private readonly int[] _ids;
+    private readonly TeacherBuilderModel[] _teachers;
+
+    public Db()
+    {
+        _teachers = [
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "First",
+                Short = "F.",
+            })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "Irst",
+                Short = "I.",
+            })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = "Rst",
+                Short = null,
+            })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = null,
+                Short = "O.",
+            })),
+            Create("Unrelated", CreateSinglePartName(new()
+            {
+                Full = "First",
+                Short = "F.",
+            })),
+        ];
+
+        _ids = _teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last").ToArray();
+    }
+
+    public void Check(NameParts<Word> firstName, int expected)
+    {
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            _teachers,
+            _ids,
+            firstName);
+        Assert.Equal(expected, i);
+    }
+
+    private static TeacherBuilderModel Create(string lastName, NameParts<OptionalNamePart> name)
+    {
+        var l = new LastName();
+        l[0] = lastName;
+
+        return new()
+        {
+            Name = new()
+            {
+                LastName = l,
+                FirstName = name,
+            },
+        };
+    }
+}
+

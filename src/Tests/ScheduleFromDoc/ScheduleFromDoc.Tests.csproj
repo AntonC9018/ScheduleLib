@@ -5,6 +5,9 @@
     <ItemGroup>
         <ProjectReference Include="..\..\MainCli\MainCli.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <None Include="*.verified.*" CopyToOutputDirectory="Always" />
+    </ItemGroup>
 </Project>
 
 

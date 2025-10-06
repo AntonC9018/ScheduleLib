@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Encodings.Web;
@@ -38,16 +37,16 @@ public static class ScheduleSerializer
         return model;
     }
 
-    public static void ConvertWithLookup(
+    public static void AddToBuilder(
         ScheduleBuilder builder,
         SerializationModels.ScheduleModel schedule,
         CourseNameUnifierModule? unifier = null)
     {
         SerializationModels.ConvertToScheduleBuilder(builder, schedule);
-        builder.EnableLookupModule();
 
         if (unifier is not null)
         {
+            builder.EnableLookupModule();
             for (int i = 0; i < builder.Courses.Count; i++)
             {
                 var courseId = new CourseId(i);
@@ -463,15 +462,15 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
             {
                 throw new JsonException("Too many elements in NameParts array");
             }
+
             T? item;
             if (reader.TokenType == JsonTokenType.Null)
             {
-                reader.Read();
                 item = default;
             }
             else
             {
-                item = JsonSerializer.Deserialize<T?>(ref reader, options);
+                item = JsonSerializer.Deserialize<T>(ref reader, options);
             }
 
             nameParts[i] = item!;
@@ -484,6 +483,13 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
     public override void Write(Utf8JsonWriter writer, NameParts<T> value, JsonSerializerOptions options)
     {
         writer.WriteStartArray();
+        if (value[0] is OptionalNamePart s
+            && s.Short is not null
+            && new Word(s.Short).Span.Shortened.Value.SequenceEqual("G."))
+        {
+            Console.WriteLine("Hello");
+        }
+
         int lastNullStart = -1;
         for (int i = 0; i < value.Length; i++)
         {
@@ -499,7 +505,7 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
         }
         for (int i = 0; i < value.Length; i++)
         {
-            if (i < lastNullStart)
+            if (lastNullStart == -1 || i < lastNullStart)
             {
                 JsonSerializer.Serialize(writer, value[i], options);
             }

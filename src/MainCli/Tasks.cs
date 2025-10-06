@@ -19,6 +19,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using MainCli.ExcelBuilder;
 using MainCli.Helper;
+using Microsoft.Extensions.Azure;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -1798,6 +1799,10 @@ public static class Tasks
             Key key,
             FilteredSchedule schedule)
         {
+            if (schedule.Source.Get(key.CourseId).FullName.Contains("C++") && key.LessonType == LessonType.Curs)
+            {
+                Console.WriteLine("hello");
+            }
             var diffLesson = new RegularLesson
             {
                 Date = default,
@@ -1839,7 +1844,7 @@ public static class Tasks
 
             foreach (var lesson in schedule.Lessons)
             {
-                if (schedule.Source.Get(lesson.Lesson.Course).FullName.Contains("Design"))
+                if (schedule.Source.Get(lesson.Lesson.Course).FullName.Contains("C++"))
                 {
                     Console.WriteLine("hello");
                 }
@@ -1883,10 +1888,6 @@ public static class Tasks
 
         foreach (var sheet in p.Workbook.Worksheets)
         {
-            if (sheet.Name.StartsWith("Design Soft"))
-            {
-                Console.WriteLine("?");
-            }
             if (helper.LookupLessonByExcelName(sheet.Name) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
@@ -1980,7 +1981,7 @@ public static class Tasks
 
         if (await GetValidModel() is { } scheduleSerializedModel)
         {
-            ScheduleSerializer.ConvertWithLookup(
+            ScheduleSerializer.AddToBuilder(
                 context.Schedule,
                 scheduleSerializedModel,
                 context.CourseNameUnifierModule);

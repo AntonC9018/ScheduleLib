@@ -58,6 +58,7 @@ public static class TeacherLookupHelper
         AllFull,
         AllAsShort,
         EitherFullOrShort,
+        MatchFullAgainstShort,
         Count,
     }
 
@@ -104,6 +105,10 @@ public static class TeacherLookupHelper
                     case FirstNameComparison.EitherFullOrShort:
                     {
                         return !onlyContainsFullNames;
+                    }
+                    case FirstNameComparison.MatchFullAgainstShort:
+                    {
+                        return onlyContainsFullNames;
                     }
                     default:
                     {
@@ -173,6 +178,10 @@ public static class TeacherLookupHelper
                     }
                     case FirstNameComparison.EitherFullOrShort:
                     {
+                        return FullOrShort(teacherName, name);
+                    }
+                    case FirstNameComparison.MatchFullAgainstShort:
+                    {
                         return teacherName.EachEquals(name, (existingPart, newPart) =>
                         {
                             if (existingPart.IsNull)
@@ -180,50 +189,86 @@ public static class TeacherLookupHelper
                                 return true;
                             }
 
-                            if (existingPart.Full is { } full)
-                            {
-                                bool matches = false;
-                                if (existingPart.Short is null)
-                                {
-                                    matches = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                        full,
-                                        newPart.Span.Shortened.Value);
-                                }
-                                else if (newPart.LooksFull)
-                                {
-                                    matches = IgnoreDiacriticsAndCaseComparer.Instance.Equals(
-                                        full,
-                                        newPart.Value);
-                                }
-                                if (matches)
-                                {
-                                    return true;
-                                }
-                            }
-                            if (existingPart.Short is { } teacherShort)
-                            {
-                                // Ignore the separators as well
-                                var longer = new WordSpan(teacherShort).Shortened.Value;
-                                var shorter = newPart.Span.Shortened.Value;
-                                if (longer.Length < shorter.Length)
-                                {
-                                    var t = longer;
-                                    longer = shorter;
-                                    shorter = t;
-                                }
+                            Debug.Assert(newPart.Span.LooksFull);
 
-                                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                            var newFull = newPart.Span.Value;
+                            if (existingPart.Full is { } f)
+                            {
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
                                 {
                                     return true;
                                 }
+                                return false;
                             }
-                            return false;
+                            if (existingPart.Short is { } s)
+                            {
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                        newFull,
+                                        new Word(s).Span.Shortened.Value))
+                                {
+                                    return true;
+                                }
+                                return false;
+                            }
+                            throw Unreachable();
                         });
                     }
                     default:
                     {
                         throw Unreachable();
                     }
+                }
+
+                static bool FullOrShort(
+                    NameParts<OptionalNamePart> a,
+                    NameParts<Word> b)
+                {
+                    return a.EachEquals(b, (apart, bpart) =>
+                    {
+                        if (apart.IsNull)
+                        {
+                            return true;
+                        }
+
+                        if (apart.Full is { } full)
+                        {
+                            bool matches = false;
+                            if (apart.Short is null)
+                            {
+                                matches = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                    full,
+                                    bpart.Span.Shortened.Value);
+                            }
+                            else if (bpart.LooksFull)
+                            {
+                                matches = IgnoreDiacriticsAndCaseComparer.Instance.Equals(
+                                    full,
+                                    bpart.Value);
+                            }
+                            if (matches)
+                            {
+                                return true;
+                            }
+                        }
+                        if (apart.Short is { } teacherShort)
+                        {
+                            // Ignore the separators as well
+                            var longer = new WordSpan(teacherShort).Shortened.Value;
+                            var shorter = bpart.Span.Shortened.Value;
+                            if (longer.Length < shorter.Length)
+                            {
+                                var t = longer;
+                                longer = shorter;
+                                shorter = t;
+                            }
+
+                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                 }
             }
         }
@@ -265,6 +310,10 @@ public static class TeacherBuilderHelper
 
         var list = Lookup1();
 
+        if (name.LastName.Parts[0] == "Curmanschii")
+        {
+            Console.WriteLine("Hello");
+        }
         if (FindId(list) is { } id)
         {
             var b = new TeacherBuilder

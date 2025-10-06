@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using MainCli;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -19,6 +20,10 @@ public sealed class ScheduleFromDocTests
         return new CancellationTokenSource(delay);
     }
 
+    private const string VerifyScheduleSnapshotName = "verify_schedule_model";
+    private const string ScheduleJsonSnapshotName = "verify_schedule_json";
+    private const string ScheduleSnapshotJsonPath = $"{ScheduleJsonSnapshotName}.verified.json";
+
     [Fact]
     public async Task IntegrationTestWord()
     {
@@ -26,7 +31,8 @@ public sealed class ScheduleFromDocTests
         var cancellationToken = cts.Token;
         var schedule = await GetScheduleFromWord(cancellationToken);
         var verifyModel = VerifyModelMapper.ToVerifyModel(schedule);
-        await Verify(verifyModel);
+        await Verify(verifyModel)
+            .UseFileName(VerifyScheduleSnapshotName);
     }
 
     [Fact]
@@ -56,7 +62,7 @@ public sealed class ScheduleFromDocTests
             {
                 await using var inputFile = File.OpenRead(outputPath);
                 var scheduleModel = await ScheduleSerializer.Deserialize(inputFile, cancellationToken);
-                ScheduleSerializer.ConvertWithLookup(builder, scheduleModel);
+                ScheduleSerializer.AddToBuilder(builder, scheduleModel);
             }
             {
                 var schedule1 = builder.Build();
@@ -69,6 +75,38 @@ public sealed class ScheduleFromDocTests
             var text2 = await File.ReadAllTextAsync(otherOutputPath, cancellationToken);
             Assert.Equal(text1, text2);
         }
+    }
+
+    [Fact]
+    public async Task JsonSerializationIntegrationTest()
+    {
+        using var cts = CreateCts();
+        var cancellationToken = cts.Token;
+        var schedule = await GetScheduleFromWord(cancellationToken);
+        using var stream = new MemoryStream();
+        await ScheduleSerializer.Serialize(schedule, stream, hash: "", cancellationToken);
+        stream.Position = 0;
+        using var reader = new StreamReader(stream);
+        // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+        var str = reader.ReadToEnd();
+        await Verify(new Target("json", str))
+            .UseFileName(ScheduleJsonSnapshotName);
+    }
+
+    [Fact]
+    public async Task JsonAndWordModelsAreEquivalent()
+    {
+        using var cts = CreateCts();
+        var cancellationToken = cts.Token;
+        await using var reader = File.OpenRead(ScheduleSnapshotJsonPath);
+        var scheduleModel = await ScheduleSerializer.Deserialize(reader, cancellationToken);
+        var scheduleBuilder = new ScheduleBuilder();
+        ScheduleSerializer.AddToBuilder(scheduleBuilder, scheduleModel);
+        var jsonSchedule = scheduleBuilder.Build();
+
+        var serializationModel = VerifyModelMapper.ToVerifyModel(jsonSchedule);
+        await Verify(serializationModel)
+            .UseFileName(VerifyScheduleSnapshotName);
     }
 
     private const int Year = 2024;
