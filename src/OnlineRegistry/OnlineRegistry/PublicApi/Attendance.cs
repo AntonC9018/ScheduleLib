@@ -111,30 +111,40 @@ public readonly struct StudentAttendanceListBuilder()
         return s;
     }
 
-    public (ImmutableArray<Name> Names, ImmutableArray<ImmutableArray<Attendance>> Attendance) Build()
+    public (ImmutableArray<Name> Names, ImmutableArray<ImmutableArray<Attendance>> Attendance) Build(
+        Attendance? missingDaysFiller)
     {
         var names = ImmutableArray.CreateBuilder<Name>(_students.Count);
         var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(_students.Count);
 
-        int dayCount = -1;
+        var maxDayCount = _students.Max(x => x.Attendances.Count);
+        if (missingDaysFiller is { } f)
+        {
+            foreach (var student in _students)
+            {
+                var a = student.Attendances;
+                a.Capacity = maxDayCount;
+
+                while (a.Count < maxDayCount)
+                {
+                    a.Add(f);
+                }
+            }
+        }
+
         foreach (var student in _students)
         {
             if (student.Name is null)
             {
                 throw new InvalidOperationException("Student name not set");
             }
-            if (dayCount != -1
-                && student.Attendances.Count != dayCount)
+            if (student.Attendances.Count != maxDayCount)
             {
                 throw new InvalidOperationException(
-                    $"Inconsistent day count for student {student.Name}: {student.Attendances.Count} (expected {dayCount})");
-            }
-            if (dayCount == -1)
-            {
-                dayCount = student.Attendances.Count;
+                    $"Student {student.Name} has {student.Attendances.Count} days, expected {maxDayCount}");
             }
             names.Add(student.Name);
-            attendance.Add(student.Attendances.MoveToImmutable());
+            attendance.Add(student.Attendances.DrainToImmutable());
         }
 
         return (names.MoveToImmutable(), attendance.MoveToImmutable());
@@ -155,12 +165,13 @@ public readonly struct AllStudentAttendanceListBuilder()
         return builder;
     }
 
-    public StudentAttendanceList Build()
+    public StudentAttendanceList Build(
+        Attendance? missingDaysFiller = null)
     {
         var map = new Dictionary<StudentsLookupKey, StudentAttendanceList.AttendanceList>();
         foreach (var (key, builder) in _values)
         {
-            var (names, attendance) = builder.Build();
+            var (names, attendance) = builder.Build(missingDaysFiller);
             var value = new StudentAttendanceList.AttendanceList(
                 Attendance: attendance,
                 StudentNames: NamesInDb.Create(names));
@@ -199,6 +210,7 @@ public readonly struct StudentAttendanceList
             CourseId = key.CourseId,
             GroupId = key.GroupId,
             SubGroup = key.SubGroup,
+            LessonType = key.LessonType,
         };
         if (_map.TryGetValue(attendanceKey, out var list))
         {

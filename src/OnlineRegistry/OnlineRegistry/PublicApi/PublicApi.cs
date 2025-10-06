@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -94,36 +95,48 @@ public static partial class RegistryScraping
                     Semester = p.Semester,
                 });
 
-                var studentNamesRemapHelper = StudentNameRemapHelper.Create(
-                    namesInHtml: scanResult.Students,
-                    namesInDb: p.Attendance.StudentNames(new()
-                    {
-                        CourseId = courseLink.CourseId,
-                        GroupId = group.GroupId,
-                        SubGroup = group.SubGroup,
-                    }),
-                    outNotFoundIndices: notFoundStudents);
-                if (notFoundStudents.Count != 0)
-                {
-                    p.ErrorHandler.StudentsNotInDbButInRegistry(notFoundStudents);
-                }
+                var remapHelpers = new ValueForEachLessonType<StudentNameRemapHelper>();
+                var indexesByLessonType = new ValueForEachLessonType<int>();
 
                 var completeLessons = lessonsWithTimes.WithIndex().Select(x =>
                 {
                     var lesson = p.Schedule.Get(x.Item.LessonId);
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
+                    // TODO: Decouple from the implementation.
+                    ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
                     var key = new AttendanceLookupKey
                     {
                         GroupId = group.GroupId,
                         SubGroup = group.SubGroup,
                         CourseId = courseId,
                         LessonType = lessonType,
-                        DayIndex = x.Index,
+                        DayIndex = attendanceIndex,
                         DateTime = x.Item.DateTime,
                     };
                     var attendance = p.Attendance.Get(key);
-                    var attendanceForHtml = studentNamesRemapHelper.RemapToHtml(attendance);
+
+                    ref var remapHelper = ref remapHelpers[(int) lessonType];
+                    if (attendanceIndex == 0)
+                    {
+                        remapHelper = StudentNameRemapHelper.Create(
+                            namesInHtml: scanResult.Students,
+                            namesInDb: p.Attendance.StudentNames(new()
+                            {
+                                CourseId = courseLink.CourseId,
+                                GroupId = group.GroupId,
+                                SubGroup = group.SubGroup,
+                                LessonType = lessonType,
+                            }),
+                            outNotFoundIndices: notFoundStudents);
+                        if (notFoundStudents.Count != 0)
+                        {
+                            p.ErrorHandler.StudentsNotInDbButInRegistry(notFoundStudents);
+                        }
+                    }
+                    attendanceIndex++;
+
+                    var attendanceForHtml = remapHelper.RemapToHtml(attendance);
                     var topic = p.LessonTopics.Get(key);
                     return new LessonInstance
                     {
@@ -463,6 +476,7 @@ public readonly record struct StudentsLookupKey
     public required GroupId GroupId { get; init; }
     public required SubGroup SubGroup { get; init; }
     public required CourseId CourseId { get; init; }
+    public required LessonType LessonType { get; init; }
 }
 
 public readonly record struct AttendanceLookupKey
@@ -561,4 +575,10 @@ file struct SendUpdatedFormParams
     // public required Uri Target { get; init; }
     public required Schedule Schedule { get; init; }
     public required HtmlStudent[] ExpectedStudents { get; init; }
+}
+
+[InlineArray((int) LessonType.Count)]
+file struct ValueForEachLessonType<T>
+{
+    private T _items;
 }

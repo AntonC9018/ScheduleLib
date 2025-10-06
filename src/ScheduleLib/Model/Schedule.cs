@@ -213,9 +213,10 @@ public enum LessonType
     Lab,
     Seminar,
     Curs,
-    Unspecified,
     Prelegere,
+    Unspecified,
     Custom,
+    Count,
 }
 
 public readonly record struct SubGroup

@@ -1892,6 +1892,7 @@ public static class Tasks
                     CourseId = lesson.Lesson.Course,
                     GroupId = group,
                     SubGroup = lesson.Lesson.SubGroup,
+                    LessonType = lesson.Lesson.Type,
                 });
 
                 foreach (var row in sheet.Rows())
@@ -1934,7 +1935,7 @@ public static class Tasks
             }
 
         }
-        var ret = builder.Build();
+        var ret = builder.Build(missingDaysFiller: Attendance.Present);
         return ret;
     }
 
