@@ -309,11 +309,6 @@ public static class TeacherBuilderHelper
         }));
 
         var list = Lookup1();
-
-        if (name.LastName.Parts[0] == "Curmanschii")
-        {
-            Console.WriteLine("Hello");
-        }
         if (FindId(list) is { } id)
         {
             var b = new TeacherBuilder

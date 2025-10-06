@@ -483,13 +483,6 @@ file sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
     public override void Write(Utf8JsonWriter writer, NameParts<T> value, JsonSerializerOptions options)
     {
         writer.WriteStartArray();
-        if (value[0] is OptionalNamePart s
-            && s.Short is not null
-            && new Word(s.Short).Span.Shortened.Value.SequenceEqual("G."))
-        {
-            Console.WriteLine("Hello");
-        }
-
         int lastNullStart = -1;
         for (int i = 0; i < value.Length; i++)
         {

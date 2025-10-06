@@ -1799,10 +1799,6 @@ public static class Tasks
             Key key,
             FilteredSchedule schedule)
         {
-            if (schedule.Source.Get(key.CourseId).FullName.Contains("C++") && key.LessonType == LessonType.Curs)
-            {
-                Console.WriteLine("hello");
-            }
             var diffLesson = new RegularLesson
             {
                 Date = default,
@@ -1844,10 +1840,6 @@ public static class Tasks
 
             foreach (var lesson in schedule.Lessons)
             {
-                if (schedule.Source.Get(lesson.Lesson.Course).FullName.Contains("C++"))
-                {
-                    Console.WriteLine("hello");
-                }
                 if (result != null)
                 {
                     var differences = LessonBuilderHelper.Diff(lesson, result, resultDiffMask);

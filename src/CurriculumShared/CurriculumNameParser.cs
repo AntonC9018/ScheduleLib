@@ -2027,11 +2027,6 @@ internal static class DisciplineProvisionsProcessing
         {
             foreach (var (col, colPosition) in row.Elements<TableCell>().WithPosition())
             {
-                if (colPosition == 1)
-                {
-                    Console.WriteLine("Hello");
-                }
-
                 if (Skip())
                 {
                     continue;
