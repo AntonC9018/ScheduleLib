@@ -26,7 +26,7 @@ public struct PeriodFilter()
 public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
-    public GroupId[]? GroupIds = null;
+    public GroupId[]? OneOfGroupIds = null;
 }
 
 public struct TeacherFilter()
@@ -163,7 +163,7 @@ public static class FilterHelper
 
                 bool PassesGroupFilter()
                 {
-                    if (filter.GroupFilter.GroupIds is not { } groupIds)
+                    if (filter.GroupFilter.OneOfGroupIds is not { } groupIds)
                     {
                         return true;
                     }

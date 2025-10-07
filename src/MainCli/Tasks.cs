@@ -99,7 +99,7 @@ public static class Tasks
                     {
                         GroupFilter = new()
                         {
-                            GroupIds = [new(groupId1)],
+                            OneOfGroupIds = [new(groupId1)],
                         },
                     });
                 });
