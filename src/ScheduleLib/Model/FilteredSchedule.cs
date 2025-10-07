@@ -167,9 +167,20 @@ public static class FilterHelper
                     {
                         return true;
                     }
+                    bool CheckId(GroupId groupId)
+                    {
+                        foreach (var x in regularLesson.Lesson.Groups)
+                        {
+                            if (x == groupId)
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
                     foreach (var groupId1 in groupIds)
                     {
-                        if (groupId1 == regularLesson.Lesson.Group)
+                        if (CheckId(groupId1))
                         {
                             return true;
                         }
