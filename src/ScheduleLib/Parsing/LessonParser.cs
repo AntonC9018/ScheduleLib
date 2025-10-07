@@ -338,15 +338,16 @@ public static class LessonParsingHelper
             {
                 var allFallback = allDefaults;
 
-                var allIndex = lesson.Modifiers.FindIndex(SubLessonModifiersKey.Default);
-                if (allIndex != -1)
+                var defaultKeyIndex = lesson.Modifiers.FindIndex(SubLessonModifiersKey.Default);
+                if (defaultKeyIndex != -1)
                 {
-                    ref var all = ref lesson.Modifiers.Ref(allIndex);
+                    ref var all = ref lesson.Modifiers.Ref(defaultKeyIndex);
                     allFallback.General.UpdateIfNotDefault(all.General);
                 }
 
                 {
-                    bool shouldNotOutputDefaultKey = defaultHasOtherThanAllSubGroup
+                    bool shouldNotOutputDefaultKey =
+                        (defaultHasOtherThanAllSubGroup && !state.DefaultModifiers.IsEmpty)
                         || lesson.Modifiers.HasOtherThanDefaultKey();
 
                     foreach (var mod in lesson.Modifiers)

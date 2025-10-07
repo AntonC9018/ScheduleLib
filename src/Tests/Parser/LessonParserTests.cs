@@ -420,6 +420,18 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public void NoTeacherWithModifierTest()
+    {
+        var lessons = ParseLessons([
+            "Educa.fizică (imp)",
+        ]);
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Educa. fizică", lesson.LessonName.Span);
+        Assert.Equal(Parity.OddWeek, lesson.Parity);
+    }
+
+    [Fact]
     public void TeacherAll()
     {
         var lessons = ParseLessons([
