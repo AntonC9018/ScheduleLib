@@ -1925,7 +1925,7 @@ public static class Tasks
                         if (attendance == Attendance.Grade
                             || attendance == Attendance.None)
                         {
-                            throw new InvalidOperationException($"Expecting either empty or 'a' or 'na', got '{attendanceStr}'");
+                            throw new InvalidOperationException($"Expecting empty, 'a', 'na' or 'am', got '{attendanceStr}'");
                         }
 
                         student.Day(attendance);

@@ -2,10 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.Common;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -34,33 +32,24 @@ internal readonly record struct RemoteLessonInstance : IDateTime
 internal readonly struct ScanCoursesParams
 {
     public required IDocument Document { get; init; }
-    public required IRegistryErrorHandler ErrorHandler { get; init; }
     public required Semester Semester { get; init; }
-    public required CourseNameUnifierModuleWithDeps CourseNames { get; init; }
-
-    internal CourseId? FindCourse(string name)
-    {
-        var ret = CourseNames.Find(name, new()
-        {
-            IgnorePunctuation = true,
-        });
-        return ret;
-    }
+    public required Func<string, CourseId?> FindCourse { get; init; }
 }
 
 internal readonly struct ScanGroupsParams
 {
     public required IDocument Document { get; init; }
     public required GroupParseContext GroupParseContext { get; init; }
-    public required Schedule Schedule { get; init; }
-    public required IRegistryErrorHandler ErrorHandler { get; init; }
+    public required SearchGroupId SearchGroupId { get; init; }
 }
+
+internal delegate GroupId SearchGroupId(in GroupForSearch group);
 
 
 internal readonly struct ScanLessonsParams
 {
     public required IDocument Document { get; init; }
-    public required IRegistryErrorHandler ErrorHandler { get; init; }
+    public required IRegistryLessonParserErrorHandler ErrorHandler { get; init; }
     public required Func<Task<IDocument>> GetAddLessonDocument { get; init; }
 }
 
@@ -86,17 +75,10 @@ internal static class HtmlSearch
             var anchor = (IHtmlAnchorElement) el;
             var url = anchor.Href;
             var courseName = anchor.Text;
-            if (courseName.Length == 0)
+            if (p.FindCourse(courseName) is { } courseId)
             {
-                p.ErrorHandler.LessonWithoutName();
-                continue;
+                yield return new(courseId, new(url));
             }
-            if (p.FindCourse(courseName) is not { } courseId)
-            {
-                p.ErrorHandler.CourseNotFound(courseName);
-                continue;
-            }
-            yield return new(courseId, new(url));
         }
 
         static string SemString(Semester session)
@@ -120,10 +102,9 @@ internal static class HtmlSearch
             var url = anchor.Href;
             var groupName = anchor.Text;
             var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
-            var groupId = FindGroupMatch(p.Schedule, groupForSearch);
+            var groupId = p.SearchGroupId(groupForSearch);
             if (groupId == GroupId.Invalid)
             {
-                p.ErrorHandler.GroupNotFound(groupName);
                 continue;
             }
 
@@ -159,49 +140,87 @@ internal static class HtmlSearch
         return uri;
     }
 
-    internal static async ValueTask<ScanLessonResult> ScanLessonsDocumentForLessonInstances(
-        ScanLessonsParams p)
+    private struct AttendanceTableHelper
     {
-        const string attendanceTablePath = """main > div:last-of-type table""";
-        var attendanceTable = (IHtmlTableElement) (
-            p.Document.QuerySelector(attendanceTablePath)
-                ?? throw new InvalidOperationException("Attendance table not found in the page"));
-        var headerRow = attendanceTable.Rows[0];
-        var columnCount = headerRow.Cells.Length;
-        int attendanceStartColIndex = 3;
-        int attendanceLessonCount = columnCount - attendanceStartColIndex;
-        int attendanceStartRowIndex = 1; // skip header
-        int studentCount = attendanceTable.Rows.Length - attendanceStartRowIndex;
+        private readonly IHtmlTableElement? _table;
 
-        const string lessonTablePath = """main > div:nth-of-type(3) > table""";
-        var lessonTable = (IHtmlTableElement) (p.Document.QuerySelector(lessonTablePath)
-            ?? throw new InvalidOperationException("Lesson table not found in the page"));
-        int lessonRowStart = 1;
-        int lessonCount = lessonTable.Rows.Length - lessonRowStart;
-
-        IEnumerable<IHtmlTableCellElement> AttendanceCells(int column)
+        public AttendanceTableHelper(IHtmlTableElement? table)
         {
-            for (int i = 0; i < studentCount; i++)
+            _table = table;
+        }
+
+        private const int attendanceStartColIndex = 3;
+        private const int attendanceStartRowIndex = 1; // skip header
+
+        public int StudentCount
+        {
+            get
             {
-                var row = attendanceTable.Rows[attendanceStartRowIndex + i];
+                if (_table == null)
+                {
+                    return 0;
+                }
+                return _table.Rows.Length - attendanceStartRowIndex;
+            }
+        }
+
+        public int LessonCount
+        {
+            get
+            {
+                if (_table == null)
+                {
+                    return 0;
+                }
+                var headerRow = _table.Rows[0];
+                var columnCount = headerRow.Cells.Length;
+                return columnCount - attendanceStartColIndex;
+            }
+        }
+
+        public IEnumerable<IHtmlTableCellElement> Cells(int column)
+        {
+            for (int i = 0; i < StudentCount; i++)
+            {
+                var row = _table!.Rows[attendanceStartRowIndex + i];
                 var cell = row.Cells[column];
                 yield return cell;
             }
         }
 
-        if (attendanceLessonCount != lessonCount)
+        public IEnumerable<IHtmlTableCellElement> DayCells(int index)
+        {
+            return Cells(attendanceStartColIndex + index);
+        }
+    }
+
+    internal static async ValueTask<ScanLessonResult> ScanLessonsDocumentForLessonInstances(
+        ScanLessonsParams p)
+    {
+        var tables = p.Document.QuerySelectorAll<IHtmlTableElement>("table").Take(2).ToArray();
+        var lessonTable = tables[0];
+        int lessonRowStart = 1;
+        int lessonCount = lessonTable.Rows.Length - lessonRowStart;
+
+        var attendanceTable = new AttendanceTableHelper(tables.Length > 1 ? tables[1] : null);
+        if (attendanceTable.LessonCount != lessonCount)
         {
             throw new InvalidOperationException("Attendance and lesson count mismatch");
         }
 
-        var studentNames = AttendanceCells(1)
-            .Select(ParseCellAsStudent)
-            .ToArray();
+        HtmlStudent[] studentNames = [];
+        if (attendanceTable.StudentCount != 0)
+        {
+            studentNames = attendanceTable
+                .Cells(1)
+                .Select(ParseCellAsStudent)
+                .ToArray();
+        }
         if (studentNames.Length == 0)
         {
             // Must query this from the lesson add thing.
             var addDoc = await p.GetAddLessonDocument();
-            var table = (IHtmlTableElement) addDoc.QuerySelectorAll("table").Last();
+            var table = (IHtmlTableElement) addDoc.QuerySelector("table:last-of-type")!;
             studentNames = FindStudents(table);
         }
 
@@ -218,10 +237,10 @@ internal static class HtmlSearch
             {
                 // NOTE: these are going to throw an invalid cast if anything is weird with the nodes.
                 var lessonRow = lessonTable.Rows[lessonRowStart + i];
-                var attendanceCells = AttendanceCells(attendanceStartColIndex + i);
                 var first = ProcessFirst(lessonRow.Cells[0], p.ErrorHandler);
                 var topic = ExtractTopic(lessonRow.Cells[1]);
                 var editUri = ProcessEdit(lessonRow.Cells[2]);
+                var attendanceCells = attendanceTable.DayCells(i);
                 var attendance = ExtractAttendance(attendanceCells);
                 yield return new()
                 {
@@ -238,7 +257,7 @@ internal static class HtmlSearch
 
         static (LessonType LessonType, DateTime DateTime, Uri ViewUri) ProcessFirst(
             IHtmlTableCellElement cell,
-            IRegistryErrorHandler errorHandler)
+            IRegistryLessonParserErrorHandler errorHandler)
         {
             var dateTimeAndTypeCell = (IHtmlTableDataCellElement) cell;
             var children = dateTimeAndTypeCell.ChildNodes;
@@ -302,10 +321,10 @@ internal static class HtmlSearch
 
         Attendance[] ExtractAttendance(IEnumerable<IHtmlTableCellElement> attendanceValues)
         {
-            var b = ArrayBuilder.Create<Attendance>(studentCount);
+            var b = ArrayBuilder.Create<Attendance>(attendanceTable.StudentCount);
             foreach (var x in attendanceValues)
             {
-                var t = x.Text();
+                var t = x.TextContent.AsSpan().Trim();
                 var attendance = AttendanceHelper.Parse(t);
                 b.Add(attendance);
             }
@@ -313,73 +332,29 @@ internal static class HtmlSearch
         }
     }
 
-    private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    private static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
     {
-        var groups = schedule.Groups;
-        for (int i = 0; i < groups.Length; i++)
-        {
-            var group = groups[i];
-            if (IsMatch(group, g))
-            {
-                return new(i);
-            }
-        }
-        return GroupId.Invalid;
-    }
-
-    private static bool IsMatch(Group a, in GroupForSearch b)
-    {
-        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
-            b.FacultyName.Span,
-            StringComparison.OrdinalIgnoreCase);
-        if (!facultyMatches)
-        {
-            return false;
-        }
-
-        if (a.GroupNumber != b.GroupNumber)
-        {
-            return false;
-        }
-
-        if (a.AttendanceMode != b.AttendanceMode)
-        {
-            return false;
-        }
-
-        if (a.QualificationType != b.QualificationType)
-        {
-            return false;
-        }
-
-        if (a.Grade != b.Grade)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    internal static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
-    {
-        var t = x.TextContent;
-        Debug.Assert(!t.EndsWith(" exmatr"));
+        var t = (x.Children.Length > 0
+            ? x.Children[0]
+            : x);
+        var text = t.TextContent.AsSpan().Trim();
+        Debug.Assert(!text.EndsWith(" exmatr"));
         var i = x.QuerySelector("i.text-danger");
         bool isExtmatr = false;
         if (i != null)
         {
-            isExtmatr = i.TextContent == "exmatr";
+            isExtmatr = i.TextContent.AsSpan().Trim().SequenceEqual("exmatr");
         }
-        return new HtmlStudent(x.TextContent, isExtmatr);
+        return new HtmlStudent(text.ToString(), isExtmatr);
     }
 
     internal static HtmlStudent[] FindStudents(IHtmlTableElement table)
     {
-        int firstRow = 1;
+        const int firstRow = 1;
         var ret = new HtmlStudent[table.Rows.Length - firstRow];
         for (int i = 0; i < ret.Length; i++)
         {
-            var row = table.Rows[i];
+            var row = table.Rows[i + firstRow];
             ret[i] = ParseCellAsStudent(row.Cells[1]);
         }
         return ret;

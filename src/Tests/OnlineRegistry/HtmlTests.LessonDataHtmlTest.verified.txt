@@ -1,0 +1,143 @@
+﻿{
+  Lessons: [
+    {
+      DateTime: DateTime_1,
+      EditUri: about:///studregistry/LessonAttendance/Edit/643373,
+      ViewUri: about:///studregistry/LessonAttendance/LessonDetail/643373,
+      Attendance: [
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        Present,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent
+      ],
+      Topic: sd
+    },
+    {
+      DateTime: DateTime_2,
+      EditUri: about:///studregistry/LessonAttendance/Edit/648430,
+      ViewUri: about:///studregistry/LessonAttendance/LessonDetail/648430,
+      Attendance: [
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present
+      ],
+      Topic: ajkasdjk
+    },
+    {
+      DateTime: DateTime_3,
+      LessonType: Curs,
+      EditUri: about:///studregistry/LessonAttendance/Edit/648431,
+      ViewUri: about:///studregistry/LessonAttendance/LessonDetail/648431,
+      Attendance: [
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        Present,
+        MotivatedAbsent,
+        MotivatedAbsent,
+        MotivatedAbsent,
+        Present,
+        Present,
+        Present
+      ],
+      Topic: adfdafs
+    }
+  ],
+  Students: [
+    {
+      Name: Olaru Dumitru Petru,
+      IsExpelled: false
+    },
+    {
+      Name: Dumitrescu Victor Ion,
+      IsExpelled: false
+    },
+    {
+      Name: Olaru Radu Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Popescu Victor Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Preda Adela Vasile,
+      IsExpelled: false
+    },
+    {
+      Name: Rusu Lucian Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Dumitrescu Mihai Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Marin Andrei Mihail,
+      IsExpelled: false
+    },
+    {
+      Name: Marin Ana Ion,
+      IsExpelled: true
+    },
+    {
+      Name: Nistor Maria Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Georgescu Ana Vasile,
+      IsExpelled: false
+    },
+    {
+      Name: Marin Elena Vasile,
+      IsExpelled: false
+    },
+    {
+      Name: Marin Elena Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Marin Ion Andrei,
+      IsExpelled: false
+    },
+    {
+      Name: Voicu Radu Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Rusu Maria Petru,
+      IsExpelled: false
+    }
+  ]
+}

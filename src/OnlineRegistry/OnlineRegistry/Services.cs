@@ -2,15 +2,18 @@ using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public interface IRegistryErrorHandler
+public interface IRegistryLessonParserErrorHandler
+{
+    // May want to pull this out.
+    void CustomLessonType(ReadOnlySpan<char> ch);
+}
+
+public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
 {
     void CourseNotFound(string courseName);
     void StudentsNotInDbButInRegistry(IEnumerable<Name> students);
     void GroupNotFound(string groupName);
     void LessonWithoutName();
-
-    // May want to pull this out.
-    void CustomLessonType(ReadOnlySpan<char> ch);
 
     // TODO: Needs to be passed the context.
     ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date);

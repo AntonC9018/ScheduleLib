@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -168,7 +169,7 @@ public static partial class RegistryScraping
     // Intentionally duplicated, because the strings are actually different.
     internal static LessonType ParseLessonType(
         string s,
-        IRegistryErrorHandler errorHandler)
+        IRegistryLessonParserErrorHandler errorHandler)
     {
         var parser = new Parser(s);
         parser.SkipWhitespace();

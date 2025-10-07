@@ -17,7 +17,7 @@ public enum Attendance
 
 public static class AttendanceHelper
 {
-    public static Attendance Parse(string value)
+    public static Attendance Parse(ReadOnlySpan<char> value)
     {
         switch (value)
         {

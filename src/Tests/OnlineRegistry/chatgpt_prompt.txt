@@ -1,0 +1,1 @@
+replace all names with random names, replace local stylesheets paths with their public distribution urls, remove all local stylesheets that aren't libraries and remove all scripts, respond with the new html files:

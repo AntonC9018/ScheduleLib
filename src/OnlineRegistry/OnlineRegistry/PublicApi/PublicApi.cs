@@ -64,42 +64,17 @@ public static partial class RegistryScraping
 
         var notFoundStudents = new List<Name>();
 
-        using var context = await CreateContext(
-            p.Credentials,
-            p.Names,
-            p.JsonOptions,
-            p.CancellationToken);
-
-        var htmlContext = new HtmlContext
-        {
-            Brower = context.Browser,
-            CancellationToken = p.CancellationToken,
-            ErrorHandler = p.ErrorHandler,
-        };
-
+        using var context = await CreateContext();
         var lists = new MatchingLists();
 
-        var courseLinks = await QueryCourseLinks(
-            htmlContext,
-            p.Names,
-            p.Semester,
-            new(p.CourseNameUnifier, p.LookupModule));
-
+        var courseLinks = await QueryCourseLinks();
         foreach (var courseLink in courseLinks)
         {
             var groupsUrl = courseLink.Url;
-            var groups = await QueryGroupLinksOfCourse(
-                htmlContext,
-                groupsUrl,
-                p.GroupParseContext,
-                p.Schedule);
-
+            var groups = await QueryGroupLinksOfCourse(groupsUrl);
             foreach (var group in groups)
             {
-                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(
-                    htmlContext,
-                    group.Uri);
-
+                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 var lessons = MissingLessonDetection.MatchLessonsInSchedule(new()
                 {
                     Lookup = p.LookupModule.LessonsByCourse,
@@ -286,7 +261,7 @@ public static partial class RegistryScraping
             HttpClient client,
             HtmlStudent[] expectedStudents)
         {
-            var doc = await GetHtml(htmlContext, uri);
+            var doc = await GetHtml(uri);
             _ = client;
             await SendUpdatedForm(new()
             {
@@ -307,7 +282,7 @@ public static partial class RegistryScraping
 
         async Task Delete(Uri detailsUri)
         {
-            var doc = await GetHtml(htmlContext, detailsUri);
+            var doc = await GetHtml(detailsUri);
             var form = doc.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")!;
             await form.SubmitAsync();
         }
@@ -414,108 +389,162 @@ public static partial class RegistryScraping
             }
         }
 
-    }
-
-    internal readonly struct HtmlContext
-    {
-        public required IRegistryErrorHandler ErrorHandler { get; init; }
-        public required CancellationToken CancellationToken { get; init; }
-        public required IBrowsingContext Brower { get; init; }
-    }
-
-    internal static async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
-        HtmlContext context,
-        Uri groupUri)
-    {
-        var doc = await GetHtml(context, groupUri);
-        var addLessonLink = HtmlSearch.ScanForLessonAddLink(doc);
-        var lessons = await HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
+        async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
+            Uri groupUri)
         {
-            Document = doc,
-            ErrorHandler = context.ErrorHandler,
-            GetAddLessonDocument = () =>
+            var doc = await GetHtml(groupUri);
+            var addLessonLink = HtmlSearch.ScanForLessonAddLink(doc);
+            var lessons = await HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
             {
-                var t = GetHtml(context, addLessonLink);
-                return t;
-            },
-        });
-        return (lessons, addLessonLink);
-    }
-
-    internal static async Task<IEnumerable<GroupLink>> QueryGroupLinksOfCourse(
-        HtmlContext context,
-        Uri courseUrl,
-        GroupParseContext groupParseContext,
-        Schedule schedule)
-    {
-        var doc = await GetHtml(context, courseUrl);
-        var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
-        {
-            Document = doc,
-            GroupParseContext = groupParseContext,
-            Schedule = schedule,
-            ErrorHandler = context.ErrorHandler,
-        });
-        return ret;
-    }
-
-    internal static async Task<IEnumerable<CourseLink>> QueryCourseLinks(
-        HtmlContext context,
-        NamesConfig names,
-        Semester semester,
-        CourseNameUnifierModuleWithDeps courseNames)
-    {
-        var doc = await GetHtml(context, names.LessonsUrl);
-        var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
-        {
-            Document = doc,
-            Semester = semester,
-            ErrorHandler = context.ErrorHandler,
-            CourseNames = courseNames,
-        });
-        return ret;
-    }
-
-    [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-    static async Task<IDocument> GetHtml(
-        this HtmlContext context,
-        Uri uri)
-    {
-        var document = await context.Brower.OpenAsync(
-            address: uri.ToString(),
-            context.CancellationToken);
-        return document;
-    }
-
-    internal static async Task<RegistryScrapingContext> CreateContext(
-        Credentials credentials,
-        NamesConfig names,
-        JsonSerializerOptions? jsonOptions,
-        CancellationToken cancellationToken)
-    {
-        var http = HttpClientContext.Create();
-        try
-        {
-            var tokenContext = new TokenRetrievalContext(new()
-            {
-                Credentials = credentials,
-                Names = names,
-                CookieContainer = http.CookieProvider.Container,
-                HttpClient = http.Client,
-                JsonOptions = jsonOptions,
+                Document = doc,
+                ErrorHandler = p.ErrorHandler,
+                GetAddLessonDocument = () =>
+                {
+                    var t = GetHtml(addLessonLink);
+                    return t;
+                },
             });
-            await tokenContext.InitializeToken(cancellationToken);
+            return (lessons, addLessonLink);
+        }
 
-            var c = RegistryScrapingContext.Create(http, tokenContext);
-            return c;
-        }
-        catch
+        async Task<IEnumerable<GroupLink>> QueryGroupLinksOfCourse(Uri courseUrl)
         {
-            http.Dispose();
-            throw;
+            var doc = await GetHtml(courseUrl);
+            var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
+            {
+                Document = doc,
+                GroupParseContext = p.GroupParseContext,
+                SearchGroupId = (in GroupForSearch group) =>
+                {
+                    var id = FindGroupMatch(p.Schedule, group);
+                    if (id == GroupId.Invalid)
+                    {
+                        // TODO: Do this better
+                        p.ErrorHandler.GroupNotFound($"{group.FacultyName}{group.GroupNumber}{group.SubGroupName}");
+                    }
+                    return id;
+                },
+            });
+            return ret;
         }
+
+        async Task<IEnumerable<CourseLink>> QueryCourseLinks()
+        {
+            var doc = await GetHtml(p.Names.LessonsUrl);
+            var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
+            {
+                Document = doc,
+                Semester = p.Semester,
+                FindCourse = courseName =>
+                {
+                    if (courseName.Length == 0)
+                    {
+                        p.ErrorHandler.LessonWithoutName();
+                        return null;
+                    }
+                    var maybeCourseId = p.CourseNameUnifier.Find(new()
+                    {
+                        CourseName = courseName,
+                        Lookup = p.LookupModule,
+                        ParseOptions = new()
+                        {
+                            IgnorePunctuation = true,
+                        },
+                    });
+                    if (maybeCourseId is not { } courseId)
+                    {
+                        p.ErrorHandler.CourseNotFound(courseName);
+                        return null;
+                    }
+                    return courseId;
+                },
+            });
+            return ret;
+        }
+
+        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+        async Task<IDocument> GetHtml(Uri uri)
+        {
+            var document = await context.Browser.OpenAsync(
+                address: uri.ToString(),
+                p.CancellationToken);
+            return document;
+        }
+
+        async Task<RegistryScrapingContext> CreateContext()
+        {
+            var http = HttpClientContext.Create();
+            try
+            {
+                var tokenContext = new TokenRetrievalContext(new()
+                {
+                    Credentials = p.Credentials,
+                    Names = p.Names,
+                    CookieContainer = http.CookieProvider.Container,
+                    HttpClient = http.Client,
+                    JsonOptions = p.JsonOptions,
+                });
+                await tokenContext.InitializeToken(p.CancellationToken);
+
+                var c = RegistryScrapingContext.Create(http, tokenContext);
+                return c;
+            }
+            catch
+            {
+                http.Dispose();
+                throw;
+            }
+        }
+    }
+
+    private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    {
+        var groups = schedule.Groups;
+        for (int i = 0; i < groups.Length; i++)
+        {
+            var group = groups[i];
+            if (IsMatch(group, g))
+            {
+                return new(i);
+            }
+        }
+        return GroupId.Invalid;
+    }
+
+    private static bool IsMatch(Group a, in GroupForSearch b)
+    {
+        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
+            b.FacultyName.Span,
+            StringComparison.OrdinalIgnoreCase);
+        if (!facultyMatches)
+        {
+            return false;
+        }
+
+        if (a.GroupNumber != b.GroupNumber)
+        {
+            return false;
+        }
+
+        if (a.AttendanceMode != b.AttendanceMode)
+        {
+            return false;
+        }
+
+        if (a.QualificationType != b.QualificationType)
+        {
+            return false;
+        }
+
+        if (a.Grade != b.Grade)
+        {
+            return false;
+        }
+
+        return true;
     }
 }
+
 
 public readonly record struct StudentsLookupKey
 {
