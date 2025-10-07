@@ -35,20 +35,14 @@ internal readonly struct ScanCoursesParams
 {
     public required IDocument Document { get; init; }
     public required IRegistryErrorHandler ErrorHandler { get; init; }
-    public required LookupModule LookupModule { private get; init; }
-    public required CourseNameUnifierModule CourseNameUnifier { private get; init; }
     public required Semester Semester { get; init; }
+    public required CourseNameUnifierModuleWithDeps CourseNames { get; init; }
 
     internal CourseId? FindCourse(string name)
     {
-        var ret = CourseNameUnifier.Find(new()
+        var ret = CourseNames.Find(name, new()
         {
-            Lookup = LookupModule,
-            CourseName = name,
-            ParseOptions = new()
-            {
-                IgnorePunctuation = true,
-            },
+            IgnorePunctuation = true,
         });
         return ret;
     }

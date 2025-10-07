@@ -95,12 +95,12 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        LessonsStart(new DateOnly(year: 0, month, day));
+        LessonsStart(new DateOnly(year: 1, month, day));
     }
 
     public void LessonsEnd(int month, int day)
     {
-        LessonsEnd(new DateOnly(year: 0, month, day));
+        LessonsEnd(new DateOnly(year: 1, month, day));
     }
 }
 
@@ -143,8 +143,8 @@ public sealed class YearDateRangeBuilderScope
     public void QualificationType(QualificationType type) => _builder.QualificationType(type);
     public void Grade(Grade grade) => _builder.Grade(grade);
     public void Year(int year) => _builder.Year(year);
-    public void LessonsStart(int month, int day) => _builder.LessonsStart(new DateOnly(year: 0, month, day));
-    public void LessonsEnd(int month, int day) => _builder.LessonsEnd(new DateOnly(year: 0, month, day));
+    public void LessonsStart(int month, int day) => _builder.LessonsStart(month, day);
+    public void LessonsEnd(int month, int day) => _builder.LessonsEnd(month, day);
 }
 
 public sealed class SemesterIntervalBuilder
@@ -208,11 +208,11 @@ public sealed class SemesterIntervalBuilder
             }
             if (model.Year <= 0)
             {
-                if (d.Start.Year == 0)
+                if (d.Start.Year == 1)
                 {
                     throw new InvalidOperationException("Year not specified");
                 }
-                if (d.End.Year == 0)
+                if (d.End.Year == 1)
                 {
                     throw new InvalidOperationException("Year not specified");
                 }

@@ -32,12 +32,12 @@ public static class Config
         var s = new SemesterIntervalBuilder();
         s.Scope(x =>
         {
-            x.Semester(Semester.Sem1);
             x.AttendanceMode(AttendanceMode.Zi);
             x.QualificationType(QualificationType.Licenta);
 
             {
                 x.Year(2025);
+                x.Semester(Semester.Sem1);
                 x.LessonsStart(month: 9, day: 1);
                 x.LessonsEnd(month: 12, day: 14);
                 for (int i = 1; i <= 3; i++)
@@ -48,6 +48,7 @@ public static class Config
             }
             {
                 x.Year(2026);
+                x.Semester(Semester.Sem2);
 
                 x.LessonsStart(month: 2, day: 2);
                 x.LessonsEnd(month: 5, day: 10);
@@ -105,8 +106,9 @@ public static class Config
             HolidayPeriod[] holidayPeriods;
             // TODO: Get this from "calendar academic"
             holidayPeriods = [
-                new(new(2026, 1, 1), new(2026, 1, 26)),
-                new(new(2026, 4, 12), new(2026, 4, 21)),
+                new(new(2025, month: 10, day: 16)),
+                new(new(2026, month: 1, day: 1), new(2026, month: 1, day: 26)),
+                new(new(2026, month: 4, day: 12), new(2026, month: 4, day: 21)),
             ];
             return holidayPeriods;
         }
