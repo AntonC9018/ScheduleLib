@@ -25,7 +25,7 @@ public static class AttendanceHelper
                 return Attendance.NotPresent;
             case "am":
                 return Attendance.MotivatedAbsent;
-            case null or "":
+            case "":
                 return Attendance.Present;
             case "na":
                 return Attendance.NotApplicable;
