@@ -346,8 +346,7 @@ public static class LessonParsingHelper
                 }
 
                 {
-                    bool shouldNotOutputDefaultKey =
-                        (defaultHasOtherThanAllSubGroup && !state.DefaultModifiers.IsEmpty)
+                    bool shouldNotOutputDefaultKey = defaultHasOtherThanAllSubGroup
                         || lesson.Modifiers.HasOtherThanDefaultKey();
 
                     foreach (var mod in lesson.Modifiers)
@@ -1371,6 +1370,10 @@ internal readonly struct DefaultModifiersList()
 
     public bool HasOtherThanAllSubGroup()
     {
+        if (_list.Count == 0)
+        {
+            return false;
+        }
         if (_list.Count != 1)
         {
             return true;
