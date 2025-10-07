@@ -10,6 +10,7 @@ public enum Attendance
     None,
     NotApplicable, // na
     NotPresent, // a
+    MotivatedAbsent, // am
     Present, // <empty>
     Grade, // left alone if this is found
 }
@@ -22,6 +23,8 @@ public static class AttendanceHelper
         {
             case "a" or "np":
                 return Attendance.NotPresent;
+            case "am":
+                return Attendance.MotivatedAbsent;
             case null or "":
                 return Attendance.Present;
             case "na":
@@ -37,6 +40,7 @@ public static class AttendanceHelper
         {
             Attendance.NotApplicable => "na",
             Attendance.NotPresent => "a",
+            Attendance.MotivatedAbsent => "am",
             Attendance.Present => "",
             Attendance.Grade => "grade",
             _ => throw Unreachable(),
