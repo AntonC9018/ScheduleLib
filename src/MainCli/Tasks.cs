@@ -1979,7 +1979,7 @@ public static class Tasks
                 scheduleSerializedModel,
                 context.CourseNameUnifierModule);
 
-            beforeEndAction(context);
+            // beforeEndAction(context);
             var schedule = context.Schedule.Build();
             return schedule;
         }

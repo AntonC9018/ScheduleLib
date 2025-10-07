@@ -334,9 +334,9 @@ internal static class HtmlSearch
 
     private static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
     {
-        var t = (x.Children.Length > 0
-            ? x.Children[0]
-            : x);
+        var t = x.ChildNodes
+            .FirstOrDefault(a => a.NodeType == NodeType.Text && a.TextContent.AsSpan().Trim().Length > 0)
+            ?? x.Children[0];
         var text = t.TextContent.AsSpan().Trim();
         Debug.Assert(!text.EndsWith(" exmatr"));
         var i = x.QuerySelector("i.text-danger");

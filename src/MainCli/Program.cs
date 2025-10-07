@@ -66,8 +66,8 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    Option.UploadDocsToDrive,
-    // Option.CreateLessonsInRegistry,
+    // Option.UploadDocsToDrive,
+    Option.CreateLessonsInRegistry,
 };
 foreach (var option in options) {
 
@@ -150,8 +150,7 @@ switch (option)
             LookupModule = context.Schedule.LookupModule!,
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
-            ProcessingFlags = CommandProcessingConfig.Process
-                .WithDryRun(LessonEquationCommandTypes.Create | LessonEquationCommandTypes.Delete),
+            ProcessingFlags = CommandProcessingConfig.DryRun,
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,
             LessonTopics = new([]),

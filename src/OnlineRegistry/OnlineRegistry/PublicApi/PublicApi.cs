@@ -95,6 +95,7 @@ public static partial class RegistryScraping
                     Semester = p.Semester,
                 });
 
+                // TODO: Decouple from the implementation, by making a lookup helper at least.
                 var remapHelpers = new ValueForEachLessonType<StudentNameRemapHelper>();
                 var indexesByLessonType = new ValueForEachLessonType<int>();
 
@@ -103,7 +104,6 @@ public static partial class RegistryScraping
                     var lesson = p.Schedule.Get(x.Item.LessonId);
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
-                    // TODO: Decouple from the implementation.
                     ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
                     var key = new AttendanceLookupKey
                     {
@@ -159,7 +159,7 @@ public static partial class RegistryScraping
                 {
                     if (p.ProcessingFlags.HasDryRun(command.Type))
                     {
-                        DryRun(command, courseLink.CourseId);
+                        DryRun(command, courseLink.CourseId, group.GroupId);
                         continue;
                     }
 
@@ -176,7 +176,10 @@ public static partial class RegistryScraping
         }
         return;
 
-        void DryRun(LessonEquationCommand command, CourseId courseId)
+        void DryRun(
+            LessonEquationCommand command,
+            CourseId courseId,
+            GroupId groupId)
         {
             var commandName = command.Type switch
             {
@@ -186,10 +189,14 @@ public static partial class RegistryScraping
                 _ => throw Unreachable(),
             };
             var date = command.HasAll ? command.All.DateTime : command.Existing.DateTime;
+            var lessonType = command.HasAll
+                ? p.Schedule.Get(command.All.LessonId).Lesson.Type
+                : command.Existing.LessonType;
+            var groupName = p.Schedule.Get(groupId).Name;
             var dateString = date.ToString("dd.MM.yy");
             var course = p.Schedule.Get(courseId);
             var lessonName = course.FullName;
-            Console.WriteLine($"{commandName}: {dateString} - {lessonName}");
+            Console.WriteLine($"{commandName}: {dateString} - {lessonName} ({groupName} {lessonType})");
         }
 
         async ValueTask HandleCommand(

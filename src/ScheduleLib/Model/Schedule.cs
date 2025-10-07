@@ -213,8 +213,8 @@ public enum LessonType
     Lab,
     Seminar,
     Curs,
-    Prelegere,
     Unspecified,
+    Prelegere,
     Custom,
     Count,
 }

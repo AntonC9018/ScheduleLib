@@ -12,6 +12,8 @@ public struct NameToStringParams()
 
 public sealed class Name_IgnoreDiacritics_EqualityComparer : IEqualityComparer<Name>
 {
+    public static readonly Name_IgnoreDiacritics_EqualityComparer Instance = new();
+
     public bool Equals(Name? x, Name? y)
     {
         if (x is null && y is null)
@@ -30,16 +32,19 @@ public sealed class Name_IgnoreDiacritics_EqualityComparer : IEqualityComparer<N
         {
             return false;
         }
-        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
-        {
-            return false;
-        }
+        // if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
+        // {
+        //     return false;
+        // }
         return true;
     }
 
     public int GetHashCode(Name obj)
     {
-        return obj.GetHashCode();
+        var a = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.FirstName);
+        var b = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.LastName);
+        // var c = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.Patronymic);
+        return HashCode.Combine(a, b);
     }
 }
 

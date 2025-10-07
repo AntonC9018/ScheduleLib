@@ -74,15 +74,15 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
 
     public int GetHashCode(NameParts<string?> obj)
     {
-        var ret = 0;
+        var hashCode = new HashCode();
         foreach (var str in obj)
         {
             if (str is not null)
             {
-                ret ^= IgnoreDiacriticsAndCaseComparer.Instance.GetHashCode(str);
+                hashCode.Add(IgnoreDiacriticsAndCaseComparer.Instance.GetHashCode(str));
             }
         }
-        return ret;
+        return hashCode.ToHashCode();
     }
 
     public int Compare(NameParts<string?> a, NameParts<string?> b)
@@ -124,7 +124,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
     public int GetHashCode(string obj)
     {
         var x = DiacriticsHelper.RemoveDiacritics(obj);
-        return x.GetHashCode();
+        return StringComparer.OrdinalIgnoreCase.GetHashCode(x);
     }
 
     public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
@@ -178,7 +178,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
     public int GetHashCode(ReadOnlySpan<char> alternate)
     {
         var alt = DiacriticsHelper.RemoveDiacritics(alternate.ToString());
-        return alt.GetHashCode();
+        return StringComparer.OrdinalIgnoreCase.GetHashCode(alt);
     }
 
     public string Create(ReadOnlySpan<char> alternate)

@@ -7647,6 +7647,54 @@
     {
       Day: Thursday,
       Time: 1,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 1,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2302
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 1,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 1,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2302
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 1,
       Parity: EvenWeek,
       Period: 01-09-24 to 19-03-25,
       Course: Grafică și animație 3D,
@@ -8236,6 +8284,56 @@
     {
       Day: Thursday,
       Time: 2,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2303,
+        IA2304
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 2,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2303,
+        IA2304
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 2,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2303
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 2,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2303
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 2,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
       Course: JavaScript,
@@ -8818,6 +8916,32 @@
     {
       Day: Thursday,
       Time: 3,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        M2301,
+        I2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 3,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        M2301,
+        I2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 3,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
       Course: HTML,
@@ -9304,6 +9428,54 @@
     {
       Day: Thursday,
       Time: 4,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        I2302
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 4,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 4,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        I2302
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 4,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2301
+      ]
+    },
+    {
+      Day: Thursday,
+      Time: 4,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
       Course: Limba română,
@@ -10013,6 +10185,28 @@
       ],
       Teachers: [
         V. Guțu
+      ]
+    },
+    {
+      Day: Tuesday,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2402
+      ]
+    },
+    {
+      Day: Tuesday,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2402
       ]
     },
     {
@@ -10629,6 +10823,54 @@
     {
       Day: Tuesday,
       Time: 1,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        I2402
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 1,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2404
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 1,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        I2402
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 1,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2404
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 1,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
       Course: Etica profesională,
@@ -11190,6 +11432,54 @@
       ],
       Teachers: [
         A. Perjan
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 2,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2403
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 2,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2403
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 2,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2302
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 2,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2302
       ]
     },
     {
@@ -11875,6 +12165,56 @@
     {
       Day: Tuesday,
       Time: 3,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        M2401,
+        I2401
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 3,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2402
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 3,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        M2401,
+        I2401
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 3,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2402
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 3,
       Parity: EveryWeek,
       Period: 01-09-24 to 19-03-25,
       Course: Grafică și animație 3D,
@@ -12123,6 +12463,54 @@
       ],
       Teachers: [
         O. Cerbu
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 4,
+      Parity: EvenWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2401
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 4,
+      Parity: EvenWeek,
+      Period: 19-03-25,
+      Course: Educația fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        DJ2401
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 4,
+      Parity: OddWeek,
+      Period: 01-09-24 to 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2401
+      ]
+    },
+    {
+      Day: Tuesday,
+      Time: 4,
+      Parity: OddWeek,
+      Period: 19-03-25,
+      Course: Educație fizică,
+      Room: ,
+      Type: Unspecified,
+      Groups: [
+        IA2401
       ]
     },
     {

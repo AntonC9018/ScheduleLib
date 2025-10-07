@@ -216,7 +216,8 @@ public readonly struct StudentAttendanceList
             SubGroup = key.SubGroup,
             LessonType = key.LessonType,
         };
-        if (_map.TryGetValue(attendanceKey, out var list))
+        if (_map.TryGetValue(attendanceKey, out var list)
+            && key.DayIndex < list.Attendance.Length)
         {
             return list.Attendance[key.DayIndex];
         }
@@ -238,7 +239,7 @@ public readonly struct NamesInDb
 
     public static NamesInDb Create(ImmutableArray<Name> arr)
     {
-        var ret = new Dictionary<Name, int>();
+        var ret = new Dictionary<Name, int>(Name_IgnoreDiacritics_EqualityComparer.Instance);
         for (int i = 0; i < arr.Length; i++)
         {
             var name = arr[i];
@@ -297,7 +298,10 @@ internal readonly struct StudentNameRemapHelper
             var parser = new Parser(namesInHtml[i].Name);
             var name = NameHelper.ParseName(ref parser);
             var remappedIndex = namesInDb.NameToIndex(name);
-            dbToHtmlIndexMap[i] = remappedIndex;
+            if (!remappedIndex.IsInvalid)
+            {
+                dbToHtmlIndexMap[remappedIndex.Value] = new(i);
+            }
 
             if (remappedIndex.IsInvalid
                 && !namesInHtml[i].IsExpelled

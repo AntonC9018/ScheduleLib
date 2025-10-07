@@ -44,9 +44,15 @@ public static class ScheduleSerializer
     {
         SerializationModels.ConvertToScheduleBuilder(builder, schedule);
 
+        if (builder.LookupModule is not null)
+        {
+            builder.RefreshLookup();
+        }
+
         if (unifier is not null)
         {
             builder.EnableLookupModule();
+
             for (int i = 0; i < builder.Courses.Count; i++)
             {
                 var courseId = new CourseId(i);

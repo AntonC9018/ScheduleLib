@@ -54,12 +54,14 @@ public static partial class RegistryScraping
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
         {
-            if (!parser.CanPeekCount(2))
+            var bparser = parser.BufferedView();
+            bparser.SkipLetters();
+            var ret = parser.SourceUntilExclusive(bparser.Position);
+            if (ret.Length == 0)
             {
-                JustThrow("group label");
+                JustThrow("no label");
             }
-            var ret = parser.PeekSource(2);
-            parser.Move(2);
+            parser.MoveTo(bparser.Position);
             return ret;
         }
 

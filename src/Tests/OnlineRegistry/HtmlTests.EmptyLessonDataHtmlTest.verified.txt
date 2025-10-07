@@ -33,7 +33,7 @@
       IsExpelled: false
     },
     {
-      Name: exmatr,
+      Name: Georgescu Radu Daniel,
       IsExpelled: true
     },
     {

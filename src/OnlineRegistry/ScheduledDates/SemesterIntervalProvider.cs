@@ -25,6 +25,7 @@ public struct YearDateRange
 
 public sealed class YearDateRangeBuilderModel
 {
+    public const int MinYearInExistingDate = 1;
     public Semester Semester = Semester.Invalid;
     public AttendanceMode AttendanceMode = AttendanceMode.Invalid;
     public SemesterDateRange LessonDateRange = new()
@@ -95,12 +96,12 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        LessonsStart(new DateOnly(year: 1, month, day));
+        LessonsStart(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
     }
 
     public void LessonsEnd(int month, int day)
     {
-        LessonsEnd(new DateOnly(year: 1, month, day));
+        LessonsEnd(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
     }
 }
 
@@ -169,7 +170,6 @@ public sealed class SemesterIntervalBuilder
 
     public SemesterIntervalProvider Build()
     {
-
         foreach (var model in _models)
         {
             if (model.Year <= 0)
@@ -208,11 +208,11 @@ public sealed class SemesterIntervalBuilder
             }
             if (model.Year <= 0)
             {
-                if (d.Start.Year == 1)
+                if (d.Start.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
                     throw new InvalidOperationException("Year not specified");
                 }
-                if (d.End.Year == 1)
+                if (d.End.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
                     throw new InvalidOperationException("Year not specified");
                 }
@@ -296,7 +296,7 @@ file static class Helper
     public static DateOnly WithYear(this DateOnly d, int year) => new(year, d.Month, d.Day);
     public static DateOnly WithYearIfNoYear(this DateOnly d, int year)
     {
-        if (d.Year == 0)
+        if (d.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
         {
             return d.WithYear(year);
         }

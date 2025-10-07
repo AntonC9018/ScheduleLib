@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
 
@@ -12,7 +11,14 @@ public partial class ScheduleBuilder
 
 public sealed class LessonsByCourseMap : List<List<RegularLessonId>>
 {
-    public List<RegularLessonId> this[CourseId courseId] => this[courseId.Id];
+    public List<RegularLessonId> this[CourseId courseId]
+    {
+        get
+        {
+            Debug.Assert(!courseId.IsInvalid);
+            return this[courseId.Id];
+        }
+    }
 }
 
 public sealed class LookupModule()
@@ -182,7 +188,7 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Teachers.Count; i++)
             {
                 ref var teacher = ref s.Teachers.Ref(i);
-                if (teacher.Name.LastName != default)
+                if (teacher.Name.LastName == default)
                 {
                     continue;
                 }
