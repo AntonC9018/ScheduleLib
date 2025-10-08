@@ -239,7 +239,7 @@ public readonly struct NamesInDb
 
     public static NamesInDb Create(ImmutableArray<Name> arr)
     {
-        var ret = new Dictionary<Name, int>(Name_IgnoreDiacritics_EqualityComparer.Instance);
+        var ret = new Dictionary<Name, int>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         for (int i = 0; i < arr.Length; i++)
         {
             var name = arr[i];

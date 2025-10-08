@@ -1,7 +1,6 @@
-using ScheduleLib;
 using ScheduleLib.Builders;
 
-namespace ScheduleLib.Tests;
+namespace ScheduleLib.ParserTests;
 
 using static Helper;
 

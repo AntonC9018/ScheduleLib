@@ -1,6 +1,6 @@
 using ScheduleLib.Parsing.GroupParser;
 
-namespace ScheduleLib.Tests;
+namespace ScheduleLib.ParserTests;
 
 public sealed class GroupNameParserTests
 {

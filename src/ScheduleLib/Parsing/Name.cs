@@ -10,9 +10,9 @@ public struct NameToStringParams()
     public bool IncludePatronymic = true;
 }
 
-public sealed class Name_IgnoreDiacritics_EqualityComparer : IEqualityComparer<Name>
+public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : IEqualityComparer<Name>
 {
-    public static readonly Name_IgnoreDiacritics_EqualityComparer Instance = new();
+    public static readonly Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer Instance = new();
 
     public bool Equals(Name? x, Name? y)
     {
@@ -32,10 +32,14 @@ public sealed class Name_IgnoreDiacritics_EqualityComparer : IEqualityComparer<N
         {
             return false;
         }
-        // if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
-        // {
-        //     return false;
-        // }
+        if (x.Patronymic == default || y.Patronymic == default)
+        {
+            return true;
+        }
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
+        {
+            return false;
+        }
         return true;
     }
 
@@ -53,6 +57,8 @@ public sealed record Name
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
     public NameParts<string?> Patronymic;
+
+    public Name Copy() => (Name) MemberwiseClone();
 
     public string ToString(NameToStringParams p)
     {

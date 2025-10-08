@@ -1,6 +1,6 @@
 using ScheduleLib.Parsing.CourseName;
 
-namespace ScheduleLib.Tests;
+namespace ScheduleLib.ParserTests;
 
 public sealed class CourseNameTests
 {

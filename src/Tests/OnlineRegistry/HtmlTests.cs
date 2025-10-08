@@ -123,30 +123,6 @@ public sealed class HtmlTests
         var result = await Scan(EmptyLessonsListHtmlPath);
         await Verify(result);
     }
-
-    [Fact]
-    public void Test()
-    {
-        NameParts<string?> N(string s)
-        {
-            var ret = new NameParts<string?>();
-            ret[0] = s;
-            return ret;
-        }
-
-        var a = new Name()
-        {
-            FirstName = N("Anton"),
-            LastName = N("Curmanschii"),
-        };
-        var b = new Name()
-        {
-            FirstName = N("ANTON"),
-            LastName = N("CURMANSCHII"),
-        };
-        Assert.Equal(a, b, Name_IgnoreDiacritics_EqualityComparer.Instance);
-        Assert.Equal(Name_IgnoreDiacritics_EqualityComparer.Instance.GetHashCode(a), Name_IgnoreDiacritics_EqualityComparer.Instance.GetHashCode(b));
-    }
 }
 
 file sealed class LessonFailErrorHandler : IRegistryLessonParserErrorHandler

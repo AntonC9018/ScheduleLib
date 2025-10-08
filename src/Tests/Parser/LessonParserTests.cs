@@ -3,7 +3,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.Lesson;
 
-namespace ScheduleLib.Tests;
+namespace ScheduleLib.ParserTests;
 
 public sealed class LessonParserTests
 {
