@@ -8,10 +8,18 @@ public interface IRegistryLessonParserErrorHandler
     void CustomLessonType(ReadOnlySpan<char> ch);
 }
 
+public readonly struct StudentsInGroup
+{
+    public required IEnumerable<Name> Students { get; init; }
+    public required Schedule Schedule { get; init; }
+    public required RegularLessonId LessonId { get; init; }
+    public required GroupId GroupId { get; init; }
+}
+
 public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
 {
     void CourseNotFound(string courseName);
-    void StudentsNotInDbButInRegistry(IEnumerable<Name> students);
+    void StudentsNotInDbButInRegistry(StudentsInGroup students);
     void GroupNotFound(string groupName);
     void LessonWithoutName();
 
@@ -35,9 +43,18 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
         Console.WriteLine($"Course not found: {courseName}");
     }
 
-    public void StudentsNotInDbButInRegistry(IEnumerable<Name> students)
+    public void StudentsNotInDbButInRegistry(StudentsInGroup students)
     {
-        foreach (var student in students)
+        {
+            var groupName = students.Schedule.Get(students.GroupId).Name;
+            var lesson = students.Schedule.Get(students.LessonId);
+            var lessonType = lesson.Lesson.Type;
+            var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
+            var subGroup = lesson.Lesson.SubGroup.Value ?? "all subgroups";
+            Console.WriteLine($"Group {groupName} ({subGroup}), Course {course} ({lessonType})");
+        }
+
+        foreach (var student in students.Students)
         {
             Console.WriteLine($"Student not in DB but in registry: {student}");
         }

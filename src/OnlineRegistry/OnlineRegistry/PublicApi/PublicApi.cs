@@ -131,7 +131,14 @@ public static partial class RegistryScraping
                             outNotFoundIndices: notFoundStudents);
                         if (notFoundStudents.Count != 0)
                         {
-                            p.ErrorHandler.StudentsNotInDbButInRegistry(notFoundStudents);
+                            p.ErrorHandler.StudentsNotInDbButInRegistry(new()
+                            {
+                                Students = notFoundStudents,
+                                Schedule = p.Schedule,
+                                GroupId = group.GroupId,
+                                LessonId = x.Item.LessonId,
+                            });
+                            notFoundStudents.Clear();
                         }
                     }
                     attendanceIndex++;

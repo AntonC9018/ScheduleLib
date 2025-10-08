@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text;
+using DocumentFormat.OpenXml.Bibliography;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Parsing;
@@ -52,11 +54,68 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
     }
 }
 
-public sealed record Name
+public struct NameFields
 {
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
     public NameParts<string?> Patronymic;
+}
+
+public sealed record Name
+{
+    private NameFields _fields;
+
+    public NameParts<string?> FirstName
+    {
+        get => _fields.FirstName;
+        set
+        {
+            AssertValid(value);
+            _fields.FirstName = value;
+        }
+    }
+
+    public NameParts<string?> LastName
+    {
+        get => _fields.LastName;
+        set
+        {
+            AssertValid(value);
+            _fields.LastName = value;
+        }
+    }
+
+    public NameParts<string?> Patronymic
+    {
+        get => _fields.Patronymic;
+        set
+        {
+            AssertValid(value);
+            _fields.Patronymic = value;
+        }
+    }
+
+    internal Name(NameFields f = default)
+    {
+        _fields = f;
+        AssertValid();
+    }
+
+    private static void AssertValid(NameParts<string?> p)
+    {
+        Debug.Assert(p.All(x => x != ""));
+    }
+
+    internal void AssertValid()
+    {
+        void F(NameParts<string?> p)
+        {
+            Debug.Assert(p.All(x => x != ""));
+        }
+        F(FirstName);
+        F(LastName);
+        F(Patronymic);
+    }
 
     public Name Copy() => (Name) MemberwiseClone();
 
@@ -117,10 +176,9 @@ public static class NameHelper
         }
     }
 
-    // LastName FirstName Patronymic
-    public static Name ParseName(ref Parser parser)
+    private static Name ParseNameImpl(ref Parser parser)
     {
-        var ret = new Name();
+        var ret = new NameFields();
 
         ret.LastName[0] = ParseNamePart(ref parser, "No last name");
 
@@ -139,7 +197,7 @@ public static class NameHelper
         parser.SkipWhitespace();
         if (parser.IsEmpty)
         {
-            return ret;
+            return new(ret);
         }
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
@@ -151,13 +209,13 @@ public static class NameHelper
 
         if (parser.IsEmpty)
         {
-            return ret;
+            return new(ret);
         }
 
         ret.Patronymic[0] = ParseNamePart(ref parser, "No patronymic");
         if (parser.IsEmpty)
         {
-            return ret;
+            return new(ret);
         }
 
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
@@ -165,7 +223,7 @@ public static class NameHelper
             ret.Patronymic[1] = ParseNamePart(ref parser, "Patronymic incomplete");
         }
 
-        return ret;
+        return new(ret);
 
         static void IgnoreParenthesizedText(ref Parser parser)
         {
@@ -216,8 +274,15 @@ public static class NameHelper
 
             var ret = parser.PeekSpanUntilPosition(bparser.Position).ToString();
             parser.MoveTo(bparser.Position);
-            return ret;
+            return new(ret);
         }
+    }
+
+    // LastName FirstName Patronymic
+    public static Name ParseName(ref Parser parser)
+    {
+        var ret = ParseNameImpl(ref parser);
+        return ret;
     }
 }
 
