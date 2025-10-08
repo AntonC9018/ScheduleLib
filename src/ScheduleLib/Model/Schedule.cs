@@ -2,8 +2,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using ScheduleLib.Parsing;
+using System.Runtime.InteropServices;
 
 namespace ScheduleLib;
 
@@ -15,6 +14,65 @@ public sealed class Schedule
     public required ImmutableArray<Teacher> Teachers { get; init; }
     public required ImmutableArray<Course> Courses { get; init; }
     public required ImmutableArray<Period> Periods { get; init; }
+}
+
+public readonly record struct ScheduleObjectEnumerable<TId, T>
+{
+    static ScheduleObjectEnumerable()
+    {
+        Debug.Assert(Marshal.SizeOf<TId>() == sizeof(int));
+    }
+
+    private readonly ImmutableArray<T> _objects;
+
+    public ScheduleObjectEnumerable(ImmutableArray<T> objects)
+    {
+        _objects = objects;
+    }
+
+    public Enumerator GetEnumerator() => new(_objects);
+
+    public struct Enumerator
+    {
+        private readonly ImmutableArray<T> _objects;
+        private int _index;
+
+        public Enumerator(ImmutableArray<T> objects)
+        {
+            _objects = objects;
+            _index = -1;
+        }
+
+        public bool MoveNext()
+        {
+            _index++;
+            return _index < _objects.Length;
+        }
+
+        public readonly Accessor Current
+        {
+            get
+            {
+                Debug.Assert(_index >= 0 && _index < _objects.Length);
+                var id = Unsafe.As<int, TId>(ref Unsafe.AsRef(in _index));
+                return new Accessor(id, in _objects.AsSpan()[_index]);
+            }
+        }
+    }
+
+    public readonly ref struct Accessor
+    {
+        public readonly TId Id;
+        public readonly ref readonly T Item;
+
+#pragma warning disable CS8618, CS9264 // Just a wrong error
+        public Accessor(TId id, ref readonly T item)
+#pragma warning restore CS8618, CS9264
+        {
+            Id = id;
+            Item = ref item;
+        }
+    }
 }
 
 public record struct RegularLessonDate()
@@ -364,7 +422,7 @@ public struct PersonName
 {
     public required NameParts<OptionalNamePart> FirstName;
     // One is required
-    public required NameParts<string?> LastName;
+    public required LastName LastName;
 }
 
 public struct PersonContacts
@@ -395,6 +453,27 @@ public static class ScheduleAccessorHelper
     {
         Debug.Assert(id.IsSpecified);
         return schedule.Periods[id.Value];
+    }
+
+    public static ScheduleObjectEnumerable<CourseId, Course> EnumerateCourses(this Schedule schedule)
+    {
+        return new(schedule.Courses);
+    }
+    public static ScheduleObjectEnumerable<GroupId, Group> EnumerateGroups(this Schedule schedule)
+    {
+        return new(schedule.Groups);
+    }
+    public static ScheduleObjectEnumerable<TeacherId, Teacher> EnumerateTeachers(this Schedule schedule)
+    {
+        return new(schedule.Teachers);
+    }
+    public static ScheduleObjectEnumerable<PeriodId, Period> EnumeratePeriods(this Schedule schedule)
+    {
+        return new(schedule.Periods);
+    }
+    public static ScheduleObjectEnumerable<RegularLessonId, RegularLesson> EnumerateLessons(this Schedule schedule)
+    {
+        return new(schedule.RegularLessons);
     }
 }
 

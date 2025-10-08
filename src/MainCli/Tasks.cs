@@ -138,7 +138,7 @@ public static class Tasks
                 nameBuilder.MaybeAppendSeparator();
                 {
                     var lastNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
-                    foreach (var lname in teacherName.LastName)
+                    foreach (var lname in teacherName.LastName.Parts)
                     {
                         if (lname is not { } s)
                         {

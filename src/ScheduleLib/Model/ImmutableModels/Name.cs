@@ -102,6 +102,11 @@ public record struct LastName
         Parts = parts;
     }
 
+    public NamePartHelper.Enumerator<string?> GetEnumerator()
+    {
+        return Parts.GetEnumerator();
+    }
+
     public static implicit operator LastName(string a)
     {
         var parts = default(NameParts<string?>);
@@ -371,7 +376,7 @@ public static class NameDisplayHelper
         {
             AppendSpaceMaybe();
             var listBuilder = new ListStringBuilder(p.Output, NameConstants.DoubleNameSeparator);
-            foreach (var n in p.Name.LastName)
+            foreach (var n in p.Name.LastName.Parts)
             {
                 if (n != null)
                 {

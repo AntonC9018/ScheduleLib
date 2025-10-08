@@ -102,6 +102,42 @@ public sealed class ScheduleFromDocTests
         await Verify(new Target("json", str))
             .UseFileName(IntegrationTestHelper.ScheduleJsonSnapshotName);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LookupCompletelyWorks(bool resetLookup)
+    {
+        using var cts = IntegrationTestHelper.CreateCts();
+        var cancellationToken = cts.Token;
+        var context = await IntegrationTestHelper.GetContextFromWord(cancellationToken);
+        var schedule = context.Schedule.Build();
+        var lookup = context.Schedule.Lookup();
+
+        if (resetLookup)
+        {
+            context.Schedule.RefreshLookup();
+        }
+
+        foreach (var course in schedule.EnumerateCourses())
+        {
+            foreach (var name in course.Item.Names)
+            {
+                var id = lookup.Course(name);
+                Assert.Equal(course.Id, id);
+            }
+        }
+        foreach (var teacher in schedule.EnumerateTeachers())
+        {
+            var teachers = lookup.Teachers(teacher.Item.PersonName.LastName);
+            Assert.Contains(teacher.Id, teachers);
+        }
+        foreach (var group in schedule.EnumerateGroups())
+        {
+            var id = lookup.Group(group.Item.Name);
+            Assert.Equal(group.Id, id);
+        }
+    }
 }
 
 internal static class IntegrationTestHelper
@@ -122,7 +158,7 @@ internal static class IntegrationTestHelper
         return new CancellationTokenSource(delay);
     }
 
-    public static async Task<Schedule> GetScheduleFromWord(CancellationToken cancellationToken)
+    public static async Task<DocParseContext> GetContextFromWord(CancellationToken cancellationToken)
     {
         var context = DocParseContext.Create(new()
         {
@@ -138,6 +174,12 @@ internal static class IntegrationTestHelper
             dirName,
             cancellationToken: cancellationToken);
 
+        return context;
+    }
+
+    public static async Task<Schedule> GetScheduleFromWord(CancellationToken cancellationToken)
+    {
+        var context = await GetContextFromWord(cancellationToken);
         var schedule = context.Schedule.Build();
         return schedule;
     }
