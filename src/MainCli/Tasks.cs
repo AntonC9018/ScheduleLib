@@ -1895,8 +1895,17 @@ public static class Tasks
                     LessonType = lesson.Lesson.Type,
                 });
 
-                foreach (var row in sheet.Rows())
+                // ReSharper disable once GenericEnumeratorNotDisposed
+                using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
+
+                while (true)
                 {
+                    if (!rowE.MoveNext())
+                    {
+                        break;
+                    }
+                    var row = rowE.Current;
+
                     using var cells = row.Cells().GetEnumerator();
                     if (!cells.MoveNext())
                     {
@@ -1932,6 +1941,20 @@ public static class Tasks
                     }
 
                 }
+
+                int maxLen = 0;
+                while (!rowE.IsDone)
+                {
+                    // find the last cell that has any value.
+                    var c = rowE.Current;
+                    var lastNonEmpty = c.Cells()
+                        .WithIndex()
+                        .LastOrDefault(x => x.Item.TryGetValue<string>(out var s) && s is not null and not "");
+                    maxLen = Math.Max(maxLen, lastNonEmpty.Index);
+                    rowE.MoveNext();
+                }
+
+                list.HintMaxCount(maxLen);
             }
 
         }

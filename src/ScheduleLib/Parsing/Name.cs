@@ -38,7 +38,7 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
         {
             return true;
         }
-        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
+        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
         {
             return false;
         }
@@ -54,7 +54,7 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
     }
 }
 
-public struct NameFields
+public record struct NameFields
 {
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;

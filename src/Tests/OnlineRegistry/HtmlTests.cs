@@ -2,7 +2,6 @@ using System.Text;
 using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using AngleSharp.Text;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry.Tests;

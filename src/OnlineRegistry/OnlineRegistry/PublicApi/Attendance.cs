@@ -99,10 +99,13 @@ public readonly struct StudentAttendanceBuilder(Name name)
     }
 }
 
-public readonly struct StudentAttendanceListBuilder()
+public sealed class StudentAttendanceListBuilder()
 {
     private readonly List<StudentAttendanceBuilder> _students = new();
     private readonly HashSet<Name> _allNames = new();
+
+    private const int NoMaxCount = -1;
+    private int _maxCountHint = NoMaxCount;
 
     public StudentAttendanceBuilder Student(Name name)
     {
@@ -115,6 +118,12 @@ public readonly struct StudentAttendanceListBuilder()
         return s;
     }
 
+    public void HintMaxCount(int count)
+    {
+        Debug.Assert(count >= 0);
+        _maxCountHint = count;
+    }
+
     public (ImmutableArray<Name> Names, ImmutableArray<ImmutableArray<Attendance>> Attendance) Build(
         Attendance? missingDaysFiller)
     {
@@ -122,6 +131,7 @@ public readonly struct StudentAttendanceListBuilder()
         var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(_students.Count);
 
         var maxDayCount = _students.Max(x => x.Attendances.Count);
+        maxDayCount = Math.Max(maxDayCount, _maxCountHint);
         if (missingDaysFiller is { } f)
         {
             foreach (var student in _students)
@@ -251,7 +261,7 @@ public readonly struct NamesInDb
         return new(ret);
     }
 
-    public NamesInDb(Dictionary<Name, int> map)
+    private NamesInDb(Dictionary<Name, int> map)
     {
         _map = map;
     }
