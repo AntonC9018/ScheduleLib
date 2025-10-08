@@ -4,6 +4,7 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
+using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleFromDoc.Tests;
 
@@ -150,12 +151,7 @@ internal static class IntegrationTestHelper
 
     public static CancellationTokenSource CreateCts()
     {
-        var delay = TimeSpan.FromSeconds(10);
-        if (Debugger.IsAttached)
-        {
-            delay = TimeSpan.FromMinutes(10);
-        }
-        return new CancellationTokenSource(delay);
+        return TestHelper.CreateCts();
     }
 
     public static async Task<DocParseContext> GetContextFromWord(CancellationToken cancellationToken)

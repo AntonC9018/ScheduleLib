@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using ScheduleLib.Parsing;
@@ -196,6 +197,7 @@ public readonly struct AllStudentAttendanceListBuilder()
 }
 
 public readonly struct StudentAttendanceList
+    : IEnumerable<KeyValuePair<StudentsLookupKey, StudentAttendanceList.AttendanceList>>
 {
     public readonly record struct AttendanceList(
         ImmutableArray<ImmutableArray<Attendance>> Attendance,
@@ -233,6 +235,9 @@ public readonly struct StudentAttendanceList
         }
         return [];
     }
+
+    public IEnumerator<KeyValuePair<StudentsLookupKey, AttendanceList>> GetEnumerator() => _map.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 public readonly record struct OptionalIndex(int Value)
@@ -241,7 +246,7 @@ public readonly record struct OptionalIndex(int Value)
     public bool IsInvalid => Value < 0;
 }
 
-public readonly struct NamesInDb
+public readonly struct NamesInDb : IEnumerable<KeyValuePair<Name, int>>
 {
     private readonly Dictionary<Name, int> _map;
 
@@ -282,6 +287,9 @@ public readonly struct NamesInDb
             return _map.Count;
         }
     }
+
+    public IEnumerator<KeyValuePair<Name, int>> GetEnumerator() => _map.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 internal readonly struct StudentNameRemapHelper

@@ -38,6 +38,8 @@ public enum ExtraLessonInstanceAction
 
 public sealed class RegistryErrorLogger : IRegistryErrorHandler
 {
+    public ExtraLessonInstanceAction ExtraLessonAction { get; set; } = ExtraLessonInstanceAction.LeaveAlone;
+
     public void CourseNotFound(string courseName)
     {
         Console.WriteLine($"Course not found: {courseName}");
@@ -73,7 +75,7 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
     public ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date)
     {
         Console.WriteLine($"Extra lesson instance found: {date}");
-        return ExtraLessonInstanceAction.LeaveAlone;
+        return ExtraLessonAction;
     }
 
     public void GroupNotFound(string groupName)

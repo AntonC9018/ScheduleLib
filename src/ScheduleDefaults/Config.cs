@@ -3,7 +3,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 
-namespace MainCli;
+namespace ScheduleLib.ScheduleDefaults;
 
 public static class Config
 {
@@ -27,7 +27,7 @@ public static class Config
     }
 
     // TODO: read from image??
-    internal static SemesterIntervalProvider SemesterIntervalProvider()
+    public static SemesterIntervalProvider SemesterIntervalProvider()
     {
         var s = new SemesterIntervalBuilder();
         s.Scope(x =>
@@ -69,7 +69,7 @@ public static class Config
         return s.Build();
     }
 
-    internal static StudyWeek[] StudyWeeks
+    public static StudyWeek[] StudyWeeks
     {
         get
         {
@@ -99,7 +99,7 @@ public static class Config
         }
     }
 
-    internal static HolidayPeriod[] HolidayPeriods
+    public static HolidayPeriod[] HolidayPeriods
     {
         get
         {

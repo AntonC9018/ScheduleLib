@@ -7,6 +7,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -360,21 +361,43 @@ public static partial class RegistryScraping
                         throw new NotImplementedException();
                     }
 
-                    var expectedStudent = p.ExpectedStudents[i];
-                    var actualStudent = actualStudents[i];
-                    if (!actualStudent.Equals(expectedStudent))
+                    var expected = p.ExpectedStudents[i];
+                    var actual = actualStudents[i];
+
+                    string? CheckStudentsEqual()
                     {
-                        throw new InvalidOperationException($"Student mismatch at index {i}: expected {expectedStudent}, got {actualStudent}");
+                        Name? ParseStudent(HtmlStudent s)
+                        {
+                            var studentParser = new Parser(s.Name);
+                            var parsedStudent = NameHelper.TryParseName(ref studentParser);
+                            return parsedStudent;
+                        }
+                        var expected1 = ParseStudent(expected);
+                        var actual1 = ParseStudent(actual);
+                        if (expected1 != actual1
+                            || expected.IsExpelled != actual.IsExpelled)
+                        {
+                            return $"Student mismatch at index {i}: expected {expected}, got {actual}";
+                        }
+                        return null;
                     }
-                    if (actualStudent.IsExpelled)
+                    if (CheckStudentsEqual() is { } err)
+                    {
+                        throw new InvalidOperationException(err);
+                    }
+                    if (actual.IsExpelled)
                     {
                         continue;
                     }
 
                     var row = table.Rows[i + firstIndex];
                     var cell = row.Cells[attendanceColumnIndex];
-                    var input = (IHtmlInputElement) cell.Children[0];
-                    input.TextContent = a.ToStringValue();
+                    var input = (IHtmlInputElement) cell.QuerySelector("""input:not([type="hidden"])""")!;
+                    if (input.Form != form)
+                    {
+                        throw new InvalidOperationException("Date and attendance forms are different?");
+                    }
+                    input.Value = a.ToStringValue();
                 }
 
                 int FindIndexOfAttendance()

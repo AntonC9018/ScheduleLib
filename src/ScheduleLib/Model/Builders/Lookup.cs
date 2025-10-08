@@ -39,11 +39,11 @@ public sealed class LookupModule()
 
 public readonly struct LookupFacade(ScheduleBuilder s)
 {
-    public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(Lookup.Courses, name);
+    public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(LookupModule.Courses, name);
 
     public IEnumerable<TeacherId> Teachers(LastName lastName)
     {
-        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
         {
             return [];
         }
@@ -62,7 +62,7 @@ public readonly struct LookupFacade(ScheduleBuilder s)
 
     public TeacherId? Teacher(string firstName, string lastName)
     {
-        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
         {
             return null;
         }
@@ -114,10 +114,10 @@ public readonly struct LookupFacade(ScheduleBuilder s)
     public GroupId? Group(string fullName)
     {
         var group = s.ParseGroup(fullName);
-        return Find(Lookup.Groups, group.Name);
+        return Find(LookupModule.Groups, group.Name);
     }
 
-    private LookupModule Lookup
+    public LookupModule LookupModule
     {
         get
         {

@@ -1,4 +1,10 @@
 <Project>
     <Import Project="..\..\Directory.Build.targets" />
     <Import Project="TestReferences.targets" />
+
+    <ItemGroup>
+        <ProjectReference
+            Include="$(MSBuildThisFileDirectory)Common\Tests.Common.csproj"
+            Condition="'$(MSBuildProjectName)' != 'Tests.Common'" />
+    </ItemGroup>
 </Project>

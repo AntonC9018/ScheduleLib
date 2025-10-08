@@ -3,7 +3,6 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net9.0-windows</TargetFramework>
-        <RootNamespace>ReaderApp</RootNamespace>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 
@@ -11,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\ScheduleDefaults\ScheduleDefaults.csproj" />
         <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
         <ProjectReference Include="..\CurriculumDownload\CurriculumDownload.csproj" />
         <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
@@ -39,7 +39,7 @@
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
         <PackageReference Include="ClosedXML" Version="0.105.0" />
     </ItemGroup>
-    
+
     <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
         <PackageReference Include="Google.Apis.Drive.v3" Version="1.71.0.3905" />

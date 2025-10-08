@@ -5,10 +5,12 @@ using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
+using ScheduleLib.ScheduleDefaults;
 
 Console.WriteLine("Start");
 
@@ -129,7 +131,7 @@ switch (option)
                 IncludeIds = [teacherId],
             },
         });
-        var attendance = Tasks.ParseAttendanceListsExcel(new()
+        var attendance = AttendanceExcel.ParseAttendanceListsExcel(new()
         {
             Schedule = filteredSchedule,
             Workbook = workbook,
@@ -144,13 +146,17 @@ switch (option)
             Credentials = credentials,
             Schedule = schedule,
             Semester = semester,
-            ErrorHandler = new RegistryErrorLogger(),
+            ErrorHandler = new RegistryErrorLogger
+            {
+                ExtraLessonAction = ExtraLessonInstanceAction.Delete,
+            },
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
-            ProcessingFlags = CommandProcessingConfig.DryRun,
+            ProcessingFlags = CommandProcessingConfig.Process
+                .WithDryRun(LessonEquationCommandTypes.Create),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,
             LessonTopics = new([]),
