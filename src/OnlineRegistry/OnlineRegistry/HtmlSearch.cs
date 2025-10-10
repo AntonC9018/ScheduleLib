@@ -1,8 +1,10 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Helper;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -266,7 +268,7 @@ internal static class HtmlSearch
             {
                 var typeNode = children[^1];
                 var typeText = typeNode.TextContent;
-                lessonType = RegistryScraping.ParseLessonType(typeText, errorHandler);
+                lessonType = ParseLessonType(typeText, errorHandler);
             }
 
             DateTime dateTime;
@@ -332,6 +334,146 @@ internal static class HtmlSearch
         }
     }
 
+    internal static IHtmlTableElement FindAttendanceTable(IDocument doc)
+    {
+        var table = (IHtmlTableElement) doc.QuerySelectorAll("table").Last();
+        return table;
+    }
+
+    internal static IHtmlFormElement GetLessonForm(IDocument doc)
+    {
+        var lessonDateBox = (IHtmlInputElement) doc.GetElementById("LessonDate")!;
+        return lessonDateBox.Form!;
+    }
+
+    internal static void UpdateForm(SendUpdatedFormParams p)
+    {
+        {
+            var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
+            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
+            Debug.Assert(lessonDateBox.Value is not null and not "");
+        }
+
+        {
+            var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
+            var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
+            var lessonName = GetLessonTypeName(lessonType);
+            foreach (var option in lessonTypeBox.Options)
+            {
+                if (lessonName is null)
+                {
+                    option.IsSelected = false;
+                    continue;
+                }
+                if (option.Value.Equals(lessonName, StringComparison.Ordinal))
+                {
+                    option.IsSelected = true;
+                    continue;
+                }
+                option.IsSelected = false;
+            }
+        }
+        if (p.Lesson.Topic is { } topic)
+        {
+            var topicInput = (IHtmlTextAreaElement) p.Document.GetElementById("LessonTopic")!;
+            topicInput.Value = topic;
+        }
+        if (p.Lesson.Attendance is { } attendance)
+        {
+            var table = FindAttendanceTable(p.Document);
+            int firstIndex = 1;
+            if (attendance.Length != table.Rows.Length - firstIndex)
+            {
+                throw new InvalidOperationException("Attendance length does not match the number of students in the HTML");
+            }
+            var actualStudents = FindStudents(table);
+
+            // Find column with name frecvența/nota
+            var headerRow = table.Rows[0];
+            int attendanceColumnIndex = FindIndexOfAttendance();
+            for (int i = 0; i < attendance.Length; i++)
+            {
+                var a = attendance[i];
+                if (a == Attendance.None)
+                {
+                    continue;
+                }
+                if (a == Attendance.Grade)
+                {
+                    throw new NotImplementedException();
+                }
+
+                var actual = actualStudents[i];
+
+                if (p.ExpectedStudents is not null)
+                {
+                    var expected = p.ExpectedStudents[i];
+
+                    string? CheckStudentsEqual()
+                    {
+                        Name? ParseStudent(HtmlStudent s)
+                        {
+                            var studentParser = new Parser(s.Name);
+                            var parsedStudent = NameHelper.TryParseName(ref studentParser);
+                            return parsedStudent;
+                        }
+                        var expected1 = ParseStudent(expected);
+                        var actual1 = ParseStudent(actual);
+                        if (expected1 != actual1
+                            || expected.IsExpelled != actual.IsExpelled)
+                        {
+                            return $"Student mismatch at index {i}: expected {expected}, got {actual}";
+                        }
+                        return null;
+                    }
+                    if (CheckStudentsEqual() is { } err)
+                    {
+                        throw new InvalidOperationException(err);
+                    }
+                }
+
+                if (actual.IsExpelled)
+                {
+                    continue;
+                }
+
+                var row = table.Rows[i + firstIndex];
+                var cell = row.Cells[attendanceColumnIndex];
+                var input = (IHtmlInputElement) cell.QuerySelector("""input:not([type="hidden"])""")!;
+                input.Value = a.ToStringValue();
+            }
+
+            int FindIndexOfAttendance()
+            {
+                for (int i = 0; i < headerRow.Cells.Length; i++)
+                {
+                    var cell = headerRow.Cells[i];
+                    if (cell.TextContent == "frecvența/nota")
+                    {
+                        return i;
+                    }
+                }
+                throw new InvalidOperationException("Could not find attendance/grade column");
+            }
+        }
+    }
+
+    internal static async Task SendForm(IDocument doc)
+    {
+        var form = GetLessonForm(doc);
+        var ret = await form.SubmitAsync();
+        var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
+            .SelectMany(x => x.Children)
+            .SelectMany(x => x.Children)
+            .Select(x => x.Text())
+            .ToArray();
+        if (validationErrors.Length != 0)
+        {
+            throw new InvalidOperationException($"Validation errors: {string.Concat("\n", validationErrors)}");
+        }
+    }
+
+
     private static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
     {
         var t = x.ChildNodes
@@ -359,4 +501,98 @@ internal static class HtmlSearch
         }
         return ret;
     }
+
+    // Intentionally duplicated, because the strings are actually different.
+    internal static LessonType ParseLessonType(
+        string s,
+        IRegistryLessonParserErrorHandler errorHandler)
+    {
+        var parser = new Parser(s);
+        parser.SkipWhitespace();
+        if (parser.IsEmpty)
+        {
+            return LessonType.Unspecified;
+        }
+        var bparser = parser.BufferedView();
+        _ = bparser.SkipNotWhitespace();
+        var lessonTypeSpan = parser.PeekSpanUntilPosition(bparser.Position);
+        var lessonType = Get(lessonTypeSpan);
+        if (lessonType == LessonType.Custom)
+        {
+            errorHandler.CustomLessonType(lessonTypeSpan);
+        }
+
+        parser.MoveTo(bparser.Position);
+
+        parser.SkipWhitespace();
+        if (!parser.IsEmpty)
+        {
+            throw new NotSupportedException("Lesson type not parsed fully.");
+        }
+        return lessonType;
+
+        LessonType Get(ReadOnlySpan<char> str)
+        {
+            static bool Equal(
+                ReadOnlySpan<char> str,
+                string literal)
+            {
+                return str.Equals(
+                    literal.AsSpan(),
+                    StringComparison.Ordinal);
+            }
+
+            for (var i = 0; i < LessonTypeNames.Length; i++)
+            {
+                if (Equal(str, LessonTypeNames[i]))
+                {
+                    return (LessonType) i;
+                }
+            }
+            return LessonType.Custom;
+        }
+    }
+
+    internal static string? GetLessonTypeName(LessonType type)
+    {
+        if (LessonTypeNames.Length <= (int) type)
+        {
+            return null;
+        }
+        return LessonTypeNames[(int) type];
+    }
+
+
+    private static readonly ImmutableArray<string> LessonTypeNames = CreateLessonTypeNames();
+    private static ImmutableArray<string> CreateLessonTypeNames()
+    {
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var ret = ImmutableArray.CreateBuilder<string>();
+        ret.Capacity = 3;
+        ret.Count = 3;
+
+        Set(LessonType.Lab, "laborator");
+        Set(LessonType.Curs, "curs");
+        Set(LessonType.Seminar, "seminar");
+
+        Debug.Assert(ret.All(x => x != null));
+
+        return ret.ToImmutable();
+
+        void Set(LessonType t, string value)
+        {
+            ret[(int) t] = value;
+        }
+    }
 }
+
+internal readonly struct SendUpdatedFormParams
+{
+    public required IDocument Document { get; init; }
+    public required LessonInstance Lesson { get; init; }
+    // public required HttpClient HttpClient { get; init; }
+    // public required Uri Target { get; init; }
+    public required Schedule Schedule { get; init; }
+    public required HtmlStudent[]? ExpectedStudents { get; init; }
+}
+

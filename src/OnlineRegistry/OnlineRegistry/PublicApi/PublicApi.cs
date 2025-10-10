@@ -278,15 +278,14 @@ public static partial class RegistryScraping
         {
             var doc = await GetHtml(uri);
             _ = client;
-            await SendUpdatedForm(new()
+            HtmlSearch.UpdateForm(new()
             {
-                // HttpClient = client,
-                // Target = uri,
                 Document = doc,
                 Lesson = lesson,
                 Schedule = schedule,
                 ExpectedStudents = expectedStudents,
             });
+            await HtmlSearch.SendForm(doc);
         }
 
         Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents)
@@ -300,130 +299,6 @@ public static partial class RegistryScraping
             var doc = await GetHtml(detailsUri);
             var form = doc.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")!;
             await form.SubmitAsync();
-        }
-
-        static async Task SendUpdatedForm(SendUpdatedFormParams p)
-        {
-            IHtmlFormElement form;
-            {
-                var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
-                lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
-                Debug.Assert(lessonDateBox.Value is not null and not "");
-                form = lessonDateBox.Form!;
-            }
-
-            {
-                var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
-                var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
-                var lessonName = GetLessonTypeName(lessonType);
-                foreach (var option in lessonTypeBox.Options)
-                {
-                    if (lessonName is null)
-                    {
-                        option.IsSelected = false;
-                        continue;
-                    }
-                    if (option.Value.Equals(lessonName, StringComparison.Ordinal))
-                    {
-                        option.IsSelected = true;
-                        continue;
-                    }
-                    option.IsSelected = false;
-                }
-            }
-            if (p.Lesson.Topic is { } topic)
-            {
-                var topicInput = (IHtmlTextAreaElement) p.Document.GetElementById("LessonTopic")!;
-                topicInput.Value = topic;
-            }
-            if (p.Lesson.Attendance is { } attendance)
-            {
-                var table = (IHtmlTableElement) p.Document.QuerySelectorAll("table").Last();
-                int firstIndex = 1;
-                if (attendance.Length != table.Rows.Length - firstIndex)
-                {
-                    throw new InvalidOperationException("Attendance length does not match the number of students in the HTML");
-                }
-                var actualStudents = HtmlSearch.FindStudents(table);
-
-                // Find column with name frecvența/nota
-                var headerRow = table.Rows[0];
-                int attendanceColumnIndex = FindIndexOfAttendance();
-                for (int i = 0; i < attendance.Length; i++)
-                {
-                    var a = attendance[i];
-                    if (a == Attendance.None)
-                    {
-                        continue;
-                    }
-                    if (a == Attendance.Grade)
-                    {
-                        throw new NotImplementedException();
-                    }
-
-                    var expected = p.ExpectedStudents[i];
-                    var actual = actualStudents[i];
-
-                    string? CheckStudentsEqual()
-                    {
-                        Name? ParseStudent(HtmlStudent s)
-                        {
-                            var studentParser = new Parser(s.Name);
-                            var parsedStudent = NameHelper.TryParseName(ref studentParser);
-                            return parsedStudent;
-                        }
-                        var expected1 = ParseStudent(expected);
-                        var actual1 = ParseStudent(actual);
-                        if (expected1 != actual1
-                            || expected.IsExpelled != actual.IsExpelled)
-                        {
-                            return $"Student mismatch at index {i}: expected {expected}, got {actual}";
-                        }
-                        return null;
-                    }
-                    if (CheckStudentsEqual() is { } err)
-                    {
-                        throw new InvalidOperationException(err);
-                    }
-                    if (actual.IsExpelled)
-                    {
-                        continue;
-                    }
-
-                    var row = table.Rows[i + firstIndex];
-                    var cell = row.Cells[attendanceColumnIndex];
-                    var input = (IHtmlInputElement) cell.QuerySelector("""input:not([type="hidden"])""")!;
-                    if (input.Form != form)
-                    {
-                        throw new InvalidOperationException("Date and attendance forms are different?");
-                    }
-                    input.Value = a.ToStringValue();
-                }
-
-                int FindIndexOfAttendance()
-                {
-                    for (int i = 0; i < headerRow.Cells.Length; i++)
-                    {
-                        var cell = headerRow.Cells[i];
-                        if (cell.TextContent == "frecvența/nota")
-                        {
-                            return i;
-                        }
-                    }
-                    throw new InvalidOperationException("Could not find attendance/grade column");
-                }
-            }
-
-            var ret = await form.SubmitAsync();
-            var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
-                .SelectMany(x => x.Children)
-                .SelectMany(x => x.Children)
-                .Select(x => x.Text())
-                .ToArray();
-            if (validationErrors.Length != 0)
-            {
-                throw new InvalidOperationException($"Validation errors: {string.Concat("\n", validationErrors)}");
-            }
         }
 
         async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
@@ -677,16 +552,6 @@ public readonly struct CommandProcessingConfig
         var mask = (int) types << DryRunOffset;
         return (Bits & mask) != 0;
     }
-}
-
-file struct SendUpdatedFormParams
-{
-    public required IDocument Document { get; init; }
-    public required LessonInstance Lesson { get; init; }
-    // public required HttpClient HttpClient { get; init; }
-    // public required Uri Target { get; init; }
-    public required Schedule Schedule { get; init; }
-    public required HtmlStudent[] ExpectedStudents { get; init; }
 }
 
 [InlineArray((int) LessonType.Count)]

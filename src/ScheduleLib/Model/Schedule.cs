@@ -30,6 +30,16 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
         _objects = objects;
     }
 
+    public Accessor First()
+    {
+        var e = GetEnumerator();
+        if (!e.MoveNext())
+        {
+            throw new InvalidOperationException();
+        }
+        return e.Current;
+    }
+
     public Enumerator GetEnumerator() => new(_objects);
 
     public struct Enumerator

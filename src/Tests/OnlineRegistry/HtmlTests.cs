@@ -1,7 +1,12 @@
 using System.Text;
+using AngleSharp;
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
+using AngleSharp.Io;
 using AngleSharp.Text;
+using Moq;
+using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
@@ -121,6 +126,63 @@ public sealed class HtmlTests
     {
         var result = await Scan(EmptyLessonsListHtmlPath);
         await Verify(result);
+    }
+
+    [Fact]
+    public async Task LessonEditFormSubmissionSnapshot()
+    {
+        var addDoc = Load(CreateLessonHtmlPath);
+
+        var students = HtmlSearch.FindStudents(HtmlSearch.FindAttendanceTable(addDoc));
+        var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present).ToArray();
+        attendance[0] = Attendance.MotivatedAbsent;
+        attendance[1] = Attendance.NotPresent;
+        attendance[10] = Attendance.NotPresent;
+        attendance[15] = Attendance.NotPresent;
+
+        var schedule = ScheduleBuilder.Create(b =>
+        {
+            b.SetStudyYear(25);
+            var courseId = b.Course("My Course");
+            var groupId = b.Group("I2501");
+            b.RegularLesson(x =>
+            {
+                x.DayOfWeek(DayOfWeek.Friday);
+                x.TimeSlot(TimeSlot.First);
+                x.Course(courseId);
+                x.Type(LessonType.Curs);
+                x.Group(groupId);
+            });
+        });
+
+        HtmlSearch.UpdateForm(new()
+        {
+            Schedule = schedule,
+            Document = addDoc,
+            ExpectedStudents = null,
+            Lesson = new()
+            {
+                Attendance = attendance,
+                Topic = "My Topic",
+                DateTime = new DateTime(year: 2026, day: 11, month: 10),
+                LessonId = schedule.EnumerateLessons().First().Id,
+            },
+        });
+
+        var form = HtmlSearch.GetLessonForm(addDoc);
+        var submission = form.GetSubmission()!;
+        using var reader = new StreamReader(submission.Body);
+
+        await Verify(new
+        {
+            Body = reader.ReadToEnd(),
+            submission.Headers,
+            submission.Method,
+            submission.Referer,
+            Target = submission.Target.ToString(),
+            submission.MimeType,
+        })
+            .UseStrictJson();
     }
 }
 
