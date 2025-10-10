@@ -18,6 +18,7 @@ public sealed class PdfLessonTextDisplayHandler
         public bool PrintsTeacherName = true;
         public bool PreferLongerTeacherName = false;
         public bool PrintsGroupNames = false;
+        public bool PrintsSubGroup = true;
     }
 
     private readonly Services _services;
@@ -70,6 +71,7 @@ public sealed class PdfLessonTextDisplayHandler
         }
 
         var sb = p.CleanStringBuilder;
+        if (_config.PrintsSubGroup)
         {
             var subGroupNumber = _services.SubGroupNumberDisplay.Get(p.Lesson.Lesson.SubGroup);
             if (subGroupNumber is { } s1)

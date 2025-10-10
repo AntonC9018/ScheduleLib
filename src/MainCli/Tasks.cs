@@ -88,22 +88,49 @@ public static class Tasks
                 new()
                 {
                 });
-            for (int groupId = 0; groupId < p.Schedule.Groups.Length; groupId++)
+            foreach (var g in p.Schedule.EnumerateGroups())
             {
-                int groupId1 = groupId;
-                var t = Task.Run(() =>
+                // Enumerating all lessons twice - fix
+                var subgroups = new HashSet<SubGroup>();
+                foreach (var l in p.Schedule.EnumerateLessons())
                 {
-                    var groupName = p.Schedule.Groups[groupId1].Name;
-                    var fileName = groupName + ".pdf";
-                    GenerateWithFilter(fileName, textDisplayHandler, new()
+                    ref var lesson = ref l.Item.Lesson;
+                    if (lesson.Groups.Contains(g.Id))
                     {
-                        GroupFilter = new()
+                        subgroups.Add(lesson.SubGroup);
+                    }
+                }
+
+                foreach (var subgroup in subgroups)
+                {
+                    var t = Task.Run(() =>
+                    {
+                        var groupName = g.Item.Name;
+                        var sb = new StringBuilder();
+                        sb.Append(groupName);
+                        if (subgroup != SubGroup.All)
                         {
-                            OneOfGroupIds = [new(groupId1)],
-                        },
+                            sb.Append($"_{subgroup.Value}");
+                        }
+                        sb.Append(".pdf");
+                        var fileName = sb.ToString();
+
+                        var groupFilter = new GroupFilter
+                        {
+                            OneOfGroupIds = [g.Id],
+                        };
+                        if (subgroup != SubGroup.All)
+                        {
+                            groupFilter.SubGroups = [subgroup, SubGroup.All];
+                        }
+
+                        GenerateWithFilter(fileName, textDisplayHandler, new()
+                        {
+                            GroupFilter = groupFilter,
+                        });
                     });
-                });
-                tasks.Add(t);
+                    tasks.Add(t);
+                }
             }
         }
 

@@ -64,23 +64,32 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
             get
             {
                 Debug.Assert(_index >= 0 && _index < _objects.Length);
-                var id = Unsafe.As<int, TId>(ref Unsafe.AsRef(in _index));
-                return new Accessor(id, in _objects.AsSpan()[_index]);
+                int index = _index;
+                var id = Unsafe.As<int, TId>(ref index);
+                return new Accessor(id, _objects);
             }
         }
     }
 
-    public readonly ref struct Accessor
+    public readonly struct Accessor
     {
         public readonly TId Id;
-        public readonly ref readonly T Item;
+        private readonly ImmutableArray<T> Items;
 
-#pragma warning disable CS8618, CS9264 // Just a wrong error
-        public Accessor(TId id, ref readonly T item)
-#pragma warning restore CS8618, CS9264
+        public Accessor(TId id, ImmutableArray<T> items)
         {
             Id = id;
-            Item = ref item;
+            Items = items;
+        }
+
+        public readonly ref readonly T Item
+        {
+            get
+            {
+                var id = Id;
+                var index = Unsafe.As<TId, int>(ref id);
+                return ref Items.AsSpan()[index];
+            }
         }
     }
 }
