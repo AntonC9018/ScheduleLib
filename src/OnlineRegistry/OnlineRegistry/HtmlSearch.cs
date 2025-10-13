@@ -402,6 +402,10 @@ internal static class HtmlSearch
                 {
                     throw new NotImplementedException();
                 }
+                if (a == Attendance.NotApplicable)
+                {
+                    a = Attendance.NotPresent;
+                }
 
                 var actual = actualStudents[i];
 

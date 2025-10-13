@@ -156,7 +156,7 @@ switch (option)
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process
-                .WithDryRun(LessonEquationCommandTypes.Create),
+                .WithDryRun(LessonEquationCommandTypes.Update),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,
             LessonTopics = new([]),
