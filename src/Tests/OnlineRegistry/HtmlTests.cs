@@ -131,7 +131,14 @@ public sealed class HtmlTests
     [Fact]
     public async Task LessonEditFormSubmissionSnapshot()
     {
-        var addDoc = Load(CreateLessonHtmlPath);
+        IDocument addDoc;
+        var browser = BrowsingContext.New(Configuration.Default);
+        {
+            await using var stream = File.OpenRead(CreateLessonHtmlPath);
+            using var reader1 = new StreamReader(stream);
+            var str = await reader1.ReadToEndAsync();
+            addDoc = await browser.OpenAsync(req => req.Content(str).Address("https://test.com"));
+        }
 
         var students = HtmlSearch.FindStudents(HtmlSearch.FindAttendanceTable(addDoc));
         var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present).ToArray();

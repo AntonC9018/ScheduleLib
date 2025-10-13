@@ -1,0 +1,12 @@
+﻿{
+  "Body": "LessonDate=2026-10-11T00%3A00&LessonTopic=My+Topic&LessonMode=curs&StudentList%5B250954%5D.Id=0&StudentList%5B250954%5D.Nzc=250954&StudentList%5B250954%5D.NotaStr=am&StudentList%5B255252%5D.Id=0&StudentList%5B255252%5D.Nzc=255252&StudentList%5B255252%5D.NotaStr=a&StudentList%5B250960%5D.Id=0&StudentList%5B250960%5D.Nzc=250960&StudentList%5B250960%5D.NotaStr=&StudentList%5B250949%5D.Id=0&StudentList%5B250949%5D.Nzc=250949&StudentList%5B250949%5D.NotaStr=&StudentList%5B253497%5D.Id=0&StudentList%5B253497%5D.Nzc=253497&StudentList%5B253497%5D.NotaStr=&StudentList%5B255253%5D.Id=0&StudentList%5B255253%5D.Nzc=255253&StudentList%5B255253%5D.NotaStr=&StudentList%5B255254%5D.Id=0&StudentList%5B255254%5D.Nzc=255254&StudentList%5B255254%5D.NotaStr=&StudentList%5B250959%5D.Id=0&StudentList%5B250959%5D.Nzc=250959&StudentList%5B250959%5D.NotaStr=&StudentList%5B256132%5D.Id=0&StudentList%5B256132%5D.Nzc=256132&StudentList%5B256132%5D.NotaStr=&StudentList%5B254335%5D.Id=0&StudentList%5B254335%5D.Nzc=254335&StudentList%5B254335%5D.NotaStr=&StudentList%5B254337%5D.Id=0&StudentList%5B254337%5D.Nzc=254337&StudentList%5B254337%5D.NotaStr=a&StudentList%5B250966%5D.Id=0&StudentList%5B250966%5D.Nzc=250966&StudentList%5B250966%5D.NotaStr=&StudentList%5B250961%5D.Id=0&StudentList%5B250961%5D.Nzc=250961&StudentList%5B250961%5D.NotaStr=&StudentList%5B254338%5D.Id=0&StudentList%5B254338%5D.Nzc=254338&StudentList%5B254338%5D.NotaStr=&StudentList%5B250946%5D.Id=0&StudentList%5B250946%5D.Nzc=250946&StudentList%5B250946%5D.NotaStr=&StudentList%5B254339%5D.Id=0&StudentList%5B254339%5D.Nzc=254339&StudentList%5B254339%5D.NotaStr=a",
+  "Headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Referer": "https://test.com/"
+  },
+  "Method": "Post",
+  "Referer": "https://test.com/",
+  "Target": "https://test.com/studregistry/LessonAttendance/CreateLesson/32658?groupId=26682",
+  "MimeType": "application/x-www-form-urlencoded"
+}
