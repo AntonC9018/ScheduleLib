@@ -108,7 +108,7 @@ internal readonly struct RegistryScrapingContext : IDisposable
 }
 
 // Just an abstraction over the token context.
-file sealed class AuthHandler
+internal sealed class AuthHandler
 {
     private readonly TokenRetrievalContext _tokenContext;
 
@@ -144,7 +144,7 @@ file sealed class DelayHandler : DelegatingHandler
     }
 }
 
-file sealed class HttpClientRequester : BaseRequester
+internal sealed class HttpClientRequester : BaseRequester
 {
     private readonly HttpClient _httpClient;
     private readonly AuthHandler _authHandler;

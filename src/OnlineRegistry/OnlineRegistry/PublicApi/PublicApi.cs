@@ -386,6 +386,8 @@ public static partial class RegistryScraping
         async Task<RegistryScrapingContext> CreateContext()
         {
             var http = HttpClientContext.Create();
+            http.Client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
+            http.Client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
             try
             {
                 var tokenContext = new TokenRetrievalContext(new()

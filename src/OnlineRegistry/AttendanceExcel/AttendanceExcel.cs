@@ -333,7 +333,7 @@ public static class AttendanceExcel
                     }
                     var row = rowE.Current;
 
-                    using var cells = row.Cells().GetEnumerator();
+                    using var cells = row.Cells(usedCellsOnly: false).GetEnumerator();
                     if (!cells.MoveNext())
                     {
                         break;

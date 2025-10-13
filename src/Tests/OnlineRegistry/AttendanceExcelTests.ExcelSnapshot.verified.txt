@@ -21,21 +21,18 @@
       [
         NotPresent,
         NotPresent,
+        Present,
+        Present
+      ],
+      [
         NotPresent,
         NotPresent,
+        Present,
         NotPresent
       ],
       [
         NotPresent,
         NotPresent,
-        NotPresent,
-        NotPresent,
-        Present
-      ],
-      [
-        NotPresent,
-        Present,
-        Present,
         Present,
         Present
       ],
@@ -43,8 +40,13 @@
         NotPresent,
         NotPresent,
         Present,
-        Present,
         Present
+      ],
+      [
+        NotPresent,
+        Present,
+        NotPresent,
+        NotPresent
       ]
     ]
   },
@@ -83,12 +85,24 @@
         Present,
         Present,
         Present,
-        Present
+        NotPresent
       ],
       [
-        NotPresent,
-        NotPresent,
-        NotPresent,
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        Present,
         NotPresent
       ]
     ]
@@ -112,23 +126,26 @@
     ],
     Attendance: [
       [
-        NotPresent,
-        NotPresent,
-        NotPresent,
         Present,
+        Present,
+        NotPresent,
         Present
       ],
       [
         NotPresent,
         Present,
-        Present,
-        Present,
-        Present
+        NotPresent,
+        NotPresent
       ],
       [
         NotPresent,
+        Present,
         NotPresent,
-        NotPresent,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
         NotPresent,
         NotPresent
       ],
@@ -136,7 +153,6 @@
         NotPresent,
         NotPresent,
         NotPresent,
-        Present,
         Present
       ]
     ]

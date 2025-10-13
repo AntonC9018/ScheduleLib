@@ -51,42 +51,6 @@ public static class AttendanceHelper
 
 public readonly record struct StudentIndex(int Index);
 
-public readonly struct DayAttendanceBuilder
-{
-    private readonly ImmutableArray<Attendance>.Builder _builder;
-
-    public DayAttendanceBuilder(int len)
-    {
-        _builder = ImmutableArray.CreateBuilder<Attendance>(len);
-
-        // It does not say anything about filling with zeros in the docs
-        for (int i = 0; i < _builder.Count; i++)
-        {
-            _builder[i] = Attendance.None;
-        }
-    }
-
-    public void Set(StudentIndex index, Attendance attendance)
-    {
-        Debug.Assert(attendance is not Attendance.Grade and not Attendance.None);
-
-        _builder[index.Index] = attendance;
-    }
-
-    public ImmutableArray<Attendance> Build(ImmutableArray<Name> context)
-    {
-        for (int i = 0; i < _builder.Count; i++)
-        {
-            if (_builder[i] == Attendance.None)
-            {
-                throw new InvalidOperationException($"Student {context[i]} not initialized");
-            }
-        }
-
-        var ret = _builder.MoveToImmutable();
-        return ret;
-    }
-}
 
 public readonly struct StudentAttendanceBuilder(Name name)
 {
@@ -129,7 +93,6 @@ public sealed class StudentAttendanceListBuilder()
         Attendance? missingDaysFiller)
     {
         var names = ImmutableArray.CreateBuilder<Name>(_students.Count);
-        var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(_students.Count);
 
         var maxDayCount = _students.Max(x => x.Attendances.Count);
         maxDayCount = Math.Max(maxDayCount, _maxCountHint);
@@ -159,7 +122,39 @@ public sealed class StudentAttendanceListBuilder()
                     $"Student {student.Name} has {student.Attendances.Count} days, expected {maxDayCount}");
             }
             names.Add(student.Name);
-            attendance.Add(student.Attendances.DrainToImmutable());
+        }
+
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(maxDayCount);
+        attendance.Count = maxDayCount;
+
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var dayBuilder = ImmutableArray.CreateBuilder<Attendance>();
+        for (int dayIndex = 0; dayIndex < maxDayCount; dayIndex++)
+        {
+            dayBuilder.Capacity = _students.Count;
+            dayBuilder.Count = dayBuilder.Capacity;
+
+            for (int studentIndex = 0; studentIndex < _students.Count; studentIndex++)
+            {
+                var student = _students[studentIndex];
+                Attendance a;
+                if (dayIndex < student.Attendances.Count)
+                {
+                    a = student.Attendances[dayIndex];
+                }
+                else
+                {
+                    a = missingDaysFiller ?? Attendance.None;
+                }
+                dayBuilder[studentIndex] = a;
+            }
+            attendance[dayIndex] = dayBuilder.MoveToImmutable();
+        }
+
+        foreach (var s in _students)
+        {
+            s.Attendances.Clear();
         }
 
         return (names.MoveToImmutable(), attendance.MoveToImmutable());
