@@ -85,7 +85,7 @@ public static partial class RegistryScraping
                 });
 
                 // Figure out the exact dates the lessons will occur on.
-                var lessonsWithTimes = MissingLessonDetection.GetDateTimesOfScheduledLessons(new()
+                var lessonsWithTimes = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
                 {
                     Lessons = lessons,
                     Schedule = p.Schedule,
@@ -145,10 +145,7 @@ public static partial class RegistryScraping
                     attendanceIndex++;
 
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance);
-                    foreach (ref var a in attendanceForHtml.AsSpan())
-                    {
-                        a = RemapForRegistry(a);
-                    }
+                    UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
                     var topic = p.LessonTopics.Get(key);
                     return new LessonInstance
@@ -159,14 +156,6 @@ public static partial class RegistryScraping
                         Topic = topic,
                     };
                 });
-
-                var t = completeLessons.ToArray();
-                _ = t;
-
-                if (group.SubGroup.Value == "II" && p.Schedule.Get(group.GroupId).Name == "DJ2402")
-                {
-                    Console.WriteLine("Hello");
-                }
 
                 // Update
                 var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
@@ -434,14 +423,23 @@ public static partial class RegistryScraping
         }
     }
 
-    internal static Attendance RemapForRegistry(Attendance a)
+    internal static void UpdateAttendanceForRegistry(Attendance[] attendanceForHtml, HtmlStudent[] students)
     {
-        return a switch
+        for (int index = 0; index < attendanceForHtml.Length; index++)
         {
-            Attendance.Grade => throw new NotImplementedException(),
-            Attendance.NotApplicable => Attendance.Present,
-            _ => a,
-        };
+            ref var a = ref attendanceForHtml[index];
+            if (students[index].IsExpelled)
+            {
+                a = Attendance.None;
+                continue;
+            }
+            a = a switch
+            {
+                Attendance.Grade => throw new NotImplementedException(),
+                Attendance.NotApplicable => Attendance.Present,
+                _ => a,
+            };
+        }
     }
 
     private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)

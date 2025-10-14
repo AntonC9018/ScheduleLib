@@ -10,6 +10,7 @@ public struct ScheduleFilter()
     public Grade? Grade;
     public TeacherFilter TeacherFilter = new();
     public GroupFilter GroupFilter = new();
+    public LessonFilter LessonFilter = new();
     public PeriodFilter PeriodFilter = new()
     {
         MatchAny = true,
@@ -34,10 +35,26 @@ public struct TeacherFilter()
     public TeacherId[]? IncludeIds = null;
 }
 
+public struct LessonFilter()
+{
+    public LessonType? LessonType = null;
+}
+
+public readonly struct RegularLessonAccessor
+{
+    public required RegularLessonId Id { get; init; }
+
+    // TODO: Make this a struct and pull it from the schedule
+    public required RegularLesson Item { get; init; }
+
+    public readonly ref readonly LessonData Lesson => ref Item.Lesson;
+    public readonly ref readonly RegularLessonDate Date => ref Item.Date;
+}
+
 public sealed class FilteredSchedule
 {
     public required Schedule Source;
-    public required IEnumerable<RegularLesson> Lessons;
+    public required IEnumerable<RegularLessonAccessor> Lessons;
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
@@ -82,10 +99,15 @@ public static class FilterHelper
             Teachers = teachers,
         };
 
-        IEnumerable<RegularLesson> GetRegularLessons(ScheduleFilter filter)
+        IEnumerable<RegularLessonAccessor> GetRegularLessons(ScheduleFilter filter)
         {
-            foreach (var regularLesson in schedule.RegularLessons)
+            foreach (var l in schedule.EnumerateLessons())
             {
+                var regularLesson = new RegularLessonAccessor
+                {
+                    Id = l.Id,
+                    Item = l.Item,
+                };
                 if (!PassesGradeTest())
                 {
                     continue;
@@ -106,7 +128,12 @@ public static class FilterHelper
                 {
                     continue;
                 }
+                if (!PassesLessonFilter())
+                {
+                    continue;
+                }
                 yield return regularLesson;
+                continue;
 
                 bool PassesGradeTest()
                 {
@@ -205,6 +232,28 @@ public static class FilterHelper
                         return true;
                     }
                     return false;
+                }
+
+                bool PassesLessonFilter()
+                {
+                    if (LessonTypeFilter())
+                    {
+                        return true;
+                    }
+                    return false;
+
+                    bool LessonTypeFilter()
+                    {
+                        if (filter.LessonFilter.LessonType is not { } lessonType)
+                        {
+                            return true;
+                        }
+                        if (regularLesson.Lesson.Type == lessonType)
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
                 }
             }
         }

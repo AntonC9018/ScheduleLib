@@ -1676,6 +1676,130 @@ public static class Tasks
             return schedule;
         }
     }
+
+    public readonly struct GenerateDeadlinesExcelParams()
+    {
+        public required FilteredSchedule Schedule { get; init; }
+        public required IAllScheduledDateProvider DateProvider { get; init; }
+        public required Semester Semester { get; init; }
+        public required LessonTimeConfig TimeConfig { get; init; }
+        public required SemesterIntervalProvider SemesterIntervalProvider { get; init; }
+        public required string OutputFilePath { get; init; }
+        public required System.Drawing.Color GoodColor { get; init; }
+        public required System.Drawing.Color BadColor { get; init; }
+        public required int LessonDelayLimit { get; init; }
+        public required int MaxTaskRows { get; init; }
+        public float ColumnWidth { get; init; } = 5;
+    }
+
+    public static void GenerateDeadlinesExcel(GenerateDeadlinesExcelParams p)
+    {
+        using var workbook = new XLWorkbook();
+
+        foreach (var group in p.Schedule.Groups)
+        {
+            var lessonsBySubgroup = p.Schedule.Lessons
+                .Where(x => x.Lesson.Group == group)
+                .GroupBy(x => (x.Lesson.SubGroup, x.Lesson.Course))
+                .ToArray();
+
+            if (lessonsBySubgroup.Length > 1
+                && lessonsBySubgroup.Any(x => x.Key.SubGroup == SubGroup.All))
+            {
+                throw new NotImplementedException("Shared labs not implemented");
+            }
+
+            foreach (var l in lessonsBySubgroup)
+            {
+                var key = l.Key;
+                var scheduledLessons = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
+                {
+                    Lessons = l.Select(x => x.Id),
+                    Schedule = p.Schedule.Source,
+                    DateProvider = p.DateProvider,
+                    Semester = p.Semester,
+                    TimeConfig = p.TimeConfig,
+                    SemesterIntervalProvider = p.SemesterIntervalProvider,
+                }).ToArray();
+                if (scheduledLessons.Length == 0)
+                {
+                    continue;
+                }
+
+                string sheetName;
+                {
+                    var s = p.Schedule.Source;
+                    var shortName = s.Get(key.Course).Names[^1];
+                    var groupName = s.Get(group).Name;
+                    sheetName = $"{shortName} - {groupName}";
+                    if (key.SubGroup != SubGroup.All)
+                    {
+                        sheetName = $"{sheetName}({key.SubGroup.Value})";
+                    }
+                }
+                var worksheet = workbook.Worksheets.Add(sheetName);
+
+                const int emptyCols = 1;
+                const int firstRowPos = 1;
+                const int firstColPos = emptyCols + 1;
+                {
+                    var firstRow = worksheet.Row(firstRowPos);
+                    for (int index = 0; index < scheduledLessons.Length; index++)
+                    {
+                        int cellIndex = index + firstColPos;
+                        var lesson = scheduledLessons[index];
+                        var cell = firstRow.Cell(cellIndex);
+                        var d = lesson.DateTime;
+                        cell.Value = d.ToString("dd.MM");
+                    }
+                    for (int index = 0; index < scheduledLessons.Length; index++)
+                    {
+                        worksheet.Column(index + firstColPos).Width = p.ColumnWidth;
+                    }
+                }
+
+                int maxCols = scheduledLessons.Length;
+
+                var dataRange = worksheet.Range(
+                    firstCellRow: firstRowPos + 1,
+                    firstCellColumn: firstColPos,
+                    lastCellRow: p.MaxTaskRows,
+                    lastCellColumn: maxCols);
+
+                for (int i = 0; i <= p.LessonDelayLimit; i++)
+                {
+                    var gradientPos = (float) i / p.LessonDelayLimit;
+                    var color = ColorHelper.Lerp(p.GoodColor, p.BadColor, gradientPos);
+                    var xlColor = XLColor.FromColor(color);
+                    var conditionalFormat = worksheet.AddConditionalFormat();
+                    conditionalFormat.Range = dataRange;
+                    conditionalFormat
+                        .WhenEquals(-i)
+                        .Fill
+                        .SetBackgroundColor(xlColor);
+                }
+
+                foreach (var cell in dataRange.Cells())
+                {
+                    string leftCellRef = worksheet
+                        .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
+                        .Address
+                        .ToStringRelative();
+                    string formula = $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-p.LessonDelayLimit}),{leftCellRef}-1,"")""";
+                    cell.FormulaA1 = formula;
+                }
+            }
+        }
+
+        {
+            if (Path.GetDirectoryName(p.OutputFilePath) is { } outputDirectory)
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+            using var outputStream = new FileStream(p.OutputFilePath, FileMode.Create, FileAccess.Write);
+            workbook.SaveAs(outputStream);
+        }
+    }
 }
 
 public enum Option
@@ -1686,8 +1810,8 @@ public enum Option
     CreateLessonsInRegistry,
     PullCurriculaFromOneDrive,
     FreeRooms,
-    CuteTeachersExcel,
     FreeHoursOfGroup,
+    TableOfAllLabLessons,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
@@ -1712,11 +1836,12 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 
     private sealed class Comparer : IComparer<OptionalNamePart>
     {
+        // ReSharper disable once MemberHidesStaticFromOuterClass
         public static readonly Comparer Instance = new();
+
         public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
             return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
         }
     }
 }
-

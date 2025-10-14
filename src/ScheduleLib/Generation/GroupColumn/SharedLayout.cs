@@ -12,7 +12,7 @@ public sealed class SharedLayout
     public required Dictionary<RegularLesson, uint> LessonVerticalOrder;
 
     public static SharedLayout Create(
-        IEnumerable<RegularLesson> lessons,
+        IEnumerable<RegularLessonAccessor> lessons,
         ColumnOrder<GroupId> columnOrder)
     {
         Dict<CellKey<DefaultRowKey, GroupId>, int> perGroupCounters = new();
@@ -25,7 +25,7 @@ public sealed class SharedLayout
 
         // Singular lessons go on top, have higher priority.
         // Shared lessons go below.
-        static int LessonPriority(RegularLesson lesson) => lesson.Lesson.Groups.Count;
+        static int LessonPriority(RegularLessonAccessor lesson) => lesson.Lesson.Groups.Count;
 
         foreach (var group in lessons.GroupBy(LessonPriority))
         {
@@ -39,10 +39,10 @@ public sealed class SharedLayout
                     var dayKey = lesson.Date.DefaultRowKey();
 
                     int max = MoveToAfterFurthestInGrouping(dayKey);
-                    layout.LessonVerticalOrder.Add(lesson, (uint) max);
+                    layout.LessonVerticalOrder.Add(lesson.Item, (uint) max);
 
                     var firstOrder = FindFirstOrder();
-                    layout.SharedCellStart.Add((lesson, firstOrder));
+                    layout.SharedCellStart.Add((lesson.Item, firstOrder));
                 }
 
                 int FindFirstOrder()

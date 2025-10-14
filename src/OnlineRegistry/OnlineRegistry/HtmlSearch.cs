@@ -428,10 +428,8 @@ internal static class HtmlSearch
                     }
                 }
 
-                if (actual.IsExpelled)
-                {
-                    continue;
-                }
+                // Has been replaced with None so should have exited already
+                Debug.Assert(!actual.IsExpelled);
 
                 var row = table.Rows[i + firstIndex];
                 var cell = row.Cells[attendanceColumnIndex];

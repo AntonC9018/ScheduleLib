@@ -153,7 +153,7 @@ public struct GeneratorCache
 public static class MappingsCreationHelper
 {
     public static RegularLessonsByCellKey<TRowKey, TColumnKey> CreateCellMappings<TRowKey, TColumnKey>(
-        IEnumerable<RegularLesson> lessons,
+        IEnumerable<RegularLessonAccessor> lessons,
         // TODO: Remove the use of this IEnumerable
         Func<RegularLesson, TRowKey> rowFunc,
         Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
@@ -161,8 +161,8 @@ public static class MappingsCreationHelper
         var ret = new RegularLessonsByCellKey<TRowKey, TColumnKey>();
         foreach (var lesson in lessons)
         {
-            var rowKey = rowFunc(lesson);
-            var columnKeys = colFunc(lesson);
+            var rowKey = rowFunc(lesson.Item);
+            var columnKeys = colFunc(lesson.Item);
             foreach (var columnKey in columnKeys)
             {
                 var cellKey = new CellKey<TRowKey, TColumnKey>
@@ -176,14 +176,14 @@ public static class MappingsCreationHelper
                     list = new(2);
                 }
 
-                list!.Add(lesson);
+                list!.Add(lesson.Item);
             }
         }
         return ret;
     }
 
     public static RegularLessonsByCellKey<DefaultRowKey, TColumnKey> CreateCellMappings<TColumnKey>(
-        IEnumerable<RegularLesson> lessons,
+        IEnumerable<RegularLessonAccessor> lessons,
         // TODO: Remove the use of this IEnumerable
         Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
     {

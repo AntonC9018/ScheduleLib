@@ -269,7 +269,7 @@ public static class AttendanceExcel
             {
                 if (result != null)
                 {
-                    var differences = LessonBuilderHelper.Diff(lesson, result, resultDiffMask);
+                    var differences = LessonBuilderHelper.Diff(lesson.Item, result, resultDiffMask);
                     if (differences.Intersect(diffMask).TheyDiffer)
                     {
                         continue;
@@ -282,12 +282,12 @@ public static class AttendanceExcel
                 }
                 {
 
-                    var differences = LessonBuilderHelper.Diff(lesson, diffLesson, diffMask);
+                    var differences = LessonBuilderHelper.Diff(lesson.Item, diffLesson, diffMask);
                     if (!differences.TheyAreEqual)
                     {
                         continue;
                     }
-                    result = lesson;
+                    result = lesson.Item;
                 }
             }
 

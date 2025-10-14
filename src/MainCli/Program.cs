@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Text;
 using ClosedXML.Excel;
 using ScheduleLib.Curriculum.Download;
@@ -69,7 +70,8 @@ var options = new Option[]
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
     // Option.UploadDocsToDrive,
-    Option.CreateLessonsInRegistry,
+    // Option.CreateLessonsInRegistry,
+    Option.TableOfAllLabLessons,
 };
 foreach (var option in options) {
 
@@ -122,23 +124,7 @@ switch (option)
             config,
             allowUserInput: true);
 
-        using var workbook = new XLWorkbook(@"C:\Users\Anton\Desktop\lipse.xlsx");
-        var teacherId = context.Schedule.Lookup().Teacher("Anton", "Curmanschii")!.Value;
-        var filteredSchedule = schedule.Filter(new()
-        {
-            TeacherFilter = new()
-            {
-                IncludeIds = [teacherId],
-            },
-        });
-        var attendance = AttendanceExcel.ParseAttendanceListsExcel(new()
-        {
-            Schedule = filteredSchedule,
-            Workbook = workbook,
-            CourseNames = context.CourseNameUnifierModule,
-            LookupModule = context.Schedule.LookupModule!,
-            GroupParseContext = context.Schedule.GroupParseContext!,
-        });
+        var attendance = GetAttendanceListOfCurrentTeacher();
 
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
@@ -156,7 +142,7 @@ switch (option)
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process
-                .WithDryRun(LessonEquationCommandTypes.All),
+                .WithLog(LessonEquationCommandTypes.All),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,
             LessonTopics = new([]),
@@ -192,6 +178,44 @@ switch (option)
             DayNameProvider = dayNameProvider,
         });
         Console.WriteLine(sb.ToStringAndClear());
+        break;
+    }
+
+    case Option.TableOfAllLabLessons:
+    {
+        var dateProvider = new ManualAllScheduledDateProvider(
+            studyWeeks: Config.StudyWeeks,
+            holidays: Config.HolidayPeriods);
+
+        var teacherId = GetCurrentTeacherId();
+        var filteredSchedule = schedule.Filter(new()
+        {
+            TeacherFilter = new()
+            {
+                IncludeIds = [teacherId],
+            },
+            LessonFilter = new()
+            {
+                LessonType = LessonType.Lab,
+            },
+        });
+
+        const string outputFileName = "deadlines";
+        const string outputFilePath = $"{outputDirectory}/{outputFileName}.xlsx";
+        Tasks.GenerateDeadlinesExcel(new()
+        {
+            Schedule = filteredSchedule,
+            DateProvider = dateProvider,
+            Semester = semester,
+            TimeConfig = context.TimeConfig,
+            OutputFilePath = outputFilePath,
+            SemesterIntervalProvider = Config.SemesterIntervalProvider(),
+            BadColor = Color.Red,
+            GoodColor = Color.LightGreen,
+            LessonDelayLimit = 3,
+            MaxTaskRows = 40,
+        });
+        ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
         break;
     }
 }
@@ -259,4 +283,32 @@ Task GenerateAllTeacherExcel()
             TimeConfig = context.TimeConfig,
         });
     });
+}
+
+TeacherId GetCurrentTeacherId()
+{
+    var teacherId = context.Schedule.Lookup().Teacher("Anton", "Curmanschii")!.Value;
+    return teacherId;
+}
+
+StudentAttendanceList GetAttendanceListOfCurrentTeacher()
+{
+    using var workbook = new XLWorkbook(@"C:\Users\Anton\Desktop\lipse.xlsx");
+    var teacherId = GetCurrentTeacherId();
+    var filteredSchedule = schedule.Filter(new()
+    {
+        TeacherFilter = new()
+        {
+            IncludeIds = [teacherId],
+        },
+    });
+    var attendance = AttendanceExcel.ParseAttendanceListsExcel(new()
+    {
+        Schedule = filteredSchedule,
+        Workbook = workbook,
+        CourseNames = context.CourseNameUnifierModule,
+        LookupModule = context.Schedule.LookupModule!,
+        GroupParseContext = context.Schedule.GroupParseContext!,
+    });
+    return attendance;
 }
