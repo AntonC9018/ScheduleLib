@@ -305,6 +305,7 @@ internal readonly struct StudentNameRemapHelper
     {
         var dbToHtmlIndexMap = new OptionalIndex[namesInDb.Count];
         var count = namesInHtml.Length;
+        Array.Fill(dbToHtmlIndexMap, OptionalIndex.Invalid);
 
         for (int i = 0; i < namesInHtml.Length; i++)
         {

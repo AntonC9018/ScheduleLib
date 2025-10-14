@@ -379,11 +379,33 @@ internal struct MappedLesson
         {
             return true;
         }
-        if (All.Attendance.SequenceEqual(Existing.Attendance))
+        if (Equal(All.Attendance, Existing.Attendance))
         {
             return true;
         }
         return false;
+
+        static bool Equal(Attendance[] all, Attendance[] existing)
+        {
+            if (all.Length != existing.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < all.Length; i++)
+            {
+                var a = all[i];
+                var b = existing[i];
+                if (a == Attendance.None)
+                {
+                    continue;
+                }
+                if (a != b)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }
 

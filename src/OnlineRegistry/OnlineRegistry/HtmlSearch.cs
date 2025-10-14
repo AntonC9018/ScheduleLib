@@ -298,7 +298,7 @@ internal static class HtmlSearch
 
         static string ExtractTopic(IHtmlTableCellElement cell)
         {
-            var topicRaw = cell.Text();
+            var topicRaw = cell.TextContent;
             var parser = new Parser(topicRaw);
 
             // Number in front.
@@ -397,14 +397,6 @@ internal static class HtmlSearch
                 if (a == Attendance.None)
                 {
                     continue;
-                }
-                if (a == Attendance.Grade)
-                {
-                    throw new NotImplementedException();
-                }
-                if (a == Attendance.NotApplicable)
-                {
-                    a = Attendance.NotPresent;
                 }
 
                 var actual = actualStudents[i];

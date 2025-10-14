@@ -7,7 +7,6 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -100,9 +99,9 @@ public static partial class RegistryScraping
                 var remapHelpers = new ValueForEachLessonType<StudentNameRemapHelper>();
                 var indexesByLessonType = new ValueForEachLessonType<int>();
 
-                var completeLessons = lessonsWithTimes.WithIndex().Select(x =>
+                var completeLessons = lessonsWithTimes.Select(x =>
                 {
-                    var lesson = p.Schedule.Get(x.Item.LessonId);
+                    var lesson = p.Schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
                     ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
@@ -113,22 +112,23 @@ public static partial class RegistryScraping
                         CourseId = courseId,
                         LessonType = lessonType,
                         DayIndex = attendanceIndex,
-                        DateTime = x.Item.DateTime,
+                        DateTime = x.DateTime,
                     };
                     var attendance = p.Attendance.Get(key);
 
                     ref var remapHelper = ref remapHelpers[(int) lessonType];
                     if (attendanceIndex == 0)
                     {
+                        var studentNames = p.Attendance.StudentNames(new()
+                        {
+                            CourseId = courseLink.CourseId,
+                            GroupId = group.GroupId,
+                            SubGroup = group.SubGroup,
+                            LessonType = lessonType,
+                        });
                         remapHelper = StudentNameRemapHelper.Create(
                             namesInHtml: scanResult.Students,
-                            namesInDb: p.Attendance.StudentNames(new()
-                            {
-                                CourseId = courseLink.CourseId,
-                                GroupId = group.GroupId,
-                                SubGroup = group.SubGroup,
-                                LessonType = lessonType,
-                            }),
+                            namesInDb: studentNames,
                             outNotFoundIndices: notFoundStudents);
                         if (notFoundStudents.Count != 0)
                         {
@@ -137,7 +137,7 @@ public static partial class RegistryScraping
                                 Students = notFoundStudents,
                                 Schedule = p.Schedule,
                                 GroupId = group.GroupId,
-                                LessonId = x.Item.LessonId,
+                                LessonId = x.LessonId,
                             });
                             notFoundStudents.Clear();
                         }
@@ -145,15 +145,28 @@ public static partial class RegistryScraping
                     attendanceIndex++;
 
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance);
+                    foreach (ref var a in attendanceForHtml.AsSpan())
+                    {
+                        a = RemapForRegistry(a);
+                    }
+
                     var topic = p.LessonTopics.Get(key);
                     return new LessonInstance
                     {
-                        DateTime = x.Item.DateTime,
-                        LessonId = x.Item.LessonId,
+                        DateTime = x.DateTime,
+                        LessonId = x.LessonId,
                         Attendance = attendanceForHtml,
                         Topic = topic,
                     };
                 });
+
+                var t = completeLessons.ToArray();
+                _ = t;
+
+                if (group.SubGroup.Value == "II" && p.Schedule.Get(group.GroupId).Name == "DJ2402")
+                {
+                    Console.WriteLine("Hello");
+                }
 
                 // Update
                 var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
@@ -167,8 +180,12 @@ public static partial class RegistryScraping
                 {
                     if (p.ProcessingFlags.HasDryRun(command.Type))
                     {
-                        DryRun(command, courseLink.CourseId, group.GroupId);
+                        Log1();
                         continue;
+                    }
+                    else if (p.ProcessingFlags.HasLog(command.Type))
+                    {
+                        Log1();
                     }
 
                     if (p.ProcessingFlags.HasProcess(command.Type))
@@ -179,12 +196,18 @@ public static partial class RegistryScraping
                             expectedStudents: scanResult.Students);
                         continue;
                     }
+
+                    void Log1()
+                    {
+                        Log(command, courseLink.CourseId, group.GroupId);
+                    }
                 }
             }
         }
         return;
 
-        void DryRun(
+
+        void Log(
             LessonEquationCommand command,
             CourseId courseId,
             GroupId groupId)
@@ -411,6 +434,16 @@ public static partial class RegistryScraping
         }
     }
 
+    internal static Attendance RemapForRegistry(Attendance a)
+    {
+        return a switch
+        {
+            Attendance.Grade => throw new NotImplementedException(),
+            Attendance.NotApplicable => Attendance.Present,
+            _ => a,
+        };
+    }
+
     private static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
     {
         var groups = schedule.Groups;
@@ -502,15 +535,28 @@ public readonly struct CommandProcessingConfig
         };
     }
 
+    public readonly CommandProcessingConfig WithLog(LessonEquationCommandTypes types)
+    {
+        var newBits = Bits | ((int) types << LogOffset);
+        return new()
+        {
+            Bits = newBits,
+        };
+    }
+
     private const int ProcessOffset = 0;
     private const int ProcessMask = (1 << (int) LessonEquationCommandType.Count) - 1;
-    private const int DryRunOffset = (int) 16;
+    private const int DryRunOffset = 8;
     private const int DryRunMask = ProcessMask << DryRunOffset;
+    private const int LogOffset = 16;
+    private const int LogMask = ProcessMask << LogOffset;
+    private const int ValueMask = ProcessMask;
 
 
     public static CommandProcessingConfig None => new();
     public static CommandProcessingConfig Process => None.WithProcess(LessonEquationCommandTypes.All);
     public static CommandProcessingConfig DryRun => None.WithDryRun(LessonEquationCommandTypes.All);
+    public static CommandProcessingConfig Log => None.WithLog(LessonEquationCommandTypes.All);
 
     /// <summary>
     /// Masks out the "process" that are also on "dry run".
@@ -521,7 +567,7 @@ public readonly struct CommandProcessingConfig
         get
         {
             int dryRunBits = DryRunMask & Bits;
-            int doNotProcessMask = dryRunBits >> DryRunOffset;
+            int doNotProcessMask = ((dryRunBits >> DryRunOffset) & ValueMask) << ProcessOffset;
             int doProcessMask = ~doNotProcessMask;
             int bits = (doProcessMask & Bits) | ((~ProcessMask) & Bits);
             return new()
@@ -552,6 +598,18 @@ public readonly struct CommandProcessingConfig
     public readonly bool HasAnyDryRun(LessonEquationCommandTypes types)
     {
         var mask = (int) types << DryRunOffset;
+        return (Bits & mask) != 0;
+    }
+
+    public readonly bool HasLog(LessonEquationCommandType type)
+    {
+        var mask = 1 << ((int) type + LogOffset);
+        return (Bits & mask) != 0;
+    }
+
+    public readonly bool HasAnyLog(LessonEquationCommandTypes types)
+    {
+        var mask = (int) types << LogOffset;
         return (Bits & mask) != 0;
     }
 }
