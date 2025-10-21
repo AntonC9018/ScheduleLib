@@ -70,8 +70,8 @@ var options = new Option[]
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
     // Option.UploadDocsToDrive,
-    // Option.CreateLessonsInRegistry,
-    Option.TableOfAllLabLessons,
+    Option.CreateLessonsInRegistry,
+    // Option.TableOfAllLabLessons,
 };
 foreach (var option in options) {
 

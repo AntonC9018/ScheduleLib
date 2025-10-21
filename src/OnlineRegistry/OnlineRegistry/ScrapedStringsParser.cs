@@ -1,7 +1,4 @@
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.GroupParser;
 
@@ -20,6 +17,17 @@ public static partial class RegistryScraping
         var mainParser = new Parser(s);
         mainParser.SkipWhitespace();
 
+        bool isRepeat = mainParser.ConsumeExactString("Repetare");
+        if (isRepeat)
+        {
+            mainParser.SkipWhitespace();
+            if (!mainParser.ConsumeExactString("-"))
+            {
+                JustThrow("expected dash for repetare");
+            }
+            mainParser.SkipWhitespace();
+        }
+
         var bparser = mainParser.BufferedView();
 
         var label = ParseLabel(ref bparser);
@@ -34,7 +42,7 @@ public static partial class RegistryScraping
         var subGroup = ParseSubGroup(ref mainParser);
 
         mainParser.SkipWhitespace();
-        if (!mainParser.IsEmpty)
+        if (!mainParser.IsEmpty && !isRepeat)
         {
             throw new NotSupportedException("Group name not parsed fully.");
         }
@@ -50,6 +58,7 @@ public static partial class RegistryScraping
             QualificationType = QualificationType.Licenta,
             AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
             SubGroupName = subGroup,
+            IsRepeat = isRepeat,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
@@ -184,4 +193,5 @@ internal struct GroupForSearch
     public required ReadOnlyMemory<char> FacultyName;
     public required QualificationType QualificationType;
     public required ReadOnlyMemory<char> SubGroupName;
+    public required bool IsRepeat;
 }

@@ -106,7 +106,7 @@ public static class Config
             HolidayPeriod[] holidayPeriods;
             // TODO: Get this from "calendar academic"
             holidayPeriods = [
-                new(new(2025, month: 10, day: 16)),
+                new(new(2025, month: 10, day: 14)),
                 new(new(2026, month: 1, day: 1), new(2026, month: 1, day: 26)),
                 new(new(2026, month: 4, day: 12), new(2026, month: 4, day: 21)),
             ];

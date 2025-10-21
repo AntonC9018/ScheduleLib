@@ -104,6 +104,11 @@ internal static class HtmlSearch
             var url = anchor.Href;
             var groupName = anchor.Text;
             var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
+            if (groupForSearch.IsRepeat)
+            {
+                // Not handling this yet.
+                continue;
+            }
             var groupId = p.SearchGroupId(groupForSearch);
             if (groupId == GroupId.Invalid)
             {
