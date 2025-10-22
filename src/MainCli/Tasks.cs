@@ -1812,6 +1812,7 @@ public enum Option
     FreeRooms,
     FreeHoursOfGroup,
     TableOfAllLabLessons,
+    JsonSchedulesForWebsite,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>

@@ -71,8 +71,9 @@ var options = new Option[]
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
     // Option.UploadDocsToDrive,
-    Option.CreateLessonsInRegistry,
+    // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
+    Option.JsonSchedulesForWebsite,
 };
 foreach (var option in options) {
 
@@ -125,8 +126,8 @@ switch (option)
             config,
             allowUserInput: true);
 
-        // var attendance = GetAttendanceListOfCurrentTeacher();
-        var attendance = new AllStudentAttendanceListBuilder().Build();
+        var attendance = GetAttendanceListOfCurrentTeacher();
+        // var attendance = new AllStudentAttendanceListBuilder().Build();
 
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
@@ -218,6 +219,10 @@ switch (option)
             MaxTaskRows = 40,
         });
         ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
+        break;
+    }
+    case Option.JsonSchedulesForWebsite:
+    {
         break;
     }
 }
