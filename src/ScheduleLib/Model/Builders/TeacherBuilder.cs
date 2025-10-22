@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 
@@ -716,4 +717,36 @@ public static class TeacherNameHelper
                 nameof(requiredFirstName));
         }
     }
+
+    public static void AsFileName(StringBuilder sb, PersonName teacherName)
+    {
+        var nameBuilder = new ListStringBuilder(sb, "_");
+        {
+            var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+            foreach (var fname in teacherName.FirstName)
+            {
+                if (fname.Short is not { } s)
+                {
+                    break;
+                }
+
+                var w = new Word(s);
+
+                firstNameBuilder.Append(w.Span.Shortened.Value);
+            }
+        }
+        nameBuilder.MaybeAppendSeparator();
+        {
+            var lastNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+            foreach (var lname in teacherName.LastName.Parts)
+            {
+                if (lname is not { } s)
+                {
+                    break;
+                }
+                lastNameBuilder.Append(s);
+            }
+        }
+    }
+
 }

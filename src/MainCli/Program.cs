@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using MainCli.JsonWebsite;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
@@ -223,6 +224,45 @@ switch (option)
     }
     case Option.JsonSchedulesForWebsite:
     {
+        if (Directory.Exists(outputDirectory))
+        {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+        Directory.CreateDirectory(outputDirectory);
+
+        var services = new WebsiteJsonScheduleHelper.Services()
+        {
+            ParityDisplay = new(),
+            LessonTypeDisplay = new(),
+            SubGroupNumberDisplay = new(),
+        };
+        foreach (var teacher in schedule.EnumerateTeachers())
+        {
+            var filteredSchedule = schedule.Filter(new()
+            {
+                PeriodFilter = new()
+                {
+                    PeriodId = schedule.LatestPeriodId(),
+                    UnspecifiedIsAll = true,
+                },
+                TeacherFilter = new()
+                {
+                    IncludeIds = [teacher.Id],
+                },
+            });
+            var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
+                filteredSchedule,
+                services);
+            var name = teacher.Item.PersonName;
+            var sb = new StringBuilder();
+            sb.Append($"{outputDirectory}/");
+            TeacherNameHelper.AsFileName(sb, name);
+            sb.Append(".json");
+            var fileName = sb.ToString();
+            await using var outputFile = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
+        }
+        ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
         break;
     }
 }
