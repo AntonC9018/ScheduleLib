@@ -27,65 +27,160 @@ public sealed class SchedulePairsDto
 
 public static class WebsiteJsonScheduleHelper
 {
+    public struct Services
+    {
+        public required LessonTypeDisplayHandler LessonTypeDisplay;
+        public required ParityDisplayHandler ParityDisplay;
+        public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
+    }
+
     public static RootObject CreateSerializationModel(
-        FilteredSchedule schedule)
+        FilteredSchedule schedule,
+        Services services)
     {
         var ret = ImmutableArray.CreateBuilder<ScheduleDaysDto>();
         var groupedLessons = schedule.Lessons
-            .GroupBy(x => x.Date.DayOfWeek);
+            .GroupBy(x => x.Date.DayOfWeek)
+            .OrderBy(g => MondayBasedIndex(g.Key));
+
+        int pairIdCounter = 1;
+
         foreach (var dayGroup in groupedLessons)
         {
             var daysBuilder = ImmutableArray.CreateBuilder<SchedulePairsDto>();
-
             var timeSlotGroups = dayGroup
-                .OrderBy(x => x.Date.TimeSlot);
-            foreach (var lesson in timeSlotGroups)
+                .GroupBy(x => x.Date.TimeSlot)
+                .OrderBy(g => g.Key.Index);
+
+            foreach (var timeSlotGroup in timeSlotGroups)
             {
-                var timeSlot = lesson.Date.TimeSlot;
+                var timeSlot = timeSlotGroup.Key;
                 var romanTimeSlot = NumberHelper.ToRoman(timeSlot.Index + 1);
-                var weekType = lesson.Date.Parity switch
-                {
-                    Parity.EvenWeek => "PAR",
-                    Parity.EveryWeek => "GENERAL",
-                    Parity.OddWeek => "IMPAR",
-                    _ => throw Unreachable(),
-                };
 
-                var sb = new StringBuilder();
-                var listBuilder = new ListStringBuilder(sb, ", ");
-
+                // Group lessons by similar characteristics to potentially merge them
+                foreach (var lesson in timeSlotGroup)
                 {
-                    var course = schedule.Source.Get(lesson.Lesson.Course);
-                    listBuilder.Append(course.FullName);
+                    var weekType = lesson.Date.Parity switch
+                    {
+                        Parity.EvenWeek => "PAR",
+                        Parity.EveryWeek => "GENERAL",
+                        Parity.OddWeek => "IMPAR",
+                        _ => throw Unreachable(),
+                    };
+
+                    var pairInfo = BuildPairInfo(schedule.Source, lesson.Item, services);
+
+                    var pairDto = new SchedulePairsDto
+                    {
+                        SchedulePairsId = pairIdCounter++,
+                        PairInfo = pairInfo,
+                        PairTime = romanTimeSlot,
+                        WeekType = weekType,
+                    };
+
+                    daysBuilder.Add(pairDto);
                 }
-                if ()
-                {
-
-                }
-
             }
 
             var day = dayGroup.Key;
-            var scheduleDayId = MondayBasedIndex(day);
+            var scheduleDayId = MondayBasedIndex(day) + 1; // +1 to match the example IDs
             var weekdayLabel = day.ToString().ToUpper();
+
             var daysDto = new ScheduleDaysDto
             {
                 Weekday = weekdayLabel,
                 ScheduleDaysId = scheduleDayId,
-                SchedulePairsDto =
+                SchedulePairsDto = daysBuilder.DrainToImmutable(),
             };
 
+            ret.Add(daysDto);
         }
-        return new()
+
+        return new() { ScheduleDaysDto = ret.ToImmutable(), };
+    }
+
+    private static string BuildPairInfo(
+        Schedule schedule,
+        RegularLesson lesson,
+        Services services)
+    {
+        var sb = new StringBuilder();
+
+        // Course name
+        var course = schedule.Get(lesson.Lesson.Course);
+        sb.Append(course.FullName);
+        var listBuilder = new ListStringBuilder(sb);
+
         {
-            ScheduleDaysDto = ret.DrainToImmutable(),
-        };
+            ListStringBuilder detailListBuilder = default;
+            bool isFirstDetail = true;
+
+            void MaybeStartDetails()
+            {
+                if (!isFirstDetail)
+                {
+                    return;
+                }
+
+                sb.Append('(');
+                detailListBuilder = new(sb);
+                isFirstDetail = true;
+            }
+
+            void EndDetails()
+            {
+                if (isFirstDetail)
+                {
+                    return;
+                }
+
+                sb.Append(')');
+            }
+
+            var lessonType = services.LessonTypeDisplay.Get(lesson.Lesson.Type);
+            if (lessonType != null)
+            {
+                MaybeStartDetails();
+                detailListBuilder.Append($"{lessonType}");
+            }
+
+            var parity = services.ParityDisplay.Get(lesson.Date.Parity);
+            if (parity != null)
+            {
+                MaybeStartDetails();
+                detailListBuilder.Append($"{parity}");
+            }
+
+            EndDetails();
+        }
+
+        // Groups
+        foreach (var groupId in lesson.Lesson.Groups)
+        {
+            var group = schedule.Get(groupId);
+            listBuilder.Append(group.Name);
+        }
+
+        // Subgroup
+        var subGroupNumber = services.SubGroupNumberDisplay.Get(lesson.Lesson.SubGroup);
+        if (subGroupNumber != null)
+        {
+            listBuilder.Append($"s.{subGroupNumber}");
+        }
+
+        // Room
+        if (lesson.Lesson.Room.IsValid)
+        {
+            var room = schedule.Get(lesson.Lesson.Room);
+            listBuilder.Append(room);
+        }
+
+        return sb.ToString();
     }
 
     private static int MondayBasedIndex(DayOfWeek day)
     {
         const int weekDayCount = 7;
-        return (day - DayOfWeek.Monday + weekDayCount) % weekDayCount;
+        return ((int) day - (int) DayOfWeek.Monday + weekDayCount) % weekDayCount;
     }
 }
-
