@@ -12,6 +12,7 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.ScheduleDefaults;
+#pragma warning disable CS8321 // Local function is declared but never used
 
 Console.WriteLine("Start");
 
@@ -124,7 +125,8 @@ switch (option)
             config,
             allowUserInput: true);
 
-        var attendance = GetAttendanceListOfCurrentTeacher();
+        // var attendance = GetAttendanceListOfCurrentTeacher();
+        var attendance = new AllStudentAttendanceListBuilder().Build();
 
         await RegistryScraping.AddLessonsToOnlineRegistry(new()
         {
@@ -134,7 +136,7 @@ switch (option)
             Semester = semester,
             ErrorHandler = new RegistryErrorLogger
             {
-                ExtraLessonAction = ExtraLessonInstanceAction.Delete,
+                ExtraLessonAction = ExtraLessonInstanceAction.LeaveAlone,
             },
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,

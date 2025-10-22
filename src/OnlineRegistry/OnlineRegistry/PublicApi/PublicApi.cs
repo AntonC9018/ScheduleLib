@@ -75,6 +75,10 @@ public static partial class RegistryScraping
             foreach (var group in groups)
             {
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
+                if (!scanResult.IsValid)
+                {
+                    continue;
+                }
                 var lessons = MissingLessonDetection.MatchLessonsInSchedule(new()
                 {
                     Lookup = p.LookupModule.LessonsByCourse,

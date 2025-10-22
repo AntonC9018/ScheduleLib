@@ -319,6 +319,38 @@ public static class ParserHelper
         return ConsumeIntResult.Ok(ret);
     }
 
+    public static uint? ConsumePositiveIntWithMaxLength(
+        this ref Parser parser,
+        int maxLength)
+    {
+        var bparser = parser.BufferedView();
+        for (int i = 0; i < maxLength; i++)
+        {
+            if (bparser.IsEmpty)
+            {
+                break;
+            }
+            if (!char.IsNumber(bparser.Current))
+            {
+                break;
+            }
+            bparser.Move();
+        }
+
+        var span = parser.PeekSpanUntilPosition(bparser.Position);
+        if (span.Length == 0)
+        {
+            return null;
+        }
+        if (!uint.TryParse(span, out uint ret))
+        {
+            return null;
+        }
+
+        parser.MoveTo(bparser.Position);
+        return ret;
+    }
+
     private struct NumberSkip : IShouldSkip
     {
         public bool ShouldSkip(char ch) => char.IsNumber(ch);

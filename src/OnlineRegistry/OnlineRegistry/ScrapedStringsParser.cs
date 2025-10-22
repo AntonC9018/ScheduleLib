@@ -40,6 +40,10 @@ public static partial class RegistryScraping
 
         var languageOrFR = ParseLanguageOrFR(ref mainParser);
         var subGroup = ParseSubGroup(ref mainParser);
+        if (ParseFR(ref mainParser))
+        {
+            languageOrFR.FR = true;
+        }
 
         mainParser.SkipWhitespace();
         if (!mainParser.IsEmpty && !isRepeat)
@@ -86,45 +90,60 @@ public static partial class RegistryScraping
 
         static uint ParseGroupNumber(ref Parser parser)
         {
-            var numberResult = parser.ConsumePositiveInt(GroupHelper.GroupNumberLen);
-            if (numberResult.Status != ConsumeIntStatus.Ok)
+            // sometimes they don't denote this completely
+            var numberResult = parser.ConsumePositiveIntWithMaxLength(GroupHelper.GroupNumberLen);
+            if (numberResult is not { } num)
             {
                 JustThrow("group number");
             }
-            return numberResult.Value;
+            return num;
         }
 
         static LanguageOrFR ParseLanguageOrFR(ref Parser parser)
         {
-            var bparser = parser.BufferedView();
-            var skipResult = bparser.Skip(new SkipUntilOpenParenOrWhiteSpace());
-            if (!skipResult.SkippedAny)
+            var ret = new LanguageOrFR();
+            if (ParseFR(ref parser))
             {
-                return default;
+                ret.FR = true;
+            }
+            if (parser.ConsumeExactString("SE"))
+            {
+                // ignore this
             }
 
-            var languageOrFRName = parser.PeekSpanUntilPosition(bparser.Position);
-            var ret = DetermineIfLabelIsLanguageOrFR(languageOrFRName);
-            parser.MoveTo(bparser.Position);
+            if (LanguageHelper.ParseName(ref parser) is { } language)
+            {
+                ret.Language = language;
+            }
+            else if (parser.ConsumeExactString("R"))
+            {
+                ret.Language = Language.Ru;
+            }
+
+            if (!ret.FR && ret.IsLanguage)
+            {
+                if (ParseFR(ref parser))
+                {
+                    ret.FR = true;
+                }
+            }
             return ret;
         }
 
-        static LanguageOrFR DetermineIfLabelIsLanguageOrFR(ReadOnlySpan<char> languageOrFRName)
+        static bool ParseFR(ref Parser p)
         {
-            LanguageOrFR ret = default;
-            if (languageOrFRName.Equals("fr", StringComparison.OrdinalIgnoreCase))
+            const string fr = "fr";
+            if (!p.CanPeekCount(fr.Length))
             {
-                ret.FR = true;
-                return ret;
+                return false;
             }
-
-            var maybeLang = LanguageHelper.ParseName(languageOrFRName);
-            if (maybeLang is not { } lang)
+            var span = p.PeekSpan(fr.Length);
+            if (span.Equals(fr, StringComparison.OrdinalIgnoreCase))
             {
-                JustThrow("language");
+                p.Move(fr.Length);
+                return true;
             }
-            ret.Language = lang;
-            return ret;
+            return false;
         }
 
         static ReadOnlyMemory<char> ParseSubGroup(ref Parser parser)

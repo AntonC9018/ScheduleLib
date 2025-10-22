@@ -59,6 +59,7 @@ internal readonly struct ScanLessonResult
 {
     public required IEnumerable<RemoteLessonInstance> Lessons { get; init; }
     public required HtmlStudent[] Students { get; init; }
+    public required bool IsValid { get; init; }
 }
 
 internal readonly record struct HtmlStudent(
@@ -212,7 +213,13 @@ internal static class HtmlSearch
         var attendanceTable = new AttendanceTableHelper(tables.Length > 1 ? tables[1] : null);
         if (attendanceTable.LessonCount != lessonCount)
         {
-            throw new InvalidOperationException("Attendance and lesson count mismatch");
+            return new ScanLessonResult
+            {
+                Lessons = [],
+                Students = [],
+                IsValid = false,
+            };
+            // throw new InvalidOperationException("Attendance and lesson count mismatch");
         }
 
         HtmlStudent[] studentNames = [];
@@ -235,6 +242,7 @@ internal static class HtmlSearch
         {
            Lessons = E(),
            Students = studentNames,
+           IsValid = true,
         };
         return ret;
 
