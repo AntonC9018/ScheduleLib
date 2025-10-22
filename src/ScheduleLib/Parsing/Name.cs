@@ -95,7 +95,7 @@ public sealed record Name
         }
     }
 
-    internal Name(NameFields f = default)
+    public Name(NameFields f = default)
     {
         _fields = f;
         AssertValid();

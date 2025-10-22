@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ScheduleLib.Parsing;
@@ -48,6 +49,19 @@ public struct NameParts<T>() : IEquatable<NameParts<T>>
     private T _items = default!;
 
     public readonly int Length => (int) FirstNamePartIndex.Count;
+
+    public void Add(T it)
+    {
+        for (int i = 0; i < Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(this[i], default!))
+            {
+                this[i] = it;
+                return;
+            }
+        }
+        throw new InvalidOperationException("No more space to add item");
+    }
 
     public bool Equals(NameParts<T> other)
     {

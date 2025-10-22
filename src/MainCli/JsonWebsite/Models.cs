@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using System.Text.Json;
 using ScheduleLib;
 using ScheduleLib.Generation;
 
@@ -34,6 +35,25 @@ public static class WebsiteJsonScheduleHelper
         public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
     }
 
+    // Key for grouping lessons that can be merged
+    private readonly record struct LessonGroupKey(
+        CourseId Course,
+        LessonType Type,
+        RoomId Room);
+
+    private static readonly JsonSerializerOptions _jsonSettings = new()
+    {
+        WriteIndented = true,
+    };
+
+    public static async Task Serialize(RootObject obj, Stream outputStream)
+    {
+        await JsonSerializer.SerializeAsync(
+            outputStream,
+            obj,
+            _jsonSettings);
+    }
+
     public static RootObject CreateSerializationModel(
         FilteredSchedule schedule,
         Services services)
@@ -41,7 +61,7 @@ public static class WebsiteJsonScheduleHelper
         var ret = ImmutableArray.CreateBuilder<ScheduleDaysDto>();
         var groupedLessons = schedule.Lessons
             .GroupBy(x => x.Date.DayOfWeek)
-            .OrderBy(g => MondayBasedIndex(g.Key));
+            .OrderBy(x => x.Key);
 
         int pairIdCounter = 1;
 
@@ -57,18 +77,22 @@ public static class WebsiteJsonScheduleHelper
                 var timeSlot = timeSlotGroup.Key;
                 var romanTimeSlot = NumberHelper.ToRoman(timeSlot.Index + 1);
 
-                // Group lessons by similar characteristics to potentially merge them
-                foreach (var lesson in timeSlotGroup)
-                {
-                    var weekType = lesson.Date.Parity switch
-                    {
-                        Parity.EvenWeek => "PAR",
-                        Parity.EveryWeek => "GENERAL",
-                        Parity.OddWeek => "IMPAR",
-                        _ => throw Unreachable(),
-                    };
+                // Group lessons by course, type, and room
+                var lessonGroups = timeSlotGroup
+                    .GroupBy(lesson => new LessonGroupKey(
+                        lesson.Item.Lesson.Course,
+                        lesson.Item.Lesson.Type,
+                        lesson.Item.Lesson.Room))
+                    .ToList();
 
-                    var pairInfo = BuildPairInfo(schedule.Source, lesson.Item, services);
+                foreach (var lessonGroup in lessonGroups)
+                {
+                    var lessons = lessonGroup.ToList();
+
+                    // Determine the overall week type for this group
+                    var weekType = DetermineWeekType(lessons);
+
+                    var pairInfo = BuildPairInfo(schedule.Source, lessons, services);
 
                     var pairDto = new SchedulePairsDto
                     {
@@ -83,7 +107,7 @@ public static class WebsiteJsonScheduleHelper
             }
 
             var day = dayGroup.Key;
-            var scheduleDayId = MondayBasedIndex(day) + 1; // +1 to match the example IDs
+            var scheduleDayId = MondayBasedIndex(day) + 1;
             var weekdayLabel = day.ToString().ToUpper();
 
             var daysDto = new ScheduleDaysDto
@@ -99,79 +123,140 @@ public static class WebsiteJsonScheduleHelper
         return new() { ScheduleDaysDto = ret.ToImmutable(), };
     }
 
+    private static string DetermineWeekType(List<RegularLessonAccessor> lessons)
+    {
+        // If all lessons have the same parity, use that
+        var firstParity = lessons[0].Date.Parity;
+        if (lessons.All(l => l.Date.Parity == firstParity))
+        {
+            return firstParity switch
+            {
+                Parity.EvenWeek => "PAR",
+                Parity.EveryWeek => "GENERAL",
+                Parity.OddWeek => "IMPAR",
+                _ => throw Unreachable(),
+            };
+        }
+
+        // Mixed parities default to GENERAL
+        return "GENERAL";
+    }
+
     private static string BuildPairInfo(
         Schedule schedule,
-        RegularLesson lesson,
+        List<RegularLessonAccessor> lessons,
         Services services)
     {
         var sb = new StringBuilder();
+        var firstLesson = lessons[0];
+        var listBuilder = new ListStringBuilder(sb, ", ");
 
         // Course name
-        var course = schedule.Get(lesson.Lesson.Course);
-        sb.Append(course.FullName);
-        var listBuilder = new ListStringBuilder(sb);
+        var course = schedule.Get(firstLesson.Lesson.Course);
+        listBuilder.Append(course.FullName);
 
+        var hasMixedParity = lessons.Select(l => l.Date.Parity).Distinct().Count() > 1;
+
+        // Lesson type and details in parentheses
         {
             ListStringBuilder detailListBuilder = default;
-            bool isFirstDetail = true;
+            bool hasDetails = false;
 
             void MaybeStartDetails()
             {
-                if (!isFirstDetail)
+                if (hasDetails)
                 {
                     return;
                 }
-
-                sb.Append('(');
-                detailListBuilder = new(sb);
-                isFirstDetail = true;
+                hasDetails = true;
+                sb.Append(" (");
+                detailListBuilder = new(sb, ", ");
             }
 
             void EndDetails()
             {
-                if (isFirstDetail)
+                if (!hasDetails)
                 {
                     return;
                 }
-
                 sb.Append(')');
             }
 
-            var lessonType = services.LessonTypeDisplay.Get(lesson.Lesson.Type);
+            var lessonType = services.LessonTypeDisplay.Get(firstLesson.Lesson.Type);
             if (lessonType != null)
             {
                 MaybeStartDetails();
-                detailListBuilder.Append($"{lessonType}");
+                detailListBuilder.Append(lessonType);
             }
 
-            var parity = services.ParityDisplay.Get(lesson.Date.Parity);
-            if (parity != null)
+            // Check if we need to add merged parity info
+            if (!hasMixedParity)
             {
-                MaybeStartDetails();
-                detailListBuilder.Append($"{parity}");
+                var parity = services.ParityDisplay.Get(firstLesson.Date.Parity);
+                if (parity != null)
+                {
+                    MaybeStartDetails();
+                    detailListBuilder.Append(parity);
+                }
             }
 
             EndDetails();
         }
+        listBuilder.MaybeAppendSeparator();
 
-        // Groups
-        foreach (var groupId in lesson.Lesson.Groups)
+        // Groups - handle merged groups with parity suffixes
+        var groupsWithParity = new Dictionary<GroupId, List<(Parity parity, SubGroup subGroup)>>();
+        foreach (var lesson in lessons)
         {
-            var group = schedule.Get(groupId);
-            listBuilder.Append(group.Name);
+            foreach (var groupId in lesson.Lesson.Groups)
+            {
+                if (!groupsWithParity.ContainsKey(groupId))
+                {
+                    groupsWithParity[groupId] = new();
+                }
+                groupsWithParity[groupId].Add((lesson.Date.Parity, lesson.Lesson.SubGroup));
+            }
         }
 
-        // Subgroup
-        var subGroupNumber = services.SubGroupNumberDisplay.Get(lesson.Lesson.SubGroup);
-        if (subGroupNumber != null)
+        foreach (var (groupId, parityList) in groupsWithParity)
         {
-            listBuilder.Append($"s.{subGroupNumber}");
+            var group = schedule.Get(groupId);
+            var groupSb = new StringBuilder();
+            groupSb.Append(group.Name);
+
+            // Add parity suffix if this is a merged lesson with different parities
+            if (hasMixedParity)
+            {
+                var distinctParities = parityList.Select(p => p.parity).Distinct().ToList();
+                if (distinctParities.Count == 1 && distinctParities[0] != Parity.EveryWeek)
+                {
+                    var paritySuffix = services.ParityDisplay.Get(distinctParities[0]);
+                    if (paritySuffix != null)
+                    {
+                        groupSb.Append('-');
+                        groupSb.Append(paritySuffix);
+                    }
+                }
+            }
+
+            listBuilder.Append(groupSb.ToString());
+        }
+
+        // Subgroup - only if all lessons share the same subgroup
+        var distinctSubGroups = lessons.Select(l => l.Lesson.SubGroup).Distinct().ToList();
+        if (distinctSubGroups.Count == 1 && distinctSubGroups[0] != SubGroup.All)
+        {
+            var subGroupNumber = services.SubGroupNumberDisplay.Get(distinctSubGroups[0]);
+            if (subGroupNumber != null)
+            {
+                listBuilder.Append($"s.{subGroupNumber}");
+            }
         }
 
         // Room
-        if (lesson.Lesson.Room.IsValid)
+        if (firstLesson.Lesson.Room.IsValid)
         {
-            var room = schedule.Get(lesson.Lesson.Room);
+            var room = schedule.Get(firstLesson.Lesson.Room);
             listBuilder.Append(room);
         }
 
@@ -181,6 +266,6 @@ public static class WebsiteJsonScheduleHelper
     private static int MondayBasedIndex(DayOfWeek day)
     {
         const int weekDayCount = 7;
-        return ((int) day - (int) DayOfWeek.Monday + weekDayCount) % weekDayCount;
+        return ((int)day - (int)DayOfWeek.Monday + weekDayCount) % weekDayCount;
     }
 }

@@ -31,11 +31,9 @@ public sealed class ScheduleFromDocTestExclusive1
     {
         using var cts = IntegrationTestHelper.CreateCts();
         var cancellationToken = cts.Token;
-        await using var reader = File.OpenRead(IntegrationTestHelper.ScheduleSnapshotJsonPath);
-        var scheduleModel = await ScheduleSerializer.Deserialize(reader, cancellationToken);
-        var scheduleBuilder = new ScheduleBuilder();
-        ScheduleSerializer.AddToBuilder(scheduleBuilder, scheduleModel);
-        var jsonSchedule = scheduleBuilder.Build();
+        var jsonSchedule = await IntegrationTestHelper.GetScheduleFromJson(
+            IntegrationTestHelper.ScheduleSnapshotJsonPath,
+            cancellationToken);
 
         var serializationModel = VerifyModelMapper.ToVerifyModel(jsonSchedule);
         await Verify(serializationModel)
@@ -141,7 +139,7 @@ public sealed class ScheduleFromDocTests
     }
 }
 
-internal static class IntegrationTestHelper
+public static class IntegrationTestHelper
 {
     public const string VerifyScheduleSnapshotName = "verify_schedule_model";
     public const string ScheduleJsonSnapshotName = "verify_schedule_json";
@@ -178,6 +176,16 @@ internal static class IntegrationTestHelper
         var context = await GetContextFromWord(cancellationToken);
         var schedule = context.Schedule.Build();
         return schedule;
+    }
+
+    public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
+    {
+        await using var reader = File.OpenRead(jsonPath);
+        var scheduleModel = await ScheduleSerializer.Deserialize(reader, cancellationToken);
+        var scheduleBuilder = new ScheduleBuilder();
+        ScheduleSerializer.AddToBuilder(scheduleBuilder, scheduleModel);
+        var jsonSchedule = scheduleBuilder.Build();
+        return jsonSchedule;
     }
 }
 
