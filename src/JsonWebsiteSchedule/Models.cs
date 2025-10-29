@@ -4,7 +4,7 @@ using System.Text.Json;
 using ScheduleLib;
 using ScheduleLib.Generation;
 
-namespace MainCli.JsonWebsite;
+namespace WebsiteJsonSchedule;
 
 public sealed class RootObject
 {
@@ -26,6 +26,7 @@ public sealed class SchedulePairsDto
     public required string WeekType { get; set; }
 }
 
+// Most of this code is AI generated.
 public static class WebsiteJsonScheduleHelper
 {
     public struct Services

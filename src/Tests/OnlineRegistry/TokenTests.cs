@@ -1,4 +1,3 @@
-using System.Net;
 using System.Reflection;
 
 namespace ScheduleLib.OnlineRegistry.Tests;

@@ -7,4 +7,11 @@
             Include="$(MSBuildThisFileDirectory)Common\Tests.Common.csproj"
             Condition="'$(MSBuildProjectName)' != 'Tests.Common'" />
     </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeCommonTestData)' == 'true'">
+        <None
+            Include="$(MSBuildThisFileDirectory)data\**\*"
+            CopyToOutputDirectory="Always"
+            TargetPath="data\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
 </Project>

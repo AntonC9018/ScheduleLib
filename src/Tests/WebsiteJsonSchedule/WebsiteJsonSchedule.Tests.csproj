@@ -1,14 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net9.0-windows</TargetFramework>
+        <IncludeCommonTestData>true</IncludeCommonTestData>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\MainCli\MainCli.csproj" />
-        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.csproj" />
-    </ItemGroup>
-    <ItemGroup>
-      <None Update="data\schedule_2025_1.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
+        <ProjectReference Include="..\..\JsonWebsiteSchedule\JsonWebsiteSchedule.csproj" />
     </ItemGroup>
 </Project>

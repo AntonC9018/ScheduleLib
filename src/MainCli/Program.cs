@@ -6,13 +6,14 @@ using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
-using MainCli.JsonWebsite;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.ScheduleDefaults;
+using WebsiteJsonSchedule;
+
 #pragma warning disable CS8321 // Local function is declared but never used
 
 Console.WriteLine("Start");
