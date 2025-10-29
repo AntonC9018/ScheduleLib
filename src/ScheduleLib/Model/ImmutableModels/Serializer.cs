@@ -52,12 +52,7 @@ public static class ScheduleSerializer
         if (unifier is not null)
         {
             builder.EnableLookupModule();
-
-            for (int i = 0; i < builder.Courses.Count; i++)
-            {
-                var courseId = new CourseId(i);
-                unifier.AddSlow(builder.Courses.Ref(i).FullName, courseId);
-            }
+            unifier.Refresh(builder);
         }
     }
 

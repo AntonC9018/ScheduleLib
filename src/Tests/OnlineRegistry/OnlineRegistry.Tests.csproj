@@ -6,6 +6,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
         <ProjectReference Include="..\..\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\ScheduleCommon\ScheduleCommon.csproj" />
     </ItemGroup>
 
     <Import Project="$(RootPath)build\UserSecrets.props" />

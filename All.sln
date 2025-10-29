@@ -1,4 +1,6 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumShared", "src\CurriculumShared\CurriculumShared.csproj", "{018232D4-4E06-44C0-A288-C5B8BD3A30B9}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Comisia", "src\Comisia\Comisia.csproj", "{05A1E1F2-5A6A-4B19-B6C9-CEB73A8DF679}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConvertDocToDocx", "src\ConvertDocToDocx\ConvertDocToDocx.csproj", "{B645B8F3-1806-45C7-AB89-D13FA4C9158D}"
@@ -6,8 +8,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConvertDocToDocxLibrary", "src\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj", "{B34D763E-D6F4-4C27-B564-95C7B54ABBC8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumDownload", "src\CurriculumDownload\CurriculumDownload.csproj", "{30CA836F-4D70-4363-9399-A6325D5B88BA}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumShared", "src\CurriculumShared\CurriculumShared.csproj", "{018232D4-4E06-44C0-A288-C5B8BD3A30B9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumSummary", "src\CurriculumSummary\CurriculumSummary.csproj", "{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}"
 EndProject
@@ -41,6 +41,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineRegistry.Tests", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parser.Tests", "src\Tests\Parser\Parser.Tests.csproj", "{27EB5E06-9C4E-47D4-B887-9F34903E2572}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleCommon", "src\Tests\ScheduleCommon\ScheduleCommon.csproj", "{5ABEBD51-8DFA-415E-8D27-FA8A1301AC8D}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleFromDoc.Tests", "src\Tests\ScheduleFromDoc\ScheduleFromDoc.Tests.csproj", "{DD27876D-9BA6-4543-8E1A-43193B453F5A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebsiteJsonSchedule.Tests", "src\Tests\WebsiteJsonSchedule\WebsiteJsonSchedule.Tests.csproj", "{CEC5B9E8-B726-4623-9E39-EB16D5C3D80C}"
@@ -51,6 +53,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{05A1E1F2-5A6A-4B19-B6C9-CEB73A8DF679}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{05A1E1F2-5A6A-4B19-B6C9-CEB73A8DF679}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05A1E1F2-5A6A-4B19-B6C9-CEB73A8DF679}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -67,10 +73,6 @@ Global
 		{30CA836F-4D70-4363-9399-A6325D5B88BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30CA836F-4D70-4363-9399-A6325D5B88BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30CA836F-4D70-4363-9399-A6325D5B88BA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{018232D4-4E06-44C0-A288-C5B8BD3A30B9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{469F6600-EAF6-4E41-B76F-A6FFFC851C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -135,6 +137,10 @@ Global
 		{27EB5E06-9C4E-47D4-B887-9F34903E2572}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27EB5E06-9C4E-47D4-B887-9F34903E2572}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27EB5E06-9C4E-47D4-B887-9F34903E2572}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5ABEBD51-8DFA-415E-8D27-FA8A1301AC8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5ABEBD51-8DFA-415E-8D27-FA8A1301AC8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5ABEBD51-8DFA-415E-8D27-FA8A1301AC8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5ABEBD51-8DFA-415E-8D27-FA8A1301AC8D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DD27876D-9BA6-4543-8E1A-43193B453F5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DD27876D-9BA6-4543-8E1A-43193B453F5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD27876D-9BA6-4543-8E1A-43193B453F5A}.Release|Any CPU.ActiveCfg = Release|Any CPU

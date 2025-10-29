@@ -3,44 +3,39 @@ using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class AttendanceExcelTests
 {
     private const string ExcelFilePath = "data/attendance.xlsx";
-    private const string ScheduleJsonPath = "data/schedule_2025_1.json";
 
     [Fact]
     public async Task ExcelSnapshot()
     {
-        var builder = new ScheduleBuilder();
-        builder.SetStudyYear(2025);
-        using var cts = TestHelper.CreateCts();
-        var courseNameUnifier = new CourseNameUnifierModule(Config.CourseNameParser);
-
-        {
-            await using var scheduleJson = File.OpenRead(ScheduleJsonPath);
-            var model = await ScheduleSerializer.Deserialize(scheduleJson, cts.Token);
-            ScheduleSerializer.AddToBuilder(builder, model, courseNameUnifier);
-        }
+        var builder = await ScheduleTestHelper.CreateTestSchedule();
+        var unifier = new CourseNameUnifierModule(Config.CourseNameParser);
+        unifier.Refresh(builder);
 
         var schedule = builder.Build();
-        var antonId = builder.Lookup().Teacher("Curmanschii")!.Value;
-        var filteredSchedule = schedule.Filter(new()
+
+        TeacherBuilderModel.NameModel name = default;
         {
-            TeacherFilter =
-            {
-                IncludeIds = [antonId],
-            },
-        });
+            name.FirstName[0].Full = "Anton";
+            name.LastName[0] = "Curmanschii";
+        }
+        var filteredSchedule = ScheduleTestHelper.FilterForTeacher(
+            schedule,
+            builder.Lookup(),
+            name);
 
         using var workbook = new XLWorkbook(ExcelFilePath);
         var lists = AttendanceExcel.ParseAttendanceListsExcel(new()
         {
             Schedule = filteredSchedule,
             Workbook = workbook,
-            CourseNames = courseNameUnifier,
+            CourseNames = unifier,
             LookupModule = builder.Lookup().LookupModule,
             GroupParseContext = builder.GroupParseContext!,
         });

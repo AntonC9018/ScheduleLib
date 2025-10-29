@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.Tasks;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using Tests.ScheduleCommon;
 using VerifyTests;
 using WebsiteJsonSchedule;
 
@@ -12,7 +13,12 @@ public sealed class JsonWebsiteScheduleTests
     [Fact]
     public async Task CountTest()
     {
-        var schedule = await CreateScheduleForTeacher();
+        TeacherBuilderModel.NameModel name = default;
+        {
+            name.FirstName[0].Full = "Titu";
+            name.LastName[0] = "Capcelea";
+        }
+        var schedule = await ScheduleTestHelper.CreateScheduleForTeacher(name);
         var model = WebsiteJsonScheduleHelper.CreateSerializationModel(schedule, new()
         {
             ParityDisplay = new(),
@@ -27,37 +33,5 @@ public sealed class JsonWebsiteScheduleTests
         // ReSharper disable once MethodHasAsyncOverload
         var str = reader.ReadToEnd();
         await Verify(new Target("json", str));
-    }
-
-    private static async Task<FilteredSchedule> CreateScheduleForTeacher()
-    {
-        var s = await CreateSchedule();
-        s.EnableLookupModule();
-        var schedule = s.Build();
-        var teacherId = s.Lookup().Teacher("Titu", "Capcelea")!.Value;
-        var filteredSchedule = schedule.Filter(new()
-        {
-            TeacherFilter =
-            {
-                IncludeIds = [teacherId],
-            },
-            PeriodFilter =
-            {
-                PeriodId = schedule.LatestPeriodId(),
-            },
-        });
-        return filteredSchedule;
-    }
-
-    // TODO: Common code and file, move to common project.
-    private static async Task<ScheduleBuilder> CreateSchedule()
-    {
-        using var cts = TestHelper.CreateCts();
-        var builder = new ScheduleBuilder();
-        builder.SetStudyYear(2025);
-        await using var scheduleJson = File.OpenRead("data/schedule_2025_1.json");
-        var model = await ScheduleSerializer.Deserialize(scheduleJson, cts.Token);
-        ScheduleSerializer.AddToBuilder(builder, model);
-        return builder;
     }
 }

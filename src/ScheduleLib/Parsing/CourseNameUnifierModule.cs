@@ -44,6 +44,17 @@ public sealed class CourseNameUnifierModule
         _parserConfig = parserConfig;
     }
 
+    public void Refresh(ScheduleBuilder builder)
+    {
+        SlowCourses.Clear();
+
+        for (int i = 0; i < builder.Courses.Count; i++)
+        {
+            var courseId = new CourseId(i);
+            AddSlow(builder.Courses.Ref(i).FullName, courseId);
+        }
+    }
+
     public void AddSlow(string courseName, CourseId id)
     {
         var parsedCourse = ParseCourseName(new()
