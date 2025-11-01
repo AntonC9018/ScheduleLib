@@ -1,14 +1,19 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Scraping.Common;
+using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace ScheduleLib.OnlineRegistry;
 
@@ -24,7 +29,7 @@ public struct AddLessonsToOnlineRegistryParams()
     /// <summary>
     /// Will be initialized to the default values if not provided.
     /// </summary>
-    public NamesConfig? Names = null;
+    public TokenNamesConfig? Names = null;
 
     public required Semester Semester;
     public required Schedule Schedule;
@@ -58,13 +63,18 @@ public readonly struct LessonTopics
 
 public static partial class RegistryScraping
 {
+    public const string CredentialsConfigKey = "Registry";
+
     public static async Task AddLessonsToOnlineRegistry(AddLessonsToOnlineRegistryParams p)
     {
-        p.Names ??= NamesConfig.Default;
+        p.Names ??= DefaultTokenNames;
 
         var notFoundStudents = new List<Name>();
 
-        using var context = await CreateContext();
+        using var context = await CreateContext(
+            names: p.Names,
+            credentials: p.Credentials,
+            cancellationToken: p.CancellationToken);
         var lists = new MatchingLists();
 
         var courseLinks = await QueryCourseLinks();
@@ -358,7 +368,8 @@ public static partial class RegistryScraping
 
         async Task<IEnumerable<CourseLink>> QueryCourseLinks()
         {
-            var doc = await GetHtml(p.Names.LessonsUrl);
+            var lessonAttendanceUrl = new Uri(p.Names.BaseUrl, "LessonAttendance");
+            var doc = await GetHtml(lessonAttendanceUrl);
             var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
             {
                 Document = doc,
@@ -398,34 +409,48 @@ public static partial class RegistryScraping
                 p.CancellationToken);
             return document;
         }
-
-        async Task<RegistryScrapingContext> CreateContext()
-        {
-            var http = HttpClientContext.Create();
-            http.Client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
-            http.Client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
-            try
-            {
-                var tokenContext = new TokenRetrievalContext(new()
-                {
-                    Credentials = p.Credentials,
-                    Names = p.Names,
-                    CookieContainer = http.CookieProvider.Container,
-                    HttpClient = http.Client,
-                    JsonOptions = p.JsonOptions,
-                });
-                await tokenContext.InitializeToken(p.CancellationToken);
-
-                var c = RegistryScrapingContext.Create(http, tokenContext);
-                return c;
-            }
-            catch
-            {
-                http.Dispose();
-                throw;
-            }
-        }
     }
+
+    internal static async Task<ScrapingContext> CreateContext(
+        CancellationToken cancellationToken,
+        Credentials credentials,
+        TokenNamesConfig names)
+    {
+        var builder = new ScrapingContextBuilder();
+        AddDefaultConfigWithoutHandlers(builder);
+        builder.AddConfig(names);
+        builder.TokenAuth(x =>
+        {
+            x.PasswordCredentials(credentials);
+            x.Cache();
+        });
+        var ret = await builder.Build(cancellationToken);
+        return ret;
+    }
+
+    internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
+    {
+        b.Delay(TimeSpan.FromSeconds(0.5));
+        b.AddConfig(DefaultTokensStorageConfig);
+        b.AddConfig(DefaultPasswordLoginFieldNames);
+        b.AddConfig(DefaultTokenNames);
+    }
+
+    private static readonly TokenNamesConfig DefaultTokenNames = new()
+    {
+        BaseUrl = new Uri("http://crd.usm.md/studregistry/"),
+        LoginUrl = new Uri("http://crd.usm.md/studregistry/Account/Login"),
+        TokenCookieName = "ForDecanat",
+    };
+    private static readonly TokensStorageConfig DefaultTokensStorageConfig = new()
+    {
+        TokensFile = "tokens.json",
+    };
+    private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
+    {
+        UserName = "UserLogin",
+        UserPassword = "UserPassword",
+    };
 
     internal static void UpdateAttendanceForRegistry(Attendance[] attendanceForHtml, HtmlStudent[] students)
     {

@@ -83,38 +83,3 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
         Console.WriteLine($"Group not found: {groupName}");
     }
 }
-
-public struct NamesConfigSource()
-{
-    public string TokensFile = "tokens.json";
-    public string TokenCookieName = "ForDecanat";
-    public string RegistryBaseUrl = "http://crd.usm.md/studregistry/";
-    public string RegistryLoginPath = "Account/Login";
-    public string LessonsPath = "LessonAttendance";
-
-    public readonly NamesConfig Build()
-    {
-        var reg = new Uri(RegistryBaseUrl);
-        var login = new Uri(reg, RegistryLoginPath);
-        var lessons = new Uri(reg, LessonsPath);
-        return new()
-        {
-            TokensFile = TokensFile,
-            TokenCookieName = TokenCookieName,
-            LoginUrl = login,
-            LessonsUrl = lessons,
-            BaseUrl = reg,
-        };
-    }
-}
-
-public sealed class NamesConfig
-{
-    public static readonly NamesConfig Default = new NamesConfigSource().Build();
-
-    public required string TokensFile { get; init; }
-    public required string TokenCookieName { get; init; }
-    public required Uri BaseUrl { get; init; }
-    public required Uri LoginUrl { get; init; }
-    public required Uri LessonsUrl { get; init; }
-}

@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 
-namespace ScheduleLib.OnlineRegistry;
+namespace ScheduleLib.Scraping.Common;
 
 public sealed class Credentials
 {
@@ -11,9 +11,11 @@ public sealed class Credentials
 
 public static class CredentialsHelper
 {
-    public static Credentials? MaybeGetCredentials(this IConfiguration config)
+    public static Credentials? MaybeGetCredentials(
+        this IConfiguration config,
+        string key)
     {
-        var ret = config.GetRequiredSection("Registry").Get<Credentials>();
+        var ret = config.GetRequiredSection(key).Get<Credentials>();
         if (ret == null)
         {
             return null;
@@ -29,18 +31,18 @@ public static class CredentialsHelper
         return ret;
     }
 
-    public static Credentials? MaybeGetCredentials(Assembly userSecretsAssembly)
+    public static Credentials? MaybeGetCredentials(Assembly userSecretsAssembly, string key)
     {
         var b = new ConfigurationBuilder();
         b.AddUserSecrets(userSecretsAssembly);
         var config = b.Build();
-        var ret = config.MaybeGetCredentials();
+        var ret = config.MaybeGetCredentials(key);
         return ret;
     }
 
-    public static Credentials GetCredentials(Assembly userSecretsAssembly)
+    public static Credentials GetCredentials(Assembly userSecretsAssembly, string key)
     {
-        var ret = MaybeGetCredentials(userSecretsAssembly);
+        var ret = MaybeGetCredentials(userSecretsAssembly, key);
         if (ret == null)
         {
             throw new InvalidOperationException("Credentials not found.");

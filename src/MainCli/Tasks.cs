@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security;
@@ -18,8 +17,6 @@ using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using MainCli.ExcelBuilder;
-using MainCli.Helper;
-using Microsoft.Extensions.Azure;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -27,17 +24,12 @@ using ScheduleLib.Generation;
 using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
-using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
-using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
+using ScheduleLib.Scraping.Common;
 using SpreadCheetah;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
-using Group = ScheduleLib.Group;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
@@ -1006,7 +998,7 @@ public static class Tasks
         IConfiguration configuration,
         bool allowUserInput)
     {
-        var ret = configuration.MaybeGetCredentials();
+        var ret = configuration.MaybeGetCredentials(RegistryScraping.CredentialsConfigKey);
         if (ret != null)
         {
             return ret;

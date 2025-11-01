@@ -6,6 +6,7 @@
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
         <ProjectReference Include="..\HolidaysClient\HolidaysClient.csproj" />
+        <ProjectReference Include="..\ScrapingCommon\ScrapingCommon.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -16,8 +17,6 @@
 
     <ItemGroup>
         <PackageReference Include="ClosedXML" Version="0.105.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
-        <PackageReference Include="AngleSharp" Version="1.2.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
     </ItemGroup>
 </Project>
