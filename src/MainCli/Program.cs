@@ -131,10 +131,13 @@ switch (option)
         var attendance = GetAttendanceListOfCurrentTeacher();
         // var attendance = new AllStudentAttendanceListBuilder().Build();
 
-        await RegistryScraping.AddLessonsToOnlineRegistry(new()
+        using var registryContext = await RegistryScraping.CreateContext(
+            credentials: credentials,
+            cancellationToken: cancellationToken);
+
+        await registryContext.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
-            Credentials = credentials,
             Schedule = schedule,
             Semester = semester,
             ErrorHandler = new RegistryErrorLogger
@@ -144,6 +147,7 @@ switch (option)
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
+
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process

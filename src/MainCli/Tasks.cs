@@ -1777,6 +1777,7 @@ public enum Option
     FreeHoursOfGroup,
     TableOfAllLabLessons,
     JsonSchedulesForWebsite,
+    CopyGradesFromMoodleToRegistry,
 }
 
 file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>

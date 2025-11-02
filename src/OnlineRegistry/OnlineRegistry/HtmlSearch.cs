@@ -10,18 +10,18 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;
 
-internal readonly record struct CourseLink(
+public readonly record struct CourseLink(
     CourseId CourseId,
     Uri Url);
 
-internal readonly record struct GroupLink
+public readonly record struct GroupLink
 {
     public required GroupId GroupId { get; init; }
     public required SubGroup SubGroup { get; init; }
     public required Uri Uri { get; init; }
 }
 
-internal readonly record struct RemoteLessonInstance : IDateTime
+public readonly record struct RemoteLessonInstance : IDateTime
 {
     public required DateTime DateTime { get; init; }
     public required LessonType LessonType { get; init; }
