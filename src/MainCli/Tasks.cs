@@ -30,6 +30,7 @@ using SpreadCheetah;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
+using Group = ScheduleLib.Group;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 
@@ -80,6 +81,7 @@ public static class Tasks
                 new()
                 {
                 });
+
             foreach (var g in p.Schedule.EnumerateGroups())
             {
                 // Enumerating all lessons twice - fix
@@ -163,15 +165,8 @@ public static class Tasks
             PdfLessonTextDisplayHandler textDisplayHandler,
             in ScheduleFilter filter)
         {
-            var periodId = new PeriodId(p.Schedule.Periods.Length - 1);
-            var filteredSchedule = p.Schedule.Filter(filter with
-            {
-                PeriodFilter = new()
-                {
-                    PeriodId = periodId,
-                    UnspecifiedIsAll = true,
-                },
-            });
+            var filteredSchedule = p.Schedule.Filter(
+                filter.WithLatestPeriod(p.Schedule));
             if (filteredSchedule.IsEmpty)
             {
                 return;

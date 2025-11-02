@@ -227,6 +227,7 @@ switch (option)
         ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
         break;
     }
+
     case Option.JsonSchedulesForWebsite:
     {
         if (Directory.Exists(outputDirectory))
@@ -241,20 +242,11 @@ switch (option)
             LessonTypeDisplay = new(),
             SubGroupNumberDisplay = new(),
         };
-        foreach (var teacher in schedule.EnumerateTeachers())
+        var baseFilter = FilterHelper.Builder()
+            .WithLatestPeriod(schedule);
+        var grouping = schedule.TeacherGrouping(baseFilter);
+        foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
         {
-            var filteredSchedule = schedule.Filter(new()
-            {
-                PeriodFilter = new()
-                {
-                    PeriodId = schedule.LatestPeriodId(),
-                    UnspecifiedIsAll = true,
-                },
-                TeacherFilter = new()
-                {
-                    IncludeIds = [teacher.Id],
-                },
-            });
             var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
                 filteredSchedule,
                 services);

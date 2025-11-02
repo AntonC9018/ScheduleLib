@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
@@ -30,8 +31,9 @@ public struct GroupFilter()
     public GroupId[]? OneOfGroupIds = null;
 }
 
-public struct TeacherFilter()
+public record struct TeacherFilter()
 {
+    // ReSharper disable once TypeWithSuspiciousEqualityIsUsedInRecord.Global
     public TeacherId[]? IncludeIds = null;
 }
 
@@ -65,6 +67,50 @@ public sealed class FilteredSchedule
 
 public static class FilterHelper
 {
+    // NOTE: conceptually returns a builder, even though I'm using the same type here.
+    public static ScheduleFilter Builder()
+    {
+        return new();
+    }
+
+    public static ScheduleFilter WithLatestPeriod(this ScheduleFilter b, Schedule schedule)
+    {
+        return b with
+        {
+            PeriodFilter = new()
+            {
+                PeriodId = schedule.LatestPeriodId(),
+                UnspecifiedIsAll = true,
+            },
+        };
+    }
+
+    public static FilterGrouping<Accessor<Teacher, TeacherId>> TeacherGrouping(
+        this Schedule schedule,
+        in ScheduleFilter filter)
+    {
+        Debug.Assert(filter.TeacherFilter == default);
+        return FilterGrouping(
+            filter,
+            schedule.EnumerateTeachers(),
+            (teacher, filter) =>
+            {
+                filter.TeacherFilter.IncludeIds = [teacher.Id];
+                return filter;
+            });
+    }
+
+    public static FilterGrouping<T> FilterGrouping<T>(
+        ScheduleFilter filter,
+        IEnumerable<T> items,
+        Func<T, ScheduleFilter, ScheduleFilter> producer)
+    {
+        return new FilterGrouping<T>(
+            filter,
+            items,
+            producer);
+    }
+
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public static FilteredSchedule Filter(this Schedule schedule, in ScheduleFilter filter)
     {
@@ -349,3 +395,33 @@ public static class FilterHelper
         }
     }
 }
+
+// TODO: O(n^2), make this linear
+// TODO: Idk about this abstractions, think about this more.
+public sealed class FilterGrouping<T>
+{
+    private readonly ScheduleFilter _default;
+    private readonly IEnumerable<T> _items;
+    private readonly Func<T, ScheduleFilter, ScheduleFilter> _producer;
+
+    public FilterGrouping(
+        ScheduleFilter defaultFilter,
+        IEnumerable<T> items,
+        Func<T, ScheduleFilter, ScheduleFilter> producer)
+    {
+        _default = defaultFilter;
+        _items = items;
+        _producer = producer;
+    }
+
+    public IEnumerable<(T Item, FilteredSchedule Schedule)> Filter(Schedule schedule)
+    {
+        foreach (var it in _items)
+        {
+            var filter = _producer(it, _default);
+            var ret = schedule.Filter(filter);
+            yield return (it, ret);
+        }
+    }
+}
+
