@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
+using AngleSharp.Html.Dom;
+using AngleSharp.Dom;
 using ClosedXML.Excel;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml;
@@ -17,6 +19,7 @@ using OpenHolidays;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using MainCli.ExcelBuilder;
+using QuizModels;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -24,6 +27,11 @@ using ScheduleLib.Generation;
 using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Parsing.Moodle;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common;
 using SpreadCheetah;
@@ -1759,7 +1767,206 @@ public static class Tasks
             workbook.SaveAs(outputStream);
         }
     }
+
+    public static async Task CopyGradesFromMoodleForTest(
+        IConfiguration config,
+        CourseNameUnifierModule courseNameUnifierModule,
+        LookupModule lookupModule,
+        Schedule schedule,
+        GroupParseContext groupParseContext,
+        Semester semester,
+        string quizId,
+        CancellationToken cancellationToken)
+    {
+        var registryCredentials = Tasks.GetRegistryCredentials(config, allowUserInput: false);
+        var moodleCredentials = config.GetCredentials(MoodleInterop.CredentialsKey);
+
+        using var registryContext = await RegistryScrapingContext.Create(registryCredentials, cancellationToken);
+        using var moodleContext = await MoodleScrapingContext.Create(moodleCredentials, cancellationToken);
+
+        var registryNav = registryContext.Navigator(
+            new RegistryErrorLogger(),
+            cancellationToken);
+        var coursesNav = registryNav.Courses(
+            courseNameUnifierModule,
+            lookupModule);
+        var groupsNav = registryNav.Groups(
+            schedule,
+            groupParseContext);
+
+        var quiz = await moodleContext.ScrapeQuizAttempts(quizId);
+
+        Dictionary<Name, float> gradeByName = new(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
+        foreach (var q in quiz.Attempts)
+        {
+            var parser = new Parser(q.UserName);
+            var name = NameHelper.TryParseName(ref parser);
+            if (name is null)
+            {
+                Console.WriteLine($"{q.UserName} not parsed as name.");
+                continue;
+            }
+
+            // They go in different order on moodle.
+            {
+                var f = name.FirstName;
+                var l = name.LastName;
+                name.FirstName = l;
+                name.LastName = f;
+            }
+
+            if (q.Grade is not { } grade1)
+            {
+                Console.WriteLine($"{q.UserName} not graded yet!");
+                continue;
+            }
+            gradeByName[name] = grade1;
+        }
+
+        // determine course from path
+        var parsedPath = MoodlePathParser.TryParse(quiz.Path.Select(x => x.Name));
+        _ = parsedPath;
+        if (parsedPath is null)
+        {
+            throw new InvalidOperationException("Could not parse path");
+        }
+
+        var courseId = courseNameUnifierModule.Find(new()
+        {
+            Lookup = lookupModule,
+            CourseName = parsedPath.CourseName,
+        });
+        var grade = parsedPath.Grade;
+        var qualificationType = parsedPath.QualificationType;
+
+        foreach (var course in await coursesNav.Get(semester))
+        {
+            if (course.CourseId != courseId)
+            {
+                continue;
+            }
+
+            foreach (var group in await groupsNav.Get(course))
+            {
+                var groupInfo = schedule.Get(group.GroupId);
+                if (groupInfo.QualificationType != qualificationType)
+                {
+                    continue;
+                }
+                if (groupInfo.Grade != grade)
+                {
+                    continue;
+                }
+
+                var evaluareDoc = await registryNav.GetHtml(group.EvaluationUri);
+
+                // Find anchor with text Testarea X
+                IHtmlAnchorElement TestAnchor()
+                {
+                    var tables = evaluareDoc.QuerySelectorAll<IHtmlAnchorElement>("table a");
+                    var matching = tables.Where(x =>
+                    {
+                        var parser = new Parser(x.TextContent);
+                        parser.SkipWhitespace();
+                        if (!parser.ConsumeExactString("Testarea"))
+                        {
+                            return false;
+                        }
+                        if (!parser.SkipWhitespace().SkippedAny)
+                        {
+                            return false;
+                        }
+                        var bparser = parser.BufferedView();
+                        if (!bparser.SkipNumbers().SkippedAny)
+                        {
+                            return false;
+                        }
+
+                        var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                        var number = int.Parse(numberSpan);
+                        if (parsedPath.TestNumber != number)
+                        {
+                            return false;
+                        }
+
+                        return true;
+                    });
+                    var header = matching.First();
+                    return header;
+                }
+
+                var testUrl = TestAnchor();
+                var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
+                var table = test1Doc.QuerySelector<IHtmlTableElement>("table")
+                    ?? throw new InvalidOperationException("No table found");
+                int nameColumnIndex = FindColumnIndex("Numele");
+                int gradeColumnIndex = FindColumnIndex("Nota");
+
+                for (int i = 1; i < table.Rows.Length; i++)
+                {
+                    var row = table.Rows[i];
+                    var nameCell = row.Cells[nameColumnIndex];
+
+                    Name name;
+                    {
+                        var nameParser = new Parser(nameCell.TextContent);
+                        nameParser.SkipWhitespace();
+                        name = NameHelper.ParseName(ref nameParser);
+                        nameParser.SkipWhitespace();
+                        if (nameParser.ConsumeExactString("exmatr"))
+                        {
+                            continue;
+                        }
+                        if (!nameParser.IsEmpty)
+                        {
+                            throw new InvalidOperationException("Extra text after name");
+                        }
+                    }
+
+                    if (!gradeByName.Remove(name, out float gradeInDb))
+                    {
+                        Console.WriteLine($"No student in moodle: {name}");
+                        continue;
+                    }
+
+                    var gradeRounded = (int) Math.Round(gradeInDb);
+
+                    {
+                        var gradeCell = row.Cells[gradeColumnIndex];
+                        var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
+                            ?? throw new InvalidOperationException("No input found in grade cell");
+                        input.Value = gradeRounded.ToString();
+                    }
+                }
+
+                var form = test1Doc.QuerySelector<IHtmlFormElement>("form")
+                    ?? throw new InvalidOperationException("No form found");
+                _ = form;
+
+                // var button = test1Doc.QuerySelector<IHtmlButtonElement>("form > div > div > button")
+                //     ?? throw new InvalidOperationException("No submit button found");
+                // await button.SubmitAsync();
+                await form.SubmitAsync();
+                continue;
+
+                int FindColumnIndex(string name)
+                {
+                    return table.Rows[0].Cells.WithIndex().Where(x =>
+                    {
+                        var t = x.Item.TextContent.AsSpan().Trim();
+                        return t.SequenceEqual(name);
+                    }).Single().Index;
+                }
+            }
+        }
+
+        foreach (var (name, value) in gradeByName)
+        {
+            Console.WriteLine($"Student not found in registry: {name} ({value})");
+        }
+    }
 }
+
 
 public enum Option
 {

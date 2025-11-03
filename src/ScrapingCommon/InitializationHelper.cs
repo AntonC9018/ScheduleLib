@@ -38,6 +38,8 @@ public sealed class ScrapingContextBuilder
             var ctx = sp.GetRequiredService<HttpClientContext>();
             return ctx.Client;
         });
+        _services.AddSingleton<BrowsingContextProvider>();
+        _services.AddLogging();
     }
 
     public void AddConfig<T>(T? value) where T : class
@@ -101,7 +103,26 @@ public sealed class ScrapingContextBuilder
             });
         }
 
-        public void PasswordCredentials(
+        /// <summary>
+        /// Makes it call the login by filling up a form on the login page and submitting it.
+        /// Should be used when there are additional hidden fields that need to be filled in.
+        /// </summary>
+        public void PasswordLoginForm(
+            Credentials? credentials = null,
+            PasswordLoginFormConfig? formConfig = null)
+        {
+            _builder.AddConfig(credentials);
+            _builder.AddConfig(formConfig);
+            _builder._services.AddSingleton<PasswordLoginFormTokenRetriever>();
+            _builder._services.AddSingleton<Func<ITokenRetriever>>(
+                sp => sp.GetRequiredService<PasswordLoginFormTokenRetriever>);
+            _password = true;
+        }
+
+        /// <summary>
+        /// Makes it call the login with a regular POST call.
+        /// </summary>
+        public void PasswordLoginCall(
             Credentials? credentials = null,
             PasswordLoginFieldNames? fieldNames = null)
         {
@@ -177,12 +198,17 @@ public sealed class ScrapingContextBuilder
         {
             var http = sp.GetRequiredService<HttpClientContext>();
             var auth = sp.GetRequiredService<IAuthHandler>();
+            var ret = ScrapingContext.Create(http, auth);
+            ret.Services = sp;
+
+            var lazyBrowser = sp.GetRequiredService<BrowsingContextProvider>();
+            lazyBrowser.Value = ret.Browser;
+
             // if (auth != null)
             {
                 await auth.Authenticate(cancellationToken);
             }
-            var ret = ScrapingContext.Create(http, auth);
-            ret.Services = sp;
+
             return ret;
         }
         catch

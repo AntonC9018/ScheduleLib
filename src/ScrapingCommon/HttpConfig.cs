@@ -137,9 +137,13 @@ public sealed class TokenAuthHandler : IAuthHandler
         _tokenContext = tokenContext;
     }
 
-    public Task Authenticate(CancellationToken cancellationToken)
+    public async Task Authenticate(CancellationToken cancellationToken)
     {
-        return _tokenContext.InitializeToken(cancellationToken: cancellationToken);
+        var ok = await _tokenContext.InitializeToken(cancellationToken: cancellationToken);
+        if (!ok)
+        {
+            throw new InvalidOperationException("Failed to retrieve token.");
+        }
     }
 }
 

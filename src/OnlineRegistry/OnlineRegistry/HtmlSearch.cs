@@ -19,6 +19,7 @@ public readonly record struct GroupLink
     public required GroupId GroupId { get; init; }
     public required SubGroup SubGroup { get; init; }
     public required Uri Uri { get; init; }
+    public required Uri EvaluationUri { get; init; }
 }
 
 public readonly record struct RemoteLessonInstance : IDateTime
@@ -97,43 +98,63 @@ internal static class HtmlSearch
 
     internal static IEnumerable<GroupLink> ScanGroupsDocumentForLinks(ScanGroupsParams p)
     {
-        const string path = """form[name="lesson"] > div.row:nth-of-type(2) > div.col:nth-of-type(1) > div.row > a:nth-of-type(1)""";
-        var anchors = p.Document.QuerySelectorAll(path);
-        foreach (var el in anchors)
+        const string path = """form[name="lesson"] > div.row:nth-of-type(2) > div.col:nth-of-type(1) > div.row""";
+        var rows = p.Document.QuerySelectorAll<IHtmlDivElement>(path);
+        foreach (var row in rows)
         {
-            var anchor = (IHtmlAnchorElement) el;
-            var url = anchor.Href;
-            var groupName = anchor.Text;
-            var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
-            if (groupForSearch.IsRepeat)
+            var urls = row.QuerySelectorAll<IHtmlAnchorElement>("a").ToArray();
+            if (urls.Length != 2)
             {
-                // Not handling this yet.
-                continue;
-            }
-            var groupId = p.SearchGroupId(groupForSearch);
-            if (groupId == GroupId.Invalid)
-            {
-                continue;
+                throw new InvalidOperationException("Expected 2 urls");
             }
 
-            var uri = new Uri(url);
-
-            SubGroup SubGroup()
+            Uri groupUri;
+            SubGroup subGroup;
+            GroupId groupId;
             {
-                string? subgroupName = null;
-                if (!groupForSearch.SubGroupName.IsEmpty)
+                var anchor = urls[0];
+                var url = anchor.Href;
+                var groupName = anchor.Text;
+                var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
+                if (groupForSearch.IsRepeat)
                 {
-                    subgroupName = groupForSearch.SubGroupName.ToString();
+                    // Not handling this yet.
+                    continue;
                 }
-                var subgroup = new SubGroup(subgroupName);
-                return subgroup;
+                groupId = p.SearchGroupId(groupForSearch);
+                if (groupId == GroupId.Invalid)
+                {
+                    continue;
+                }
+                groupUri = new Uri(url);
+                subGroup = SubGroup();
+
+                SubGroup SubGroup()
+                {
+                    string? subgroupName = null;
+                    if (!groupForSearch.SubGroupName.IsEmpty)
+                    {
+                        subgroupName = groupForSearch.SubGroupName.ToString();
+                    }
+                    var subgroup = new SubGroup(subgroupName);
+                    return subgroup;
+                }
             }
+
+            Uri evaluationUri;
+            {
+                var anchor = urls[1];
+                var url = anchor.Href;
+                evaluationUri = new Uri(url);
+            }
+
 
             yield return new()
             {
-                Uri = uri,
+                Uri = groupUri,
+                EvaluationUri = evaluationUri,
                 GroupId = groupId,
-                SubGroup = SubGroup(),
+                SubGroup = subGroup,
             };
         }
     }

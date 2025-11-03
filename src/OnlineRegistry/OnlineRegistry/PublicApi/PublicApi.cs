@@ -66,7 +66,7 @@ public sealed class CoursesNavigator
 
     public async Task<IEnumerable<CourseLink>> Get(Semester semester)
     {
-        var lessonAttendanceUrl = new Uri($"{RegistryScraping.BaseUrl}/LessonAttendance");
+        var lessonAttendanceUrl = new Uri($"{RegistryScraping.BaseUrl}LessonAttendance");
         var doc = await _navigator.GetHtml(lessonAttendanceUrl);
         var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
         {
@@ -187,6 +187,21 @@ public readonly record struct RegistryScrapingContext(
     public void Dispose()
     {
         ScrapingContext.Dispose();
+    }
+
+    public static async Task<RegistryScrapingContext> Create(
+        Credentials credentials,
+        CancellationToken cancellationToken)
+    {
+        var builder = new ScrapingContextBuilder();
+        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        builder.TokenAuth(x =>
+        {
+            x.PasswordLoginCall(credentials);
+            x.Cache();
+        });
+        var ret = await builder.Build(cancellationToken);
+        return new(ret);
     }
 }
 
@@ -477,6 +492,17 @@ public static partial class RegistryScraping
         }
     }
 
+    public static OnlineRegistryNavigator Navigator(
+        this RegistryScrapingContext context,
+        IRegistryErrorHandler errorHandler,
+        CancellationToken cancellationToken)
+    {
+        return new OnlineRegistryNavigator(
+            errorHandler,
+            context,
+            cancellationToken);
+    }
+
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     internal static async Task<IDocument> GetHtml(
         this RegistryScrapingContext context,
@@ -487,21 +513,6 @@ public static partial class RegistryScraping
             address: uri.ToString(),
             cancellationToken);
         return document;
-    }
-
-    public static async Task<RegistryScrapingContext> CreateContext(
-        CancellationToken cancellationToken,
-        Credentials credentials)
-    {
-        var builder = new ScrapingContextBuilder();
-        AddDefaultConfigWithoutHandlers(builder);
-        builder.TokenAuth(x =>
-        {
-            x.PasswordCredentials(credentials);
-            x.Cache();
-        });
-        var ret = await builder.Build(cancellationToken);
-        return new(ret);
     }
 
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
@@ -525,8 +536,8 @@ public static partial class RegistryScraping
     };
     private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
     {
-        UserName = "UserLogin",
-        UserPassword = "UserPassword",
+        Login = "UserLogin",
+        Password = "UserPassword",
     };
 
     internal static void UpdateAttendanceForRegistry(Attendance[] attendanceForHtml, HtmlStudent[] students)

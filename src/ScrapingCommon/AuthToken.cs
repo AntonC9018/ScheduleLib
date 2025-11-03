@@ -3,6 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AngleSharp;
+using AngleSharp.Html.Dom;
+using AngleSharp.Dom;
+using Microsoft.Extensions.Logging;
 
 namespace ScheduleLib.Scraping.Common;
 
@@ -40,13 +44,13 @@ public sealed class TokenNamesConfig
 
 public sealed class PasswordLoginFieldNames
 {
-    public required string UserName { get; init; }
-    public required string UserPassword { get; init; }
+    public required string Login { get; init; }
+    public required string Password { get; init; }
 }
 
 public interface ITokenRetriever
 {
-    Task InitializeToken(CancellationToken cancellationToken);
+    Task<bool> InitializeToken(CancellationToken cancellationToken);
 }
 
 public sealed class PasswordTokenRetriever : ITokenRetriever
@@ -58,13 +62,11 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
         public required TokenNamesConfig Names;
         public required PasswordLoginFieldNames FieldNames;
         public required HttpClient HttpClient;
-        public required CookieContainer CookieContainer;
         public required Credentials Credentials;
     }
 
     public PasswordTokenRetriever(
         HttpClient httpClient,
-        CookieContainer cookieContainer,
         Credentials credentials,
         TokenNamesConfig names,
         PasswordLoginFieldNames fieldNames)
@@ -73,37 +75,142 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
         {
             FieldNames = fieldNames,
             HttpClient = httpClient,
-            CookieContainer = cookieContainer,
             Credentials = credentials,
             Names = names,
         };
     }
 
-    public async Task InitializeToken(CancellationToken cancellationToken)
+    public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
-        await LogIn(cancellationToken);
-
-        var token = _services.CookieContainer.FindCookie(_services.Names);
-        if (token is null)
-        {
-            throw new InvalidOperationException("Token cookie not found.");
-        }
+        return await LogIn(cancellationToken);
     }
 
-    internal async Task LogIn(CancellationToken cancellationToken)
+    internal async Task<bool> LogIn(CancellationToken cancellationToken)
     {
         var uri = _services.Names.LoginUrl;
         using var content = new FormUrlEncodedContent([
-            new(_services.FieldNames.UserName, _services.Credentials.Login),
-            new(_services.FieldNames.UserPassword, _services.Credentials.Password)]);
+            new(_services.FieldNames.Login, _services.Credentials.Login),
+            new(_services.FieldNames.Password, _services.Credentials.Password)]);
 
         var response = await _services.HttpClient.PostAsync(
             uri,
             content: content,
             cancellationToken: cancellationToken);
         _ = response;
+        if (response.StatusCode == HttpStatusCode.Redirect)
+        {
+            return true;
+        }
+        return false;
+    }
+}
+
+public sealed class PasswordLoginFormConfig
+{
+    public required string LoginName { get; init; }
+    public required string PasswordName { get; init; }
+    public required bool RequireButtonClick { get; init; }
+}
+
+public sealed class BrowsingContextProvider
+{
+    internal IBrowsingContext? Value { get; set; }
+
+    public IBrowsingContext Get()
+    {
+        Debug.Assert(Value != null);
+        return Value;
+    }
+}
+
+public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
+{
+    private readonly PasswordLoginFormConfig _formConfig;
+    private readonly TokenNamesConfig _names;
+    private readonly BrowsingContextProvider _browser;
+    private readonly Credentials _credentials;
+    private readonly ILogger _logger;
+
+    public PasswordLoginFormTokenRetriever(
+        BrowsingContextProvider browser,
+        PasswordLoginFormConfig formConfig,
+        TokenNamesConfig names,
+        Credentials credentials,
+        ILogger<PasswordLoginFormTokenRetriever> logger)
+    {
+        _browser = browser;
+        _formConfig = formConfig;
+        _names = names;
+        _credentials = credentials;
+        _logger = logger;
     }
 
+    public async Task<bool> InitializeToken(CancellationToken cancellationToken)
+    {
+        var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
+        if (GetInput(_formConfig.LoginName) is not { } loginInput)
+        {
+            return false;
+        }
+        if (GetInput(_formConfig.PasswordName) is not { } passwordInput)
+        {
+            return false;
+        }
+
+        loginInput.Value = _credentials.Login;
+        passwordInput.Value = _credentials.Password;
+
+        var form = loginInput.Form;
+        if (form is null)
+        {
+            _logger.LogError("Login input is not in a form");
+            return false;
+        }
+        if (passwordInput.Form != form)
+        {
+            _logger.LogError("Login and password inputs are not in the same form");
+            return false;
+        }
+
+        IDocument response;
+        if (_formConfig.RequireButtonClick)
+        {
+            var button = form.QuerySelector<IHtmlButtonElement>("button[type=submit]");
+            if (button is null)
+            {
+                ErrorNotFoundInPage("button");
+                return false;
+            }
+
+            response = await button.SubmitAsync();
+        }
+        else
+        {
+            response = await form.SubmitAsync();
+        }
+
+        // if (response.Url == _names.BaseUrl.ToString())
+        // {
+        //     return false;
+        // }
+        _ = response;
+        return true;
+
+        IHtmlInputElement? GetInput(string name)
+        {
+            var ret = html.QuerySelector<IHtmlInputElement>($"""input[name="{name}"]""");
+            if (ret is null)
+            {
+                ErrorNotFoundInPage(name);
+            }
+            return ret;
+        }
+
+        void ErrorNotFoundInPage(string name)
+        {
+            _logger.LogError("`{Element}` not found in page", name);
+        }
+    }
 }
 
 public static class TokenCookieHelper
@@ -165,16 +272,16 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         WriteIndented = true,
     };
 
-    public async Task InitializeToken(CancellationToken cancellationToken)
+    public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
         if (!_alreadyLoaded)
         {
             if (await MaybeSetCookieFromFile(cancellationToken))
             {
-                return;
+                return true;
             }
         }
-        await RecreateToken(cancellationToken);
+        return await RecreateToken(cancellationToken);
     }
 
     private async Task<bool> MaybeSetCookieFromFile(CancellationToken cancellationToken)
@@ -254,9 +361,12 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         }
     }
 
-    public async Task RecreateToken(CancellationToken cancellationToken)
+    public async Task<bool> RecreateToken(CancellationToken cancellationToken)
     {
-        await _fields.UnderlyingRetriever.InitializeToken(cancellationToken);
+        if (!await _fields.UnderlyingRetriever.InitializeToken(cancellationToken))
+        {
+            return false;
+        }
 
         var token = _fields.CookieContainer.FindCookie(_fields.Names);
         Debug.Assert(token != null, "Must be set by token retriever");
@@ -264,10 +374,10 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         await using var stream = File.Open(_fields.StorageConfig.TokensFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
         if (await TryUpdateExisting())
         {
-            return;
+            return true;
         }
         await CreateNew();
-        return;
+        return true;
 
 
         [SuppressMessage("ReSharper", "AccessToDisposedClosure")]

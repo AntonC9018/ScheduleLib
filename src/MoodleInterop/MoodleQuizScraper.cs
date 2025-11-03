@@ -13,10 +13,16 @@ using AngleSharp.Html.Dom;
 
 namespace QuizModels;
 
+public sealed class QuizAttemptsPage
+{
+    public required List<QuizAttempt> Attempts { get; init; }
+    public required List<(string Name, string? Href)> Path { get; init; }
+}
+
 // claude wrote most of the code.
 public static class MoodleQuizScraper
 {
-    public static async Task<List<QuizAttempt>> ScrapeQuizAttempts(
+    public static async Task<QuizAttemptsPage> ScrapeQuizAttempts(
         this MoodleScrapingContext context,
         string quizId,
         int pageSize = 2000)
@@ -24,6 +30,24 @@ public static class MoodleQuizScraper
         // Navigate to the quiz overview page
         string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
         var page = await context.Browser.OpenAsync(url);
+
+        // await page.SaveForDebug();
+
+        var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
+        var path = pathItems.Select(x =>
+        {
+            var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
+            if (anchor != null)
+            {
+                return (anchor.TextContent.Trim(), anchor.Href);
+            }
+            var span = x.QuerySelector<IHtmlSpanElement>("span");
+            if (span != null)
+            {
+                return (span.TextContent.Trim(), (string?) null);
+            }
+            throw new InvalidOperationException("Expected span or anchor in path");
+        }).ToList();
 
         // Set page size
         var pageSizeInput = (IHtmlInputElement) page.QuerySelector("#id_pagesize")!;
@@ -42,7 +66,11 @@ public static class MoodleQuizScraper
 
         // Parse the table
         var attempts = ParseAttemptsTable(attemptsTable);
-        return attempts;
+        return new()
+        {
+            Attempts = attempts,
+            Path = path,
+        };
     }
 
     private static List<QuizAttempt> ParseAttemptsTable(IHtmlTableElement table)
@@ -725,7 +753,7 @@ public static class MoodleQuizScraper
 public class QuizAttempt
 {
     public string AttemptId { get; set; } = "";
-    public string? UserName { get; set; }
+    public required string UserName { get; set; }
     public string? Email { get; set; }
     public AttemptState State { get; set; }
     public DateTime? TimeStart { get; set; }

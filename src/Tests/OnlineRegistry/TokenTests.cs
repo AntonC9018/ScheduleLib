@@ -17,7 +17,7 @@ public sealed class TokenTests
 
         var builder = new ScrapingContextBuilder();
         RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
-        builder.TokenAuth(x => x.PasswordCredentials(credentials));
+        builder.TokenAuth(x => x.PasswordLoginCall(credentials));
         using var context = await builder.Build(cancellationToken);
 
         var cookie = context.Services!.GetRequiredService<CookieContainer>()

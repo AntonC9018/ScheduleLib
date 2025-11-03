@@ -10,7 +10,7 @@ namespace QuizModels;
 
 public sealed class MoodleScrapingContext : IDisposable
 {
-    private ScrapingContext _context;
+    private readonly ScrapingContext _context;
     public HttpClient HttpClient => _context.HttpClient;
     public IBrowsingContext Browser => _context.Browser;
 
@@ -26,10 +26,11 @@ public sealed class MoodleScrapingContext : IDisposable
         LoginUrl = new($"{BaseUrl}/login/index.php"),
         TokenCookieName = new("MoodleSessionusmmd"),
     };
-    internal static readonly PasswordLoginFieldNames TokenRetrieverConfig = new()
+    internal static readonly PasswordLoginFormConfig TokenRetrieverConfig = new()
     {
-        UserName = new("username"),
-        UserPassword = new("password"),
+        LoginName = new("username"),
+        PasswordName = new("password"),
+        RequireButtonClick = true,
     };
 
     public static async Task<MoodleScrapingContext> Create(
@@ -41,7 +42,7 @@ public sealed class MoodleScrapingContext : IDisposable
         builder.AddConfig(Names);
         builder.AddConfig(TokenRetrieverConfig);
         builder.TokenAuth(
-            f => f.PasswordCredentials(credentials));
+            f => f.PasswordLoginForm(credentials));
         var context = await builder.Build(cancellationToken);
         return new MoodleScrapingContext(context);
     }
@@ -54,6 +55,8 @@ public sealed class MoodleScrapingContext : IDisposable
 
 public static class MoodleInterop
 {
+    public const string CredentialsKey = "Moodle";
+
     #if false
     public static async Task Login(IBrowsingContext browser, Credentials credentials)
     {
@@ -97,47 +100,8 @@ public static class MoodleInterop
         // var download = await downloads.First().Task;
 
         var xml = await context.Browser.OpenAsync(downloadLink);
-        await SaveForDebug(xml);
+        await xml.SaveForDebug();
         return;
     }
 
-    public static async Task SaveForDebug(IDocument doc)
-    {
-        string FileName(string ext)
-        {
-            return $"temp.{ext}";
-        }
-        FileStream Open(string fileName)
-        {
-            return new FileStream(fileName, FileMode.Create, FileAccess.Write);
-        }
-        string Ext()
-        {
-            return doc switch
-            {
-                IXmlDocument => "xml",
-                IHtmlDocument => "html",
-                _ => throw new InvalidOperationException(),
-            };
-        }
-        string ext = Ext();
-        string fileName = FileName(ext);
-        await using var outputStream = Open(fileName);
-
-        switch (doc)
-        {
-            case IXmlDocument xml:
-            {
-                await using var textWriter = new StreamWriter(outputStream);
-                xml.ToXml(textWriter);
-                break;
-            }
-            case IHtmlDocument html:
-            {
-                await html.ToHtmlAsync(outputStream);
-                break;
-            }
-        }
-        ExplorerHelper.TryOpenExplorerAndSelectFile(fileName);
-    }
 }

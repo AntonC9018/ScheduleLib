@@ -11,6 +11,18 @@ public sealed class Credentials
 
 public static class CredentialsHelper
 {
+    public static Credentials GetCredentials(
+        this IConfiguration config,
+        string key)
+    {
+        var ret = config.MaybeGetCredentials(key);
+        if (ret == null)
+        {
+            throw new InvalidOperationException("Credentials not found.");
+        }
+        return ret;
+    }
+
     public static Credentials? MaybeGetCredentials(
         this IConfiguration config,
         string key)
