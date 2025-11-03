@@ -284,5 +284,16 @@ public static class NameHelper
         var ret = ParseNameImpl(ref parser);
         return ret;
     }
+
+    public static Name Parse(string s)
+    {
+        var parser = new Parser(s);
+        var ret = ParseNameImpl(ref parser);
+        if (!parser.IsEmpty)
+        {
+            throw new InvalidOperationException("Extra characters after name");
+        }
+        return ret;
+    }
 }
 

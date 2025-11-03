@@ -16,7 +16,30 @@ public sealed class Schedule
     public required ImmutableArray<Period> Periods { get; init; }
 }
 
+public readonly struct Accessor<T, TId>
+{
+    public readonly TId Id;
+    private readonly ImmutableArray<T> Items;
+
+    public Accessor(TId id, ImmutableArray<T> items)
+    {
+        Id = id;
+        Items = items;
+    }
+
+    public readonly ref readonly T Item
+    {
+        get
+        {
+            var id = Id;
+            var index = Unsafe.As<TId, int>(ref id);
+            return ref Items.AsSpan()[index];
+        }
+    }
+}
+
 public readonly record struct ScheduleObjectEnumerable<TId, T>
+    : IEnumerable<Accessor<T, TId>>
 {
     static ScheduleObjectEnumerable()
     {
@@ -30,9 +53,9 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
         _objects = objects;
     }
 
-    public Accessor First()
+    public Accessor<T, TId> First()
     {
-        var e = GetEnumerator();
+        using var e = GetEnumerator();
         if (!e.MoveNext())
         {
             throw new InvalidOperationException();
@@ -41,8 +64,10 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
     }
 
     public Enumerator GetEnumerator() => new(_objects);
+    IEnumerator<Accessor<T, TId>> IEnumerable<Accessor<T, TId>>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public struct Enumerator
+    public struct Enumerator : IEnumerator<Accessor<T, TId>>
     {
         private readonly ImmutableArray<T> _objects;
         private int _index;
@@ -59,39 +84,29 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
             return _index < _objects.Length;
         }
 
-        public readonly Accessor Current
+        public void Reset()
+        {
+            throw new NotImplementedException();
+        }
+
+        object? IEnumerator.Current => Current;
+
+        public readonly Accessor<T, TId> Current
         {
             get
             {
                 Debug.Assert(_index >= 0 && _index < _objects.Length);
                 int index = _index;
                 var id = Unsafe.As<int, TId>(ref index);
-                return new Accessor(id, _objects);
+                return new Accessor<T, TId>(id, _objects);
             }
+        }
+
+        void IDisposable.Dispose()
+        {
         }
     }
 
-    public readonly struct Accessor
-    {
-        public readonly TId Id;
-        private readonly ImmutableArray<T> Items;
-
-        public Accessor(TId id, ImmutableArray<T> items)
-        {
-            Id = id;
-            Items = items;
-        }
-
-        public readonly ref readonly T Item
-        {
-            get
-            {
-                var id = Id;
-                var index = Unsafe.As<TId, int>(ref id);
-                return ref Items.AsSpan()[index];
-            }
-        }
-    }
 }
 
 public record struct RegularLessonDate()

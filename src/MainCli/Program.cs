@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Text;
+using AngleSharp.Html.Dom;
 using ClosedXML.Excel;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
@@ -7,12 +8,21 @@ using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
 using OnlineRegistry.AttendanceExcel;
+using QuizModels;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
+using ScheduleLib.Parsing.Moodle;
 using ScheduleLib.ScheduleDefaults;
+using ScheduleLib.Scraping.Common;
 using WebsiteJsonSchedule;
+using DayOfWeek = System.DayOfWeek;
+using Directory = System.IO.Directory;
+using Option = MainCli.Option;
+using AngleSharp.Dom;
 
 #pragma warning disable CS8321 // Local function is declared but never used
 
@@ -75,7 +85,8 @@ var options = new Option[]
     // Option.UploadDocsToDrive,
     // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
-    Option.JsonSchedulesForWebsite,
+    // Option.JsonSchedulesForWebsite,
+    Option.CopyGradesFromMoodleToRegistry,
 };
 foreach (var option in options) {
 
@@ -131,10 +142,13 @@ switch (option)
         var attendance = GetAttendanceListOfCurrentTeacher();
         // var attendance = new AllStudentAttendanceListBuilder().Build();
 
-        await RegistryScraping.AddLessonsToOnlineRegistry(new()
+        using var registryContext = await RegistryScrapingContext.Create(
+            credentials: credentials,
+            cancellationToken: cancellationToken);
+
+        await registryContext.AddLessonsToOnlineRegistry(new()
         {
             CancellationToken = cancellationToken,
-            Credentials = credentials,
             Schedule = schedule,
             Semester = semester,
             ErrorHandler = new RegistryErrorLogger
@@ -144,6 +158,7 @@ switch (option)
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
+
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process
@@ -223,6 +238,7 @@ switch (option)
         ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
         break;
     }
+
     case Option.JsonSchedulesForWebsite:
     {
         if (Directory.Exists(outputDirectory))
@@ -237,20 +253,11 @@ switch (option)
             LessonTypeDisplay = new(),
             SubGroupNumberDisplay = new(),
         };
-        foreach (var teacher in schedule.EnumerateTeachers())
+        var baseFilter = FilterHelper.Builder()
+            .WithLatestPeriod(schedule);
+        var grouping = schedule.TeacherGrouping(baseFilter);
+        foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
         {
-            var filteredSchedule = schedule.Filter(new()
-            {
-                PeriodFilter = new()
-                {
-                    PeriodId = schedule.LatestPeriodId(),
-                    UnspecifiedIsAll = true,
-                },
-                TeacherFilter = new()
-                {
-                    IncludeIds = [teacher.Id],
-                },
-            });
             var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
                 filteredSchedule,
                 services);
@@ -264,6 +271,21 @@ switch (option)
             await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
         }
         ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
+        break;
+    }
+
+    case Option.CopyGradesFromMoodleToRegistry:
+    {
+        // TODO: REALLY move to service provider.
+        await Tasks.CopyGradesFromMoodleForTest(
+            config,
+            context.CourseNameUnifierModule,
+            context.Schedule.LookupModule!,
+            schedule,
+            context.Schedule.GroupParseContext!,
+            semester,
+            "317382",
+            cancellationToken);
         break;
     }
 }

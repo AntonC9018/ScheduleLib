@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AngleSharp" Version="1.2.0" />
+        <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
+
+        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10" />
+    </ItemGroup>
+</Project>
