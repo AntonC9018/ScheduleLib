@@ -23,6 +23,9 @@ public static class Config
         teach.Add("Băț", "Beț");
         teach.Add("Spincean", "Sprîncean");
         teach.Add("Anghelov", "Anghelova");
+
+        var subgroup = remap.SubGroupNameRemappings;
+        subgroup.Add(new("GR"), new("GA2D"));
     }
 
     // TODO: read from image??

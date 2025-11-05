@@ -327,6 +327,10 @@ public static class LessonBuilderHelper
     {
         var ret = RegularLesson(s);
         ret.Model.Data = modelData;
+
+        ref var subGroup = ref ret.Model.Group.SubGroup;
+        subGroup = s.RemapSubGroup(subGroup);
+
         ret.InitLookup();
         return ret;
     }

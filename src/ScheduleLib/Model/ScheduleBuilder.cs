@@ -26,6 +26,11 @@ public sealed class ValidationSettings()
 public sealed class Remappings()
 {
     public readonly TeacherNameRemappings TeacherLastNameRemappings = new();
+    public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
+}
+
+public sealed class SubGroupNameRemappings : Dictionary<string, string>
+{
 }
 
 public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastName>
@@ -244,6 +249,19 @@ public static partial class ScheduleBuilderHelper
     public static LastName RemapTeacherName(this ScheduleBuilder s, LastName lastName)
     {
         return s.Remappings.TeacherLastNameRemappings.GetValueOrDefault(lastName, lastName);
+    }
+
+    public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
+    {
+        if (subGroup == SubGroup.All)
+        {
+            return subGroup;
+        }
+
+        var val = subGroup.Value;
+        Debug.Assert(val != null);
+        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(val, val);
+        return new(remapped);
     }
 
     public static void ConfigureRemappings(this ScheduleBuilder s, Action<Remappings> configure)

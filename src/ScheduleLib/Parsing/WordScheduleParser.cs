@@ -799,13 +799,6 @@ public static class WordScheduleParser
                 var groupId = state.GroupId(i + columnIndex);
                 groups.Add(groupId);
             }
-
-            // if (groups.Count > 1
-            //     && lesson.SubGroupNumber != SubGroupNumber.All)
-            // {
-            //     throw new NotSupportedException("Lessons with subgroups with multiple groups not supported");
-            // }
-
             g.Groups = groups;
         }
         else
@@ -813,6 +806,25 @@ public static class WordScheduleParser
             var groupId = c.Schedule.Group(groupFullName);
             g.Groups.Add(groupId);
         }
+
+        if (lesson.SubGroup != SubGroup.All)
+        {
+            if (g.SubGroup != SubGroup.All)
+            {
+                throw new InvalidOperationException("SubGroup specified twice?");
+            }
+            g.SubGroup = lesson.SubGroup;
+        }
+
+        modelData.General.Period = periodId;
+
+        if (MaybeMergeIntoAnExistingLesson())
+        {
+            return;
+        }
+
+        _ = c.Schedule.RegularLesson(modelData);
+        return;
 
         // Check for special case when it's a subgroup.
         bool HandleSpecialSubGroup(
@@ -842,18 +854,6 @@ public static class WordScheduleParser
             }
             return false;
         }
-
-        modelData.General.Period = periodId;
-
-        g.SubGroup = lesson.SubGroup;
-
-        if (MaybeMergeIntoAnExistingLesson())
-        {
-            return;
-        }
-
-        _ = c.Schedule.RegularLesson(modelData);
-        return;
 
         bool MaybeMergeIntoAnExistingLesson()
         {

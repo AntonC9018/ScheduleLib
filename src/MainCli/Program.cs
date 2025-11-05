@@ -41,16 +41,17 @@ context.Schedule.SetStudyYear(year);
 string scheduleSourcesDir = @$"data\{year}_sem{semester.AsOrdinal()}";
 string serializedSchedulePath = @$"data\schedule_{year}_{semester.AsOrdinal()}.json";
 var schedule = await Tasks.LoadSchedule(
-    context,
+    context: context,
     scheduleSourcesDir: scheduleSourcesDir,
     serializedSchedulePath: serializedSchedulePath,
+    bypassCache: true,
     beforeEndAction: static context =>
     {
         // TODO: This is not included in the hash
         const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
         Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
     },
-    cancellationToken);
+    cancellationToken: cancellationToken);
 
 Console.WriteLine("Schedule built");
 
@@ -75,11 +76,11 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    // Option.UploadDocsToDrive,
+    Option.UploadDocsToDrive,
     // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
     // Option.JsonSchedulesForWebsite,
-    Option.CopyGradesFromMoodleToRegistry,
+    // Option.CopyGradesFromMoodleToRegistry,
 };
 foreach (var option in options) {
 
