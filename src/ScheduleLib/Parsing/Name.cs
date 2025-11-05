@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using DocumentFormat.OpenXml.Bibliography;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Parsing;

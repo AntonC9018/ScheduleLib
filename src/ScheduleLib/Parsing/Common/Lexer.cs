@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Parsing.Common;
 

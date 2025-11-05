@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Web;
 using Azure.Identity;
 using ConvertDocToDocx;
@@ -6,7 +5,6 @@ using Microsoft.Graph;
 using ScheduleLib.Helper;
 using Directory = System.IO.Directory;
 using File = System.IO.File;
-using Process = System.Diagnostics.Process;
 
 namespace ScheduleLib.Curriculum.Download;
 

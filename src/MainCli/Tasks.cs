@@ -38,7 +38,6 @@ using SpreadCheetah;
 using Column = DocumentFormat.OpenXml.Spreadsheet.Column;
 using Columns = DocumentFormat.OpenXml.Spreadsheet.Columns;
 using Font = DocumentFormat.OpenXml.Spreadsheet.Font;
-using Group = ScheduleLib.Group;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues;
 using VerticalAlignmentValues = DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues;
 

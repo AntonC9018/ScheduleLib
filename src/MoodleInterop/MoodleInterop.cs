@@ -1,9 +1,5 @@
 using AngleSharp;
-using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using AngleSharp.Xml;
-using AngleSharp.Xml.Dom;
-using ScheduleLib.Helper;
 using ScheduleLib.Scraping.Common;
 
 namespace QuizModels;

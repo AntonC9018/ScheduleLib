@@ -1,11 +1,8 @@
 using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
-using AngleSharp.Io;
 using AngleSharp.Text;
-using Moq;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 

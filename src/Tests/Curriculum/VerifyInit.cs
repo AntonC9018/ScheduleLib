@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Argon;
 using ScheduleLib;
-using ScheduleLib.Builders;
 
 namespace Curriculum.Tests;
 

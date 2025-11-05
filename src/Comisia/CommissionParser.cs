@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
-using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using ScheduleLib;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;

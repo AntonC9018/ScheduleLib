@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Text;
-using AngleSharp.Html.Dom;
 using ClosedXML.Excel;
 using ScheduleLib.Curriculum.Download;
 using Microsoft.Extensions.Configuration;
@@ -8,21 +7,15 @@ using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
 using OnlineRegistry.AttendanceExcel;
-using QuizModels;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
-using ScheduleLib.Parsing.Moodle;
 using ScheduleLib.ScheduleDefaults;
-using ScheduleLib.Scraping.Common;
 using WebsiteJsonSchedule;
 using DayOfWeek = System.DayOfWeek;
 using Directory = System.IO.Directory;
 using Option = MainCli.Option;
-using AngleSharp.Dom;
 
 #pragma warning disable CS8321 // Local function is declared but never used
 
@@ -82,11 +75,11 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    Option.UploadDocsToDrive,
+    // Option.UploadDocsToDrive,
     // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
     // Option.JsonSchedulesForWebsite,
-    // Option.CopyGradesFromMoodleToRegistry,
+    Option.CopyGradesFromMoodleToRegistry,
 };
 foreach (var option in options) {
 
