@@ -82,11 +82,11 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    // Option.UploadDocsToDrive,
+    Option.UploadDocsToDrive,
     // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
     // Option.JsonSchedulesForWebsite,
-    Option.CopyGradesFromMoodleToRegistry,
+    // Option.CopyGradesFromMoodleToRegistry,
 };
 foreach (var option in options) {
 
