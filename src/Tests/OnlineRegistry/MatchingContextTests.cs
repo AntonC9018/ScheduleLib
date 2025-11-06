@@ -1,3 +1,5 @@
+using ScheduleLib.OnlineRegistry.Impl;
+
 namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class MatchingContextTests
@@ -139,8 +141,8 @@ file static class Extensions
         DateTime existing)
     {
         Assert.True(e.MoveNext());
-        Assert.Equal(e.Current.All.DateTime, all);
-        Assert.Equal(e.Current.Existing.DateTime, existing);
+        Assert.Equal(e.Current.Data.Local.DateTime, all);
+        Assert.Equal(e.Current.Data.Remote.DateTime, existing);
     }
 
     public static void CheckLast(

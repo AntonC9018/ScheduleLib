@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using ScheduleLib.Builders;
+using ScheduleLib.OnlineRegistry.Impl;
 using ScheduleLib.Parsing.GroupParser;
 using DateOnly = System.DateOnly;
 
@@ -422,21 +423,16 @@ file sealed class Context
             });
         }
 
-        var lists = new MatchingLists();
-        var result = MissingLessonDetection.GetLessonEquationCommands(new()
-        {
-            Lists = lists,
-            Schedule = schedule,
-            AllLessons = scheduled,
-            ExistingLessons = existing,
-        });
+        var derivationAlgorithm = new SameDayDerivation();
+        var result = derivationAlgorithm.DeriveCommands(
+            new(schedule, existing, scheduled));
         return result.Select(x =>
         {
             var ret = new ResolvedCommand(x.Type);
             if (x.HasAll)
             {
-                var (day, timeSlot) = ReverseEngineerDateTime(x.All.DateTime);
-                var type = schedule.Get(x.All.LessonId).Lesson.Type;
+                var (day, timeSlot) = ReverseEngineerDateTime(x.Local.DateTime);
+                var type = schedule.Get(x.Local.LessonId).Lesson.Type;
                 ret.All = new()
                 {
                     Day = day,
@@ -446,8 +442,8 @@ file sealed class Context
             }
             if (x.HasExisting)
             {
-                var (day, timeSlot) = ReverseEngineerDateTime(x.Existing.DateTime);
-                var type = x.Existing.LessonType;
+                var (day, timeSlot) = ReverseEngineerDateTime(x.Remote.DateTime);
+                var type = x.Remote.LessonType;
                 ret.Existing = new()
                 {
                     Day = day,

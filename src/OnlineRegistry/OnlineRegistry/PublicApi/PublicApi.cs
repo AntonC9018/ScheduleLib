@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
+using ScheduleLib.OnlineRegistry.Impl;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
@@ -27,6 +28,7 @@ public struct AddLessonsToOnlineRegistryParams()
     public required IAllScheduledDateProvider DateProvider;
     public required LessonTimeConfig TimeConfig;
     public required SemesterIntervalProvider SemesterIntervalProvider;
+    public required IEquationCommandsDerivation EquationCommandsDerivation;
     public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
 
     public required StudentAttendanceList Attendance;
@@ -214,8 +216,6 @@ public static partial class RegistryScraping
         AddLessonsToOnlineRegistryParams p)
     {
         var notFoundStudents = new List<Name>();
-
-        var lists = new MatchingLists();
         var navigator = new OnlineRegistryNavigator(
             p.ErrorHandler,
             context,
@@ -235,7 +235,7 @@ public static partial class RegistryScraping
                 {
                     continue;
                 }
-                var lessons = MissingLessonDetection.MatchLessonsInSchedule(new()
+                var lessons = MatchLessonHelper.MatchLessonsInSchedule(new()
                 {
                     Lookup = p.LookupModule.LessonsByCourse,
                     Schedule = p.Schedule,
@@ -318,13 +318,10 @@ public static partial class RegistryScraping
                 });
 
                 // Update
-                var equationCommands = MissingLessonDetection.GetLessonEquationCommands(new()
-                {
-                    Lists = lists,
-                    Schedule = p.Schedule,
-                    AllLessons = completeLessons,
-                    ExistingLessons = scanResult.Lessons,
-                });
+                var equationCommands = p.EquationCommandsDerivation.DeriveCommands(new(
+                    schedule: p.Schedule,
+                    remoteLessons: scanResult.Lessons.OrderBy(x => x.DateTime),
+                    localLessons: completeLessons));
                 foreach (var command in equationCommands)
                 {
                     if (p.ProcessingFlags.HasDryRun(command.Type))
@@ -368,10 +365,10 @@ public static partial class RegistryScraping
                 LessonEquationCommandType.Delete => "Delete",
                 _ => throw Unreachable(),
             };
-            var date = command.HasAll ? command.All.DateTime : command.Existing.DateTime;
+            var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
             var lessonType = command.HasAll
-                ? p.Schedule.Get(command.All.LessonId).Lesson.Type
-                : command.Existing.LessonType;
+                ? p.Schedule.Get(command.Local.LessonId).Lesson.Type
+                : command.Remote.LessonType;
             var groupName = p.Schedule.Get(groupId).Name;
             var dateString = date.ToString("dd.MM.yy");
             var course = p.Schedule.Get(courseId);
@@ -388,19 +385,19 @@ public static partial class RegistryScraping
             {
                 case LessonEquationCommandType.Create:
                 {
-                    await Create(command.All);
+                    await Create(command.Local);
                     break;
                 }
                 case LessonEquationCommandType.Update:
                 {
                     await Update(
-                        command.Existing.EditUri,
-                        command.All);
+                        command.Remote.EditUri,
+                        command.Local);
                     break;
                 }
                 case LessonEquationCommandType.Delete:
                 {
-                    await HandleExtraLesson(command.Existing);
+                    await HandleExtraLesson(command.Remote);
                     break;
                 }
                 default:

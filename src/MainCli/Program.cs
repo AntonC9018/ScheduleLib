@@ -7,6 +7,7 @@ using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
 using OnlineRegistry.AttendanceExcel;
+using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -44,7 +45,7 @@ var schedule = await Tasks.LoadSchedule(
     context: context,
     scheduleSourcesDir: scheduleSourcesDir,
     serializedSchedulePath: serializedSchedulePath,
-    bypassCache: true,
+    bypassCache: false,
     beforeEndAction: static context =>
     {
         // TODO: This is not included in the hash
@@ -76,8 +77,7 @@ var options = new Option[]
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    Option.UploadDocsToDrive,
-    // Option.CreateLessonsInRegistry,
+    Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
     // Option.JsonSchedulesForWebsite,
     // Option.CopyGradesFromMoodleToRegistry,
@@ -152,7 +152,7 @@ switch (option)
             CourseNameUnifier = context.CourseNameUnifierModule,
             GroupParseContext = context.Schedule.GroupParseContext!,
             LookupModule = context.Schedule.LookupModule!,
-
+            EquationCommandsDerivation = new AnyDayDerivation(),
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
             ProcessingFlags = CommandProcessingConfig.Process
@@ -282,6 +282,27 @@ switch (option)
             cancellationToken);
         break;
     }
+    // case Option.Query:
+    // {
+    //     var res = schedule.RegularLessons
+    //         .Where(x =>
+    //             x.Date.TimeSlot == context.TimeConfig.FindTimeSlotByStartTime(new TimeOnly(hour: 16, minute: 45))
+    //             && x.Date.DayOfWeek == DayOfWeek.Wednesday)
+    //         .Where(x =>
+    //             x.Lesson.Room.Id == "350/4")
+    //         .Where(x =>
+    //             x.Date.Period == schedule.LatestPeriodId())
+    //         .Select(x => new
+    //             {
+    //                 x,
+    //                 teacher = schedule.Get(x.Lesson.Teachers[0]),
+    //             })
+    //         .ToArray();
+    //
+    //     var t = res;
+    //     _ = t;
+    //     break;
+    // }
 }
 
 }
