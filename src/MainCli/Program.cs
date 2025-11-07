@@ -133,8 +133,8 @@ switch (option)
             config,
             allowUserInput: true);
 
-        var attendance = GetAttendanceListOfCurrentTeacher();
-        // var attendance = new AllStudentAttendanceListBuilder().Build();
+        // var attendance = GetAttendanceListOfCurrentTeacher();
+        var attendance = new AllStudentAttendanceListBuilder().Build();
 
         using var registryContext = await RegistryScrapingContext.Create(
             credentials: credentials,

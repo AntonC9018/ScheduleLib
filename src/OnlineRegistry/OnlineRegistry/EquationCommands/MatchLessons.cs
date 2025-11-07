@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ScheduleLib.Builders;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -44,24 +45,26 @@ internal static class MatchLessonHelper
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
+
+            if (lesson.Lesson.SubGroup != p.SubGroup)
+            {
+                continue;
+            }
+
             if (p.Groups.IsWildcard)
             {
-                if (!lesson.Lesson.Groups.IsSetEquals(p.Groups.Value))
+                if (!p.Groups.Value.IsSubSetOf(lesson.Lesson.Groups))
                 {
                     continue;
                 }
             }
             else
             {
+                Debug.Assert(p.Groups.Value.IsSingleGroup);
                 if (!lesson.Lesson.Groups.Contains(p.Groups.Value[0]))
                 {
                     continue;
                 }
-            }
-
-            if (lesson.Lesson.SubGroup != p.SubGroup)
-            {
-                continue;
             }
 
             yield return lessonId;

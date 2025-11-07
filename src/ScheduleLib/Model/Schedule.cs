@@ -118,8 +118,7 @@ public record struct RegularLessonDate()
     public required PeriodId Period;
 }
 
-public record struct OneTimeLessonDate
-{
+public record struct OneTimeLessonDate {
     public required DateOnly Date;
     public required TimeSlot TimeSlot;
 }
@@ -200,7 +199,7 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
     public readonly LessonGroups Ordered()
     {
         var copy = this;
-        var span = MemoryMarshal.CreateSpan(ref copy._impl._value, LessonGroupsImpl._Capacity);
+        var span = MemoryMarshal.CreateSpan(ref copy._impl._value, Count);
         span.Sort((a, b) => a.Value - b.Value);
         return copy;
     }
@@ -294,6 +293,18 @@ public static class LessonGroupsHelper
         foreach (var groupId in b)
         {
             if (!a.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static bool IsSubSetOf(this in LessonGroups a, in LessonGroups b)
+    {
+        foreach (var groupId in a)
+        {
+            if (!b.Contains(groupId))
             {
                 return false;
             }
@@ -554,5 +565,26 @@ public static class ScheduleAccessorHelper
     {
         return new(schedule.RegularLessons);
     }
+
+    // TODO: Move this to cached service
+    public static SubGroupsByGroup SubGroupsByGroup(this Schedule schedule)
+    {
+        var result = new SubGroupsByGroup();
+        foreach (var lesson in schedule.RegularLessons)
+        {
+            var groupId = lesson.Lesson.Group;
+            if (!result.TryGetValue(groupId, out var subGroups))
+            {
+                subGroups = new HashSet<SubGroup>();
+                result[groupId] = subGroups;
+            }
+            subGroups.Add(lesson.Lesson.SubGroup);
+        }
+        return result;
+    }
+}
+
+public sealed class SubGroupsByGroup : Dictionary<GroupId, HashSet<SubGroup>>
+{
 }
 

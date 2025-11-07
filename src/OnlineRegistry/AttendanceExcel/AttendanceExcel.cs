@@ -322,6 +322,7 @@ public static class AttendanceExcel
                     lessonType: lesson.Lesson.Type);
             }
 
+            if (!lesson.Lesson.Groups.IsSingleGroup)
             {
                 builder.List(
                     Key(lesson.Lesson.Groups),

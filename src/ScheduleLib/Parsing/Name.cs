@@ -193,7 +193,7 @@ public static class NameHelper
 
         ret.FirstName[0] = ParseNamePart(ref parser, "No first name");
 
-        parser.SkipWhitespace();
+        // parser.SkipWhitespace();
         if (parser.IsEmpty)
         {
             return new(ret);
@@ -206,6 +206,8 @@ public static class NameHelper
         parser.SkipWhitespace();
         IgnoreParenthesizedText(ref parser);
 
+        // Sometimes an empty patronymic is just -
+        parser.Skip(new SkipPatronymicOrWhitespaceImpl());
         if (parser.IsEmpty)
         {
             return new(ret);
@@ -274,6 +276,22 @@ public static class NameHelper
             var ret = parser.PeekSpanUntilPosition(bparser.Position).ToString();
             parser.MoveTo(bparser.Position);
             return new(ret);
+        }
+    }
+
+    private struct SkipPatronymicOrWhitespaceImpl : IShouldSkip
+    {
+        public bool ShouldSkip(char ch)
+        {
+            if (ch == '-')
+            {
+                return true;
+            }
+            if (char.IsWhiteSpace(ch))
+            {
+                return true;
+            }
+            return false;
         }
     }
 

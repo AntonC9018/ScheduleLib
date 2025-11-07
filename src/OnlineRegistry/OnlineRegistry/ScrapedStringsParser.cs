@@ -35,15 +35,11 @@ public static partial class RegistryScraping
         var year = ParseYear(ref mainParser);
 
         bool isWildcard = false;
-        var subGroup = ReadOnlyMemory<char>.Empty;
         uint? groupNumber = null;
-        if (mainParser.ConsumeExactChar('('))
+        var subGroup = ParseSubGroup(ref mainParser);
+        if (!subGroup.IsEmpty)
         {
-            subGroup = ParseSubGroup(ref mainParser);
-            if (!mainParser.ConsumeExactChar(')'))
-            {
-                JustThrow("wildcard group");
-            }
+            isWildcard = true;
         }
         else
         {
@@ -71,6 +67,7 @@ public static partial class RegistryScraping
 
         return new()
         {
+            UnparsedName = s,
             Grade = grade,
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
@@ -80,6 +77,7 @@ public static partial class RegistryScraping
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
+            Language = languageOrFR.Language,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
@@ -223,12 +221,14 @@ internal record struct LanguageOrFR
 
 internal struct GroupForSearch
 {
+    public required string UnparsedName;
     public required AttendanceMode AttendanceMode;
     public required Grade Grade;
     public required int? GroupNumber;
     public required ReadOnlyMemory<char> FacultyName;
     public required QualificationType QualificationType;
     public required ReadOnlyMemory<char> SubGroupName;
+    public required Language? Language;
     public required bool IsRepeat;
     public required bool IsWildcard;
 }

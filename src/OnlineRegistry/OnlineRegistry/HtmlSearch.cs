@@ -138,28 +138,18 @@ internal static class HtmlSearch
                 {
                     continue;
                 }
-                if (groupForSearch.IsWildcard && groups.Count > 0)
+                if (groupForSearch.IsWildcard && groups.Count == 0)
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
+                subGroup = SubGroupFromString(groupForSearch);
                 groupUri = new Uri(url);
-                subGroup = SubGroup();
                 foundGroups = new()
                 {
                     Value = groups,
                     IsWildcard = groupForSearch.IsWildcard,
                 };
 
-                SubGroup SubGroup()
-                {
-                    string? subgroupName = null;
-                    if (!groupForSearch.SubGroupName.IsEmpty)
-                    {
-                        subgroupName = groupForSearch.SubGroupName.ToString();
-                    }
-                    var subgroup = new SubGroup(subgroupName);
-                    return subgroup;
-                }
             }
 
             Uri evaluationUri;
@@ -175,6 +165,17 @@ internal static class HtmlSearch
                 groups: foundGroups,
                 subGroup: subGroup);
         }
+    }
+
+    internal static SubGroup SubGroupFromString(in GroupForSearch groupForSearch)
+    {
+        string? subgroupName = null;
+        if (!groupForSearch.SubGroupName.IsEmpty)
+        {
+            subgroupName = groupForSearch.SubGroupName.ToString();
+        }
+        var subgroup = new SubGroup(subgroupName);
+        return subgroup;
     }
 
     internal static Uri ScanForLessonAddLink(IDocument doc)

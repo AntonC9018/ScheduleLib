@@ -16602,103 +16602,136 @@
   ],
   "Groups": [
     {
-      "Name": "SMMSPA2401"
+      "Name": "SMMSPA2401",
+      "Language": "Ro"
     },
     {
-      "Name": "PMS2401"
+      "Name": "PMS2401",
+      "Language": "Ro"
     },
     {
-      "Name": "MIA2401"
+      "Name": "MIA2401",
+      "Language": "Ro"
     },
     {
-      "Name": "MIA2402"
+      "Name": "MIA2402",
+      "Language": "Ru"
     },
     {
-      "Name": "IASD2401"
+      "Name": "IASD2401",
+      "Language": "Ro"
     },
     {
-      "Name": "M2401"
+      "Name": "M2401",
+      "Language": "Ro"
     },
     {
-      "Name": "I2401"
+      "Name": "I2401",
+      "Language": "Ro"
     },
     {
-      "Name": "IA2401"
+      "Name": "IA2401",
+      "Language": "Ro"
     },
     {
-      "Name": "IA2402"
+      "Name": "IA2402",
+      "Language": "Ro"
     },
     {
-      "Name": "I2402"
+      "Name": "I2402",
+      "Language": "Ru"
     },
     {
-      "Name": "IA2403"
+      "Name": "IA2403",
+      "Language": "Ru"
     },
     {
-      "Name": "IA2404"
+      "Name": "IA2404",
+      "Language": "Ru"
     },
     {
-      "Name": "DJ2401"
+      "Name": "DJ2401",
+      "Language": "Ro"
     },
     {
-      "Name": "DJ2402"
+      "Name": "DJ2402",
+      "Language": "Ru"
     },
     {
-      "Name": "M2301"
+      "Name": "M2301",
+      "Language": "Ro"
     },
     {
-      "Name": "I2301"
+      "Name": "I2301",
+      "Language": "Ro"
     },
     {
-      "Name": "IA2301"
+      "Name": "IA2301",
+      "Language": "Ro"
     },
     {
-      "Name": "IA2302"
+      "Name": "IA2302",
+      "Language": "Ro"
     },
     {
-      "Name": "I2302"
+      "Name": "I2302",
+      "Language": "Ru"
     },
     {
-      "Name": "IA2303"
+      "Name": "IA2303",
+      "Language": "Ru"
     },
     {
-      "Name": "IA2304"
+      "Name": "IA2304",
+      "Language": "Ru"
     },
     {
-      "Name": "DJ2301"
+      "Name": "DJ2301",
+      "Language": "Ro"
     },
     {
-      "Name": "DJ2302"
+      "Name": "DJ2302",
+      "Language": "Ru"
     },
     {
-      "Name": "DJ2303"
+      "Name": "DJ2303",
+      "Language": "Ru"
     },
     {
-      "Name": "M2201"
+      "Name": "M2201",
+      "Language": "Ro"
     },
     {
-      "Name": "I2201"
+      "Name": "I2201",
+      "Language": "Ro"
     },
     {
-      "Name": "IA2201"
+      "Name": "IA2201",
+      "Language": "Ro"
     },
     {
-      "Name": "I2202"
+      "Name": "I2202",
+      "Language": "Ru"
     },
     {
-      "Name": "IA2202"
+      "Name": "IA2202",
+      "Language": "Ru"
     },
     {
-      "Name": "DJ2201"
+      "Name": "DJ2201",
+      "Language": "Ro"
     },
     {
-      "Name": "DJ2202"
+      "Name": "DJ2202",
+      "Language": "Ro"
     },
     {
-      "Name": "DJ2203"
+      "Name": "DJ2203",
+      "Language": "Ru"
     },
     {
-      "Name": "DJ2204"
+      "Name": "DJ2204",
+      "Language": "Ru"
     }
   ],
   "Teachers": [

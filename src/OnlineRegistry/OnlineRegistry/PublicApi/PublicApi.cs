@@ -1,14 +1,10 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
-using ScheduleLib.OnlineRegistry.Impl;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
@@ -109,6 +105,7 @@ public sealed class GroupsNavigator
     private readonly OnlineRegistryNavigator _navigator;
     private readonly Schedule _schedule;
     private readonly GroupParseContext _groupParseContext;
+    private readonly SubGroupsByGroup _subGroupsMap;
 
     public GroupsNavigator(
         OnlineRegistryNavigator navigator,
@@ -118,6 +115,7 @@ public sealed class GroupsNavigator
         _navigator = navigator;
         _schedule = schedule;
         _groupParseContext = groupParseContext;
+        _subGroupsMap = _schedule.SubGroupsByGroup();
     }
 
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
@@ -129,12 +127,12 @@ public sealed class GroupsNavigator
             GroupParseContext = _groupParseContext,
             SearchGroupId = (in GroupForSearch group) =>
             {
-                var ids = RegistryScraping.FindGroupMatch(_schedule, group);
+                var ids = RegistryScraping.FindGroupMatch(_schedule, _subGroupsMap, group);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
                     // TODO: Do this better
-                    _navigator.ErrorHandler.GroupNotFound($"{group.FacultyName}{group.GroupNumber}{group.SubGroupName}");
+                    _navigator.ErrorHandler.GroupNotFound(group.UnparsedName.Trim());
                 }
                 return ids;
             },
@@ -266,6 +264,7 @@ public static partial class RegistryScraping
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
                     ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
+                    // TODO: Should work for any subset of the groups, currently it does not.
                     var key = new AttendanceLookupKey(
                         groups: group.Groups,
                         subGroup: group.SubGroup,
@@ -539,11 +538,23 @@ public static partial class RegistryScraping
         }
     }
 
-    internal static LessonGroups FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    internal static LessonGroups FindGroupMatch(
+        Schedule schedule,
+        SubGroupsByGroup subGroupsMap,
+        in GroupForSearch g)
     {
         var ret = new LessonGroups();
+        // TODO: reuse
+        // var subGroup = HtmlSearch.SubGroupFromString(g);
         foreach (var g1 in schedule.EnumerateGroups())
         {
+            // if (subGroup != SubGroup.All)
+            // {
+            //     if (!subGroupsMap[g1.Id].Contains(subGroup))
+            //     {
+            //         continue;
+            //     }
+            // }
             if (IsMatch(g1.Item, g))
             {
                 ret.Add(g1.Id);
@@ -562,7 +573,8 @@ public static partial class RegistryScraping
             return false;
         }
 
-        if (a.GroupNumber != b.GroupNumber)
+        if (b.GroupNumber is { } num
+            && num != a.GroupNumber)
         {
             return false;
         }
@@ -580,6 +592,14 @@ public static partial class RegistryScraping
         if (a.Grade != b.Grade)
         {
             return false;
+        }
+
+        if (b.Language is { } language)
+        {
+            if (a.Language != language)
+            {
+                return false;
+            }
         }
 
         return true;

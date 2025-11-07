@@ -29,7 +29,10 @@ public static class ScheduleSerializer
         Stream inputFile,
         CancellationToken cancellationToken)
     {
-        var model = await JsonSerializer.DeserializeAsync<SerializationModels.ScheduleModel>(inputFile, SerializerOptions, cancellationToken);
+        var model = await JsonSerializer.DeserializeAsync<SerializationModels.ScheduleModel>(
+            inputFile,
+            SerializerOptions,
+            cancellationToken);
         if (model is null)
         {
             throw new InvalidDataException("Could not deserialize schedule");
@@ -63,6 +66,7 @@ public static class ScheduleSerializer
         options.Converters.Add(new NamePartsJsonConverter<string>());
         options.Converters.Add(new DateOnlyJsonConverter());
         options.Converters.Add(new SingleValueWrapperConverterFactory());
+        options.Converters.Add(new JsonStringEnumConverter<Language>());
         options.Converters.Add(new UserDefinedTypeConverterFactory());
         var textEncoder = new TextEncoderSettings();
         textEncoder.AllowRanges(
@@ -100,6 +104,7 @@ public static class SerializationModels
     public sealed class GroupModel
     {
         public required string Name { get; set; }
+        public required Language Language { get; set; }
     }
 
     public sealed class PersonModel
@@ -150,6 +155,7 @@ public static class SerializationModels
         var groups = schedule.Groups.Select(g => new GroupModel
         {
             Name = g.Name,
+            Language = g.Language,
         }).ToImmutableArray();
 
         var teachers = schedule.Teachers.Select(t => new PersonModel
@@ -199,7 +205,8 @@ public static class SerializationModels
         Debug.Assert(builder.Groups.Count == 0);
         foreach (var s in schedule.Groups)
         {
-            builder.Group(s.Name);
+            var g = builder.Group(s.Name);
+            g.Ref.Language = s.Language;
         }
 
         Debug.Assert(builder.Periods.Count == 0);

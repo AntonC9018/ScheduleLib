@@ -89,20 +89,11 @@ public static class Tasks
                 {
                 });
 
+            var subGroupsMap = p.Schedule.SubGroupsByGroup();
+
             foreach (var g in p.Schedule.EnumerateGroups())
             {
-                // Enumerating all lessons twice - fix
-                var subgroups = new HashSet<SubGroup>();
-                foreach (var l in p.Schedule.EnumerateLessons())
-                {
-                    ref var lesson = ref l.Item.Lesson;
-                    if (lesson.Groups.Contains(g.Id))
-                    {
-                        subgroups.Add(lesson.SubGroup);
-                    }
-                }
-
-                foreach (var subgroup in subgroups)
+                foreach (var subgroup in subGroupsMap[g.Id])
                 {
                     var t = Task.Run(() =>
                     {
