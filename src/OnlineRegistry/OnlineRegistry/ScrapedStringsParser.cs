@@ -10,6 +10,9 @@ public static partial class RegistryScraping
     // DJ2302ru(II)
     // DJ2301
     // IA2401fr
+
+    // wildcard syntax:
+    // IA24(GA2D)ru
     internal static GroupForSearch ParseGroupFromOnlineRegistry(
         GroupParseContext context,
         string s)
@@ -28,18 +31,31 @@ public static partial class RegistryScraping
             mainParser.SkipWhitespace();
         }
 
-        var bparser = mainParser.BufferedView();
+        var label = ParseLabel(ref mainParser);
+        var year = ParseYear(ref mainParser);
 
-        var label = ParseLabel(ref bparser);
-        var year = ParseYear(ref bparser);
-        var groupNumber = ParseGroupNumber(ref bparser);
-        var nameWithoutFR = mainParser.PeekSpanUntilPosition(bparser.Position);
-        _ = nameWithoutFR;
-
-        mainParser.MoveTo(bparser.Position);
+        bool isWildcard = false;
+        var subGroup = ReadOnlyMemory<char>.Empty;
+        uint? groupNumber = null;
+        if (mainParser.ConsumeExactChar('('))
+        {
+            subGroup = ParseSubGroup(ref mainParser);
+            if (!mainParser.ConsumeExactChar(')'))
+            {
+                JustThrow("wildcard group");
+            }
+        }
+        else
+        {
+            groupNumber = ParseGroupNumber(ref mainParser);
+        }
 
         var languageOrFR = ParseLanguageOrFR(ref mainParser);
-        var subGroup = ParseSubGroup(ref mainParser);
+
+        if (!isWildcard)
+        {
+            subGroup = ParseSubGroup(ref mainParser);
+        }
         if (ParseFR(ref mainParser))
         {
             languageOrFR.FR = true;
@@ -57,12 +73,13 @@ public static partial class RegistryScraping
         {
             Grade = grade,
             FacultyName = label,
-            GroupNumber = (int) groupNumber,
+            GroupNumber = (int?) groupNumber,
             // Don't have precedents for master yet.
             QualificationType = QualificationType.Licenta,
             AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
+            IsWildcard = isWildcard,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
@@ -208,9 +225,10 @@ internal struct GroupForSearch
 {
     public required AttendanceMode AttendanceMode;
     public required Grade Grade;
-    public required int GroupNumber;
+    public required int? GroupNumber;
     public required ReadOnlyMemory<char> FacultyName;
     public required QualificationType QualificationType;
     public required ReadOnlyMemory<char> SubGroupName;
     public required bool IsRepeat;
+    public required bool IsWildcard;
 }

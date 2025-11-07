@@ -11,6 +11,10 @@ public static class EnumerableHelper
     {
         return !source.Any(pred);
     }
+    public static bool None<T>(this IEnumerable<T> source)
+    {
+        return !source.Any();
+    }
 
     public static IEnumerable<Indexed<T>> WithIndex<T>(this IEnumerable<T> source)
     {

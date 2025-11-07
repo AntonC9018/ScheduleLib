@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ScheduleLib;
 
@@ -196,6 +197,14 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
     IEnumerator<GroupId> IEnumerable<GroupId>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    public readonly LessonGroups Ordered()
+    {
+        var copy = this;
+        var span = MemoryMarshal.CreateSpan(ref copy._impl._value, LessonGroupsImpl._Capacity);
+        span.Sort((a, b) => a.Value - b.Value);
+        return copy;
+    }
+
     public struct Enumerator : IEnumerator<GroupId>
     {
         private readonly LessonGroups _groups;
@@ -258,6 +267,41 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
     public static bool operator!=(in LessonGroups a, in LessonGroups b) => !(a == b);
 }
 
+public static class LessonGroupsHelper
+{
+    // TODO: reuse sb
+    public static string ToString(this in LessonGroups groups, Schedule schedule)
+    {
+        StringBuilder groupName = new();
+        var groupList = new ListStringBuilder(groupName, ", ");
+        foreach (var groupId in groups)
+        {
+            var name = schedule.Get(groupId).Name;
+            groupList.Append(name);
+        }
+        return groupName.ToString();
+    }
+
+    public static bool IsSetEquals(this in LessonGroups a, in LessonGroups b)
+    {
+        foreach (var groupId in a)
+        {
+            if (!b.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        foreach (var groupId in b)
+        {
+            if (!a.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 public readonly record struct CourseId(int Id)
 {
     public static CourseId Invalid => new(-1);
@@ -275,6 +319,7 @@ public struct Course
 
 public struct LessonData()
 {
+    // Always ordered with .Ordered()
     public required LessonGroups Groups;
 
     public required CourseId Course;

@@ -14,11 +14,25 @@ public readonly struct GetDateTimesOfScheduledLessonsParams
 
 internal readonly record struct LessonMatchParams
 {
-    public required CourseId CourseId { get; init; }
-    public required GroupId GroupId { get; init; }
-    public required SubGroup SubGroup { get; init; }
-    public required LessonsByCourseMap Lookup { get; init; }
-    public required Schedule Schedule { get; init; }
+    public readonly CourseId CourseId;
+    public readonly FoundGroups Groups;
+    public readonly SubGroup SubGroup;
+    public readonly LessonsByCourseMap Lookup;
+    public readonly Schedule Schedule;
+
+    public LessonMatchParams(
+        CourseId courseId,
+        FoundGroups groups,
+        SubGroup subGroup,
+        LessonsByCourseMap lookup,
+        Schedule schedule)
+    {
+        CourseId = courseId;
+        Groups = groups;
+        SubGroup = subGroup;
+        Lookup = lookup;
+        Schedule = schedule;
+    }
 }
 
 
@@ -30,10 +44,21 @@ internal static class MatchLessonHelper
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
-            if (!lesson.Lesson.Groups.Contains(p.GroupId))
+            if (p.Groups.IsWildcard)
             {
-                continue;
+                if (!lesson.Lesson.Groups.IsSetEquals(p.Groups.Value))
+                {
+                    continue;
+                }
             }
+            else
+            {
+                if (!lesson.Lesson.Groups.Contains(p.Groups.Value[0]))
+                {
+                    continue;
+                }
+            }
+
             if (lesson.Lesson.SubGroup != p.SubGroup)
             {
                 continue;

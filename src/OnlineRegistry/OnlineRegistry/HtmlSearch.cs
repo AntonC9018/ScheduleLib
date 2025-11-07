@@ -16,10 +16,22 @@ public readonly record struct CourseLink(
 
 public readonly record struct GroupLink
 {
-    public required GroupId GroupId { get; init; }
-    public required SubGroup SubGroup { get; init; }
-    public required Uri Uri { get; init; }
-    public required Uri EvaluationUri { get; init; }
+    public readonly FoundGroups Groups;
+    public readonly SubGroup SubGroup;
+    public readonly Uri Uri;
+    public readonly Uri EvaluationUri;
+
+    public GroupLink(
+        in FoundGroups groups,
+        SubGroup subGroup,
+        Uri uri,
+        Uri evaluationUri)
+    {
+        Groups = groups;
+        SubGroup = subGroup;
+        Uri = uri;
+        EvaluationUri = evaluationUri;
+    }
 }
 
 public readonly record struct RemoteLessonInstance : IDateTime
@@ -46,7 +58,7 @@ internal readonly struct ScanGroupsParams
     public required SearchGroupId SearchGroupId { get; init; }
 }
 
-internal delegate GroupId SearchGroupId(in GroupForSearch group);
+internal delegate LessonGroups SearchGroupId(in GroupForSearch group);
 
 
 internal readonly struct ScanLessonsParams
@@ -110,7 +122,7 @@ internal static class HtmlSearch
 
             Uri groupUri;
             SubGroup subGroup;
-            GroupId groupId;
+            FoundGroups foundGroups;
             {
                 var anchor = urls[0];
                 var url = anchor.Href;
@@ -121,13 +133,22 @@ internal static class HtmlSearch
                     // Not handling this yet.
                     continue;
                 }
-                groupId = p.SearchGroupId(groupForSearch);
-                if (groupId == GroupId.Invalid)
+                var groups = p.SearchGroupId(groupForSearch);
+                if (groups.Count == 0)
                 {
                     continue;
                 }
+                if (groupForSearch.IsWildcard && groups.Count > 0)
+                {
+                    throw new InvalidOperationException("Must match a single group if not wildcard.");
+                }
                 groupUri = new Uri(url);
                 subGroup = SubGroup();
+                foundGroups = new()
+                {
+                    Value = groups,
+                    IsWildcard = groupForSearch.IsWildcard,
+                };
 
                 SubGroup SubGroup()
                 {
@@ -148,14 +169,11 @@ internal static class HtmlSearch
                 evaluationUri = new Uri(url);
             }
 
-
-            yield return new()
-            {
-                Uri = groupUri,
-                EvaluationUri = evaluationUri,
-                GroupId = groupId,
-                SubGroup = subGroup,
-            };
+            yield return new(
+                uri: groupUri,
+                evaluationUri: evaluationUri,
+                groups: foundGroups,
+                subGroup: subGroup);
         }
     }
 

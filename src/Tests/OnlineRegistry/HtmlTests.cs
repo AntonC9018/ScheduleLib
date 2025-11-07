@@ -74,7 +74,7 @@ public sealed class HtmlTests
             SearchGroupId = (in GroupForSearch g) =>
             {
                 groups.Add(g);
-                return new(groups.Count);
+                return [new(groups.Count)];
             },
         }).ToArray();
 

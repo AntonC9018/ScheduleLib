@@ -207,6 +207,8 @@ public readonly struct StudentAttendanceList
 
     public NamesInDb StudentNames(StudentsLookupKey key)
     {
+        key = key.WithGroups(key.Groups.Ordered());
+
         if (_map.TryGetValue(key, out var list))
         {
             return list.StudentNames;
@@ -216,13 +218,11 @@ public readonly struct StudentAttendanceList
 
     public ImmutableArray<Attendance> Get(AttendanceLookupKey key)
     {
-        var attendanceKey = new StudentsLookupKey
-        {
-            CourseId = key.CourseId,
-            GroupId = key.GroupId,
-            SubGroup = key.SubGroup,
-            LessonType = key.LessonType,
-        };
+        var attendanceKey = new StudentsLookupKey(
+            courseId: key.CourseId,
+            groups: key.Groups.Value.Ordered(),
+            subGroup: key.SubGroup,
+            lessonType: key.LessonType);
         if (_map.TryGetValue(attendanceKey, out var list)
             && key.DayIndex < list.Attendance.Length)
         {

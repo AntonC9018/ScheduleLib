@@ -1,6 +1,8 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -127,13 +129,14 @@ public sealed class GroupsNavigator
             GroupParseContext = _groupParseContext,
             SearchGroupId = (in GroupForSearch group) =>
             {
-                var id = RegistryScraping.FindGroupMatch(_schedule, group);
-                if (id == GroupId.Invalid)
+                var ids = RegistryScraping.FindGroupMatch(_schedule, group);
+                // ReSharper disable once PossibleMultipleEnumeration
+                if (ids.Count == 0)
                 {
                     // TODO: Do this better
                     _navigator.ErrorHandler.GroupNotFound($"{group.FacultyName}{group.GroupNumber}{group.SubGroupName}");
                 }
-                return id;
+                return ids;
             },
         });
         return ret;
@@ -235,14 +238,12 @@ public static partial class RegistryScraping
                 {
                     continue;
                 }
-                var lessons = MatchLessonHelper.MatchLessonsInSchedule(new()
-                {
-                    Lookup = p.LookupModule.LessonsByCourse,
-                    Schedule = p.Schedule,
-                    CourseId = courseLink.CourseId,
-                    GroupId = group.GroupId,
-                    SubGroup = group.SubGroup,
-                });
+                var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
+                    lookup: p.LookupModule.LessonsByCourse,
+                    schedule: p.Schedule,
+                    courseId: courseLink.CourseId,
+                    groups: group.Groups,
+                    subGroup: group.SubGroup));
 
                 // Figure out the exact dates the lessons will occur on.
                 var lessonsWithTimes = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
@@ -265,40 +266,34 @@ public static partial class RegistryScraping
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
                     ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
-                    var key = new AttendanceLookupKey
-                    {
-                        GroupId = group.GroupId,
-                        SubGroup = group.SubGroup,
-                        CourseId = courseId,
-                        LessonType = lessonType,
-                        DayIndex = attendanceIndex,
-                        DateTime = x.DateTime,
-                    };
+                    var key = new AttendanceLookupKey(
+                        groups: group.Groups,
+                        subGroup: group.SubGroup,
+                        courseId: courseId,
+                        lessonType: lessonType,
+                        dayIndex: attendanceIndex,
+                        dateTime: x.DateTime);
                     var attendance = p.Attendance.Get(key);
 
                     ref var remapHelper = ref remapHelpers[(int) lessonType];
                     if (attendanceIndex == 0)
                     {
-                        var studentNames = p.Attendance.StudentNames(new()
-                        {
-                            CourseId = courseLink.CourseId,
-                            GroupId = group.GroupId,
-                            SubGroup = group.SubGroup,
-                            LessonType = lessonType,
-                        });
+                        var studentNames = p.Attendance.StudentNames(new(
+                            courseId: courseLink.CourseId,
+                            groups: group.Groups.Value,
+                            subGroup: group.SubGroup,
+                            lessonType: lessonType));
                         remapHelper = StudentNameRemapHelper.Create(
                             namesInHtml: scanResult.Students,
                             namesInDb: studentNames,
                             outNotFoundIndices: notFoundStudents);
                         if (notFoundStudents.Count != 0)
                         {
-                            p.ErrorHandler.StudentsNotInDbButInRegistry(new()
-                            {
-                                Students = notFoundStudents,
-                                Schedule = p.Schedule,
-                                GroupId = group.GroupId,
-                                LessonId = x.LessonId,
-                            });
+                            p.ErrorHandler.StudentsNotInDbButInRegistry(new(
+                                students: notFoundStudents,
+                                schedule: p.Schedule,
+                                groups: group.Groups,
+                                lessonId: x.LessonId));
                             notFoundStudents.Clear();
                         }
                     }
@@ -345,7 +340,7 @@ public static partial class RegistryScraping
 
                     void Log1()
                     {
-                        Log(command, courseLink.CourseId, group.GroupId);
+                        Log(command, courseLink.CourseId, group.Groups);
                     }
                 }
             }
@@ -356,7 +351,7 @@ public static partial class RegistryScraping
         void Log(
             LessonEquationCommand command,
             CourseId courseId,
-            GroupId groupId)
+            in FoundGroups groups)
         {
             var commandName = command.Type switch
             {
@@ -369,10 +364,10 @@ public static partial class RegistryScraping
             var lessonType = command.HasAll
                 ? p.Schedule.Get(command.Local.LessonId).Lesson.Type
                 : command.Remote.LessonType;
-            var groupName = p.Schedule.Get(groupId).Name;
             var dateString = date.ToString("dd.MM.yy");
             var course = p.Schedule.Get(courseId);
             var lessonName = course.FullName;
+            var groupName = groups.Value.ToString(p.Schedule);
             Console.WriteLine($"{commandName}: {dateString} - {lessonName} ({groupName} {lessonType})");
         }
 
@@ -500,18 +495,6 @@ public static partial class RegistryScraping
             cancellationToken);
     }
 
-    [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-    internal static async Task<IDocument> GetHtml(
-        this RegistryScrapingContext context,
-        Uri uri,
-        CancellationToken cancellationToken)
-    {
-        var document = await context.Browser.OpenAsync(
-            address: uri.ToString(),
-            cancellationToken);
-        return document;
-    }
-
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
     {
         b.Delay(TimeSpan.FromSeconds(0.5));
@@ -556,18 +539,17 @@ public static partial class RegistryScraping
         }
     }
 
-    internal static GroupId FindGroupMatch(Schedule schedule, in GroupForSearch g)
+    internal static LessonGroups FindGroupMatch(Schedule schedule, in GroupForSearch g)
     {
-        var groups = schedule.Groups;
-        for (int i = 0; i < groups.Length; i++)
+        var ret = new LessonGroups();
+        foreach (var g1 in schedule.EnumerateGroups())
         {
-            var group = groups[i];
-            if (IsMatch(group, g))
+            if (IsMatch(g1.Item, g))
             {
-                return new(i);
+                ret.Add(g1.Id);
             }
         }
-        return GroupId.Invalid;
+        return ret;
     }
 
     private static bool IsMatch(Group a, in GroupForSearch b)
@@ -607,22 +589,59 @@ public static partial class RegistryScraping
 
 public readonly record struct StudentsLookupKey
 {
-    public required GroupId GroupId { get; init; }
-    public required SubGroup SubGroup { get; init; }
-    public required CourseId CourseId { get; init; }
-    public required LessonType LessonType { get; init; }
+    public readonly LessonGroups Groups;
+    public readonly SubGroup SubGroup;
+    public readonly CourseId CourseId;
+    public readonly LessonType LessonType;
+
+    public StudentsLookupKey(
+        in LessonGroups groups,
+        SubGroup subGroup,
+        CourseId courseId,
+        LessonType lessonType)
+    {
+        Groups = groups;
+        SubGroup = subGroup;
+        CourseId = courseId;
+        LessonType = lessonType;
+    }
+
+    public StudentsLookupKey WithGroups(in LessonGroups g)
+    {
+        return new StudentsLookupKey(
+            g,
+            SubGroup,
+            CourseId,
+            LessonType);
+    }
 }
 
 public readonly record struct AttendanceLookupKey
 {
-    public required GroupId GroupId { get; init; }
-    public required SubGroup SubGroup { get; init; }
-    public required CourseId CourseId { get; init; }
-    public required LessonType LessonType { get; init; }
+    public readonly FoundGroups Groups;
+    public readonly SubGroup SubGroup;
+    public readonly CourseId CourseId;
+    public readonly LessonType LessonType;
 
     // The program may use any of this info to get the right data.
-    public required int DayIndex { get; init; }
-    public required DateTime DateTime { get; init; }
+    public readonly int DayIndex;
+    public readonly DateTime DateTime;
+
+    public AttendanceLookupKey(
+        FoundGroups groups,
+        SubGroup subGroup,
+        CourseId courseId,
+        LessonType lessonType,
+        int dayIndex,
+        DateTime dateTime)
+    {
+        Groups = groups;
+        SubGroup = subGroup;
+        CourseId = courseId;
+        LessonType = lessonType;
+        DayIndex = dayIndex;
+        DateTime = dateTime;
+    }
 }
 
 public readonly struct CommandProcessingConfig
@@ -730,4 +749,10 @@ public readonly struct CommandProcessingConfig
 file struct ValueForEachLessonType<T>
 {
     private T _items;
+}
+
+public record struct FoundGroups
+{
+    public required bool IsWildcard;
+    public required LessonGroups Value;
 }

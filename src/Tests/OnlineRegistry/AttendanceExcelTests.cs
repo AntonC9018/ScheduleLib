@@ -44,7 +44,7 @@ public sealed class AttendanceExcelTests
         {
             Course = schedule.Get(x.Key.CourseId).FullName,
             x.Key.LessonType,
-            Group = schedule.Get(x.Key.GroupId).Name,
+            Group = schedule.Get(x.Key.Groups[0]).Name,
             SubGroup = x.Key.SubGroup.Value,
             StudentNames = x.Value.StudentNames
                 .OrderBy(y => y.Value)

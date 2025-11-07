@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -10,10 +11,22 @@ public interface IRegistryLessonParserErrorHandler
 
 public readonly struct StudentsInGroup
 {
-    public required IEnumerable<Name> Students { get; init; }
-    public required Schedule Schedule { get; init; }
-    public required RegularLessonId LessonId { get; init; }
-    public required GroupId GroupId { get; init; }
+    public readonly IEnumerable<Name> Students;
+    public readonly Schedule Schedule;
+    public readonly RegularLessonId LessonId;
+    public readonly FoundGroups Groups;
+
+    public StudentsInGroup(
+        IEnumerable<Name> students,
+        Schedule schedule,
+        FoundGroups groups,
+        RegularLessonId lessonId)
+    {
+        Students = students;
+        Schedule = schedule;
+        Groups = groups;
+        LessonId = lessonId;
+    }
 }
 
 public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
@@ -48,7 +61,7 @@ public sealed class RegistryErrorLogger : IRegistryErrorHandler
     public void StudentsNotInDbButInRegistry(StudentsInGroup students)
     {
         {
-            var groupName = students.Schedule.Get(students.GroupId).Name;
+            var groupName = students.Groups.Value.ToString(students.Schedule);
             var lesson = students.Schedule.Get(students.LessonId);
             var lessonType = lesson.Lesson.Type;
             var course = students.Schedule.Get(lesson.Lesson.Course).FullName;

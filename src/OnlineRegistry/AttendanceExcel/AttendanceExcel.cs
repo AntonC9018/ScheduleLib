@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using Microsoft.Extensions.FileProviders;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
@@ -312,80 +313,95 @@ public static class AttendanceExcel
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
 
+            StudentsLookupKey Key(in LessonGroups groups)
+            {
+                return new(
+                    courseId: lesson.Lesson.Course,
+                    groups: groups,
+                    subGroup: lesson.Lesson.SubGroup,
+                    lessonType: lesson.Lesson.Type);
+            }
+
+            {
+                builder.List(
+                    Key(lesson.Lesson.Groups),
+                    x => BuildList(sheet, x));
+            }
+
             foreach (var group in lesson.Lesson.Groups)
             {
-                var list = builder.List(new()
-                {
-                    CourseId = lesson.Lesson.Course,
-                    GroupId = group,
-                    SubGroup = lesson.Lesson.SubGroup,
-                    LessonType = lesson.Lesson.Type,
-                });
-
-                // ReSharper disable once GenericEnumeratorNotDisposed
-                using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
-
-                while (true)
-                {
-                    if (!rowE.MoveNext())
-                    {
-                        break;
-                    }
-                    var row = rowE.Current;
-
-                    using var cells = row.Cells(usedCellsOnly: false).GetEnumerator();
-                    if (!cells.MoveNext())
-                    {
-                        break;
-                    }
-
-                    if (!cells.Current!.TryGetValue(out string value))
-                    {
-                        break;
-                    }
-                    var parser = new Parser(value);
-                    if (NameHelper.TryParseName(ref parser) is not { } name)
-                    {
-                        break;
-                    }
-
-                    var student = list.Student(name);
-
-                    while (cells.MoveNext())
-                    {
-                        if (!cells.Current!.TryGetValue(out string attendanceStr))
-                        {
-                            throw new InvalidOperationException("Expecting a string in cell");
-                        }
-                        var attendance = AttendanceHelper.Parse(attendanceStr);
-                        if (attendance == Attendance.Grade
-                            || attendance == Attendance.None)
-                        {
-                            throw new InvalidOperationException($"Expecting empty, 'a', 'na' or 'am', got '{attendanceStr}'");
-                        }
-
-                        student.Day(attendance);
-                    }
-
-                }
-
-                int maxLen = 0;
-                while (!rowE.IsDone)
-                {
-                    // find the last cell that has any value.
-                    var c = rowE.Current;
-                    var lastNonEmpty = c.Cells()
-                        .WithIndex()
-                        .LastOrDefault(x => x.Item.TryGetValue<string>(out var s) && s is not null and not "");
-                    maxLen = Math.Max(maxLen, lastNonEmpty.Index);
-                    rowE.MoveNext();
-                }
-
-                list.HintMaxCount(maxLen);
+                builder.List(
+                    Key([group]),
+                    x => BuildList(sheet, x));
             }
 
         }
         var ret = builder.Build(missingDaysFiller: Attendance.Present);
         return ret;
+    }
+
+    // TODO: reuse the list
+    private static void BuildList(IXLWorksheet sheet, StudentAttendanceListBuilder list)
+    {
+        // ReSharper disable once GenericEnumeratorNotDisposed
+        using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
+
+        while (true)
+        {
+            if (!rowE.MoveNext())
+            {
+                break;
+            }
+            var row = rowE.Current;
+
+            using var cells = row.Cells(usedCellsOnly: false).GetEnumerator();
+            if (!cells.MoveNext())
+            {
+                break;
+            }
+
+            if (!cells.Current!.TryGetValue(out string value))
+            {
+                break;
+            }
+            var parser = new Parser(value);
+            if (NameHelper.TryParseName(ref parser) is not { } name)
+            {
+                break;
+            }
+
+            var student = list.Student(name);
+
+            while (cells.MoveNext())
+            {
+                if (!cells.Current!.TryGetValue(out string attendanceStr))
+                {
+                    throw new InvalidOperationException("Expecting a string in cell");
+                }
+                var attendance = AttendanceHelper.Parse(attendanceStr);
+                if (attendance == Attendance.Grade
+                    || attendance == Attendance.None)
+                {
+                    throw new InvalidOperationException($"Expecting empty, 'a', 'na' or 'am', got '{attendanceStr}'");
+                }
+
+                student.Day(attendance);
+            }
+
+        }
+
+        int maxLen = 0;
+        while (!rowE.IsDone)
+        {
+            // find the last cell that has any value.
+            var c = rowE.Current;
+            var lastNonEmpty = c.Cells()
+                .WithIndex()
+                .LastOrDefault(x => x.Item.TryGetValue<string>(out var s) && s is not null and not "");
+            maxLen = Math.Max(maxLen, lastNonEmpty.Index);
+            rowE.MoveNext();
+        }
+
+        list.HintMaxCount(maxLen);
     }
 }

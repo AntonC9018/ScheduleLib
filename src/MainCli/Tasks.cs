@@ -1847,7 +1847,11 @@ public static class Tasks
 
             foreach (var group in await groupsNav.Get(course))
             {
-                var groupInfo = schedule.Get(group.GroupId);
+                if (group.Groups.IsWildcard)
+                {
+                    throw new NotImplementedException();
+                }
+                var groupInfo = schedule.Get(group.Groups.Value[0]);
                 if (groupInfo.QualificationType != qualificationType)
                 {
                     continue;

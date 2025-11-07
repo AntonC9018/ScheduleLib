@@ -135,7 +135,7 @@ public static partial class ScheduleBuilderHelper
                 },
                 Lesson = new()
                 {
-                    Groups = x.Group.Groups,
+                    Groups = x.Group.Groups.Ordered(),
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
