@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using MainCli.Topics;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.OnlineRegistry;
@@ -135,6 +136,17 @@ switch (option)
 
         // var attendance = GetAttendanceListOfCurrentTeacher();
         var attendance = new AllStudentAttendanceListBuilder().Build();
+        ILessonTopics topics;
+        {
+            string manifestPath = Path.GetFullPath(@"data\topics\manifest.json");
+            var builder = await AllLessonTopicsDatabaseBuilder.Parse(
+                manifestPath,
+                context.Schedule.Lookup(),
+                schedule,
+                cancellationToken);
+            builder.Provider(LessonType.Lab, new LabAutoNumberingNameProvider());
+            topics = builder.Build();
+        }
 
         using var registryContext = await RegistryScrapingContext.Create(
             credentials: credentials,
@@ -159,7 +171,7 @@ switch (option)
                 .WithLog(LessonEquationCommandTypes.All),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,
-            LessonTopics = new([]),
+            LessonTopics = topics,
         });
         break;
     }
@@ -241,7 +253,7 @@ switch (option)
         }
         Directory.CreateDirectory(outputDirectory);
 
-        var services = new WebsiteJsonScheduleHelper.Services()
+        var services = new WebsiteJsonScheduleHelper.Services
         {
             ParityDisplay = new(),
             LessonTypeDisplay = new(),
@@ -372,7 +384,7 @@ Task GenerateAllTeacherExcel()
 
 TeacherId GetCurrentTeacherId()
 {
-    var teacherId = context.Schedule.Lookup().Teacher("Anton", "Curmanschii")!.Value;
+    var teacherId = context.Schedule.Lookup().Teacher("Tamara", "Iatasina")!.Value;
     return teacherId;
 }
 

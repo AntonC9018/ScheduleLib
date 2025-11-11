@@ -254,4 +254,16 @@ public static partial class ScheduleBuilderHelper
         s.EnableLookupModule();
         return new(s);
     }
+
+    public static TeacherBuilderModel.NameModel ToNameModel(this Name name)
+    {
+        var ret = new TeacherBuilderModel.NameModel();
+        ret.FirstName = name.FirstName.Map(x => new OptionalNamePart
+        {
+            Short = null,
+            Full = x,
+        });
+        ret.LastName = new(name.LastName);
+        return ret;
+    }
 }

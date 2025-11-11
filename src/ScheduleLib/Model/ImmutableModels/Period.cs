@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace ScheduleLib;
 
-public record struct Period
+public readonly record struct Period
 {
     /// <summary>
     /// </summary>
@@ -35,7 +35,7 @@ public record struct Period
     }
 }
 
-public record struct PeriodId(int Value)
+public readonly record struct PeriodId(int Value)
 {
     public static PeriodId Unspecified => new(-1);
     public bool IsUnspecified => this == Unspecified;

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -30,21 +29,24 @@ public struct AddLessonsToOnlineRegistryParams()
     public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
 
     public required StudentAttendanceList Attendance;
-    public required LessonTopics LessonTopics;
+    public required ILessonTopics LessonTopics;
 }
 
-public readonly struct LessonTopics
+public interface ILessonTopics
 {
-    private readonly Dictionary<AttendanceLookupKey, string> _topics;
+    string? Get(in AttendanceLookupKey key);
+}
 
-    public LessonTopics(Dictionary<AttendanceLookupKey, string> topics)
+public sealed class NoLessonTopics : ILessonTopics
+{
+    private NoLessonTopics()
     {
-        _topics = topics;
     }
 
-    public string? Get(AttendanceLookupKey key)
+    public static readonly NoLessonTopics Instance = new();
+    public string? Get(in AttendanceLookupKey key)
     {
-        return _topics.GetValueOrDefault(key);
+        return null;
     }
 }
 
@@ -763,12 +765,6 @@ public readonly struct CommandProcessingConfig
         var mask = (int) types << LogOffset;
         return (Bits & mask) != 0;
     }
-}
-
-[InlineArray((int) LessonType.Count)]
-file struct ValueForEachLessonType<T>
-{
-    private T _items;
 }
 
 public record struct FoundGroups

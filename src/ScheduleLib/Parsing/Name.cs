@@ -9,6 +9,8 @@ public struct NameToStringParams()
     public bool IncludeLast = true;
     public bool IncludeFirst = true;
     public bool IncludePatronymic = true;
+
+    public static NameToStringParams IncludeEverything => new();
 }
 
 public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : IEqualityComparer<Name>

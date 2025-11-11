@@ -1,0 +1,18 @@
+{
+    "teacher": "Iatasina Tamara",
+    "documents":
+    [
+        {
+            "path": "ДЖ.csv",
+            "course": "GA 2D",
+            "faculty": "DJ",
+            "lessonType": "Curs"
+        },
+        {
+            "path": "Информатики.csv",
+            "course": "GA 2D",
+            "faculty": ["IA", "I"],
+            "lessonType": "Curs"
+        }
+    ]
+}

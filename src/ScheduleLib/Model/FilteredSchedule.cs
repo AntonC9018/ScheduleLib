@@ -55,7 +55,7 @@ public readonly struct RegularLessonAccessor
 public sealed class FilteredSchedule
 {
     public required Schedule Source;
-    public required IEnumerable<RegularLessonAccessor> Lessons;
+    public required RegularLessonAccessor[] Lessons;
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
@@ -138,7 +138,7 @@ public static class FilterHelper
         {
             Source = schedule,
             Groups = groups,
-            Lessons = lessons,
+            Lessons = lessons.ToArray(),
             TimeSlots = timeSlots,
             Days = days,
             Teachers = teachers,
