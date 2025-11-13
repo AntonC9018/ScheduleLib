@@ -2,6 +2,8 @@ using Argon;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.Lesson;
+using ScheduleLib.Parsing.Lesson.Internal;
+using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;
 
@@ -44,16 +46,23 @@ public sealed class LessonParserTests
             .AddExtraSettings(x => x.DefaultValueHandling = DefaultValueHandling.Include);
     }
 
-    private ParsedLesson[] ParseLessons(string[] lines)
+    private ParsedLesson[] ParseLessons(
+        string[] lines,
+        ProcessSpaces? spaces = null)
     {
         var lexer = LessonParsingHelper.CreateLexer();
         using var enumerator = ((IEnumerable<string>) lines).GetEnumerator();
         lexer.Reset(enumerator);
-        return LessonParsingHelper.ParseLessons(new()
+        var parameters = new ParseLessonsParams
         {
             StringBuilder = new(),
             Lexer = lexer,
-        }).ToArray();
+        };
+        if (spaces != null)
+        {
+            parameters.ProcessSpacesCourseName = spaces;
+        }
+        return LessonParsingHelper.ParseLessons(parameters).ToArray();
     }
 
     [Fact]
@@ -637,5 +646,75 @@ public sealed class LessonParserTests
                 var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(15));
                 Assert.Equal(time, lesson2.StartTime);
             });
+    }
+
+    [Fact]
+    public void LessonName_DontInsertSpaceInBetweenWords()
+    {
+        var lessons = ParseLessons([
+            "Lesson One",
+        ], spaces: c =>
+        {
+            if (c.Lexer.Current.Value.Span.SequenceEqual("Lesson"))
+            {
+                c.Lexer.Move();
+
+                Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
+                Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
+                return c.DontInsertAll();
+            }
+            return c.DefaultAll();
+        });
+
+        var l = Assert.Single(lessons);
+        Assert.Equal("LessonOne", l.LessonName.Span);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LessonName_InclusiveDontInsert(bool inclusive)
+    {
+        var lessons = ParseLessons([
+            "Lesson One Two",
+        ], spaces: c =>
+        {
+            if (c.Lexer.Current.Value.Span.SequenceEqual("Lesson"))
+            {
+                c.Lexer.Move();
+
+                Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
+                Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
+                return c.DontInsertAll(inclusive: inclusive);
+            }
+            return c.DefaultAll();
+        });
+
+        var l = Assert.Single(lessons);
+
+        string correct;
+        if (inclusive)
+        {
+            correct = "LessonOneTwo";
+        }
+        else
+        {
+            correct = "LessonOne Two";
+        }
+        Assert.Equal(correct, l.LessonName.Span);
+    }
+
+    [Theory]
+    [InlineData("Node.JS")]
+    // [InlineData("Node . JS")]
+    [InlineData("Node. JS")]
+    public void LessonName_NodeJsFromConfig(string nodejs)
+    {
+        var lessons = ParseLessons([
+            $"Lesson {nodejs}",
+        ], spaces: Config.WhiteSpaceActionCourseName);
+
+        var l = Assert.Single(lessons);
+        Assert.Equal("Lesson Node.JS", l.LessonName.Span);
     }
 }

@@ -70,6 +70,15 @@ public interface ILessonNameProvider
     public string? Get(int index);
 }
 
+public sealed class NoNameProvider : ILessonNameProvider
+{
+    public string? Get(int index)
+    {
+        _ = index;
+        return null;
+    }
+}
+
 public sealed class ListLessonNameProvider : ILessonNameProvider
 {
     private readonly ImmutableArray<string> _values;
@@ -213,7 +222,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
         _schedule = schedule;
     }
 
-    public void Provider(LessonType lessonType, ILessonNameProvider provider)
+    public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
     {
         _defaultProviders[(int) lessonType] = provider;
     }

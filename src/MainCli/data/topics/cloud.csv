@@ -1,0 +1,21 @@
+name,lessonType
+Subject I: Introduction to Cloud Computing,Curs
+Subject II: Architecture of Cloud Systems and Fundamentals of Virtualization,Curs
+Subject III: Introduction to Amazon Web Services (AWS). Global AWS Architecture,Curs
+Subject IV: Introduction to Compute Services. Amazon AWS Elastic Compute Cloud,Curs
+Subject V: Virtual Networks in the Cloud. Amazon VPC,Curs
+"Subject VI: Cloud Storage. Amazon S3, EBS, EFS",Curs
+"Subject VII: Cloud Databases. Amazon RDS, DynamoDB",Curs
+Subject VIII: Serverless Computing. AWS Lambda,Curs
+"Subject IX: Load Balancing and Auto Scaling. Amazon ELB, EC2 Auto Scaling",Curs
+Subject X: Cloud Security Fundamentals. Amazon IAM,Curs
+L1. Introduction to Cloud Computing,Lab
+L2. Architecture of Cloud Systems and Fundamentals of Virtualization,Lab
+L3. Introduction to Amazon Web Services (AWS). Global AWS Architecture,Lab
+L4. Introduction to Compute Services. Amazon AWS Elastic Compute Cloud,Lab
+L5. Introduction to Compute Services. Amazon AWS Elastic Compute Cloud,Lab
+L6. Virtual Networks in the Cloud. Amazon VPC,Lab
+L7. Virtual Networks in the Cloud. Amazon VPC,Lab
+"L8. Cloud Storage. Amazon S3, EBS, EFS",Lab
+"L10. Cloud Databases. Amazon RDS, DynamoDB",Lab
+"L11. Cloud Databases. Amazon RDS, DynamoDB",Lab

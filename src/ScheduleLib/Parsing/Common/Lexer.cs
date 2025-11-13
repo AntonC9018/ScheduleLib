@@ -448,7 +448,7 @@ public readonly record struct TokenTypeLabels(
     }
 }
 
-public ref struct LimitedLexerScope
+public struct LimitedLexerScope
 {
     private LexerScope _lexer;
     private readonly LexerPosition _endPosition;
@@ -461,6 +461,7 @@ public ref struct LimitedLexerScope
 
     public readonly Token Current => _lexer.Current;
     public readonly bool IsEmpty => !CanPeek(1);
+    public readonly LexerPosition Position => _lexer.Position;
 
     public readonly bool CanPeek(int offset)
     {
@@ -480,7 +481,7 @@ public ref struct LimitedLexerScope
     }
 
     public void Move(int amount = 1) => _lexer.Move(amount);
-    public void TryConsume(TokenType type) => _lexer.TryConsume(type);
+    public bool TryConsume(TokenType type) => _lexer.TryConsume(type);
 
     public readonly override string ToString()
     {

@@ -29,6 +29,9 @@
             Include="data\**\*.xlsx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
+        <None Update="data\topics\manifest_tamara.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

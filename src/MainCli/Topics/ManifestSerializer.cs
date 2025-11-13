@@ -80,7 +80,7 @@ public sealed class Document
     public required string? Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public required List<Faculty> Faculty { get; set; }
-    public required LessonType? LessonType { get; set; }
+    public LessonType? LessonType { get; set; }
 }
 
 

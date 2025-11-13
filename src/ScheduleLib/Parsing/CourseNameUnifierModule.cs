@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
@@ -34,14 +35,42 @@ public readonly struct CourseNameUnifierModuleWithDeps
     }
 }
 
+public readonly record struct FullyRenamedCourse(ParsedCourseName From, ParsedCourseName To);
+
+public sealed class CourseNameUnifierConfig
+{
+    public required CourseNameParserConfig ParserConfig { get; init; }
+    public ImmutableArray<FullyRenamedCourse> FullyRemappedNames { get; init; } = [];
+
+    public static CourseNameUnifierConfig Create(
+        CourseNameParserConfig config,
+        ReadOnlySpan<(string From, string To)> fullyRenamedNames)
+    {
+        var remappedNames = ImmutableArray.CreateBuilder<FullyRenamedCourse>(fullyRenamedNames.Length);
+        foreach (var (from, to) in fullyRenamedNames)
+        {
+            var fromParsed = config.Parse(from);
+            var toParsed = config.Parse(to);
+            remappedNames.Add(new FullyRenamedCourse(fromParsed, toParsed));
+        }
+        return new CourseNameUnifierConfig
+        {
+            ParserConfig = config,
+            FullyRemappedNames = remappedNames.MoveToImmutable(),
+        };
+    }
+}
+
 public sealed class CourseNameUnifierModule
 {
     internal readonly List<SlowCourse> SlowCourses = new();
     private readonly CourseNameParserConfig _parserConfig;
+    private readonly ImmutableArray<FullyRenamedCourse> _fullyRemappedNames;
 
-    public CourseNameUnifierModule(CourseNameParserConfig parserConfig)
+    public CourseNameUnifierModule(CourseNameUnifierConfig config)
     {
-        _parserConfig = parserConfig;
+        _parserConfig = config.ParserConfig;
+        _fullyRemappedNames = config.FullyRemappedNames;
     }
 
     public void Refresh(ScheduleBuilder builder)
@@ -53,6 +82,18 @@ public sealed class CourseNameUnifierModule
             var courseId = new CourseId(i);
             AddSlow(builder.Courses.Ref(i).FullName, courseId);
         }
+    }
+
+    private ParsedCourseName TryRemap(ParsedCourseName original)
+    {
+        foreach (var remap in _fullyRemappedNames)
+        {
+            if (original.IsEqual(remap.From))
+            {
+                return remap.To;
+            }
+        }
+        return original;
     }
 
     public void AddSlow(string courseName, CourseId id)
@@ -89,6 +130,7 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
+        parsedCourseName = TryRemap(parsedCourseName);
         if (FindSlow(parsedCourseName) is { } slowCourseId)
         {
             p.Lookup.Courses.Add(p.CourseName, slowCourseId);
@@ -150,6 +192,7 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourse = ParseCourseName(p.CourseNameForParsing);
+        parsedCourse = TryRemap(parsedCourse);
         if (FindSlow(parsedCourse) is { } slowCourseId)
         {
             courseId = slowCourseId;

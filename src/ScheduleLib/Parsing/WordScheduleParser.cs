@@ -21,6 +21,7 @@ public sealed class DocParseContext
     public required LessonTimeConfig TimeConfig { get; init; }
     public required DayNameParser DayNameParser { get; init; }
     public required CourseNameUnifierModule CourseNameUnifierModule { get; init; }
+    public required LessonParserFactory ParserFactory { get; init; }
     internal PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
 
     public void SetPeriod(PeriodBeginning? period)
@@ -35,11 +36,11 @@ public sealed class DocParseContext
         }
     }
 
-
     public struct CreateParams
     {
         public required DayNameProvider DayNameProvider;
-        public required CourseNameParserConfig CourseNameParserConfig;
+        public required CourseNameUnifierConfig CourseNameUnifierConfig;
+        public required LessonParserFactory ParserFactory;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -58,8 +59,9 @@ public sealed class DocParseContext
         {
             Schedule = s,
             TimeConfig = timeConfig,
-            CourseNameUnifierModule = new(p.CourseNameParserConfig),
+            CourseNameUnifierModule = new(p.CourseNameUnifierConfig),
             DayNameParser = new DayNameParser(p.DayNameProvider),
+            ParserFactory = p.ParserFactory,
         };
     }
 
@@ -676,16 +678,9 @@ public static class WordScheduleParser
                         using var lines = Lines().GetEnumerator();
 
                         // TODO: can reuse this.
-                        var lexer = LessonParsingHelper.CreateLexer();
-                        lexer.Reset(lines);
-
-                        var lessons = LessonParsingHelper.ParseLessons(new()
-                        {
-                            Lexer = lexer,
-                            ParityParser = ParityParser.Instance,
-                            LessonTypeParser = LessonTypeParser.Instance,
-                            StringBuilder = new StringBuilder(),
-                        });
+                        var lessonParser = p.Context.ParserFactory.Create();
+                        lessonParser.Lexer.Reset(lines);
+                        var lessons = lessonParser.ParseLessons(new StringBuilder());
 
                         foreach (var lesson in lessons)
                         {

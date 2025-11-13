@@ -15,7 +15,7 @@ public sealed class AttendanceExcelTests
     public async Task ExcelSnapshot()
     {
         var builder = await ScheduleTestHelper.CreateTestSchedule();
-        var unifier = new CourseNameUnifierModule(Config.CourseNameParser);
+        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
         unifier.Refresh(builder);
 
         var schedule = builder.Build();

@@ -29,6 +29,10 @@ public sealed class Remappings()
     public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
 }
 
+public sealed class CourseNameRemappings : Dictionary<string, string>
+{
+}
+
 public sealed class SubGroupNameRemappings : Dictionary<string, string>
 {
 }

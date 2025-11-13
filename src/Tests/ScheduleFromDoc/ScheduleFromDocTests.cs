@@ -157,7 +157,11 @@ public static class IntegrationTestHelper
         var context = DocParseContext.Create(new()
         {
             DayNameProvider = new(),
-            CourseNameParserConfig = Config.CourseNameParser,
+            CourseNameUnifierConfig = Config.CourseNameUnifier,
+            ParserFactory = new(new()
+            {
+                ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
+            }),
         });
 
         context.Schedule.SetStudyYear(Year);

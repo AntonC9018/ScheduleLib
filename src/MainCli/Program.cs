@@ -27,7 +27,11 @@ var dayNameProvider = new DayNameProvider();
 var context = DocParseContext.Create(new()
 {
     DayNameProvider = dayNameProvider,
-    CourseNameParserConfig = Config.CourseNameParser,
+    CourseNameUnifierConfig = Config.CourseNameUnifier,
+    ParserFactory = new(new()
+    {
+        ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
+    }),
 });
 
 context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
@@ -46,7 +50,7 @@ var schedule = await Tasks.LoadSchedule(
     context: context,
     scheduleSourcesDir: scheduleSourcesDir,
     serializedSchedulePath: serializedSchedulePath,
-    bypassCache: false,
+    bypassCache: true,
     beforeEndAction: static context =>
     {
         // TODO: This is not included in the hash
@@ -144,7 +148,8 @@ switch (option)
                 context.Schedule.Lookup(),
                 schedule,
                 cancellationToken);
-            builder.Provider(LessonType.Lab, new LabAutoNumberingNameProvider());
+            // builder.Provider(LessonType.Lab, new LabAutoNumberingNameProvider());
+            builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
             topics = builder.Build();
         }
 
@@ -167,7 +172,7 @@ switch (option)
             EquationCommandsDerivation = new AnyDayDerivation(),
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
-            ProcessingFlags = CommandProcessingConfig.Process
+            ProcessingFlags = CommandProcessingConfig.DryRun
                 .WithLog(LessonEquationCommandTypes.All),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,

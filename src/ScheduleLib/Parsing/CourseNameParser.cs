@@ -102,6 +102,7 @@ public sealed class CourseNameParserConfig
         public ReadOnlySpan<string> ProgrammingLanguages = [];
         public ReadOnlySpan<string> IgnoredShortenedWords = [];
         public ReadOnlySpan<string> IgnoredProgrammingRelatedWords = [];
+        public ReadOnlySpan<(string From, string To)> FullyMappedNames = [];
     }
 }
 

@@ -1,18 +1,11 @@
 {
-    "teacher": "Iatasina Tamara",
+    "teacher": "Nartea Nichita",
     "documents":
     [
         {
-            "path": "ДЖ.csv",
-            "course": "GA 2D",
-            "faculty": "DJ",
-            "lessonType": "Curs"
-        },
-        {
-            "path": "Информатики.csv",
-            "course": "GA 2D",
-            "faculty": ["IA", "I"],
-            "lessonType": "Curs"
+            "path": "cloud.csv",
+            "course": "Cloud Computing",
+            "faculty": ["I", "IA"]
         }
     ]
 }

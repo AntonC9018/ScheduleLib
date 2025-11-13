@@ -650,7 +650,7 @@ public readonly record struct AttendanceLookupKey
     public readonly DateTime DateTime;
 
     public AttendanceLookupKey(
-        FoundGroups groups,
+        in FoundGroups groups,
         SubGroup subGroup,
         CourseId courseId,
         LessonType lessonType,

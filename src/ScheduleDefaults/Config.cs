@@ -1,6 +1,10 @@
+using System.Diagnostics;
 using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.Lesson;
+using ScheduleLib.Parsing.Lesson.Internal;
 
 namespace ScheduleLib.ScheduleDefaults;
 
@@ -8,12 +12,58 @@ public static class Config
 {
     public static CourseNameParserConfig CourseNameParser => new(new()
     {
-        ProgrammingLanguages = ["Java", "C++", "C#", "Python"],
+        ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js"],
         IgnoredFullWords = ["p/u", "pentru", "Modele"],
         IgnoredShortenedWords = ["Opț"],
         IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
         MinUsefulWordLength = 3,
     });
+
+    public static CourseNameUnifierConfig CourseNameUnifier =>
+        CourseNameUnifierConfig.Create(CourseNameParser,
+        [
+            (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
+        ]);
+
+    public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)
+    {
+        Debug.Assert(!c.Lexer.IsEmpty);
+        {
+            var t = c.Lexer.Current;
+            if (!t.IsAnyWord())
+            {
+                return c.DefaultAll();
+            }
+
+            var span = t.Value.Span;
+            if (!span.StartsWith("Node"))
+            {
+                return c.DefaultAll();
+            }
+            c.Lexer.Move();
+            if (c.Lexer.IsEmpty)
+            {
+                return c.DefaultAll();
+            }
+        }
+
+        c.Lexer.TryConsume(TokenType.Whitespace);
+        if (c.Lexer.IsEmpty)
+        {
+            return c.DefaultAll();
+        }
+
+        {
+            var t = c.Lexer.Current;
+            if (t.Type == LessonTokenType.Word
+                && t.Value.Span.Equals("JS", StringComparison.OrdinalIgnoreCase))
+            {
+                return c.DontInsertAll(inclusive: false);
+            }
+        }
+
+        return c.DefaultAll();
+    }
 
     public static void ConfigureRemappings(Remappings remap)
     {
@@ -27,6 +77,7 @@ public static class Config
 
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("GR"), new("GA2D"));
+        subgroup.Add(new("Node"), new("UI"));
     }
 
     // TODO: read from image??
