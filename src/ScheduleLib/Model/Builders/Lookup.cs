@@ -163,6 +163,11 @@ public readonly struct LookupFacade(ScheduleBuilder s)
         Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
         return id;
     }
+
+    public IReadOnlyList<RegularLessonId> LessonsOfCourse(CourseId courseId)
+    {
+        return LookupModule.LessonsByCourse[courseId];
+    }
 }
 
 

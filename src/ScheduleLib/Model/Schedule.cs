@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
 
@@ -380,6 +381,32 @@ public readonly record struct SubGroup
     public static SubGroup All => new(null!);
 }
 
+public static class SpecialSubGroups
+{
+    public static readonly ImmutableArray<SubGroup> AllSpecial = [
+        Optional,
+        Beginners,
+        Ru,
+        Ro,
+        Eng,
+    ];
+    public static SubGroup Optional => new("opțional");
+    public static SubGroup Beginners => new("începători");
+    public static SubGroup Ru => new("ru");
+    public static SubGroup Ro => new("ro");
+    public static SubGroup Eng => new("eng");
+    public static SubGroup FromLanguage(Language lang)
+    {
+        return lang switch
+        {
+            Language.Ro => Ro,
+            Language.Ru => Ru,
+            Language.En => Eng,
+            _ => throw new ArgumentOutOfRangeException(nameof(lang)),
+        };
+    }
+}
+
 public readonly record struct GroupId(int Value) : IComparable<GroupId>
 {
     public static GroupId Invalid => new(-1);
@@ -513,6 +540,16 @@ public struct PersonName
     public required NameParts<OptionalNamePart> FirstName;
     // One is required
     public required LastName LastName;
+
+    public override string ToString()
+    {
+        var nameFields = new NameFields
+        {
+            FirstName = FirstName.Map(x => x.Longer),
+            LastName = LastName,
+        };
+        return nameFields.ToString();
+    }
 }
 
 public struct PersonContacts

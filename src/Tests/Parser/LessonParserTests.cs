@@ -717,4 +717,23 @@ public sealed class LessonParserTests
         var l = Assert.Single(lessons);
         Assert.Equal("Lesson Node.JS", l.LessonName.Span);
     }
+
+    [Fact]
+    public void LessonName_NodeJsFromConfig_FullExample()
+    {
+        var lessons = ParseLessons([
+            "9:45 Dezv. apl. server-side cu Node.js (opț)",
+            "N.Nartea  145/4",
+        ], spaces: Config.WhiteSpaceActionCourseName);
+
+        var l = Assert.Single(lessons);
+        Assert.Equal("Dezv. apl. server-side cu Node.js", l.LessonName.Span);
+        var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9).Add(TimeSpan.FromMinutes(45)));
+        Assert.Equal(time, l.StartTime);
+        Assert.Equal("opț", l.GroupName.Span);
+        Assert.Equal(LessonType.Unspecified, l.LessonType);
+        AssertEqualName("N.Nartea", Assert.Single(l.TeacherNames));
+        Assert.Equal("145/4", l.RoomName.Span);
+    }
 }
+

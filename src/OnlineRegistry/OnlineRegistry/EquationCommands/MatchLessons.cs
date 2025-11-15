@@ -17,7 +17,7 @@ internal readonly record struct LessonMatchParams
 {
     public readonly CourseId CourseId;
     public readonly FoundGroups Groups;
-    public readonly SubGroup SubGroup;
+    public SubGroup SubGroup { get; init; }
     public readonly LessonsByCourseMap Lookup;
     public readonly Schedule Schedule;
 
@@ -41,11 +41,37 @@ internal static class MatchLessonHelper
 {
     internal static IEnumerable<RegularLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
+        bool yielded = false;
+        foreach (var x in MatchLessonsImpl(p))
+        {
+            yield return x;
+            yielded = true;
+        }
+        if (yielded)
+        {
+            yield break;
+        }
+
+        if (p.SubGroup != SubGroup.All)
+        {
+            p = p with
+            {
+                SubGroup = SpecialSubGroups.Optional,
+            };
+        }
+        foreach (var x in MatchLessonsImpl(p))
+        {
+            yield return x;
+        }
+    }
+
+    private static IEnumerable<RegularLessonId> MatchLessonsImpl(
+        LessonMatchParams p)
+    {
         var lessonsOfCourse = p.Lookup[p.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
-
             if (lesson.Lesson.SubGroup != p.SubGroup)
             {
                 continue;

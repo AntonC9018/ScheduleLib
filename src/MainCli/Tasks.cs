@@ -1491,7 +1491,7 @@ public static class Tasks
                             {
                                 return true;
                             }
-                            if (sg.Value == "opțional")
+                            if (sg == SpecialSubGroups.Optional)
                             {
                                 return true;
                             }

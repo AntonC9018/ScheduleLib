@@ -826,17 +826,10 @@ public static class WordScheduleParser
             ref RegularLessonBuilderModelData.GroupData g,
             in ParsedLesson lesson)
         {
-            var specialGroups = new[]
-            {
-                "începători",
-                "ro",
-                "ru",
-                "eng",
-                "opțional",
-            };
+            var specialGroups = SpecialSubGroups.AllSpecial;
             foreach (var group in specialGroups)
             {
-                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group, groupFullName))
+                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group.Value!, groupFullName))
                 {
                     continue;
                 }
@@ -844,7 +837,7 @@ public static class WordScheduleParser
                 {
                     throw new NotImplementedException("Multiple subgroups as a single group");
                 }
-                g.SubGroup = new(group);
+                g.SubGroup = group;
                 return true;
             }
             return false;

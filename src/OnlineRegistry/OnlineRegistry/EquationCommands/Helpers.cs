@@ -62,6 +62,11 @@ internal struct MatchedLessonData
         }
 
         var lesson = s.Get(Local.LessonId).Lesson;
+        if (lesson.Type == LessonType.Unspecified)
+        {
+            return true;
+        }
+
         return lesson.Type == Remote.LessonType;
     }
     public readonly bool TopicEquals()

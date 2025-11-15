@@ -60,6 +60,48 @@ public record struct NameFields
     public NameParts<string?> FirstName;
     public NameParts<string?> LastName;
     public NameParts<string?> Patronymic;
+
+    public string ToString(NameToStringParams p)
+    {
+        StringBuilder ret = new();
+        var spacesB = new ListStringBuilder(ret, " ");
+        if (p.IncludeLast)
+        {
+            AppendName(LastName);
+        }
+        if (p.IncludeFirst)
+        {
+            AppendName(FirstName);
+        }
+        if (p.IncludePatronymic)
+        {
+            AppendName(Patronymic);
+        }
+        return ret.ToString();
+
+        void AppendName(NameParts<string?> parts)
+        {
+            spacesB.MaybeAppendSeparator();
+            spacesB = new(ret, " ");
+
+            var list = new ListStringBuilder(ret, "-");
+            foreach (var x in parts)
+            {
+                if (x != null)
+                {
+                    list.Append(x);
+                }
+            }
+        }
+    }
+
+    public override string ToString()
+    {
+        return ToString(new NameToStringParams()
+        {
+            IncludePatronymic = false,
+        });
+    }
 }
 
 public sealed record Name
@@ -122,44 +164,12 @@ public sealed record Name
 
     public string ToString(NameToStringParams p)
     {
-        StringBuilder ret = new();
-        var spacesB = new ListStringBuilder(ret, " ");
-        if (p.IncludeLast)
-        {
-            AppendName(LastName);
-        }
-        if (p.IncludeFirst)
-        {
-            AppendName(FirstName);
-        }
-        if (p.IncludePatronymic)
-        {
-            AppendName(Patronymic);
-        }
-        return ret.ToString();
-
-        void AppendName(NameParts<string?> parts)
-        {
-            spacesB.MaybeAppendSeparator();
-            spacesB = new(ret, " ");
-
-            var list = new ListStringBuilder(ret, "-");
-            foreach (var x in parts)
-            {
-                if (x != null)
-                {
-                    list.Append(x);
-                }
-            }
-        }
+        return _fields.ToString(p);
     }
 
     public override string ToString()
     {
-        return ToString(new NameToStringParams()
-        {
-            IncludePatronymic = false,
-        });
+        return _fields.ToString();
     }
 }
 

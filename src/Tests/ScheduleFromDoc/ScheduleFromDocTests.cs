@@ -1,10 +1,7 @@
 using System.Diagnostics;
-using MainCli;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleFromDoc.Tests;
 
@@ -19,7 +16,7 @@ public sealed class ScheduleFromDocTestExclusive1
     {
         using var cts = IntegrationTestHelper.CreateCts();
         var cancellationToken = cts.Token;
-        var schedule = await IntegrationTestHelper.GetScheduleFromWord(cancellationToken);
+        var schedule = await IntegrationTestHelper.CreateDefault().GetScheduleFromWord(cancellationToken);
         var verifyModel = VerifyModelMapper.ToVerifyModel(schedule);
         await Verify(verifyModel)
             .DisableRequireUniquePrefix()
@@ -55,8 +52,10 @@ public sealed class ScheduleFromDocTests
 
         const string outputPath = "output.json";
         const string otherOutputPath = "other_output.json";
+
+        var helper = IntegrationTestHelper.CreateDefault();
         {
-            var schedule = await IntegrationTestHelper.GetScheduleFromWord(cancellationToken);
+            var schedule = await helper.GetScheduleFromWord(cancellationToken);
             await using var outputFile = new FileStream(outputPath, FileMode.Create);
             await ScheduleSerializer.Serialize(schedule, outputFile, "", cancellationToken);
             if (Debugger.IsAttached)
@@ -66,7 +65,7 @@ public sealed class ScheduleFromDocTests
         }
         {
             var builder = new ScheduleBuilder();
-            builder.SetStudyYear(IntegrationTestHelper.Year);
+            builder.SetStudyYear(helper.Year);
 
             {
                 await using var inputFile = File.OpenRead(outputPath);
@@ -91,7 +90,7 @@ public sealed class ScheduleFromDocTests
     {
         using var cts = IntegrationTestHelper.CreateCts();
         var cancellationToken = cts.Token;
-        var schedule = await IntegrationTestHelper.GetScheduleFromWord(cancellationToken);
+        var schedule = await IntegrationTestHelper.CreateDefault().GetScheduleFromWord(cancellationToken);
         using var stream = new MemoryStream();
         await ScheduleSerializer.Serialize(schedule, stream, hash: "", cancellationToken);
         stream.Position = 0;
@@ -109,7 +108,7 @@ public sealed class ScheduleFromDocTests
     {
         using var cts = IntegrationTestHelper.CreateCts();
         var cancellationToken = cts.Token;
-        var context = await IntegrationTestHelper.GetContextFromWord(cancellationToken);
+        var context = await IntegrationTestHelper.CreateDefault().GetContextFromWord(cancellationToken);
         var schedule = context.Schedule.Build();
         var lookup = context.Schedule.Lookup();
 
@@ -138,58 +137,3 @@ public sealed class ScheduleFromDocTests
         }
     }
 }
-
-public static class IntegrationTestHelper
-{
-    public const string VerifyScheduleSnapshotName = "verify_schedule_model";
-    public const string ScheduleJsonSnapshotName = "verify_schedule_json";
-    public const string ScheduleSnapshotJsonPath = $"{ScheduleJsonSnapshotName}.verified.json";
-
-    public const int Year = 2024;
-
-    public static CancellationTokenSource CreateCts()
-    {
-        return TestHelper.CreateCts();
-    }
-
-    public static async Task<DocParseContext> GetContextFromWord(CancellationToken cancellationToken)
-    {
-        var context = DocParseContext.Create(new()
-        {
-            DayNameProvider = new(),
-            CourseNameUnifierConfig = Config.CourseNameUnifier,
-            ParserFactory = new(new()
-            {
-                ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
-            }),
-        });
-
-        context.Schedule.SetStudyYear(Year);
-
-        string dirName = @$"data\{Year}_sem2";
-        await Tasks.ParseDocumentDirIntoSchedule(
-            context,
-            dirName,
-            cancellationToken: cancellationToken);
-
-        return context;
-    }
-
-    public static async Task<Schedule> GetScheduleFromWord(CancellationToken cancellationToken)
-    {
-        var context = await GetContextFromWord(cancellationToken);
-        var schedule = context.Schedule.Build();
-        return schedule;
-    }
-
-    public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
-    {
-        await using var reader = File.OpenRead(jsonPath);
-        var scheduleModel = await ScheduleSerializer.Deserialize(reader, cancellationToken);
-        var scheduleBuilder = new ScheduleBuilder();
-        ScheduleSerializer.AddToBuilder(scheduleBuilder, scheduleModel);
-        var jsonSchedule = scheduleBuilder.Build();
-        return jsonSchedule;
-    }
-}
-

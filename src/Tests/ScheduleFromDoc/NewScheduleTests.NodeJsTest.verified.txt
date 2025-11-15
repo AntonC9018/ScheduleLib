@@ -1,0 +1,35 @@
+﻿[
+  {
+    Groups: [
+      IA2301,
+      IA2302
+    ],
+    Teacher: Drumea C.
+  },
+  {
+    Groups: [
+      IA2301
+    ],
+    Teacher: Drumea C.
+  },
+  {
+    Groups: [
+      IA2302
+    ],
+    Teacher: Drumea C.
+  },
+  {
+    Groups: [
+      IA2303,
+      IA2304
+    ],
+    Teacher: Nartea N.
+  },
+  {
+    Groups: [
+      IA2303,
+      IA2304
+    ],
+    Teacher: Nartea N.
+  }
+]
