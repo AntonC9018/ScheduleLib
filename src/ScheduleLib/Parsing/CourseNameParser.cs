@@ -3,8 +3,6 @@ using System.Diagnostics;
 
 namespace ScheduleLib.Parsing.CourseName;
 
-// TODO: This should probably be separated in 2.
-
 public readonly struct ParsedCourseName() : IEquatable<ParsedCourseName>
 {
     public readonly List<CourseNameSegment> Segments = new();
