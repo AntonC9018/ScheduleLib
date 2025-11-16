@@ -91,7 +91,8 @@ public sealed class PdfLessonTextDisplayHandler
         {
             var lessonType = _services.LessonTypeDisplay.Get(p.Lesson.Lesson.Type);
             var parity = _services.ParityDisplay.Get(p.Lesson.Date.Parity);
-            bool appendAny = lessonType != null || parity != null;
+            bool appendGroups = _config.PrintsGroupNames && p.Lesson.Lesson.Groups.Count > 0;
+            bool appendAny = lessonType != null || parity != null || appendGroups;
             if (appendAny)
             {
                 sb.Append(" (");

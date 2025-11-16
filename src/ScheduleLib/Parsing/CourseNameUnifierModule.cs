@@ -76,11 +76,17 @@ public sealed class CourseNameUnifierModule
     public void Refresh(ScheduleBuilder builder)
     {
         SlowCourses.Clear();
+        var courses = builder.Courses;
+        var lookup = builder.LookupModule!;
 
-        for (int i = 0; i < builder.Courses.Count; i++)
+        for (int i = 0; i < courses.Count; i++)
         {
             var courseId = new CourseId(i);
-            AddSlow(builder.Courses.Ref(i).FullName, courseId);
+            var fullName = courses.Ref(i).FullName;
+            // Only adding a single instance of this because they are all equivalent.
+            AddSlow(fullName, courseId);
+            // Also adding lookup for the future.
+            lookup.Courses.TryAdd(fullName, courseId);
         }
     }
 
@@ -106,6 +112,7 @@ public sealed class CourseNameUnifierModule
                 IgnorePunctuation = true,
             },
         });
+        parsedCourse = TryRemap(parsedCourse);
         SlowCourses.Add(new(parsedCourse, id));
     }
 
@@ -130,7 +137,6 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
-        parsedCourseName = TryRemap(parsedCourseName);
         if (FindSlow(parsedCourseName) is { } slowCourseId)
         {
             p.Lookup.Courses.Add(p.CourseName, slowCourseId);
@@ -167,6 +173,8 @@ public sealed class CourseNameUnifierModule
 
     private CourseId? FindSlow(ParsedCourseName parsedCourseName)
     {
+        parsedCourseName = TryRemap(parsedCourseName);
+
         // TODO: N^2, use some sort of hash to make this faster.
         foreach (var t in SlowCourses)
         {
@@ -192,7 +200,6 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourse = ParseCourseName(p.CourseNameForParsing);
-        parsedCourse = TryRemap(parsedCourse);
         if (FindSlow(parsedCourse) is { } slowCourseId)
         {
             courseId = slowCourseId;

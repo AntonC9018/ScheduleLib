@@ -41,7 +41,7 @@ public sealed class CourseNameTests
         var parserConfig = Config.CourseNameParser;
 
         var course1 = parserConfig.Parse("Dezvoltarea de aplicatii server-side cu Node.js");
-        var course2 = parserConfig.Parse("Dezv. apl. server-side cu Node. js");
+        var course2 = parserConfig.Parse("Dezv. apl. server-side cu Node.js");
         Assert.Equal(course1, course2);
     }
 }

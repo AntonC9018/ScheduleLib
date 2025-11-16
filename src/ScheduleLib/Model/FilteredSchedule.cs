@@ -11,6 +11,7 @@ public struct ScheduleFilter()
     public TeacherFilter TeacherFilter = new();
     public GroupFilter GroupFilter = new();
     public LessonFilter LessonFilter = new();
+    public CourseFilter CourseFilter = new();
     public PeriodFilter PeriodFilter = new()
     {
         MatchAny = true,
@@ -39,6 +40,11 @@ public record struct TeacherFilter()
 public struct LessonFilter()
 {
     public LessonType? LessonType = null;
+}
+
+public struct CourseFilter()
+{
+    public CourseId[]? IncludeIds = null;
 }
 
 public readonly struct RegularLessonAccessor
@@ -84,6 +90,31 @@ public static class FilterHelper
         };
     }
 
+    public static ScheduleFilter WithTeacher(this ScheduleFilter b, TeacherId teacher)
+    {
+        var prevIds = b.TeacherFilter.IncludeIds ?? [];
+        return b with
+        {
+            TeacherFilter = new()
+            {
+                IncludeIds = [..prevIds, teacher],
+            },
+        };
+    }
+
+    public static ScheduleFilter WithCourse(this ScheduleFilter b, CourseId courseId)
+    {
+        var prevIds = b.CourseFilter.IncludeIds ?? [];
+        return b with
+        {
+            CourseFilter = new()
+            {
+                IncludeIds = [..prevIds, courseId],
+            },
+        };
+    }
+
+
     public static FilterGrouping<Accessor<Teacher, TeacherId>> TeacherGrouping(
         this Schedule schedule,
         in ScheduleFilter filter)
@@ -113,7 +144,7 @@ public static class FilterHelper
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public static FilteredSchedule Filter(this Schedule schedule, in ScheduleFilter filter)
     {
-        var lessons = GetRegularLessons(filter);
+        var lessons = GetRegularLessons(filter).ToArray();
 
         GroupId[] groups;
         TimeSlot[] timeSlots;
@@ -138,7 +169,7 @@ public static class FilterHelper
         {
             Source = schedule,
             Groups = groups,
-            Lessons = lessons.ToArray(),
+            Lessons = lessons,
             TimeSlots = timeSlots,
             Days = days,
             Teachers = teachers,
@@ -174,6 +205,10 @@ public static class FilterHelper
                     continue;
                 }
                 if (!PassesLessonFilter())
+                {
+                    continue;
+                }
+                if (!PassesCourseFilter())
                 {
                     continue;
                 }
@@ -300,6 +335,20 @@ public static class FilterHelper
                         return false;
                     }
                 }
+
+                bool PassesCourseFilter()
+                {
+                    if (filter.CourseFilter.IncludeIds is not { } courseIds)
+                    {
+                        return true;
+                    }
+                    var courseId = regularLesson.Lesson.Course;
+                    if (courseIds.Contains(courseId))
+                    {
+                        return true;
+                    }
+                    return false;
+                }
             }
         }
 
@@ -309,7 +358,10 @@ public static class FilterHelper
             HashSet<GroupId> groups1 = new();
             foreach (var lesson in lessons)
             {
-                groups1.Add(lesson.Lesson.Group);
+                foreach (var group in lesson.Lesson.Groups)
+                {
+                    groups1.Add(group);
+                }
             }
             var ret = groups1.ToArray();
             // Sorting by index is fine here.
@@ -334,7 +386,7 @@ public static class FilterHelper
 
             TimeSlot FindMin()
             {
-                using var e = lessons.GetEnumerator();
+                using var e = lessons.AsEnumerable().GetEnumerator();
                 bool ok = e.MoveNext();
                 Debug.Assert(ok);
                 var min1 = e.Current.Date.TimeSlot;

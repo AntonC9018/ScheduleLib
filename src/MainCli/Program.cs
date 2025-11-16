@@ -50,7 +50,7 @@ var schedule = await Tasks.LoadSchedule(
     context: context,
     scheduleSourcesDir: scheduleSourcesDir,
     serializedSchedulePath: serializedSchedulePath,
-    bypassCache: true,
+    bypassCache: false,
     beforeEndAction: static context =>
     {
         // TODO: This is not included in the hash
@@ -60,7 +60,6 @@ var schedule = await Tasks.LoadSchedule(
     cancellationToken: cancellationToken);
 
 Console.WriteLine("Schedule built");
-
 
 IConfiguration config;
 {
@@ -79,10 +78,11 @@ const string freeRoomExcelOutputPath = $"{outputDirectory}/free_rooms.xlsx";
 // TODO: Use DI
 var options = new Option[]
 {
+    Option.CreateLessonsInRegistry,
     // Option.AllTeachersExcel,
     // Option.PerGroupAndPerTeacherPdfs,
     // Option.FreeRooms,
-    Option.CreateLessonsInRegistry,
+    // Option.CreateLessonsInRegistry,
     // Option.TableOfAllLabLessons,
     // Option.JsonSchedulesForWebsite,
     // Option.CopyGradesFromMoodleToRegistry,
@@ -142,14 +142,14 @@ switch (option)
         var attendance = new AllStudentAttendanceListBuilder().Build();
         ILessonTopics topics;
         {
-            string manifestPath = Path.GetFullPath(@"data\topics\manifest.json");
+            string manifestPath = Path.GetFullPath(@"data\topics\manifest_tamara.json");
             var builder = await AllLessonTopicsDatabaseBuilder.Parse(
                 manifestPath,
                 context.Schedule.Lookup(),
                 schedule,
                 cancellationToken);
-            // builder.Provider(LessonType.Lab, new LabAutoNumberingNameProvider());
-            builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
+            builder.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
+            // builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
             topics = builder.Build();
         }
 

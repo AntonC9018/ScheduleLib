@@ -91,6 +91,10 @@ internal static class HtmlSearch
             var anchor = (IHtmlAnchorElement) el;
             var url = anchor.Href;
             var courseName = anchor.Text;
+            if (courseName.EndsWith(','))
+            {
+                courseName = courseName[.. ^1];
+            }
             if (p.FindCourse(courseName) is { } courseId)
             {
                 yield return new(courseId, new(url));
@@ -407,17 +411,29 @@ internal static class HtmlSearch
             Debug.Assert(lessonDateBox.Value is not null and not "");
         }
 
+        SelectLessonType();
+        void SelectLessonType()
         {
             var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
             var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
             var lessonName = GetLessonTypeName(lessonType);
+            if (lessonName is null)
+            {
+                var noTypeCurrently = lessonTypeBox.Options.None(x => x.IsSelected);
+                // Can't save unless something is selected.
+                if (noTypeCurrently)
+                {
+                    const LessonType defaultType = LessonType.Lab;
+                    lessonName = GetLessonTypeName(defaultType);
+                }
+                else
+                {
+                    return;
+                }
+            }
+
             foreach (var option in lessonTypeBox.Options)
             {
-                if (lessonName is null)
-                {
-                    option.IsSelected = false;
-                    continue;
-                }
                 if (option.Value.Equals(lessonName, StringComparison.Ordinal))
                 {
                     option.IsSelected = true;
