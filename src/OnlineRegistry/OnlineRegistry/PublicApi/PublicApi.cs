@@ -234,10 +234,6 @@ public static partial class RegistryScraping
             foreach (var group in groups)
             {
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
-                if (!scanResult.IsValid)
-                {
-                    continue;
-                }
                 var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
                     lookup: p.LookupModule.LessonsByCourse,
                     schedule: p.Schedule,
@@ -266,7 +262,6 @@ public static partial class RegistryScraping
                     var courseId = lesson.Lesson.Course;
                     var lessonType = lesson.Lesson.Type;
                     ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
-                    // TODO: Should work for any subset of the groups, currently it does not.
                     var key = new AttendanceLookupKey(
                         groups: group.Groups,
                         subGroup: group.SubGroup,
@@ -303,7 +298,9 @@ public static partial class RegistryScraping
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance);
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
+                    // Note: the index used here is per lesson type as well.
                     var topic = p.LessonTopics.Get(key);
+
                     return new LessonInstance
                     {
                         DateTime = x.DateTime,

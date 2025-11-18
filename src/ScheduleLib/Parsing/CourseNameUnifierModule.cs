@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
@@ -137,7 +138,7 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
-        if (FindSlow(parsedCourseName) is { } slowCourseId)
+        if (FindSlow(ref parsedCourseName) is { } slowCourseId)
         {
             p.Lookup.Courses.Add(p.CourseName, slowCourseId);
             return slowCourseId;
@@ -171,7 +172,7 @@ public sealed class CourseNameUnifierModule
         return parsedCourse;
     }
 
-    private CourseId? FindSlow(ParsedCourseName parsedCourseName)
+    private CourseId? FindSlow(ref ParsedCourseName parsedCourseName)
     {
         parsedCourseName = TryRemap(parsedCourseName);
 
@@ -200,7 +201,7 @@ public sealed class CourseNameUnifierModule
         }
 
         var parsedCourse = ParseCourseName(p.CourseNameForParsing);
-        if (FindSlow(parsedCourse) is { } slowCourseId)
+        if (FindSlow(ref parsedCourse) is { } slowCourseId)
         {
             courseId = slowCourseId;
             return slowCourseId;

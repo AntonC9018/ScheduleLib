@@ -23,6 +23,7 @@ public static class Config
         CourseNameUnifierConfig.Create(CourseNameParser,
         [
             (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
+            (From: "HTML", To: "HTML și CSS"),
         ]);
 
     public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)

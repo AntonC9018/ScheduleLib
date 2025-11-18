@@ -5,6 +5,7 @@ namespace ScheduleLib.OnlineRegistry;
 public readonly struct GetLessonEquationCommandsParams
 {
     public readonly Schedule Schedule;
+    // TODO: Must never be enumerated more than once, that breaks counters.
     public readonly IEnumerable<RemoteLessonInstance> RemoteLessons;
     public readonly IEnumerable<LessonInstance> LocalLessons;
 

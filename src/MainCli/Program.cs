@@ -172,7 +172,7 @@ switch (option)
             EquationCommandsDerivation = new AnyDayDerivation(),
             DateProvider = dateProvider,
             TimeConfig = context.TimeConfig,
-            ProcessingFlags = CommandProcessingConfig.DryRun
+            ProcessingFlags = CommandProcessingConfig.Process
                 .WithLog(LessonEquationCommandTypes.All),
             SemesterIntervalProvider = Config.SemesterIntervalProvider(),
             Attendance = attendance,

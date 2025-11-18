@@ -223,6 +223,7 @@ public readonly struct StudentAttendanceList
             groups: key.Groups.Value.Ordered(),
             subGroup: key.SubGroup,
             lessonType: key.LessonType);
+        // TODO: Should work for any subset of the groups, currently it does not.
         if (_map.TryGetValue(attendanceKey, out var list)
             && key.DayIndex < list.Attendance.Length)
         {
