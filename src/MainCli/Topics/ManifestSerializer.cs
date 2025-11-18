@@ -79,8 +79,9 @@ public sealed class Document
     public required string Path { get; set; }
     public required string? Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
-    public required List<Faculty> Faculty { get; set; }
+    public List<Faculty>? Faculty { get; set; }
     public LessonType? LessonType { get; set; }
+    public string? Delimiter { get; set; } = null;
 }
 
 

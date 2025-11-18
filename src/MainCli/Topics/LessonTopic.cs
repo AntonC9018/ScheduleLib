@@ -23,19 +23,24 @@ public sealed class LessonTopicDefaults
 
 public static class LessonTopicCsvSerializer
 {
-    private static CsvConfiguration Config = new(CultureInfo.InvariantCulture)
+    private static CsvConfiguration Config => new(CultureInfo.InvariantCulture)
     {
-        Delimiter = ",",
         HasHeaderRecord = true,
         MissingFieldFound = null, // Don't throw error on missing fields
+        IgnoreBlankLines = true,
     };
 
     public static async IAsyncEnumerable<LessonTopic> Deserialize(
         TextReader input,
         LessonTopicDefaults defaults,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken,
+        Func<CsvConfiguration, CsvConfiguration>? additionalConfig = null)
     {
         var config = Config;
+        if (additionalConfig is { } c)
+        {
+            config = c(config);
+        }
         using var csvReader = new CsvReader(input, config);
         csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults));
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
@@ -337,15 +342,30 @@ public sealed class AllLessonTopicsDatabaseBuilder
             }
 
             LessonGroups lessonGroups = new();
-            foreach (var faculty in document.Faculty)
+            foreach (var groupId in filteredSchedule.Groups)
             {
-                foreach (var groupId in filteredSchedule.Groups)
+                var group = schedule.Get(groupId);
+                if (!IsFacultyMatch())
                 {
-                    var group = schedule.Get(groupId);
-                    if (group.Faculty == faculty)
+                    continue;
+                }
+                lessonGroups.Add(groupId);
+                continue;
+
+                bool IsFacultyMatch()
+                {
+                    if (document.Faculty == null)
                     {
-                        lessonGroups.Add(groupId);
+                        return true;
                     }
+                    foreach (var faculty in document.Faculty)
+                    {
+                        if (group.Faculty == faculty)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             }
 
@@ -354,7 +374,19 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 groups: lessonGroups,
                 subGroup: null));
 
-            await foreach (var lessonTopic in LessonTopicCsvSerializer.Deserialize(textReader, defaults, cancellationToken))
+            var e = LessonTopicCsvSerializer.Deserialize(
+                textReader,
+                defaults,
+                cancellationToken,
+                c =>
+                {
+                    if (document.Delimiter is { } delim)
+                    {
+                        c.Delimiter = delim;
+                    }
+                    return c;
+                });
+            await foreach (var lessonTopic in e)
             {
                 topics.Add(lessonTopic.LessonType, lessonTopic.Name);
             }

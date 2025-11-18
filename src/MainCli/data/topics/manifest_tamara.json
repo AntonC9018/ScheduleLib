@@ -13,6 +13,11 @@
             "course": "GA 2D",
             "faculty": ["IA", "I"],
             "lessonType": "Curs"
+        },
+        {
+            "path": "HTML.csv",
+            "course": "HTML",
+            "lessonType": "Lab"
         }
     ]
 }
