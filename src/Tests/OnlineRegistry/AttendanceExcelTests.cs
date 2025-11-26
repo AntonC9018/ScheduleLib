@@ -16,6 +16,7 @@ public sealed class AttendanceExcelTests
     {
         var builder = await ScheduleTestHelper.CreateTestSchedule();
         var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
+        builder.EnableLookupModule();
         unifier.Refresh(builder);
 
         var schedule = builder.Build();

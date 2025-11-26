@@ -28,6 +28,7 @@ public static class LessonTopicCsvSerializer
         HasHeaderRecord = true,
         MissingFieldFound = null, // Don't throw error on missing fields
         IgnoreBlankLines = true,
+        DetectDelimiter = true,
     };
 
     public static async IAsyncEnumerable<LessonTopic> Deserialize(
@@ -341,32 +342,14 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 throw new InvalidOperationException($"Course '{document.Course}' not found in lookup.");
             }
 
-            LessonGroups lessonGroups = new();
-            foreach (var groupId in filteredSchedule.Groups)
-            {
-                var group = schedule.Get(groupId);
-                if (!IsFacultyMatch())
-                {
-                    continue;
-                }
-                lessonGroups.Add(groupId);
-                continue;
+            var lessonGroups = FindMatchingGroups(
+                filteredSchedule,
+                document);
 
-                bool IsFacultyMatch()
-                {
-                    if (document.Faculty == null)
-                    {
-                        return true;
-                    }
-                    foreach (var faculty in document.Faculty)
-                    {
-                        if (group.Faculty == faculty)
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
+            if (lessonGroups.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"No matching lesson groups found for document '{document.Path}' with specified faculty/grade filters.");
             }
 
             var topics = builder.Topics(new(
@@ -382,6 +365,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 {
                     if (document.Delimiter is { } delim)
                     {
+                        c.DetectDelimiter = false;
                         c.Delimiter = delim;
                     }
                     return c;
@@ -392,5 +376,59 @@ public sealed class AllLessonTopicsDatabaseBuilder
             }
         }
         return builder;
+    }
+
+    private static LessonGroups FindMatchingGroups(
+        FilteredSchedule filteredSchedule,
+        Document document)
+    {
+        LessonGroups ret = new();
+        foreach (var groupId in filteredSchedule.Groups)
+        {
+            var group = filteredSchedule.Source.Get(groupId);
+            if (!IsFacultyMatch())
+            {
+                continue;
+            }
+            if (!IsGradeMatch())
+            {
+                continue;
+            }
+            ret.Add(groupId);
+            continue;
+
+            bool IsFacultyMatch()
+            {
+                if (document.Faculty == null)
+                {
+                    return true;
+                }
+                foreach (var faculty in document.Faculty)
+                {
+                    if (group.Faculty == faculty)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool IsGradeMatch()
+            {
+                if (document.Grade == null)
+                {
+                    return true;
+                }
+                foreach (var grade in document.Grade)
+                {
+                    if (group.Grade == grade)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        return ret;
     }
 }

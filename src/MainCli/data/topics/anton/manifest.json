@@ -1,0 +1,25 @@
+{
+    "teacher": "Curmanschii Anton",
+    "documents":
+    [
+        {
+            "path": "design.csv",
+            "course": "modele de design software",
+            "faculty": ["I", "IA"],
+            "grade": 3,
+        },
+        {
+            "path": "c++.csv",
+            "course": "C++",
+            "grade": 2,
+            "faculty": "DJ",
+        },
+        {
+            "path": "fp.csv",
+            "lessonType": "Lab",
+            "course": "FP",
+            "grade": 1,
+            "faculty": "DJ",
+        }
+    ]
+}

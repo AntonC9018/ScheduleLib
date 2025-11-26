@@ -74,6 +74,8 @@ const string allTeachersOutputFile = "all_teachers_orar.xlsx";
 string allTeachersOutputFileFullPath = Path.GetFullPath($"{outputDirectory}/{allTeachersOutputFile}");
 
 const string freeRoomExcelOutputPath = $"{outputDirectory}/free_rooms.xlsx";
+const string teacherFirstName = "Anton";
+const string teacherLastName = "Curmanschii";
 
 // TODO: Use DI
 var options = new Option[]
@@ -138,20 +140,25 @@ switch (option)
             config,
             allowUserInput: true);
 
-        // var attendance = GetAttendanceListOfCurrentTeacher();
-        var attendance = new AllStudentAttendanceListBuilder().Build();
+        var attendance = GetAttendanceListOfCurrentTeacher();
+        // var attendance = new AllStudentAttendanceListBuilder().Build();
         ILessonTopics topics;
         {
-            string manifestPath = Path.GetFullPath(@"data\topics\manifest_tamara.json");
+            string manifestPath = Path.GetFullPath(@"data\topics\anton\manifest.json");
             var builder = await AllLessonTopicsDatabaseBuilder.Parse(
                 manifestPath,
                 context.Schedule.Lookup(),
                 schedule,
                 cancellationToken);
-            builder.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
-            // builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
+            // builder.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
+            builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
             topics = builder.Build();
         }
+#if false
+        {
+            topics = new LessonTopicsFromDatabase([]);
+        }
+#endif
 
         using var registryContext = await RegistryScrapingContext.Create(
             credentials: credentials,
@@ -389,7 +396,7 @@ Task GenerateAllTeacherExcel()
 
 TeacherId GetCurrentTeacherId()
 {
-    var teacherId = context.Schedule.Lookup().Teacher("Tamara", "Iatasina")!.Value;
+    var teacherId = context.Schedule.Lookup().Teacher(teacherFirstName, teacherLastName)!.Value;
     return teacherId;
 }
 

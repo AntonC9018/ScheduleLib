@@ -78,7 +78,10 @@ public sealed class CourseNameUnifierModule
     {
         SlowCourses.Clear();
         var courses = builder.Courses;
-        var lookup = builder.LookupModule!;
+        if (builder.LookupModule is not { } lookup)
+        {
+            throw new InvalidOperationException("Lookup module must be enabled before refreshing CourseNameUnifierModule.");
+        }
 
         for (int i = 0; i < courses.Count; i++)
         {
@@ -87,7 +90,7 @@ public sealed class CourseNameUnifierModule
             // Only adding a single instance of this because they are all equivalent.
             AddSlow(fullName, courseId);
             // Also adding lookup for the future.
-            lookup.Courses.TryAdd(fullName, courseId);
+            lookup.Courses.TryAdd(fullName!, courseId);
         }
     }
 

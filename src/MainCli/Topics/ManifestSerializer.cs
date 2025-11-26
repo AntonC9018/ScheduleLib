@@ -36,6 +36,7 @@ public static class ManifestSerializer
         options.ReferenceHandler = null;
         options.WriteIndented = true;
         options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.ReadCommentHandling = JsonCommentHandling.Skip;
         return options;
     }
 
@@ -81,7 +82,7 @@ public sealed class Document
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Faculty>? Faculty { get; set; }
     public LessonType? LessonType { get; set; }
-    public string? Delimiter { get; set; } = null;
+    public string? Delimiter { get; set; }
+    [JsonConverter(typeof(SingleValueOrArrayConverter))]
+    public List<Grade>? Grade { get; set; }
 }
-
-

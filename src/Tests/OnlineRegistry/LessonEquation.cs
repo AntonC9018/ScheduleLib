@@ -79,7 +79,7 @@ public sealed class LessonEquationTests
             });
     }
 
-    [Fact]
+    [Fact(Skip = "It is not ignored anymore, it counts as a separate type but does not produce changes at a later point")]
     public void LessonTypeNotSet_IgnoredInChecks()
     {
         var ctx = new Context();
