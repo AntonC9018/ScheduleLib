@@ -68,6 +68,7 @@ IConfiguration config;
     config = builder.Build();
 }
 
+
 const string outputDirectory = "output";
 
 const string allTeachersOutputFile = "all_teachers_orar.xlsx";
@@ -402,7 +403,7 @@ TeacherId GetCurrentTeacherId()
 
 StudentAttendanceList GetAttendanceListOfCurrentTeacher()
 {
-    using var workbook = new XLWorkbook(@"C:\Users\Anton\Desktop\lipse.xlsx");
+    using var workbook = new XLWorkbook();
     var teacherId = GetCurrentTeacherId();
     var filteredSchedule = schedule.Filter(new()
     {

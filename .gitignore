@@ -3,3 +3,4 @@ bin
 obj
 *.received*
 ~$*
+.idea/*/.idea/copilot.*

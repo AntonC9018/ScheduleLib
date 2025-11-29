@@ -1353,6 +1353,18 @@ public static class Tasks
         public required CancellationToken CancellationToken;
     }
 
+    public static ClientSecrets GetDriveConfig(IConfiguration config)
+    {
+        var clientSecrets = config.GetSection("Google").Get<ClientSecrets>();
+        if (clientSecrets is null
+            || clientSecrets.ClientId == null
+            || clientSecrets.ClientSecret == null)
+        {
+            throw new InvalidOperationException("Configuration for google is missing");
+        }
+        return clientSecrets;
+    }
+
     public static async Task UploadStuffToDrive(UploadStuffToDriveParams p)
     {
         string[] scopes = [
@@ -1360,15 +1372,7 @@ public static class Tasks
             DriveService.Scope.Drive,
         ];
         var credPath = "google_token_store";
-
-        var clientSecrets = p.Configuration.GetSection("Google").Get<ClientSecrets>();
-        if (clientSecrets is null
-            || clientSecrets.ClientId == null
-            || clientSecrets.ClientSecret == null)
-        {
-            throw new InvalidOperationException("Configuration for google is missing");
-        }
-
+        var clientSecrets = GetDriveConfig(p.Configuration);
         var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
             clientSecrets: clientSecrets,
             scopes: scopes,
@@ -2007,3 +2011,5 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
         }
     }
 }
+
+public readonly record struct UserNameKey(string Value);

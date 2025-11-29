@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 
@@ -29,36 +29,10 @@
             Include="data\**\*.xlsx"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
-        <None Update="data\topics\anton\manifest.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\anton\c++.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\anton\design.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\anton\fp.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\tamara\manifest.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\tamara\ДЖ.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\tamara\Информатики.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\nichita\cloud.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\nichita\HTML.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="data\topics\nichita\manifest.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
+        <None
+            Include="data\topics\**\*"
+            CopyToOutputDirectory="Always"
+            CopyToPublishDirectory="Always" />
     </ItemGroup>
 
     <ItemGroup>
