@@ -1,0 +1,154 @@
+namespace MainCli.BuilderNew;
+
+public sealed class ConfigKeyRegistry
+{
+    private readonly NameRegistry<LayerConfigKey> _impl = new();
+
+    public LayerConfigKey<T> Register<T>() where T : class
+    {
+        return Register<T>(typeof(T).Name);
+    }
+    public LayerConfigKey<T> Register<T>(string name) where T : class
+    {
+        var ret = _impl.Register(name);
+        return new(ret);
+    }
+}
+
+public readonly record struct LayerConfigKey<T>(LayerConfigKey Value) where T : class;
+public readonly record struct LayerConfigKey(string Value) : ICreateFromString<LayerConfigKey>
+{
+    public static readonly ConfigKeyRegistry Registry = new();
+    public static LayerConfigKey Create(string val) => new(val);
+}
+
+public struct LayerConfigFlags
+{
+    public bool Remove;
+    public bool Clean;
+}
+
+public sealed class LayerConfigContainer
+{
+    public object? Value;
+    public LayerConfigFlags Flags = new();
+}
+
+public readonly struct LayerConfigContainer<T>
+{
+    private readonly LayerConfigContainer _impl;
+
+    public LayerConfigContainer(LayerConfigContainer impl)
+    {
+        _impl = impl;
+    }
+
+    public readonly T Value
+    {
+        get => (T) _impl.Value!;
+        set => _impl.Value = value;
+    }
+    public readonly ref LayerConfigFlags Flags => ref _impl.Flags;
+}
+
+public readonly struct MaybeLayerConfigContainer<T>
+{
+    private readonly LayerConfigContainer? _impl;
+
+    public MaybeLayerConfigContainer(LayerConfigContainer? impl)
+    {
+        _impl = impl;
+    }
+
+    public bool Exists => _impl != null;
+    public LayerConfigContainer<T> Value
+    {
+        get
+        {
+            if (!Exists)
+            {
+                throw new InvalidOperationException("Does not exist!");
+            }
+            return new(_impl!);
+        }
+    }
+}
+
+public interface IConfig<T> where T : class
+{
+    public static abstract LayerConfigKey<T> Key { get; }
+}
+
+public readonly struct ConfigBuilder<T>
+    where T : class, IConfig<T>
+{
+    internal readonly MutableLayer _layer;
+
+    public ConfigBuilder(MutableLayer layer)
+    {
+        _layer = layer;
+    }
+
+    public T GetConfig()
+    {
+        var val = _layer.Get(T.Key);
+        return val.Value.Value;
+    }
+}
+
+public static class BaseExtensions
+{
+    extension (ApplicationConfigLayerBuilder builder)
+    {
+        public ConfigBuilder<T> CreateConfigBuilder<T>()
+            where T : class, IConfig<T>
+        {
+            return new(builder.Layer);
+        }
+    }
+
+    extension<T> (ConfigBuilder<T> builder)
+        where T : class, IConfig<T>
+    {
+        public LayerConfigContainer<T> Enable(Func<T> factory)
+        {
+            return builder._layer.GetOrAdd(T.Key, factory);
+        }
+    }
+
+    extension (MutableLayer layer)
+    {
+        public LayerConfigContainer<T> GetOrAdd<T>(
+            LayerConfigKey<T> key) where T : class, new()
+        {
+            return layer.GetOrAdd(key, () => new T());
+        }
+    }
+
+    extension<T> (ConfigBuilder<T> builder)
+        where T : class, IConfig<T>, new()
+    {
+        public LayerConfigContainer<T> Enable()
+        {
+            return builder._layer.GetOrAdd(T.Key);
+        }
+
+        public void Remove()
+        {
+            builder.Enable().Flags.Remove = true;
+        }
+        public void NoInherit()
+        {
+            builder.Enable().Flags.Clean = true;
+        }
+        public void ConfigureValue(Action<T> configure)
+        {
+            configure(builder.Enable().Value);
+        }
+        public void Configure(Action<ConfigBuilder<T>> configure)
+        {
+            configure(builder);
+        }
+    }
+
+}
