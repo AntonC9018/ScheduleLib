@@ -17,6 +17,8 @@ public sealed class ApplicationConfigBuilder
     {
         return Defaults.AddLayer(layer);
     }
+
+    public MutableLayer BaseLayer => _baseLayer;
 }
 
 public readonly struct ApplicationConfigLayerBuilder
@@ -31,7 +33,7 @@ public readonly struct ApplicationConfigLayerBuilder
     public ApplicationConfigLayerBuilder AddLayer(Layer layer)
     {
         var model = new MutableLayer();
-        Layer.ChildLayers.Add(new(layer, model));
+        Layer._childLayers.Add(new(layer, model));
         return new(model);
     }
 
@@ -54,7 +56,9 @@ public readonly record struct Layer(string Value) : ICreateFromString<Layer>
 public sealed class MutableLayer
 {
     private readonly ConcurrentDictionary<LayerConfigKey, LayerConfigContainer> _configs = new();
-    internal readonly List<NamedLayer> ChildLayers = new();
+    internal readonly List<NamedLayer> _childLayers = new();
+
+    public IReadOnlyList<NamedLayer> ChildLayers => _childLayers;
 
     public MaybeLayerConfigContainer<T> Get<T>(LayerConfigKey<T> key) where T : class
     {

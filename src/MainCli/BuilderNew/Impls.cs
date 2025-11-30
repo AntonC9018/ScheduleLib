@@ -11,6 +11,9 @@ public sealed class RegistryConfig :
 {
     public static LayerConfigKey<RegistryConfig> Key { get; } = LayerConfigKey.Registry.Register<RegistryConfig>();
     public CredentialsSource? Credentials { get; set; }
+    public ExtraLessonInstanceAction? ExtraLessonInstanceAction { get; set; }
+    public IEquationCommandsDerivation? EquationCommandsDerivation { get; set; }
+    public CommandProcessingConfig? CommandProcessingConfig { get; set; }
 }
 
 public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
@@ -77,7 +80,7 @@ public sealed class LessonTopicSourceDefinition
 
 public sealed class TeacherLayerConfig : IConfig<TeacherLayerConfig>
 {
-    public static LayerConfigKey<TeacherLayerConfig> Key { get; } = LayerConfigKey.Registry.Register<TeacherLayerConfig>("TeacherName");
+    public static LayerConfigKey<TeacherLayerConfig> Key { get; } = LayerConfigKey.Registry.Register<TeacherLayerConfig>();
     public Name TeacherName = null!;
 }
 
@@ -139,14 +142,17 @@ public static class Extensions
     {
         public void ExtraLessonAction(ExtraLessonInstanceAction action)
         {
+            builder.Enable().Value.ExtraLessonInstanceAction = action;
         }
 
-        public void CommandDerivation<T>() where T : IEquationCommandsDerivation
+        public void CommandDerivation<T>() where T : IEquationCommandsDerivation, new()
         {
+            builder.Enable().Value.EquationCommandsDerivation = new T();
         }
 
         public void ProcessingFlags(CommandProcessingConfig flags)
         {
+            builder.Enable().Value.CommandProcessingConfig = flags;
         }
     }
 

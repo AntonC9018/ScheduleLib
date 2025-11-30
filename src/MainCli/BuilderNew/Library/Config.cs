@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
 namespace MainCli.BuilderNew;
 
 public sealed class ConfigKeyRegistry
@@ -74,6 +79,9 @@ public readonly struct MaybeLayerConfigContainer<T>
     }
 }
 
+// TODO: Source generate the key property,
+// source generate the BasicOperations class,
+// source generate the merger class.
 public interface IConfig<T> where T : class
 {
     public static abstract LayerConfigKey<T> Key { get; }

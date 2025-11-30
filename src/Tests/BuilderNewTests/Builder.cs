@@ -1,20 +1,22 @@
+using System.Diagnostics;
 using MainCli.Topics;
-using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 using MainCli.BuilderNew.Impl;
+using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Parsing;
 
 namespace MainCli.BuilderNew;
 
 public static class Builder
 {
-    public static void Test(IServiceProvider services)
+    public static ApplicationConfigBuilder Build()
     {
         // Builder + dynamic object so that it could be configured from a UI.
         // Allows to get immutable config for specific things on demand
         // (so that running tasks are never affected).
-        var b = services.GetRequiredService<ApplicationConfigBuilder>();
+        var b = new ApplicationConfigBuilder();
 
         // allows to configure the defaults at this level
         // they will take effect if later they are not overriden,
@@ -57,6 +59,11 @@ public static class Builder
         {
             t.Drive();
 
+            t.Registry().Configure(x =>
+            {
+                x.ProcessingFlags(CommandProcessingConfig.None);
+            });
+
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
                 // a.Format(...) allows to reset the format.
@@ -90,6 +97,6 @@ public static class Builder
             t.LessonTopics().NoInherit();
         });
 
+        return b;
     }
 }
-
