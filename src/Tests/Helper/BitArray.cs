@@ -1,6 +1,6 @@
 namespace ScheduleLib.Tests;
 
-public class BitArray
+public sealed class BitArray
 {
     [Fact]
     public void GetSetAfter()

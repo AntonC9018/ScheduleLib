@@ -18,6 +18,14 @@ public readonly struct Interval
     public int Length => EndInclusive - Start + 1;
 }
 
+public static class UnsizedBitArrayHelper
+{
+    public static SizedBitArray32Ref AsFixedSizeRef(this ref UnsizedBitArray32 arr, int size)
+    {
+        return new SizedBitArray32Ref(ref arr, size);
+    }
+}
+
 public record struct UnsizedBitArray32
 {
     private uint _bits;
@@ -27,7 +35,7 @@ public record struct UnsizedBitArray32
         _bits = bits;
     }
 
-    public BitArray32 WithFixedSize(int size) => new(this, size);
+    public readonly BitArray32 WithFixedSize(int size) => new(this, size);
 
     public readonly int SetCount => BitOperations.PopCount(_bits);
 
@@ -194,6 +202,8 @@ public record struct BitArray32
     {
     }
 
+    public readonly UnsizedBitArray32 AsUnsized() => _array;
+
     private readonly void ValidateIndex(int index)
     {
         Debug.Assert(index >= 0 && index < _length);
@@ -223,7 +233,6 @@ public record struct BitArray32
 
     public readonly int GetSetAfter(int index)
     {
-        ValidateIndex(index);
         return _array.GetSetAfter(index);
     }
 
@@ -409,11 +418,7 @@ public readonly struct SetBitIndicesEnumerable : IEnumerable<int>
 {
     private readonly uint _bits;
 
-    public SetBitIndicesEnumerable(uint bits)
-    {
-        _bits = bits;
-    }
-
+    public SetBitIndicesEnumerable(uint bits) => _bits = bits;
     public SetBitIndicesEnumerator GetEnumerator() => new(_bits);
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
