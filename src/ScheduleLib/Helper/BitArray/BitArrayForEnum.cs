@@ -3,10 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib.Helper;
 
-public record struct BitArrayForEnum<T>
+public record struct EnumBitArray<T>
     where T : struct, Enum
 {
-    static BitArrayForEnum()
+    static EnumBitArray()
     {
         var count = AllEnumEnumerable<T>.Count;
         UnsizedBitArray32.ValidateLength(count);
@@ -14,16 +14,16 @@ public record struct BitArrayForEnum<T>
 
     private UnsizedBitArray32 _impl;
 
-    public BitArrayForEnum() : this(default)
+    public EnumBitArray() : this(default)
     {
     }
 
-    internal BitArrayForEnum(UnsizedBitArray32 impl)
+    internal EnumBitArray(UnsizedBitArray32 impl)
     {
         _impl = impl;
     }
 
-    public static BitArrayForEnum<T> AllSet
+    public static EnumBitArray<T> AllSet
     {
         get
         {
@@ -60,21 +60,21 @@ public record struct BitArrayForEnum<T>
         return SizedImpl.IsSet(offset);
     }
 
-    public readonly BitArrayForEnum<T> WithSet(T index)
+    public readonly EnumBitArray<T> WithSet(T index)
     {
         var offset = AllEnumEnumerable<T>.GetOffset(index);
         var result = SizedImpl.WithSet(offset);
         return new(result.AsUnsized());
     }
 
-    public readonly BitArrayForEnum<T> WithClear(T index)
+    public readonly EnumBitArray<T> WithClear(T index)
     {
         var offset = AllEnumEnumerable<T>.GetOffset(index);
         var result = SizedImpl.WithClear(offset);
         return new(result.AsUnsized());
     }
 
-    public readonly BitArrayForEnum<T> Flipped
+    public readonly EnumBitArray<T> Flipped
     {
         get
         {
@@ -83,7 +83,7 @@ public record struct BitArrayForEnum<T>
         }
     }
 
-    public readonly BitArrayForEnum<T> Intersect(BitArrayForEnum<T> other)
+    public readonly EnumBitArray<T> Intersect(EnumBitArray<T> other)
     {
         var result = SizedImpl.Intersect(other.SizedImpl);
         return new(result.AsUnsized());

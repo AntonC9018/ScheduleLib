@@ -6,6 +6,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 
 namespace MainCli.Topics;
@@ -221,6 +222,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
 {
     private readonly List<LessonTopicsBuilder> _items = new();
     private ValueForEachLessonType<ILessonNameProvider?> _defaultProviders;
+    // Only includes the relevant lessons.
     private readonly FilteredSchedule _schedule;
 
     public AllLessonTopicsDatabaseBuilder(FilteredSchedule schedule)
@@ -238,7 +240,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
         var b = ImmutableArray.CreateBuilder<ClassifiedTopicsProviders>(_items.Count);
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
-            UnsizedBitArray32 foundLessonTypes = new();
+            EnumBitArray<LessonType> foundLessonTypes = new();
             foreach (var lesson in _schedule.Lessons)
             {
                 if (!it.Key.IsLessonGroupsMatch(lesson.Lesson.Groups))
@@ -253,33 +255,30 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 {
                     continue;
                 }
-                foundLessonTypes.Set((int) lesson.Lesson.Type);
+                foundLessonTypes.Set(lesson.Lesson.Type);
             }
 
             ValueForEachLessonType<ILessonNameProvider?> providers = new();
-            foreach (var lessonTypeIndex in foundLessonTypes
-                         .WithFixedSize((int) LessonType.Count)
-                         .SetBitIndicesLowToHigh)
+            foreach (var lessonType in foundLessonTypes.SetValues())
             {
-                var list = it._lists[lessonTypeIndex];
+                var list = it._lists[(int) lessonType];
                 if (list is not null)
                 {
                     var arr = list.ToImmutableArray();
                     var provider = new ListLessonNameProvider(arr);
-                    providers[lessonTypeIndex] = provider;
+                    providers[(int) lessonType] = provider;
                     continue;
                 }
 
-                var defaultProvider = _defaultProviders[lessonTypeIndex];
+                var defaultProvider = _defaultProviders[(int) lessonType];
                 if (defaultProvider is not null)
                 {
-                    providers[lessonTypeIndex] = defaultProvider;
+                    providers[(int) lessonType] = defaultProvider;
                     continue;
                 }
 
                 throw new InvalidOperationException(
-                    $"No provider for lesson type {(LessonType) lessonTypeIndex} " +
-                    $"for course {it.Key.CourseId}.");
+                    $"No provider for lesson type {lessonType} for course {it.Key.CourseId}.");
             }
             b.Add(new(it.Key, providers));
         }
@@ -323,6 +322,14 @@ public sealed class AllLessonTopicsDatabaseBuilder
 
         var builder = new AllLessonTopicsDatabaseBuilder(filteredSchedule);
 
+        return builder;
+    }
+
+    public async Task AddFromManifest(
+        Manifest manifest,
+        LookupFacade lookup,
+        CancellationToken cancellationToken)
+    {
         foreach (var document in manifest.Documents)
         {
             var documentFilePath = Path.Combine(manifestDirectory, document.Path);
@@ -343,7 +350,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
             }
 
             var lessonGroups = FindMatchingGroups(
-                filteredSchedule,
+                _schedule,
                 document);
 
             if (lessonGroups.Count == 0)
@@ -375,7 +382,6 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 topics.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
         }
-        return builder;
     }
 
     private static LessonGroups FindMatchingGroups(

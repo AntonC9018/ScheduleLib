@@ -10,6 +10,29 @@ public readonly struct AllEnumEnumerable<T> : IEnumerable<T>
     public static readonly T End;
     public static int Count => EnumAsInt(End) - EnumAsInt(Start) + 1;
 
+    public static int GetOffset(T val)
+    {
+        var t = EnumAsInt(val);
+        return GetOffset(t);
+    }
+
+    public static int GetOffset(int val)
+    {
+        Debug.Assert(val >= EnumAsInt(Start));
+        Debug.Assert(val <= EnumAsInt(End));
+        var ret = val - EnumAsInt(Start);
+        return ret;
+    }
+
+    public static T EnumFromOffset(int offset)
+    {
+        Debug.Assert(offset >= 0);
+        Debug.Assert(offset < Count);
+        var start = EnumAsInt(Start);
+        var ret = start + offset;
+        return IntAsEnum(ret);
+    }
+
     static AllEnumEnumerable()
     {
         Debug.Assert(typeof(T).GetEnumUnderlyingType() == typeof(int));

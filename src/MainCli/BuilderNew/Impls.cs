@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using MainCli.Topics;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
@@ -19,24 +22,14 @@ public sealed class RegistryConfig :
 public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
 {
     public static LayerConfigKey<LessonTopicsConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonTopicsConfig>();
-    public readonly List<LessonTopicSourceDefinition> Sources = new();
+    public List<LessonTopicSourceDefinition> Sources { get; set; } = new();
+    public List<LessonNameProviderConfig> FallbackProviders { get; set; } = new();
+}
 
-    public void AddSource<T>()
-    {
-        Sources.Add(new()
-        {
-            Type = typeof(T),
-        });
-    }
-
-    public void AddSource<T>(ILessonTopicSourceFactory factory)
-        where T : class
-    {
-        Sources.Add(new()
-        {
-            Factory = factory,
-        });
-    }
+public sealed class LessonNameProviderConfig
+{
+    public required LessonType LessonType { get; set; }
+    public ILessonNameProvider Provider { get; set; } = null!;
 }
 
 public sealed class MoodleConfig : IConfig<MoodleConfig>, ICredentialsConfig
@@ -45,19 +38,28 @@ public sealed class MoodleConfig : IConfig<MoodleConfig>, ICredentialsConfig
     public CredentialsSource? Credentials { get; set; }
 }
 
-public sealed class ManifestSource
+public sealed class ManifestSource : ILessonTopicSource
 {
-}
+    private readonly ManifestFileSource _fileSource;
 
-public sealed class ManifestSourceBuilder : ILessonTopicSourceFactory
-{
-    public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
+    public ManifestSource(ManifestFileSource fileSource)
     {
-        _ = lessonType;
-        _ = provider;
+        _fileSource = fileSource;
     }
 
-    public ILessonTopicSource Create(IServiceProvider sp)
+    public async ValueTask Configure(
+        AllLessonTopicsDatabaseBuilder builder,
+        CancellationToken cancellationToken)
+    {
+        var manifest = await _fileSource.Read(cancellationToken);
+    }
+}
+
+public sealed class ManifestSourceBuilder
+{
+    private readonly ManifestLessonTopicSourceDefinition Definition = new();
+
+    public ManifestSource Create()
     {
         return null!;
     }
@@ -65,17 +67,59 @@ public sealed class ManifestSourceBuilder : ILessonTopicSourceFactory
 
 public interface ILessonTopicSource
 {
+    public ValueTask Configure(
+        AllLessonTopicsDatabaseBuilder builder,
+        CancellationToken cancellationToken);
 }
 
-public interface ILessonTopicSourceFactory
+public sealed class ManifestFileSource
+{
+    private readonly string _path;
+
+    public ManifestFileSource(string path)
+    {
+        _path = path;
+    }
+
+    public async Task<Manifest> Read(CancellationToken cancellationToken)
+    {
+        await using var inputFile = File.OpenRead(_path);
+        var manifest = await ManifestSerializer.Deserialize(inputFile, cancellationToken);
+        return manifest;
+    }
+}
+
+public interface LessonTopicSourceDefinition
 {
     ILessonTopicSource Create(IServiceProvider sp);
 }
 
-public sealed class LessonTopicSourceDefinition
+public sealed class LessonTopicsSourceDefinitionBasicOperations : IBasicOperations<LessonTopicSourceDefinition>
 {
-    public Type? Type { get; init; }
-    public ILessonTopicSourceFactory? Factory { get; init; }
+    private readonly IServiceProvider _serviceProvider;
+
+    public LessonTopicsSourceDefinitionBasicOperations(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+    public LessonTopicSourceDefinition? Empty() => null;
+    public LessonTopicSourceDefinition? Reset(LessonTopicSourceDefinition? item) => null;
+
+    public LessonTopicSourceDefinition Copy(LessonTopicSourceDefinition from)
+    {
+        var ret = CallCopyHelper.CopyUsingService(_serviceProvider, from);
+        return (LessonTopicSourceDefinition) ret;
+    }
+}
+
+// TODO: Separate this from the runtime factory.
+public sealed class ManifestLessonTopicSourceDefinition : LessonTopicSourceDefinition
+{
+    public string? Path { get; set; }
+    public ILessonTopicSource Create(IServiceProvider sp)
+    {
+        return null!;
+    }
 }
 
 public sealed class TeacherLayerConfig : IConfig<TeacherLayerConfig>
@@ -104,7 +148,7 @@ public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
 
 public static class Extensions
 {
-    public static readonly Layer TeacherLayer = Layer.Registry.Register("Teacher");
+    public static readonly Layer TeacherLayerKey = Layer.Registry.Register("Teacher");
 
     extension (ApplicationConfigLayerBuilder builder)
     {
@@ -114,12 +158,12 @@ public static class Extensions
         public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => new(builder.Layer);
         public void Drive() => builder.CreateConfigBuilder<GoogleDriveConfig>().Enable();
 
-        public ApplicationConfigLayerBuilder Teacher(
+        public ApplicationConfigLayerBuilder TeacherLayer(
             string nameStr,
             Action<ApplicationConfigLayerBuilder>? configure = null)
         {
             var name = NameHelper.Parse(nameStr);
-            var layerBuilder = builder.AddLayer(TeacherLayer);
+            var layerBuilder = builder.AddLayer(TeacherLayerKey);
             var teacherBuilder = layerBuilder.CreateConfigBuilder<TeacherLayerConfig>();
             teacherBuilder.Enable().Value.TeacherName = name;
             configure?.Invoke(layerBuilder);
@@ -129,12 +173,30 @@ public static class Extensions
 
     extension (ConfigBuilder<LessonTopicsConfig> builder)
     {
-        public void Manifest(Action<ManifestSourceBuilder> configure)
+        public void Manifest(Action<ManifestSourceBuilder>? configure = null)
         {
+            // This should also have the path.
             var x = new ManifestSourceBuilder();
-            configure(x);
+            configure?.Invoke(x);
 
-            builder.Enable().Value.AddSource<ManifestSource>();
+            var sources = builder.Enable().Value.Sources;
+            var source = new ManifestLessonTopicSourceDefinition();
+            sources.Add(source);
+        }
+
+        public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
+        {
+            var sources = builder.Enable().Value.FallbackProviders;
+            var x = sources.Find(x => x.LessonType == lessonType);
+            if (x == null)
+            {
+                x = new LessonNameProviderConfig
+                {
+                    LessonType = lessonType,
+                };
+                sources.Add(x);
+            }
+            x.Provider = provider;
         }
     }
 

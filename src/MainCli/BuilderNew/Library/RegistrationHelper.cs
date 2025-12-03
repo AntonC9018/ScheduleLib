@@ -2,8 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Graph;
 
 namespace MainCli.BuilderNew;
 
@@ -82,7 +80,7 @@ public static class RegistrationHelper
                     }
                     {
                         var serviceType = typeof(IMerger<>).MakeGenericType(listType);
-                        var implType = typeof(ListBasicOperations<>).MakeGenericType(elementType);
+                        var implType = typeof(ListMerger<>).MakeGenericType(elementType);
                         if (services.TryAddSingleton(serviceType, implType))
                         {
                             added = true;

@@ -13,12 +13,12 @@ public enum TestDay
     Sunday,
 }
 
-public sealed class BitArrayForEnumTests
+public sealed class EnumBitArrayTests
 {
     [Fact]
     public void SetAndIsSet()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         Assert.False(bitArray.IsSet(TestDay.Monday));
 
         bitArray.Set(TestDay.Monday);
@@ -29,7 +29,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void Clear()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         bitArray.Set(TestDay.Monday);
         bitArray.Set(TestDay.Wednesday);
 
@@ -42,7 +42,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void AllSet()
     {
-        var bitArray = BitArrayForEnum<TestDay>.AllSet;
+        var bitArray = EnumBitArray<TestDay>.AllSet;
         Assert.True(bitArray.AreAllSet);
         Assert.Equal(7, bitArray.SetCount);
 
@@ -55,7 +55,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void WithSetImmutable()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         var modified = bitArray.WithSet(TestDay.Tuesday);
 
         Assert.False(bitArray.IsSet(TestDay.Tuesday));
@@ -65,7 +65,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void WithClearImmutable()
     {
-        var bitArray = BitArrayForEnum<TestDay>.AllSet;
+        var bitArray = EnumBitArray<TestDay>.AllSet;
         var modified = bitArray.WithClear(TestDay.Friday);
 
         Assert.True(bitArray.IsSet(TestDay.Friday));
@@ -75,7 +75,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void Flipped()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         bitArray.Set(TestDay.Monday);
         bitArray.Set(TestDay.Wednesday);
 
@@ -89,12 +89,12 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void Intersect()
     {
-        var bitArray1 = new BitArrayForEnum<TestDay>();
+        var bitArray1 = new EnumBitArray<TestDay>();
         bitArray1.Set(TestDay.Monday);
         bitArray1.Set(TestDay.Wednesday);
         bitArray1.Set(TestDay.Friday);
 
-        var bitArray2 = new BitArrayForEnum<TestDay>();
+        var bitArray2 = new EnumBitArray<TestDay>();
         bitArray2.Set(TestDay.Wednesday);
         bitArray2.Set(TestDay.Friday);
         bitArray2.Set(TestDay.Sunday);
@@ -109,7 +109,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void GetFirstSet()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         Assert.Null(bitArray.GetFirstSet());
 
         bitArray.Set(TestDay.Wednesday);
@@ -120,7 +120,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void SetValuesEnumeration()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         bitArray.Set(TestDay.Tuesday);
         bitArray.Set(TestDay.Thursday);
         bitArray.Set(TestDay.Saturday);
@@ -135,7 +135,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void SetValuesEmpty()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         var values = bitArray.SetValues().ToList();
         Assert.Empty(values);
     }
@@ -143,7 +143,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void ClearAll()
     {
-        var bitArray = BitArrayForEnum<TestDay>.AllSet;
+        var bitArray = EnumBitArray<TestDay>.AllSet;
         Assert.True(bitArray.AreAllSet);
 
         bitArray.ClearAll();
@@ -154,7 +154,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void AreNoneSet()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         Assert.True(bitArray.AreNoneSet);
 
         bitArray.Set(TestDay.Monday);
@@ -164,7 +164,7 @@ public sealed class BitArrayForEnumTests
     [Fact]
     public void SetCount()
     {
-        var bitArray = new BitArrayForEnum<TestDay>();
+        var bitArray = new EnumBitArray<TestDay>();
         Assert.Equal(0, bitArray.SetCount);
 
         bitArray.Set(TestDay.Monday);

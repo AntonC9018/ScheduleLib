@@ -40,7 +40,10 @@ public static class ManifestSerializer
         return options;
     }
 
-    public static async Task<Manifest> Deserialize(Stream stream, CancellationToken cancellationToken)
+    public static async Task<Manifest> Deserialize(
+        Stream stream,
+        CancellationToken cancellationToken,
+        Name? teacherName = null)
     {
         var options = CreateSerializerOptions();
         var manifest = await JsonSerializer.DeserializeAsync<Manifest>(
@@ -51,7 +54,32 @@ public static class ManifestSerializer
         {
             throw new InvalidDataException("Could not deserialize manifest");
         }
+        InitTeacher();
         return manifest;
+
+        void InitTeacher()
+        {
+            if (manifest.Teacher == null)
+            {
+                if (teacherName is null)
+                {
+                    throw new InvalidOperationException("No teacher name found in manifest or provided");
+                }
+                manifest.Teacher = teacherName;
+                return;
+            }
+
+            if (teacherName is null)
+            {
+                return;
+            }
+
+            if (!manifest.Teacher.Equals(teacherName))
+            {
+                throw new InvalidOperationException(
+                    $"Read teacher name {manifest.Teacher}, expected name {teacherName}");
+            }
+        }
     }
 
     public static async Task<Manifest> Serialize(
@@ -71,7 +99,10 @@ public static class ManifestSerializer
 
 public sealed class Manifest
 {
-    public required Name Teacher { get; set; }
+    internal Manifest()
+    {
+    }
+    public Name Teacher { get; set; } = null!;
     public required List<Document> Documents { get; set; }
 }
 
