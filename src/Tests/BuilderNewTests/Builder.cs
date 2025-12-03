@@ -1,11 +1,8 @@
-using System.Diagnostics;
 using MainCli.Topics;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 using MainCli.BuilderNew.Impl;
-using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Parsing;
 
 namespace MainCli.BuilderNew;
 
@@ -55,7 +52,7 @@ public static class Builder
         //     // This will always be added to all, even if not overriddent.
         //     scope.LessonTopics.Manifest();
         // });
-        b.Defaults.Teacher("Anton Curmanschii", t =>
+        b.Defaults.TeacherLayer("Anton Curmanschii", t =>
         {
             t.Drive();
 
@@ -70,8 +67,9 @@ public static class Builder
                 // each format has specific configurations like header configs for excel.
                 // attendance.SetPath();
             });
-            t.LessonTopics().Manifest(topics =>
+            t.LessonTopics().Configure(topics =>
             {
+                topics.Manifest();
                 // If this is set, it won't register the default source.
                 // topics.SetPath();
 
@@ -91,7 +89,7 @@ public static class Builder
             // });
         });
 
-        b.Defaults.Teacher("Tamara Iatasina", t =>
+        b.Defaults.TeacherLayer("Tamara Iatasina", t =>
         {
             t.Moodle().NoInherit();
             t.LessonTopics().NoInherit();

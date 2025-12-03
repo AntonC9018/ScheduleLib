@@ -12,6 +12,7 @@ public sealed class IntegrationTest
         var builder = Builder.Build();
         var services = new ServiceCollection();
         services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
+        services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
         services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
 

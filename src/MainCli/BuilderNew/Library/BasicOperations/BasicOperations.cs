@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MainCli.BuilderNew;
@@ -52,81 +51,15 @@ public interface IMerger<T> : IMerger
     public T Merge(T from, T? into);
 }
 
-public sealed class ListMerger<T> : IMerger<List<T>>
-{
-    private readonly IEqualityComparer<T> _equalityComparer;
-    private readonly IMerger<T> _merger;
-    private readonly IBasicOperations<T> _basicOperations;
-
-    public ListMerger(
-        IEqualityComparer<T> equalityComparer,
-        IMerger<T> merger,
-        IBasicOperations<T> basicOperations)
-    {
-        _equalityComparer = equalityComparer;
-        _merger = merger;
-        _basicOperations = basicOperations;
-    }
-
-    public List<T> Merge(List<T> from, List<T>? into)
-    {
-        var containedInFrom = from.ToHashSet(_equalityComparer);
-        foreach (var targetItem in into!)
-        {
-            if (containedInFrom.TryGetValue(targetItem, out var sourceItem))
-            {
-                containedInFrom.Remove(sourceItem);
-                _merger.Merge(from: sourceItem, into: targetItem);
-            }
-        }
-        foreach (var fromNoMatched in containedInFrom)
-        {
-            var copy = _basicOperations.Copy(fromNoMatched);
-            into.Add(copy);
-        }
-        return into;
-    }
-}
-
-// string
-public sealed class ImmutableClassBasicOperations<T> : IBasicOperations<T>
-{
-    public T? Empty() => default;
-    public T Copy(T from) => from;
-    public T? Reset(T? item) => default;
-}
-
-public sealed class ImmutableStructBasicOperations<T> : IBasicOperations<T>
-    where T : struct
-{
-    public T Empty() => new();
-    public T Copy(T from) => from;
-    public T Reset(T item) => new();
-}
-
-public sealed class NullableStructBasicOperations<T> : IBasicOperations<T?>
-    where T : struct
-{
-    public T? Empty() => null;
-    public T? Copy(T? from) => from;
-    public T? Reset(T? item) => null;
-}
-
-public sealed class ListBasicOperations<T> : IBasicOperations<List<T>>
-{
-    public List<T>? Empty() => new();
-    public List<T> Copy(List<T> from) => [.. from];
-    public List<T> Reset(List<T>? item)
-    {
-        item!.Clear();
-        return item;
-    }
-}
-
 internal static class CallMergerHelper
 {
     private delegate object MergeDelegate(object merger, object from, object? into);
     private static readonly ConcurrentDictionary<Type, MergeDelegate> _mergeDelegateCache = new();
+    private static readonly MethodInfo _genericMethod = typeof(CallCopyHelper)
+        .GetMethod(nameof(Merge), BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly CallHelper<MergeDelegate> _callHelper = new(
+            interfaceType: typeof(IMerger<>),
+            methodInfo: _genericMethod);
 
     private static object Merge<T>(object merger, object from, object? into)
     {
@@ -144,32 +77,32 @@ internal static class CallMergerHelper
     public static object Merge(object merger, object from, object? into)
     {
         var mergerType = merger.GetType();
-        var mergeDelegate = _mergeDelegateCache.GetOrAdd(mergerType, type =>
-        {
-            var iMergerInterface = type.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(IMerger<>));
-            if (iMergerInterface == null)
-            {
-                throw new ArgumentException($"Type {type} does not implement IMerger<T>", nameof(merger));
-            }
-
-            var itemType = iMergerInterface.GetGenericArguments()[0];
-            var genericMethod = typeof(CallMergerHelper)
-                .GetMethod(nameof(Merge), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(itemType);
-            return (MergeDelegate) genericMethod.CreateDelegate(typeof(MergeDelegate));
-        });
-
+        var mergeDelegate = _callHelper.Get(mergerType);
         return mergeDelegate(merger, from, into);
     }
 }
 
 internal static class CallCopyHelper
 {
-    private delegate object CopyDelegate(object operations, object from);
-    private static readonly ConcurrentDictionary<Type, CopyDelegate> _copyDelegateCache = new();
+    public static object CopyUsingService(IServiceProvider sp, object from)
+    {
+        var fromType = from.GetType();
+        var basicOperationsType = typeof(IBasicOperations<>).MakeGenericType(fromType);
+        var operations = sp.GetRequiredService(basicOperationsType);
+        return Copy(operations, from);
+    }
 
+    public static object Copy(object operations, object from)
+    {
+        var operationsType = operations.GetType();
+        var copyDelegate = _callHelper.Get(operationsType);
+        return copyDelegate(operations, from);
+    }
+
+    private delegate object CopyDelegate(object operations, object from);
+
+    private static readonly MethodInfo _genericMethod = typeof(CallCopyHelper)
+        .GetMethod(nameof(Copy), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static object Copy<T>(object operations, object from)
     {
         Debug.Assert(operations.GetType().IsAssignableTo(typeof(IBasicOperations<T>)));
@@ -180,26 +113,9 @@ internal static class CallCopyHelper
         return ret!;
     }
 
-    public static object Copy(object operations, object from)
-    {
-        var operationsType = operations.GetType();
-        var copyDelegate = _copyDelegateCache.GetOrAdd(operationsType, type =>
-        {
-            var iBasicOpsInterface = type.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(IBasicOperations<>));
-            if (iBasicOpsInterface == null)
-            {
-                throw new ArgumentException($"Type {type} does not implement IBasicOperations<T>", nameof(operations));
-            }
-            var itemType = iBasicOpsInterface.GetGenericArguments()[0];
-            var genericMethod = typeof(CallCopyHelper)
-                .GetMethod(nameof(Copy), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(itemType);
-            return (CopyDelegate) genericMethod.CreateDelegate(typeof(CopyDelegate));
-        });
-        return copyDelegate(operations, from);
-    }
+    private static readonly CallHelper<CopyDelegate> _callHelper = new(
+        typeof(IBasicOperations<>),
+        _genericMethod);
 }
 
 public sealed class ReflectionMerger<T> : IMerger<T>
@@ -262,7 +178,6 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         }
         return to;
     }
-
 }
 
 // TODO: Source generate these for all types.
