@@ -37,7 +37,7 @@ public sealed class LookupModule()
     }
 }
 
-public readonly struct LookupFacade(ScheduleBuilder s)
+public sealed class LookupFacade(ScheduleBuilder s)
 {
     public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(LookupModule.Courses, name);
 

@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MainCli.BuilderNew;
@@ -49,6 +48,20 @@ public static class LayerQueries
                 builder.Count--;
             }
         }
+
+        public IEnumerable<(LayerPath Path, T Config)> GetConfigs<T>(
+            LayerConfigKey<T> key)
+            where T : class
+        {
+            var ret = layer.GetPathsOfDescendantsOrSelf(x => x.Get(key).Exists);
+            foreach (var path in ret)
+            {
+                var last = path.Path[^1];
+                var config = last.Get(key).Value.Value;
+                yield return (path, config);
+            }
+        }
+
     }
 
     public static T? ConstructConfig<T>(

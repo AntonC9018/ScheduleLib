@@ -6,15 +6,13 @@ using MainCli.BuilderNew.Impl;
 
 namespace MainCli.BuilderNew;
 
-public static class Builder
+public static class TestBuilderHelper
 {
-    public static ApplicationConfigBuilder Build()
+    // Builder + dynamic object so that it could be configured from a UI.
+    // Allows to get immutable config for specific things on demand
+    // (so that running tasks are never affected).
+    public static ApplicationConfigBuilder Configure(ApplicationConfigBuilder b)
     {
-        // Builder + dynamic object so that it could be configured from a UI.
-        // Allows to get immutable config for specific things on demand
-        // (so that running tasks are never affected).
-        var b = new ApplicationConfigBuilder();
-
         // allows to configure the defaults at this level
         // they will take effect if later they are not overriden,
         b.Defaults.Configure(defaults =>
