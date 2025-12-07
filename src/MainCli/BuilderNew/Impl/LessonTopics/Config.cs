@@ -1,0 +1,48 @@
+using MainCli.Topics;
+using ScheduleLib;
+
+namespace MainCli.BuilderNew.Impl;
+
+public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
+{
+    public static LayerConfigKey<LessonTopicsConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonTopicsConfig>();
+    public List<LessonTopicSourceDefinition> Sources { get; set; } = new();
+    public List<LessonNameProviderConfig> FallbackProviders { get; set; } = new();
+}
+
+public sealed class LessonNameProviderConfig
+{
+    public required LessonType LessonType { get; set; }
+    public ILessonNameProvider Provider { get; set; } = null!;
+}
+
+public interface ILessonTopicSource
+{
+    public ValueTask Configure(
+        AllLessonTopicsDatabaseBuilder builder,
+        CancellationToken cancellationToken);
+}
+
+public sealed class LessonTopicsSourceDefinitionBasicOperations : IBasicOperations<LessonTopicSourceDefinition>
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public LessonTopicsSourceDefinitionBasicOperations(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+    public LessonTopicSourceDefinition? Empty() => null;
+    public LessonTopicSourceDefinition? Reset(LessonTopicSourceDefinition? item) => null;
+
+    public LessonTopicSourceDefinition Copy(LessonTopicSourceDefinition from)
+    {
+        var ret = CallCopyHelper.CopyUsingService(_serviceProvider, from);
+        return (LessonTopicSourceDefinition) ret;
+    }
+}
+
+public interface LessonTopicSourceDefinition
+{
+    ILessonTopicSource Create(IServiceProvider sp);
+}
+

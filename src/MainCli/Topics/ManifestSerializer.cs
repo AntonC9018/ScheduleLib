@@ -42,8 +42,7 @@ public static class ManifestSerializer
 
     public static async Task<Manifest> Deserialize(
         Stream stream,
-        CancellationToken cancellationToken,
-        Name? teacherName = null)
+        CancellationToken cancellationToken)
     {
         var options = CreateSerializerOptions();
         var manifest = await JsonSerializer.DeserializeAsync<Manifest>(
@@ -54,32 +53,7 @@ public static class ManifestSerializer
         {
             throw new InvalidDataException("Could not deserialize manifest");
         }
-        InitTeacher();
         return manifest;
-
-        void InitTeacher()
-        {
-            if (manifest.Teacher == null)
-            {
-                if (teacherName is null)
-                {
-                    throw new InvalidOperationException("No teacher name found in manifest or provided");
-                }
-                manifest.Teacher = teacherName;
-                return;
-            }
-
-            if (teacherName is null)
-            {
-                return;
-            }
-
-            if (!manifest.Teacher.Equals(teacherName))
-            {
-                throw new InvalidOperationException(
-                    $"Read teacher name {manifest.Teacher}, expected name {teacherName}");
-            }
-        }
     }
 
     public static async Task<Manifest> Serialize(
@@ -97,12 +71,41 @@ public static class ManifestSerializer
     }
 }
 
+public abstract class TeacherNameManifestException : Exception
+{
+    public TeacherNameManifestException(string s) : base(s)
+    {
+    }
+}
+
+public sealed class NoTeacherNameException : TeacherNameManifestException
+{
+    public NoTeacherNameException()
+        : base("No teacher name has been found either as a directly provided value or in the manifest")
+    {
+
+    }
+}
+
+public sealed class UnexpectedTeacherNameException : TeacherNameManifestException
+{
+    private readonly Name _expected;
+    private readonly Name _found;
+
+    public UnexpectedTeacherNameException(Name expected, Name found)
+        : base($"Expected name {expected}, got {found}")
+    {
+        _expected = expected;
+        _found = found;
+    }
+}
+
 public sealed class Manifest
 {
     internal Manifest()
     {
     }
-    public Name Teacher { get; set; } = null!;
+    public Name? Teacher { get; set; } = null!;
     public required List<Document> Documents { get; set; }
 }
 

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CsvHelper;
 using CsvHelper.Configuration;
+using MainCli.BuilderNew.Impl;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
@@ -223,6 +224,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
     private readonly List<LessonTopicsBuilder> _items = new();
     private ValueForEachLessonType<ILessonNameProvider?> _defaultProviders;
     // Only includes the relevant lessons.
+    // NOTE: Currently, recreated per teacher.
     private readonly FilteredSchedule _schedule;
 
     public AllLessonTopicsDatabaseBuilder(FilteredSchedule schedule)
@@ -326,13 +328,13 @@ public sealed class AllLessonTopicsDatabaseBuilder
     }
 
     public async Task AddFromManifest(
-        Manifest manifest,
+        ManifestAtLocation m,
         LookupFacade lookup,
         CancellationToken cancellationToken)
     {
-        foreach (var document in manifest.Documents)
+        foreach (var document in m.Manifest.Documents)
         {
-            var documentFilePath = Path.Combine(manifestDirectory, document.Path);
+            var documentFilePath = Path.Combine(m.DirectoryPath ?? "", document.Path);
             await using var documentStream = File.OpenRead(documentFilePath);
 
             #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -359,7 +361,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
                     $"No matching lesson groups found for document '{document.Path}' with specified faculty/grade filters.");
             }
 
-            var topics = builder.Topics(new(
+            var topics = Topics(new(
                 courseId: courseId,
                 groups: lessonGroups,
                 subGroup: null));
