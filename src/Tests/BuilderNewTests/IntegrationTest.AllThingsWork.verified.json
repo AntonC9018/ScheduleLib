@@ -1,0 +1,67 @@
+﻿[
+  {
+    "Marker": "Anton Curmanschii",
+    "Configs": [
+      {
+        "$type": "GoogleDriveConfig"
+      },
+      {
+        "$type": "LessonAttendanceConfig",
+        "Sources": null
+      },
+      {
+        "$type": "LessonTopicsConfig",
+        "Sources": [
+          {
+            "$type": "ManifestLessonTopicSourceDefinition",
+            "Path": null
+          }
+        ],
+        "FallbackProviders": [
+          {
+            "LessonType": "Lab",
+            "Provider": {
+              "$type": "NoNameProvider"
+            }
+          }
+        ]
+      },
+      {
+        "$type": "MoodleConfig",
+        "Credentials": {}
+      },
+      {
+        "$type": "RegistryConfig",
+        "Credentials": {},
+        "ExtraLessonInstanceAction": "LeaveAlone",
+        "EquationCommandsDerivation": {
+          "$type": "AnyDayDerivation"
+        },
+        "CommandProcessingConfig": {}
+      }
+    ]
+  },
+  {
+    "Marker": "Tamara Iatasina",
+    "Configs": [
+      {
+        "$type": "LessonTopicsConfig",
+        "Sources": null,
+        "FallbackProviders": null
+      },
+      {
+        "$type": "MoodleConfig",
+        "Credentials": null
+      },
+      {
+        "$type": "RegistryConfig",
+        "Credentials": {},
+        "ExtraLessonInstanceAction": "LeaveAlone",
+        "EquationCommandsDerivation": {
+          "$type": "AnyDayDerivation"
+        },
+        "CommandProcessingConfig": {}
+      }
+    ]
+  }
+]

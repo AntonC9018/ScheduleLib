@@ -60,6 +60,14 @@ public sealed class MutableLayer
 
     public IReadOnlyList<NamedLayer> ChildLayers => _childLayers;
 
+    public ICollection<LayerConfigKey> ConfigKeys => _configs.Keys;
+
+    public LayerConfigContainer? GetUntyped(LayerConfigKey key)
+    {
+        var container = _configs.GetValueOrDefault(key, null!);
+        return container;
+    }
+
     public MaybeLayerConfigContainer<T> Get<T>(LayerConfigKey<T> key) where T : class
     {
         var container = _configs.GetValueOrDefault(key.Value, null!);

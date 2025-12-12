@@ -58,11 +58,11 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
     where TProperty : notnull
 {
-    private readonly Func<T, TProperty> _keyGetter;
+    private readonly Func<T, TProperty?> _keyGetter;
     private readonly IEqualityComparer<TProperty> _propEquality;
 
     public KeyEqualityComparer(
-        Func<T, TProperty> keyGetter,
+        Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propEquality = null)
     {
         _keyGetter = keyGetter;
@@ -91,6 +91,10 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
     public int GetHashCode([DisallowNull] T obj)
     {
         var key = _keyGetter(obj);
+        if (key is null)
+        {
+            return 0;
+        }
         var ret = _propEquality.GetHashCode(key);
         return ret;
     }
@@ -99,7 +103,7 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 public static class KeyEqualityComparer
 {
     public static KeyEqualityComparer<T, TProperty> Create<T, TProperty>(
-        Func<T, TProperty> keyGetter,
+        Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
 
         where TProperty : notnull
@@ -109,7 +113,7 @@ public static class KeyEqualityComparer
 
     public static void AddKeyEqualityComparer<T, TProperty>(
         this IServiceCollection services,
-        Func<T, TProperty> keyGetter,
+        Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
 
         where TProperty : notnull

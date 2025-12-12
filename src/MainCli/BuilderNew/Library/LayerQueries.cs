@@ -9,6 +9,17 @@ public static class LayerQueries
 {
     extension (MutableLayer layer)
     {
+        public IEnumerable<MutableLayer> GetDescendantsOrSelf()
+        {
+            foreach (var child in layer._childLayers)
+            {
+                foreach (var x in child.Model.GetDescendantsOrSelf())
+                {
+                    yield return x;
+                }
+            }
+        }
+
         public IEnumerable<MutableLayer> GetDescendantsOrSelf(
             Func<MutableLayer, bool> isMatch)
         {
@@ -68,11 +79,11 @@ public static class LayerQueries
     // TODO: Add providers that could modify this after it's constructed?
     public static T? ConstructConfig<T>(
         this LayerPath path,
+        LayerConfigKey<T> key,
         IServiceProvider serviceProvider)
 
-        where T : class, IConfig<T>
+        where T : class
     {
-        var key = T.Key;
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();
         var merger = serviceProvider.GetRequiredService<IMerger<T>>();
         var current = basicOperations.Empty();

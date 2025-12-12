@@ -1,16 +1,25 @@
+using System.Collections.Concurrent;
+
 namespace MainCli.BuilderNew;
 
 public sealed class ConfigKeyRegistry
 {
     private readonly NameRegistry<LayerConfigKey> _impl = new();
+    private readonly ConcurrentDictionary<LayerConfigKey, Type> _typeMap = new();
 
+    public Type GetTypeFromKey(LayerConfigKey key)
+    {
+        return _typeMap[key];
+    }
     public LayerConfigKey<T> Register<T>() where T : class
     {
-        return Register<T>(typeof(T).Name);
+        var ret = Register<T>(typeof(T).Name);
+        return ret;
     }
     public LayerConfigKey<T> Register<T>(string name) where T : class
     {
         var ret = _impl.Register(name);
+        _typeMap.TryAdd(ret, typeof(T));
         return new(ret);
     }
 }

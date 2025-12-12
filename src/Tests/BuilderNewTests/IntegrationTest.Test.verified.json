@@ -1,25 +1,22 @@
 ﻿[
   {
+    "Sources": [
+      {
+        "$type": "ManifestLessonTopicSourceDefinition",
+        "Path": null
+      }
+    ],
     "FallbackProviders": [
       {
         "LessonType": "Lab",
         "Provider": {
-          "Data": {},
-          "Type": "NoNameProvider"
+          "$type": "NoNameProvider"
         }
-      }
-    ],
-    "Sources": [
-      {
-        "Data": {
-          "Path": null
-        },
-        "Type": "ManifestLessonTopicSourceDefinition"
       }
     ]
   },
   {
-    "FallbackProviders": [],
-    "Sources": []
+    "Sources": null,
+    "FallbackProviders": null
   }
 ]
