@@ -1,8 +1,3 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-
 namespace MainCli.BuilderNew;
 
 public sealed class ConfigKeyRegistry
@@ -88,19 +83,38 @@ public interface IConfig<T> where T : class
 }
 
 public readonly struct ConfigBuilder<T>
-    where T : class, IConfig<T>
+    where T : class
 {
     internal readonly MutableLayer _layer;
+    public LayerConfigKey<T> ConfigKey { get; }
 
-    public ConfigBuilder(MutableLayer layer)
+    public ConfigBuilder(
+        MutableLayer layer,
+        LayerConfigKey<T> configKey)
     {
         _layer = layer;
+        ConfigKey = configKey;
     }
 
     public T GetConfig()
     {
-        var val = _layer.Get(T.Key);
+        var val = _layer.Get(ConfigKey);
         return val.Value.Value;
+    }
+}
+
+public static class ConfigBuilder
+{
+    // public static ConfigBuilder<T> Create<T>(MutableLayer layer)
+    //     where T : class, IConfig<T>
+    // {
+    //     return new(layer, T.Key);
+    // }
+
+    public static ConfigBuilder<T> Create<T>(MutableLayer layer, LayerConfigKey<T> key)
+        where T : class
+    {
+        return new(layer, key);
     }
 }
 
@@ -111,34 +125,34 @@ public static class BaseExtensions
         public ConfigBuilder<T> CreateConfigBuilder<T>()
             where T : class, IConfig<T>
         {
-            return new(builder.Layer);
+            return new(builder.Layer, T.Key);
         }
     }
 
     extension<T> (ConfigBuilder<T> builder)
-        where T : class, IConfig<T>
+        where T : class
     {
         public LayerConfigContainer<T> Enable(Func<T> factory)
         {
-            return builder._layer.GetOrAdd(T.Key, factory);
+            return builder._layer.GetOrAdd(builder.ConfigKey, factory);
         }
     }
 
     extension (MutableLayer layer)
     {
-        public LayerConfigContainer<T> GetOrAdd<T>(
-            LayerConfigKey<T> key) where T : class, new()
+        public LayerConfigContainer<T> GetOrAdd<T>(LayerConfigKey<T> key)
+            where T : class, new()
         {
             return layer.GetOrAdd(key, () => new T());
         }
     }
 
     extension<T> (ConfigBuilder<T> builder)
-        where T : class, IConfig<T>, new()
+        where T : class, new()
     {
         public LayerConfigContainer<T> Enable()
         {
-            return builder._layer.GetOrAdd(T.Key);
+            return builder._layer.GetOrAdd(builder.ConfigKey);
         }
 
         public void Remove()

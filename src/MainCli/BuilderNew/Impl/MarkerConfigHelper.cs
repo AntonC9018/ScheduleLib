@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using MainCli.BuilderNew.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace MainCli.BuilderNew.Impl;
 
@@ -11,6 +10,7 @@ public static class MarkerConfigExtension
     {
         services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
         services.AddSingleton<ApplicationConfigBuilder>();
+        services.AddScoped<ConfigProvider>();
         // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
         services.AddScoped<TeacherLayerConfig>();
     }

@@ -64,6 +64,8 @@ public static class LayerQueries
 
     }
 
+    // IDEA: Add a way to have a different model for config that is being built.
+    // TODO: Add providers that could modify this after it's constructed?
     public static T? ConstructConfig<T>(
         this LayerPath path,
         IServiceProvider serviceProvider)

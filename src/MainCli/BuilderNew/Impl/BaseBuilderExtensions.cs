@@ -17,13 +17,13 @@ public static partial class Extensions
 
     extension (ApplicationConfigLayerBuilder builder)
     {
-        public ConfigBuilder<RegistryConfig> Registry() => new(builder.Layer);
-        public ConfigBuilder<LessonTopicsConfig> LessonTopics() => new(builder.Layer);
-        public ConfigBuilder<MoodleConfig> Moodle() => new(builder.Layer);
-        public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => new(builder.Layer);
+        public ConfigBuilder<RegistryConfig> Registry() => builder.CreateConfigBuilder<RegistryConfig>();
+        public ConfigBuilder<LessonTopicsConfig> LessonTopics() => builder.CreateConfigBuilder<LessonTopicsConfig>();
+        public ConfigBuilder<MoodleConfig> Moodle() => builder.CreateConfigBuilder<MoodleConfig>();
+        public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => builder.CreateConfigBuilder<LessonAttendanceConfig>();
         public ConfigBuilder<GoogleDriveConfig> Drive()
         {
-            var t = new ConfigBuilder<GoogleDriveConfig>(builder.Layer);
+            var t = ConfigBuilder.Create(builder.Layer, GoogleDriveConfig.Key);
             t.Enable();
             return t;
         }

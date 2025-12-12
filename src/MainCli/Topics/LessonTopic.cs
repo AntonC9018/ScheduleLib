@@ -309,22 +309,8 @@ public sealed class AllLessonTopicsDatabaseBuilder
             await using var inputFile = File.OpenRead(manifestPath);
             manifest = await ManifestSerializer.Deserialize(inputFile, cancellationToken);
         }
-
-        var manifestDirectory = Path.GetDirectoryName(manifestPath)!;
-        var teacherId = lookup
-            .Teacher(manifest.Teacher.ToNameModel())
-            !.Value;
-        var filteredSchedule = schedule.Filter(new()
-        {
-            TeacherFilter = new()
-            {
-                IncludeIds = [ teacherId ],
-            },
-        });
-
-        var builder = new AllLessonTopicsDatabaseBuilder(filteredSchedule);
-
-        return builder;
+        _ = manifest;
+        return null!;
     }
 
     public async Task AddFromManifest(

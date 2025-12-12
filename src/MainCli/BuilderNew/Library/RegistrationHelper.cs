@@ -17,112 +17,96 @@ public static class RegistrationHelper
         ServiceCollection services,
         Type type)
     {
+        if (!ProcessSelf_CheckShouldProcessChildren())
         {
-            var serviceType = typeof(IMerger<>).MakeGenericType(type);
-            var implType = typeof(ReflectionMerger<>).MakeGenericType(type);
-            services.AddSingleton(serviceType, implType);
+            return;
         }
-        {
-            var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
-            var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(type);
-            services.AddSingleton(serviceType, implType);
-        }
+        ProcessChildren();
+        return;
 
-        var members = type
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .AsEnumerable<MemberInfo>()
-            .Concat(type.GetFields(BindingFlags.Public | BindingFlags.Instance));
-        foreach (var m in members)
+        bool ProcessSelf_CheckShouldProcessChildren()
         {
-            Type mtype;
-            if (m is PropertyInfo p)
+            if (type == typeof(string)
+                || type == typeof(Type)
+                || type.IsInterface)
             {
-                mtype = p.PropertyType;
-            }
-            else if (m is FieldInfo f)
-            {
-                mtype = f.FieldType;
-            }
-            else
-            {
-                throw Unreachable();
-            }
-
-            if (mtype == typeof(string)
-                || mtype == typeof(Type)
-                || mtype.IsInterface)
-            {
-                var serviceType = typeof(IBasicOperations<>).MakeGenericType(mtype);
-                var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(mtype);
+                var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
+                var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(type);
                 services.TryAddSingleton(serviceType, implType);
+                return false;
             }
+
             // TODO: also check base types
-            else if (mtype.IsGenericType && mtype.GetGenericTypeDefinition() == typeof(List<>))
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
             {
-                var elementType = mtype.GetGenericArguments()[0];
+                var elementType = type.GetGenericArguments()[0];
                 var listType = typeof(List<>).MakeGenericType(elementType);
-                Debug.Assert(listType == mtype);
-                if (!Add())
-                {
-                    RegisterBasicOperationsAndMergersForType(services, elementType);
-                }
-
-                bool Add()
-                {
-                    bool added = false;
-                    {
-                        var serviceType = typeof(IBasicOperations<>).MakeGenericType(listType);
-                        var implType = typeof(ListBasicOperations<>).MakeGenericType(elementType);
-                        if (services.TryAddSingleton(serviceType, implType))
-                        {
-                            added = true;
-                        }
-                    }
-                    {
-                        var serviceType = typeof(IMerger<>).MakeGenericType(listType);
-                        var implType = typeof(ListMerger<>).MakeGenericType(elementType);
-                        if (services.TryAddSingleton(serviceType, implType))
-                        {
-                            added = true;
-                        }
-                    }
-                    return added;
-                }
+                Debug.Assert(listType == type);
+                RegisterBasicOperationsAndMergersForType(services, elementType);
+                return false;
             }
-            else if (mtype.IsClass)
-            {
-                if (!Add())
-                {
-                    RegisterBasicOperationsAndMergersForType(services, mtype);
-                }
 
-                bool Add()
-                {
-                    bool added = false;
-                    {
-                        var serviceType = typeof(IBasicOperations<>).MakeGenericType(mtype);
-                        var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(mtype);
-                        services.TryAddSingleton(serviceType, implType);
-                    }
-                    {
-                        var serviceType = typeof(IMerger<>).MakeGenericType(mtype);
-                        var implType = typeof(ReflectionMerger<>).MakeGenericType(mtype);
-                        services.TryAddSingleton(serviceType, implType);
-                    }
-                    return added;
-                }
-            }
-            else if (Nullable.GetUnderlyingType(mtype) is { } underlyingType)
+            if (type.IsClass)
             {
-                var serviceType = typeof(IBasicOperations<>).MakeGenericType(mtype);
+                bool added = false;
+                {
+                    var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
+                    var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(type);
+                    if (services.TryAddSingleton(serviceType, implType))
+                    {
+                        added = true;
+                    }
+                }
+                {
+                    var serviceType = typeof(IMerger<>).MakeGenericType(type);
+                    var implType = typeof(ReflectionMerger<>).MakeGenericType(type);
+                    if (services.TryAddSingleton(serviceType, implType))
+                    {
+                        added = true;
+                    }
+                }
+                return !added;
+            }
+
+            if (Nullable.GetUnderlyingType(type) is { } underlyingType)
+            {
+                var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(NullableStructBasicOperations<>).MakeGenericType(underlyingType);
                 services.TryAddSingleton(serviceType, implType);
+                return false;
             }
-            else
+
             {
-                var serviceType = typeof(IBasicOperations<>).MakeGenericType(mtype);
-                var implType = typeof(ImmutableStructBasicOperations<>).MakeGenericType(mtype);
+                var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
+                var implType = typeof(ImmutableStructBasicOperations<>).MakeGenericType(type);
                 services.TryAddSingleton(serviceType, implType);
+            }
+            return false;
+        }
+
+        void ProcessChildren()
+        {
+            var members = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .AsEnumerable<MemberInfo>()
+                .Concat(type.GetFields(BindingFlags.Public | BindingFlags.Instance));
+            foreach (var m in members)
+            {
+                Type mtype;
+                if (m is PropertyInfo p)
+                {
+                    mtype = p.PropertyType;
+                }
+                else if (m is FieldInfo f)
+                {
+                    mtype = f.FieldType;
+                }
+                else
+                {
+                    throw Unreachable();
+                }
+
+                RegisterBasicOperationsAndMergersForType(services, mtype);
             }
         }
     }

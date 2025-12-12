@@ -1,0 +1,25 @@
+﻿[
+  {
+    "FallbackProviders": [
+      {
+        "LessonType": "Lab",
+        "Provider": {
+          "Data": {},
+          "Type": "NoNameProvider"
+        }
+      }
+    ],
+    "Sources": [
+      {
+        "Data": {
+          "Path": null
+        },
+        "Type": "ManifestLessonTopicSourceDefinition"
+      }
+    ]
+  },
+  {
+    "FallbackProviders": [],
+    "Sources": []
+  }
+]

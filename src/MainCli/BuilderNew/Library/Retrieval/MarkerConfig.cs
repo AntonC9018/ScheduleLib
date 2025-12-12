@@ -1,5 +1,3 @@
-using MainCli.BuilderNew.Impl;
-
 namespace MainCli.BuilderNew.Retrieval;
 
 // Type-erased marker config.
