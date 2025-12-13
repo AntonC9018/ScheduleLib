@@ -19,12 +19,14 @@ public static class Config
         MinUsefulWordLength = 3,
     });
 
+    public static ReadOnlySpan<(string From, string To)> CourseNameUnificationConfig => new[]
+    {
+        (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
+        (From: "HTML", To: "HTML și CSS"),
+    };
+
     public static CourseNameUnifierConfig CourseNameUnifier =>
-        CourseNameUnifierConfig.Create(CourseNameParser,
-        [
-            (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
-            (From: "HTML", To: "HTML și CSS"),
-        ]);
+        CourseNameUnifierConfig.Create(CourseNameParser, CourseNameUnificationConfig);
 
     public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)
     {

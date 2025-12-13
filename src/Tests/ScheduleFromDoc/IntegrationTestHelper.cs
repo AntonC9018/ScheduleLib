@@ -69,12 +69,20 @@ public sealed class IntegrationTestHelper
         return schedule;
     }
 
-    public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
+    public static async Task AddScheduleToBuilder(
+        ScheduleBuilder builder,
+        string jsonPath,
+        CancellationToken cancellationToken)
     {
         await using var reader = File.OpenRead(jsonPath);
         var scheduleModel = await ScheduleSerializer.Deserialize(reader, cancellationToken);
+        ScheduleSerializer.AddToBuilder(builder, scheduleModel);
+    }
+
+    public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
+    {
         var scheduleBuilder = new ScheduleBuilder();
-        ScheduleSerializer.AddToBuilder(scheduleBuilder, scheduleModel);
+        await AddScheduleToBuilder(scheduleBuilder, jsonPath, cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
         return jsonSchedule;
     }

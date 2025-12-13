@@ -13,7 +13,7 @@ namespace MainCli.BuilderNew.Impl;
 [AutoConstructor]
 public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
 {
-    private readonly List<string> _manifestDirectory;
+    private readonly List<string> _manifestDirectories;
     private readonly LookupFacade _lookup;
     private readonly Name _teacherName;
     private readonly ILogger _logger;
@@ -22,7 +22,7 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
         AllLessonTopicsDatabaseBuilder builder,
         CancellationToken cancellationToken)
     {
-        foreach (var dir in _manifestDirectory)
+        foreach (var dir in _manifestDirectories)
         {
             await ProcessDirectory(dir, builder, cancellationToken);
         }
