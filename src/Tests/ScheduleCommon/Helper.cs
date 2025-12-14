@@ -5,12 +5,13 @@ namespace Tests.ScheduleCommon;
 
 public static class ScheduleTestHelper
 {
+    public const string TestSchedulePath = "data/schedule_2025_1.json";
     public static async Task<ScheduleBuilder> CreateTestSchedule()
     {
         using var cts = TestHelper.CreateCts();
         var builder = new ScheduleBuilder();
         builder.SetStudyYear(2025);
-        await using var scheduleJson = File.OpenRead("data/schedule_2025_1.json");
+        await using var scheduleJson = File.OpenRead(TestSchedulePath);
         var model = await ScheduleSerializer.Deserialize(scheduleJson, cts.Token);
         ScheduleSerializer.AddToBuilder(builder, model);
         return builder;

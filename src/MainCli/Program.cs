@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using MainCli.Helper;
 using MainCli.Topics;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
@@ -366,7 +367,7 @@ async Task GeneratePdfsForGroupsAndTeachers()
 
 Task GenerateAllTeacherExcel()
 {
-    return Task.Run(() =>
+    return Task.Run(async () =>
     {
         var filteredSchedule = schedule.Filter(new()
         {
@@ -377,21 +378,21 @@ Task GenerateAllTeacherExcel()
             },
         });
 
-        var timeConfig = context.TimeConfig;
-        var seminarTime = new TimeOnly(hour: 15, minute: 00);
-        var seminarTimeSlot = timeConfig.FindTimeSlotByStartTime(seminarTime)!.Value;
-        Tasks.GenerateAllTeacherExcel(new()
-        {
-            DayNameProvider = dayNameProvider,
-            StringBuilder = new(),
-            LessonTypeDisplay = new(),
-            ParityDisplay = new(),
-            TimeSlotDisplay = new(),
-            SeminarDate = (DayOfWeek.Wednesday, seminarTimeSlot),
-            OutputFilePath = allTeachersOutputFileFullPath,
-            Schedule = filteredSchedule,
-            TimeConfig = context.TimeConfig,
-        });
+        var outputDirectoryService = new TempOutputDirectoryService(outputDirectory);
+        outputDirectoryService.Initialize();
+
+        var task = new GenerateAllTeachersExcelTask(
+            outputDirectory: outputDirectoryService,
+            stringBuilder: new(),
+            dayNameProvider: dayNameProvider,
+            lessonTypeDisplay: new(),
+            seminarDateProvider: new RegularSeminarDateProvider(context.TimeConfig),
+            parityDisplay: new(),
+            timeSlotDisplay: new(),
+            schedule: filteredSchedule,
+            timeConfig: context.TimeConfig,
+            outputFilePath: allTeachersOutputFile);
+        await task.Run(cancellationToken);
     });
 }
 

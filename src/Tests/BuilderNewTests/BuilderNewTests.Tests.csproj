@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\MainCli\MainCli.csproj" />
+        <ProjectReference Include="..\ScheduleCommon\ScheduleCommon.csproj" />
         <ProjectReference Include="..\ScheduleFromDoc\ScheduleFromDoc.Tests.csproj" />
     </ItemGroup>
 </Project>
