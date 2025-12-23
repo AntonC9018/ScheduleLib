@@ -1,0 +1,176 @@
+using AutoConstructor.Attributes;
+using MainCli.BuilderNew.Impl;
+using MainCli.BuilderNew.Retrieval;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ScheduleLib;
+using ScheduleLib.Builders;
+using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.Lesson;
+using ScheduleLib.Parsing.WordDoc;
+using ScheduleLib.ScheduleDefaults;
+
+namespace MainCli;
+
+public sealed class StudyYearOptions
+{
+    public required int StudyYear { get; set; } = -1;
+    public required Semester Semester { get; set; } = Semester.Invalid;
+}
+
+public sealed class StudyYearOptionsValidator : IValidateOptions<StudyYearOptions>
+{
+    public ValidateOptionsResult Validate(string? name, StudyYearOptions options)
+    {
+        _ = name;
+
+        if (options.StudyYear == -1)
+        {
+            return ValidateOptionsResult.Fail("StudyYear not initialized");
+        }
+        if (options.Semester == Semester.Invalid)
+        {
+            return ValidateOptionsResult.Fail("Semester not initialized");
+        }
+        return ValidateOptionsResult.Success;
+    }
+}
+
+public sealed class ScheduleProvider
+{
+    private readonly ScheduleBuilder _builder;
+
+    public ScheduleProvider(ScheduleBuilder builder)
+    {
+        _builder = builder;
+    }
+
+    public Schedule Get()
+    {
+        var schedule = _builder.Build();
+        return schedule;
+    }
+}
+
+public static class ServiceProviderHelper
+{
+    extension(IServiceProvider serviceProvider)
+    {
+        public FilteredSchedule LatestPeriodSchedule()
+        {
+            var provider = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>();
+            return provider.Get();
+        }
+
+        public FilteredSchedule ScopedSchedule()
+        {
+            var provider = serviceProvider.GetRequiredService<ScopeFilteredScheduleProvider>();
+            return provider.Get();
+        }
+    }
+}
+
+[AutoConstructor]
+public sealed partial class LatestPeriodFilteredScheduleProvider
+{
+    private readonly Schedule _schedule;
+
+    public FilteredSchedule Get()
+    {
+        var schedule = _schedule;
+        var filter = FilterHelper.Builder()
+            .WithLatestPeriod(schedule);
+        var filtered = schedule.Filter(filter);
+        return filtered;
+    }
+}
+
+[AutoConstructor]
+public sealed partial class ScopeFilteredScheduleProvider
+{
+    private readonly ConfigProvider _configProvider;
+    private readonly Schedule _schedule;
+    private readonly LookupFacade _lookup;
+
+    public FilteredSchedule Get()
+    {
+        var teacherConfig = _configProvider.Get(TeacherLayerConfig.Key);
+        var teacherName = teacherConfig.TeacherName;
+        var schedule = _schedule;
+        var teacherId = _lookup.Teacher(teacherName.ToNameModel())!.Value;
+
+        var filter = FilterHelper.Builder()
+            .WithLatestPeriod(schedule)
+            .WithTeacher(teacherId);
+        var filtered = schedule.Filter(filter);
+        return filtered;
+    }
+}
+
+public interface IScheduleInitializer
+{
+    public Task Initialize(
+        ScheduleBuilder builder,
+        CancellationToken cancellationToken);
+}
+
+public static class InitializationHelper
+{
+    public static async Task InitializeSchedule(
+        this IServiceProvider sp,
+        CancellationToken cancellationToken)
+    {
+        var i = sp.GetRequiredService<IScheduleInitializer>();
+        var scheduleBuilder = sp.GetRequiredService<ScheduleBuilder>();
+        await i.Initialize(scheduleBuilder, cancellationToken);
+    }
+}
+
+[AutoConstructor]
+public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
+{
+    private readonly LessonTimeConfig _timeConfig;
+    private readonly DayNameParser _dayNameParser;
+    private readonly CourseNameUnifierModule _unifier;
+    private readonly LessonParserFactory _lessonParserFactory;
+    private readonly IOptions<StudyYearOptions> _studyYearOptions;
+    private readonly ILogger _logger;
+
+    public async Task Initialize(
+        ScheduleBuilder builder,
+        CancellationToken cancellationToken)
+    {
+        builder.ConfigureRemappings(Config.ConfigureRemappings);
+
+        var context = new DocParseContext
+        {
+            CourseNameUnifierModule = _unifier,
+            DayNameParser = _dayNameParser,
+            ParserFactory = _lessonParserFactory,
+            Schedule = builder,
+            TimeConfig = _timeConfig,
+        };
+
+        // TODO: Do this in a more adequate way
+        var studyYear = _studyYearOptions.Value;
+        string scheduleSourcesDir = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}";
+        string serializedSchedulePath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
+        await Tasks.LoadSchedule(
+            context: context,
+            scheduleSourcesDir: scheduleSourcesDir,
+            serializedSchedulePath: serializedSchedulePath,
+            bypassCache: false,
+            beforeEndAction: static context =>
+            {
+                // TODO: This is not included in the hash
+                const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
+                Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
+            },
+            cancellationToken: cancellationToken);
+
+        _logger.LogInformation("Schedule built");
+    }
+}
+

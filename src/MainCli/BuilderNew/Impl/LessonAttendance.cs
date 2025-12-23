@@ -29,7 +29,6 @@ public partial class Extensions
             if (other is null)
             {
                 other = new();
-                config.Sources.Add(other);
             }
             configure(other);
         }

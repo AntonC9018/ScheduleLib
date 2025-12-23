@@ -106,7 +106,7 @@ public static class DriveApiHelper
 
     public static async Task UploadFile(
         this DriveService driveService,
-        string inputFilePath,
+        Stream inputFile,
         string outputFileName,
         FolderId folderId,
         CancellationToken cancellationToken)
@@ -117,20 +117,18 @@ public static class DriveApiHelper
             Parents = [folderId.Value],
         };
 
-        await using var stream = new FileStream(inputFilePath, FileMode.Open, FileAccess.Read);
-        var request = driveService.Files.Create(fileMetadata, stream, "application/octet-stream");
+        var request = driveService.Files.Create(fileMetadata, inputFile, "application/octet-stream");
         request.Fields = "id";
         await request.UploadAsync(cancellationToken);
     }
 
     public static async Task UpdateFile(
         this DriveService driveService,
-        string fileInputPath,
+        Stream inputFile,
         FileId fileId,
         CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(fileInputPath, FileMode.Open, FileAccess.Read);
-        var request = driveService.Files.Update(null, fileId.Value, stream, "application/octet-stream");
+        var request = driveService.Files.Update(null, fileId.Value, inputFile, "application/octet-stream");
         await request.UploadAsync(cancellationToken);
     }
 }

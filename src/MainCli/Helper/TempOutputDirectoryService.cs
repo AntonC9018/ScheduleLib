@@ -2,6 +2,8 @@ using ScheduleLib.Helper;
 
 namespace MainCli.Helper;
 
+public readonly record struct FilePath(string Path);
+
 public sealed class TempOutputDirectoryService
 {
     private readonly string _directory;
@@ -9,6 +11,30 @@ public sealed class TempOutputDirectoryService
     public TempOutputDirectoryService(string directory)
     {
         _directory = Path.GetFullPath(directory);
+    }
+
+    public void Clear()
+    {
+        if (Directory.Exists(_directory))
+        {
+            Directory.Delete(_directory, recursive: true);
+            Directory.CreateDirectory(_directory);
+        }
+    }
+
+    public IEnumerable<FilePath> FilePaths(string pattern, EnumerationOptions options)
+    {
+        var files = Directory.EnumerateFiles(
+            _directory,
+            searchPattern: pattern,
+            enumerationOptions: options);
+        var ret = files.Select(x =>
+        {
+            var separatorLen = 1;
+            var ret = x[(_directory.Length + separatorLen) ..];
+            return new FilePath(ret);
+        });
+        return ret;
     }
 
     public void Initialize(bool clear = false)
@@ -31,6 +57,11 @@ public sealed class TempOutputDirectoryService
         return ret;
     }
 
+    public string BuildPath(string path)
+    {
+        return NormalizePath(path);
+    }
+
     private string NormalizePath(string path)
     {
         if (Path.IsPathFullyQualified(path))
@@ -48,6 +79,11 @@ public sealed class TempOutputDirectoryService
             var ret = Path.Combine(_directory, path);
             return ret;
         }
+    }
+
+    public bool TryOpenInExplorer()
+    {
+        return ExplorerHelper.TryOpenExplorerAndSelectFile(_directory);
     }
 
     public bool TryOpenFileInExplorer(string file)

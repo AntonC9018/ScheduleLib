@@ -17,13 +17,13 @@ namespace MainCli;
 
 public static class TaskHelper
 {
-    public static GenerateAllTeachersExcelTask GenerateAllTeachersExcelTask(
+    public static GenerateAllTeachersExcelHandler GenerateAllTeachersExcelTask(
         this IServiceProvider sp,
         TempOutputDirectoryService outputDirectory,
         string outputFilePath,
         FilteredSchedule filteredSchedule)
     {
-        return ActivatorUtilities.CreateInstance<GenerateAllTeachersExcelTask>(
+        return ActivatorUtilities.CreateInstance<GenerateAllTeachersExcelHandler>(
             sp,
             outputDirectory,
             outputFilePath,
@@ -32,29 +32,33 @@ public static class TaskHelper
 }
 
 [AutoConstructor]
-public sealed partial class GenerateAllTeachersExcelTask
+public sealed partial class GenerateAllTeachersExcelHandler
 {
-    private readonly TempOutputDirectoryService _outputDirectory;
-    private readonly StringBuilder _stringBuilder;
     private readonly DayNameProvider _dayNameProvider;
     private readonly LessonTypeDisplayHandler _lessonTypeDisplay;
     private readonly RegularSeminarDateProvider _seminarDateProvider;
     private readonly ParityDisplayHandler _parityDisplay;
     private readonly TimeSlotDisplayHandler _timeSlotDisplay;
     private readonly LessonTimeConfig _timeConfig;
-    private readonly FilteredSchedule _schedule;
-    private readonly string _outputFilePath;
 
-    public ValueTask Run(CancellationToken cancellationToken)
+    public readonly struct RunParams
     {
-        using var stream = _outputDirectory.File(_outputFilePath, FileMode.Create, FileAccess.ReadWrite);
-        using var excel = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, autoSave: true);
+        public StringBuilder? StringBuilder { get; init; }
+        public required FilteredSchedule Schedule { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+        public required Stream OutputStream { get; init; }
+    }
+
+    public ValueTask Run(RunParams p)
+    {
+        var stringBuilder = p.StringBuilder ?? new();
+        using var excel = SpreadsheetDocument.Create(p.OutputStream, SpreadsheetDocumentType.Workbook, autoSave: true);
         var seminarDate = _seminarDateProvider.Get();
 
-        var teachers = _schedule.Teachers
+        var teachers = p.Schedule.Teachers
             .OrderBy(id =>
             {
-                var teacher = _schedule.Source.Get(id);
+                var teacher = p.Schedule.Source.Get(id);
                 return teacher.PersonName;
             }, PersonNameLastFirstAlphabeticComparer.Instance)
             .ToArray();
@@ -113,7 +117,7 @@ public sealed partial class GenerateAllTeachersExcelTask
                 TopLeftCell = ExcelRangeHelper.GetCellReference(new()
                 {
                     Position = new(Col: 2, Row: 1),
-                    StringBuilder = _stringBuilder,
+                    StringBuilder = stringBuilder,
                 }),
                 ActivePane = PaneValues.BottomRight,
                 State = PaneStateValues.Frozen,
@@ -185,7 +189,7 @@ public sealed partial class GenerateAllTeachersExcelTask
                 {
                     Start = new(Col: 0, Row: rowIndexStart),
                     EndInclusive = new(Col: 0, Row: rowIndexEnd),
-                    StringBuilder = _stringBuilder,
+                    StringBuilder = stringBuilder,
                 });
                 mergeCells.AppendChild(merge);
             }
@@ -207,14 +211,14 @@ public sealed partial class GenerateAllTeachersExcelTask
                 cell.SetStyle(styles.HeaderTitle);
             }
 
-            var sb = _stringBuilder;
+            var sb = stringBuilder;
             foreach (var id in teachers)
             {
                 NameDisplayHelper.Append(new()
                 {
                     InsertSpaceAfterShortName = true,
                     Output = sb,
-                    Name = _schedule.Source.Get(id).PersonName,
+                    Name = p.Schedule.Source.Get(id).PersonName,
                     LastNameFirst = true,
                     PreferLonger = true,
                 });
@@ -228,7 +232,7 @@ public sealed partial class GenerateAllTeachersExcelTask
         void Body()
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-                _schedule.Lessons,
+                p.Schedule.Lessons,
                 l => l.Lesson.Teachers);
             int timeSlotCount = _timeConfig.TimeSlotCount;
 
@@ -301,7 +305,7 @@ public sealed partial class GenerateAllTeachersExcelTask
                         }
 
                         {
-                            var sb = _stringBuilder;
+                            var sb = stringBuilder;
                             FormatLessons(sb, lessons);
                             Debug.Assert(sb.Length > 0);
 
@@ -563,7 +567,7 @@ public sealed partial class GenerateAllTeachersExcelTask
 
             void AppendCourse(ListStringBuilder b, RegularLesson lesson)
             {
-                var course = _schedule.Source.Get(lesson.Lesson.Course);
+                var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
             bool WillAppendLessonTypeName(RegularLesson lesson)
@@ -606,7 +610,7 @@ public sealed partial class GenerateAllTeachersExcelTask
 
                 // b.MaybeAppendSeparator();
 
-                var group = _schedule.Source.Get(groups.Group0);
+                var group = p.Schedule.Source.Get(groups.Group0);
                 // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 

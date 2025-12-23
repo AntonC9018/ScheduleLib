@@ -1,4 +1,5 @@
 using AutoConstructor.Attributes;
+using Microsoft.Extensions.Options;
 
 namespace MainCli.Helper;
 
@@ -6,13 +7,20 @@ namespace MainCli.Helper;
 public sealed partial class RegularSeminarDateProvider
 {
     private readonly LessonTimeConfig _lessonTimeConfig;
+    private readonly IOptions<RegularSeminarDateConfig> _options;
 
     public RegularSeminarDate Get()
     {
-        var startTime = new TimeOnly(hour: 15, minute: 00);
-        var timeSlot = _lessonTimeConfig.FindTimeSlotByStartTime(startTime)!.Value;
-        return new(DayOfWeek.Wednesday, timeSlot);
+        var t = _options.Value;
+        var timeSlot = _lessonTimeConfig.FindTimeSlotByStartTime(t.Time)!.Value;
+        return new(t.Day, timeSlot);
     }
+}
+
+public sealed class RegularSeminarDateConfig
+{
+    public required TimeOnly Time { get; set; }
+    public required DayOfWeek Day { get; set; }
 }
 
 public readonly record struct RegularSeminarDate(

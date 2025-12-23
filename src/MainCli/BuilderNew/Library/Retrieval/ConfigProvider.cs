@@ -12,7 +12,7 @@ public sealed partial class ConfigProvider
     private readonly IMarkerConfigHelper _helper;
     private readonly IServiceProvider _sp;
 
-    public object GetConfigUntyped(LayerConfigKey key)
+    public object GetUntyped(LayerConfigKey key)
     {
         var type = LayerConfigKey.Registry.GetTypeFromKey(key);
 
@@ -30,10 +30,10 @@ public sealed partial class ConfigProvider
     private object GetConfigWrapper<T>(LayerConfigKey key)
         where T : class
     {
-        return GetConfig<T>(new(key));
+        return Get<T>(new(key));
     }
 
-    public T GetConfig<T>(LayerConfigKey<T> key)
+    public T Get<T>(LayerConfigKey<T> key)
         where T : class
     {
         var markerConfig = _helper.GetMarkerConfig(_sp);
@@ -50,4 +50,13 @@ public sealed partial class ConfigProvider
         Debug.Assert(config != null);
         return config;
     }
+}
+
+[AutoConstructor]
+public sealed partial class ConfigProvider<T> where T : class
+{
+    private readonly ConfigProvider _provider;
+    private readonly LayerConfigKey<T> _key;
+
+    public T Get() => _provider.Get(_key);
 }

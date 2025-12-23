@@ -551,7 +551,7 @@ public static class Tasks
     public struct UploadStuffToDriveParams
     {
         public required IConfiguration Configuration;
-        public required string OutputDirectory;
+        public required TempOutputDirectoryService OutputDirectory;
         public required CancellationToken CancellationToken;
     }
 
@@ -594,8 +594,12 @@ public static class Tasks
         var files = await driveService.GetFiles(folderId, p.CancellationToken);
 
         var comparer = StringComparer.OrdinalIgnoreCase;
-        var existingLocalFiles = Directory.EnumerateFiles(p.OutputDirectory)
-            .Select(x => Path.GetFileName(x))
+        var existingLocalFiles = p.OutputDirectory
+            .FilePaths("*", new()
+            {
+                RecurseSubdirectories = true,
+            })
+            .Select(x => x.Path)
             .ToHashSet(comparer);
         var existingCloudFiles = files.Select(x => x.Name).ToHashSet(comparer);
         var cloudFilesToDelete = new List<BasicDriveFile>();
@@ -635,10 +639,16 @@ public static class Tasks
             {
                 taskBuilder.Add(deleteTask);
             }
+            Stream File(string path)
+            {
+                var stream = p.OutputDirectory.File(path, FileMode.Open, FileAccess.Read);
+                return stream;
+            }
             foreach (var fileName in cloudFilesToCreate)
             {
+                await using var stream = File(fileName);
                 var t = driveService.UploadFile(
-                    inputFilePath: Path.Combine(p.OutputDirectory, fileName),
+                    stream,
                     outputFileName: fileName,
                     folderId: folderId,
                     cancellationToken: cts.Token);
@@ -646,8 +656,9 @@ public static class Tasks
             }
             foreach (var file in cloudFilesToUpdate)
             {
+                await using var stream = File(file.Name);
                 var t = driveService.UpdateFile(
-                    fileInputPath: Path.Combine(p.OutputDirectory, file.Name),
+                    stream,
                     fileId: file.Id,
                     cancellationToken: cts.Token);
                 taskBuilder.Add(t);
@@ -777,7 +788,7 @@ public static class Tasks
         }
     }
 
-    public static async Task<Schedule> LoadSchedule(
+    public static async Task LoadSchedule(
         DocParseContext context,
         string scheduleSourcesDir,
         string serializedSchedulePath,
@@ -817,9 +828,8 @@ public static class Tasks
                 scheduleSerializedModel,
                 context.CourseNameUnifierModule);
 
-            // beforeEndAction(context);
-            var schedule = context.Schedule.Build();
-            return schedule;
+            beforeEndAction(context);
+            return;
         }
 
         {
@@ -836,7 +846,7 @@ public static class Tasks
             var newFilesHash = GetDirectoryHash(scheduleSourcesDirFullPath);
             await using var outputFile = new FileStream(serializedSchedulePath, FileMode.Create);
             await ScheduleSerializer.Serialize(schedule, outputFile, newFilesHash, cancellationToken);
-            return schedule;
+            return;
         }
     }
 

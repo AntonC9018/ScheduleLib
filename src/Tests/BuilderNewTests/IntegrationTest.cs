@@ -7,6 +7,7 @@ using MainCli.BuilderNew.Impl;
 using MainCli.BuilderNew.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ScheduleFromDoc.Tests;
 using ScheduleLib;
@@ -31,7 +32,7 @@ public sealed class IntegrationTest
         {
             await using var scope = fixture.ServiceProvider.CreateMarkerScope(marker);
             var provider = scope.ServiceProvider.GetRequiredService<ConfigProvider>();
-            var config = provider.GetConfig(LessonTopicsConfig.Key);
+            var config = provider.Get(LessonTopicsConfig.Key);
             list.Add(config);
         }
 
@@ -74,7 +75,7 @@ public sealed class IntegrationTest
 
             foreach (var key in configKeys)
             {
-                var config = configProvider.GetConfigUntyped(key);
+                var config = configProvider.GetUntyped(key);
                 configsOfMarker.Add(config);
             }
         }
@@ -106,18 +107,26 @@ public sealed class IntegrationTest
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        var task = serviceProvider.GenerateAllTeachersExcelTask(
-            outputDirectory,
-            filteredSchedule: filteredSchedule,
-            outputFilePath: outputPath);
+        await using var outputFile = outputDirectory.File(outputPath, FileMode.Create, FileAccess.Write);
 
-        await task.Run(cancellationToken);
+        var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelHandler>(serviceProvider);
+
+        await task.Run(new()
+        {
+            Schedule = filteredSchedule,
+            CancellationToken = cancellationToken,
+            OutputStream = outputFile,
+            StringBuilder = new(),
+        });
         outputDirectory.TryOpenFileInExplorer(outputPath);
     }
 
     private (ServiceProvider ServiceProvider, ApplicationConfigBuilder ConfigBuilder) Fixture()
     {
         var services = new ServiceCollection();
+        services.AddScheduleServices();
+        services.AddTaskHandlers();
+
         services
             .AddOptions<ManifestDirectoriesOptions>()
             .Configure(x =>
@@ -131,73 +140,17 @@ public sealed class IntegrationTest
                 x.StudyYear = 2025;
                 x.Semester = Semester.Sem2;
             });
-        services.AddSingleton<LookupFacade>(sp =>
-            sp.GetRequiredService<ScheduleBuilder>().Lookup());
-        services.AddSingleton<GroupParseContext>(sp =>
+
+        services.Replace(new(
+            typeof(IScheduleInitializer),
+            typeof(ScheduleBuilderInitializer),
+            ServiceLifetime.Singleton));
+
+        var serviceProvider = services.BuildServiceProvider(options: new()
         {
-            var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
-            return GroupParseContext.Create(new()
-            {
-                CurrentStudyYear = options.StudyYear,
-            });
+            ValidateOnBuild = true,
+            ValidateScopes = true,
         });
-        services.AddSingleton<ScheduleBuilder>(sp =>
-        {
-            var builder = new ScheduleBuilder();
-            builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
-            return builder;
-        });
-
-        services.AddSingleton(Config.CourseNameParser);
-        services.AddSingleton<CourseNameUnifierConfig>(sp =>
-        {
-            var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
-            var unificationConfig = Config.CourseNameUnificationConfig;
-            var ret = CourseNameUnifierConfig.Create(parserConfig, unificationConfig);
-            return ret;
-        });
-        services.AddSingleton<CourseNameUnifierModule>();
-        services.AddSingleton<ProcessSpaces>(Config.WhiteSpaceActionCourseName);
-        services.AddSingleton<SemesterIntervalProvider>(sp =>
-        {
-            _ = sp;
-            return Config.SemesterIntervalProvider();
-        });
-        services.AddSingleton<ScheduleBuilderInitializer>();
-
-        // These don't seem necessary?
-        // I'm not sure how to set up the schedule in DI.
-        services.AddSingleton<ScheduleProvider>();
-        services.AddScoped<Schedule>(x =>
-        {
-            var provider = x.GetRequiredService<ScheduleProvider>();
-            return provider.Get();
-        });
-        services.AddScoped<ScopeFilteredScheduleProvider>();
-        services.AddScoped<FilteredSchedule>(x => x.GetRequiredService<ScopeFilteredScheduleProvider>().Get());
-        services.AddSingleton<LatestPeriodFilteredScheduleProvider>();
-
-        services.AddSingleton<LessonTimeConfig>(
-            LessonTimeConfig.CreateDefault());
-        services.AddSingleton<RegularSeminarDateProvider>();
-        services.AddSingleton<LessonTypeDisplayHandler>();
-        services.AddSingleton<ParityDisplayHandler>();
-        services.AddSingleton<TimeSlotDisplayHandler>();
-        services.AddSingleton<DayNameProvider>();
-        services.AddTransient<StringBuilder>();
-
-        services.AddMarkerServices();
-        services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
-        services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
-        services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
-        services.RegisterBasicOperationsAndMergers<RegistryConfig>();
-        services.RegisterBasicOperationsAndMergers<MoodleConfig>();
-        services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
-        services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
-        services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
-
-        var serviceProvider = services.BuildServiceProvider();
-
         var builder = serviceProvider.GetRequiredService<ApplicationConfigBuilder>();
         TestBuilderHelper.Configure(builder);
 
@@ -205,98 +158,29 @@ public sealed class IntegrationTest
     }
 }
 
-public sealed class StudyYearOptions
+public sealed class GoogleDriveUploadHandler
 {
-    public required int StudyYear { get; set; } = -1;
-    public required Semester Semester { get; set; } = Semester.Invalid;
-}
-
-public sealed class ScheduleProvider
-{
-    private readonly ScheduleBuilder _builder;
-
-    public ScheduleProvider(ScheduleBuilder builder)
-    {
-        _builder = builder;
-    }
-
-    public Schedule Get()
-    {
-        var schedule = _builder.Build();
-        return schedule;
-    }
+    // private readonly RegularSeminarDateProvider _seminarDateProvider;
 }
 
 [AutoConstructor]
-public sealed partial class LatestPeriodFilteredScheduleProvider
+public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 {
-    private readonly Schedule _schedule;
-
-    public FilteredSchedule Get()
-    {
-        var schedule = _schedule;
-        var filter = FilterHelper.Builder()
-            .WithLatestPeriod(schedule);
-        var filtered = schedule.Filter(filter);
-        return filtered;
-    }
-}
-
-[AutoConstructor]
-public sealed partial class ScopeFilteredScheduleProvider
-{
-    private readonly ConfigProvider _configProvider;
-    private readonly Schedule _schedule;
-    private readonly LookupFacade _lookup;
-
-    public FilteredSchedule Get()
-    {
-        var teacherConfig = _configProvider.GetConfig(TeacherLayerConfig.Key);
-        var teacherName = teacherConfig.TeacherName;
-        var schedule = _schedule;
-        var teacherId = _lookup.Teacher(teacherName.ToNameModel())!.Value;
-
-        var filter = FilterHelper.Builder()
-            .WithLatestPeriod(schedule)
-            .WithTeacher(teacherId);
-        var filtered = schedule.Filter(filter);
-        return filtered;
-    }
-}
-
-[AutoConstructor]
-public sealed partial class ScheduleBuilderInitializer
-{
-    private readonly ScheduleBuilder _builder;
     private readonly CourseNameUnifierModule? _unifier;
 
-    public async Task Initialize(CancellationToken cancellationToken)
+    public async Task Initialize(
+        ScheduleBuilder builder,
+        CancellationToken cancellationToken)
     {
-        _builder.EnableLookupModule();
+        builder.EnableLookupModule();
         await IntegrationTestHelper.AddScheduleToBuilder(
-            _builder,
+            builder,
             ScheduleTestHelper.TestSchedulePath,
             cancellationToken);
 
         if (_unifier is { } unifier)
         {
-            unifier.Refresh(_builder);
+            unifier.Refresh(builder);
         }
     }
-}
-
-public static class InitializationHelper
-{
-    public static async Task InitializeSchedule(
-        this IServiceProvider sp,
-        CancellationToken cancellationToken)
-    {
-        var i = sp.GetRequiredService<ScheduleBuilderInitializer>();
-        await i.Initialize(cancellationToken);
-    }
-}
-
-public sealed class GoogleDriveUploadHandler
-{
-    // private readonly RegularSeminarDateProvider _seminarDateProvider;
 }

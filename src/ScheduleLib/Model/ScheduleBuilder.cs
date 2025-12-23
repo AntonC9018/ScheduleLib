@@ -53,6 +53,7 @@ public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastN
     }
 }
 
+// TODO: Maybe add versioning for caching.
 public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();

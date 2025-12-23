@@ -182,7 +182,7 @@ public sealed class ManifestLessonTopicSourceDefinition : LessonTopicSourceDefin
     public ILessonTopicSource Create(IServiceProvider sp)
     {
         var configProvider = sp.GetRequiredService<ConfigProvider>();
-        var teacherName = configProvider.GetConfig(TeacherLayerConfig.Key).TeacherName;
+        var teacherName = configProvider.Get(TeacherLayerConfig.Key).TeacherName;
         if (Path == null)
         {
             var manifestDirectoriesConfig = sp.GetRequiredService<IOptions<ManifestDirectoriesOptions>>().Value;

@@ -1,66 +1,44 @@
 using System.Drawing;
 using System.Text;
 using ClosedXML.Excel;
-using ScheduleLib.Curriculum.Download;
-using Microsoft.Extensions.Configuration;
-using ScheduleLib.Generation;
-using ScheduleLib.Parsing.WordDoc;
 using MainCli;
+using MainCli.BuilderNew.Impl;
 using MainCli.Helper;
 using MainCli.Topics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
-using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Curriculum.Download;
+using ScheduleLib.Generation;
 using ScheduleLib.Helper;
+using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
 using WebsiteJsonSchedule;
-using DayOfWeek = System.DayOfWeek;
 using Directory = System.IO.Directory;
 using Option = MainCli.Option;
 
 #pragma warning disable CS8321 // Local function is declared but never used
 
-Console.WriteLine("Start");
+var services = new ServiceCollection();
+services.AddScheduleServices();
+services.AddConfigsServices();
+services.AddTaskHandlers();
 
-var dayNameProvider = new DayNameProvider();
-var context = DocParseContext.Create(new()
+services.AddOptions<ManifestDirectoriesOptions>().Configure(x =>
 {
-    DayNameProvider = dayNameProvider,
-    CourseNameUnifierConfig = Config.CourseNameUnifier,
-    ParserFactory = new(new()
-    {
-        ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
-    }),
+    x.Directories.Add("data/topics");
 });
-
-context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
-
-var cancellationToken = CancellationToken.None;
-_ = cancellationToken;
-
-const int year = 2025;
-const Semester semester = Semester.Sem1;
-
-context.Schedule.SetStudyYear(year);
-
-string scheduleSourcesDir = @$"data\{year}_sem{semester.AsOrdinal()}";
-string serializedSchedulePath = @$"data\schedule_{year}_{semester.AsOrdinal()}.json";
-var schedule = await Tasks.LoadSchedule(
-    context: context,
-    scheduleSourcesDir: scheduleSourcesDir,
-    serializedSchedulePath: serializedSchedulePath,
-    bypassCache: false,
-    beforeEndAction: static context =>
-    {
-        // TODO: This is not included in the hash
-        const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
-        Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
-    },
-    cancellationToken: cancellationToken);
-
-Console.WriteLine("Schedule built");
+services.AddOptions<StudyYearOptions>().Configure(x =>
+{
+    x.StudyYear = 2025;
+    x.Semester = Semester.Sem2;
+});
 
 IConfiguration config;
 {
@@ -69,15 +47,27 @@ IConfiguration config;
     config = builder.Build();
 }
 
+// Bind configs from user secrets.
 
-const string outputDirectory = "output";
+var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+{
+    ValidateOnBuild = true,
+    ValidateScopes = true,
+});
+
+{
+    var b = serviceProvider.GetRequiredService<ApplicationConfigBuilder>();
+    b.AddDefaultConfig();
+}
+
+var cancellationToken = CancellationToken.None;
+_ = cancellationToken;
+
+var outputDirectory = new TempOutputDirectoryService("output");
+outputDirectory.Initialize();
 
 const string allTeachersOutputFile = "all_teachers_orar.xlsx";
-string allTeachersOutputFileFullPath = Path.GetFullPath($"{outputDirectory}/{allTeachersOutputFile}");
-
-const string freeRoomExcelOutputPath = $"{outputDirectory}/free_rooms.xlsx";
-const string teacherFirstName = "Anton";
-const string teacherLastName = "Curmanschii";
+const string freeRoomExcelFilePath = "free_rooms.xlsx";
 
 // TODO: Use DI
 var options = new Option[]
@@ -91,245 +81,248 @@ var options = new Option[]
     // Option.JsonSchedulesForWebsite,
     // Option.CopyGradesFromMoodleToRegistry,
 };
-foreach (var option in options) {
-
-switch (option)
+foreach (var option in options)
 {
-    case Option.UploadDocsToDrive:
+    await using var scope = serviceProvider.CreateMarkerScope(x =>
     {
-        if (Directory.Exists(outputDirectory))
+        x.TeacherName = NameHelper.Parse("Curmanschii Anton");
+    });
+
+    switch (option)
+    {
+        case Option.UploadDocsToDrive:
         {
-            Directory.Delete(outputDirectory, recursive: true);
+            outputDirectory.Clear();
+
+            Task[] tasks = [
+                GenerateAllTeacherExcel(),
+                GenerateFreeRoomsExcel(),
+                GeneratePdfsForGroupsAndTeachers(),
+            ];
+            await Task.WhenAll(tasks);
+            await Tasks.UploadStuffToDrive(new()
+            {
+                Configuration = config,
+                CancellationToken = cancellationToken,
+                OutputDirectory = outputDirectory,
+            });
+            continue;
         }
-        Task[] tasks = [
-            GenerateAllTeacherExcel(),
-            GenerateFreeRoomsExcel(),
-            GeneratePdfsForGroupsAndTeachers(),
-        ];
-        await Task.WhenAll(tasks);
-        await Tasks.UploadStuffToDrive(new()
+        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+        case Option.AllTeachersExcel:
         {
-            Configuration = config,
-            CancellationToken = cancellationToken,
-            OutputDirectory = outputDirectory,
-        });
-        continue;
-    }
-    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-    case Option.AllTeachersExcel:
-    {
-        await GenerateAllTeacherExcel();
-        ExplorerHelper.TryOpenExplorerAndSelectFile(allTeachersOutputFileFullPath);
-        break;
-    }
-
-    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-    case Option.PerGroupAndPerTeacherPdfs:
-    {
-        await GeneratePdfsForGroupsAndTeachers();
-        ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
-        break;
-    }
-
-    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-    case Option.CreateLessonsInRegistry:
-    {
-        var dateProvider = new ManualAllScheduledDateProvider(
-            studyWeeks: Config.StudyWeeks,
-            holidays: Config.HolidayPeriods);
-
-        var credentials = Tasks.GetRegistryCredentials(
-            config,
-            allowUserInput: true);
-
-        var attendance = GetAttendanceListOfCurrentTeacher();
-        // var attendance = new AllStudentAttendanceListBuilder().Build();
-        ILessonTopics topics;
-        {
-            string manifestPath = Path.GetFullPath(@"data\topics\anton\manifest.json");
-            var builder = await AllLessonTopicsDatabaseBuilder.Parse(
-                manifestPath,
-                context.Schedule.Lookup(),
-                schedule,
-                cancellationToken);
-            // builder.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
-            builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
-            topics = builder.Build();
+            await GenerateAllTeacherExcel(scope.ServiceProvider);
+            outputDirectory.TryOpenFileInExplorer(allTeachersOutputFile);
+            break;
         }
+
+        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+        case Option.PerGroupAndPerTeacherPdfs:
+        {
+            await GeneratePdfsForGroupsAndTeachers();
+            outputDirectory.TryOpenInExplorer();
+            break;
+        }
+
+        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+        case Option.CreateLessonsInRegistry:
+        {
+            var dateProvider = new ManualAllScheduledDateProvider(
+                studyWeeks: Config.StudyWeeks,
+                holidays: Config.HolidayPeriods);
+
+            var credentials = Tasks.GetRegistryCredentials(
+                config,
+                allowUserInput: true);
+
+            var attendance = GetAttendanceListOfCurrentTeacher();
+            // var attendance = new AllStudentAttendanceListBuilder().Build();
+            ILessonTopics topics;
+            {
+                string manifestPath = Path.GetFullPath(@"data\topics\anton\manifest.json");
+                var builder = await AllLessonTopicsDatabaseBuilder.Parse(
+                    manifestPath,
+                    context.Schedule.Lookup(),
+                    schedule,
+                    cancellationToken);
+                // builder.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
+                builder.FallbackProvider(LessonType.Lab, new NoNameProvider());
+                topics = builder.Build();
+            }
 #if false
         {
             topics = new LessonTopicsFromDatabase([]);
         }
 #endif
 
-        using var registryContext = await RegistryScrapingContext.Create(
-            credentials: credentials,
-            cancellationToken: cancellationToken);
+            using var registryContext = await RegistryScrapingContext.Create(
+                credentials: credentials,
+                cancellationToken: cancellationToken);
 
-        await registryContext.AddLessonsToOnlineRegistry(new()
-        {
-            CancellationToken = cancellationToken,
-            Schedule = schedule,
-            Semester = semester,
-            ErrorHandler = new RegistryErrorLogger
+            await registryContext.AddLessonsToOnlineRegistry(new()
             {
-                ExtraLessonAction = ExtraLessonInstanceAction.LeaveAlone,
-            },
-            CourseNameUnifier = context.CourseNameUnifierModule,
-            GroupParseContext = context.Schedule.GroupParseContext!,
-            LookupModule = context.Schedule.LookupModule!,
-            EquationCommandsDerivation = new AnyDayDerivation(),
-            DateProvider = dateProvider,
-            TimeConfig = context.TimeConfig,
-            ProcessingFlags = CommandProcessingConfig.Process
-                .WithLog(LessonEquationCommandTypes.All),
-            SemesterIntervalProvider = Config.SemesterIntervalProvider(),
-            Attendance = attendance,
-            LessonTopics = topics,
-        });
-        break;
-    }
-
-    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-    case Option.PullCurriculaFromOneDrive:
-    {
-        var c = config.GetMicrosoftGraphAuth();
-        await CurriculaDownloadTasks.PullCurriculaToDisk(c, cancellationToken);
-        break;
-    }
-
-    // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
-    case Option.FreeRooms:
-    {
-        await GenerateFreeRoomsExcel();
-        ExplorerHelper.TryOpenExplorerAndSelectFile(freeRoomExcelOutputPath);
-        break;
-    }
-
-    case Option.FreeHoursOfGroup:
-    {
-        var sb = new StringBuilder();
-        Tasks.PrintFreeHoursOfGroup(new()
-        {
-            Groups = [ "IA2401", "I2301" ],
-            Schedule = schedule,
-            StringBuilder = sb,
-            TimeConfig = context.TimeConfig,
-            DayNameProvider = dayNameProvider,
-        });
-        Console.WriteLine(sb.ToStringAndClear());
-        break;
-    }
-
-    case Option.TableOfAllLabLessons:
-    {
-        var dateProvider = new ManualAllScheduledDateProvider(
-            studyWeeks: Config.StudyWeeks,
-            holidays: Config.HolidayPeriods);
-
-        var teacherId = GetCurrentTeacherId();
-        var filteredSchedule = schedule.Filter(new()
-        {
-            TeacherFilter = new()
-            {
-                IncludeIds = [teacherId],
-            },
-            LessonFilter = new()
-            {
-                LessonType = LessonType.Lab,
-            },
-        });
-
-        const string outputFileName = "deadlines";
-        const string outputFilePath = $"{outputDirectory}/{outputFileName}.xlsx";
-        Tasks.GenerateDeadlinesExcel(new()
-        {
-            Schedule = filteredSchedule,
-            DateProvider = dateProvider,
-            Semester = semester,
-            TimeConfig = context.TimeConfig,
-            OutputFilePath = outputFilePath,
-            SemesterIntervalProvider = Config.SemesterIntervalProvider(),
-            BadColor = Color.Red,
-            GoodColor = Color.LightGreen,
-            LessonDelayLimit = 3,
-            MaxTaskRows = 40,
-        });
-        ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
-        break;
-    }
-
-    case Option.JsonSchedulesForWebsite:
-    {
-        if (Directory.Exists(outputDirectory))
-        {
-            Directory.Delete(outputDirectory, recursive: true);
+                CancellationToken = cancellationToken,
+                Schedule = schedule,
+                Semester = semester,
+                ErrorHandler = new RegistryErrorLogger
+                {
+                    ExtraLessonAction = ExtraLessonInstanceAction.LeaveAlone,
+                },
+                CourseNameUnifier = context.CourseNameUnifierModule,
+                GroupParseContext = context.Schedule.GroupParseContext!,
+                LookupModule = context.Schedule.LookupModule!,
+                EquationCommandsDerivation = new AnyDayDerivation(),
+                DateProvider = dateProvider,
+                TimeConfig = context.TimeConfig,
+                ProcessingFlags = CommandProcessingConfig.Process
+                    .WithLog(LessonEquationCommandTypes.All),
+                SemesterIntervalProvider = Config.SemesterIntervalProvider(),
+                Attendance = attendance,
+                LessonTopics = topics,
+            });
+            break;
         }
-        Directory.CreateDirectory(outputDirectory);
 
-        var services = new WebsiteJsonScheduleHelper.Services
+        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+        case Option.PullCurriculaFromOneDrive:
         {
-            ParityDisplay = new(),
-            LessonTypeDisplay = new(),
-            SubGroupNumberDisplay = new(),
-        };
-        var baseFilter = FilterHelper.Builder()
-            .WithLatestPeriod(schedule);
-        var grouping = schedule.TeacherGrouping(baseFilter);
-        foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
+            var c = config.GetMicrosoftGraphAuth();
+            await CurriculaDownloadTasks.PullCurriculaToDisk(c, cancellationToken);
+            break;
+        }
+
+        // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
+        case Option.FreeRooms:
         {
-            var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
-                filteredSchedule,
-                services);
-            var name = teacher.Item.PersonName;
+            await GenerateFreeRoomsExcel();
+            ExplorerHelper.TryOpenExplorerAndSelectFile(freeRoomExcelFilePath);
+            break;
+        }
+
+        case Option.FreeHoursOfGroup:
+        {
             var sb = new StringBuilder();
-            sb.Append($"{outputDirectory}/");
-            TeacherNameHelper.AsFileName(sb, name);
-            sb.Append(".json");
-            var fileName = sb.ToString();
-            await using var outputFile = new FileStream(fileName, FileMode.Create, FileAccess.Write);
-            await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
+            Tasks.PrintFreeHoursOfGroup(new()
+            {
+                Groups = [ "IA2401", "I2301" ],
+                Schedule = schedule,
+                StringBuilder = sb,
+                TimeConfig = context.TimeConfig,
+                DayNameProvider = dayNameProvider,
+            });
+            Console.WriteLine(sb.ToStringAndClear());
+            break;
         }
-        ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
-        break;
-    }
 
-    case Option.CopyGradesFromMoodleToRegistry:
-    {
-        // TODO: REALLY move to service provider.
-        await Tasks.CopyGradesFromMoodleForTest(
-            config,
-            context.CourseNameUnifierModule,
-            context.Schedule.LookupModule!,
-            schedule,
-            context.Schedule.GroupParseContext!,
-            semester,
-            "317382",
-            cancellationToken);
-        break;
+        case Option.TableOfAllLabLessons:
+        {
+            var dateProvider = new ManualAllScheduledDateProvider(
+                studyWeeks: Config.StudyWeeks,
+                holidays: Config.HolidayPeriods);
+
+            var teacherId = GetCurrentTeacherId();
+            var filteredSchedule = schedule.Filter(new()
+            {
+                TeacherFilter = new()
+                {
+                    IncludeIds = [teacherId],
+                },
+                LessonFilter = new()
+                {
+                    LessonType = LessonType.Lab,
+                },
+            });
+
+            const string outputFileName = "deadlines";
+            const string outputFilePath = $"{outputDirectory}/{outputFileName}.xlsx";
+            Tasks.GenerateDeadlinesExcel(new()
+            {
+                Schedule = filteredSchedule,
+                DateProvider = dateProvider,
+                Semester = semester,
+                TimeConfig = context.TimeConfig,
+                OutputFilePath = outputFilePath,
+                SemesterIntervalProvider = Config.SemesterIntervalProvider(),
+                BadColor = Color.Red,
+                GoodColor = Color.LightGreen,
+                LessonDelayLimit = 3,
+                MaxTaskRows = 40,
+            });
+            ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
+            break;
+        }
+
+        case Option.JsonSchedulesForWebsite:
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+            Directory.CreateDirectory(outputDirectory);
+
+            var services1 = new WebsiteJsonScheduleHelper.Services
+            {
+                ParityDisplay = new(),
+                LessonTypeDisplay = new(),
+                SubGroupNumberDisplay = new(),
+            };
+            var baseFilter = FilterHelper.Builder()
+                .WithLatestPeriod(schedule);
+            var grouping = schedule.TeacherGrouping(baseFilter);
+            foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
+            {
+                var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
+                    filteredSchedule,
+                    services1);
+                var name = teacher.Item.PersonName;
+                var sb = new StringBuilder();
+                sb.Append($"{outputDirectory}/");
+                TeacherNameHelper.AsFileName(sb, name);
+                sb.Append(".json");
+                var fileName = sb.ToString();
+                await using var outputFile = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+                await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
+            }
+            ExplorerHelper.TryOpenExplorerAndSelectFile(outputDirectory);
+            break;
+        }
+
+        case Option.CopyGradesFromMoodleToRegistry:
+        {
+            // TODO: REALLY move to service provider.
+            await Tasks.CopyGradesFromMoodleForTest(
+                config,
+                context.CourseNameUnifierModule,
+                context.Schedule.LookupModule!,
+                schedule,
+                context.Schedule.GroupParseContext!,
+                semester,
+                "317382",
+                cancellationToken);
+            break;
+        }
+        // case Option.Query:
+        // {
+        //     var res = schedule.RegularLessons
+        //         .Where(x =>
+        //             x.Date.TimeSlot == context.TimeConfig.FindTimeSlotByStartTime(new TimeOnly(hour: 16, minute: 45))
+        //             && x.Date.DayOfWeek == DayOfWeek.Wednesday)
+        //         .Where(x =>
+        //             x.Lesson.Room.Id == "350/4")
+        //         .Where(x =>
+        //             x.Date.Period == schedule.LatestPeriodId())
+        //         .Select(x => new
+        //             {
+        //                 x,
+        //                 teacher = schedule.Get(x.Lesson.Teachers[0]),
+        //             })
+        //         .ToArray();
+        //
+        //     var t = res;
+        //     _ = t;
+        //     break;
+        // }
     }
-    // case Option.Query:
-    // {
-    //     var res = schedule.RegularLessons
-    //         .Where(x =>
-    //             x.Date.TimeSlot == context.TimeConfig.FindTimeSlotByStartTime(new TimeOnly(hour: 16, minute: 45))
-    //             && x.Date.DayOfWeek == DayOfWeek.Wednesday)
-    //         .Where(x =>
-    //             x.Lesson.Room.Id == "350/4")
-    //         .Where(x =>
-    //             x.Date.Period == schedule.LatestPeriodId())
-    //         .Select(x => new
-    //             {
-    //                 x,
-    //                 teacher = schedule.Get(x.Lesson.Teachers[0]),
-    //             })
-    //         .ToArray();
-    //
-    //     var t = res;
-    //     _ = t;
-    //     break;
-    // }
-}
 
 }
 
@@ -340,7 +333,7 @@ async Task GenerateFreeRoomsExcel()
         Schedule = schedule,
         TimeConfig = context.TimeConfig,
         DayNameProvider = dayNameProvider,
-        OutputPath = freeRoomExcelOutputPath,
+        OutputPath = freeRoomExcelFilePath,
         CancellationToken = cancellationToken,
         ParityDisplay = new ParityDisplayHandler(),
         TimeSlotDisplay = new(),
@@ -365,61 +358,37 @@ async Task GeneratePdfsForGroupsAndTeachers()
     });
 }
 
-Task GenerateAllTeacherExcel()
+Task GenerateAllTeacherExcel(IServiceProvider sp)
 {
     return Task.Run(async () =>
     {
-        var filteredSchedule = schedule.Filter(new()
+        var schedule = sp.LatestPeriodSchedule();
+        var handler = sp.GetRequiredService<GenerateAllTeachersExcelHandler>();
+        var outputStream = outputDirectory.File(allTeachersOutputFile, FileMode.Create, FileAccess.Write);
+        await handler.Run(new()
         {
-            PeriodFilter = new()
-            {
-                PeriodId = new(schedule.Periods.Length - 1),
-                UnspecifiedIsAll = true,
-            },
+            Schedule = schedule,
+            CancellationToken = cancellationToken,
+            OutputStream = outputStream,
         });
-
-        var outputDirectoryService = new TempOutputDirectoryService(outputDirectory);
-        outputDirectoryService.Initialize();
-
-        var task = new GenerateAllTeachersExcelTask(
-            outputDirectory: outputDirectoryService,
-            stringBuilder: new(),
-            dayNameProvider: dayNameProvider,
-            lessonTypeDisplay: new(),
-            seminarDateProvider: new RegularSeminarDateProvider(context.TimeConfig),
-            parityDisplay: new(),
-            timeSlotDisplay: new(),
-            schedule: filteredSchedule,
-            timeConfig: context.TimeConfig,
-            outputFilePath: allTeachersOutputFile);
-        await task.Run(cancellationToken);
     });
 }
 
-TeacherId GetCurrentTeacherId()
+StudentAttendanceList GetAttendanceListOfCurrentTeacher(IServiceProvider sp)
 {
-    var teacherId = context.Schedule.Lookup().Teacher(teacherFirstName, teacherLastName)!.Value;
-    return teacherId;
-}
-
-StudentAttendanceList GetAttendanceListOfCurrentTeacher()
-{
+    var filteredSchedule = sp.ScopedSchedule();
     using var workbook = new XLWorkbook();
-    var teacherId = GetCurrentTeacherId();
-    var filteredSchedule = schedule.Filter(new()
-    {
-        TeacherFilter = new()
-        {
-            IncludeIds = [teacherId],
-        },
-    });
+
+    // var attendanceConfig = sp.GetRequiredService<ConfigProvider>().Get(LessonAttendanceConfig.Key);
+    // attendanceConfig.Sources
+
     var attendance = AttendanceExcel.ParseAttendanceListsExcel(new()
     {
         Schedule = filteredSchedule,
         Workbook = workbook,
-        CourseNames = context.CourseNameUnifierModule,
-        LookupModule = context.Schedule.LookupModule!,
-        GroupParseContext = context.Schedule.GroupParseContext!,
+        CourseNames = sp.GetRequiredService<CourseNameUnifierModule>(),
+        LookupModule = sp.GetRequiredService<LookupModule>(),
+        GroupParseContext = sp.GetRequiredService<GroupParseContext>(),
     });
     return attendance;
 }
