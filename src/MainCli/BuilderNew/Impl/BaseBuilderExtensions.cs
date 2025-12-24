@@ -1,11 +1,5 @@
 namespace MainCli.BuilderNew.Impl;
 
-public sealed class MoodleConfig : IConfig<MoodleConfig>, ICredentialsConfig
-{
-    public static LayerConfigKey<MoodleConfig> Key { get; } = LayerConfigKey.Registry.Register<MoodleConfig>();
-    public CredentialsSource? Credentials { get; set; }
-}
-
 public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
 {
     public static LayerConfigKey<GoogleDriveConfig> Key { get; } = LayerConfigKey.Registry.Register<GoogleDriveConfig>();
@@ -26,6 +20,12 @@ public static partial class Extensions
             var t = ConfigBuilder.Create(builder.Layer, GoogleDriveConfig.Key);
             t.Enable();
             return t;
+        }
+        public ConfigBuilder<DeadlinesExcelConfig> DeadlinesExcel()
+        {
+            return new(
+                builder.Layer,
+                configKey: new(DeadlinesExcelConfig.Key.Value));
         }
     }
 }

@@ -95,9 +95,9 @@ foreach (var option in options)
             outputDirectory.Clear();
 
             Task[] tasks = [
-                GenerateAllTeacherExcel(),
-                GenerateFreeRoomsExcel(),
-                GeneratePdfsForGroupsAndTeachers(),
+                GenerateAllTeacherExcel(scope.ServiceProvider),
+                GenerateFreeRoomsExcel(scope.ServiceProvider),
+                GeneratePdfsForGroupsAndTeachers(scope.ServiceProvider),
             ];
             await Task.WhenAll(tasks);
             await Tasks.UploadStuffToDrive(new()
@@ -119,7 +119,7 @@ foreach (var option in options)
         // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
         case Option.PerGroupAndPerTeacherPdfs:
         {
-            await GeneratePdfsForGroupsAndTeachers();
+            await GeneratePdfsForGroupsAndTeachers(scope.ServiceProvider);
             outputDirectory.TryOpenInExplorer();
             break;
         }
@@ -194,7 +194,7 @@ foreach (var option in options)
         // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
         case Option.FreeRooms:
         {
-            await GenerateFreeRoomsExcel();
+            await GenerateFreeRoomsExcel(scope.ServiceProvider);
             ExplorerHelper.TryOpenExplorerAndSelectFile(freeRoomExcelFilePath);
             break;
         }
@@ -220,21 +220,15 @@ foreach (var option in options)
                 studyWeeks: Config.StudyWeeks,
                 holidays: Config.HolidayPeriods);
 
-            var teacherId = GetCurrentTeacherId();
-            var filteredSchedule = schedule.Filter(new()
-            {
-                TeacherFilter = new()
-                {
-                    IncludeIds = [teacherId],
-                },
-                LessonFilter = new()
-                {
-                    LessonType = LessonType.Lab,
-                },
-            });
+            var teacherId = scope.ServiceProvider.GetRequiredService<CurrentTeacherIdProvider>().Get();
+            var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
+            var filteredSchedule = schedule.Filter(
+                FilterHelper.Builder()
+                    .WithTeacher(teacherId)
+                    .WithLessonType(LessonType.Lab));
 
-            const string outputFileName = "deadlines";
-            const string outputFilePath = $"{outputDirectory}/{outputFileName}.xlsx";
+            const string outputFileName = "deadlines.xlsx";
+            await using var outputFile = outputDirectory.File(outputFileName, FileMode.Create, FileAccess.Write);
             Tasks.GenerateDeadlinesExcel(new()
             {
                 Schedule = filteredSchedule,
@@ -243,10 +237,6 @@ foreach (var option in options)
                 TimeConfig = context.TimeConfig,
                 OutputFilePath = outputFilePath,
                 SemesterIntervalProvider = Config.SemesterIntervalProvider(),
-                BadColor = Color.Red,
-                GoodColor = Color.LightGreen,
-                LessonDelayLimit = 3,
-                MaxTaskRows = 40,
             });
             ExplorerHelper.TryOpenExplorerAndSelectFile(outputFilePath);
             break;
@@ -323,38 +313,34 @@ foreach (var option in options)
         //     break;
         // }
     }
-
 }
 
-async Task GenerateFreeRoomsExcel()
+Task GenerateFreeRoomsExcel(IServiceProvider sp)
 {
-    await Tasks.GenerateFreeRoomsExcel(new()
+    return Task.Run(async () =>
     {
-        Schedule = schedule,
-        TimeConfig = context.TimeConfig,
-        DayNameProvider = dayNameProvider,
-        OutputPath = freeRoomExcelFilePath,
-        CancellationToken = cancellationToken,
-        ParityDisplay = new ParityDisplayHandler(),
-        TimeSlotDisplay = new(),
+        var handler = sp.GetRequiredService<GenerateFreeRoomsHandler>();
+        await using var outputStream = outputDirectory.File(freeRoomExcelFilePath, FileMode.Create, FileAccess.Write);
+        await handler.Run(new()
+        {
+            CancellationToken = cancellationToken,
+            OutputStream = outputStream,
+        });
     });
 }
 
-async Task GeneratePdfsForGroupsAndTeachers()
+Task GeneratePdfsForGroupsAndTeachers(IServiceProvider sp)
 {
-    await Tasks.GeneratePdfForGroupsAndTeachers(new()
+    return Task.Run(async () =>
     {
-        LessonTextDisplayServices = new()
+        var handler = sp.GetRequiredService<GeneratePdfsForGroupsAndTeachersHandler>();
+        outputDirectory.Clear();
+
+        await handler.Run(new()
         {
-            ParityDisplay = new(),
-            LessonTypeDisplay = new(),
-            SubGroupNumberDisplay = new(),
-        },
-        Schedule = schedule,
-        LessonTimeConfig = context.TimeConfig,
-        TimeSlotDisplay = new(),
-        DayNameProvider = dayNameProvider,
-        OutputPath = outputDirectory,
+            CancellationToken = cancellationToken,
+            OutputDirectory = outputDirectory,
+        });
     });
 }
 
@@ -364,12 +350,12 @@ Task GenerateAllTeacherExcel(IServiceProvider sp)
     {
         var schedule = sp.LatestPeriodSchedule();
         var handler = sp.GetRequiredService<GenerateAllTeachersExcelHandler>();
-        var outputStream = outputDirectory.File(allTeachersOutputFile, FileMode.Create, FileAccess.Write);
+        await using var outputStream = outputDirectory.File(allTeachersOutputFile, FileMode.Create, FileAccess.Write);
         await handler.Run(new()
         {
             Schedule = schedule,
             CancellationToken = cancellationToken,
-            OutputStream = outputStream,
+            OutputDirectory = outputStream,
         });
     });
 }

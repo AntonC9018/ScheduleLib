@@ -1,3 +1,4 @@
+using System.Drawing;
 using MainCli.BuilderNew;
 using MainCli.BuilderNew.Impl;
 using MainCli.Topics;
@@ -13,7 +14,7 @@ public static class DefaultConfig
     {
         b.Defaults.Configure(defaults =>
         {
-            defaults.Registry().Configure(x =>
+            defaults.Registry().ConfigureLayer(x =>
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
@@ -28,12 +29,21 @@ public static class DefaultConfig
 
             defaults.Registry().Credentials().FromConfig();
             defaults.Moodle().Credentials().FromConfig(isRequired: true);
+
+            defaults.DeadlinesExcel().Configure(x =>
+            {
+                x.BadColor = Color.Red;
+                x.GoodColor = Color.LightGreen;
+                x.LessonDelayLimit = 3;
+                x.MaxTaskRows = 40;
+                x.ColumnWidth = 5;
+            });
         });
 
         b.Defaults.TeacherLayer("Anton Curmanschii", t =>
         {
             t.Drive();
-            t.Registry().Configure(x =>
+            t.Registry().ConfigureLayer(x =>
             {
                 x.ProcessingFlags(CommandProcessingConfig.None);
             });
@@ -45,7 +55,7 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Tamara Iatasina", t =>
         {
-            t.LessonTopics().Configure(x =>
+            t.LessonTopics().ConfigureLayer(x =>
             {
                 x.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
             });
@@ -55,7 +65,7 @@ public static class DefaultConfig
         {
             t.Moodle().NoInherit();
 
-            t.LessonTopics().Configure(x =>
+            t.LessonTopics().ConfigureLayer(x =>
             {
                 x.FallbackProvider(LessonType.Curs, new NoNameProvider());
                 x.FallbackProvider(LessonType.Lab, new NoNameProvider());

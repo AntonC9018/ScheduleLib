@@ -28,6 +28,9 @@ public static class Registration
             services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
             services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
             services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
+            services.AddMapper<DeadlinesConfigMapper>();
+            services.AddMerger<DeadlinesExcelConfigMerger>();
+            services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
         }
 
         public void AddScheduleServices()
@@ -103,6 +106,17 @@ public static class Registration
                     ProcessSpacesCourseName = sp.GetRequiredService<ProcessSpaces>(),
                     RoomParser = sp.GetRequiredService<RoomParser>(),
                 });
+            });
+
+            services.AddScoped<CredentialsResolver>();
+            services.AddScoped<MoodleConfigHelper>();
+            services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
+            {
+                _ = sp;
+                var ret = new ManualAllScheduledDateProvider(
+                    studyWeeks: Config.StudyWeeks,
+                    holidays: Config.HolidayPeriods);
+                return ret;
             });
         }
 

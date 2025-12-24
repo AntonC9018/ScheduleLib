@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using MainCli.BuilderNew.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MainCli.BuilderNew;
@@ -8,7 +9,7 @@ namespace MainCli.BuilderNew;
 public static class RegistrationHelper
 {
     public static void RegisterBasicOperationsAndMergers<T>(this ServiceCollection services)
-        where T : class, IConfig<T>
+        where T : class, IConfigBase
     {
         RegisterBasicOperationsAndMergersForType(services, typeof(T));
     }
@@ -141,4 +142,20 @@ public static class RegistrationHelper
         return true;
     }
 
+    public static void AddMapper<T>(this IServiceCollection collection)
+        where T : IConfigMapperBase
+    {
+        collection.RegisterRequiredImplementationsOfGenericService<T>(
+            typeof(IConfigMapperBase),
+            typeof(IConfigMapper<,>),
+            ServiceLifetime.Singleton);
+    }
+    public static void AddMerger<T>(this IServiceCollection collection)
+        where T : IMergerBase
+    {
+        collection.RegisterRequiredImplementationsOfGenericService<T>(
+            typeof(IMergerBase),
+            typeof(IMerger<>),
+            ServiceLifetime.Singleton);
+    }
 }

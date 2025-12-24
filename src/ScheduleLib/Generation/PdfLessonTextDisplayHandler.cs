@@ -6,7 +6,7 @@ namespace ScheduleLib.Generation;
 
 public sealed class PdfLessonTextDisplayHandler
 {
-    public struct Services
+    public sealed class Services
     {
         public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
         public required ParityDisplayHandler ParityDisplay;

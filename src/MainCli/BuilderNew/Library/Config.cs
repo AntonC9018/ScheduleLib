@@ -86,7 +86,12 @@ public readonly struct MaybeLayerConfigContainer<T>
 // TODO: Source generate the key property,
 // source generate the BasicOperations class,
 // source generate the merger class.
-public interface IConfig<T> where T : class
+public interface IConfigBase
+{
+}
+
+public interface IConfig<T> : IConfigBase
+    where T : class
 {
     public static abstract LayerConfigKey<T> Key { get; }
 }
@@ -172,11 +177,11 @@ public static class BaseExtensions
         {
             builder.Enable().Flags.Clean = true;
         }
-        public void ConfigureValue(Action<T> configure)
+        public void Configure(Action<T> configure)
         {
             configure(builder.Enable().Value);
         }
-        public void Configure(Action<ConfigBuilder<T>> configure)
+        public void ConfigureLayer(Action<ConfigBuilder<T>> configure)
         {
             configure(builder);
         }

@@ -7,11 +7,12 @@ public interface ICredentialsConfig
 
 public sealed class CredentialsSource
 {
+    public bool? IsRequired { get; set; }
 }
 
 public readonly struct CredentialsSourceBuilder
 {
-    private readonly CredentialsSource _source;
+    internal readonly CredentialsSource _source;
 
     public CredentialsSourceBuilder(CredentialsSource source)
     {
@@ -36,6 +37,7 @@ public static class CredentialsBuilderExtensions
     {
         public void FromConfig(bool isRequired = false)
         {
+            builder._source.IsRequired = isRequired;
         }
     }
 }

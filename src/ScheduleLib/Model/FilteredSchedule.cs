@@ -114,6 +114,17 @@ public static class FilterHelper
         };
     }
 
+    public static ScheduleFilter WithLessonType(this ScheduleFilter b, LessonType t)
+    {
+        return b with
+        {
+            LessonFilter = new()
+            {
+                LessonType = t,
+            },
+        };
+    }
+
 
     public static FilterGrouping<Accessor<Teacher, TeacherId>> TeacherGrouping(
         this Schedule schedule,

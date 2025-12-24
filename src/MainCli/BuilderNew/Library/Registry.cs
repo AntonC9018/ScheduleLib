@@ -1,3 +1,5 @@
+namespace MainCli.BuilderNew;
+
 public interface ICreateFromString<T>
 {
     static abstract T Create(string val);

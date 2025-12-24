@@ -21,15 +21,19 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
     {
         var deleg = _copyDelegateCache.GetOrAdd(implType, type =>
         {
-            var iBasicOpsInterface = type.GetInterfaces()
+            var inter = type.GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(IBasicOperations<>));
-            if (iBasicOpsInterface == null)
+                    i.GetGenericTypeDefinition() == _interfaceType);
+            if (inter == null)
             {
                 throw new ArgumentException($"Type {type} does not implement {_interfaceType.FullName}<T>", nameof(implType));
             }
-            var itemType = iBasicOpsInterface.GetGenericArguments()[0];
-            var genericMethod = _methodInfo.MakeGenericMethod(itemType);
+            var types = inter.GetGenericArguments();
+            if (types.Length != _methodInfo.GetGenericMethodDefinition().GetGenericArguments().Length)
+            {
+                throw new InvalidOperationException($"Argument count mismatch");
+            }
+            var genericMethod = _methodInfo.MakeGenericMethod();
             return genericMethod.CreateDelegate<TDelegate>();
         });
         return deleg;

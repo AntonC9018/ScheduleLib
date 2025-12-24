@@ -11,18 +11,23 @@ public sealed partial class ConfigProvider
 {
     private readonly IMarkerConfigHelper _helper;
     private readonly IServiceProvider _sp;
+    private readonly ConfigMappingRegistry _mappingRegistry;
 
     public object GetUntyped(LayerConfigKey key)
     {
         var type = LayerConfigKey.Registry.GetTypeFromKey(key);
-
+        return GetUntypedInternal(type, key);
+    }
+    private object GetUntypedInternal(Type outputType, LayerConfigKey key)
+    {
         // TODO: Cache globally maybe
-        var method = GetConfigMethod.MakeGenericMethod(type);
-        var func = method.CreateDelegate<Func<LayerConfigKey, object>>(this);
+        var method = GetConfigMethod.MakeGenericMethod(outputType);
+        var func = method.CreateDelegate<GetUntypedDelegate>(this);
 
         var ret = func(key);
         return ret;
     }
+    private delegate object GetUntypedDelegate(LayerConfigKey key);
 
     private static readonly MethodInfo GetConfigMethod =
         typeof(ConfigProvider).GetMethod(nameof(GetConfigWrapper), BindingFlags.NonPublic | BindingFlags.Instance)!;
@@ -41,6 +46,18 @@ public sealed partial class ConfigProvider
         {
             return m;
         }
+
+        var mapping = _mappingRegistry.Get(outputType: typeof(T));
+        if (!mapping.IsNull)
+        {
+            var unmappedConfig = GetUntypedInternal(
+                outputType: mapping.From,
+                key: key.Value);
+            var mappedConfig = mapping.Mapper.Map(
+                from: unmappedConfig);
+            return (T) mappedConfig;
+        }
+
         if (_helper.GetCurrentPath(markerConfig) is not { } path)
         {
             throw new InvalidOperationException("No matching path found for the current configuration.");

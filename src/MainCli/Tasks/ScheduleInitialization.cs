@@ -88,18 +88,30 @@ public sealed partial class LatestPeriodFilteredScheduleProvider
 }
 
 [AutoConstructor]
-public sealed partial class ScopeFilteredScheduleProvider
+public sealed partial class CurrentTeacherIdProvider
 {
     private readonly ConfigProvider _configProvider;
-    private readonly Schedule _schedule;
     private readonly LookupFacade _lookup;
 
-    public FilteredSchedule Get()
+    public TeacherId Get()
     {
         var teacherConfig = _configProvider.Get(TeacherLayerConfig.Key);
         var teacherName = teacherConfig.TeacherName;
+        var ret = _lookup.Teacher(teacherName.ToNameModel())!.Value;
+        return ret;
+    }
+}
+
+[AutoConstructor]
+public sealed partial class ScopeFilteredScheduleProvider
+{
+    private readonly Schedule _schedule;
+    private readonly CurrentTeacherIdProvider _idProvider;
+
+    public FilteredSchedule Get()
+    {
         var schedule = _schedule;
-        var teacherId = _lookup.Teacher(teacherName.ToNameModel())!.Value;
+        var teacherId = _idProvider.Get();
 
         var filter = FilterHelper.Builder()
             .WithLatestPeriod(schedule)

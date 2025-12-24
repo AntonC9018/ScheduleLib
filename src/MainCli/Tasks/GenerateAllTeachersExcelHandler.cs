@@ -7,29 +7,12 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using MainCli.ExcelBuilder;
 using MainCli.Helper;
-using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper.Excel;
 
 namespace MainCli;
-
-public static class TaskHelper
-{
-    public static GenerateAllTeachersExcelHandler GenerateAllTeachersExcelTask(
-        this IServiceProvider sp,
-        TempOutputDirectoryService outputDirectory,
-        string outputFilePath,
-        FilteredSchedule filteredSchedule)
-    {
-        return ActivatorUtilities.CreateInstance<GenerateAllTeachersExcelHandler>(
-            sp,
-            outputDirectory,
-            outputFilePath,
-            filteredSchedule);
-    }
-}
 
 [AutoConstructor]
 public sealed partial class GenerateAllTeachersExcelHandler
@@ -46,13 +29,13 @@ public sealed partial class GenerateAllTeachersExcelHandler
         public StringBuilder? StringBuilder { get; init; }
         public required FilteredSchedule Schedule { get; init; }
         public required CancellationToken CancellationToken { get; init; }
-        public required Stream OutputStream { get; init; }
+        public required Stream OutputDirectory { get; init; }
     }
 
     public ValueTask Run(RunParams p)
     {
         var stringBuilder = p.StringBuilder ?? new();
-        using var excel = SpreadsheetDocument.Create(p.OutputStream, SpreadsheetDocumentType.Workbook, autoSave: true);
+        using var excel = SpreadsheetDocument.Create(p.OutputDirectory, SpreadsheetDocumentType.Workbook, autoSave: true);
         var seminarDate = _seminarDateProvider.Get();
 
         var teachers = p.Schedule.Teachers

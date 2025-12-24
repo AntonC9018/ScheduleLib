@@ -115,7 +115,7 @@ public sealed class IntegrationTest
         {
             Schedule = filteredSchedule,
             CancellationToken = cancellationToken,
-            OutputStream = outputFile,
+            OutputDirectory = outputFile,
             StringBuilder = new(),
         });
         outputDirectory.TryOpenFileInExplorer(outputPath);
