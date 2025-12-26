@@ -2,15 +2,8 @@ using AutoConstructor.Attributes;
 using MainCli.BuilderNew.Impl;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.ScheduleDefaults;
 
 namespace MainCli;
 
@@ -115,50 +108,3 @@ public static class InitializationHelper
         await i.Initialize(scheduleBuilder, cancellationToken);
     }
 }
-
-[AutoConstructor]
-public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
-{
-    private readonly LessonTimeConfig _timeConfig;
-    private readonly DayNameParser _dayNameParser;
-    private readonly CourseNameUnifierModule _unifier;
-    private readonly LessonParserFactory _lessonParserFactory;
-    private readonly IOptions<StudyYearOptions> _studyYearOptions;
-    private readonly ILogger _logger;
-
-    public async Task Initialize(
-        ScheduleBuilder builder,
-        CancellationToken cancellationToken)
-    {
-        builder.ConfigureRemappings(Config.ConfigureRemappings);
-
-        var context = new DocParseContext
-        {
-            CourseNameUnifierModule = _unifier,
-            DayNameParser = _dayNameParser,
-            ParserFactory = _lessonParserFactory,
-            Schedule = builder,
-            TimeConfig = _timeConfig,
-        };
-
-        // TODO: Do this in a more adequate way
-        var studyYear = _studyYearOptions.Value;
-        string scheduleSourcesDir = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}";
-        string serializedSchedulePath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
-        await Tasks.LoadSchedule(
-            context: context,
-            scheduleSourcesDir: scheduleSourcesDir,
-            serializedSchedulePath: serializedSchedulePath,
-            bypassCache: false,
-            beforeEndAction: static context =>
-            {
-                // TODO: This is not included in the hash
-                const string fileName = @"data\Cadre didactice DI 2024-2025.xlsx";
-                Tasks.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, fileName);
-            },
-            cancellationToken: cancellationToken);
-
-        _logger.LogInformation("Schedule built");
-    }
-}
-

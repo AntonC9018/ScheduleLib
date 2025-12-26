@@ -13,16 +13,16 @@ namespace MainCli;
 [AutoConstructor]
 public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 {
-    public required PdfLessonTextDisplayHandler.Services _lessonTextDisplayServices;
-    public required LessonTimeConfig _lessonTimeConfig;
-    public required TimeSlotDisplayHandler _timeSlotDisplay;
-    public required DayNameProvider _dayNameProvider;
-    public required Schedule _schedule;
+    private readonly PdfLessonTextDisplayHandler.Services _lessonTextDisplayServices;
+    private readonly LessonTimeConfig _lessonTimeConfig;
+    private readonly TimeSlotDisplayHandler _timeSlotDisplay;
+    private readonly DayNameProvider _dayNameProvider;
+    private readonly Schedule _schedule;
 
     public readonly struct RunParams
     {
         public required CancellationToken CancellationToken { get; init; }
-        public required TempOutputDirectoryService OutputDirectory { get; init; }
+        public required OutputDirectory OutputDirectory { get; init; }
     }
 
     public async ValueTask Run(RunParams p)

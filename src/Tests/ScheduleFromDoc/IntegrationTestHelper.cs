@@ -1,7 +1,6 @@
 using MainCli;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
@@ -54,7 +53,7 @@ public sealed class IntegrationTestHelper
         context.Schedule.SetStudyYear(Year);
 
         string dirName = @$"data\{Year}_sem{Semester.AsOrdinal()}";
-        await Tasks.ParseDocumentDirIntoSchedule(
+        await TasksHelper.ParseDocumentDirIntoSchedule(
             context,
             dirName,
             cancellationToken: cancellationToken);

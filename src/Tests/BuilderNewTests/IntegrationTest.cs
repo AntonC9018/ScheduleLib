@@ -1,4 +1,3 @@
-using System.Text;
 using Argon;
 using AutoConstructor.Attributes;
 using MainCli;
@@ -8,17 +7,11 @@ using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using ScheduleFromDoc.Tests;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation;
-using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.ScheduleDefaults;
 using Tests.ScheduleCommon;
 
 public sealed class IntegrationTest
@@ -103,7 +96,7 @@ public sealed class IntegrationTest
 
         var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>().Get();
 
-        var outputDirectory = new TempOutputDirectoryService("output");
+        var outputDirectory = new OutputDirectory("output");
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";

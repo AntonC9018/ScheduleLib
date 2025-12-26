@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using OnlineRegistry.OnlineRegistry;
 using ScheduleLib.Helper;
 
 namespace ScheduleLib.OnlineRegistry.Impl;

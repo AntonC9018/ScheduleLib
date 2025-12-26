@@ -44,7 +44,7 @@ public static class ConfigExtensions
 {
     extension (ServiceCollection services)
     {
-        public void AddOnlineRegistry()
+        public void AddOnlineRegistryConfig()
         {
             services.RegisterBasicOperationsAndMergers<RegistryConfig>();
             services.AddConfigProvider(BuiltRegistryConfig.Key);

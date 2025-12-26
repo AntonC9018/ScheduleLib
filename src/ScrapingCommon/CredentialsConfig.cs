@@ -50,7 +50,6 @@ public static class CredentialsBuilderExtensions
     extension (IServiceCollection services)
     {
         public void AddCredentialsResolver<T>(
-            LayerConfigKey<T> key,
             string serviceKey,
             Func<T, CredentialsSource> getter)
 
@@ -59,7 +58,7 @@ public static class CredentialsBuilderExtensions
             services.AddScoped<CredentialsResolver<T>>(sp =>
             {
                 return new(
-                    serviceKey: "Moodle",
+                    serviceKey: serviceKey,
                     generalResolver: sp.GetRequiredService<ICredentialsResolver>(),
                     provider: sp.GetRequiredService<ConfigProvider<T>>(),
                     sourceGetter: getter);

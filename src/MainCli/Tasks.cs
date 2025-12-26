@@ -1,67 +1,21 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Security;
-using System.Security.Cryptography;
-using System.Text;
-using AngleSharp.Html.Dom;
-using AngleSharp.Dom;
-using AutoConstructor.Attributes;
-using ClosedXML.Excel;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
-using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Configuration;
 using OpenHolidays;
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
 using MainCli.Helper;
-using QuizModels;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation;
-using ScheduleLib.Generation.TeacherCute;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
-using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.Moodle;
 using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.Scraping.Common;
-using ScheduleLib.Scraping.Common.Config;
-using SpreadCheetah;
 
 namespace MainCli;
-
-public struct GeneratePdfForGroupsAndTeachersParams()
-{
-    public required PdfLessonTextDisplayHandler.Services LessonTextDisplayServices;
-    public required LessonTimeConfig LessonTimeConfig;
-    public required TimeSlotDisplayHandler TimeSlotDisplay;
-    public required DayNameProvider DayNameProvider;
-    public required Schedule Schedule;
-    public required string OutputPath;
-}
-
-public struct AllTeacherExcelParams()
-{
-    public required TempOutputDirectoryService OutputDirectory;
-    public required string OutputFilePath;
-    public required DayNameProvider DayNameProvider;
-    public required (DayOfWeek Day, TimeSlot TimeSlot) SeminarDate;
-    public required StringBuilder StringBuilder;
-    public required LessonTypeDisplayHandler LessonTypeDisplay;
-    public required ParityDisplayHandler ParityDisplay;
-    public required TimeSlotDisplayHandler TimeSlotDisplay;
-    public required FilteredSchedule Schedule;
-    public required LessonTimeConfig TimeConfig;
-}
-
 
 public struct ParseStudyWeekWordDocParams
 {
@@ -69,8 +23,9 @@ public struct ParseStudyWeekWordDocParams
     public required HolidayPeriod[] Holidays;
 }
 
-public static class Tasks
+public static class TasksHelper
 {
+    // ReSharper disable once UnusedMember.Global
     public static ManualAllScheduledDateProvider CreateDateProviderFromWeekParityExcel(
         ParseStudyWeekWordDocParams p)
     {
@@ -81,72 +36,6 @@ public static class Tasks
             studyWeeks: studyWeeks,
             holidays: p.Holidays);
         return ret;
-    }
-
-    public static Credentials GetRegistryCredentials(
-        IConfiguration configuration,
-        bool allowUserInput)
-    {
-        var ret = configuration.MaybeGetCredentials(RegistryScraping.CredentialsConfigKey);
-        if (ret != null)
-        {
-            return ret;
-        }
-        if (!allowUserInput)
-        {
-            throw new InvalidOperationException("Credentials not found.");
-        }
-
-        Console.WriteLine("No 'Registry' key specified in user secrets.");
-        Console.WriteLine("https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-9.0&tabs=windows#secret-manager");
-        Console.WriteLine("You may input it manually for this session only:");
-
-        Console.Write("Login: ");
-        var login = Console.ReadLine() ?? throw new InvalidOperationException();
-
-        Console.Write("Password: ");
-        using var password = ReadPassword();
-
-        ret = new()
-        {
-            Login = login,
-            Password = password.ToString() ?? throw Unreachable(),
-        };
-        return ret;
-    }
-
-    private static SecureString ReadPassword()
-    {
-        var pwd = new SecureString();
-        while (true)
-        {
-            ConsoleKeyInfo i = Console.ReadKey(intercept: true);
-            if (i.Key == ConsoleKey.Enter)
-            {
-                break;
-            }
-
-            if (i.Key == ConsoleKey.Backspace)
-            {
-                if (pwd.Length == 0)
-                {
-                    continue;
-                }
-
-                pwd.RemoveAt(pwd.Length - 1);
-                Console.Write("\b \b");
-                continue;
-            }
-
-            // the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
-            if (i.KeyChar != '\u0000')
-            {
-                pwd.AppendChar(i.KeyChar);
-                Console.Write("*");
-                continue;
-            }
-        }
-        return pwd;
     }
 
     public static void OptionallyEnrichContextWithTeacherFullNames(
@@ -171,135 +60,6 @@ public static class Tasks
         });
     }
 
-    public static string GetDirectoryHash(
-        string srcFullPath,
-        string searchPattern = "*",
-        bool hashPaths = true,
-        bool hashContents = true)
-    {
-        Debug.Assert(srcFullPath == Path.GetFullPath(srcFullPath));
-
-        var filePaths = Directory.GetFiles(
-                srcFullPath,
-                searchPattern: searchPattern,
-                SearchOption.AllDirectories)
-            .OrderBy(p => p)
-            .ToArray();
-
-        const int MaxPathBytes = 4096;
-        const int BufferSize = 8192;
-        using var pathBuffer = new RentedBuffer<byte>(MaxPathBytes);
-        using var readBuffer = new RentedBuffer<byte>(BufferSize);
-        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
-
-        foreach (var filePath in filePaths)
-        {
-            if (hashPaths)
-            {
-                var relativePath = filePath.AsSpan(srcFullPath.Length + 1);
-                int byteCount = Encoding.UTF8.GetBytes(relativePath, pathBuffer.Span);
-                hasher.AppendData(pathBuffer.Span[.. byteCount]);
-            }
-
-            if (hashContents)
-            {
-                using var fs = File.OpenRead(filePath);
-                int read;
-                while ((read = fs.Read(readBuffer.Span)) > 0)
-                {
-                    hasher.AppendData(readBuffer.Span[.. read]);
-                }
-            }
-        }
-
-        var hashLen = hasher.HashLengthInBytes;
-        using var hash = new RentedBuffer<byte>(hashLen);
-        int len = hasher.GetCurrentHash(hash.Span);
-        Debug.Assert(len == hashLen);
-        return Convert.ToHexStringLower(hash.Span);
-    }
-
-    public static async Task ParseDocumentDirIntoSchedule(
-        DocParseContext context,
-        string dirName,
-        CancellationToken cancellationToken)
-    {
-        dirName = Path.GetFullPath(dirName);
-
-        await ParseDirectoryToSchedule(
-            context,
-            dirName,
-            cancellationToken: cancellationToken);
-
-        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
-            .Select(x =>
-            {
-                var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
-                Debug.Assert(lastSegmentStart != -1);
-                lastSegmentStart += 1;
-
-                var lastSegment = x.AsSpan()[lastSegmentStart ..];
-
-                if (!DateOnly.TryParseExact(
-                        lastSegment,
-                        format: "dd.MM.yy",
-                        provider: null,
-                        style: DateTimeStyles.None,
-                        result: out var startDate))
-                {
-                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
-                }
-                return (SubDirPath: x, StartDate: startDate);
-            })
-            .OrderBy(x => x.StartDate);
-
-        foreach (var t in subdirs)
-        {
-            await ParseDirectoryToSchedule(
-                context,
-                t.SubDirPath,
-                cancellationToken: cancellationToken,
-                period: new()
-                {
-                    StartDate = t.StartDate,
-                });
-        }
-        return;
-
-        static async Task ParseDirectoryToSchedule(
-            DocParseContext context,
-            string dirName,
-            CancellationToken cancellationToken,
-            PeriodBeginning? period = null)
-        {
-            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
-            {
-                var outputPath = PathHelper.WithExtension(filePath, ".docx");
-                var conversionSuccessful = await DocToDocxConversionHelper.TryConvertFile(
-                    inputPath: filePath,
-                    outputPath: outputPath,
-                    cancellationToken: cancellationToken);
-                if (!conversionSuccessful)
-                {
-                    throw new InvalidOperationException("Could not convert doc to docx");
-                }
-                File.Delete(filePath);
-            }
-
-            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
-            {
-                using var document = WordprocessingDocument.Open(filePath, isEditable: false);
-                context.SetPeriod(period);
-
-                WordScheduleParser.ParseToSchedule(new()
-                {
-                    Context = context,
-                    Document = document,
-                });
-            }
-        }
-    }
-
     // ReSharper disable once UnusedMember.Global
     public static async Task<HolidayPeriod[]> GetHolidayPeriodsFromApi(
         Schedule schedule,
@@ -321,21 +81,10 @@ public static class Tasks
         return ret;
     }
 
-    public struct GenerateFreeRoomsParams
-    {
-        public required string OutputPath;
-        public required ParityDisplayHandler ParityDisplay;
-        public required TimeSlotDisplayHandler TimeSlotDisplay;
-        public required DayNameProvider DayNameProvider;
-        public required CancellationToken CancellationToken;
-        public required Schedule Schedule;
-        public required LessonTimeConfig TimeConfig;
-    }
-
     public struct UploadStuffToDriveParams
     {
         public required IConfiguration Configuration;
-        public required TempOutputDirectoryService OutputDirectory;
+        public required OutputDirectory OutputDirectory;
         public required CancellationToken CancellationToken;
     }
 
@@ -456,283 +205,85 @@ public static class Tasks
         }
     }
 
-
-
-    public static async Task LoadSchedule(
+    public static async Task ParseDocumentDirIntoSchedule(
         DocParseContext context,
-        string scheduleSourcesDir,
-        string serializedSchedulePath,
-        Action<DocParseContext> beforeEndAction,
-        CancellationToken cancellationToken,
-        bool bypassCache = false)
+        string dirName,
+        CancellationToken cancellationToken)
     {
-        var scheduleSourcesDirFullPath = Path.GetFullPath(scheduleSourcesDir);
+        dirName = Path.GetFullPath(dirName);
 
-        async ValueTask<SerializationModels.ScheduleModel?> GetValidModel()
-        {
-            if (bypassCache)
+        await ParseDirectoryToSchedule(
+            context,
+            dirName,
+            cancellationToken: cancellationToken);
+
+        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
+            .Select(x =>
             {
-                return null;
-            }
-            if (!Path.Exists(serializedSchedulePath))
-            {
-                return null;
-            }
+                var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
+                Debug.Assert(lastSegmentStart != -1);
+                lastSegmentStart += 1;
 
-            var filesHash = GetDirectoryHash(scheduleSourcesDirFullPath);
+                var lastSegment = x.AsSpan()[lastSegmentStart ..];
 
-            await using var inputFile = File.OpenRead(serializedSchedulePath);
-            var serializedModel = await ScheduleSerializer.Deserialize(inputFile, cancellationToken);
-            if (serializedModel.Hash != filesHash)
-            {
-                return null;
-            }
+                if (!DateOnly.TryParseExact(
+                        lastSegment,
+                        format: "dd.MM.yy",
+                        provider: null,
+                        style: DateTimeStyles.None,
+                        result: out var startDate))
+                {
+                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
+                }
+                return (SubDirPath: x, StartDate: startDate);
+            })
+            .OrderBy(x => x.StartDate);
 
-            return serializedModel;
-        }
-
-        if (await GetValidModel() is { } scheduleSerializedModel)
+        foreach (var t in subdirs)
         {
-            ScheduleSerializer.AddToBuilder(
-                context.Schedule,
-                scheduleSerializedModel,
-                context.CourseNameUnifierModule);
-
-            beforeEndAction(context);
-            return;
-        }
-
-        {
-            await ParseDocumentDirIntoSchedule(
+            await ParseDirectoryToSchedule(
                 context,
-                scheduleSourcesDirFullPath,
-                cancellationToken: cancellationToken);
-
-            beforeEndAction(context);
-
-            var schedule = context.Schedule.Build();
-
-            // I think word resaves them in some way.
-            var newFilesHash = GetDirectoryHash(scheduleSourcesDirFullPath);
-            await using var outputFile = new FileStream(serializedSchedulePath, FileMode.Create);
-            await ScheduleSerializer.Serialize(schedule, outputFile, newFilesHash, cancellationToken);
-            return;
+                t.SubDirPath,
+                cancellationToken: cancellationToken,
+                period: new()
+                {
+                    StartDate = t.StartDate,
+                });
         }
-    }
+        return;
 
-}
-
-public enum Option
-{
-    UploadDocsToDrive,
-    AllTeachersExcel,
-    PerGroupAndPerTeacherPdfs,
-    CreateLessonsInRegistry,
-    PullCurriculaFromOneDrive,
-    FreeRooms,
-    FreeHoursOfGroup,
-    TableOfAllLabLessons,
-    JsonSchedulesForWebsite,
-    CopyGradesFromMoodleToRegistry,
-}
-
-[AutoConstructor]
-public sealed partial class CopyGradesFromMoodleForTestTaskHandler
-{
-    private readonly CourseNameUnifierModule _unifier;
-    private readonly Schedule _schedule;
-    private readonly LookupModule _lookup;
-
-    public readonly record struct RunParams
-    {
-        public required MoodleScrapingContext MoodleContext { get; init; }
-        public required OnlineRegistryNavigator RegistryNavigator { get; init; }
-        public required Semester Semester { get; init; }
-        public required string QuizId { get; init; }
-        public required CancellationToken CancellationToken { get; init; }
-    }
-
-    public async Task Run(RunParams p)
-    {
-        // How to do this without repeating this?
-        // DI doesn't help with this, because to creating this is async.
-        var quiz = await p.MoodleContext.ScrapeQuizAttempts(p.QuizId);
-
-        var registryNav = p.RegistryNavigator;
-        var coursesNav = registryNav.Courses();
-        var groupsNav = registryNav.Groups();
-
-        Dictionary<Name, float> gradeByName = new(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
-        foreach (var q in quiz.Attempts)
+        static async Task ParseDirectoryToSchedule(
+            DocParseContext context,
+            string dirName,
+            CancellationToken cancellationToken,
+            PeriodBeginning? period = null)
         {
-            var parser = new Parser(q.UserName);
-            var name = NameHelper.TryParseName(ref parser);
-            if (name is null)
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
             {
-                Console.WriteLine($"{q.UserName} not parsed as name.");
-                continue;
+                var outputPath = PathHelper.WithExtension(filePath, ".docx");
+                var conversionSuccessful = await DocToDocxConversionHelper.TryConvertFile(
+                    inputPath: filePath,
+                    outputPath: outputPath,
+                    cancellationToken: cancellationToken);
+                if (!conversionSuccessful)
+                {
+                    throw new InvalidOperationException("Could not convert doc to docx");
+                }
+                File.Delete(filePath);
             }
 
-            // They go in different order on moodle.
+            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
             {
-                var f = name.FirstName;
-                var l = name.LastName;
-                name.FirstName = l;
-                name.LastName = f;
+                using var document = WordprocessingDocument.Open(filePath, isEditable: false);
+                context.SetPeriod(period);
+
+                WordScheduleParser.ParseToSchedule(new()
+                {
+                    Context = context,
+                    Document = document,
+                });
             }
-
-            if (q.Grade is not { } grade1)
-            {
-                Console.WriteLine($"{q.UserName} not graded yet!");
-                continue;
-            }
-            gradeByName[name] = grade1;
-        }
-
-        // determine course from path
-        var parsedPath = MoodlePathParser.TryParse(quiz.Path.Select(x => x.Name));
-        _ = parsedPath;
-        if (parsedPath is null)
-        {
-            throw new InvalidOperationException("Could not parse path");
-        }
-
-        var courseId = _unifier.Find(new()
-        {
-            Lookup = _lookup,
-            CourseName = parsedPath.CourseName,
-        });
-        var grade = parsedPath.Grade;
-        var qualificationType = parsedPath.QualificationType;
-
-        foreach (var course in await coursesNav.Get(p.Semester))
-        {
-            if (course.CourseId != courseId)
-            {
-                continue;
-            }
-
-            foreach (var group in await groupsNav.Get(course))
-            {
-                if (group.Groups.IsWildcard)
-                {
-                    throw new NotImplementedException();
-                }
-                var groupInfo = _schedule.Get(group.Groups.Value[0]);
-                if (groupInfo.QualificationType != qualificationType)
-                {
-                    continue;
-                }
-                if (groupInfo.Grade != grade)
-                {
-                    continue;
-                }
-
-                var evaluareDoc = await registryNav.GetHtml(group.EvaluationUri);
-
-                // Find anchor with text Testarea X
-                IHtmlAnchorElement TestAnchor()
-                {
-                    var tables = evaluareDoc.QuerySelectorAll<IHtmlAnchorElement>("table a");
-                    var matching = tables.Where(x =>
-                    {
-                        var parser = new Parser(x.TextContent);
-                        parser.SkipWhitespace();
-                        if (!parser.ConsumeExactString("Testarea"))
-                        {
-                            return false;
-                        }
-                        if (!parser.SkipWhitespace().SkippedAny)
-                        {
-                            return false;
-                        }
-                        var bparser = parser.BufferedView();
-                        if (!bparser.SkipNumbers().SkippedAny)
-                        {
-                            return false;
-                        }
-
-                        var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                        var number = int.Parse(numberSpan);
-                        if (parsedPath.TestNumber != number)
-                        {
-                            return false;
-                        }
-
-                        return true;
-                    });
-                    var header = matching.First();
-                    return header;
-                }
-
-                var testUrl = TestAnchor();
-                var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
-                var table = test1Doc.QuerySelector<IHtmlTableElement>("table")
-                    ?? throw new InvalidOperationException("No table found");
-                int nameColumnIndex = FindColumnIndex("Numele");
-                int gradeColumnIndex = FindColumnIndex("Nota");
-
-                for (int i = 1; i < table.Rows.Length; i++)
-                {
-                    var row = table.Rows[i];
-                    var nameCell = row.Cells[nameColumnIndex];
-
-                    Name name;
-                    {
-                        var nameParser = new Parser(nameCell.TextContent);
-                        nameParser.SkipWhitespace();
-                        name = NameHelper.ParseName(ref nameParser);
-                        nameParser.SkipWhitespace();
-                        if (nameParser.ConsumeExactString("exmatr"))
-                        {
-                            continue;
-                        }
-                        if (!nameParser.IsEmpty)
-                        {
-                            throw new InvalidOperationException("Extra text after name");
-                        }
-                    }
-
-                    if (!gradeByName.Remove(name, out float gradeInDb))
-                    {
-                        Console.WriteLine($"No student in moodle: {name}");
-                        continue;
-                    }
-
-                    var gradeRounded = (int) Math.Round(gradeInDb);
-
-                    {
-                        var gradeCell = row.Cells[gradeColumnIndex];
-                        var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
-                            ?? throw new InvalidOperationException("No input found in grade cell");
-                        input.Value = gradeRounded.ToString();
-                    }
-                }
-
-                var form = test1Doc.QuerySelector<IHtmlFormElement>("form")
-                    ?? throw new InvalidOperationException("No form found");
-                _ = form;
-
-                // var button = test1Doc.QuerySelector<IHtmlButtonElement>("form > div > div > button")
-                //     ?? throw new InvalidOperationException("No submit button found");
-                // await button.SubmitAsync();
-                await form.SubmitAsync();
-                continue;
-
-                int FindColumnIndex(string name)
-                {
-                    return table.Rows[0].Cells.WithIndex().Where(x =>
-                    {
-                        var t = x.Item.TextContent.AsSpan().Trim();
-                        return t.SequenceEqual(name);
-                    }).Single().Index;
-                }
-            }
-        }
-
-        foreach (var (name, value) in gradeByName)
-        {
-            Console.WriteLine($"Student not found in registry: {name} ({value})");
         }
     }
 }
+

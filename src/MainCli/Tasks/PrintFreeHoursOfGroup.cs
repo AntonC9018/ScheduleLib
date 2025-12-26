@@ -8,9 +8,9 @@ namespace MainCli;
 [AutoConstructor]
 public sealed partial class PrintFreeHoursOfGroupTaskHandler
 {
-    private readonly Schedule Schedule;
-    private readonly DayNameProvider DayNameProvider;
-    private readonly LessonTimeConfig TimeConfig;
+    private readonly Schedule _schedule;
+    private readonly DayNameProvider _dayNameProvider;
+    private readonly LessonTimeConfig _timeConfig;
 
     public struct RunParams
     {
@@ -27,12 +27,12 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 foreach (var isOptional in new[] { true, false })
                 {
                     var displayHandler = new TimeSlotDisplayHandler();
-                    var groupId = Schedule.Groups
+                    var groupId = _schedule.Groups
                         .WithIndex()
                         .Where(x => x.Item.Name == group)
                         .Select(x => new GroupId(x.Index))
                         .Single();
-                    var lessons = Schedule.RegularLessons
+                    var lessons = _schedule.RegularLessons
                         .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
                         .Where(x =>
                         {
@@ -52,7 +52,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                             return false;
                         });
 
-                    var allTimes = TimeConfig.TimeSlots
+                    var allTimes = _timeConfig.TimeSlots
                         .SelectMany(x => new[]
                             {
                                 DayOfWeek.Monday,
@@ -75,7 +75,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                     p.StringBuilder.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
                     foreach (var day in byDay)
                     {
-                        p.StringBuilder.Append(DayNameProvider.GetDayName(day.Day));
+                        p.StringBuilder.Append(_dayNameProvider.GetDayName(day.Day));
                         p.StringBuilder.Append(":");
 
                         var listBuilder = new ListStringBuilder(p.StringBuilder, ",");
@@ -83,8 +83,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                         {
                             var start = time.Start;
                             var end = time.EndInclusive;
-                            var startTime = TimeConfig.GetTimeSlotInterval(start).Start;
-                            var endTime = TimeConfig.GetTimeSlotInterval(end).End;
+                            var startTime = _timeConfig.GetTimeSlotInterval(start).Start;
+                            var endTime = _timeConfig.GetTimeSlotInterval(end).End;
                             var duration = endTime - startTime;
                             var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
                             listBuilder.Append(intervalStr);

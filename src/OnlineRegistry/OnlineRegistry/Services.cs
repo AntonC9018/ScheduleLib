@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Parsing;

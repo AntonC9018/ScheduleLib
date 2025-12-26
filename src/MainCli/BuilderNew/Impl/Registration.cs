@@ -1,13 +1,13 @@
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
@@ -23,15 +23,21 @@ public static class Registration
         public void AddConfigsServices()
         {
             services.AddMarkerServices();
-            services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
+
             services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
             services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
+
             services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
-            services.AddOnlineRegistry();
+
+            services.AddOnlineRegistryConfig();
+
             services.RegisterBasicOperationsAndMergers<MoodleConfig>();
+
             services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
+
             services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
             services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
+
             services.AddMapper<DeadlinesConfigMapper>();
             services.AddMerger<DeadlinesExcelConfigMerger>();
             services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
@@ -89,11 +95,6 @@ public static class Registration
             services.AddSingleton<ProcessSpaces>(Config.WhiteSpaceActionCourseName);
 
             services.AddSingleton<RegularSeminarDateProvider>();
-            services.AddOptions<RegularSeminarDateConfig>().Configure(x =>
-            {
-                x.Day = DayOfWeek.Wednesday;
-                x.Time = new(hour: 15, minute: 00);
-            });
             services.AddSingleton<DayNameProvider>();
             services.AddSingleton<LessonTypeDisplayHandler>();
             services.AddSingleton<ParityDisplayHandler>();
@@ -116,7 +117,10 @@ public static class Registration
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
 
             services.AddConfigProvider(MoodleConfig.Key);
-            services.AddCredentialsResolver(MoodleConfig.Key, serviceKey: "Moodle", x => x.Credentials!);
+            services.AddCredentialsResolver<MoodleConfig>(serviceKey: "Moodle", x => x.Credentials!);
+
+            services.AddConfigProvider(BuiltRegistryConfig.Key);
+            services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
 
             services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
             {
@@ -138,6 +142,10 @@ public static class Registration
                 }
                 return ret;
             });
+
+            services.AddOptions<ManifestDirectoriesOptions>();
+            services.AddStudyYear();
+            services.AddOptions<RegularSeminarDateConfig>();
         }
 
         public void AddTaskHandlers()
@@ -147,6 +155,18 @@ public static class Registration
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
+        }
+
+        public IConfiguration AddGlobalConfiguration()
+        {
+            IConfiguration config;
+            {
+                var builder = new ConfigurationBuilder();
+                builder.AddUserSecrets<Program>();
+                config = builder.Build();
+            }
+            services.AddSingleton(config);
+            return config;
         }
     }
 }

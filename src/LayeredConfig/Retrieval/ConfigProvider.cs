@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using Anton.LayeredConfig;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -84,12 +83,16 @@ public static class ConfigProviderHelper
 {
     extension (IServiceCollection services)
     {
+        private static Func<IServiceProvider, ConfigProvider<T>> Factory<T>(LayerConfigKey<T> key)
+            where T : class
+        {
+            return sp => new(sp.GetRequiredService<ConfigProvider>(), key);
+        }
+
         public void AddConfigProvider<T>(LayerConfigKey<T> key) where T : class
         {
-            services.AddScoped<ConfigProvider<T>>(sp =>
-            {
-                return new(sp.GetRequiredService<ConfigProvider>(), key);
-            });
+            var f = Factory(key);
+            services.AddScoped(f);
         }
     }
 }

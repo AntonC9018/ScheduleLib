@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Parsing;
 
 namespace MainCli.BuilderNew.Impl;
 
@@ -14,6 +15,7 @@ public static class MarkerConfigExtension
         services.AddScoped<ConfigProvider>();
         // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
         services.AddScoped<TeacherLayerConfig>();
+        services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
     }
 
     public static AsyncServiceScope CreateMarkerScope(

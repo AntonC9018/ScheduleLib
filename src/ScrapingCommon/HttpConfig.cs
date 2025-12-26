@@ -3,7 +3,6 @@ using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Io;
-using Microsoft.Extensions.DependencyInjection;
 using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace ScheduleLib.Scraping.Common;

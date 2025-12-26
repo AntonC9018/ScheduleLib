@@ -6,10 +6,10 @@ public readonly record struct FilePath(string Path);
 
 public readonly record struct FileInDirectory
 {
-    public TempOutputDirectoryService Directory { get; }
+    public OutputDirectory Directory { get; }
     public string Path { get; }
 
-    public FileInDirectory(TempOutputDirectoryService directory, string path)
+    public FileInDirectory(OutputDirectory directory, string path)
     {
         Path = path;
         Directory = directory;
@@ -26,11 +26,11 @@ public readonly record struct FileInDirectory
 }
 
 
-public sealed class TempOutputDirectoryService
+public sealed class OutputDirectory
 {
     private readonly string _directory;
 
-    public TempOutputDirectoryService(string directory)
+    public OutputDirectory(string directory)
     {
         _directory = Path.GetFullPath(directory);
     }

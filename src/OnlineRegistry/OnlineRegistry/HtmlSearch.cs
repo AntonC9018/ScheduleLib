@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Security;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using ScheduleLib.Helper;
