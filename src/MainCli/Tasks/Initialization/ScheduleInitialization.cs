@@ -1,6 +1,6 @@
 using AutoConstructor.Attributes;
 using MainCli.BuilderNew.Impl;
-using MainCli.BuilderNew.Retrieval;
+using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,30 +13,6 @@ using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 namespace MainCli;
-
-public sealed class StudyYearOptions
-{
-    public required int StudyYear { get; set; } = -1;
-    public required Semester Semester { get; set; } = Semester.Invalid;
-}
-
-public sealed class StudyYearOptionsValidator : IValidateOptions<StudyYearOptions>
-{
-    public ValidateOptionsResult Validate(string? name, StudyYearOptions options)
-    {
-        _ = name;
-
-        if (options.StudyYear == -1)
-        {
-            return ValidateOptionsResult.Fail("StudyYear not initialized");
-        }
-        if (options.Semester == Semester.Invalid)
-        {
-            return ValidateOptionsResult.Fail("Semester not initialized");
-        }
-        return ValidateOptionsResult.Success;
-    }
-}
 
 public sealed class ScheduleProvider
 {

@@ -1,36 +1,13 @@
-using System.Diagnostics;
 using AngleSharp;
 using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
+using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;
 
 namespace ScheduleLib.OnlineRegistry;
-
-
-public struct AddLessonsToOnlineRegistryParams()
-{
-    public required CancellationToken CancellationToken;
-    public required Semester Semester;
-    public required Schedule Schedule;
-
-    public required IRegistryErrorHandler ErrorHandler;
-    public required CourseNameUnifierModule CourseNameUnifier;
-    public required GroupParseContext GroupParseContext;
-    public required LookupModule LookupModule;
-    public required IAllScheduledDateProvider DateProvider;
-    public required LessonTimeConfig TimeConfig;
-    public required SemesterIntervalProvider SemesterIntervalProvider;
-    public required IEquationCommandsDerivation EquationCommandsDerivation;
-    public CommandProcessingConfig ProcessingFlags = CommandProcessingConfig.DryRun;
-
-    public required StudentAttendanceList Attendance;
-    public required ILessonTopics LessonTopics;
-}
 
 public interface ILessonTopics
 {
@@ -129,7 +106,7 @@ public sealed class GroupsNavigator
             GroupParseContext = _groupParseContext,
             SearchGroupId = (in GroupForSearch group) =>
             {
-                var ids = RegistryScraping.FindGroupMatch(_schedule, _subGroupsMap, group);
+                var ids = FindGroupMatch(_schedule, _subGroupsMap, group);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
@@ -140,401 +117,6 @@ public sealed class GroupsNavigator
             },
         });
         return ret;
-    }
-}
-
-public sealed class OnlineRegistryNavigator
-{
-    public readonly IRegistryErrorHandler ErrorHandler;
-    public readonly RegistryScrapingContext Context;
-    public readonly CancellationToken CancellationToken;
-
-    public OnlineRegistryNavigator(
-        IRegistryErrorHandler errorHandler,
-        RegistryScrapingContext context,
-        CancellationToken cancellationToken)
-    {
-        ErrorHandler = errorHandler;
-        Context = context;
-        CancellationToken = cancellationToken;
-    }
-
-    public CoursesNavigator Courses(
-        CourseNameUnifierModule unifier,
-        LookupModule lookup)
-    {
-        return new CoursesNavigator(this, unifier, lookup);
-    }
-
-    public GroupsNavigator Groups(
-        Schedule schedule,
-        GroupParseContext groupParseContext)
-    {
-        return new GroupsNavigator(this, schedule, groupParseContext);
-    }
-
-    public async Task<IDocument> GetHtml(Uri uri)
-    {
-        var document = await Context.Browser.OpenAsync(
-            address: uri.ToString(),
-            CancellationToken);
-        return document;
-    }
-}
-
-public readonly record struct RegistryScrapingContext(
-    ScrapingContext ScrapingContext) : IDisposable
-{
-    public IBrowsingContext Browser => ScrapingContext.Browser;
-    public HttpClient HttpClient => ScrapingContext.HttpClient;
-    public ServiceProvider Services => ScrapingContext.Services!;
-
-    public void Dispose()
-    {
-        ScrapingContext.Dispose();
-    }
-
-    public static async Task<RegistryScrapingContext> Create(
-        Credentials credentials,
-        CancellationToken cancellationToken)
-    {
-        var builder = new ScrapingContextBuilder();
-        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
-        builder.TokenAuth(x =>
-        {
-            x.PasswordLoginCall(credentials);
-            x.Cache();
-        });
-        var ret = await builder.Build(cancellationToken);
-        return new(ret);
-    }
-}
-
-public static partial class RegistryScraping
-{
-    public const string CredentialsConfigKey = "Registry";
-
-    public static async Task AddLessonsToOnlineRegistry(
-        this RegistryScrapingContext context,
-        AddLessonsToOnlineRegistryParams p)
-    {
-        var notFoundStudents = new List<Name>();
-        var navigator = new OnlineRegistryNavigator(
-            p.ErrorHandler,
-            context,
-            p.CancellationToken);
-
-        var coursesNav = navigator.Courses(p.CourseNameUnifier, p.LookupModule);
-        var groupsNav = navigator.Groups(p.Schedule, p.GroupParseContext);
-
-        var courseLinks = await coursesNav.Get(p.Semester);
-        foreach (var courseLink in courseLinks)
-        {
-            var groups = await groupsNav.Get(courseLink);
-            foreach (var group in groups)
-            {
-                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
-                var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
-                    lookup: p.LookupModule.LessonsByCourse,
-                    schedule: p.Schedule,
-                    courseId: courseLink.CourseId,
-                    groups: group.Groups,
-                    subGroup: group.SubGroup));
-
-                // Figure out the exact dates the lessons will occur on.
-                var lessonsWithTimes = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
-                {
-                    Lessons = lessons,
-                    Schedule = p.Schedule,
-                    DateProvider = p.DateProvider,
-                    TimeConfig = p.TimeConfig,
-                    SemesterIntervalProvider = p.SemesterIntervalProvider,
-                    Semester = p.Semester,
-                });
-
-                // TODO: Decouple from the implementation, by making a lookup helper at least.
-                var remapHelpers = new ValueForEachLessonType<StudentNameRemapHelper>();
-                var indexesByLessonType = new ValueForEachLessonType<int>();
-
-                var completeLessons = lessonsWithTimes.Select(x =>
-                {
-                    var lesson = p.Schedule.Get(x.LessonId);
-                    var courseId = lesson.Lesson.Course;
-                    var lessonType = lesson.Lesson.Type;
-                    ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
-                    var key = new AttendanceLookupKey(
-                        groups: group.Groups,
-                        subGroup: group.SubGroup,
-                        courseId: courseId,
-                        lessonType: lessonType,
-                        dayIndex: attendanceIndex,
-                        dateTime: x.DateTime);
-                    var attendance = p.Attendance.Get(key);
-
-                    ref var remapHelper = ref remapHelpers[(int) lessonType];
-                    if (attendanceIndex == 0)
-                    {
-                        var studentNames = p.Attendance.StudentNames(new(
-                            courseId: courseLink.CourseId,
-                            groups: group.Groups.Value,
-                            subGroup: group.SubGroup,
-                            lessonType: lessonType));
-                        remapHelper = StudentNameRemapHelper.Create(
-                            namesInHtml: scanResult.Students,
-                            namesInDb: studentNames,
-                            outNotFoundIndices: notFoundStudents);
-                        if (notFoundStudents.Count != 0)
-                        {
-                            p.ErrorHandler.StudentsNotInDbButInRegistry(new(
-                                students: notFoundStudents,
-                                schedule: p.Schedule,
-                                groups: group.Groups,
-                                lessonId: x.LessonId));
-                            notFoundStudents.Clear();
-                        }
-                    }
-                    attendanceIndex++;
-
-                    var attendanceForHtml = remapHelper.RemapToHtml(attendance);
-                    UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
-
-                    // Note: the index used here is per lesson type as well.
-                    var topic = p.LessonTopics.Get(key);
-
-                    return new LessonInstance
-                    {
-                        DateTime = x.DateTime,
-                        LessonId = x.LessonId,
-                        Attendance = attendanceForHtml,
-                        Topic = topic,
-                    };
-                });
-
-                // Update
-                var equationCommands = p.EquationCommandsDerivation.DeriveCommands(new(
-                    schedule: p.Schedule,
-                    remoteLessons: scanResult.Lessons.OrderBy(x => x.DateTime),
-                    localLessons: completeLessons));
-                foreach (var command in equationCommands)
-                {
-                    if (p.ProcessingFlags.HasDryRun(command.Type))
-                    {
-                        Log1();
-                        continue;
-                    }
-                    else if (p.ProcessingFlags.HasLog(command.Type))
-                    {
-                        Log1();
-                    }
-
-                    if (p.ProcessingFlags.HasProcess(command.Type))
-                    {
-                        await HandleCommand(
-                            command,
-                            addLessonUri,
-                            expectedStudents: scanResult.Students);
-                        continue;
-                    }
-
-                    void Log1()
-                    {
-                        Log(command, courseLink.CourseId, group.Groups);
-                    }
-                }
-            }
-        }
-        return;
-
-
-        void Log(
-            LessonEquationCommand command,
-            CourseId courseId,
-            in FoundGroups groups)
-        {
-            var commandName = command.Type switch
-            {
-                LessonEquationCommandType.Create => "Create",
-                LessonEquationCommandType.Update => "Update",
-                LessonEquationCommandType.Delete => "Delete",
-                _ => throw Unreachable(),
-            };
-            var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
-            var lessonType = command.HasAll
-                ? p.Schedule.Get(command.Local.LessonId).Lesson.Type
-                : command.Remote.LessonType;
-            var dateString = date.ToString("dd.MM.yy");
-            var course = p.Schedule.Get(courseId);
-            var lessonName = course.FullName;
-            var groupName = groups.Value.ToString(p.Schedule);
-            Console.WriteLine($"{commandName}: {dateString} - {lessonName} ({groupName} {lessonType})");
-        }
-
-        async ValueTask HandleCommand(
-            LessonEquationCommand command,
-            Uri addLessonUri,
-            HtmlStudent[] expectedStudents)
-        {
-            switch (command.Type)
-            {
-                case LessonEquationCommandType.Create:
-                {
-                    await Create(command.Local);
-                    break;
-                }
-                case LessonEquationCommandType.Update:
-                {
-                    await Update(
-                        command.Remote.EditUri,
-                        command.Local);
-                    break;
-                }
-                case LessonEquationCommandType.Delete:
-                {
-                    await HandleExtraLesson(command.Remote);
-                    break;
-                }
-                default:
-                {
-                    Debug.Fail("Unreachable");
-                    break;
-                }
-            }
-
-
-            async Task Update(Uri editUri, LessonInstance lessonInstance)
-            {
-                await CreateOrUpdate1(
-                    editUri,
-                    lessonInstance,
-                    expectedStudents);
-            }
-
-            async Task Create(LessonInstance lessonInstance)
-            {
-                await CreateOrUpdate1(
-                    addLessonUri,
-                    lessonInstance,
-                    expectedStudents);
-            }
-        }
-
-        async ValueTask HandleExtraLesson(RemoteLessonInstance x)
-        {
-            var action = p.ErrorHandler.ExtraLessonInstanceFound(x.DateTime);
-            if (action == ExtraLessonInstanceAction.Delete)
-            {
-                await Delete(x.ViewUri);
-            }
-            if (action == ExtraLessonInstanceAction.DeleteWithoutDataLoss)
-            {
-                throw new NotImplementedException("This will need some more scanning");
-            }
-        }
-
-        async Task CreateOrUpdate(
-            Uri uri,
-            LessonInstance lesson,
-            Schedule schedule,
-            HttpClient client,
-            HtmlStudent[] expectedStudents)
-        {
-            var doc = await navigator.GetHtml(uri);
-            _ = client;
-            HtmlSearch.UpdateForm(new()
-            {
-                Document = doc,
-                Lesson = lesson,
-                Schedule = schedule,
-                ExpectedStudents = expectedStudents,
-            });
-            await HtmlSearch.SendForm(doc);
-        }
-
-        Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents)
-        {
-            // ReSharper disable once AccessToDisposedClosure
-            return CreateOrUpdate(uri, lesson, p.Schedule, context.HttpClient, expectedStudents);
-        }
-
-        async Task Delete(Uri detailsUri)
-        {
-            var doc = await navigator.GetHtml(detailsUri);
-            var form = doc.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")!;
-            await form.SubmitAsync();
-        }
-
-        async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
-            Uri groupUri)
-        {
-            var doc = await navigator.GetHtml(groupUri);
-            var addLessonLink = HtmlSearch.ScanForLessonAddLink(doc);
-            var lessons = await HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
-            {
-                Document = doc,
-                ErrorHandler = p.ErrorHandler,
-                GetAddLessonDocument = () =>
-                {
-                    var t = navigator.GetHtml(addLessonLink);
-                    return t;
-                },
-            });
-            return (lessons, addLessonLink);
-        }
-    }
-
-    public static OnlineRegistryNavigator Navigator(
-        this RegistryScrapingContext context,
-        IRegistryErrorHandler errorHandler,
-        CancellationToken cancellationToken)
-    {
-        return new OnlineRegistryNavigator(
-            errorHandler,
-            context,
-            cancellationToken);
-    }
-
-    internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
-    {
-        b.Delay(TimeSpan.FromSeconds(0.5));
-        b.AddConfig(DefaultTokensStorageConfig);
-        b.AddConfig(DefaultPasswordLoginFieldNames);
-        b.AddConfig(DefaultTokenNames);
-    }
-
-    public const string BaseUrl = "http://crd.usm.md/studregistry/";
-    private static readonly TokenNamesConfig DefaultTokenNames = new()
-    {
-        BaseUrl = new Uri(BaseUrl),
-        LoginUrl = new Uri("http://crd.usm.md/studregistry/Account/Login"),
-        TokenCookieName = "ForDecanat",
-    };
-    private static readonly TokensStorageConfig DefaultTokensStorageConfig = new()
-    {
-        TokensFile = "tokens.json",
-    };
-    private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
-    {
-        Login = "UserLogin",
-        Password = "UserPassword",
-    };
-
-    internal static void UpdateAttendanceForRegistry(Attendance[] attendanceForHtml, HtmlStudent[] students)
-    {
-        for (int index = 0; index < attendanceForHtml.Length; index++)
-        {
-            ref var a = ref attendanceForHtml[index];
-            if (students[index].IsExpelled)
-            {
-                a = Attendance.None;
-                continue;
-            }
-            a = a switch
-            {
-                Attendance.Grade => throw new NotImplementedException(),
-                Attendance.NotApplicable => Attendance.Present,
-                _ => a,
-            };
-        }
     }
 
     internal static LessonGroups FindGroupMatch(
@@ -603,6 +185,106 @@ public static partial class RegistryScraping
 
         return true;
     }
+
+}
+
+[AutoConstructor]
+public sealed partial class OnlineRegistryNavigator
+{
+    public readonly IRegistryErrorHandler ErrorHandler;
+    public readonly RegistryScrapingContext Context;
+    public readonly IServiceProvider ServiceProvider;
+    public readonly CancellationToken CancellationToken;
+
+    public CoursesNavigator Courses()
+    {
+        var sp = Context.Services;
+        return ActivatorUtilities.CreateInstance<CoursesNavigator>(sp, this);
+    }
+
+    public GroupsNavigator Groups()
+    {
+        var sp = Context.Services;
+        return ActivatorUtilities.CreateInstance<GroupsNavigator>(sp, this);
+    }
+
+    public async Task<IDocument> GetHtml(Uri uri)
+    {
+        var document = await Context.Browser.OpenAsync(
+            address: uri.ToString(),
+            CancellationToken);
+        return document;
+    }
+}
+
+public readonly record struct RegistryScrapingContext(
+    ScrapingContext ScrapingContext) : IDisposable
+{
+    public IBrowsingContext Browser => ScrapingContext.Browser;
+    public HttpClient HttpClient => ScrapingContext.HttpClient;
+    public IServiceProvider Services => ScrapingContext.BuilderServices!;
+
+    public void Dispose()
+    {
+        ScrapingContext.Dispose();
+    }
+
+    public static async Task<RegistryScrapingContext> Create(
+        Credentials credentials,
+        CancellationToken cancellationToken)
+    {
+        var builder = new ScrapingContextBuilder();
+        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        builder.TokenAuth(x =>
+        {
+            x.PasswordLoginCall(credentials);
+            x.Cache();
+        });
+        var ret = await builder.Build(cancellationToken);
+        return new(ret);
+    }
+}
+
+public static partial class RegistryScraping
+{
+    public const string CredentialsConfigKey = "Registry";
+
+    public static OnlineRegistryNavigator Navigator(
+        this RegistryScrapingContext context,
+        IServiceProvider sp,
+        CancellationToken cancellationToken)
+    {
+        return new OnlineRegistryNavigator(
+            sp.GetRequiredService<IRegistryErrorHandler>(),
+            context,
+            sp,
+            cancellationToken);
+    }
+
+    internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
+    {
+        b.Delay(TimeSpan.FromSeconds(0.5));
+        b.AddConfig(DefaultTokensStorageConfig);
+        b.AddConfig(DefaultPasswordLoginFieldNames);
+        b.AddConfig(DefaultTokenNames);
+    }
+
+    public const string BaseUrl = "http://crd.usm.md/studregistry/";
+    private static readonly TokenNamesConfig DefaultTokenNames = new()
+    {
+        BaseUrl = new Uri(BaseUrl),
+        LoginUrl = new Uri("http://crd.usm.md/studregistry/Account/Login"),
+        TokenCookieName = "ForDecanat",
+    };
+    private static readonly TokensStorageConfig DefaultTokensStorageConfig = new()
+    {
+        TokensFile = "tokens.json",
+    };
+    private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
+    {
+        Login = "UserLogin",
+        Password = "UserPassword",
+    };
 }
 
 

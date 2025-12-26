@@ -4,6 +4,28 @@ namespace MainCli.Helper;
 
 public readonly record struct FilePath(string Path);
 
+public readonly record struct FileInDirectory
+{
+    public TempOutputDirectoryService Directory { get; }
+    public string Path { get; }
+
+    public FileInDirectory(TempOutputDirectoryService directory, string path)
+    {
+        Path = path;
+        Directory = directory;
+    }
+
+    public Stream Open(FileMode mode, FileAccess access)
+    {
+        return Directory.OpenFile(Path, mode, access);
+    }
+    public bool TryOpenInExplorer()
+    {
+        return Directory.TryOpenFileInExplorer(Path);
+    }
+}
+
+
 public sealed class TempOutputDirectoryService
 {
     private readonly string _directory;
@@ -50,11 +72,15 @@ public sealed class TempOutputDirectoryService
         Directory.CreateDirectory(_directory);
     }
 
-    public Stream File(string path, FileMode mode, FileAccess access)
+    public Stream OpenFile(string path, FileMode mode, FileAccess access)
     {
         var fullPath = NormalizePath(path);
         var ret = new FileStream(fullPath, mode, access);
         return ret;
+    }
+    public FileInDirectory File(string path)
+    {
+        return new FileInDirectory(this, path);
     }
 
     public string BuildPath(string path)

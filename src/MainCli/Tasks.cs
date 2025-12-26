@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using AngleSharp.Html.Dom;
 using AngleSharp.Dom;
+using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
@@ -12,6 +13,7 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
+using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Configuration;
 using OpenHolidays;
 using QuestPDF.Fluent;
@@ -31,6 +33,7 @@ using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Moodle;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common;
+using ScheduleLib.Scraping.Common.Config;
 using SpreadCheetah;
 
 namespace MainCli;
@@ -422,7 +425,7 @@ public static class Tasks
             }
             Stream File(string path)
             {
-                var stream = p.OutputDirectory.File(path, FileMode.Open, FileAccess.Read);
+                var stream = p.OutputDirectory.OpenFile(path, FileMode.Open, FileAccess.Read);
                 return stream;
             }
             foreach (var fileName in cloudFilesToCreate)
@@ -453,121 +456,7 @@ public static class Tasks
         }
     }
 
-    public struct PrintFreeHoursOfGroupParams
-    {
-        public required Schedule Schedule;
-        public required DayNameProvider DayNameProvider;
-        public required LessonTimeConfig TimeConfig;
-        public required string[] Groups;
-        public required StringBuilder StringBuilder;
-    }
 
-    public static void PrintFreeHoursOfGroup(PrintFreeHoursOfGroupParams p)
-    {
-        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
-        {
-            foreach (var group in p.Groups)
-            {
-                foreach (var isOptional in new[] { true, false })
-                {
-                    var displayHandler = new TimeSlotDisplayHandler();
-                    var groupId = p.Schedule.Groups
-                        .WithIndex()
-                        .Where(x => x.Item.Name == group)
-                        .Select(x => new GroupId(x.Index))
-                        .Single();
-                    var lessons = p.Schedule.RegularLessons
-                        .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
-                        .Where(x =>
-                        {
-                            if (!isOptional)
-                            {
-                                return true;
-                            }
-                            var sg = x.Lesson.SubGroup;
-                            if (sg == SubGroup.All)
-                            {
-                                return true;
-                            }
-                            if (sg == SpecialSubGroups.Optional)
-                            {
-                                return true;
-                            }
-                            return false;
-                        });
-
-                    var allTimes = p.TimeConfig.TimeSlots
-                        .SelectMany(x => new[]
-                            {
-                                DayOfWeek.Monday,
-                                DayOfWeek.Tuesday,
-                                DayOfWeek.Wednesday,
-                                DayOfWeek.Thursday,
-                                DayOfWeek.Friday,
-                            }
-                            .Select(y => (Day: y, Time: x)));
-
-                    var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
-                    var unusedTimes = allTimes.Except(usedTimes);
-
-                    var orderedTimes = unusedTimes.OrderBy(x => (x.Day, x.Time));
-                    var byDay = orderedTimes
-                        .GroupBy(x => x.Day)
-                        .Select(x => (Day: x.Key, Times: MergeConsecutive(x.Select(y => y.Time))));
-
-                    var parityDisplay = new ParityDisplayHandler();
-                    p.StringBuilder.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
-                    foreach (var day in byDay)
-                    {
-                        p.StringBuilder.Append(p.DayNameProvider.GetDayName(day.Day));
-                        p.StringBuilder.Append(":");
-
-                        var listBuilder = new ListStringBuilder(p.StringBuilder, ",");
-                        foreach (var time in day.Times)
-                        {
-                            var start = time.Start;
-                            var end = time.EndInclusive;
-                            var startTime = p.TimeConfig.GetTimeSlotInterval(start).Start;
-                            var endTime = p.TimeConfig.GetTimeSlotInterval(end).End;
-                            var duration = endTime - startTime;
-                            var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
-                            listBuilder.Append(intervalStr);
-                        }
-                        p.StringBuilder.AppendLine();
-                    }
-                    p.StringBuilder.AppendLine();
-                    continue;
-
-
-                    IEnumerable<(TimeSlot Start, TimeSlot EndInclusive)> MergeConsecutive(IEnumerable<TimeSlot> x)
-                    {
-                        using var e = x.GetEnumerator();
-                        if (!e.MoveNext())
-                        {
-                            yield break;
-                        }
-                        var start = e.Current;
-                        var prev = start;
-                        while (true)
-                        {
-                            if (!e.MoveNext())
-                            {
-                                yield return (start, prev);
-                                yield break;
-                            }
-                            var c = e.Current;
-                            if (c.Index - prev.Index > 1)
-                            {
-                                yield return (start, prev);
-                                start = c;
-                            }
-                            prev = c;
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     public static async Task LoadSchedule(
         DocParseContext context,
@@ -631,52 +520,47 @@ public static class Tasks
         }
     }
 
-    public readonly struct GenerateDeadlinesExcelParams()
+}
+
+public enum Option
+{
+    UploadDocsToDrive,
+    AllTeachersExcel,
+    PerGroupAndPerTeacherPdfs,
+    CreateLessonsInRegistry,
+    PullCurriculaFromOneDrive,
+    FreeRooms,
+    FreeHoursOfGroup,
+    TableOfAllLabLessons,
+    JsonSchedulesForWebsite,
+    CopyGradesFromMoodleToRegistry,
+}
+
+[AutoConstructor]
+public sealed partial class CopyGradesFromMoodleForTestTaskHandler
+{
+    private readonly CourseNameUnifierModule _unifier;
+    private readonly Schedule _schedule;
+    private readonly LookupModule _lookup;
+
+    public readonly record struct RunParams
     {
-        public required FilteredSchedule Schedule { get; init; }
-        public required IAllScheduledDateProvider DateProvider { get; init; }
+        public required MoodleScrapingContext MoodleContext { get; init; }
+        public required OnlineRegistryNavigator RegistryNavigator { get; init; }
         public required Semester Semester { get; init; }
-        public required LessonTimeConfig TimeConfig { get; init; }
-        public required SemesterIntervalProvider SemesterIntervalProvider { get; init; }
-        public required string OutputFilePath { get; init; }
-        public required System.Drawing.Color GoodColor { get; init; }
-        public required System.Drawing.Color BadColor { get; init; }
-        public required int LessonDelayLimit { get; init; }
-        public required int MaxTaskRows { get; init; }
-        public float ColumnWidth { get; init; } = 5;
+        public required string QuizId { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
     }
 
-    public static void GenerateDeadlinesExcel(GenerateDeadlinesExcelParams p)
+    public async Task Run(RunParams p)
     {
-    }
+        // How to do this without repeating this?
+        // DI doesn't help with this, because to creating this is async.
+        var quiz = await p.MoodleContext.ScrapeQuizAttempts(p.QuizId);
 
-    public static async Task CopyGradesFromMoodleForTest(
-        IConfiguration config,
-        CourseNameUnifierModule courseNameUnifierModule,
-        LookupModule lookupModule,
-        Schedule schedule,
-        GroupParseContext groupParseContext,
-        Semester semester,
-        string quizId,
-        CancellationToken cancellationToken)
-    {
-        var registryCredentials = Tasks.GetRegistryCredentials(config, allowUserInput: false);
-        var moodleCredentials = config.GetCredentials(MoodleInterop.CredentialsKey);
-
-        using var registryContext = await RegistryScrapingContext.Create(registryCredentials, cancellationToken);
-        using var moodleContext = await MoodleScrapingContext.Create(moodleCredentials, cancellationToken);
-
-        var registryNav = registryContext.Navigator(
-            new RegistryErrorLogger(),
-            cancellationToken);
-        var coursesNav = registryNav.Courses(
-            courseNameUnifierModule,
-            lookupModule);
-        var groupsNav = registryNav.Groups(
-            schedule,
-            groupParseContext);
-
-        var quiz = await moodleContext.ScrapeQuizAttempts(quizId);
+        var registryNav = p.RegistryNavigator;
+        var coursesNav = registryNav.Courses();
+        var groupsNav = registryNav.Groups();
 
         Dictionary<Name, float> gradeByName = new(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var q in quiz.Attempts)
@@ -713,15 +597,15 @@ public static class Tasks
             throw new InvalidOperationException("Could not parse path");
         }
 
-        var courseId = courseNameUnifierModule.Find(new()
+        var courseId = _unifier.Find(new()
         {
-            Lookup = lookupModule,
+            Lookup = _lookup,
             CourseName = parsedPath.CourseName,
         });
         var grade = parsedPath.Grade;
         var qualificationType = parsedPath.QualificationType;
 
-        foreach (var course in await coursesNav.Get(semester))
+        foreach (var course in await coursesNav.Get(p.Semester))
         {
             if (course.CourseId != courseId)
             {
@@ -734,7 +618,7 @@ public static class Tasks
                 {
                     throw new NotImplementedException();
                 }
-                var groupInfo = schedule.Get(group.Groups.Value[0]);
+                var groupInfo = _schedule.Get(group.Groups.Value[0]);
                 if (groupInfo.QualificationType != qualificationType)
                 {
                     continue;
@@ -851,18 +735,4 @@ public static class Tasks
             Console.WriteLine($"Student not found in registry: {name} ({value})");
         }
     }
-}
-
-public enum Option
-{
-    UploadDocsToDrive,
-    AllTeachersExcel,
-    PerGroupAndPerTeacherPdfs,
-    CreateLessonsInRegistry,
-    PullCurriculaFromOneDrive,
-    FreeRooms,
-    FreeHoursOfGroup,
-    TableOfAllLabLessons,
-    JsonSchedulesForWebsite,
-    CopyGradesFromMoodleToRegistry,
 }

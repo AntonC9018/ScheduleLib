@@ -140,14 +140,7 @@ public sealed class ScrapingContextBuilder
             _builder.AddConfig(storageConfig);
             _builder._services.AddSingleton<Func<ITokenRetriever, ITokenRetriever>>(sp =>
             {
-                // This sucks. It's completely unmaintainable.
-                return x => new CachingPasswordTokenRetriever(
-                    underlyingRetriever: x,
-                    cookieContainer: sp.GetRequiredService<CookieContainer>(),
-                    credentials: sp.GetRequiredService<Credentials>(),
-                    names: sp.GetRequiredService<TokenNamesConfig>(),
-                    storageConfig: sp.GetRequiredService<TokensStorageConfig>(),
-                    jsonOptions: sp.GetRequiredService<JsonSerializerOptions>());
+                return x => ActivatorUtilities.CreateInstance<CachingPasswordTokenRetriever>(sp, x);
             });
             _cached = true;
         }
@@ -199,7 +192,7 @@ public sealed class ScrapingContextBuilder
             var http = sp.GetRequiredService<HttpClientContext>();
             var auth = sp.GetRequiredService<IAuthHandler>();
             var ret = ScrapingContext.Create(http, auth);
-            ret.Services = sp;
+            ret.BuilderServices = sp;
 
             var lazyBrowser = sp.GetRequiredService<BrowsingContextProvider>();
             lazyBrowser.Value = ret.Browser;

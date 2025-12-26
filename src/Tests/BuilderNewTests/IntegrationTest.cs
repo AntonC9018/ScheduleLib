@@ -2,9 +2,9 @@ using System.Text;
 using Argon;
 using AutoConstructor.Attributes;
 using MainCli;
-using MainCli.BuilderNew;
+using Anton.LayeredConfig;
 using MainCli.BuilderNew.Impl;
-using MainCli.BuilderNew.Retrieval;
+using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -107,9 +107,9 @@ public sealed class IntegrationTest
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        await using var outputFile = outputDirectory.File(outputPath, FileMode.Create, FileAccess.Write);
+        await using var outputFile = outputDirectory.OpenFile(outputPath, FileMode.Create, FileAccess.Write);
 
-        var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelHandler>(serviceProvider);
+        var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelTaskHandler>(serviceProvider);
 
         await task.Run(new()
         {

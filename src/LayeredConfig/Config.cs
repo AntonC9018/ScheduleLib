@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public sealed class ConfigKeyRegistry
 {

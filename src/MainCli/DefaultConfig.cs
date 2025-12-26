@@ -1,10 +1,12 @@
 using System.Drawing;
-using MainCli.BuilderNew;
+using Anton.LayeredConfig;
 using MainCli.BuilderNew.Impl;
 using MainCli.Topics;
+using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace MainCli;
 
@@ -49,7 +51,7 @@ public static class DefaultConfig
             });
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
-                _ = attendance;
+                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
             });
         });
 

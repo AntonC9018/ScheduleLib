@@ -17,6 +17,7 @@
         <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
         <ProjectReference Include="..\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
         <ProjectReference Include="..\MoodleInterop\MoodleInterop.csproj" />
+        <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using MainCli.BuilderNew.Retrieval;
+using Anton.LayeredConfig.Retrieval;
+using MainCli.BuilderNew;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public static class RegistrationHelper
 {
@@ -156,6 +157,14 @@ public static class RegistrationHelper
         collection.RegisterRequiredImplementationsOfGenericService<T>(
             typeof(IMergerBase),
             typeof(IMerger<>),
+            ServiceLifetime.Singleton);
+    }
+    public static void AddBasicOperations<T>(this IServiceCollection collection)
+        where T : IBasicOperationsBase
+    {
+        collection.RegisterRequiredImplementationsOfGenericService<T>(
+            typeof(IBasicOperationsBase),
+            typeof(IBasicOperations<>),
             ServiceLifetime.Singleton);
     }
 }

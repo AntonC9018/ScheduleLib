@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Reflection;
+using Anton.LayeredConfig;
 using AutoConstructor.Attributes;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew.Retrieval;
+namespace Anton.LayeredConfig.Retrieval;
 
 // Must be a scoped service.
 // TODO: cache
@@ -76,4 +78,18 @@ public sealed partial class ConfigProvider<T> where T : class
     private readonly LayerConfigKey<T> _key;
 
     public T Get() => _provider.Get(_key);
+}
+
+public static class ConfigProviderHelper
+{
+    extension (IServiceCollection services)
+    {
+        public void AddConfigProvider<T>(LayerConfigKey<T> key) where T : class
+        {
+            services.AddScoped<ConfigProvider<T>>(sp =>
+            {
+                return new(sp.GetRequiredService<ConfigProvider>(), key);
+            });
+        }
+    }
 }

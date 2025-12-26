@@ -1,4 +1,4 @@
-namespace MainCli.BuilderNew.Retrieval;
+namespace Anton.LayeredConfig.Retrieval;
 
 // Type-erased marker config.
 // Should be cast in GetCurrentPath.

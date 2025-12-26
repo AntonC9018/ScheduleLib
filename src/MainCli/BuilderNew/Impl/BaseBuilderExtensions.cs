@@ -1,3 +1,5 @@
+using Anton.LayeredConfig;
+
 namespace MainCli.BuilderNew.Impl;
 
 public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
@@ -11,7 +13,6 @@ public static partial class Extensions
 
     extension (ApplicationConfigLayerBuilder builder)
     {
-        public ConfigBuilder<RegistryConfig> Registry() => builder.CreateConfigBuilder<RegistryConfig>();
         public ConfigBuilder<LessonTopicsConfig> LessonTopics() => builder.CreateConfigBuilder<LessonTopicsConfig>();
         public ConfigBuilder<MoodleConfig> Moodle() => builder.CreateConfigBuilder<MoodleConfig>();
         public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => builder.CreateConfigBuilder<LessonAttendanceConfig>();

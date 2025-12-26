@@ -1,6 +1,8 @@
 using System.Reflection;
+using Anton.LayeredConfig;
+using MainCli.BuilderNew;
 
-namespace MainCli.BuilderNew.Retrieval;
+namespace Anton.LayeredConfig.Retrieval;
 
 public interface IConfigMapperBase
 {

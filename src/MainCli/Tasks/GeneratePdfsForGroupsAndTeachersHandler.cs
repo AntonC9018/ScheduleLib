@@ -11,7 +11,7 @@ using ScheduleLib.Generation.TeacherCute;
 namespace MainCli;
 
 [AutoConstructor]
-public sealed partial class GeneratePdfsForGroupsAndTeachersHandler
+public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 {
     public required PdfLessonTextDisplayHandler.Services _lessonTextDisplayServices;
     public required LessonTimeConfig _lessonTimeConfig;
@@ -127,7 +127,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersHandler
                 TimeSlotDisplay = _timeSlotDisplay,
             }, filteredSchedule);
 
-            using var outputFile = p.OutputDirectory.File(name, FileMode.Create, FileAccess.Write);
+            using var outputFile = p.OutputDirectory.OpenFile(name, FileMode.Create, FileAccess.Write);
             // This doesn't have an async overload.
             generator.GeneratePdf(outputFile);
         }

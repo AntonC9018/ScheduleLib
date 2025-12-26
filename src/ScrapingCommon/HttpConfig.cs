@@ -80,18 +80,18 @@ public sealed class HttpClientContext : IDisposable
 public sealed class ScrapingContext : IDisposable
 {
     // Takes ownership of everything.
-    private readonly HttpClientContext Http;
-    public ServiceProvider? Services { get; set; }
+    private readonly HttpClientContext _http;
+    public IServiceProvider? BuilderServices { get; set; }
 
     private ScrapingContext(
         HttpClientContext http,
         IBrowsingContext browser)
     {
-        Http = http;
+        _http = http;
         Browser = browser;
     }
 
-    public HttpClient HttpClient => Http.Client;
+    public HttpClient HttpClient => _http.Client;
     public IBrowsingContext Browser { get; }
 
     public static ScrapingContext Create(
@@ -113,12 +113,12 @@ public sealed class ScrapingContext : IDisposable
     public void Dispose()
     {
         Browser.Dispose();
-        if (Services != null)
+        if (BuilderServices is IDisposable d)
         {
-            Services.Dispose();
+            d.Dispose();
             return;
         }
-        Http.Dispose();
+        _http.Dispose();
     }
 }
 

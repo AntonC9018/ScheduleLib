@@ -1,3 +1,5 @@
+using Anton.LayeredConfig;
+using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -10,6 +12,7 @@ using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.ScheduleDefaults;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace MainCli.BuilderNew.Impl;
 
@@ -22,8 +25,9 @@ public static class Registration
             services.AddMarkerServices();
             services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
             services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
+            services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
             services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
-            services.RegisterBasicOperationsAndMergers<RegistryConfig>();
+            services.AddOnlineRegistry();
             services.RegisterBasicOperationsAndMergers<MoodleConfig>();
             services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
             services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
@@ -51,6 +55,7 @@ public static class Registration
                 builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
                 return builder;
             });
+            services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
 
             services.AddSingleton(Config.CourseNameParser);
             services.AddSingleton<CourseNameUnifierConfig>(sp =>
@@ -108,8 +113,11 @@ public static class Registration
                 });
             });
 
-            services.AddScoped<CredentialsResolver>();
-            services.AddScoped<MoodleConfigHelper>();
+            services.AddScoped<ICredentialsResolver, CredentialsResolver>();
+
+            services.AddConfigProvider(MoodleConfig.Key);
+            services.AddCredentialsResolver(MoodleConfig.Key, serviceKey: "Moodle", x => x.Credentials!);
+
             services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
             {
                 _ = sp;
@@ -118,11 +126,27 @@ public static class Registration
                     holidays: Config.HolidayPeriods);
                 return ret;
             });
+
+            // TODO: This should function as a provider then? doing work in DI is not good.
+            services.AddScoped<IRegistryErrorHandler>(sp =>
+            {
+                var config = sp.GetRequiredService<ConfigProvider<RegistryConfig>>().Get();
+                var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
+                if (config.ExtraLessonInstanceAction is { } action)
+                {
+                    ret.ExtraLessonAction = action;
+                }
+                return ret;
+            });
         }
 
         public void AddTaskHandlers()
         {
-            services.AddScoped<GenerateAllTeachersExcelHandler>();
+            services.AddScoped<GenerateAllTeachersExcelTaskHandler>();
+            services.AddScoped<GenerateDeadlinesExcelTaskHandler>();
+            services.AddScoped<GenerateFreeRoomsTaskHandler>();
+            services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
+            services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
         }
     }
 }

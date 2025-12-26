@@ -15,7 +15,7 @@ using ScheduleLib.Helper.Excel;
 namespace MainCli;
 
 [AutoConstructor]
-public sealed partial class GenerateAllTeachersExcelHandler
+public sealed partial class GenerateAllTeachersExcelTaskHandler
 {
     private readonly DayNameProvider _dayNameProvider;
     private readonly LessonTypeDisplayHandler _lessonTypeDisplay;

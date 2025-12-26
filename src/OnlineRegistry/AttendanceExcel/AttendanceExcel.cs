@@ -1,5 +1,4 @@
 using ClosedXML.Excel;
-using Microsoft.Extensions.FileProviders;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
@@ -13,15 +12,26 @@ using ScheduleLib.Parsing.Lesson;
 
 namespace OnlineRegistry.AttendanceExcel;
 
+public enum RepeatedCourseBehavior
+{
+    Error,
+    Warn,
+    Ignore,
+    Append,
+    Replace,
+}
+
 public static class AttendanceExcel
 {
     public readonly struct ParseAttendanceListsExcelParams
     {
+        public required AllStudentAttendanceListBuilder Builder { get; init; }
         public required FilteredSchedule Schedule { get; init; }
         public required XLWorkbook Workbook { get; init; }
         public required GroupParseContext GroupParseContext { get; init; }
         public required LookupModule LookupModule { get; init; }
         public required CourseNameUnifierModule CourseNames { get; init; }
+        public required RepeatedCourseBehavior RepeatedCourseBehavior { get; init; }
     }
 
     private static class NameTokenType
@@ -296,7 +306,7 @@ public static class AttendanceExcel
         }
     }
 
-    public static StudentAttendanceList ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
+    public static void ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
     {
         var helper = new ParseNameHelper(
             schedule: p.Schedule,
@@ -304,13 +314,16 @@ public static class AttendanceExcel
             groupParseContext: p.GroupParseContext,
             lookupModule: p.LookupModule);
 
-        var builder = new AllStudentAttendanceListBuilder();
-
         foreach (var sheet in p.Workbook.Worksheets)
         {
             if (helper.LookupLessonByExcelName(sheet.Name) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
+            }
+
+            foreach (var group in lesson.Lesson.Groups)
+            {
+                Add([group]);
             }
 
             StudentsLookupKey Key(in LessonGroups groups)
@@ -322,23 +335,45 @@ public static class AttendanceExcel
                     lessonType: lesson.Lesson.Type);
             }
 
-            if (!lesson.Lesson.Groups.IsSingleGroup)
+            void Add(in LessonGroups groups)
             {
-                builder.List(
-                    Key(lesson.Lesson.Groups),
-                    x => BuildList(sheet, x));
-            }
+                var key = Key(groups);
+                var l = p.Builder.TryList(key);
+                if (!l.Existed)
+                {
+                    BuildList(sheet, l.Builder);
+                    return;
+                }
 
-            foreach (var group in lesson.Lesson.Groups)
-            {
-                builder.List(
-                    Key([group]),
-                    x => BuildList(sheet, x));
+                switch (p.RepeatedCourseBehavior)
+                {
+                    case RepeatedCourseBehavior.Append:
+                    {
+                        BuildList(sheet, l.Builder);
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Ignore:
+                    {
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Warn:
+                    {
+                        Console.WriteLine($"Repeated course: {p.Schedule.Source.Get(lesson.Lesson.Course).FullName}");
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Replace:
+                    {
+                        l.Builder.Clear();
+                        BuildList(sheet, l.Builder);
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Error:
+                    {
+                        throw new RepeatedCourseException();
+                    }
+                }
             }
-
         }
-        var ret = builder.Build(missingDaysFiller: Attendance.Present);
-        return ret;
     }
 
     // TODO: reuse the list
@@ -405,4 +440,8 @@ public static class AttendanceExcel
 
         list.HintMaxCount(maxLen);
     }
+}
+
+public sealed class RepeatedCourseException : Exception
+{
 }

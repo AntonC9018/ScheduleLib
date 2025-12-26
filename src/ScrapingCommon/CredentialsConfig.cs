@@ -1,0 +1,142 @@
+using Anton.LayeredConfig;
+using Anton.LayeredConfig.Retrieval;
+using AutoConstructor.Attributes;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ScheduleLib.Scraping.Common.Config;
+
+public interface ICredentialsConfig
+{
+    public CredentialsSource? Credentials { get; set; }
+}
+
+public sealed class CredentialsSource
+{
+    public bool? IsRequired { get; set; }
+}
+
+public readonly struct CredentialsSourceBuilder
+{
+    internal readonly CredentialsSource _source;
+
+    public CredentialsSourceBuilder(CredentialsSource source)
+    {
+        _source = source;
+    }
+}
+
+public static class CredentialsBuilderExtensions
+{
+    extension<T> (ConfigBuilder<T> builder)
+        where T : class, ICredentialsConfig, IConfig<T>, new()
+    {
+        public CredentialsSourceBuilder Credentials()
+        {
+            var t = new CredentialsSource();
+            builder.Enable().Value.Credentials = t;
+            return new(t);
+        }
+    }
+
+    extension (CredentialsSourceBuilder builder)
+    {
+        public void FromConfig(bool isRequired = false)
+        {
+            builder._source.IsRequired = isRequired;
+        }
+    }
+
+    extension (IServiceCollection services)
+    {
+        public void AddCredentialsResolver<T>(
+            LayerConfigKey<T> key,
+            string serviceKey,
+            Func<T, CredentialsSource> getter)
+
+            where T : class
+        {
+            services.AddScoped<CredentialsResolver<T>>(sp =>
+            {
+                return new(
+                    serviceKey: "Moodle",
+                    generalResolver: sp.GetRequiredService<ICredentialsResolver>(),
+                    provider: sp.GetRequiredService<ConfigProvider<T>>(),
+                    sourceGetter: getter);
+            });
+        }
+    }
+}
+
+public static class CredentialsSourceResolver
+{
+    public static Credentials? GetCredentials(
+        IConfiguration config,
+        string serviceKey,
+        string nameKey)
+    {
+        if (config.GetSection(nameKey) is not { } nameSection)
+        {
+            return null;
+        }
+        if (nameSection.GetSection(serviceKey) is not { } serviceSection)
+        {
+            return null;
+        }
+        var ret = serviceSection.Get<Credentials>();
+        return ret;
+    }
+}
+
+public interface ICredentialsResolver
+{
+    public Credentials? Resolve(
+        string serviceKey,
+        CredentialsSource source);
+}
+
+[AutoConstructor]
+public sealed partial class CredentialsResolver : ICredentialsResolver
+{
+    private readonly ICredentialsFromConfigurationResolver _fromConfigurationResolver;
+
+    public Credentials? Resolve(
+        string serviceKey,
+        CredentialsSource source)
+    {
+        // TODO: Support other types of sources.
+        var credentials = _fromConfigurationResolver.Get(serviceKey);
+        if (credentials != null)
+        {
+            return credentials;
+        }
+        if (source.IsRequired == false)
+        {
+            throw new InvalidOperationException("Credentials must be given as per configuration");
+        }
+        return null;
+    }
+}
+
+public interface ICredentialsFromConfigurationResolver
+{
+    public Credentials? Get(string serviceKey);
+}
+
+[AutoConstructor]
+public sealed partial class CredentialsResolver<T>
+    where T : class
+{
+    private readonly string _serviceKey;
+    private readonly ICredentialsResolver _generalResolver;
+    private readonly ConfigProvider<T> _provider;
+    private readonly Func<T, CredentialsSource> _sourceGetter;
+
+    public Credentials Get()
+    {
+        var config = _provider.Get();
+        var source = _sourceGetter(config);
+        var ret = _generalResolver.Resolve(_serviceKey, source);
+        return ret!;
+    }
+}

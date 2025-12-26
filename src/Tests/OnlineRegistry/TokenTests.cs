@@ -20,8 +20,8 @@ public sealed class TokenTests
         builder.TokenAuth(x => x.PasswordLoginCall(credentials));
         using var context = await builder.Build(cancellationToken);
 
-        var cookie = context.Services!.GetRequiredService<CookieContainer>()
-            .FindCookie(context.Services!.GetRequiredService<TokenNamesConfig>());
+        var cookie = context.BuilderServices!.GetRequiredService<CookieContainer>()
+            .FindCookie(context.BuilderServices!.GetRequiredService<TokenNamesConfig>());
 
         Assert.NotNull(cookie);
     }

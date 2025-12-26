@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 
@@ -71,6 +72,12 @@ public sealed class StudentAttendanceListBuilder()
 
     private const int NoMaxCount = -1;
     private int _maxCountHint = NoMaxCount;
+
+    public void Clear()
+    {
+        _allNames.Clear();
+        _students.Clear();
+    }
 
     public StudentAttendanceBuilder Student(Name name)
     {
@@ -164,6 +171,16 @@ public sealed class StudentAttendanceListBuilder()
 public readonly struct AllStudentAttendanceListBuilder()
 {
     private readonly Dictionary<StudentsLookupKey, StudentAttendanceListBuilder> _values = new();
+
+    public (StudentAttendanceListBuilder Builder, bool Existed) TryList(StudentsLookupKey key)
+    {
+        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(_values, key, out bool exists);
+        if (!exists)
+        {
+            x = new();
+        }
+        return (x!, exists);
+    }
 
     public StudentAttendanceListBuilder List(
         StudentsLookupKey key,

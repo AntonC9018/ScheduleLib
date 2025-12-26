@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +7,6 @@ namespace MainCli.BuilderNew;
 internal static class CallMergerHelper
 {
     private delegate object MergeDelegate(object merger, object from, object? into);
-    private static readonly ConcurrentDictionary<Type, MergeDelegate> _mergeDelegateCache = new();
     private static readonly MethodInfo _genericMethod = typeof(CallCopyHelper)
         .GetMethod(nameof(Merge), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static readonly CallHelper<MergeDelegate> _callHelper = new(
@@ -36,7 +34,7 @@ internal static class CallMergerHelper
     }
 }
 
-internal static class CallCopyHelper
+public static class CallCopyHelper
 {
     public static object CopyUsingService(IServiceProvider sp, object from)
     {

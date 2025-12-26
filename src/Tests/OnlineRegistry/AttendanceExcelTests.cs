@@ -32,14 +32,18 @@ public sealed class AttendanceExcelTests
             name);
 
         using var workbook = new XLWorkbook(ExcelFilePath);
-        var lists = AttendanceExcel.ParseAttendanceListsExcel(new()
+        var attendanceBuilder = new AllStudentAttendanceListBuilder();
+        AttendanceExcel.ParseAttendanceListsExcel(new()
         {
+            Builder = attendanceBuilder,
+            RepeatedCourseBehavior = RepeatedCourseBehavior.Error,
             Schedule = filteredSchedule,
             Workbook = workbook,
             CourseNames = unifier,
             LookupModule = builder.Lookup().LookupModule,
             GroupParseContext = builder.GroupParseContext!,
         });
+        var lists = attendanceBuilder.Build();
 
         await Verify(lists.Select(x => new
         {

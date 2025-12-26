@@ -10,7 +10,7 @@ using SpreadCheetah;
 namespace MainCli;
 
 [AutoConstructor]
-public sealed partial class GenerateFreeRoomsHandler
+public sealed partial class GenerateFreeRoomsTaskHandler
 {
     private readonly Schedule _schedule;
     private readonly ParityDisplayHandler _parityDisplay;

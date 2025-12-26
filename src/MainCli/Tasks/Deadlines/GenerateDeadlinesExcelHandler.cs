@@ -1,16 +1,16 @@
 using AutoConstructor.Attributes;
 using ClosedXML.Excel;
-using MainCli.BuilderNew;
-using MainCli.BuilderNew.Retrieval;
+using Anton.LayeredConfig;
+using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 
 namespace MainCli;
 
-public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelBuiltConfig>
+public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
 {
-    public static LayerConfigKey<DeadlinesExcelBuiltConfig> Key { get; } = LayerConfigKey.Registry.Register<DeadlinesExcelBuiltConfig>();
+    public static LayerConfigKey<DeadlinesExcelConfig> Key { get; } = LayerConfigKey.Registry.Register<DeadlinesExcelConfig>();
 
     public System.Drawing.Color? GoodColor { get; set; }
     public System.Drawing.Color? BadColor { get; set; }
@@ -21,6 +21,8 @@ public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelBuiltConfig>
 
 public sealed class DeadlinesExcelBuiltConfig
 {
+    public static LayerConfigKey<DeadlinesExcelBuiltConfig> Key => new(DeadlinesExcelConfig.Key.Value);
+
     public required System.Drawing.Color GoodColor { get; init; }
     public required System.Drawing.Color BadColor { get; init; }
     public required int LessonDelayLimit { get; init; }
@@ -29,7 +31,7 @@ public sealed class DeadlinesExcelBuiltConfig
 }
 
 [AutoConstructor]
-public sealed partial class GenerateDeadlinesExcelHandler
+public sealed partial class GenerateDeadlinesExcelTaskHandler
 {
     private readonly SemesterIntervalProvider _semesterIntervalProvider;
     private readonly IAllScheduledDateProvider _dateProvider;

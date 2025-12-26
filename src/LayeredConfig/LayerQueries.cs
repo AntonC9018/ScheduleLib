@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
+using MainCli.BuilderNew;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path);
 

@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using AutoConstructor.Attributes;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -49,9 +51,11 @@ public enum ExtraLessonInstanceAction
     DeleteWithoutDataLoss,
 }
 
-public sealed class RegistryErrorLogger : IRegistryErrorHandler
+[AutoConstructor]
+public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 {
     public ExtraLessonInstanceAction ExtraLessonAction { get; set; } = ExtraLessonInstanceAction.LeaveAlone;
+    private readonly ILogger _logger;
 
     public void CourseNotFound(string courseName)
     {

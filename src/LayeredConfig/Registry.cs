@@ -1,4 +1,4 @@
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public interface ICreateFromString<T>
 {

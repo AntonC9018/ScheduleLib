@@ -1,0 +1,127 @@
+using System.Text;
+using AutoConstructor.Attributes;
+using ScheduleLib;
+using ScheduleLib.Generation;
+
+namespace MainCli;
+
+[AutoConstructor]
+public sealed partial class PrintFreeHoursOfGroupTaskHandler
+{
+    private readonly Schedule Schedule;
+    private readonly DayNameProvider DayNameProvider;
+    private readonly LessonTimeConfig TimeConfig;
+
+    public struct RunParams
+    {
+        public required string[] Groups;
+        public required StringBuilder StringBuilder;
+    }
+
+    public void Run(RunParams p)
+    {
+        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        {
+            foreach (var group in p.Groups)
+            {
+                foreach (var isOptional in new[] { true, false })
+                {
+                    var displayHandler = new TimeSlotDisplayHandler();
+                    var groupId = Schedule.Groups
+                        .WithIndex()
+                        .Where(x => x.Item.Name == group)
+                        .Select(x => new GroupId(x.Index))
+                        .Single();
+                    var lessons = Schedule.RegularLessons
+                        .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
+                        .Where(x =>
+                        {
+                            if (!isOptional)
+                            {
+                                return true;
+                            }
+                            var sg = x.Lesson.SubGroup;
+                            if (sg == SubGroup.All)
+                            {
+                                return true;
+                            }
+                            if (sg == SpecialSubGroups.Optional)
+                            {
+                                return true;
+                            }
+                            return false;
+                        });
+
+                    var allTimes = TimeConfig.TimeSlots
+                        .SelectMany(x => new[]
+                            {
+                                DayOfWeek.Monday,
+                                DayOfWeek.Tuesday,
+                                DayOfWeek.Wednesday,
+                                DayOfWeek.Thursday,
+                                DayOfWeek.Friday,
+                            }
+                            .Select(y => (Day: y, Time: x)));
+
+                    var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
+                    var unusedTimes = allTimes.Except(usedTimes);
+
+                    var orderedTimes = unusedTimes.OrderBy(x => (x.Day, x.Time));
+                    var byDay = orderedTimes
+                        .GroupBy(x => x.Day)
+                        .Select(x => (Day: x.Key, Times: MergeConsecutive(x.Select(y => y.Time))));
+
+                    var parityDisplay = new ParityDisplayHandler();
+                    p.StringBuilder.AppendLine($"paritatea: {parityDisplay.Get(parity)}, grupa: {group}, optional?: {isOptional}");
+                    foreach (var day in byDay)
+                    {
+                        p.StringBuilder.Append(DayNameProvider.GetDayName(day.Day));
+                        p.StringBuilder.Append(":");
+
+                        var listBuilder = new ListStringBuilder(p.StringBuilder, ",");
+                        foreach (var time in day.Times)
+                        {
+                            var start = time.Start;
+                            var end = time.EndInclusive;
+                            var startTime = TimeConfig.GetTimeSlotInterval(start).Start;
+                            var endTime = TimeConfig.GetTimeSlotInterval(end).End;
+                            var duration = endTime - startTime;
+                            var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
+                            listBuilder.Append(intervalStr);
+                        }
+                        p.StringBuilder.AppendLine();
+                    }
+                    p.StringBuilder.AppendLine();
+                    continue;
+
+
+                    IEnumerable<(TimeSlot Start, TimeSlot EndInclusive)> MergeConsecutive(IEnumerable<TimeSlot> x)
+                    {
+                        using var e = x.GetEnumerator();
+                        if (!e.MoveNext())
+                        {
+                            yield break;
+                        }
+                        var start = e.Current;
+                        var prev = start;
+                        while (true)
+                        {
+                            if (!e.MoveNext())
+                            {
+                                yield return (start, prev);
+                                yield break;
+                            }
+                            var c = e.Current;
+                            if (c.Index - prev.Index > 1)
+                            {
+                                yield return (start, prev);
+                                start = c;
+                            }
+                            prev = c;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

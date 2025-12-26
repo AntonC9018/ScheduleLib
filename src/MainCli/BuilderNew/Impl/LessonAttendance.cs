@@ -1,15 +1,21 @@
+using Anton.LayeredConfig;
+using OnlineRegistry.AttendanceExcel;
+using ScheduleLib.OnlineRegistry;
+
 namespace MainCli.BuilderNew.Impl;
 
 public sealed class LessonAttendanceSource
 {
     public string? FilePath { get; set; }
+    public RepeatedCourseBehavior? RepeatedCourseBehavior { get; set; }
 }
 
 public sealed class LessonAttendanceConfig : IConfig<LessonAttendanceConfig>
 {
     public static LayerConfigKey<LessonAttendanceConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonAttendanceConfig>();
     // Need a way to allow to remove an item by key.
-    public List<LessonAttendanceSource> Sources = new();
+    public List<LessonAttendanceSource> Sources { get; set; } = new();
+    public Attendance? MissingDaysFiller { get; set; }
 }
 
 public partial class Extensions

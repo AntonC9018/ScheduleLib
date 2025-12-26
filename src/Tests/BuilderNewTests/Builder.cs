@@ -3,8 +3,10 @@ using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 using MainCli.BuilderNew.Impl;
+using OnlineRegistry.AttendanceExcel;
+using ScheduleLib.Scraping.Common.Config;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public static class TestBuilderHelper
 {
@@ -61,6 +63,7 @@ public static class TestBuilderHelper
 
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
+                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
                 // a.Format(...) allows to reset the format.
                 // each format has specific configurations like header configs for excel.
                 // attendance.SetPath();

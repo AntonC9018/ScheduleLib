@@ -1,4 +1,4 @@
-namespace ScheduleLib.OnlineRegistry;
+namespace ScheduleLib;
 
 public enum Semester
 {

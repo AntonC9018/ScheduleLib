@@ -7,6 +7,7 @@
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
         <ProjectReference Include="..\HolidaysClient\HolidaysClient.csproj" />
         <ProjectReference Include="..\ScrapingCommon\ScrapingCommon.csproj" />
+        <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -18,5 +19,6 @@
     <ItemGroup>
         <PackageReference Include="ClosedXML" Version="0.105.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+        <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
     </ItemGroup>
 </Project>
