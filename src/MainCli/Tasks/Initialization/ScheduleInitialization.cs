@@ -42,21 +42,6 @@ public static class ServiceProviderHelper
 }
 
 [AutoConstructor]
-public sealed partial class LatestPeriodFilteredScheduleProvider
-{
-    private readonly Schedule _schedule;
-
-    public FilteredSchedule Get()
-    {
-        var schedule = _schedule;
-        var filter = FilterHelper.Builder()
-            .WithLatestPeriod(schedule);
-        var filtered = schedule.Filter(filter);
-        return filtered;
-    }
-}
-
-[AutoConstructor]
 public sealed partial class CurrentTeacherIdProvider
 {
     private readonly ConfigProvider _configProvider;
@@ -68,6 +53,21 @@ public sealed partial class CurrentTeacherIdProvider
         var teacherName = teacherConfig.TeacherName;
         var ret = _lookup.Teacher(teacherName.ToNameModel())!.Value;
         return ret;
+    }
+}
+
+[AutoConstructor]
+public sealed partial class LatestPeriodFilteredScheduleProvider
+{
+    private readonly Schedule _schedule;
+
+    public FilteredSchedule Get()
+    {
+        var schedule = _schedule;
+        var filter = FilterHelper.Builder()
+            .WithLatestPeriod(schedule);
+        var filtered = schedule.Filter(filter);
+        return filtered;
     }
 }
 

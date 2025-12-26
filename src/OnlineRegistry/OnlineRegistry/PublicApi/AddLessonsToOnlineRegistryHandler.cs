@@ -9,7 +9,7 @@ using ScheduleLib.Parsing;
 namespace ScheduleLib.OnlineRegistry;
 
 [AutoConstructor]
-public sealed partial class AddLessonsToOnlineRegistryHandler
+public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 {
     // TODO:
     // Figure out what to do with this abstraction,

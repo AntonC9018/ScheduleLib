@@ -11,6 +11,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
+using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 using ScheduleLib.Scraping.Common.Config;
 
@@ -20,16 +21,28 @@ public static class Registration
 {
     extension(ServiceCollection services)
     {
+        public void AddAllServices()
+        {
+            services.AddScheduleServices();
+            services.AddConfigsServices();
+            services.AddOnlineRegistry();
+            services.AddTaskHandlers();
+            services.AddGlobalConfiguration();
+            services.AddLogging();
+        }
+
         public void AddConfigsServices()
         {
             services.AddMarkerServices();
+            services.AddSingleton<ConfigMappingRegistry>();
+            services.AddSingleton<ApplicationConfigBuilder>();
 
-            services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
             services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
-
             services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
-
-            services.AddOnlineRegistryConfig();
+            services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
+            services.AddOpenHierarchy<LessonTopicSourceDefinition>();
+            services.AddKeyEqualityComparer((ManifestLessonTopicSourceDefinition x) => x.Path);
+            services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
 
             services.RegisterBasicOperationsAndMergers<MoodleConfig>();
 
@@ -37,115 +50,144 @@ public static class Registration
 
             services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
             services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
+            services.AddConfigProvider(LessonAttendanceConfig.Key);
 
             services.AddMapper<DeadlinesConfigMapper>();
             services.AddMerger<DeadlinesExcelConfigMerger>();
             services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
-        }
+            services.AddConfigProvider(DeadlinesExcelConfig.Key);
 
-        public void AddScheduleServices()
-        {
-            services.AddSingleton<LookupFacade>(sp =>
-                sp.GetRequiredService<ScheduleBuilder>().Lookup());
-            services.AddSingleton<GroupParseContext>(sp =>
-            {
-                var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
-                return GroupParseContext.Create(new()
-                {
-                    CurrentStudyYear = options.StudyYear,
-                });
-            });
-            services.AddSingleton<ScheduleBuilder>(sp =>
-            {
-                var builder = new ScheduleBuilder();
-                builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
-                return builder;
-            });
-            services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
-
-            services.AddSingleton(Config.CourseNameParser);
-            services.AddSingleton<CourseNameUnifierConfig>(sp =>
-            {
-                var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
-                var unificationConfig = Config.CourseNameUnificationConfig;
-                var ret = CourseNameUnifierConfig.Create(parserConfig, unificationConfig);
-                return ret;
-            });
-            services.AddSingleton<CourseNameUnifierModule>();
-            services.AddSingleton<SemesterIntervalProvider>(sp =>
-            {
-                _ = sp;
-                return Config.SemesterIntervalProvider();
-            });
-
-            // These don't seem necessary?
-            // I'm not sure how to set up the schedule in DI.
-            services.AddSingleton<ScheduleProvider>();
-            services.AddScoped<Schedule>(x =>
-            {
-                var provider = x.GetRequiredService<ScheduleProvider>();
-                return provider.Get();
-            });
-            services.AddScoped<ScopeFilteredScheduleProvider>();
-            services.AddSingleton<LatestPeriodFilteredScheduleProvider>();
-
-            services.AddSingleton<LessonTimeConfig>(
-                LessonTimeConfig.CreateDefault());
-
-            services.AddSingleton<ProcessSpaces>(Config.WhiteSpaceActionCourseName);
-
-            services.AddSingleton<RegularSeminarDateProvider>();
-            services.AddSingleton<DayNameProvider>();
-            services.AddSingleton<LessonTypeDisplayHandler>();
-            services.AddSingleton<ParityDisplayHandler>();
-            services.AddSingleton<TimeSlotDisplayHandler>();
-
-            services.AddSingleton(ParityParser.Instance);
-            services.AddSingleton(LessonTypeParser.Instance);
-            services.AddSingleton(RoomParser.Instance);
-            services.AddSingleton<LessonParserFactory>(sp =>
-            {
-                return new LessonParserFactory(new()
-                {
-                    LessonTypeParser = sp.GetRequiredService<LessonTypeParser>(),
-                    ParityParser = sp.GetRequiredService<ParityParser>(),
-                    ProcessSpacesCourseName = sp.GetRequiredService<ProcessSpaces>(),
-                    RoomParser = sp.GetRequiredService<RoomParser>(),
-                });
-            });
-
+            // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
+            services.AddScoped<ICredentialsFromConfigurationResolver, CredentialsFromConfigurationResolver>();
 
             services.AddConfigProvider(MoodleConfig.Key);
             services.AddCredentialsResolver<MoodleConfig>(serviceKey: "Moodle", x => x.Credentials!);
 
             services.AddConfigProvider(BuiltRegistryConfig.Key);
             services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
+        }
 
-            services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
-            {
-                _ = sp;
-                var ret = new ManualAllScheduledDateProvider(
-                    studyWeeks: Config.StudyWeeks,
-                    holidays: Config.HolidayPeriods);
-                return ret;
-            });
+        public void AddScheduleServices()
+        {
+            AddScheduleGeneralServices();
+            AddScheduleLifetimeServices();
+            AddParserServices();
+            AddTimeServices();
+            AddOutputServices();
+            AddOptions();
+            return;
 
-            // TODO: This should function as a provider then? doing work in DI is not good.
-            services.AddScoped<IRegistryErrorHandler>(sp =>
+            void AddScheduleGeneralServices()
             {
-                var config = sp.GetRequiredService<ConfigProvider<RegistryConfig>>().Get();
-                var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
-                if (config.ExtraLessonInstanceAction is { } action)
+                services.AddSingleton<LookupFacade>(sp =>
+                    sp.GetRequiredService<ScheduleBuilder>().Lookup());
+                services.AddSingleton<LookupModule>(sp =>
                 {
-                    ret.ExtraLessonAction = action;
-                }
-                return ret;
-            });
+                    return sp.GetRequiredService<ScheduleBuilder>().EnableLookupModule();
+                });
+                services.AddSingleton<ScheduleBuilder>(sp =>
+                {
+                    var builder = new ScheduleBuilder();
+                    builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
+                    return builder;
+                });
+            }
 
-            services.AddOptions<ManifestDirectoriesOptions>();
-            services.AddStudyYear();
-            services.AddOptions<RegularSeminarDateConfig>();
+            void AddParserServices()
+            {
+                services.AddSingleton<GroupParseContext>(sp =>
+                {
+                    var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
+                    return GroupParseContext.Create(new()
+                    {
+                        CurrentStudyYear = options.StudyYear,
+                    });
+                });
+                services.AddSingleton<ConfigureRemappingsDelegate>(Config.ConfigureRemappings);
+                services.AddSingleton<CourseNameParserConfig>(Config.CourseNameParser);
+                services.AddSingleton<CourseNameUnifierConfig>(sp =>
+                {
+                    var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
+                    var unificationConfig = Config.CourseNameUnificationConfig;
+                    var ret = CourseNameUnifierConfig.Create(parserConfig, unificationConfig);
+                    return ret;
+                });
+                services.AddSingleton<CourseNameUnifierModule>();
+
+                services.AddSingleton<ProcessSpaces>(Config.WhiteSpaceActionCourseName);
+                services.AddSingleton(ParityParser.Instance);
+                services.AddSingleton(LessonTypeParser.Instance);
+                services.AddSingleton(RoomParser.Instance);
+                services.AddSingleton<LessonParserFactory>(sp =>
+                {
+                    return new LessonParserFactory(new()
+                    {
+                        LessonTypeParser = sp.GetRequiredService<LessonTypeParser>(),
+                        ParityParser = sp.GetRequiredService<ParityParser>(),
+                        ProcessSpacesCourseName = sp.GetRequiredService<ProcessSpaces>(),
+                        RoomParser = sp.GetRequiredService<RoomParser>(),
+                    });
+                });
+
+                services.AddSingleton<DayNameProvider>();
+                services.AddSingleton<DayNameParser>();
+            }
+
+            void AddTimeServices()
+            {
+                services.AddSingleton<LessonTimeConfig>(
+                    LessonTimeConfig.CreateDefault());
+                services.AddSingleton<SemesterIntervalProvider>(sp =>
+                {
+                    _ = sp;
+                    return Config.SemesterIntervalProvider();
+                });
+                services.AddSingleton<RegularSeminarDateProvider>();
+
+                services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
+                {
+                    _ = sp;
+                    var ret = new ManualAllScheduledDateProvider(
+                        studyWeeks: Config.StudyWeeks,
+                        holidays: Config.HolidayPeriods);
+                    return ret;
+                });
+            }
+
+            void AddScheduleLifetimeServices()
+            {
+                services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
+
+                // These don't seem necessary?
+                // I'm not sure how to set up the schedule in DI.
+                services.AddSingleton<ScheduleProvider>();
+                services.AddScoped<Schedule>(x =>
+                {
+                    var provider = x.GetRequiredService<ScheduleProvider>();
+                    // Caching this should probably be on by default / make this singleton.
+                    return provider.Get();
+                });
+                services.AddScoped<CurrentTeacherIdProvider>();
+                services.AddScoped<ScopeFilteredScheduleProvider>();
+                services.AddScoped<LatestPeriodFilteredScheduleProvider>();
+            }
+
+            void AddOutputServices()
+            {
+                services.AddSingleton<LessonTypeDisplayHandler>();
+                services.AddSingleton<ParityDisplayHandler>();
+                services.AddSingleton<TimeSlotDisplayHandler>();
+                services.AddSingleton<SubGroupNumberDisplayHandler>();
+                services.AddSingleton<PdfLessonTextDisplayHandler.Services>();
+            }
+
+            void AddOptions()
+            {
+                services.AddOptions<ManifestDirectoriesOptions>();
+                services.AddStudyYear();
+                services.AddOptions<RegularSeminarDateConfig>();
+            }
         }
 
         public void AddTaskHandlers()
@@ -154,7 +196,9 @@ public static class Registration
             services.AddScoped<GenerateDeadlinesExcelTaskHandler>();
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
+            services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
+            services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
         }
 
         public IConfiguration AddGlobalConfiguration()

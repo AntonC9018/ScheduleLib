@@ -33,7 +33,7 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
             {
                 throw new InvalidOperationException($"Argument count mismatch");
             }
-            var genericMethod = _methodInfo.MakeGenericMethod();
+            var genericMethod = _methodInfo.MakeGenericMethod(types);
             return genericMethod.CreateDelegate<TDelegate>();
         });
         return deleg;

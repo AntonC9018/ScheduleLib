@@ -9,14 +9,14 @@ namespace Anton.LayeredConfig;
 
 public static class RegistrationHelper
 {
-    public static void RegisterBasicOperationsAndMergers<T>(this ServiceCollection services)
-        where T : class, IConfigBase
+    public static void RegisterBasicOperationsAndMergers<T>(this IServiceCollection services)
+        where T : class
     {
         RegisterBasicOperationsAndMergersForType(services, typeof(T));
     }
 
     public static void RegisterBasicOperationsAndMergersForType(
-        ServiceCollection services,
+        IServiceCollection services,
         Type type)
     {
         if (!ProcessSelf_CheckShouldProcessChildren())
@@ -44,6 +44,16 @@ public static class RegistrationHelper
                 var elementType = type.GetGenericArguments()[0];
                 var listType = typeof(List<>).MakeGenericType(elementType);
                 Debug.Assert(listType == type);
+                {
+                    var serviceType = typeof(IMerger<>).MakeGenericType(type);
+                    var implType = typeof(ListMerger<>).MakeGenericType(elementType);
+                    services.TryAddSingleton(serviceType, implType);
+                }
+                {
+                    var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
+                    var implType = typeof(ListBasicOperations<>).MakeGenericType(elementType);
+                    services.TryAddSingleton(serviceType, implType);
+                }
                 RegisterBasicOperationsAndMergersForType(services, elementType);
                 return false;
             }
@@ -67,7 +77,7 @@ public static class RegistrationHelper
                         added = true;
                     }
                 }
-                return !added;
+                return added;
             }
 
             if (Nullable.GetUnderlyingType(type) is { } underlyingType)
@@ -144,12 +154,13 @@ public static class RegistrationHelper
     }
 
     public static void AddMapper<T>(this IServiceCollection collection)
-        where T : IConfigMapperBase
+        where T : class, IConfigMapperBase
     {
-        collection.RegisterRequiredImplementationsOfGenericService<T>(
-            typeof(IConfigMapperBase),
-            typeof(IConfigMapper<,>),
-            ServiceLifetime.Singleton);
+        // collection.RegisterRequiredImplementationsOfGenericService<T>(
+        //     typeof(IConfigMapperBase),
+        //     typeof(IConfigMapper<,>),
+        //     ServiceLifetime.Singleton);
+        collection.AddSingleton<IConfigMapperBase, T>();
     }
     public static void AddMerger<T>(this IServiceCollection collection)
         where T : IMergerBase

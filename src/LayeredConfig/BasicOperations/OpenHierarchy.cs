@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MainCli.BuilderNew;
@@ -102,7 +103,7 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
 public static class KeyEqualityComparer
 {
-    public static KeyEqualityComparer<T, TProperty> Create<T, TProperty>(
+    private static KeyEqualityComparer<T, TProperty> Create<T, TProperty>(
         Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
 
@@ -111,15 +112,40 @@ public static class KeyEqualityComparer
         return new(keyGetter, propertyComparer);
     }
 
-    public static void AddKeyEqualityComparer<T, TProperty>(
-        this IServiceCollection services,
-        Func<T, TProperty?> keyGetter,
-        IEqualityComparer<TProperty>? propertyComparer = null)
-
-        where TProperty : notnull
+    extension(IServiceCollection services)
     {
-        var s = Create(keyGetter, propertyComparer);
-        services.AddSingleton<IKeyEqualityComparer<T>>(s);
+        public void AddKeyEqualityComparer<T, TProperty>(
+            Func<T, TProperty?> keyGetter,
+            IEqualityComparer<TProperty>? propertyComparer = null)
+
+            where TProperty : notnull
+        {
+            var s = Create(keyGetter, propertyComparer);
+            services.AddSingleton<IKeyEqualityComparer<T>>(s);
+        }
+
+        public void AddOpenHierarchy<TBase>()
+            where TBase : class
+        {
+            services.AddSingleton<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
+            services.AddSingleton<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
+        }
+    }
+}
+
+public sealed class OpenHierarchyMerger<T> : IMerger<T>
+{
+    private readonly IServiceProvider _sp;
+
+    public OpenHierarchyMerger(IServiceProvider sp)
+    {
+        _sp = sp;
+    }
+
+    public T Merge(T from, T? into)
+    {
+        var ret = CallMergerHelper.MergeUsingService(_sp, from!, into);
+        return (T) ret;
     }
 }
 
@@ -162,7 +188,7 @@ internal static class KeyEqualityCallHelper
 
     private delegate bool CompareDelegate(object comparer, object x, object y);
 
-    private static readonly MethodInfo _compareGenericMethod = typeof(CallCopyHelper)
+    private static readonly MethodInfo _compareGenericMethod = typeof(KeyEqualityCallHelper)
         .GetMethod(nameof(Compare1), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static bool Compare1<T>(object comparer, object x, object y)
     {
@@ -182,7 +208,7 @@ internal static class KeyEqualityCallHelper
 
     private delegate int GetHashCodeDelegate(object comparer, object x);
 
-    private static readonly MethodInfo _getHashCodeGenericMethod = typeof(CallCopyHelper)
+    private static readonly MethodInfo _getHashCodeGenericMethod = typeof(KeyEqualityCallHelper)
         .GetMethod(nameof(GetHashCode1), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static int GetHashCode1<T>(object comparer, object x)
     {

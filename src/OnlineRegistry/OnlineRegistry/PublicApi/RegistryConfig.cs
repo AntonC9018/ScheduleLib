@@ -44,11 +44,23 @@ public static class ConfigExtensions
 {
     extension (ServiceCollection services)
     {
-        public void AddOnlineRegistryConfig()
+        public void AddOnlineRegistry()
         {
             services.RegisterBasicOperationsAndMergers<RegistryConfig>();
             services.AddConfigProvider(BuiltRegistryConfig.Key);
             services.AddMapper<RegistryConfigMapper>();
+
+            // TODO: This should function as a provider then? doing work in DI is not good.
+            services.AddScoped<IRegistryErrorHandler>(sp =>
+            {
+                var config = sp.GetRequiredService<ConfigProvider<BuiltRegistryConfig>>().Get();
+                var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
+                if (config.ExtraLessonInstanceAction is { } action)
+                {
+                    ret.ExtraLessonAction = action;
+                }
+                return ret;
+            });
         }
     }
     extension (ApplicationConfigLayerBuilder builder)

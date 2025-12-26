@@ -7,7 +7,7 @@ namespace MainCli.BuilderNew;
 internal static class CallMergerHelper
 {
     private delegate object MergeDelegate(object merger, object from, object? into);
-    private static readonly MethodInfo _genericMethod = typeof(CallCopyHelper)
+    private static readonly MethodInfo _genericMethod = typeof(CallMergerHelper)
         .GetMethod(nameof(Merge), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static readonly CallHelper<MergeDelegate> _callHelper = new(
             interfaceType: typeof(IMerger<>),
@@ -31,6 +31,15 @@ internal static class CallMergerHelper
         var mergerType = merger.GetType();
         var mergeDelegate = _callHelper.Get(mergerType);
         return mergeDelegate(merger, from, into);
+    }
+
+    public static object MergeUsingService(IServiceProvider sp, object from, object? into)
+    {
+        var t = from.GetType();
+        var mergerType = typeof(IMerger<>).MakeGenericType(t);
+        var merger = sp.GetRequiredService(mergerType);
+        var ret = Merge(merger, from, into);
+        return ret;
     }
 }
 

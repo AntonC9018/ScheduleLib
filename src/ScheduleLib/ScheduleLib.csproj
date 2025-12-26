@@ -15,4 +15,7 @@
             <_Parameter1>Parser.Tests</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
+    </ItemGroup>
 </Project>

@@ -269,7 +269,7 @@ public static partial class ScheduleBuilderHelper
         return new(remapped);
     }
 
-    public static void ConfigureRemappings(this ScheduleBuilder s, Action<Remappings> configure)
+    public static void ConfigureRemappings(this ScheduleBuilder s, ConfigureRemappingsDelegate configure)
     {
         if (s.Teachers.Count > 0)
         {
@@ -277,5 +277,6 @@ public static partial class ScheduleBuilderHelper
         }
         configure(s.Remappings);
     }
-
 }
+
+public delegate void ConfigureRemappingsDelegate(Remappings remap);

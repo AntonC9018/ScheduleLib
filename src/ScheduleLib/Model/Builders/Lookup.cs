@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib.Builders;
 
@@ -39,8 +40,6 @@ public sealed class LookupModule()
 
 public sealed class LookupFacade(ScheduleBuilder s)
 {
-    public CourseId? Course(ReadOnlySpan<char> name) => Find<CourseId>(LookupModule.Courses, name);
-
     public IEnumerable<TeacherId> Teachers(LastName lastName)
     {
         if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
@@ -173,16 +172,17 @@ public sealed class LookupFacade(ScheduleBuilder s)
 
 public static partial class ScheduleBuilderHelper
 {
-    public static void EnableLookupModule(this ScheduleBuilder s)
+    public static LookupModule EnableLookupModule(this ScheduleBuilder s)
     {
         if (s.LookupModule is not null)
         {
-            return;
+            return s.LookupModule;
         }
 
         var lookupModule = s.LookupModule = new();
         InitLookup(s, lookupModule);
         s.LookupModule = lookupModule;
+        return lookupModule;
     }
 
     public static void RefreshLookup(this ScheduleBuilder s)

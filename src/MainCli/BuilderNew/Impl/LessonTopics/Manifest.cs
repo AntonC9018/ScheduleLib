@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.CourseName;
 
 namespace MainCli.BuilderNew.Impl;
 
@@ -14,7 +15,8 @@ namespace MainCli.BuilderNew.Impl;
 public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
 {
     private readonly List<string> _manifestDirectories;
-    private readonly LookupFacade _lookup;
+    private readonly LookupModule _lookup;
+    private readonly CourseNameUnifierModule _unifier;
     private readonly Name _teacherName;
     private readonly ILogger _logger;
 
@@ -64,31 +66,28 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
             // Might want another layer here that just gathers the manifests.
             await builder.AddFromManifest(
                 new(manifest, manifestDir),
-                _lookup,
+                new(_unifier, _lookup),
                 cancellationToken);
         }
     }
 }
 
-public sealed class ManifestSource : ILessonTopicSource
+[AutoConstructor]
+public sealed partial class ManifestSource : ILessonTopicSource
 {
     private readonly ManifestFileSource _fileSource;
-    private readonly LookupFacade _lookup;
-
-    public ManifestSource(
-        ManifestFileSource fileSource,
-        LookupFacade lookup)
-    {
-        _fileSource = fileSource;
-        _lookup = lookup;
-    }
+    private readonly LookupModule _lookup;
+    private readonly CourseNameUnifierModule _unifier;
 
     public async ValueTask Configure(
         AllLessonTopicsDatabaseBuilder builder,
         CancellationToken cancellationToken)
     {
         var manifest = await _fileSource.Read(cancellationToken);
-        await builder.AddFromManifest(manifest, _lookup, cancellationToken);
+        await builder.AddFromManifest(
+            manifest,
+            new(_unifier, _lookup),
+            cancellationToken);
     }
 }
 
@@ -151,6 +150,7 @@ public sealed partial class ManifestFileSource : IManifestFileSource
         var manifest = await ManifestSerializer.Deserialize(
             inputFile,
             cancellationToken);
+        manifest.FileNameWithoutExtension = Path.GetFileNameWithoutExtension(_path);
 
         if (_teacherName != null)
         {

@@ -9,7 +9,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.ScheduleDefaults;
 
 namespace MainCli;
 
@@ -22,12 +21,14 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
     private readonly LessonParserFactory _lessonParserFactory;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ILogger _logger;
+    private readonly ConfigureRemappingsDelegate _configureRemappings;
 
     public async Task Initialize(
         ScheduleBuilder builder,
         CancellationToken cancellationToken)
     {
-        builder.ConfigureRemappings(Config.ConfigureRemappings);
+        builder.ConfigureRemappings(_configureRemappings);
+        builder.EnableLookupModule();
 
         var context = new DocParseContext
         {

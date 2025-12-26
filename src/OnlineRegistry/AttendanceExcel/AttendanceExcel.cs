@@ -321,7 +321,12 @@ public static class AttendanceExcel
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
 
-            foreach (var group in lesson.Lesson.Groups)
+            ref var g = ref lesson.Lesson.Groups;
+            if (!g.IsSingleGroup)
+            {
+                Add(g);
+            }
+            foreach (var group in g)
             {
                 Add([group]);
             }

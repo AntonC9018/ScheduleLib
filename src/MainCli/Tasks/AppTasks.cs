@@ -103,7 +103,7 @@ public static class AppTasks
 
                 // Passed manually, because this might be reconfigured to target another semester.
                 var semester = GetCurrentSemester(c);
-                var handler = c.Services.GetRequiredService<AddLessonsToOnlineRegistryHandler>();
+                var handler = c.Services.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
 
                 using var registryContext = await MakeRegistryContext(c);
                 var navigator = registryContext.Navigator(c.Services, c.CancellationToken);
@@ -284,9 +284,8 @@ public static class AppTasks
     public static StudentAttendanceList GetAttendanceListOfCurrentTeacher(TaskExecutionContext c)
     {
         var filteredSchedule = c.Services.ScopedSchedule();
-        using var workbook = new XLWorkbook();
 
-        var attendanceConfig = c.Services.GetRequiredService<ConfigProvider>().Get(LessonAttendanceConfig.Key);
+        var attendanceConfig = c.Services.GetRequiredService<ConfigProvider<LessonAttendanceConfig>>().Get();
         var builder = new AllStudentAttendanceListBuilder();
         foreach (var source in attendanceConfig.Sources)
         {
@@ -294,6 +293,8 @@ public static class AppTasks
             {
                 throw new InvalidOperationException("Misconfigured source with a null path.");
             }
+            using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var workbook = new XLWorkbook(stream);
             AttendanceExcel.ParseAttendanceListsExcel(new()
             {
                 RepeatedCourseBehavior = source.RepeatedCourseBehavior ?? RepeatedCourseBehavior.Error,

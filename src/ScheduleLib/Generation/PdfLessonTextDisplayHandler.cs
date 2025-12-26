@@ -1,16 +1,19 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using AutoConstructor.Attributes;
 using QuestPDF.Fluent;
 
 namespace ScheduleLib.Generation;
 
-public sealed class PdfLessonTextDisplayHandler
+public sealed partial class PdfLessonTextDisplayHandler
 {
-    public sealed class Services
+    [AutoConstructor]
+    public sealed partial class Services
     {
-        public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
-        public required ParityDisplayHandler ParityDisplay;
-        public required LessonTypeDisplayHandler LessonTypeDisplay;
+        public readonly SubGroupNumberDisplayHandler SubGroupNumberDisplay;
+        public readonly ParityDisplayHandler ParityDisplay;
+        public readonly LessonTypeDisplayHandler LessonTypeDisplay;
     }
     public struct Config()
     {

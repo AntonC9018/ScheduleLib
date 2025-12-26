@@ -79,7 +79,14 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
                 return CheckEquality(c.Value.Value, config);
             })
             .FirstOrDefault();
-        Debug.Assert(path.Path[^1].ChildLayers.Count == 0);
+        if (path == default)
+        {
+            return null;
+        }
+        if (path.Path[^1].ChildLayers.Count != 0)
+        {
+            Debug.Fail("Not terminal layer.");
+        }
         return path;
 
         static bool CheckEquality(TeacherLayerConfig existing, TeacherLayerConfig scoped)

@@ -102,17 +102,19 @@ public sealed class UnexpectedTeacherNameException : TeacherNameManifestExceptio
 
 public sealed class Manifest
 {
+    [JsonConstructor]
     internal Manifest()
     {
     }
     public Name? Teacher { get; set; } = null!;
+    public string? FileNameWithoutExtension { get; set; }
     public required List<Document> Documents { get; set; }
 }
 
 public sealed class Document
 {
     public required string Path { get; set; }
-    public required string? Course { get; set; }
+    public required string Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Faculty>? Faculty { get; set; }
     public LessonType? LessonType { get; set; }

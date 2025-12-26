@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib.Helper;
@@ -18,7 +19,7 @@ public record struct EnumBitArray<T>
     {
     }
 
-    internal EnumBitArray(UnsizedBitArray32 impl)
+    public EnumBitArray(UnsizedBitArray32 impl)
     {
         _impl = impl;
     }
@@ -91,6 +92,7 @@ public record struct EnumBitArray<T>
 
     public readonly bool AreAllSet => _impl.AreAllSet(AllEnumEnumerable<T>.Count);
     public readonly bool AreNoneSet => _impl.AreNoneSet;
+    public readonly bool AreAnySet => !_impl.AreNoneSet;
     public readonly int SetCount => _impl.SetCount;
 
     public void ClearAll()

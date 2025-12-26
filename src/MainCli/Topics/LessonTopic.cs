@@ -9,6 +9,7 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing.CourseName;
 
 namespace MainCli.Topics;
 
@@ -21,6 +22,7 @@ public sealed class LessonTopic
 public sealed class LessonTopicDefaults
 {
     public LessonType? LessonType { get; set; }
+    public string? CourseName { get; set; }
 }
 
 public static class LessonTopicCsvSerializer
@@ -298,24 +300,9 @@ public sealed class AllLessonTopicsDatabaseBuilder
         return item;
     }
 
-    public static async Task<AllLessonTopicsDatabaseBuilder> Parse(
-        string manifestPath,
-        LookupFacade lookup,
-        Schedule schedule,
-        CancellationToken cancellationToken)
-    {
-        Manifest manifest;
-        {
-            await using var inputFile = File.OpenRead(manifestPath);
-            manifest = await ManifestSerializer.Deserialize(inputFile, cancellationToken);
-        }
-        _ = manifest;
-        return null!;
-    }
-
     public async Task AddFromManifest(
         ManifestAtLocation m,
-        LookupFacade lookup,
+        CourseNameUnifierModuleWithDeps lookup,
         CancellationToken cancellationToken)
     {
         foreach (var document in m.Manifest.Documents)
@@ -332,7 +319,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 LessonType = document.LessonType,
             };
 
-            if (lookup.Course(document.Course) is not { } courseId)
+            if (lookup.Find(document.Course) is not { } courseId)
             {
                 throw new InvalidOperationException($"Course '{document.Course}' not found in lookup.");
             }

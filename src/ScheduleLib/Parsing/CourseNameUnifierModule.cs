@@ -64,13 +64,11 @@ public sealed class CourseNameUnifierConfig
 public sealed class CourseNameUnifierModule
 {
     internal readonly List<SlowCourse> SlowCourses = new();
-    private readonly CourseNameParserConfig _parserConfig;
-    private readonly ImmutableArray<FullyRenamedCourse> _fullyRemappedNames;
+    private readonly CourseNameUnifierConfig _config;
 
     public CourseNameUnifierModule(CourseNameUnifierConfig config)
     {
-        _parserConfig = config.ParserConfig;
-        _fullyRemappedNames = config.FullyRemappedNames;
+        _config = config;
     }
 
     public void Refresh(ScheduleBuilder builder)
@@ -95,7 +93,7 @@ public sealed class CourseNameUnifierModule
 
     private ParsedCourseName TryRemap(ParsedCourseName original)
     {
-        foreach (var remap in _fullyRemappedNames)
+        foreach (var remap in _config.FullyRemappedNames)
         {
             if (original.IsEqual(remap.From))
             {
@@ -170,7 +168,7 @@ public sealed class CourseNameUnifierModule
 
     private ParsedCourseName ParseCourseName(CourseNameForParsing p)
     {
-        var parsedCourse = _parserConfig.Parse(p.CourseName, p.ParseOptions);
+        var parsedCourse = _config.ParserConfig.Parse(p.CourseName, p.ParseOptions);
         return parsedCourse;
     }
 

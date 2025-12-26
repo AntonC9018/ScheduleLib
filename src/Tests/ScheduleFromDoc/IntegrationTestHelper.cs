@@ -1,6 +1,7 @@
 using MainCli;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 

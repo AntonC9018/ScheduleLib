@@ -20,8 +20,10 @@ public static class DefaultConfig
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
-                x.ProcessingFlags(CommandProcessingConfig.Process
-                    .WithLog(LessonEquationCommandTypes.All));
+
+                var f = CommandProcessingConfig.DryRun
+                    .WithLog(LessonEquationCommandTypes.All);
+                x.ProcessingFlags(f);
             });
 
             defaults.LessonTopics().Manifest(topics =>
@@ -42,12 +44,13 @@ public static class DefaultConfig
             });
         });
 
-        b.Defaults.TeacherLayer("Anton Curmanschii", t =>
+        b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
             t.Drive();
+
             t.Registry().ConfigureLayer(x =>
             {
-                x.ProcessingFlags(CommandProcessingConfig.None);
+                _ = x;
             });
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
@@ -55,7 +58,7 @@ public static class DefaultConfig
             });
         });
 
-        b.Defaults.TeacherLayer("Tamara Iatasina", t =>
+        b.Defaults.TeacherLayer("Iatasina Tamara", t =>
         {
             t.LessonTopics().ConfigureLayer(x =>
             {
@@ -63,7 +66,7 @@ public static class DefaultConfig
             });
         });
 
-        b.Defaults.TeacherLayer("Nichita Nartea", t =>
+        b.Defaults.TeacherLayer("Nartea Nichita", t =>
         {
             t.Moodle().NoInherit();
 

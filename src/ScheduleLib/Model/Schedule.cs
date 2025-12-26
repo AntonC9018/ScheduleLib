@@ -127,7 +127,7 @@ public record struct OneTimeLessonDate {
 [InlineArray(_Capacity)]
 internal struct LessonGroupsImpl
 {
-    internal const int _Capacity = 15;
+    internal const int _Capacity = 16;
     public GroupId _value;
 }
 // [StructLayout(LayoutKind.Sequential)]

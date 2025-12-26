@@ -64,6 +64,14 @@ public sealed partial class ConfigProvider
             throw new InvalidOperationException("No matching path found for the current configuration.");
         }
 
+        {
+            var type = LayerConfigKey.Registry.GetTypeFromKey(key.Value);
+            if (type != typeof(T))
+            {
+                throw new InvalidOperationException($"Config mapper not registered for type `{typeof(T).Name}`");
+            }
+        }
+
         var config = path.ConstructConfig(key, _sp);
         Debug.Assert(config != null);
         return config;

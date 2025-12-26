@@ -6,10 +6,7 @@ using ScheduleLib;
 using ScheduleLib.Parsing;
 
 var services = new ServiceCollection();
-services.AddScheduleServices();
-services.AddConfigsServices();
-services.AddTaskHandlers();
-services.AddGlobalConfiguration();
+services.AddAllServices();
 
 services.Configure<ManifestDirectoriesOptions>(x =>
 {
@@ -18,7 +15,7 @@ services.Configure<ManifestDirectoriesOptions>(x =>
 services.Configure<StudyYearOptions>(x =>
 {
     x.StudyYear = 2025;
-    x.Semester = Semester.Sem2;
+    x.Semester = Semester.Sem1;
 });
 services.Configure<RegularSeminarDateConfig>(x =>
 {
@@ -43,13 +40,13 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
-        AppTask.AllTeachersExcel,
-        // Option.PerGroupAndPerTeacherPdfs,
-        // Option.FreeRooms,
-        // Option.CreateLessonsInRegistry,
-        // Option.TableOfAllLabLessons,
-        // Option.JsonSchedulesForWebsite,
-        // Option.CopyGradesFromMoodleToRegistry,
+        // AppTask.AllTeachersExcel,
+        // AppTask.PerGroupAndPerTeacherPdfs,
+        // AppTask.FreeRooms,
+        AppTask.CreateLessonsInRegistry,
+        // AppTask.TableOfAllLabLessons,
+        // AppTask.JsonSchedulesForWebsite,
+        // AppTask.CopyGradesFromMoodleToRegistry,
     ],
     OutputDirectory = new OutputDirectory("output"),
     FreeRoomsExcelOutputFileName = "free_rooms.xlsx",

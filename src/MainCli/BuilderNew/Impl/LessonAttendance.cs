@@ -35,6 +35,8 @@ public partial class Extensions
             if (other is null)
             {
                 other = new();
+                other.FilePath = filePath;
+                config.Sources.Add(other);
             }
             configure(other);
         }

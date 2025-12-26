@@ -23,6 +23,7 @@ public static class Config
     {
         (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
         (From: "HTML", To: "HTML și CSS"),
+        (From: "Modele design soft", To: "Design Soft"),
     };
 
     public static CourseNameUnifierConfig CourseNameUnifier =>
@@ -171,3 +172,4 @@ public static class Config
         }
     }
 }
+

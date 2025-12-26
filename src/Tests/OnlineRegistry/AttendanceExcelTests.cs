@@ -43,7 +43,7 @@ public sealed class AttendanceExcelTests
             LookupModule = builder.Lookup().LookupModule,
             GroupParseContext = builder.GroupParseContext!,
         });
-        var lists = attendanceBuilder.Build();
+        var lists = attendanceBuilder.Build(missingDaysFiller: Attendance.Present);
 
         await Verify(lists.Select(x => new
         {

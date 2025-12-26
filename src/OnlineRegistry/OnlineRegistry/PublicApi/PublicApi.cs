@@ -1,8 +1,12 @@
+using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using AutoConstructor.Attributes;
+using DocumentFormat.OpenXml.Drawing;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
+using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;
@@ -198,14 +202,12 @@ public sealed partial class OnlineRegistryNavigator
 
     public CoursesNavigator Courses()
     {
-        var sp = Context.Services;
-        return ActivatorUtilities.CreateInstance<CoursesNavigator>(sp, this);
+        return ActivatorUtilities.CreateInstance<CoursesNavigator>(ServiceProvider, this);
     }
 
     public GroupsNavigator Groups()
     {
-        var sp = Context.Services;
-        return ActivatorUtilities.CreateInstance<GroupsNavigator>(sp, this);
+        return ActivatorUtilities.CreateInstance<GroupsNavigator>(ServiceProvider, this);
     }
 
     public async Task<IDocument> GetHtml(Uri uri)
@@ -247,7 +249,7 @@ public readonly record struct RegistryScrapingContext(
 
 public static partial class RegistryScraping
 {
-    public const string CredentialsConfigKey = "Registry";
+    public const string CredentialsConfigKey = "Curmanschii Anton:Registry";
 
     public static OnlineRegistryNavigator Navigator(
         this RegistryScrapingContext context,
@@ -409,41 +411,64 @@ public readonly struct CommandProcessingConfig
         }
     }
 
-    public readonly bool HasProcess(LessonEquationCommandType type)
+    private readonly EnumBitArray<LessonEquationCommandType> CreatePortion(int offset)
+        => new(new UnsizedBitArray32((uint) (Bits >> offset) & ValueMask));
+    private readonly bool CheckAny(int offset, LessonEquationCommandTypes types)
     {
-        var mask = 1 << ((int) type + ProcessOffset);
-        return (Bits & mask) != 0;
+        var p = CreatePortion(offset);
+        var mask = new UnsizedBitArray32((uint) types);
+        return p.Intersect(new(mask)).AreAnySet;
+    }
+    private readonly bool CheckOne(int offset, LessonEquationCommandType type)
+    {
+        var p = CreatePortion(offset);
+        return p.IsSet(type);
     }
 
-    public readonly bool HasAnyProcess(LessonEquationCommandTypes types)
+    public readonly bool HasProcess(LessonEquationCommandType type) => CheckOne(ProcessOffset, type);
+    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) => CheckAny(ProcessOffset, types);
+
+    public readonly bool HasDryRun(LessonEquationCommandType type) => CheckOne(DryRunOffset, type);
+    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) => CheckAny(DryRunOffset, types);
+
+    public readonly bool HasLog(LessonEquationCommandType type) => CheckOne(LogOffset, type);
+    public readonly bool HasAnyLog(LessonEquationCommandTypes types) => CheckAny(LogOffset, types);
+
+    public override string ToString()
     {
-        var mask = (int) types << ProcessOffset;
-        return (Bits & mask) != 0;
+        var sb = new StringBuilder();
+        var segments = new[]
+        {
+            (Offset: ProcessOffset, Name: "Process"),
+            (Offset: DryRunOffset, Name: "DryRun"),
+            (Offset: LogOffset, Name: "Log"),
+        };
+        var value = Normalized;
+        foreach (var t in segments)
+        {
+            var portion = value.CreatePortion(t.Offset);
+            sb.Append(t.Name);
+            sb.Append('{');
+
+            if (portion.AreAllSet)
+            {
+                sb.Append("All");
+            }
+            else
+            {
+                var list = new ListStringBuilder(sb, ",");
+                foreach (var i in portion.SetValues())
+                {
+                    list.Append(i.ToString());
+                }
+            }
+
+            sb.Append('}');
+            sb.AppendLine();
+        }
+        return sb.ToString();
     }
 
-    public readonly bool HasDryRun(LessonEquationCommandType type)
-    {
-        var mask = 1 << ((int) type + DryRunOffset);
-        return (Bits & mask) != 0;
-    }
-
-    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types)
-    {
-        var mask = (int) types << DryRunOffset;
-        return (Bits & mask) != 0;
-    }
-
-    public readonly bool HasLog(LessonEquationCommandType type)
-    {
-        var mask = 1 << ((int) type + LogOffset);
-        return (Bits & mask) != 0;
-    }
-
-    public readonly bool HasAnyLog(LessonEquationCommandTypes types)
-    {
-        var mask = (int) types << LogOffset;
-        return (Bits & mask) != 0;
-    }
 }
 
 public record struct FoundGroups

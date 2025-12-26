@@ -117,18 +117,15 @@ public sealed class IntegrationTest
     private (ServiceProvider ServiceProvider, ApplicationConfigBuilder ConfigBuilder) Fixture()
     {
         var services = new ServiceCollection();
-        services.AddScheduleServices();
-        services.AddTaskHandlers();
+        services.AddAllServices();
 
         services
-            .AddOptions<ManifestDirectoriesOptions>()
-            .Configure(x =>
+            .Configure<ManifestDirectoriesOptions>(x =>
             {
                 x.Directories.Add("data/topics");
             });
         services
-            .AddOptions<StudyYearOptions>()
-            .Configure(x =>
+            .Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = 2025;
                 x.Semester = Semester.Sem2;
