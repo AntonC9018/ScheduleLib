@@ -13,9 +13,9 @@ public static partial class Extensions
 
     extension (ApplicationConfigLayerBuilder builder)
     {
-        public ConfigBuilder<LessonTopicsConfig> LessonTopics() => builder.CreateConfigBuilder<LessonTopicsConfig>();
-        public ConfigBuilder<MoodleConfig> Moodle() => builder.CreateConfigBuilder<MoodleConfig>();
-        public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => builder.CreateConfigBuilder<LessonAttendanceConfig>();
+        public ConfigBuilder<LessonTopicsConfig> LessonTopics() => builder.Builder<LessonTopicsConfig>();
+        public ConfigBuilder<MoodleConfig> Moodle() => builder.Builder<MoodleConfig>();
+        public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => builder.Builder<LessonAttendanceConfig>();
         public ConfigBuilder<GoogleDriveConfig> Drive()
         {
             var t = ConfigBuilder.Create(builder.Layer, GoogleDriveConfig.Key);

@@ -1,10 +1,15 @@
+using System.Text;
 using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
+using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Options;
+using Microsoft.Graph;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
+using Option = MainCli.BuilderNew.Impl.Option;
+using Schedule = ScheduleLib.Schedule;
 
 namespace MainCli;
 
@@ -39,7 +44,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
     private readonly Schedule _schedule;
     private readonly LessonTimeConfig _timeConfig;
     private readonly IOptions<StudyYearOptions> _studyYear;
-    private readonly ConfigProvider<DeadlinesExcelConfig> _deadlinesExcelConfigProvider;
+    private readonly ConfigProvider<DeadlinesExcelBuiltConfig> _deadlinesExcelConfigProvider;
+    private readonly LabsMappingProvider _labsProvider;
 
     public readonly struct RunParams
     {
@@ -47,20 +53,10 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
         public required Stream OutputStream { get; init; }
     }
 
-    public ValueTask Run(RunParams p)
+    public async ValueTask Run(RunParams p)
     {
-        DeadlinesExcelBuiltConfig deadlinesExcelConfig;
-        {
-            var x = _deadlinesExcelConfigProvider.Get();
-            deadlinesExcelConfig = new()
-            {
-                BadColor = x.BadColor!.Value,
-                ColumnWidth = x.ColumnWidth,
-                GoodColor = x.GoodColor!.Value,
-                LessonDelayLimit = x.LessonDelayLimit,
-                MaxTaskRows = x.MaxTaskRows,
-            };
-        }
+        var deadlinesExcelConfig = _deadlinesExcelConfigProvider.Get();
+        var labsValue = await _labsProvider.Get();
 
         var schedule = _schedule.Filter(
             FilterHelper.Builder()
@@ -99,75 +95,141 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                     continue;
                 }
 
-                string sheetName;
+                var labs = labsValue.Get(key.Course);
+                bool created = false;
+                if (labs != null)
                 {
-                    var s = _schedule;
-                    var shortName = s.Get(key.Course).Names[^1];
-                    var groupName = s.Get(group).Name;
-                    sheetName = $"{shortName} - {groupName}";
-                    if (key.SubGroup != SubGroup.All)
+                    foreach (var m in labs)
                     {
-                        sheetName = $"{sheetName}({key.SubGroup.Value})";
+                        if (m.Option.Language != _schedule.Get(group).Language)
+                        {
+                            continue;
+                        }
+                        var option = m.Option;
+                        var tasks = m.Tasks;
+                        DoLabs(option, tasks);
+                        created = true;
                     }
                 }
-                var worksheet = workbook.Worksheets.Add(sheetName);
-
-                const int emptyCols = 1;
-                const int firstRowPos = 1;
-                const int firstColPos = emptyCols + 1;
+                if (!created)
                 {
-                    var firstRow = worksheet.Row(firstRowPos);
-                    for (int index = 0; index < scheduledLessons.Length; index++)
-                    {
-                        int cellIndex = index + firstColPos;
-                        var lesson = scheduledLessons[index];
-                        var cell = firstRow.Cell(cellIndex);
-                        var d = lesson.DateTime;
-                        cell.Value = d.ToString("dd.MM");
-                    }
-                    for (int index = 0; index < scheduledLessons.Length; index++)
-                    {
-                        worksheet.Column(index + firstColPos).Width = deadlinesExcelConfig.ColumnWidth;
-                    }
+                    DoLabs(option: default, tasks: null);
                 }
+                continue;
 
-                int maxCols = scheduledLessons.Length;
 
-                var dataRange = worksheet.Range(
-                    firstCellRow: firstRowPos + 1,
-                    firstCellColumn: firstColPos,
-                    lastCellRow: deadlinesExcelConfig.MaxTaskRows,
-                    lastCellColumn: maxCols);
-
-                for (int i = 0; i <= deadlinesExcelConfig.LessonDelayLimit; i++)
+                void DoLabs(Option option, List<LabTask>? tasks)
                 {
-                    var gradientPos = (float) i / deadlinesExcelConfig.LessonDelayLimit;
-                    var color = ColorHelper.Lerp(
-                        deadlinesExcelConfig.GoodColor,
-                        deadlinesExcelConfig.BadColor,
-                        gradientPos);
-                    var xlColor = XLColor.FromColor(color);
-                    var conditionalFormat = worksheet.AddConditionalFormat();
-                    conditionalFormat.Range = dataRange;
-                    conditionalFormat
-                        .WhenEquals(-i)
-                        .Fill
-                        .SetBackgroundColor(xlColor);
-                }
+                    string sheetName;
+                    {
+                        var sb = new StringBuilder();
+                        var s = _schedule;
+                        var shortName = s.Get(key.Course).Names[^1];
+                        var groupName = s.Get(group).Name;
+                        sb.Append($"{shortName} - {groupName}");
+                        if (key.SubGroup != SubGroup.All)
+                        {
+                            sb.Append($"({key.SubGroup.Value})");
+                        }
+                        if (option != default)
+                        {
+                            var lb = new ListStringBuilder(sb, "|");
+                            if (option.Type != null)
+                            {
+                                lb.Append(option.Type);
+                            }
+                            if (option.Language is { } lang)
+                            {
+                                lb.Append($"{lang}");
+                            }
+                        }
+                        sheetName = sb.ToString();
+                    }
+                    if (workbook.Worksheets.FirstOrDefault(x => x.Name == sheetName) is not { } worksheet)
+                    {
+                        worksheet = workbook.Worksheets.Add(sheetName);
+                    }
 
-                foreach (var cell in dataRange.Cells())
-                {
-                    string leftCellRef = worksheet
-                        .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
-                        .Address
-                        .ToStringRelative();
-                    string formula = $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
-                    cell.FormulaA1 = formula;
+                    int maxRows = tasks?.Count ?? deadlinesExcelConfig.MaxTaskRows;
+                    const int labCols = 1;
+                    const int firstRowPos = 1;
+                    const int firstColPos = labCols + 1;
+                    const int secondRowPos = firstRowPos + 1;
+                    {
+                        var firstRow = worksheet.Row(firstRowPos);
+                        for (int index = 0; index < scheduledLessons.Length; index++)
+                        {
+                            int cellIndex = index + firstColPos;
+                            var lesson = scheduledLessons[index];
+                            var cell = firstRow.Cell(cellIndex);
+                            var d = lesson.DateTime;
+                            cell.Value = d.ToString("dd.MM");
+                        }
+                        for (int index = 0; index < scheduledLessons.Length; index++)
+                        {
+                            worksheet.Column(index + firstColPos).Width = deadlinesExcelConfig.ColumnWidth;
+                        }
+                    }
+
+                    int maxCols = scheduledLessons.Length;
+
+                    var dataRange = worksheet.Range(
+                        firstCellRow: secondRowPos,
+                        firstCellColumn: firstColPos,
+                        lastCellRow: secondRowPos + maxRows - 1,
+                        lastCellColumn: maxCols);
+
+                    worksheet.ConditionalFormats.RemoveAll();
+                    for (int i = 0; i <= deadlinesExcelConfig.LessonDelayLimit; i++)
+                    {
+                        var gradientPos = (float) i / deadlinesExcelConfig.LessonDelayLimit;
+                        var color = ColorHelper.Lerp(
+                            deadlinesExcelConfig.GoodColor,
+                            deadlinesExcelConfig.BadColor,
+                            gradientPos);
+                        var xlColor = XLColor.FromColor(color);
+                        var conditionalFormat = worksheet.AddConditionalFormat();
+                        conditionalFormat.Range = dataRange;
+                        conditionalFormat
+                            .WhenEquals(-i)
+                            .Fill
+                            .SetBackgroundColor(xlColor);
+                    }
+
+                    foreach (var cell in dataRange.Cells())
+                    {
+                        string leftCellRef = worksheet
+                            .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
+                            .Address
+                            .ToStringRelative();
+                        if (cell.Value.IsBlank)
+                        {
+                            string formula = $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
+                            cell.FormulaA1 = formula;
+                        }
+                    }
+
+                    if (tasks != null)
+                    {
+                        var labsRange = worksheet.Range(
+                            firstCellRow: secondRowPos,
+                            firstCellColumn: labCols,
+                            lastCellRow: secondRowPos + maxRows - 1,
+                            lastCellColumn: labCols);
+                        foreach (var x in labsRange.Cells().WithIndex())
+                        {
+                            var t = tasks[x.Index];
+                            x.Item.SetValue(t.Name);
+                            if (t.Url is { } url)
+                            {
+                                x.Item.SetHyperlink(new XLHyperlink(url));
+                            }
+                        }
+                    }
                 }
             }
         }
 
         workbook.SaveAs(p.OutputStream);
-        return ValueTask.CompletedTask;
     }
 }

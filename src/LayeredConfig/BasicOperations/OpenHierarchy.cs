@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ScheduleLib;
 
 namespace MainCli.BuilderNew;
 
@@ -22,17 +23,9 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 
     public bool Equals(T? x, T? y)
     {
-        if (x is null && y is null)
+        if (ComparisonHelper.NullGuard(x, y, out bool b))
         {
-            return true;
-        }
-        if (x is null)
-        {
-            return false;
-        }
-        if (y is null)
-        {
-            return false;
+            return b;
         }
         var xtype = x.GetType();
         var ytype = y.GetType();
@@ -72,17 +65,9 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
     public bool Equals(T? x, T? y)
     {
-        if (x is null && y is null)
+        if (ComparisonHelper.NullGuard(x, y, out bool b))
         {
-            return true;
-        }
-        if (x is null)
-        {
-            return false;
-        }
-        if (y is null)
-        {
-            return false;
+            return b;
         }
         var keyx = _keyGetter(x);
         var keyy = _keyGetter(y);
@@ -127,10 +112,26 @@ public static class KeyEqualityComparer
         public void AddOpenHierarchy<TBase>()
             where TBase : class
         {
-            services.AddSingleton<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
-            services.AddSingleton<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
+            services.TryAddScoped<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
+            services.AddScoped<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
+            services.AddScoped<IBasicOperations<TBase>, OpenHierarchyBasicOperations<TBase>>();
         }
     }
+}
+
+public sealed class OpenHierarchyBasicOperations<T> : IBasicOperations<T>
+    where T : class
+{
+    private readonly IServiceProvider _sp;
+
+    public OpenHierarchyBasicOperations(IServiceProvider sp)
+    {
+        _sp = sp;
+    }
+
+    public T? Empty() => null;
+    public T Copy(T from) => CallCopyHelper.CopyUsingService(_sp, from);
+    public T? Reset(T? item) => null;
 }
 
 public sealed class OpenHierarchyMerger<T> : IMerger<T>
@@ -144,8 +145,18 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
 
     public T Merge(T from, T? into)
     {
-        var ret = CallMergerHelper.MergeUsingService(_sp, from!, into);
-        return (T) ret;
+        if (into == null
+            // Replace fully when types don't match.
+            || from!.GetType() != into.GetType())
+        {
+            var ret = CallCopyHelper.CopyUsingService(_sp, from);
+            return ret;
+        }
+        // Types match.
+        {
+            var ret = CallMergerHelper.MergeUsingService(_sp, from, into);
+            return ret;
+        }
     }
 }
 
@@ -224,4 +235,3 @@ internal static class KeyEqualityCallHelper
         typeof(IKeyEqualityComparer<>),
         _getHashCodeGenericMethod);
 }
-

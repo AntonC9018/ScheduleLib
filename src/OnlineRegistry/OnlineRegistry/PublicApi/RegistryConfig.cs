@@ -65,7 +65,7 @@ public static class ConfigExtensions
     }
     extension (ApplicationConfigLayerBuilder builder)
     {
-        public ConfigBuilder<RegistryConfig> Registry() => builder.CreateConfigBuilder<RegistryConfig>();
+        public ConfigBuilder<RegistryConfig> Registry() => builder.Builder<RegistryConfig>();
     }
     extension (ConfigBuilder<RegistryConfig> builder)
     {

@@ -41,7 +41,11 @@ public static class ScheduleTestHelper
     {
         var s = await CreateTestSchedule();
         var schedule = s.Build();
-        var ret = FilterForTeacher(schedule, s.Lookup(), name);
+        var ret = FilterForTeacher(
+            schedule,
+            // Ok for this test, because it's not used.
+            s.Lookup(unifier: null!),
+            name);
         return ret;
     }
 }

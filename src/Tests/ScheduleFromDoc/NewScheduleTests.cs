@@ -1,5 +1,6 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleFromDoc.Tests;
 
@@ -12,7 +13,7 @@ public sealed class NewScheduleTests
         using var cts = IntegrationTestHelper.CreateCts();
         var context = await helper.GetContextFromWord(cts.Token);
         var schedule = context.Schedule.Build();
-        var lookup = context.Schedule.Lookup();
+        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
         var nodejsCourseId = lookup.Course("Node.js")!.Value;
         var lessons = lookup.LessonsOfCourse(nodejsCourseId);
         var verifyModel = lessons

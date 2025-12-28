@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MainCli.BuilderNew;
 
-internal static class CallMergerHelper
+public static class CallMergerHelper
 {
     private delegate object MergeDelegate(object merger, object from, object? into);
     private static readonly MethodInfo _genericMethod = typeof(CallMergerHelper)
@@ -33,24 +33,24 @@ internal static class CallMergerHelper
         return mergeDelegate(merger, from, into);
     }
 
-    public static object MergeUsingService(IServiceProvider sp, object from, object? into)
+    public static T MergeUsingService<T>(IServiceProvider sp, T from, T? into)
     {
-        var t = from.GetType();
+        var t = from!.GetType();
         var mergerType = typeof(IMerger<>).MakeGenericType(t);
         var merger = sp.GetRequiredService(mergerType);
         var ret = Merge(merger, from, into);
-        return ret;
+        return (T) ret;
     }
 }
 
 public static class CallCopyHelper
 {
-    public static object CopyUsingService(IServiceProvider sp, object from)
+    public static T CopyUsingService<T>(IServiceProvider sp, T from)
     {
-        var fromType = from.GetType();
+        var fromType = from!.GetType();
         var basicOperationsType = typeof(IBasicOperations<>).MakeGenericType(fromType);
         var operations = sp.GetRequiredService(basicOperationsType);
-        return Copy(operations, from);
+        return (T) Copy(operations, from);
     }
 
     public static object Copy(object operations, object from)

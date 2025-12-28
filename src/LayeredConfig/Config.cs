@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Concurrent;
 
 namespace Anton.LayeredConfig;
@@ -40,7 +41,41 @@ public struct LayerConfigFlags
 public sealed class LayerConfigContainer
 {
     public object? Value;
+
+    // Think about making the regular config value system into a subsystem of UpdateActions.
+    // Think about using an interface instead of a Delegate here.
+    public List<Delegate>? UpdateActions = null;
     public LayerConfigFlags Flags = new();
+}
+
+public readonly struct UpdateActionsList<T> : IEnumerable<Action<T>>
+{
+    private readonly LayerConfigContainer _impl;
+
+    public UpdateActionsList(LayerConfigContainer impl)
+    {
+        _impl = impl;
+    }
+
+    private readonly List<Delegate> List() => _impl.UpdateActions ??= new();
+    public readonly void Add(Action<T> value) => List().Add(value);
+
+    public IEnumerator<Action<T>> GetEnumerator()
+    {
+        if (_impl.UpdateActions is null)
+        {
+            yield break;
+        }
+        foreach (var x in _impl.UpdateActions)
+        {
+            yield return (Action<T>) x;
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 }
 
 public readonly struct LayerConfigContainer<T>
@@ -58,6 +93,7 @@ public readonly struct LayerConfigContainer<T>
         set => _impl.Value = value;
     }
     public readonly ref LayerConfigFlags Flags => ref _impl.Flags;
+    public readonly UpdateActionsList<T> UpdateActions => new(_impl);
 }
 
 public readonly struct MaybeLayerConfigContainer<T>
@@ -136,10 +172,16 @@ public static class BaseExtensions
 {
     extension (ApplicationConfigLayerBuilder builder)
     {
-        public ConfigBuilder<T> CreateConfigBuilder<T>()
+        public ConfigBuilder<T> Builder<T>()
             where T : class, IConfig<T>
         {
-            return new(builder.Layer, T.Key);
+            return builder.Builder(T.Key);
+        }
+
+        public ConfigBuilder<T> Builder<T>(LayerConfigKey<T> key)
+            where T : class
+        {
+            return new(builder.Layer, key);
         }
     }
 
@@ -184,6 +226,10 @@ public static class BaseExtensions
         public void ConfigureLayer(Action<ConfigBuilder<T>> configure)
         {
             configure(builder);
+        }
+        public void AddUpdate(Action<T> updateAction)
+        {
+            builder.Enable().UpdateActions.Add(updateAction);
         }
     }
 

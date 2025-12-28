@@ -38,8 +38,18 @@ public sealed class LookupModule()
     }
 }
 
-public sealed class LookupFacade(ScheduleBuilder s)
+public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unifier)
 {
+    public CourseId? Course(string name) => unifier.Find(new()
+    {
+        CourseName = name,
+        Lookup = s.LookupModule!,
+        ParseOptions = new()
+        {
+            IgnorePunctuation = false,
+        },
+    });
+
     public IEnumerable<TeacherId> Teachers(LastName lastName)
     {
         if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
@@ -254,10 +264,12 @@ public static partial class ScheduleBuilderHelper
     }
 
     [DebuggerStepThrough]
-    public static LookupFacade Lookup(this ScheduleBuilder s)
+    public static LookupFacade Lookup(
+        this ScheduleBuilder s,
+        CourseNameUnifierModule unifier)
     {
         s.EnableLookupModule();
-        return new(s);
+        return new(s, unifier);
     }
 
     public static TeacherBuilderModel.NameModel ToNameModel(this Name name)

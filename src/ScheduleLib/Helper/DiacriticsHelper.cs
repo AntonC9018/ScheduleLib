@@ -104,17 +104,9 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public bool Equals(string? x, string? y)
     {
-        if (x is null && y is null)
+        if (ComparisonHelper.NullGuard(x, y, out bool b))
         {
-            return true;
-        }
-        if (x is null)
-        {
-            return false;
-        }
-        if (y is null)
-        {
-            return false;
+            return b;
         }
         var x1 = DiacriticsHelper.RemoveDiacritics(x);
         var y1 = DiacriticsHelper.RemoveDiacritics(y);

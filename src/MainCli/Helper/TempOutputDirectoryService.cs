@@ -15,9 +15,9 @@ public readonly record struct FileInDirectory
         Directory = directory;
     }
 
-    public Stream Open(FileMode mode, FileAccess access)
+    public Stream Open(FileMode mode, FileAccess access, FileShare? share = null)
     {
-        return Directory.OpenFile(Path, mode, access);
+        return Directory.OpenFile(Path, mode, access, share);
     }
     public bool TryOpenInExplorer()
     {
@@ -72,10 +72,10 @@ public sealed class OutputDirectory
         Directory.CreateDirectory(_directory);
     }
 
-    public Stream OpenFile(string path, FileMode mode, FileAccess access)
+    public Stream OpenFile(string path, FileMode mode, FileAccess access, FileShare? share = null)
     {
         var fullPath = NormalizePath(path);
-        var ret = new FileStream(fullPath, mode, access);
+        var ret = new FileStream(fullPath, mode, access, share ?? FileShare.Read);
         return ret;
     }
     public FileInDirectory File(string path)

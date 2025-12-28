@@ -19,13 +19,9 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
 
     public bool Equals(Name? x, Name? y)
     {
-        if (x is null && y is null)
+        if (ComparisonHelper.NullGuard(x, y, out bool b))
         {
-            return true;
-        }
-        if (x is null || y is null)
-        {
-            return false;
+            return b;
         }
         if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.FirstName, y.FirstName))
         {

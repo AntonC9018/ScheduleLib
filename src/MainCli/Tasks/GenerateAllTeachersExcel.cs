@@ -35,7 +35,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
     public ValueTask Run(RunParams p)
     {
         var stringBuilder = p.StringBuilder ?? new();
-        using var excel = SpreadsheetDocument.Create(p.OutputDirectory, SpreadsheetDocumentType.Workbook, autoSave: true);
+        using var excel = SpreadsheetDocument.Create(
+            p.OutputDirectory,
+            SpreadsheetDocumentType.Workbook,
+            autoSave: true);
         var seminarDate = _seminarDateProvider.Get();
 
         var teachers = p.Schedule.Teachers

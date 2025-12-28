@@ -56,6 +56,30 @@ public static class DefaultConfig
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
             });
+            t.Builder(LabTasksDatabaseConfig.Key).Configure(x =>
+            {
+                const string baseUrl = "https://github.com/AntonC9018/uniCourse_dataStructuresAndAlgorithms/blob/master/ru/labs/";
+
+                x.Course("C++")
+                    .Option(new(Language: Language.Ru))
+                    .ManualSource(s =>
+                    {
+                        s.Add(new()
+                        {
+                            Name = "Архитектура компьютера",
+                            Difficulty = 1,
+                            Url = $"{baseUrl}common/01_computer_architecture.md",
+                        });
+                        s.Add(new()
+                        {
+                            Name = "lab 3",
+                        });
+                        s.Add(new()
+                        {
+                            Name = "lab 2",
+                        });
+                    });
+            });
         });
 
         b.Defaults.TeacherLayer("Iatasina Tamara", t =>

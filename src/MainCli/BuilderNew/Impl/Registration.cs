@@ -55,7 +55,8 @@ public static class Registration
             services.AddMapper<DeadlinesConfigMapper>();
             services.AddMerger<DeadlinesExcelConfigMerger>();
             services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
-            services.AddConfigProvider(DeadlinesExcelConfig.Key);
+            services.AddConfigProvider(DeadlinesExcelBuiltConfig.Key);
+            LabTasksDatabaseConfig.Register(services);
 
             // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
@@ -66,6 +67,7 @@ public static class Registration
 
             services.AddConfigProvider(BuiltRegistryConfig.Key);
             services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
+
         }
 
         public void AddScheduleServices()
@@ -80,16 +82,16 @@ public static class Registration
 
             void AddScheduleGeneralServices()
             {
-                services.AddSingleton<LookupFacade>(sp =>
-                    sp.GetRequiredService<ScheduleBuilder>().Lookup());
+                services.AddSingleton<LookupFacade>();
                 services.AddSingleton<LookupModule>(sp =>
                 {
-                    return sp.GetRequiredService<ScheduleBuilder>().EnableLookupModule();
+                    return sp.GetRequiredService<ScheduleBuilder>().LookupModule!;
                 });
                 services.AddSingleton<ScheduleBuilder>(sp =>
                 {
                     var builder = new ScheduleBuilder();
                     builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
+                    builder.EnableLookupModule();
                     return builder;
                 });
             }
@@ -193,7 +195,10 @@ public static class Registration
         public void AddTaskHandlers()
         {
             services.AddScoped<GenerateAllTeachersExcelTaskHandler>();
+
             services.AddScoped<GenerateDeadlinesExcelTaskHandler>();
+            services.AddScoped<LabsMappingProvider>();
+
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();

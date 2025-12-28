@@ -216,3 +216,29 @@ public sealed class CourseNameUnifierModule
         return new(result.Id);
     }
 }
+
+public sealed class CourseNameLookup
+{
+    public CourseNameUnifierModule Unifier { get; }
+    public LookupModule Lookup { get; }
+
+    public CourseNameLookup(CourseNameUnifierModule unifier, LookupModule lookup)
+    {
+        Unifier = unifier;
+        Lookup = lookup;
+    }
+
+    public CourseId? Get(string s)
+    {
+        var ret = Unifier.Find(new()
+        {
+            CourseName = s,
+            Lookup = Lookup,
+            ParseOptions = new()
+            {
+                IgnorePunctuation = false,
+            },
+        });
+        return ret;
+    }
+}

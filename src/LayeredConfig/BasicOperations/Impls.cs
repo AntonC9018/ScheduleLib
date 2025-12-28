@@ -78,7 +78,22 @@ public sealed class ReflectionMerger<T> : IMerger<T>
 {
     private readonly IBasicOperations<T> _basicOperations;
     private readonly IServiceProvider _serviceProvider;
-    private readonly PropertyInfo[] _writableProperties;
+    private static readonly PropertyInfo[] _writableProperties;
+
+    static ReflectionMerger()
+    {
+        // Get all writable properties
+        _writableProperties = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanWrite && p.CanRead)
+            .ToArray();
+
+        // error if there are public fields
+        if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance).Any())
+        {
+            throw new InvalidOperationException($"Type `{typeof(T).Name}` should only have properties");
+        }
+    }
 
     public ReflectionMerger(
         IServiceProvider serviceProvider,
@@ -86,12 +101,6 @@ public sealed class ReflectionMerger<T> : IMerger<T>
     {
         _serviceProvider = serviceProvider;
         _basicOperations = basicOperations;
-
-        // Get all writable properties
-        _writableProperties = typeof(T)
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite && p.CanRead)
-            .ToArray();
     }
 
     public T Merge(T from, T? to)

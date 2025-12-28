@@ -116,6 +116,11 @@ public static class LayerQueries
             }
 
             current = merger.Merge(config.Value, current);
+
+            foreach (var a in config.UpdateActions)
+            {
+                a.Invoke(current);
+            }
         }
 
         if (remove)

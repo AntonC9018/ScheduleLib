@@ -151,7 +151,7 @@ public static class AppTasks
             case AppTask.TableOfAllLabLessons:
             {
                 var outputFile = c.OutputDirectory.File("deadlines.xlsx");
-                await using var outputStream = outputFile.Open(FileMode.Create, FileAccess.Write);
+                await using var outputStream = outputFile.Open(FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
 
                 var handler = c.Services.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
                 await handler.Run(new()
@@ -271,7 +271,7 @@ public static class AppTasks
         {
             var schedule = c.Services.LatestPeriodSchedule();
             var handler = c.Services.GetRequiredService<GenerateAllTeachersExcelTaskHandler>();
-            await using var outputStream = c.AllTeachersFile.Open(FileMode.Create, FileAccess.Write);
+            await using var outputStream = c.AllTeachersFile.Open(FileMode.Create, FileAccess.ReadWrite);
             await handler.Run(new()
             {
                 Schedule = schedule,

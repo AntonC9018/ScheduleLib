@@ -28,7 +28,7 @@ public sealed class AttendanceExcelTests
         }
         var filteredSchedule = ScheduleTestHelper.FilterForTeacher(
             schedule,
-            builder.Lookup(),
+            builder.Lookup(unifier),
             name);
 
         using var workbook = new XLWorkbook(ExcelFilePath);
@@ -40,7 +40,7 @@ public sealed class AttendanceExcelTests
             Schedule = filteredSchedule,
             Workbook = workbook,
             CourseNames = unifier,
-            LookupModule = builder.Lookup().LookupModule,
+            LookupModule = builder.EnableLookupModule(),
             GroupParseContext = builder.GroupParseContext!,
         });
         var lists = attendanceBuilder.Build(missingDaysFiller: Attendance.Present);

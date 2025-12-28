@@ -47,7 +47,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ListMerger<>).MakeGenericType(elementType);
-                    services.TryAddSingleton(serviceType, implType);
+                    services.TryAddScoped(serviceType, implType);
                 }
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
@@ -64,7 +64,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                     var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(type);
-                    if (services.TryAddSingleton(serviceType, implType))
+                    if (services.TryAddScoped(serviceType, implType))
                     {
                         added = true;
                     }
@@ -72,7 +72,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ReflectionMerger<>).MakeGenericType(type);
-                    if (services.TryAddSingleton(serviceType, implType))
+                    if (services.TryAddScoped(serviceType, implType))
                     {
                         added = true;
                     }
@@ -133,6 +133,17 @@ public static class RegistrationHelper
         ArgumentNullException.ThrowIfNull((object) service, nameof (service));
         ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
         ServiceDescriptor descriptor = ServiceDescriptor.Singleton(service, implementationType);
+        return collection.TryAdd(descriptor);
+    }
+    public static bool TryAddScoped(
+        this IServiceCollection collection,
+        Type service,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
+    {
+        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
+        ArgumentNullException.ThrowIfNull((object) service, nameof (service));
+        ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
+        ServiceDescriptor descriptor = ServiceDescriptor.Scoped(service, implementationType);
         return collection.TryAdd(descriptor);
     }
 

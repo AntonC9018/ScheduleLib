@@ -113,9 +113,10 @@ public sealed class ScheduleTeacherNamesTests
     {
         var s = new ScheduleBuilder();
         s.EnableLookupModule();
+        var lookup = s.Lookup(null!);
 
         var t = s.Teacher("First Last");
-        Assert.Equal(t.Id, s.Lookup().Teacher(lastName: "Last"));
+        Assert.Equal(t.Id, lookup.Teacher(lastName: "Last"));
     }
 
     [Fact]
@@ -125,9 +126,10 @@ public sealed class ScheduleTeacherNamesTests
         s.EnableLookupModule();
         var t = s.Teacher("First Last");
         t.LastName("Otherlast");
+        var lookup = s.Lookup(null!);
 
-        Assert.Null(s.Lookup().Teacher(lastName: "Last"));
-        Assert.Equal(t.Id, s.Lookup().Teacher(lastName: "Otherlast"));
+        Assert.Null(lookup.Teacher(lastName: "Last"));
+        Assert.Equal(t.Id, lookup.Teacher(lastName: "Otherlast"));
     }
 }
 

@@ -110,7 +110,7 @@ public sealed class ScheduleFromDocTests
         var cancellationToken = cts.Token;
         var context = await IntegrationTestHelper.CreateDefault().GetContextFromWord(cancellationToken);
         var schedule = context.Schedule.Build();
-        var lookup = context.Schedule.Lookup();
+        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
 
         if (resetLookup)
         {
