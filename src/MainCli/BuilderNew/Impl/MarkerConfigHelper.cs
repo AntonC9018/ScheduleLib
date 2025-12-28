@@ -16,6 +16,7 @@ public static class MarkerConfigExtension
         // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
         services.AddScoped<TeacherLayerConfig>();
         services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
+        services.AddConfigProvider(TeacherLayerConfig.Key);
     }
 
     public static AsyncServiceScope CreateMarkerScope(

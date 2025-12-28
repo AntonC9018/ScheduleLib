@@ -5,7 +5,6 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Options;
-using Microsoft.Graph;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 using Option = MainCli.BuilderNew.Impl.Option;
@@ -56,8 +55,12 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
     public async ValueTask Run(RunParams p)
     {
         var deadlinesExcelConfig = _deadlinesExcelConfigProvider.Get();
-        var labsValue = await _labsProvider.Get();
+        if (deadlinesExcelConfig is null)
+        {
+            throw new InvalidOperationException("Can't use the deadlines feature unless it's been configured.");
+        }
 
+        var labsValue = await _labsProvider.Get();
         var schedule = _schedule.Filter(
             FilterHelper.Builder()
                 .WithTeacher(_idProvider.Get())

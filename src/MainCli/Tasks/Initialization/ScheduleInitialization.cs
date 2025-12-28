@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AutoConstructor.Attributes;
 using MainCli.BuilderNew.Impl;
 using Anton.LayeredConfig.Retrieval;
@@ -44,12 +45,13 @@ public static class ServiceProviderHelper
 [AutoConstructor]
 public sealed partial class CurrentTeacherIdProvider
 {
-    private readonly ConfigProvider _configProvider;
+    private readonly ConfigProvider<TeacherLayerConfig> _configProvider;
     private readonly LookupFacade _lookup;
 
     public TeacherId Get()
     {
-        var teacherConfig = _configProvider.Get(TeacherLayerConfig.Key);
+        var teacherConfig = _configProvider.Get();
+        Debug.Assert(teacherConfig != null);
         var teacherName = teacherConfig.TeacherName;
         var ret = _lookup.Teacher(teacherName.ToNameModel())!.Value;
         return ret;

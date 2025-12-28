@@ -1,8 +1,10 @@
+using System.ComponentModel.DataAnnotations;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ScheduleLib.Scraping.Common.Config;
 
@@ -67,26 +69,6 @@ public static class CredentialsBuilderExtensions
     }
 }
 
-public static class CredentialsSourceResolver
-{
-    public static Credentials? GetCredentials(
-        IConfiguration config,
-        string serviceKey,
-        string nameKey)
-    {
-        if (config.GetSection(nameKey) is not { } nameSection)
-        {
-            return null;
-        }
-        if (nameSection.GetSection(serviceKey) is not { } serviceSection)
-        {
-            return null;
-        }
-        var ret = serviceSection.Get<Credentials>();
-        return ret;
-    }
-}
-
 public interface ICredentialsResolver
 {
     public Credentials? Resolve(
@@ -97,14 +79,14 @@ public interface ICredentialsResolver
 [AutoConstructor]
 public sealed partial class CredentialsResolver : ICredentialsResolver
 {
-    private readonly ICredentialsFromConfigurationResolver _fromConfigurationResolver;
+    private readonly DynamicOptionsResolver<Credentials> _resolver;
 
     public Credentials? Resolve(
         string serviceKey,
         CredentialsSource source)
     {
         // TODO: Support other types of sources.
-        var credentials = _fromConfigurationResolver.Get(serviceKey);
+        var credentials = _resolver.Resolve(serviceKey);
         if (credentials != null)
         {
             return credentials;
@@ -115,11 +97,6 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
         }
         return null;
     }
-}
-
-public interface ICredentialsFromConfigurationResolver
-{
-    public Credentials? Get(string serviceKey);
 }
 
 [AutoConstructor]
@@ -134,6 +111,10 @@ public sealed partial class CredentialsResolver<T>
     public Credentials Get()
     {
         var config = _provider.Get();
+        if (config is null)
+        {
+            throw new InvalidOperationException("No credential config found");
+        }
         var source = _sourceGetter(config);
         var ret = _generalResolver.Resolve(_serviceKey, source);
         return ret!;

@@ -43,6 +43,7 @@
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
         <PackageReference Include="ClosedXML" Version="0.105.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 
     <ItemGroup>

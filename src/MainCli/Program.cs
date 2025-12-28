@@ -40,11 +40,12 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
+        AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
         // AppTask.CreateLessonsInRegistry,
-        AppTask.TableOfAllLabLessons,
+        // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
     ],

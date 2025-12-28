@@ -2,13 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
-using Microsoft.Extensions.Configuration;
 using OpenHolidays;
-using MainCli.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -79,130 +73,6 @@ public static class TasksHelper
             CancellationToken = cancellationToken,
         });
         return ret;
-    }
-
-    public struct UploadStuffToDriveParams
-    {
-        public required IConfiguration Configuration;
-        public required OutputDirectory OutputDirectory;
-        public required CancellationToken CancellationToken;
-    }
-
-    public static ClientSecrets GetDriveConfig(IConfiguration config)
-    {
-        var clientSecrets = config.GetSection("Google").Get<ClientSecrets>();
-        if (clientSecrets is null
-            || clientSecrets.ClientId == null
-            || clientSecrets.ClientSecret == null)
-        {
-            throw new InvalidOperationException("Configuration for google is missing");
-        }
-        return clientSecrets;
-    }
-
-    public static async Task UploadStuffToDrive(UploadStuffToDriveParams p)
-    {
-        string[] scopes = [
-            DriveService.Scope.DriveFile,
-            DriveService.Scope.Drive,
-        ];
-        var credPath = "google_token_store";
-        var clientSecrets = GetDriveConfig(p.Configuration);
-        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-            clientSecrets: clientSecrets,
-            scopes: scopes,
-            user: "user",
-            taskCancellationToken: CancellationToken.None,
-            dataStore: new FileDataStore(credPath, fullPath: true));
-
-        using var driveService = new DriveService(
-            new BaseClientService.Initializer
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "ScheduleLib",
-            });
-        _ = driveService;
-
-        var folderId = await driveService.FindFolderId("orar", p.CancellationToken);
-        var files = await driveService.GetFiles(folderId, p.CancellationToken);
-
-        var comparer = StringComparer.OrdinalIgnoreCase;
-        var existingLocalFiles = p.OutputDirectory
-            .FilePaths("*", new()
-            {
-                RecurseSubdirectories = true,
-            })
-            .Select(x => x.Path)
-            .ToHashSet(comparer);
-        var existingCloudFiles = files.Select(x => x.Name).ToHashSet(comparer);
-        var cloudFilesToDelete = new List<BasicDriveFile>();
-        var cloudFilesToUpdate = new List<BasicDriveFile>();
-        var cloudFilesToCreate = new List<string>();
-        foreach (var file in files)
-        {
-            if (existingLocalFiles.Contains(file.Name))
-            {
-                cloudFilesToUpdate.Add(file);
-            }
-            else
-            {
-                cloudFilesToDelete.Add(file);
-            }
-        }
-        foreach (var local in existingLocalFiles)
-        {
-            if (!existingCloudFiles.Contains(local))
-            {
-                cloudFilesToCreate.Add(local);
-            }
-        }
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(p.CancellationToken);
-        var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
-            driveService,
-            cloudFilesToDelete,
-            cts.Token);
-        var taskBuilder = ArrayBuilder.Create<Task>(
-            cloudFilesToCreate.Count
-            + cloudFilesToUpdate.Count
-            + batchDeleteOperation.BatchCount);
-        try
-        {
-            foreach (var deleteTask in batchDeleteOperation.Tasks)
-            {
-                taskBuilder.Add(deleteTask);
-            }
-            Stream File(string path)
-            {
-                var stream = p.OutputDirectory.OpenFile(path, FileMode.Open, FileAccess.Read);
-                return stream;
-            }
-            foreach (var fileName in cloudFilesToCreate)
-            {
-                await using var stream = File(fileName);
-                var t = driveService.UploadFile(
-                    stream,
-                    outputFileName: fileName,
-                    folderId: folderId,
-                    cancellationToken: cts.Token);
-                taskBuilder.Add(t);
-            }
-            foreach (var file in cloudFilesToUpdate)
-            {
-                await using var stream = File(file.Name);
-                var t = driveService.UpdateFile(
-                    stream,
-                    fileId: file.Id,
-                    cancellationToken: cts.Token);
-                taskBuilder.Add(t);
-            }
-            await Task.WhenAll(taskBuilder.Complete());
-        }
-        catch (Exception)
-        {
-            cts.Cancel();
-            throw;
-        }
     }
 
     public static async Task ParseDocumentDirIntoSchedule(
@@ -286,4 +156,3 @@ public static class TasksHelper
         }
     }
 }
-

@@ -44,6 +44,12 @@ public sealed class OutputDirectory
         }
     }
 
+    public IEnumerable<FileInDirectory> Files(string pattern, EnumerationOptions options)
+    {
+        return FilePaths(pattern, options)
+            .Select(x => File(x.Path));
+    }
+
     public IEnumerable<FilePath> FilePaths(string pattern, EnumerationOptions options)
     {
         var files = Directory.EnumerateFiles(

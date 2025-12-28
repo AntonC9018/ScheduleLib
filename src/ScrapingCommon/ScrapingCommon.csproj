@@ -7,14 +7,14 @@
         <PackageReference Include="AngleSharp" Version="1.2.0" />
         <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
 
-        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 
     <ItemGroup>

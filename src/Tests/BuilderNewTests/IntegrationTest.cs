@@ -26,6 +26,7 @@ public sealed class IntegrationTest
             await using var scope = fixture.ServiceProvider.CreateMarkerScope(marker);
             var provider = scope.ServiceProvider.GetRequiredService<ConfigProvider>();
             var config = provider.Get(LessonTopicsConfig.Key);
+            Assert.NotNull(config);
             list.Add(config);
         }
 
@@ -69,6 +70,7 @@ public sealed class IntegrationTest
             foreach (var key in configKeys)
             {
                 var config = configProvider.GetUntyped(key);
+                Assert.NotNull(config);
                 configsOfMarker.Add(config);
             }
         }

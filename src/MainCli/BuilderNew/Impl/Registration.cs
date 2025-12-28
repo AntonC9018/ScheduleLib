@@ -46,7 +46,7 @@ public static class Registration
 
             services.RegisterBasicOperationsAndMergers<MoodleConfig>();
 
-            services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
+            GoogleDriveConfig.Register(services);
 
             services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
             services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
@@ -60,14 +60,22 @@ public static class Registration
 
             // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
-            services.AddScoped<ICredentialsFromConfigurationResolver, CredentialsFromConfigurationResolver>();
+
+            // Binding config from IConfiguration
+            services.AddDynamicConfigurationBinders();
 
             services.AddConfigProvider(MoodleConfig.Key);
             services.AddCredentialsResolver<MoodleConfig>(serviceKey: "Moodle", x => x.Credentials!);
 
             services.AddConfigProvider(BuiltRegistryConfig.Key);
             services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
+        }
 
+        public void AddDynamicConfigurationBinders()
+        {
+            services.AddScoped<IConfigurationSectionResolver, ConfigurationSectionResolver>();
+            services.AddScoped(typeof(DynamicOptionsResolver<>), typeof(DynamicOptionsResolver<>));
+            services.AddScoped(typeof(DynamicOptionsBinder<>), typeof(DynamicOptionsBinder<>));
         }
 
         public void AddScheduleServices()
@@ -173,6 +181,7 @@ public static class Registration
                 services.AddScoped<CurrentTeacherIdProvider>();
                 services.AddScoped<ScopeFilteredScheduleProvider>();
                 services.AddScoped<LatestPeriodFilteredScheduleProvider>();
+                services.AddScoped<CurrentUserNameProvider>();
             }
 
             void AddOutputServices()
@@ -189,6 +198,7 @@ public static class Registration
                 services.AddOptions<ManifestDirectoriesOptions>();
                 services.AddStudyYear();
                 services.AddOptions<RegularSeminarDateConfig>();
+                services.AddOptions<GoogleDriveOptions>();
             }
         }
 
@@ -204,6 +214,7 @@ public static class Registration
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
+            services.AddScoped<SyncDriveFolderTaskHandler>();
         }
 
         public IConfiguration AddGlobalConfiguration()

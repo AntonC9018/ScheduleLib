@@ -54,7 +54,7 @@ public static class TestBuilderHelper
         // });
         b.Defaults.TeacherLayer("Anton Curmanschii", t =>
         {
-            t.Drive();
+            t.GoogleDrive();
 
             t.Registry().ConfigureLayer(x =>
             {

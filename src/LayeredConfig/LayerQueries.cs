@@ -87,7 +87,7 @@ public static class LayerQueries
     {
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();
         var merger = serviceProvider.GetRequiredService<IMerger<T>>();
-        var current = basicOperations.Empty();
+        T? current = null;
         bool remove = false;
 
         foreach (var layer in path.Path)

@@ -54,6 +54,10 @@ public static class ConfigExtensions
             services.AddScoped<IRegistryErrorHandler>(sp =>
             {
                 var config = sp.GetRequiredService<ConfigProvider<BuiltRegistryConfig>>().Get();
+                if (config is null)
+                {
+                    throw new InvalidOperationException("Registry not enabled.");
+                }
                 var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
                 if (config.ExtraLessonInstanceAction is { } action)
                 {

@@ -34,7 +34,7 @@ public static class DefaultConfig
             defaults.Registry().Credentials().FromConfig();
             defaults.Moodle().Credentials().FromConfig(isRequired: true);
 
-            defaults.DeadlinesExcel().Configure(x =>
+            defaults.DeadlinesExcel().ConfigureValue(x =>
             {
                 x.BadColor = Color.Red;
                 x.GoodColor = Color.LightGreen;
@@ -42,11 +42,19 @@ public static class DefaultConfig
                 x.MaxTaskRows = 40;
                 x.ColumnWidth = 5;
             });
+
+            defaults.GoogleDrive().ConfigureValue(x =>
+            {
+                x.CredentialsPath = "google_token_store";
+                x.DriveFolderName = "orar";
+                x.SaveCredentials = true;
+                x.ApiKeysSource = new ConfigurationApiKeysSource();
+            });
         });
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
-            t.Drive();
+            t.GoogleDrive();
 
             t.Registry().ConfigureLayer(x =>
             {
@@ -56,12 +64,15 @@ public static class DefaultConfig
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
             });
-            t.Builder(LabTasksDatabaseConfig.Key).Configure(x =>
+            t.LabTasks().ConfigureValue(x =>
             {
                 const string baseUrl = "https://github.com/AntonC9018/uniCourse_dataStructuresAndAlgorithms/blob/master/ru/labs/";
 
                 x.Course("C++")
-                    .Option(new(Language: Language.Ru))
+                    .Option(opt =>
+                    {
+                        opt.Language(Language.Ru);
+                    })
                     .ManualSource(s =>
                     {
                         s.Add(new()

@@ -6,7 +6,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using MainCli.BuilderNew.Impl;
 using ScheduleLib;
-using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;

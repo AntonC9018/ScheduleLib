@@ -219,7 +219,7 @@ public static class BaseExtensions
         {
             builder.Enable().Flags.Clean = true;
         }
-        public void Configure(Action<T> configure)
+        public void ConfigureValue(Action<T> configure)
         {
             configure(builder.Enable().Value);
         }

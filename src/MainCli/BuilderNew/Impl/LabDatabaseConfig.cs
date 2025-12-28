@@ -58,29 +58,48 @@ public readonly record struct CourseLabTasksBuilder(
     LabTasksDatabaseConfig Config,
     string CourseName);
 
+
+public readonly ref struct OptionBuilder(ref Option value)
+{
+    private readonly ref Option _value = ref value;
+    public void Language(Language lang) => _value = _value with { Language = lang };
+    public void Type(string type) => _value = _value with { Type = type };
+}
+
 public static class LabTasksBuilderExtensions
 {
     extension (CourseLabTasksBuilder builder)
     {
-        public CourseOptionLabTasksBuilder Option(Option option)
+        public CourseOptionLabTasksBuilder Option(Action<OptionBuilder> configure)
         {
-            return new(builder, option);
+            var opt = new Option();
+            var optBuilder = new OptionBuilder(ref opt);
+            configure(optBuilder);
+            return new(builder, opt);
         }
         public CourseOptionLabTasksBuilder Default()
         {
-            return builder.Option(Impl.Option.Default);
+            return builder.Option(x =>
+            {
+                _ = x;
+            });
         }
     }
     extension (CourseOptionLabTasksBuilder c)
     {
-        public CourseOptionLabTasksBuilder ManualSource(Action<List<LabTask>> configure)
+        public void AddSource(LabTasksSource source)
         {
-            var source = new ManualLabTaskSource();
             // NOTE TO SELF:
             // The issue here is that it might get duplicate keys.
             // Resolving keys is only possible with a service provider.
-            c.Builder.Config.Sources.Add(source);
             source.Key = new(c.Builder.CourseName, c.Option);
+            c.Builder.Config.Sources.Add(source);
+        }
+
+        public CourseOptionLabTasksBuilder ManualSource(Action<List<LabTask>> configure)
+        {
+            var source = new ManualLabTaskSource();
+            c.AddSource(source);
             configure(source.Tasks);
             return c;
         }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
@@ -116,6 +117,13 @@ public static class KeyEqualityComparer
             services.AddScoped<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
             services.AddScoped<IBasicOperations<TBase>, OpenHierarchyBasicOperations<TBase>>();
         }
+
+        public void SetImmutable<T>()
+            where T : class
+        {
+            services.AddMerger<ImmutableObjectsMerger<T>>();
+            services.AddBasicOperations<ImmutableClassBasicOperations<T>>();
+        }
     }
 }
 
@@ -132,6 +140,11 @@ public sealed class OpenHierarchyBasicOperations<T> : IBasicOperations<T>
     public T? Empty() => null;
     public T Copy(T from) => CallCopyHelper.CopyUsingService(_sp, from);
     public T? Reset(T? item) => null;
+}
+
+public sealed class ImmutableObjectsMerger<T> : IMerger<T>
+{
+    public T Merge(T from, T? into) => from;
 }
 
 public sealed class OpenHierarchyMerger<T> : IMerger<T>

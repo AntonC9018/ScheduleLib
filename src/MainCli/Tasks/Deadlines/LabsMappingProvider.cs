@@ -21,6 +21,10 @@ public sealed partial class LabsMappingProvider
     public async ValueTask<LabsValue> Get()
     {
         var config = _configProvider.Get();
+        if (config == null)
+        {
+            return LabsValue.Empty;
+        }
         var builder = new Dictionary<(CourseId CourseId, Option Option), LabTasksSource>();
         foreach (var s in config.Sources)
         {
@@ -76,6 +80,7 @@ public sealed partial class LabsMappingProvider
         private readonly T _dict;
 
         public List<LabMapping>? Get(CourseId c) => _dict.GetValueOrDefault(c);
+        public static LabsValue Empty => new([]);
     }
 
     [LoggerMessage(LogLevel.Warning, "No such course found {CourseName}")]

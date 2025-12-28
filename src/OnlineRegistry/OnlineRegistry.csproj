@@ -18,7 +18,7 @@
 
     <ItemGroup>
         <PackageReference Include="ClosedXML" Version="0.105.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftPackagesVersion)" />
         <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
     </ItemGroup>
 </Project>

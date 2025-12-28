@@ -21,6 +21,10 @@ public sealed partial class MoodleConfigHelper
     public Credentials? GetCredentials()
     {
         var config = _configProvider.Get(MoodleConfig.Key);
+        if (config is null)
+        {
+            return null;
+        }
         if (config.Credentials == null)
         {
             return null;

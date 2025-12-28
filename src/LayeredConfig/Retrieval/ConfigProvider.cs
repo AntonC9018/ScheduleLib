@@ -14,12 +14,12 @@ public sealed partial class ConfigProvider
     private readonly IServiceProvider _sp;
     private readonly ConfigMappingRegistry _mappingRegistry;
 
-    public object GetUntyped(LayerConfigKey key)
+    public object? GetUntyped(LayerConfigKey key)
     {
         var type = LayerConfigKey.Registry.GetTypeFromKey(key);
         return GetUntypedInternal(type, key);
     }
-    private object GetUntypedInternal(Type outputType, LayerConfigKey key)
+    private object? GetUntypedInternal(Type outputType, LayerConfigKey key)
     {
         // TODO: Cache globally maybe
         var method = GetConfigMethod.MakeGenericMethod(outputType);
@@ -28,18 +28,18 @@ public sealed partial class ConfigProvider
         var ret = func(key);
         return ret;
     }
-    private delegate object GetUntypedDelegate(LayerConfigKey key);
+    private delegate object? GetUntypedDelegate(LayerConfigKey key);
 
     private static readonly MethodInfo GetConfigMethod =
         typeof(ConfigProvider).GetMethod(nameof(GetConfigWrapper), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
-    private object GetConfigWrapper<T>(LayerConfigKey key)
+    private object? GetConfigWrapper<T>(LayerConfigKey key)
         where T : class
     {
         return Get<T>(new(key));
     }
 
-    public T Get<T>(LayerConfigKey<T> key)
+    public T? Get<T>(LayerConfigKey<T> key)
         where T : class
     {
         var markerConfig = _helper.GetMarkerConfig(_sp);
@@ -54,6 +54,10 @@ public sealed partial class ConfigProvider
             var unmappedConfig = GetUntypedInternal(
                 outputType: mapping.From,
                 key: key.Value);
+            if (unmappedConfig is null)
+            {
+                return null;
+            }
             var mappedConfig = mapping.Mapper.Map(
                 from: unmappedConfig);
             return (T) mappedConfig;
@@ -73,7 +77,6 @@ public sealed partial class ConfigProvider
         }
 
         var config = path.ConstructConfig(key, _sp);
-        Debug.Assert(config != null);
         return config;
     }
 }
@@ -84,7 +87,7 @@ public sealed partial class ConfigProvider<T> where T : class
     private readonly ConfigProvider _provider;
     private readonly LayerConfigKey<T> _key;
 
-    public T Get() => _provider.Get(_key);
+    public T? Get() => _provider.Get(_key);
 }
 
 public static class ConfigProviderHelper

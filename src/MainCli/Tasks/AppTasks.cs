@@ -40,7 +40,7 @@ public static class AppTasks
     public static async Task ExecuteMenu(AppTasksExecutionContext context)
     {
         await context.RootServiceProvider.InitializeSchedule(context.CancellationToken);
-        context.OutputDirectory.Initialize();
+        context.OutputDirectory.Initialize(clear: true);
 
         foreach (var option in context.SelectedOptions)
         {
@@ -63,19 +63,17 @@ public static class AppTasks
         {
             case AppTask.UploadDocsToDrive:
             {
-                c.OutputDirectory.Clear();
-
                 Task[] tasks = [
                     GenerateAllTeacherExcel(c),
                     GenerateFreeRoomsExcel(c),
                     GeneratePdfsForGroupsAndTeachers(c),
                 ];
                 await Task.WhenAll(tasks);
-                await TasksHelper.UploadStuffToDrive(new()
+                var handler = c.Services.GetRequiredService<SyncDriveFolderTaskHandler>();
+                await handler.Run(new()
                 {
-                    Configuration = c.Services.GetRequiredService<IConfiguration>(),
+                    FilesProvider = new OutputDirectoryFilesProvider(c.OutputDirectory),
                     CancellationToken = c.CancellationToken,
-                    OutputDirectory = c.OutputDirectory,
                 });
                 return;
             }
@@ -165,8 +163,6 @@ public static class AppTasks
 
             case AppTask.JsonSchedulesForWebsite:
             {
-                c.OutputDirectory.Clear();
-
                 var services1 = new WebsiteJsonScheduleHelper.Services
                 {
                     ParityDisplay = new(),
@@ -255,8 +251,6 @@ public static class AppTasks
         return Task.Run(async () =>
         {
             var handler = c.Services.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>();
-            c.OutputDirectory.Clear();
-
             await handler.Run(new()
             {
                 CancellationToken = c.CancellationToken,
@@ -283,9 +277,13 @@ public static class AppTasks
 
     public static StudentAttendanceList GetAttendanceListOfCurrentTeacher(TaskExecutionContext c)
     {
-        var filteredSchedule = c.Services.ScopedSchedule();
-
         var attendanceConfig = c.Services.GetRequiredService<ConfigProvider<LessonAttendanceConfig>>().Get();
+        if (attendanceConfig is null)
+        {
+            return new([]);
+        }
+
+        var filteredSchedule = c.Services.ScopedSchedule();
         var builder = new AllStudentAttendanceListBuilder();
         foreach (var source in attendanceConfig.Sources)
         {
@@ -315,9 +313,14 @@ public static class AppTasks
 
     public static async ValueTask<ILessonTopics> GetLessonTopicsOfCurrentTeacher(TaskExecutionContext c)
     {
+        var config1 = c.Services.GetRequiredService<ConfigProvider>().Get(LessonTopicsConfig.Key);
+        if (config1 == null)
+        {
+            return NoLessonTopics.Instance;
+        }
+
         var filteredSchedule = c.Services.ScopedSchedule();
         var builder = new AllLessonTopicsDatabaseBuilder(filteredSchedule);
-        var config1 = c.Services.GetRequiredService<ConfigProvider>().Get(LessonTopicsConfig.Key);
         foreach (var x in config1.Sources)
         {
             var source = x.Create(c.Services);

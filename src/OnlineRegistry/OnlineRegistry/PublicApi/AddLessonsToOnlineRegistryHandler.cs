@@ -38,6 +38,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         var notFoundStudents = new List<Name>();
 
         var config = _configProvider.Get();
+        if (config is null)
+        {
+            throw new InvalidOperationException("Online registry not configured.");
+        }
+
         var coursesNav = p.Navigator.Courses();
         var groupsNav = p.Navigator.Groups();
 
