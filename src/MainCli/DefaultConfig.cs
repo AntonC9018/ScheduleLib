@@ -24,6 +24,7 @@ public static class DefaultConfig
                 var f = CommandProcessingConfig.DryRun
                     .WithLog(LessonEquationCommandTypes.All);
                 x.ProcessingFlags(f);
+                x.Credentials().FromConfig();
             });
 
             defaults.LessonTopics().Manifest(topics =>
@@ -31,7 +32,6 @@ public static class DefaultConfig
                 _ = topics;
             });
 
-            defaults.Registry().Credentials().FromConfig();
             defaults.Moodle().Credentials().FromConfig(isRequired: true);
 
             defaults.DeadlinesExcel().ConfigureValue(x =>
@@ -103,7 +103,7 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Nartea Nichita", t =>
         {
-            t.Moodle().NoInherit();
+            t.Moodle().Remove();
 
             t.LessonTopics().ConfigureLayer(x =>
             {

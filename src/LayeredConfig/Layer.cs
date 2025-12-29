@@ -74,14 +74,9 @@ public sealed class MutableLayer
         return new(container);
     }
 
-    public LayerConfigContainer<T> GetOrAdd<T>(
-        LayerConfigKey<T> key,
-        Func<T> factory) where T : class
+    public LayerConfigContainer<T> GetOrAdd<T>(LayerConfigKey<T> key) where T : class
     {
-        var container = _configs.GetOrAdd(key.Value, _ => new()
-        {
-            Value = factory(),
-        });
+        var container = _configs.GetOrAdd(key.Value, _ => new());
         return new(container);
     }
 }

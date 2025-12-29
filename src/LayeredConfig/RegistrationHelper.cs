@@ -47,7 +47,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ListMerger<>).MakeGenericType(elementType);
-                    services.TryAddScoped(serviceType, implType);
+                    services.TryAddSingleton(serviceType, implType);
                 }
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
@@ -64,7 +64,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                     var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(type);
-                    if (services.TryAddScoped(serviceType, implType))
+                    if (services.TryAddSingleton(serviceType, implType))
                     {
                         added = true;
                     }
@@ -72,7 +72,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ReflectionMerger<>).MakeGenericType(type);
-                    if (services.TryAddScoped(serviceType, implType))
+                    if (services.TryAddSingleton(serviceType, implType))
                     {
                         added = true;
                     }

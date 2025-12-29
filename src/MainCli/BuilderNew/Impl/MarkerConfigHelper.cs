@@ -77,7 +77,7 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
                 {
                     return false;
                 }
-                return CheckEquality(c.Value.Value, config);
+                return CheckEquality(c.Value.GetValue(), config);
             })
             .FirstOrDefault();
         if (path == default)
@@ -90,8 +90,12 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
         }
         return path;
 
-        static bool CheckEquality(TeacherLayerConfig existing, TeacherLayerConfig scoped)
+        static bool CheckEquality(TeacherLayerConfig? existing, TeacherLayerConfig scoped)
         {
+            if (existing is null)
+            {
+                return false;
+            }
             if (!existing.TeacherName.Equals(scoped.TeacherName))
             {
                 return false;

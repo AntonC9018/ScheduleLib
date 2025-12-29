@@ -14,14 +14,14 @@ public partial class Extensions
             var x = new ManifestSourceBuilder();
             configure?.Invoke(x);
 
-            var sources = builder.Enable().Value.Sources;
+            var sources = builder.Value().Sources;
             var source = new ManifestLessonTopicSourceDefinition();
             sources.Add(source);
         }
 
         public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
         {
-            var sources = builder.Enable().Value.FallbackProviders;
+            var sources = builder.Value().FallbackProviders;
             var x = sources.Find(x => x.LessonType == lessonType);
             if (x == null)
             {

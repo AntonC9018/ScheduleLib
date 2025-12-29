@@ -75,17 +75,17 @@ public static class ConfigExtensions
     {
         public void ExtraLessonAction(ExtraLessonInstanceAction action)
         {
-            builder.Enable().Value.ExtraLessonInstanceAction = action;
+            builder.Value().ExtraLessonInstanceAction = action;
         }
 
         public void CommandDerivation<T>() where T : IEquationCommandsDerivation, new()
         {
-            builder.Enable().Value.EquationCommandsDerivation = new T();
+            builder.Value().EquationCommandsDerivation = new T();
         }
 
         public void ProcessingFlags(CommandProcessingConfig flags)
         {
-            builder.Enable().Value.CommandProcessingConfig = flags;
+            builder.Value().CommandProcessingConfig = flags;
         }
     }
 }

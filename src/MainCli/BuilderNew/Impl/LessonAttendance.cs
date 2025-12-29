@@ -29,7 +29,7 @@ public partial class Extensions
 
         public void Source(string? filePath, Action<LessonAttendanceSource> configure)
         {
-            var config = builder.Enable().Value;
+            var config = builder.Value();
             // for now, use the file path as the id.
             var other = config.Sources.Find(other => other.FilePath == filePath);
             if (other is null)

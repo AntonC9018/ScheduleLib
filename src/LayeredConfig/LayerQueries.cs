@@ -69,8 +69,11 @@ public static class LayerQueries
             foreach (var path in ret)
             {
                 var last = path.Path[^1];
-                var config = last.Get(key).Value.Value;
-                yield return (path, config);
+                var config = last.Get(key).Value;
+                if (config.GetValue() is { } val)
+                {
+                    yield return (path, val);
+                }
             }
         }
 
@@ -86,9 +89,8 @@ public static class LayerQueries
         where T : class
     {
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();
-        var merger = serviceProvider.GetRequiredService<IMerger<T>>();
+        // var merger = serviceProvider.GetRequiredService<IMerger<T>>();
         T? current = null;
-        bool remove = false;
 
         foreach (var layer in path.Path)
         {
@@ -98,34 +100,20 @@ public static class LayerQueries
                 continue;
             }
 
-            if (remove)
+            if (current == null)
             {
-                throw new NotSupportedException("Appending context to a thing removed previously is not supported");
+                current = basicOperations.Empty();
             }
 
             var config = maybe.Value;
-            if (config.Flags.Remove)
-            {
-                remove = true;
-                continue;
-            }
-
-            if (config.Flags.Clean)
-            {
-                current = basicOperations.Reset(current);
-            }
-
-            current = merger.Merge(config.Value, current);
-
             foreach (var a in config.UpdateActions)
             {
-                a.Invoke(current);
+                if (current == null)
+                {
+                    break;
+                }
+                current = a.Update(serviceProvider, current);
             }
-        }
-
-        if (remove)
-        {
-            return null;
         }
         return current;
     }

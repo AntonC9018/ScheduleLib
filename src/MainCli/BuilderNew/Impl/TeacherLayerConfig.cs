@@ -20,7 +20,7 @@ public partial class Extensions
             var name = NameHelper.Parse(nameStr);
             var layerBuilder = builder.AddLayer(TeacherLayerKey);
             var teacherBuilder = layerBuilder.Builder<TeacherLayerConfig>();
-            teacherBuilder.Enable().Value.TeacherName = name;
+            teacherBuilder.Value().TeacherName = name;
             configure?.Invoke(layerBuilder);
             return layerBuilder;
         }

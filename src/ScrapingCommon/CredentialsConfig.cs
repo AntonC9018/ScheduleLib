@@ -36,7 +36,7 @@ public static class CredentialsBuilderExtensions
         public CredentialsSourceBuilder Credentials()
         {
             var t = new CredentialsSource();
-            builder.Enable().Value.Credentials = t;
+            builder.Value().Credentials = t;
             return new(t);
         }
     }

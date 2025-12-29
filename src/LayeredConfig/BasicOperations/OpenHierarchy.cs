@@ -113,9 +113,9 @@ public static class KeyEqualityComparer
         public void AddOpenHierarchy<TBase>()
             where TBase : class
         {
-            services.TryAddScoped<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
-            services.AddScoped<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
-            services.AddScoped<IBasicOperations<TBase>, OpenHierarchyBasicOperations<TBase>>();
+            services.TryAddSingleton<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
+            services.AddSingleton<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
+            services.AddSingleton<IBasicOperations<TBase>, OpenHierarchyBasicOperations<TBase>>();
         }
 
         public void SetImmutable<T>()

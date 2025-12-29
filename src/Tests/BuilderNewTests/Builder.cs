@@ -92,8 +92,8 @@ public static class TestBuilderHelper
 
         b.Defaults.TeacherLayer("Tamara Iatasina", t =>
         {
-            t.Moodle().NoInherit();
-            t.LessonTopics().NoInherit();
+            t.Moodle().Remove();
+            t.LessonTopics().Remove();
         });
 
         return b;
