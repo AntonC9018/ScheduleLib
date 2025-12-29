@@ -16,6 +16,7 @@ public static class MarkerConfigExtension
         // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
         services.AddScoped<TeacherLayerConfig>();
         services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
+        services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
         services.AddConfigProvider(TeacherLayerConfig.Key);
     }
 
@@ -51,14 +52,11 @@ public static class MarkerConfigExtension
 public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConfig>
 {
     private readonly ApplicationConfigBuilder _builder;
-    private readonly IEqualityComparer<TeacherLayerConfig> _comparer;
 
     public MarkerConfigHelper(
-        ApplicationConfigBuilder builder,
-        IEqualityComparer<TeacherLayerConfig>? comparer = null)
+        ApplicationConfigBuilder builder)
     {
         _builder = builder;
-        _comparer = comparer ?? EqualityComparer<TeacherLayerConfig>.Default;
     }
 
     protected override TeacherLayerConfig GetMarkerConfig(IServiceProvider sp)
@@ -72,7 +70,7 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
         var path = _builder.BaseLayer
             .GetPathsOfDescendantsOrSelf(x =>
             {
-                var c = x.Get(TeacherLayerConfig.Key);
+                var c = x.GetConfig(TeacherLayerConfig.Key);
                 if (!c.Exists)
                 {
                     return false;

@@ -19,7 +19,7 @@ public static class TestBuilderHelper
         // they will take effect if later they are not overriden,
         b.Defaults.Configure(defaults =>
         {
-            defaults.Registry().ConfigureLayer(x =>
+            defaults.Registry().Configure(x =>
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
@@ -56,7 +56,7 @@ public static class TestBuilderHelper
         {
             t.GoogleDrive();
 
-            t.Registry().ConfigureLayer(x =>
+            t.Registry().Configure(x =>
             {
                 x.ProcessingFlags(CommandProcessingConfig.None);
             });
@@ -68,7 +68,7 @@ public static class TestBuilderHelper
                 // each format has specific configurations like header configs for excel.
                 // attendance.SetPath();
             });
-            t.LessonTopics().ConfigureLayer(topics =>
+            t.LessonTopics().Configure(topics =>
             {
                 topics.Manifest();
                 // If this is set, it won't register the default source.

@@ -1,5 +1,6 @@
 using Anton.LayeredConfig;
 using MainCli.Topics;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 
 namespace MainCli.BuilderNew.Impl;
@@ -19,7 +20,8 @@ public partial class Extensions
             sources.Add(source);
         }
 
-        public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
+        public void FallbackProvider<T>(LessonType lessonType)
+            where T : ILessonNameProvider
         {
             var sources = builder.Value().FallbackProviders;
             var x = sources.Find(x => x.LessonType == lessonType);
@@ -31,7 +33,7 @@ public partial class Extensions
                 };
                 sources.Add(x);
             }
-            x.Provider = provider;
+            x.Provider = ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
         }
     }
 

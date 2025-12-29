@@ -65,11 +65,11 @@ public static class LayerQueries
             LayerConfigKey<T> key)
             where T : class
         {
-            var ret = layer.GetPathsOfDescendantsOrSelf(x => x.Get(key).Exists);
+            var ret = layer.GetPathsOfDescendantsOrSelf(x => x.GetConfig(key).Exists);
             foreach (var path in ret)
             {
                 var last = path.Path[^1];
-                var config = last.Get(key).Value;
+                var config = last.GetConfig(key).Value;
                 if (config.GetValue() is { } val)
                 {
                     yield return (path, val);
@@ -94,7 +94,7 @@ public static class LayerQueries
 
         foreach (var layer in path.Path)
         {
-            var maybe = layer.Get(key);
+            var maybe = layer.GetConfig(key);
             if (!maybe.Exists)
             {
                 continue;

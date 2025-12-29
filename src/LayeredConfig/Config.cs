@@ -34,39 +34,9 @@ public readonly record struct LayerConfigKey(string Value) : ICreateFromString<L
     public static LayerConfigKey Create(string val) => new(val);
 }
 
-public interface IUpdateActionBase
-{
-}
-
-public interface IUpdater<T> : IUpdateActionBase
-    where T : class
-{
-    public T? Update(IServiceProvider sp, T value);
-}
-
-public sealed class MergeValueUpdater<T> : IUpdater<T>
-    where T : class
-{
-    public T Value { get; set; }
-
-    public MergeValueUpdater(T initialValue)
-    {
-        Value = initialValue;
-    }
-
-    public T? Update(IServiceProvider sp, T value)
-    {
-        var merger = sp.GetRequiredService<IMerger<T>>();
-        var ret = merger.Merge(from: Value, into: value);
-        return ret;
-    }
-}
-
 public sealed class LayerConfigContainer
 {
-    // Think about making the regular config value system into a subsystem of UpdateActions.
-    // Think about using an interface instead of a Delegate here.
-    public List<IUpdateActionBase>? UpdateActions = null;
+    internal IReadOnlyList<IUpdaterBase>? UpdateActions = null;
 }
 
 public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
@@ -79,7 +49,24 @@ public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
         _impl = impl;
     }
 
-    private readonly List<IUpdateActionBase> List() => _impl.UpdateActions ??= new();
+    public readonly List<IUpdater<T>> List()
+    {
+        if (_impl.UpdateActions is not { } val)
+        {
+            val = new List<IUpdater<T>>();
+            _impl.UpdateActions = val;
+        }
+        return (List<IUpdater<T>>) val;
+    }
+    public readonly List<IUpdater<T>>? MaybeList()
+    {
+        if (_impl.UpdateActions is { } val)
+        {
+            return (List<IUpdater<T>>) val;
+        }
+        return null;
+    }
+
     public readonly void Add(IUpdater<T> value) => List().Add(value);
 
     public IEnumerator<IUpdater<T>> GetEnumerator()
@@ -88,9 +75,9 @@ public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
         {
             yield break;
         }
-        foreach (var x in _impl.UpdateActions)
+        foreach (var x in (List<IUpdater<T>>) _impl.UpdateActions)
         {
-            yield return (IUpdater<T>) x;
+            yield return x;
         }
     }
 
@@ -183,30 +170,17 @@ public interface IConfig<T> : IConfigBase
 public readonly struct ConfigBuilder<T>
     where T : class
 {
-    internal readonly MutableLayer _layer;
+    private readonly ApplicationConfigLayerBuilder _layer;
     public LayerConfigKey<T> ConfigKey { get; }
+    internal MutableLayer Layer => _layer.Layer;
+    public IServiceProvider SingletonServiceProvider => _layer.SingletonServiceProvider;
 
     public ConfigBuilder(
-        MutableLayer layer,
+        ApplicationConfigLayerBuilder layer,
         LayerConfigKey<T> configKey)
     {
         _layer = layer;
         ConfigKey = configKey;
-    }
-}
-
-public static class ConfigBuilder
-{
-    // public static ConfigBuilder<T> Create<T>(MutableLayer layer)
-    //     where T : class, IConfig<T>
-    // {
-    //     return new(layer, T.Key);
-    // }
-
-    public static ConfigBuilder<T> Create<T>(MutableLayer layer, LayerConfigKey<T> key)
-        where T : class
-    {
-        return new(layer, key);
     }
 }
 
@@ -223,32 +197,12 @@ public static class BaseExtensions
         public ConfigBuilder<T> Builder<T>(LayerConfigKey<T> key)
             where T : class
         {
-            return new(builder.Layer, key);
+            return new(builder, key);
         }
     }
 
     extension<T> (ConfigBuilder<T> builder)
         where T : class
-    {
-        public LayerConfigContainer<T> Enable(Func<T> factory)
-        {
-            var container = builder._layer.GetOrAdd(builder.ConfigKey);
-            container.SetValue(factory());
-            return container;
-        }
-    }
-
-    extension (MutableLayer layer)
-    {
-        public LayerConfigContainer<T> GetOrAdd<T>(LayerConfigKey<T> key)
-            where T : class, new()
-        {
-            return layer.GetOrAdd(key);
-        }
-    }
-
-    extension<T> (ConfigBuilder<T> builder)
-        where T : class, new()
     {
         public T ConfigureValue(Action<T> configure)
         {
@@ -259,12 +213,15 @@ public static class BaseExtensions
         public T Value()
         {
             var x = builder.Enable();
-            if (x.GetValue() is { } val)
+            if (x.GetValue() is not { } val)
             {
-                return val;
+                val = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Empty();
+                if (val is null)
+                {
+                    throw new InvalidOperationException("Root BasicOperations is supposed to create actual objects, not null.");
+                }
+                x.SetValue(val);
             }
-            val = new T();
-            x.SetValue(val);
             return val;
         }
     }
@@ -274,76 +231,11 @@ public static class BaseExtensions
     {
         public LayerConfigContainer<T> Enable()
         {
-            return builder._layer.GetOrAdd(builder.ConfigKey);
+            return builder.Layer.GetOrAddConfig(builder.ConfigKey);
         }
-        // TODO:
-        // Add validation that would deal with using stuff along this thing.
-        // They just won't run ever is the problem, so it's probably not desired.
-        public void Remove()
-        {
-            builder.AddUpdate(RemoveValueUpdater<T>.Instance);
-        }
-        public void ConfigureLayer(Action<ConfigBuilder<T>> configure)
+        public void Configure(Action<ConfigBuilder<T>> configure)
         {
             configure(builder);
         }
-        public void AddUpdate(IUpdater<T> updater)
-        {
-            builder.Enable().UpdateActions.Add(updater);
-        }
-        public void AddUpdate(Func<IServiceProvider, T, T?> updateAction)
-        {
-            var update = new DelegateUpdater<T>(updateAction);
-            builder.AddUpdate(update);
-        }
-        public void AddUpdate(Func<T, T?> updateAction)
-        {
-            builder.AddUpdate((sp, x) =>
-            {
-                _ = sp;
-                return updateAction(x);
-            });
-        }
-        public void AddUpdate(Action<T> updateAction)
-        {
-            builder.AddUpdate((sp, x) =>
-            {
-                _ = sp;
-                updateAction(x);
-                return x;
-            });
-        }
-    }
-}
-
-public sealed class DelegateUpdater<T> : IUpdater<T>
-    where T : class
-{
-    private readonly Func<IServiceProvider, T, T?> _action;
-
-    public DelegateUpdater(Func<IServiceProvider, T, T?> action)
-    {
-        _action = action;
-    }
-
-    public T? Update(IServiceProvider sp, T value) => _action(sp, value);
-}
-
-public sealed class RemoveValueUpdater<T> : IUpdater<T>
-    where T : class
-{
-    public static readonly RemoveValueUpdater<T> Instance = new();
-    public T? Update(IServiceProvider sp, T value) => null;
-}
-
-public sealed class ResetValueUpdater<T> : IUpdater<T>
-    where T : class
-{
-    public static readonly ResetValueUpdater<T> Instance = new();
-    public T? Update(IServiceProvider sp, T value)
-    {
-        var basicOps = sp.GetRequiredService<IBasicOperations<T>>();
-        var ret = basicOps.Reset(value);
-        return ret;
     }
 }

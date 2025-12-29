@@ -16,7 +16,7 @@ public static class DefaultConfig
     {
         b.Defaults.Configure(defaults =>
         {
-            defaults.Registry().ConfigureLayer(x =>
+            defaults.Registry().Configure(x =>
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
@@ -54,12 +54,10 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
-            t.GoogleDrive();
+            t.GoogleDrive().Enable();
 
-            t.Registry().ConfigureLayer(x =>
-            {
-                _ = x;
-            });
+            t.Registry().Enable();
+
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
@@ -95,9 +93,9 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Iatasina Tamara", t =>
         {
-            t.LessonTopics().ConfigureLayer(x =>
+            t.LessonTopics().Configure(x =>
             {
-                x.FallbackProvider(LessonType.Lab, new LabAutoNumberingNameProvider());
+                x.FallbackProvider<LabAutoNumberingNameProvider>(LessonType.Lab);
             });
         });
 
@@ -105,10 +103,10 @@ public static class DefaultConfig
         {
             t.Moodle().Remove();
 
-            t.LessonTopics().ConfigureLayer(x =>
+            t.LessonTopics().Configure(x =>
             {
-                x.FallbackProvider(LessonType.Curs, new NoNameProvider());
-                x.FallbackProvider(LessonType.Lab, new NoNameProvider());
+                x.FallbackProvider<NoNameProvider>(LessonType.Curs);
+                x.FallbackProvider<NoNameProvider>(LessonType.Lab);
             });
         });
     }
