@@ -1,0 +1,31 @@
+name;lessonType
+Сложность программы. Упрощение и абстракция как основные инструменты борьбы со сложностью кода;Curs
+Повторение синтаксиса классов и функций;Lab
+Инкапсуляция операций и данных на уровне функции, класса и модуля;Curs
+Повторение концептов алгоритма, абстракции, инкапсуляции, полиморфизма, интерфейса;Lab
+Field Mask;Curs
+Field Mask;Lab
+Pipeline. Контекст. Адаптер;Curs
+Pipeline;Lab
+Builder. Mutable vs Immutable модели данных;Curs
+Pipeline;Lab
+Pipeline;Lab
+Builder Scope. Fluent Builder;Curs
+Builder;Lab
+Аттестация 1;Curs
+Builder;Lab
+Типизированные идентификаторы. Инкапсуляция способа хранения сущностей;Curs
+Builder;Lab
+Динамические хранилища свойств. Подходы с массивом, словарем, ECS. Типизированный ключ;Curs
+Динамические хранилища свойств;Lab
+Связь между проектами. Solution файлы;Curs
+Динамические хранилища свойств;Lab
+Unit тесты. Snapshot тесты. Понятие Integration тест.;Curs
+Тестирование кода;Lab
+Зависимости. Инкапсуляция зависимостей. Сервисы. Dependency Injection и Inversion of Control;Curs
+Зависимости;Lab
+Dependency Inversion. Принцип Single Responsibility. Усложненный пример с зависимостями;Curs
+Зависимости;Lab
+Аттестация 2;Curs
+Использование DI контейнера. Пробная имплементация DI контейнера;Curs
+DI контейнер;Lab

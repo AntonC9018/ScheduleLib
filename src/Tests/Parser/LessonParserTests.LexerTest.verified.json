@@ -1,0 +1,198 @@
+﻿[
+  {
+    "Type": "Word",
+    "Value": "15",
+    "Row": 1,
+    "ColStart": 0,
+    "ColEnd": 2
+  },
+  {
+    "Type": "Separator",
+    "Value": ":",
+    "Row": 1,
+    "ColStart": 2,
+    "ColEnd": 3
+  },
+  {
+    "Type": "Word",
+    "Value": "00",
+    "Row": 1,
+    "ColStart": 3,
+    "ColEnd": 5
+  },
+  {
+    "Type": "Whitespace",
+    "Value": " ",
+    "Row": 1,
+    "ColStart": 5,
+    "ColEnd": 6
+  },
+  {
+    "Type": "ShortWord",
+    "Value": "Opț.",
+    "Row": 1,
+    "ColStart": 6,
+    "ColEnd": 10
+  },
+  {
+    "Type": "ShortWord",
+    "Value": "psihol.",
+    "Row": 1,
+    "ColStart": 10,
+    "ColEnd": 17
+  },
+  {
+    "Type": "Whitespace",
+    "Value": " ",
+    "Row": 1,
+    "ColStart": 17,
+    "ColEnd": 18
+  },
+  {
+    "Type": "ModifierGroupStart",
+    "Value": "(",
+    "Row": 1,
+    "ColStart": 18,
+    "ColEnd": 19
+  },
+  {
+    "Type": "Word",
+    "Value": "curs",
+    "Row": 1,
+    "ColStart": 19,
+    "ColEnd": 23
+  },
+  {
+    "Type": "Separator",
+    "Value": ",",
+    "Row": 1,
+    "ColStart": 23,
+    "ColEnd": 24
+  },
+  {
+    "Type": "Word",
+    "Value": "imp",
+    "Row": 1,
+    "ColStart": 24,
+    "ColEnd": 27
+  },
+  {
+    "Type": "ModifierGroupEnd",
+    "Value": ")",
+    "Row": 1,
+    "ColStart": 27,
+    "ColEnd": 28
+  },
+  {
+    "Type": "Separator",
+    "Value": ",",
+    "Row": 1,
+    "ColStart": 28,
+    "ColEnd": 29
+  },
+  {
+    "Type": "EndOfLine",
+    "Value": "",
+    "Row": 1,
+    "ColStart": 29,
+    "ColEnd": 29
+  },
+  {
+    "Type": "Word",
+    "Value": "Psihologie",
+    "Row": 2,
+    "ColStart": 0,
+    "ColEnd": 10
+  },
+  {
+    "Type": "Whitespace",
+    "Value": " ",
+    "Row": 2,
+    "ColStart": 10,
+    "ColEnd": 11
+  },
+  {
+    "Type": "ModifierGroupStart",
+    "Value": "(",
+    "Row": 2,
+    "ColStart": 11,
+    "ColEnd": 12
+  },
+  {
+    "Type": "Word",
+    "Value": "sem",
+    "Row": 2,
+    "ColStart": 12,
+    "ColEnd": 15
+  },
+  {
+    "Type": "Separator",
+    "Value": ",",
+    "Row": 2,
+    "ColStart": 15,
+    "ColEnd": 16
+  },
+  {
+    "Type": "Word",
+    "Value": "par",
+    "Row": 2,
+    "ColStart": 16,
+    "ColEnd": 19
+  },
+  {
+    "Type": "ModifierGroupEnd",
+    "Value": ")",
+    "Row": 2,
+    "ColStart": 19,
+    "ColEnd": 20
+  },
+  {
+    "Type": "EndOfLine",
+    "Value": "",
+    "Row": 2,
+    "ColStart": 20,
+    "ColEnd": 20
+  },
+  {
+    "Type": "ShortWord",
+    "Value": "V.",
+    "Row": 3,
+    "ColStart": 0,
+    "ColEnd": 2
+  },
+  {
+    "Type": "Word",
+    "Value": "Miron",
+    "Row": 3,
+    "ColStart": 2,
+    "ColEnd": 7
+  },
+  {
+    "Type": "Whitespace",
+    "Value": "  ",
+    "Row": 3,
+    "ColStart": 7,
+    "ColEnd": 9
+  },
+  {
+    "Type": "Word",
+    "Value": "433/3",
+    "Row": 3,
+    "ColStart": 9,
+    "ColEnd": 14
+  },
+  {
+    "Type": "EndOfLine",
+    "Value": "",
+    "Row": 3,
+    "ColStart": 14,
+    "ColEnd": 14
+  },
+  {
+    "Type": "EndOfStream",
+    "Value": "",
+    "Row": 3,
+    "ColStart": 14,
+    "ColEnd": 14
+  }
+]

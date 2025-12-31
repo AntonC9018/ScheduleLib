@@ -1,6 +1,6 @@
 using ScheduleLib.Parsing.CourseName;
 
-namespace App.Tests;
+namespace ScheduleLib.ParserTests;
 
 public sealed class WordEnumerableTests
 {

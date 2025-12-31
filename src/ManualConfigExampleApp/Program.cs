@@ -623,12 +623,11 @@ var generator = new GroupColumnScheduleTableDocument(filteredSchedule, new()
     LessonTimeConfig = timeConfig,
     StringBuilder = new(),
     TimeSlotDisplay = timeSlotDisplayHandler,
-    LessonTextDisplayHandler = new(new()
-    {
-        ParityDisplay = new(),
-        LessonTypeDisplay = new(),
-        SubGroupNumberDisplay = new(),
-    }, new()
+    LessonTextDisplayHandler = new(
+        new(
+            parityDisplay: new(),
+            lessonTypeDisplay: new(),
+            subGroupNumberDisplay: new()), new()
     {
         PreferLongerTeacherName = true,
     }),

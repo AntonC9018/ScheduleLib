@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Builders;
 
@@ -20,10 +22,22 @@ public sealed class TeacherIdList : List<int>
 
 public readonly struct TeachersByLastName()
 {
-    private readonly Dictionary<string, TeacherIdList> _dict = new(IgnoreDiacriticsComparer.Instance);
+    private readonly Dictionary<NameParts<string?>, TeacherIdList> _dict = new(IgnoreDiacriticsAndCase_Name_Comparer.Instance);
 
-    public TeacherIdList? Get(string lastName) => _dict.GetValueOrDefault(lastName);
-    public TeacherIdList AddOrGet(string lastName) => _dict.GetOrAdd(lastName, _ => new());
+    // TODO:
+    // Restore span overloads.
+    // The problem is that generic NameParts<T> where T : allows ref struct is impossible.
+    public TeacherIdList? Get(LastName lastName)
+    {
+        _dict.TryGetValue(lastName, out var ret);
+        return ret;
+    }
+
+    public TeacherIdList AddOrGet(LastName lastName)
+    {
+        return _dict.GetOrAdd(lastName, _ => new());
+    }
+
     public void Clear() => _dict.Clear();
 }
 
@@ -32,12 +46,12 @@ public static class TeacherLookupHelper
     public static int FindIndexOfBestMatch(
         ScheduleBuilder s,
         TeacherIdList ids,
-        FirstNameParts<Word> firstName)
+        NameParts<Word> name)
     {
         return FindIndexOfBestMatch(
             CollectionsMarshal.AsSpan(s.Teachers.List),
             CollectionsMarshal.AsSpan(ids),
-            firstName);
+            name);
     }
 
     private enum FirstNameComparison
@@ -45,17 +59,18 @@ public static class TeacherLookupHelper
         AllFull,
         AllAsShort,
         EitherFullOrShort,
+        MatchFullAgainstShort,
         Count,
     }
 
     public static int FindIndexOfBestMatch(
         ReadOnlySpan<TeacherBuilderModel> teachers,
         ReadOnlySpan<int> ids,
-        FirstNameParts<Word> firstName)
+        NameParts<Word> name)
     {
-        Debug.Assert(firstName.A.Value.Length > 0);
-        Debug.Assert(firstName.All(w => w.Value != null));
-        bool onlyContainsFullNames = firstName.All(x => x == Word.Empty || x.LooksFull);
+        Debug.Assert(name[0].Value.Length > 0);
+        Debug.Assert(name.All(w => w.Value != null));
+        bool onlyContainsFullNames = name.All(x => x == Word.Empty || x.LooksFull);
 
         for (FirstNameComparison i = 0; i < FirstNameComparison.Count; i++)
         {
@@ -92,6 +107,10 @@ public static class TeacherLookupHelper
                     {
                         return !onlyContainsFullNames;
                     }
+                    case FirstNameComparison.MatchFullAgainstShort:
+                    {
+                        return onlyContainsFullNames;
+                    }
                     default:
                     {
                         throw Unreachable();
@@ -99,9 +118,9 @@ public static class TeacherLookupHelper
                 }
             }
 
-            bool CheckEquality(FirstNameParts<OptionalFirstNamePart> teacherName)
+            bool CheckEquality(NameParts<OptionalNamePart> teacherName)
             {
-                var nonEmptyCount = firstName.Count(x => x != Word.Empty);
+                var nonEmptyCount = name.Count(x => x != Word.Empty);
 
                 {
                     var teacherCount = teacherName.Count(x => !x.IsNull);
@@ -121,13 +140,13 @@ public static class TeacherLookupHelper
                             return false;
                         }
 
-                        return teacherName.EachEquals(firstName, (existingPart, newPart) =>
+                        return teacherName.EachEquals(name, (existingPart, newPart) =>
                         {
                             if (existingPart.Full is not { } full)
                             {
                                 return true;
                             }
-                            if (!IgnoreDiacriticsComparer.Instance.Equals(full, newPart.Value))
+                            if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(full, newPart.Value))
                             {
                                 return false;
                             }
@@ -142,13 +161,13 @@ public static class TeacherLookupHelper
                             return false;
                         }
 
-                        return teacherName.EachEquals(firstName, (existingPart, newPart) =>
+                        return teacherName.EachEquals(name, (existingPart, newPart) =>
                         {
                             if (existingPart.Short is not { } teacherShort)
                             {
                                 return true;
                             }
-                            if (IgnoreDiacriticsComparer.Instance.Equals(
+                            if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
                                     // Ignore the separators as well
                                     newPart.Span.Shortened.Value,
                                     new WordSpan(teacherShort).Shortened.Value))
@@ -160,57 +179,97 @@ public static class TeacherLookupHelper
                     }
                     case FirstNameComparison.EitherFullOrShort:
                     {
-                        return teacherName.EachEquals(firstName, (existingPart, newPart) =>
+                        return FullOrShort(teacherName, name);
+                    }
+                    case FirstNameComparison.MatchFullAgainstShort:
+                    {
+                        return teacherName.EachEquals(name, (existingPart, newPart) =>
                         {
                             if (existingPart.IsNull)
                             {
                                 return true;
                             }
 
-                            if (existingPart.Full is { } full)
-                            {
-                                bool matches = false;
-                                if (existingPart.Short is null)
-                                {
-                                    matches = IgnoreDiacriticsComparer.Instance.StartsWith(
-                                        full,
-                                        newPart.Span.Shortened.Value);
-                                }
-                                else if (newPart.LooksFull)
-                                {
-                                    matches = IgnoreDiacriticsComparer.Instance.Equals(
-                                        full,
-                                        newPart.Value);
-                                }
-                                if (matches)
-                                {
-                                    return true;
-                                }
-                            }
-                            if (existingPart.Short is { } teacherShort)
-                            {
-                                // Ignore the separators as well
-                                var longer = new WordSpan(teacherShort).Shortened.Value;
-                                var shorter = newPart.Span.Shortened.Value;
-                                if (longer.Length < shorter.Length)
-                                {
-                                    var t = longer;
-                                    longer = shorter;
-                                    shorter = t;
-                                }
+                            Debug.Assert(newPart.Span.LooksFull);
 
-                                if (IgnoreDiacriticsComparer.Instance.StartsWith(longer, shorter))
+                            var newFull = newPart.Span.Value;
+                            if (existingPart.Full is { } f)
+                            {
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
                                 {
                                     return true;
                                 }
+                                return false;
                             }
-                            return false;
+                            if (existingPart.Short is { } s)
+                            {
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                        newFull,
+                                        new Word(s).Span.Shortened.Value))
+                                {
+                                    return true;
+                                }
+                                return false;
+                            }
+                            throw Unreachable();
                         });
                     }
                     default:
                     {
                         throw Unreachable();
                     }
+                }
+
+                static bool FullOrShort(
+                    NameParts<OptionalNamePart> a,
+                    NameParts<Word> b)
+                {
+                    return a.EachEquals(b, (apart, bpart) =>
+                    {
+                        if (apart.IsNull)
+                        {
+                            return true;
+                        }
+
+                        if (apart.Full is { } full)
+                        {
+                            bool matches = false;
+                            if (apart.Short is null)
+                            {
+                                matches = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                    full,
+                                    bpart.Span.Shortened.Value);
+                            }
+                            else if (bpart.LooksFull)
+                            {
+                                matches = IgnoreDiacriticsAndCaseComparer.Instance.Equals(
+                                    full,
+                                    bpart.Value);
+                            }
+                            if (matches)
+                            {
+                                return true;
+                            }
+                        }
+                        if (apart.Short is { } teacherShort)
+                        {
+                            // Ignore the separators as well
+                            var longer = new WordSpan(teacherShort).Shortened.Value;
+                            var shorter = bpart.Span.Shortened.Value;
+                            if (longer.Length < shorter.Length)
+                            {
+                                var t = longer;
+                                longer = shorter;
+                                shorter = t;
+                            }
+
+                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                 }
             }
         }
@@ -224,10 +283,11 @@ public sealed class TeacherBuilderModel
     public NameModel Name;
     public PersonContacts Contacts;
 
-    public struct NameModel
+    public record struct NameModel
     {
-        public FirstNameParts<OptionalFirstNamePart> FirstName;
-        public string? LastName;
+        // Includes the . at the end
+        public NameParts<OptionalNamePart> FirstName;
+        public LastName LastName;
     }
 }
 
@@ -235,9 +295,9 @@ public static class TeacherBuilderHelper
 {
     public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        if (name.LastName is { } lastName)
+        if (!name.LastName.IsNull)
         {
-            name.LastName = s.RemapTeacherName(lastName);
+            name.LastName = s.RemapTeacherName(name.LastName);
         }
 
         Debug.Assert(name.FirstName.All(x =>
@@ -250,7 +310,6 @@ public static class TeacherBuilderHelper
         }));
 
         var list = Lookup1();
-
         if (FindId(list) is { } id)
         {
             var b = new TeacherBuilder
@@ -327,7 +386,7 @@ public static class TeacherBuilderHelper
     {
         foreach (ref var teacher in CollectionsMarshal.AsSpan(s.Teachers.List))
         {
-            if (teacher.Name.LastName == null)
+            if (teacher.Name.LastName.IsNull)
             {
                 throw new InvalidOperationException("The teacher last name must be initialized.");
             }
@@ -362,10 +421,10 @@ public readonly struct TeacherBuilder
         TeacherNameHelper.MaybeValidateInitialsCompatibility(newName);
         Model.Name.FirstName = newName;
 
-        LastName(name.LastName!, updateLookup: updateLookup);
+        LastName(name.LastName, updateLookup: updateLookup);
     }
 
-    public void ShortFirstName(FirstNameParts<Word> initials)
+    public void ShortFirstName(NameParts<Word> initials)
     {
         Debug.Assert(initials.Any(x => x != Word.Empty));
 
@@ -380,10 +439,10 @@ public readonly struct TeacherBuilder
         Model.Name.FirstName = firstName;
     }
 
-    public void FirstName(FirstNameParts<OptionalFirstNamePart> newFirstName)
+    public void FirstName(NameParts<OptionalNamePart> newName)
     {
         var firstName = Model.Name.FirstName;
-        firstName.Update(newFirstName, (old, new_) =>
+        firstName.Update(newName, (old, new_) =>
         {
             var full = new_.Full ?? old.Full;
             var short_ = new_.Short ?? old.Short;
@@ -404,7 +463,7 @@ public readonly struct TeacherBuilder
         Model.Name.FirstName = firstName;
     }
 
-    public void LastName(string lastName, bool updateLookup = true)
+    public void LastName(LastName lastName, bool updateLookup = true)
     {
         lastName = Schedule.RemapTeacherName(lastName);
 
@@ -416,7 +475,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (IgnoreDiacriticsComparer.Instance.Equals(prevLastName, lastName))
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(prevLastName, lastName))
         {
             return;
         }
@@ -426,7 +485,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (prevLastName != null)
+        if (prevLastName != default)
         {
             var people = lookup.TeachersByLastName.Get(prevLastName);
             Debug.Assert(people != null);
@@ -456,7 +515,7 @@ public static class TeacherNameHelper
         {
             throw new ArgumentException("The full name must contain a correct name syntax.", nameof(fullName));
         }
-        if (name.LastName is null)
+        if (name.LastName == default)
         {
             throw new ArgumentException("Last name must be provided.", nameof(fullName));
         }
@@ -473,112 +532,69 @@ public static class TeacherNameHelper
     /// F.-Name Last
     /// First-Name Last
     /// First-N. Last
+    /// First Last-Name
+    /// F.-N. Last-Name
+    /// etc.
     /// </summary>
     public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
     {
         static ReadOnlySpan<char> Separators() => [
             WordHelper.ShortenedWordCharacter,
             ' ',
-            TeacherConstants.DoubleNameSeparator];
+            NameConstants.DoubleNameSeparatorChar];
 
         var ret = new TeacherBuilderModel.NameModel();
-        var bparser = parser.BufferedView();
+        var nameA = ReadName(ref parser);
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
-        var result = bparser.SkipUntil(Separators());
-        if (!result.SkippedAny)
+        if (nameA.All(x => x.IsNull))
         {
             return ret;
         }
-
-        if (result.EndOfInput)
+        // If only a single name has been given, it's the last name.
+        if (parser.IsEmpty)
         {
-            ret.LastName = parser.Source;
-            parser.MoveTo(bparser.Position);
+            ret.LastName = new(MakeSureWithoutShortName(nameA));
             return ret;
         }
 
-        var firstNamePartE = ret.FirstName.AsRef().GetEnumerator();
-        while (true)
+        ret.FirstName = nameA;
+
+        RequireSpaceAfterFirstName(ref parser);
+        if (parser.Current == ' ')
         {
-            if (!firstNamePartE.MoveNext())
-            {
-                throw new InvalidOperationException("Too many name parts.");
-            }
-
-            bool isShort = false;
-            if (bparser.Current == WordHelper.ShortenedWordCharacter)
-            {
-                bparser.Move();
-                isShort = true;
-            }
-
-            var nameSpan = parser.PeekSpanUntilPosition(bparser.Position);
-            var namePartString = nameSpan.ToString();
-
-            ref var currentOutput = ref firstNamePartE.Current;
-            if (isShort)
-            {
-                currentOutput.Short = namePartString;
-            }
-            else
-            {
-                currentOutput.Full = namePartString;
-            }
-
-            bparser.SkipWhitespace();
-
-            if (bparser.IsEmpty)
-            {
-                parser.MoveTo(bparser.Position);
-                break;
-            }
-
-            if (bparser.Current != TeacherConstants.DoubleNameSeparator)
-            {
-                break;
-            }
-            bparser.Move();
-
-            RequireFirstNameAfterDash(ref bparser);
-            bparser.SkipWhitespace();
-            RequireFirstNameAfterDash(ref bparser);
-
-            parser.MoveTo(bparser.Position);
-
-            var skipResult = bparser.SkipUntil(Separators());
-            if (skipResult.EndOfInput)
-            {
-                break;
-            }
+            parser.Move();
         }
+        RequireSpaceAfterFirstName(ref parser);
 
-        RequireSpaceAfterFirstName(ref bparser);
-        if (bparser.Current == ' ')
-        {
-            bparser.Move();
-        }
-        RequireSpaceAfterFirstName(ref bparser);
-
-        if (bparser.Current == ' ')
+        if (parser.Current == ' ')
         {
             throw new ArgumentException("Only a single space in between first and last name allowed.");
         }
 
-        parser.MoveTo(bparser.Position);
-        bparser.SkipUntil(Separators());
-
+        var nameB = ReadName(ref parser);
+        if (nameB == default)
         {
-            var lastNameSpan = parser.PeekSpanUntilPosition(bparser.Position);
-            var lastName = lastNameSpan.ToString();
-            ret.LastName = lastName;
+            throw new ArgumentException("The last name must be provided.");
         }
-
-        parser.MoveTo(bparser.Position);
+        ret.LastName = new(MakeSureWithoutShortName(nameB));
 
         return ret;
 
-        static void RequireFirstNameAfterDash(ref Parser parser)
+        static NameParts<string?> MakeSureWithoutShortName(NameParts<OptionalNamePart> x)
+        {
+            foreach (var a in x)
+            {
+                if (a.Short != null)
+                {
+                    throw new ArgumentException("Short names are not allowed in the last name.");
+                }
+            }
+
+            return x.Map(a => a.Full);
+        }
+
+        static void IncompleteDoubleName(ref Parser parser)
         {
             if (parser.IsEmpty)
             {
@@ -593,6 +609,72 @@ public static class TeacherNameHelper
                 throw new ArgumentException("The last name is required after the first name.");
             }
         }
+
+        static NameParts<OptionalNamePart> ReadName(ref Parser parser)
+        {
+            var bparser = parser.BufferedView();
+            var result = bparser.SkipUntilAny(Separators());
+            if (!result.SkippedAny)
+            {
+                return default;
+            }
+
+            var ret = new NameParts<OptionalNamePart>();
+            var retPartE = ret.AsRef().GetEnumerator();
+            while (true)
+            {
+                if (!retPartE.MoveNext())
+                {
+                    throw new InvalidOperationException("Too many name parts.");
+                }
+
+                bool isShort = false;
+                if (!bparser.IsEmpty && bparser.Current == WordHelper.ShortenedWordCharacter)
+                {
+                    bparser.Move();
+                    isShort = true;
+                }
+
+                var nameSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                var namePartString = nameSpan.ToString();
+
+                ref var currentOutput = ref retPartE.Current;
+                if (isShort)
+                {
+                    currentOutput.Short = namePartString;
+                }
+                else
+                {
+                    currentOutput.Full = namePartString;
+                }
+
+                bparser.SkipWhitespace();
+
+                if (bparser.IsEmpty)
+                {
+                    break;
+                }
+
+                if (!bparser.ConsumeExactString(NameConstants.DoubleNameSeparator))
+                {
+                    break;
+                }
+
+                IncompleteDoubleName(ref bparser);
+                bparser.SkipWhitespace();
+                IncompleteDoubleName(ref bparser);
+
+                parser.MoveTo(bparser.Position);
+
+                var skipResult = bparser.SkipUntilAny(Separators());
+                if (!skipResult.SkippedAny)
+                {
+                    return ret;
+                }
+            }
+            parser.MoveTo(bparser.Position);
+            return ret;
+        }
     }
 
     public struct RequiredFirstNamePart
@@ -601,9 +683,9 @@ public static class TeacherNameHelper
         public required Word Short;
     }
 
-    public static void MaybeValidateInitialsCompatibility(FirstNameParts<OptionalFirstNamePart> firstName)
+    public static void MaybeValidateInitialsCompatibility(NameParts<OptionalNamePart> name)
     {
-        foreach (var x in firstName)
+        foreach (var x in name)
         {
             if (x.Full is not { } full)
             {
@@ -625,7 +707,7 @@ public static class TeacherNameHelper
 
     public static void ValidateInitialsCompatibility(RequiredFirstNamePart requiredFirstName)
     {
-        bool isOk = IgnoreDiacriticsComparer.Instance.StartsWith(
+        bool isOk = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
             requiredFirstName.Full.AsSpan(),
             requiredFirstName.Short.Span.Shortened.Value);
         if (!isOk)
@@ -635,4 +717,36 @@ public static class TeacherNameHelper
                 nameof(requiredFirstName));
         }
     }
+
+    public static void AsFileName(StringBuilder sb, PersonName teacherName)
+    {
+        var nameBuilder = new ListStringBuilder(sb, "_");
+        {
+            var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+            foreach (var fname in teacherName.FirstName)
+            {
+                if (fname.Short is not { } s)
+                {
+                    break;
+                }
+
+                var w = new Word(s);
+
+                firstNameBuilder.Append(w.Span.Shortened.Value);
+            }
+        }
+        nameBuilder.MaybeAppendSeparator();
+        {
+            var lastNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
+            foreach (var lname in teacherName.LastName.Parts)
+            {
+                if (lname is not { } s)
+                {
+                    break;
+                }
+                lastNameBuilder.Append(s);
+            }
+        }
+    }
+
 }

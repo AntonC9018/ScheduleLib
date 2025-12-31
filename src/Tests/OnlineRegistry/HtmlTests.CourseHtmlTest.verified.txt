@@ -1,0 +1,27 @@
+﻿[
+  {
+    Url: about:///edutrack/LessonAttendance/groups/32658,
+    Id: 1,
+    CourseName: Fundamentele programării,
+  },
+  {
+    Url: about:///edutrack/LessonAttendance/groups/32172,
+    Id: 2,
+    CourseName: Fundamentele programării,
+  },
+  {
+    Url: about:///edutrack/LessonAttendance/groups/32676,
+    Id: 3,
+    CourseName: Programare în limbajul C++,
+  },
+  {
+    Url: about:///edutrack/LessonAttendance/groups/32682,
+    Id: 4,
+    CourseName: Modele de design software,
+  },
+  {
+    Url: about:///edutrack/LessonAttendance/groups/32692,
+    Id: 5,
+    CourseName: Modele de design software,
+  }
+]

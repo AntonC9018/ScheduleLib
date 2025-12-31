@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- Enable to ignore incompatible assembly from the exe proj -->
+        <NoWarn>$(NoWarn);NU1702</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ConvertDocToDocx\ConvertDocToDocx.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
+        <Content Include="..\ConvertDocToDocx\bin\$(Configuration)\net4.8\ConvertDocToDocx.exe">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+</Project>

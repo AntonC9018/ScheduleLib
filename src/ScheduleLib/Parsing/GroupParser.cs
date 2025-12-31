@@ -1,3 +1,5 @@
+using ScheduleLib.Parsing.Common;
+
 namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
@@ -28,7 +30,20 @@ public sealed class GroupParseContext
 
 public static class GroupHelper
 {
-    public static Group Parse(this GroupParseContext context, string name)
+    // Just do the lazy thing here for now.
+    public static Group? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
+    {
+        try
+        {
+            return Parse(context, name);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    public static Group Parse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         // M2401(ro)
         // IAFR2402

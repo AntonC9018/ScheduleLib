@@ -25,9 +25,35 @@ public sealed class ValidationSettings()
 
 public sealed class Remappings()
 {
-    public readonly Dictionary<string, string> TeacherLastNameRemappings = new(IgnoreDiacriticsComparer.Instance);
+    public readonly TeacherNameRemappings TeacherLastNameRemappings = new();
+    public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
 }
 
+public sealed class CourseNameRemappings : Dictionary<string, string>
+{
+}
+
+public sealed class SubGroupNameRemappings : Dictionary<string, string>
+{
+}
+
+public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastName>
+{
+    public TeacherNameRemappings() : base(IgnoreDiacriticsAndCase_Name_Comparer.Instance)
+    {
+    }
+
+    public void Add(string a, string b)
+    {
+        var x = new NameParts<string?>();
+        var y = x;
+        x[0] = a;
+        y[0] = b;
+        this[x] = new(y);
+    }
+}
+
+// TODO: Maybe add versioning for caching.
 public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();
@@ -48,10 +74,59 @@ public sealed partial class ScheduleBuilder()
 
 public static partial class ScheduleBuilderHelper
 {
-    public static Schedule Build(this ScheduleBuilder s)
+    public static T Build<T>(this ScheduleBuilder s, Func<ScheduleBuilder, T> builder)
     {
         s.Validate();
+        s.Preprocess();
+        s.SanityChecks();
+        var ret = builder(s);
+        return ret;
+    }
 
+    public static Schedule Build(this ScheduleBuilder s)
+    {
+        var ret = Build(s, CreateDefaultModel);
+        return ret;
+    }
+
+    public static void Preprocess(this ScheduleBuilder b)
+    {
+        if (b.LookupModule is not { } lookup)
+        {
+            return;
+        }
+
+        var courseNamesByKey = lookup.Courses
+            .GroupBy(x => x.Value)
+            .Select(x =>
+            {
+                var names = x.Select(x1 => x1.Key).OrderByDescending(static a => a.Length);
+                return (x.Key, Names: names.ToImmutableArray());
+            });
+
+        foreach (var t in courseNamesByKey)
+        {
+            ref var course = ref b.Courses.Ref(t.Key.Id);
+            course.Names = t.Names;
+        }
+    }
+
+    public static void Validate(this ScheduleBuilder s)
+    {
+        GroupBuilderHelper.ValidateGroups(s);
+        LessonBuilderHelper.ValidateLessons(s);
+        TeacherBuilderHelper.ValidateTeachers(s);
+        PeriodBuilderHelper.ValidatePeriods(s);
+    }
+
+    public static void SanityChecks(this ScheduleBuilder s)
+    {
+        // TODO
+        _ = s;
+    }
+
+    public static Schedule CreateDefaultModel(ScheduleBuilder s)
+    {
         var regularLessons = s.RegularLessons.Build(x =>
         {
             var ret = new RegularLesson
@@ -61,11 +136,11 @@ public static partial class ScheduleBuilderHelper
                     TimeSlot = x.Date.TimeSlot!.Value,
                     DayOfWeek = x.Date.DayOfWeek!.Value,
                     Parity = x.Date.Parity ?? Parity.EveryWeek,
+                    Period = x.General.Period,
                 },
                 Lesson = new()
                 {
-                    Period = x.General.Period,
-                    Groups = x.Group.Groups,
+                    Groups = x.Group.Groups.Ordered(),
                     SubGroup = x.Group.SubGroup,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
@@ -86,14 +161,14 @@ public static partial class ScheduleBuilderHelper
                 {
                     FirstName = x.Name.FirstName.Map(x1 => x1 with
                     {
-                        Short = ShortFirstName(x1),
+                        Short = ShortName(x1),
                     }),
-                    LastName = x.Name.LastName!,
+                    LastName = x.Name.LastName,
                 },
             };
             return ret;
 
-            static string? ShortFirstName(OptionalFirstNamePart x)
+            static string? ShortName(OptionalNamePart x)
             {
                 if (x.Short is { } shortf)
                 {
@@ -125,24 +200,16 @@ public static partial class ScheduleBuilderHelper
         };
     }
 
-    public static void Validate(this ScheduleBuilder s)
-    {
-        GroupBuilderHelper.ValidateGroups(s);
-        LessonBuilderHelper.ValidateLessons(s);
-        TeacherBuilderHelper.ValidateTeachers(s);
-        PeriodBuilderHelper.ValidatePeriods(s);
-    }
-
-    public static CourseId Course(this ScheduleBuilder s, params string[] names)
+    public static CourseId Course(this ScheduleBuilder s, params ImmutableArray<string> names)
     {
         Debug.Assert(names.Length > 0, "Must provide a course name");
 
         {
             if (s.LookupModule is { } lookupModule)
             {
-                if (lookupModule.Courses.TryGetValue(names[0], out int val))
+                if (lookupModule.Courses.TryGetValue(names[0], out var val))
                 {
-                    return new(val);
+                    return val;
                 }
             }
         }
@@ -159,7 +226,7 @@ public static partial class ScheduleBuilderHelper
                 foreach (var name in names)
                 {
                     // Let it throw on duplicates here for now.
-                    lookupModule.Courses.Add(name, r.Id);
+                    lookupModule.Courses.Add(name, new(r.Id));
                 }
                 UpdateLookupAfterCourseAdded(s);
             }
@@ -184,12 +251,25 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static string RemapTeacherName(this ScheduleBuilder s, string lastName)
+    public static LastName RemapTeacherName(this ScheduleBuilder s, LastName lastName)
     {
         return s.Remappings.TeacherLastNameRemappings.GetValueOrDefault(lastName, lastName);
     }
 
-    public static void ConfigureRemappings(this ScheduleBuilder s, Action<Remappings> configure)
+    public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
+    {
+        if (subGroup == SubGroup.All)
+        {
+            return subGroup;
+        }
+
+        var val = subGroup.Value;
+        Debug.Assert(val != null);
+        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(val, val);
+        return new(remapped);
+    }
+
+    public static void ConfigureRemappings(this ScheduleBuilder s, ConfigureRemappingsDelegate configure)
     {
         if (s.Teachers.Count > 0)
         {
@@ -198,3 +278,5 @@ public static partial class ScheduleBuilderHelper
         configure(s.Remappings);
     }
 }
+
+public delegate void ConfigureRemappingsDelegate(Remappings remap);

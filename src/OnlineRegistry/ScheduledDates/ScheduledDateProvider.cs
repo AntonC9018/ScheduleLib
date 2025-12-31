@@ -98,7 +98,7 @@ public sealed class ManualAllScheduledDateProvider
                     }
                     default:
                     {
-                        throw UnreachableHelper.Unreachable();
+                        throw Unreachable();
                     }
                 }
             }

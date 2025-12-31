@@ -1,5 +1,7 @@
 using System.Net;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Scraping.Common;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
@@ -8,17 +10,19 @@ public sealed class TokenTests
     [Fact]
     public async Task TokenGeneratedOnLogIn()
     {
-        var credentials = CredentialsHelper.GetCredentials(Assembly.GetExecutingAssembly());
-        using var http = HttpClientContext.Create();
-        var context = new TokenRetrievalContext(new()
-        {
-            CookieContainer = http.Cookies,
-            Credentials = credentials,
-            HttpClient = http.Client,
-        });
+        var credentials = CredentialsHelper.GetCredentials(
+            Assembly.GetExecutingAssembly(),
+            RegistryScraping.CredentialsConfigKey);
         var cancellationToken = CancellationToken.None;
-        bool loggedIn = await context.LogIn(cancellationToken: cancellationToken);
-        Assert.True(loggedIn);
-        Assert.NotNull(context.TokenCookie);
+
+        var builder = new ScrapingContextBuilder();
+        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        builder.TokenAuth(x => x.PasswordLoginCall(credentials));
+        using var context = await builder.Build(cancellationToken);
+
+        var cookie = context.BuilderServices!.GetRequiredService<CookieContainer>()
+            .FindCookie(context.BuilderServices!.GetRequiredService<TokenNamesConfig>());
+
+        Assert.NotNull(cookie);
     }
 }

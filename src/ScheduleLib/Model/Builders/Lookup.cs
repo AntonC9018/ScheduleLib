@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib.Builders;
 
@@ -12,15 +12,22 @@ public partial class ScheduleBuilder
 
 public sealed class LessonsByCourseMap : List<List<RegularLessonId>>
 {
-    public List<RegularLessonId> this[CourseId courseId] => this[courseId.Id];
+    public List<RegularLessonId> this[CourseId courseId]
+    {
+        get
+        {
+            Debug.Assert(!courseId.IsInvalid);
+            return this[courseId.Id];
+        }
+    }
 }
 
 public sealed class LookupModule()
 {
     public readonly LessonsByCourseMap LessonsByCourse = new();
-    public readonly Dictionary<string, int> Courses = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, CourseId> Courses = new(StringComparer.CurrentCultureIgnoreCase);
     public readonly TeachersByLastName TeachersByLastName = new();
-    public readonly Dictionary<string, int> Groups = new(StringComparer.OrdinalIgnoreCase);
+    public readonly Dictionary<string, GroupId> Groups = new(StringComparer.OrdinalIgnoreCase);
 
     public void Clear()
     {
@@ -31,20 +38,31 @@ public sealed class LookupModule()
     }
 }
 
-public struct LookupFacade(ScheduleBuilder s)
+public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unifier)
 {
-    public CourseId? Course(string name) => Find<CourseId>(Lookup.Courses, name);
-
-    public IEnumerable<TeacherId> Teachers(string lastName)
+    public CourseId? Course(string name, CourseNameParseOptions? parseOptions = null)
     {
-        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        return unifier.Find(new()
+        {
+            CourseName = name,
+            Lookup = s.LookupModule!,
+            ParseOptions = parseOptions ?? new()
+            {
+                IgnorePunctuation = false,
+            },
+        });
+    }
+
+    public IEnumerable<TeacherId> Teachers(LastName lastName)
+    {
+        if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
         {
             return [];
         }
         return ids.Select(id => new TeacherId(id));
     }
 
-    public TeacherId? Teacher(string lastName)
+    public TeacherId? Teacher(LastName lastName)
     {
         using var e = Teachers(lastName).GetEnumerator();
         if (!e.MoveNext())
@@ -54,64 +72,86 @@ public struct LookupFacade(ScheduleBuilder s)
         return e.Current;
     }
 
-    public TeacherId? Teacher(string firstName, string lastName)
+    public TeacherId? Teacher(TeacherBuilderModel.NameModel name)
     {
-        if (Lookup.TeachersByLastName.Get(lastName) is not { } ids)
+        if (LookupModule.TeachersByLastName.Get(name.LastName) is not { } ids)
         {
             return null;
         }
 
-        // TODO: Name separator constant.
-        var firstNameParts = default(FirstNameParts<Word>);
+        var firstNameParts = name.FirstName.Map(x =>
         {
-            var firstNameSpan = firstName.AsSpan();
-            var splitName = firstNameSpan.Split(TeacherConstants.DoubleNameSeparator);
-            var firstNameE = firstNameParts.AsRef().GetEnumerator();
-
-            foreach (var partRange in splitName)
+            if (x.Longer is not { } part)
             {
-                var span = firstNameSpan[partRange];
-                if (span.Length == 0)
-                {
-                    continue;
-                }
-                span = span.Trim();
-                if (span.Length == 0)
-                {
-                    throw new ArgumentException(
-                        message: "Don't use double dashes in the names, only use single dashes",
-                        paramName: nameof(firstName));
-                }
-
-                bool nextNamePartOk = firstNameE.MoveNext();
-                if (!nextNamePartOk)
-                {
-                    throw new ArgumentException(
-                        message: "Too many name parts",
-                        paramName: nameof(firstName));
-                }
-
-                var part = span.ToString();
-                firstNameE.Current = new(part);
+                return Word.Empty;
             }
-
-            while (firstNameE.MoveNext())
-            {
-                firstNameE.Current = Word.Empty;
-            }
-        }
-
+            return new Word(part);
+        });
         int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
         return new(ids[i]);
+    }
+
+    public TeacherId? Teacher(string firstName, string lastName)
+    {
+        if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)
+        {
+            return null;
+        }
+
+        var firstNameParts = ParseTeacherFirstName(firstName);
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
+        return new(ids[i]);
+    }
+
+    private static NameParts<Word> ParseTeacherFirstName(string firstName)
+    {
+        var firstNameParts = default(NameParts<Word>);
+        var firstNameSpan = firstName.AsSpan();
+        var splitName = firstNameSpan.Split(NameConstants.DoubleNameSeparator);
+        var firstNameE = firstNameParts.AsRef().GetEnumerator();
+
+        foreach (var partRange in splitName)
+        {
+            var span = firstNameSpan[partRange];
+            if (span.Length == 0)
+            {
+                continue;
+            }
+            span = span.Trim();
+            if (span.Length == 0)
+            {
+                throw new ArgumentException(
+                    message: "Don't use double dashes in the names, only use single dashes",
+                    paramName: nameof(firstName));
+            }
+
+            bool nextNamePartOk = firstNameE.MoveNext();
+            if (!nextNamePartOk)
+            {
+                throw new ArgumentException(
+                    message: "Too many name parts",
+                    paramName: nameof(firstName));
+            }
+
+            var part = span.ToString();
+            firstNameE.Current = new(part);
+        }
+
+        while (firstNameE.MoveNext())
+        {
+            firstNameE.Current = Word.Empty;
+        }
+
+        return firstNameParts;
     }
 
     public GroupId? Group(string fullName)
     {
         var group = s.ParseGroup(fullName);
-        return Find<GroupId>(Lookup.Groups, group.Name);
+        return Find(LookupModule.Groups, group.Name);
     }
 
-    private LookupModule Lookup
+    public LookupModule LookupModule
     {
         get
         {
@@ -121,32 +161,41 @@ public struct LookupFacade(ScheduleBuilder s)
         }
     }
 
-    private T? Find<T>(Dictionary<string, int> dict, string val)
+    private T? Find<T>(Dictionary<string, T> dict, ReadOnlySpan<char> val)
         where T : struct
     {
-        if (!dict.TryGetValue(val, out var id))
+        bool t = dict.TryGetAlternateLookup<ReadOnlySpan<char>>(out var d);
+        Debug.Assert(t);
+        _ = t;
+
+        if (!d.TryGetValue(val, out var id))
         {
             return null;
         }
         Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
-        T ret = Unsafe.As<int, T>(ref id);
-        return ret;
+        return id;
+    }
+
+    public IReadOnlyList<RegularLessonId> LessonsOfCourse(CourseId courseId)
+    {
+        return LookupModule.LessonsByCourse[courseId];
     }
 }
 
 
 public static partial class ScheduleBuilderHelper
 {
-    public static void EnableLookupModule(this ScheduleBuilder s)
+    public static LookupModule EnableLookupModule(this ScheduleBuilder s)
     {
         if (s.LookupModule is not null)
         {
-            return;
+            return s.LookupModule;
         }
 
         var lookupModule = s.LookupModule = new();
         InitLookup(s, lookupModule);
         s.LookupModule = lookupModule;
+        return lookupModule;
     }
 
     public static void RefreshLookup(this ScheduleBuilder s)
@@ -170,7 +219,7 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    coursesMap.Add(name, i);
+                    coursesMap.Add(name, new(i));
                 }
             }
         }
@@ -179,11 +228,11 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Teachers.Count; i++)
             {
                 ref var teacher = ref s.Teachers.Ref(i);
-                if (teacher.Name.LastName is not { } lastName)
+                if (teacher.Name.LastName == default)
                 {
                     continue;
                 }
-                var list = teachersMap.AddOrGet(lastName);
+                var list = teachersMap.AddOrGet(teacher.Name.LastName);
                 list.Add(i);
             }
         }
@@ -192,7 +241,7 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                groupsMap.Add(group.Name, i);
+                groupsMap.Add(group.Name, new(i));
             }
         }
         {
@@ -218,9 +267,23 @@ public static partial class ScheduleBuilderHelper
     }
 
     [DebuggerStepThrough]
-    public static LookupFacade Lookup(this ScheduleBuilder s)
+    public static LookupFacade Lookup(
+        this ScheduleBuilder s,
+        CourseNameUnifierModule unifier)
     {
         s.EnableLookupModule();
-        return new(s);
+        return new(s, unifier);
+    }
+
+    public static TeacherBuilderModel.NameModel ToNameModel(this Name name)
+    {
+        var ret = new TeacherBuilderModel.NameModel();
+        ret.FirstName = name.FirstName.Map(x => new OptionalNamePart
+        {
+            Short = null,
+            Full = x,
+        });
+        ret.LastName = new(name.LastName);
+        return ret;
     }
 }

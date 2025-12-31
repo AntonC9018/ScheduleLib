@@ -1,6 +1,4 @@
-using ScheduleLib;
-
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public sealed class CombinationTests
 {

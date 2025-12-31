@@ -19,6 +19,11 @@ public struct GroupBuilder
 
 public static class GroupBuilderHelper
 {
+    public static int StudyYear(this ScheduleBuilder s)
+    {
+        return s.GroupParseContext!.CurrentStudyYear;
+    }
+
     public static void SetStudyYear(this ScheduleBuilder s, int year)
     {
         if (s.Groups.Count != 0)
@@ -48,14 +53,14 @@ public static class GroupBuilderHelper
             CurrentStudyYear = DetermineStudyYear(),
         });
 
-        var ret = s.GroupParseContext.Parse(fullName);
+        var ret = s.GroupParseContext.Parse(fullName.AsMemory());
         return ret;
     }
 
     public static GroupBuilder Group(this ScheduleBuilder s, string fullName)
     {
         var group = s.ParseGroup(fullName);
-        int ret;
+        GroupId ret;
         if (s.LookupModule is { } lookupModule)
         {
             ret = lookupModule.Groups.GetOrAdd(
@@ -69,15 +74,15 @@ public static class GroupBuilderHelper
         }
         return new()
         {
-            Id = new(ret),
+            Id = ret,
             Schedule = s,
         };
 
-        static int Default(ScheduleBuilder s, Group group)
+        static GroupId Default(ScheduleBuilder s, Group group)
         {
             var result = s.Groups.New();
             result.Value = group;
-            return result.Id;
+            return new(result.Id);
         }
     }
 

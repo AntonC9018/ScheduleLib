@@ -1,0 +1,160 @@
+﻿[
+  {
+    Course: Programare în C++,
+    LessonType: Curs,
+    Group: DJ2402,
+    StudentNames: [
+      {
+        Name: Artur Johnson
+      },
+      {
+        Name: John Sidorov
+      },
+      {
+        Name: Diana Orlov
+      },
+      {
+        Name: Leon Sokolov
+      }
+    ],
+    Attendance: [
+      [
+        NotPresent,
+        NotPresent,
+        Present,
+        Present
+      ],
+      [
+        NotPresent,
+        NotPresent,
+        Present,
+        NotPresent
+      ],
+      [
+        NotPresent,
+        NotPresent,
+        Present,
+        Present
+      ],
+      [
+        NotPresent,
+        NotPresent,
+        Present,
+        Present
+      ],
+      [
+        NotPresent,
+        Present,
+        NotPresent,
+        NotPresent
+      ]
+    ]
+  },
+  {
+    Course: Fundamentele programării,
+    Group: DJ2502,
+    SubGroup: I,
+    StudentNames: [
+      {
+        Name: ARSENI ARSENI
+      },
+      {
+        Name: JOHN ADINA
+      },
+      {
+        Name: HELLO WORLD
+      },
+      {
+        Name: BABA IS
+      }
+    ],
+    Attendance: [
+      [
+        Present,
+        Present,
+        Present,
+        Present
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        Present
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        Present,
+        NotPresent
+      ]
+    ]
+  },
+  {
+    Course: Modele de design software,
+    Group: IA2304,
+    StudentNames: [
+      {
+        Name: Pîslari Eva
+      },
+      {
+        Name: Mark Davis
+      },
+      {
+        Name: Lina Medvedev
+      },
+      {
+        Name: Daria Martinez
+      }
+    ],
+    Attendance: [
+      [
+        Present,
+        Present,
+        NotPresent,
+        Present
+      ],
+      [
+        NotPresent,
+        Present,
+        NotPresent,
+        NotPresent
+      ],
+      [
+        NotPresent,
+        Present,
+        NotPresent,
+        NotPresent
+      ],
+      [
+        Present,
+        Present,
+        NotPresent,
+        NotPresent
+      ],
+      [
+        NotPresent,
+        NotPresent,
+        NotPresent,
+        Present
+      ]
+    ]
+  }
+]

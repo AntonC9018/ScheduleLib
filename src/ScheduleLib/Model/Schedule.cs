@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
 
@@ -15,99 +18,97 @@ public sealed class Schedule
     public required ImmutableArray<Period> Periods { get; init; }
 }
 
-public enum Parity
+public readonly struct Accessor<T, TId>
 {
-    OddWeek,
-    EvenWeek,
-    EveryWeek,
-}
+    public readonly TId Id;
+    private readonly ImmutableArray<T> Items;
 
-public struct DefaultLessonTimeConfig(LessonTimeConfig b)
-{
-    public readonly LessonTimeConfig Base = b;
-    public TimeSlot T8_00 => new(0);
-    public TimeSlot T9_45 => new(1);
-    public TimeSlot T11_30 => new(2);
-    public TimeSlot T13_15 => new(3);
-    public TimeSlot T15_00 => new(4);
-    public TimeSlot T16_45 => new(5);
-    public TimeSlot T18_30 => new(6);
-
-    public static implicit operator LessonTimeConfig(DefaultLessonTimeConfig c) => c.Base;
-}
-
-public sealed class LessonTimeConfig
-{
-    public required TimeSpan LessonDuration;
-    public required TimeOnly[] TimeSlotStarts;
-
-    public int TimeSlotCount => TimeSlotStarts.Length;
-
-    public static DefaultLessonTimeConfig CreateDefault()
+    public Accessor(TId id, ImmutableArray<T> items)
     {
-        var ret = new LessonTimeConfig
-        {
-            LessonDuration = TimeSpan.FromMinutes(90),
-            TimeSlotStarts = CreateDefaultTimeSlots(),
-        };
-        return new(ret);
+        Id = id;
+        Items = items;
     }
 
-    public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)
+    public readonly ref readonly T Item
     {
-        var i = Array.BinarySearch(TimeSlotStarts, startTime);
-        if (i < 0)
+        get
         {
-            return null;
+            var id = Id;
+            var index = Unsafe.As<TId, int>(ref id);
+            return ref Items.AsSpan()[index];
         }
-        return new(i);
+    }
+}
+
+public readonly record struct ScheduleObjectEnumerable<TId, T>
+    : IEnumerable<Accessor<T, TId>>
+{
+    static ScheduleObjectEnumerable()
+    {
+        Debug.Assert(Marshal.SizeOf<TId>() == sizeof(int));
     }
 
-    public static TimeOnly[] CreateDefaultTimeSlots()
+    private readonly ImmutableArray<T> _objects;
+
+    public ScheduleObjectEnumerable(ImmutableArray<T> objects)
     {
-        TimeOnly New(int hour, int min)
+        _objects = objects;
+    }
+
+    public Accessor<T, TId> First()
+    {
+        using var e = GetEnumerator();
+        if (!e.MoveNext())
         {
-            var t = new TimeSpan(hours: hour, minutes: min, seconds: 0);
-            var ret = TimeOnly.FromTimeSpan(t);
-            return ret;
+            throw new InvalidOperationException();
+        }
+        return e.Current;
+    }
+
+    public Enumerator GetEnumerator() => new(_objects);
+    IEnumerator<Accessor<T, TId>> IEnumerable<Accessor<T, TId>>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public struct Enumerator : IEnumerator<Accessor<T, TId>>
+    {
+        private readonly ImmutableArray<T> _objects;
+        private int _index;
+
+        public Enumerator(ImmutableArray<T> objects)
+        {
+            _objects = objects;
+            _index = -1;
         }
 
-        return [
-            New(8, 00),
-            New(9, 45),
-            New(11, 30),
-            New(13, 15),
-            New(15, 00),
-            New(16, 45),
-            New(18, 30),
-        ];
+        public bool MoveNext()
+        {
+            _index++;
+            return _index < _objects.Length;
+        }
+
+        public void Reset()
+        {
+            throw new NotImplementedException();
+        }
+
+        object? IEnumerator.Current => Current;
+
+        public readonly Accessor<T, TId> Current
+        {
+            get
+            {
+                Debug.Assert(_index >= 0 && _index < _objects.Length);
+                int index = _index;
+                var id = Unsafe.As<int, TId>(ref index);
+                return new Accessor<T, TId>(id, _objects);
+            }
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
     }
 
-    public TimeSlotInterval GetTimeSlotInterval(TimeSlot index)
-    {
-        var start = TimeSlotStarts[index.Index];
-        var ret = new TimeSlotInterval(start, LessonDuration);
-        return ret;
-    }
-}
-
-public record struct TimeSlotInterval(TimeOnly Start, TimeSpan Duration)
-{
-    public TimeOnly End => Start.Add(Duration);
-}
-
-public record struct TimeSlot(int Index) : IComparable<TimeSlot>
-{
-    public static TimeSlot First => new(0);
-    public static bool operator<(TimeSlot left, TimeSlot right) => left.Index < right.Index;
-    public static bool operator>(TimeSlot left, TimeSlot right) => left.Index > right.Index;
-    public static bool operator<=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
-    public static bool operator>=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
-
-    public int CompareTo(TimeSlot other)
-    {
-        return Index.CompareTo(other.Index);
-    }
 }
 
 public record struct RegularLessonDate()
@@ -115,71 +116,45 @@ public record struct RegularLessonDate()
     public Parity Parity = Parity.EveryWeek;
     public required DayOfWeek DayOfWeek;
     public required TimeSlot TimeSlot;
+    public required PeriodId Period;
 }
 
-public record struct OneTimeLessonDate
-{
+public record struct OneTimeLessonDate {
     public required DateOnly Date;
     public required TimeSlot TimeSlot;
 }
 
-// [StructLayout(LayoutKind.Sequential)]
-public record struct LessonGroups() : IEnumerable<GroupId>
+[InlineArray(_Capacity)]
+internal struct LessonGroupsImpl
 {
-    public GroupId Group0 = GroupId.Invalid;
-    public GroupId Group1 = GroupId.Invalid;
-    public GroupId Group2 = GroupId.Invalid;
-    public GroupId Group3 = GroupId.Invalid;
-    public GroupId Group4 = GroupId.Invalid;
-    public GroupId Group5 = GroupId.Invalid;
-
-    public readonly int Capacity => 6;
+    internal const int _Capacity = 16;
+    public GroupId _value;
+}
+// [StructLayout(LayoutKind.Sequential)]
+public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
+{
+    private LessonGroupsImpl _impl;
 
     // indexer
     public GroupId this[int index]
     {
-        readonly get
+        readonly get => _impl[index];
+        set => _impl[index] = value;
+    }
+
+    public LessonGroups()
+    {
+        for (int i = 0; i < Capacity; i++)
         {
-            return index switch
-            {
-                0 => Group0,
-                1 => Group1,
-                2 => Group2,
-                3 => Group3,
-                4 => Group4,
-                5 => Group5,
-                _ => throw new ArgumentOutOfRangeException(nameof(index)),
-            };
-        }
-        set
-        {
-            switch (index)
-            {
-                case 0:
-                    Group0 = value;
-                    break;
-                case 1:
-                    Group1 = value;
-                    break;
-                case 2:
-                    Group2 = value;
-                    break;
-                case 3:
-                    Group3 = value;
-                    break;
-                case 4:
-                    Group4 = value;
-                    break;
-                case 5:
-                    Group5 = value;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            this[i] = GroupId.Invalid;
         }
     }
 
-    public readonly bool IsSingleGroup => Group1 == GroupId.Invalid;
+    public GroupId Group0 => this[0];
+
+    public readonly int Capacity => LessonGroupsImpl._Capacity;
+
+    public readonly bool IsSingleGroup => this[1] == GroupId.Invalid;
 
     public readonly int Count
     {
@@ -201,7 +176,7 @@ public record struct LessonGroups() : IEnumerable<GroupId>
         int count = Count;
         if (count == Capacity)
         {
-            Debug.Fail("Can't add more than 3 groups per lesson");
+            Debug.Fail($"Can't add more than {Capacity} groups per lesson");
         }
         this[count] = id;
     }
@@ -221,6 +196,14 @@ public record struct LessonGroups() : IEnumerable<GroupId>
     public readonly Enumerator GetEnumerator() => new(this);
     IEnumerator<GroupId> IEnumerable<GroupId>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public readonly LessonGroups Ordered()
+    {
+        var copy = this;
+        var span = MemoryMarshal.CreateSpan(ref copy._impl._value, Count);
+        span.Sort((a, b) => a.Value - b.Value);
+        return copy;
+    }
 
     public struct Enumerator : IEnumerator<GroupId>
     {
@@ -247,11 +230,95 @@ public record struct LessonGroups() : IEnumerable<GroupId>
 
         public void Reset() => throw new NotImplementedException();
         object? IEnumerator.Current => Current;
+    }
 
+    public bool Equals(LessonGroups other) => this == other;
+
+    public override bool Equals(object? o)
+    {
+        if (o is LessonGroups other)
+        {
+            return this == other;
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        int hash = 17;
+        for (int i = 0; i < Capacity; i++)
+        {
+            hash = hash * 31 + this[i].GetHashCode();
+        }
+        return hash;
+    }
+
+    public static bool operator==(in LessonGroups a, in LessonGroups b)
+    {
+        for (int i = 0; i < a.Capacity; i++)
+        {
+            if (a[i] != b[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    public static bool operator!=(in LessonGroups a, in LessonGroups b) => !(a == b);
+}
+
+public static class LessonGroupsHelper
+{
+    // TODO: reuse sb
+    public static string ToString(this in LessonGroups groups, Schedule schedule)
+    {
+        StringBuilder groupName = new();
+        var groupList = new ListStringBuilder(groupName, ", ");
+        foreach (var groupId in groups)
+        {
+            var name = schedule.Get(groupId).Name;
+            groupList.Append(name);
+        }
+        return groupName.ToString();
+    }
+
+    public static bool IsSetEquals(this in LessonGroups a, in LessonGroups b)
+    {
+        foreach (var groupId in a)
+        {
+            if (!b.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        foreach (var groupId in b)
+        {
+            if (!a.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static bool IsSubSetOf(this in LessonGroups a, in LessonGroups b)
+    {
+        foreach (var groupId in a)
+        {
+            if (!b.Contains(groupId))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
-public readonly record struct CourseId(int Id);
+public readonly record struct CourseId(int Id)
+{
+    public static CourseId Invalid => new(-1);
+    public bool IsInvalid => this == Invalid;
+}
 
 public struct Course
 {
@@ -259,18 +326,18 @@ public struct Course
     /// <summary>
     /// Sorted from longest to least long.
     /// </summary>
-    public required string[] Names;
+    public required ImmutableArray<string> Names;
 }
 
 public struct LessonData()
 {
+    // Always ordered with .Ordered()
     public required LessonGroups Groups;
 
     public required CourseId Course;
     public required ImmutableArray<TeacherId> Teachers;
     public required RoomId Room;
     public required LessonType Type;
-    public required PeriodId Period;
 
     public SubGroup SubGroup = SubGroup.All;
     public readonly GroupId Group => Groups.Group0;
@@ -296,17 +363,54 @@ public enum LessonType
     Seminar,
     Curs,
     Unspecified,
+    Prelegere,
     Custom,
+    Count,
 }
 
-public readonly record struct SubGroup(string? Value)
+public readonly record struct SubGroup
 {
+    public readonly string? Value { get; }
+
+    public SubGroup(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
     public static SubGroup All => new(null!);
+}
+
+public static class SpecialSubGroups
+{
+    public static readonly ImmutableArray<SubGroup> AllSpecial = [
+        Optional,
+        Beginners,
+        Ru,
+        Ro,
+        Eng,
+    ];
+    public static SubGroup Optional => new("opțional");
+    public static SubGroup Beginners => new("începători");
+    public static SubGroup Ru => new("ru");
+    public static SubGroup Ro => new("ro");
+    public static SubGroup Eng => new("eng");
+    public static SubGroup FromLanguage(Language lang)
+    {
+        return lang switch
+        {
+            Language.Ro => Ro,
+            Language.Ru => Ru,
+            Language.En => Eng,
+            _ => throw new ArgumentOutOfRangeException(nameof(lang)),
+        };
+    }
 }
 
 public readonly record struct GroupId(int Value) : IComparable<GroupId>
 {
     public static GroupId Invalid => new(-1);
+    public bool IsInvalid => this == Invalid;
     public int CompareTo(GroupId other) => Value.CompareTo(other.Value);
 }
 
@@ -325,6 +429,8 @@ public enum QualificationType
     Licenta,
     Master,
     Doctor,
+    Count,
+    Invalid = -1,
 }
 
 public enum Language
@@ -338,11 +444,72 @@ public enum Language
 public readonly record struct Faculty(string Name);
 public readonly record struct Specialty(string? Name);
 
-public readonly record struct Grade(int Value);
+public readonly record struct Grade(int Value)
+{
+    public static Grade Invalid => new(-1);
+}
+
 public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
+    Count,
+    Invalid = -1,
+}
+
+public record struct OneForEachAttendanceMode<T>
+{
+    public required T Zi;
+    public required T FrecventaRedusa;
+
+    public T this[AttendanceMode mode]
+    {
+        readonly get
+        {
+            return mode switch
+            {
+                AttendanceMode.Zi => Zi,
+                AttendanceMode.FrecventaRedusa => FrecventaRedusa,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+            };
+        }
+        set
+        {
+            switch (mode)
+            {
+                case AttendanceMode.Zi:
+                {
+                    Zi = value;
+                    break;
+                }
+                case AttendanceMode.FrecventaRedusa:
+                {
+                    FrecventaRedusa = value;
+                    break;
+                }
+                default:
+                {
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+                }
+            }
+        }
+    }
+}
+
+[Flags]
+public enum AttendanceModeFlags
+{
+    None,
+    Zi = 1 << AttendanceMode.Zi,
+    FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
+}
+
+public static class AttendanceModeFlagsHelper
+{
+    public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
+    {
+        return (flags & (AttendanceModeFlags) mode) != 0;
+    }
 }
 
 public sealed class Group
@@ -367,249 +534,22 @@ public sealed class Teacher
     public required PersonContacts Contacts;
 }
 
-public record struct OptionalFirstNamePart
-{
-    public required string? Full;
-    public required string? Short;
-
-    public readonly string? Longer
-    {
-        get
-        {
-            if (Full is { } full)
-            {
-                return full;
-            }
-            if (Short is { } shortName)
-            {
-                return shortName;
-            }
-            return null;
-        }
-    }
-    public readonly bool IsNull => Full is null && Short is null;
-}
-
-public record struct FirstNameParts<T>()
-{
-    public required T A;
-    public required T B;
-}
-
-public enum FirstNamePartIndex
-{
-    A,
-    B,
-    Count,
-}
-
-// This amount of boilerplate is seriously concerning.
-// This should just work automatically, time to write a source gen.
-public static class FirstNameHelper
-{
-    public ref struct RefEnumerable<T>
-    {
-        internal readonly ref FirstNameParts<T> _parts;
-
-        public RefEnumerable(ref FirstNameParts<T> parts)
-        {
-            _parts = ref parts;
-        }
-    }
-
-    public static RefEnumerable<T> AsRef<T>(this ref FirstNameParts<T> parts)
-    {
-        return new(ref parts);
-    }
-
-    public static RefEnumerator<T> GetEnumerator<T>(this RefEnumerable<T> parts)
-    {
-        return new(ref parts._parts);
-    }
-
-    public static Enumerator<T> GetEnumerator<T>(this FirstNameParts<T> parts)
-    {
-        return new(parts);
-    }
-
-    public struct EnumeratorState()
-    {
-        private int _value = -1;
-
-        public ref T GetRef<T>(ref FirstNameParts<T> parts)
-        {
-            return ref FirstNameHelper.GetRef(parts, (FirstNamePartIndex) _value);
-        }
-
-        public bool MoveNext()
-        {
-            _value++;
-            return _value < 2;
-        }
-    }
-
-    public ref struct RefEnumerator<T>
-    {
-        private readonly ref FirstNameParts<T> _parts;
-        private EnumeratorState _enumeratorState;
-
-        public RefEnumerator(ref FirstNameParts<T> parts)
-        {
-            _parts = ref parts;
-            _enumeratorState = new();
-        }
-
-        public ref T Current => ref _enumeratorState.GetRef(ref _parts);
-        public bool MoveNext() => _enumeratorState.MoveNext();
-    }
-
-    public struct Enumerator<T>
-    {
-        private readonly FirstNameParts<T> _parts;
-        private EnumeratorState _enumeratorState;
-
-        public Enumerator(FirstNameParts<T> parts)
-        {
-            _parts = parts;
-            _enumeratorState = new();
-        }
-
-        public T Current => _enumeratorState.GetRef(ref Unsafe.AsRef(in _parts));
-        public bool MoveNext() => _enumeratorState.MoveNext();
-    }
-
-    public static FirstNameParts<U> Map<T, U>(this FirstNameParts<T> n, Func<T, U> map)
-    {
-        var ret = default(FirstNameParts<U>);
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var a = i.GetRef(ref n);
-            ref var b = ref i.GetRef(ref ret);
-            b = map(a);
-        }
-        return ret;
-    }
-
-    public static void Update<T, U>(
-        this ref FirstNameParts<T> a,
-        FirstNameParts<U> input,
-        Func<T, U, T> update)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            ref var fa = ref i.GetRef(ref a);
-            var fb = i.GetRef(ref input);
-            fa = update(fa, fb);
-        }
-    }
-
-    public static bool All<T>(this FirstNameParts<T> a, Func<T, bool> pred)
-    {
-        foreach (var x in a)
-        {
-            if (!pred(x))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static bool Any<T>(this FirstNameParts<T> a, Func<T, bool> pred)
-    {
-        foreach (var x in a)
-        {
-            if (pred(x))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static bool EachEquals<T, U>(this FirstNameParts<T> a, FirstNameParts<U> b, Func<T, U, bool> pred)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var fa = i.GetRef(ref a);
-            var fb = i.GetRef(ref b);
-            if (!pred(fa, fb))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static int Count<T>(this FirstNameParts<T> a, Func<T, bool> pred)
-    {
-        int c = 0;
-        foreach (var t in a)
-        {
-            if (pred(t))
-            {
-                c++;
-            }
-        }
-        return c;
-    }
-
-    public static int CompareEach<T>(
-        FirstNameParts<T> a,
-        FirstNameParts<T> b,
-        IComparer<T> comparer)
-    {
-        var i = new EnumeratorState();
-        while (i.MoveNext())
-        {
-            var fa = i.GetRef(ref a);
-            var fb = i.GetRef(ref b);
-            var cmp = comparer.Compare(fa, fb);
-            if (cmp != 0)
-            {
-                return cmp;
-            }
-        }
-        return 0;
-    }
-
-    private static ref T GetRef<T>(in FirstNameParts<T> parts, FirstNamePartIndex index)
-    {
-        ref var p = ref Unsafe.AsRef(in parts);
-        return ref p.Ref(index);
-    }
-
-    public static ref T Ref<T>(this ref FirstNameParts<T> n, FirstNamePartIndex index)
-    {
-        switch (index)
-        {
-            case FirstNamePartIndex.A:
-                return ref n.A;
-            case FirstNamePartIndex.B:
-                return ref n.B;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(index));
-        }
-    }
-
-    public static T Get<T>(this FirstNameParts<T> n, FirstNamePartIndex index)
-    {
-        return n.Ref(index);
-    }
-
-    public static FirstNameParts<string?> Longer(this FirstNameParts<OptionalFirstNamePart> name)
-    {
-        return name.Map(x => x.Longer);
-    }
-}
 
 public struct PersonName
 {
-    public required FirstNameParts<OptionalFirstNamePart> FirstName;
-    public required string LastName;
+    public required NameParts<OptionalNamePart> FirstName;
+    // One is required
+    public required LastName LastName;
+
+    public override string ToString()
+    {
+        var nameFields = new NameFields
+        {
+            FirstName = FirstName.Map(x => x.Longer),
+            LastName = LastName,
+        };
+        return nameFields.ToString();
+    }
 }
 
 public struct PersonContacts
@@ -619,96 +559,7 @@ public struct PersonContacts
     public string? PhoneNumber;
 }
 
-public record struct PeriodId(int Value)
-{
-    public static PeriodId Unspecified => new(-1);
-    public bool IsUnspecified => this == Unspecified;
-    public bool IsSpecified => !IsUnspecified;
-}
-
-public record struct Period
-{
-    /// <summary>
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="end">Exclusive</param>
-    public Period(DateOnly start, DateOnly end = default)
-    {
-        if (end != default)
-        {
-            Debug.Assert(start <= end);
-        }
-
-        _end = end;
-        Start = start;
-    }
-
-    public readonly DateOnly Start;
-    public readonly DateOnly _end;
-
-    public readonly DateOnly? End
-    {
-        get
-        {
-            if (_end == default)
-            {
-                return null;
-            }
-            return _end;
-        }
-    }
-}
-
-public static class PeriodHelper
-{
-    public static DateOnly GetProjectedEndExclusive(this Period period)
-    {
-        if (period.End is { } existingEnd)
-        {
-            return existingEnd;
-        }
-        return GetStudyYearEnd(period.Start).AddDays(1);
-    }
-
-    // This might be different in other countries and stuff, this should be service ideally.
-    public static DateOnly GetStudyYearEnd(DateOnly yearDate)
-    {
-        int year = yearDate.Year;
-        if (yearDate.Month >= 9)
-        {
-            year++;
-        }
-        var ret = new DateOnly(year: year, month: 8, day: 31);
-        return ret;
-    }
-
-    public static (DateOnly Start, DateOnly EndExclusive) WholePeriod(this Schedule schedule)
-    {
-        var min = DateOnly.MaxValue;
-        foreach (var period in schedule.Periods)
-        {
-            if (period.Start < min)
-            {
-                min = period.Start;
-            }
-        }
-
-        // Compute semester end, which is 31 august of the year.
-        var max = min;
-        foreach (var period in schedule.Periods)
-        {
-            var end = period.GetProjectedEndExclusive();
-            if (end > max)
-            {
-                max = end;
-            }
-        }
-
-        return new(min, max);
-    }
-}
-
-public static class AccessorHelper
+public static class ScheduleAccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
     public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];
@@ -730,5 +581,47 @@ public static class AccessorHelper
         Debug.Assert(id.IsSpecified);
         return schedule.Periods[id.Value];
     }
+
+    public static ScheduleObjectEnumerable<CourseId, Course> EnumerateCourses(this Schedule schedule)
+    {
+        return new(schedule.Courses);
+    }
+    public static ScheduleObjectEnumerable<GroupId, Group> EnumerateGroups(this Schedule schedule)
+    {
+        return new(schedule.Groups);
+    }
+    public static ScheduleObjectEnumerable<TeacherId, Teacher> EnumerateTeachers(this Schedule schedule)
+    {
+        return new(schedule.Teachers);
+    }
+    public static ScheduleObjectEnumerable<PeriodId, Period> EnumeratePeriods(this Schedule schedule)
+    {
+        return new(schedule.Periods);
+    }
+    public static ScheduleObjectEnumerable<RegularLessonId, RegularLesson> EnumerateLessons(this Schedule schedule)
+    {
+        return new(schedule.RegularLessons);
+    }
+
+    // TODO: Move this to cached service
+    public static SubGroupsByGroup SubGroupsByGroup(this Schedule schedule)
+    {
+        var result = new SubGroupsByGroup();
+        foreach (var lesson in schedule.RegularLessons)
+        {
+            var groupId = lesson.Lesson.Group;
+            if (!result.TryGetValue(groupId, out var subGroups))
+            {
+                subGroups = new HashSet<SubGroup>();
+                result[groupId] = subGroups;
+            }
+            subGroups.Add(lesson.Lesson.SubGroup);
+        }
+        return result;
+    }
+}
+
+public sealed class SubGroupsByGroup : Dictionary<GroupId, HashSet<SubGroup>>
+{
 }
 

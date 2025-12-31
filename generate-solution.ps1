@@ -1,1 +1,1 @@
-slngen **\*.csproj -o All.sln --launch false
+slngen src\**\*.csproj -o All.sln --launch false

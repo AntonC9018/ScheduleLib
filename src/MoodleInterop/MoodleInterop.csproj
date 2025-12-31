@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ScrapingCommon\ScrapingCommon.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
+    </ItemGroup>
+</Project>

@@ -1,3 +1,5 @@
+using ScheduleLib.Parsing.Common;
+
 namespace ScheduleLib;
 
 public static class LanguageHelper
@@ -26,6 +28,25 @@ public static class LanguageHelper
         {
             if (chars.Equals(LanguageNames[i], StringComparison.OrdinalIgnoreCase))
             {
+                return (Language) i;
+            }
+        }
+        return null;
+    }
+
+    public static Language? ParseName(ref Parser p)
+    {
+        for (int i = 0; i < LanguageNames.Length; i++)
+        {
+            var name = LanguageNames[i];
+            if (!p.CanPeekCount(name.Length))
+            {
+                continue;
+            }
+            var span = p.PeekSpan(name.Length);
+            if (span.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                p.Move(name.Length);
                 return (Language) i;
             }
         }

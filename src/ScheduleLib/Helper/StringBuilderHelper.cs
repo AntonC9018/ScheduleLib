@@ -13,18 +13,41 @@ public static class StringBuilderHelper
         sb.Clear();
         return ret;
     }
+
+    public static bool EndsWith(this StringBuilder sb, string text)
+    {
+        if (sb.Length < text.Length)
+        {
+            return false;
+        }
+
+        var sbLength = sb.Length;
+        var textLength = text.Length;
+        for (int i = 1; i <= textLength; i++)
+        {
+            if (text[textLength - i] != sb[sbLength - i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 public readonly struct ListStringBuilder(
     StringBuilder sb,
-    char separator = ' ')
+    string separator = " ")
 {
     private readonly int _initialCount = sb.Length;
     public StringBuilder StringBuilder => sb;
 
     public void MaybeAppendSeparator()
     {
-        if (sb.Length > _initialCount && sb[^1] != separator)
+        if (sb.Length <= _initialCount)
+        {
+            return;
+        }
+        if (!sb.EndsWith(separator))
         {
             sb.Append(separator);
         }

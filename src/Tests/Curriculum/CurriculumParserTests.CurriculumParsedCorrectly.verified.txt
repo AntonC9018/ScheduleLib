@@ -1,0 +1,62 @@
+﻿{
+  General: {
+    CourseName: Rețele de calculatoare,
+    AuthorNames: [
+      {
+        FirstName: {
+          A: {
+            Full: Titu,
+            Short: null
+          },
+          B: {
+            Full: null,
+            Short: null
+          }
+        },
+        LastName: Capcelea
+      }
+    ],
+    Year: 2024,
+    YearAndQual: {
+      Year: 1,
+      QualificationType: Licenta
+    },
+    Programs: [
+      {
+        Code: {
+          Value: 0613.4
+        },
+        Name: {
+          Value: Informatică
+        }
+      },
+      {
+        Code: {
+          Value: 0613.5
+        },
+        Name: {
+          Value: Informatică Aplicată
+        }
+      }
+    ]
+  },
+  Preliminary: {
+    Overview: În prezent, aproape orice companie deține o rețea de calculatoare prin intermediul căreia are loc comunicarea și transferul de date. Complexitatea acestor rețele variază în funcție de dimensiunea companiei, numărul de angajați și resursele IT implicate. Pentru a gestiona și administra eficient o rețea, sunt necesare cunoștințe specifice în domeniul rețelelor de comunicație și tehnologiilor noi.Cursul de Rețele de Calculatoare abordează conceptele fundamentale și tehnologiile utilizate în proiectarea, implementarea și gestionarea rețelelor de calculatoare. Acesta oferă studenților cunoștințe esențiale despre protocoalele de comunicație, structurile de rețea și modul în care dispozitivele interacționează pentru a asigura transferul eficient de date. Cursul îmbină teoria cu aplicabilitatea practică prin studii de caz și laboratoare, facilitând astfel o înțelegere profundă a mediului de rețele moderne.Pentru a asigura funcționarea corespunzătoare, rețeaua de calculatoare trebuie să respecte anumite reguli și standarde de comunicare, dezvoltate de-a lungul timpului în domeniul tehnologiei informației și comunicațiilor. Aceste protocoale reprezintă mecanisme de identificare a dispozitivelor conectate și de transfer al datelor sub formă de pachete. Fiecare transfer de date în rețea se realizează conform regulilor specifice implicate. Astăzi există diverse protocoale, dintre care cele mai importante în rețelele de calculatoare sunt TCP (Transmission Control Protocol), IP (Internet Protocol), UDP (User Datagram Protocol), ICMP (Internet Control Message Protocol) și ARP (Address Resolution Protocol). Comunicarea datelor în rețeaua de calculatoare se realizează în baza acestor protocoale, organizate ierarhic conform stivei de protocoale TCP/IP. Ele reprezintă mecanisme de identificare a dispozitivelor în rețea și de transfer al datelor sub formă de pachete.,
+    Importance: Cursul este esențial pentru formarea profesională a studenților din domeniul Informaticii, având un impact direct asupra abilităților lor de a proiecta și administra rețele eficiente. Studenții dobândesc competențe practice și teoretice care le permit să navigheze cu succes în industrie, inclusiv în domeniul IT, telecomunicații și servicii online. Misiunea curriculumului este de a pregăti specialiști capabili să facă față provocărilor tehnologice și să contribuie la inovația din domeniul rețelelor de calculatoare.,
+    Languages: Instruirea se desfășoară în limbile română și rusă, asigurându-se astfel accesibilitatea pentru toți studenții și facilitând învățarea în funcție de preferințele lingvistice ale acestora.,
+    Beneficiaries: Beneficiarii cursului sunt studenții programelor de licență 0613.4 Informatică și 0613.5 Informatică Aplicată, dar și profesioniști din domeniul IT care doresc să își actualizeze cunoștințele și competențele în rețele de calculatoare.
+  },
+  DisciplineProvisions: null,
+  Lessons: {
+    Units: null
+  },
+  Labs: {
+    Labs: null
+  },
+  StudiedUnits: {
+    Units: null
+  },
+  Competences: {
+    Values: null
+  }
+}

@@ -29,47 +29,84 @@ public static class DiacriticsHelper
             .Normalize(NormalizationForm.FormC);
     }
 
-    public static string SelectOneWithMostDiacritics(string s1, string s2)
+    public static string SelectWithDiacritics(string a, string b)
     {
-        var d1 = CountDiacritics(s1);
-        var d2 = CountDiacritics(s2);
-        return d1 > d2 ? s1 : s2;
+        if (HasDiacritics(a))
+        {
+            return a;
+        }
+        return b;
     }
 
-    public static int CountDiacritics(string s)
+    public static bool HasDiacritics(string input)
     {
-        var normalizedString = s.Normalize(NormalizationForm.FormD);
-        int count = 0;
-        for (int i = 0; i < normalizedString.Length; i++)
+        foreach (char c in input.Normalize(NormalizationForm.FormD))
         {
-            char c = normalizedString[i];
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory == UnicodeCategory.NonSpacingMark)
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
             {
-                count++;
+                return true;
             }
         }
-        return count;
+        return false;
     }
 }
 
-public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, IComparer<string>
+public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
+    IEqualityComparer<NameParts<string?>>,
+    IComparer<NameParts<string?>>
+
+    // This is just too much code duplication
+    // IAlternateEqualityComparer<ReadOnlySpan<char>, NameParts<LastNamePartSpan>>
 {
-    public static readonly IgnoreDiacriticsComparer Instance = new();
+    public static readonly IgnoreDiacriticsAndCase_Name_Comparer Instance = new();
+
+    public bool Equals(NameParts<string?> x, NameParts<string?> y)
+    {
+        return x.EachEquals(y, (x1, y1) =>
+        {
+            if (x1 is null)
+            {
+                return y1 is null;
+            }
+            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x1, y1);
+        });
+    }
+
+    public int GetHashCode(NameParts<string?> obj)
+    {
+        var hashCode = new HashCode();
+        foreach (var str in obj)
+        {
+            if (str is not null)
+            {
+                hashCode.Add(IgnoreDiacriticsAndCaseComparer.Instance.GetHashCode(str));
+            }
+        }
+        return hashCode.ToHashCode();
+    }
+
+    public int Compare(NameParts<string?> a, NameParts<string?> b)
+    {
+        return NamePartHelper.CompareEach<string?>(
+            a,
+            b,
+            // Handles nulls just fine.
+            IgnoreDiacriticsAndCaseComparer.Instance!);
+    }
+}
+
+public sealed class IgnoreDiacriticsAndCaseComparer :
+    IEqualityComparer<string>,
+    IComparer<string>,
+    IAlternateEqualityComparer<ReadOnlySpan<char>, string>
+{
+    public static readonly IgnoreDiacriticsAndCaseComparer Instance = new();
 
     public bool Equals(string? x, string? y)
     {
-        if (x is null && y is null)
+        if (ComparisonHelper.NullGuard(x, y, out bool b))
         {
-            return true;
-        }
-        if (x is null)
-        {
-            return false;
-        }
-        if (y is null)
-        {
-            return false;
+            return b;
         }
         var x1 = DiacriticsHelper.RemoveDiacritics(x);
         var y1 = DiacriticsHelper.RemoveDiacritics(y);
@@ -79,7 +116,7 @@ public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, ICompa
     public int GetHashCode(string obj)
     {
         var x = DiacriticsHelper.RemoveDiacritics(obj);
-        return x.GetHashCode();
+        return StringComparer.OrdinalIgnoreCase.GetHashCode(x);
     }
 
     public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
@@ -94,6 +131,13 @@ public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, ICompa
         var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
         var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
         return x1.StartsWith(y1, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool Contains(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
+        var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
+        return x1.Contains(y1, StringComparison.OrdinalIgnoreCase);
     }
 
     public int Compare(string? a, string? b)
@@ -114,5 +158,23 @@ public sealed class IgnoreDiacriticsComparer : IEqualityComparer<string>, ICompa
         var x1 = DiacriticsHelper.RemoveDiacritics(a);
         var y1 = DiacriticsHelper.RemoveDiacritics(b);
         return string.Compare(x1, y1, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool Equals(ReadOnlySpan<char> alternate, string other)
+    {
+        var alt = DiacriticsHelper.RemoveDiacritics(alternate.ToString());
+        var oth = DiacriticsHelper.RemoveDiacritics(other);
+        return alt.Equals(oth, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public int GetHashCode(ReadOnlySpan<char> alternate)
+    {
+        var alt = DiacriticsHelper.RemoveDiacritics(alternate.ToString());
+        return StringComparer.OrdinalIgnoreCase.GetHashCode(alt);
+    }
+
+    public string Create(ReadOnlySpan<char> alternate)
+    {
+        return alternate.ToString();
     }
 }

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ro" class="notranslate" translate="no">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="googlebot" content="notranslate" />
+    <title>Lecții - EduTrack</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/edutrack">EduTrack</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link text-dark">Popescu Andrei</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/edutrack/Account/Logout"><b>Iesire</b></a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-grow-1">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/edutrack/LessonAttendance">Lecții</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/edutrack/Account/ChangePassword">Setări</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+<div class="container">
+    <main role="main" class="pb-3">
+
+        <div class="container">
+            <h1>Lecții</h1>
+            <form name="search" id="search">
+                <div class="form-group row">
+                    <div class="col-2">
+                        <label>Anul universitar </label>
+                    </div>
+                    <div class="col-6">
+                        <select class="form-control-sm" onchange="document.getElementById('search').submit();" id="AnUniv" name="AnUniv">
+                            <option selected="selected" value="2025/26">2025/26</option>
+                            <option value="2024/25">2024/25</option>
+                            <option value="2023/24">2023/24</option>
+                            <option value="2022/23">2022/23</option>
+                            <option value="2021/22">2021/22</option>
+                            <option value="2020/21">2020/21</option>
+                            <option value="2019/20">2019/20</option>
+                            <option value="2018/19">2018/19</option>
+                            <option value="2017/18">2017/18</option>
+                            <option value="2016/17">2016/17</option>
+                        </select>
+                    </div>
+                </div>
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <a class="nav-item nav-link active" data-toggle="tab" id="nav-1-tab" href="#nav-1" role="tab" area-controls="nav-1">
+                            Ses 1
+                        </a>
+                        <a class="nav-item nav-link" data-toggle="tab" id="nav-2-tab" href="#nav-2" role="tab" area-controls="nav-2">
+                            Ses 2
+                        </a>
+                    </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" role="tabpanel" id="nav-1" aria-labelledby="nav-1-tab">
+                        <div class="row mb-1 mt-2 border-bottom">
+                    <span class="col-3">
+                        <i> Matematică și Informatică, </i>  <i> Designul jocurilor </i><i> Zi </i>
+                    </span>
+                            <span class="col-6">
+                        <a href="/edutrack/LessonAttendance/groups/32658">Fundamentele programării,</a>
+                        <small>semestru 01</small>,
+                        credite 6
+                    </span>
+                            <span class="col-3">
+                        prof.
+                        <i>Ionescu Vlad Mihai</i>
+                        <i>Rusu Elena</i>
+                        <i>Popescu Andrei</i>
+                        <i>Marin Gheorghe</i>
+                        <i>Tudor Ioana</i>
+                    </span>
+                        </div>
+                        <div class="row mb-1 mt-2 border-bottom">
+                    <span class="col-3">
+                        <i> Matematică și Informatică, </i>  <i> Informatică aplicată </i><i> Zi </i>
+                    </span>
+                            <span class="col-6">
+                        <a href="/edutrack/LessonAttendance/groups/32172">Fundamentele programării,</a>
+                        <small>semestru 01</small>,
+                        credite 6
+                    </span>
+                            <span class="col-3">
+                        prof.
+                        <i>Ionescu Vlad Mihai</i>
+                        <i>Vasile Adrian</i>
+                        <i>Popescu Andrei</i>
+                        <i>Petrescu Daniel</i>
+                        <i>Marin Gheorghe</i>
+                    </span>
+                        </div>
+                        <div class="row mb-1 mt-2 border-bottom">
+                    <span class="col-3">
+                        <i> Matematică și Informatică, </i>  <i> Designul jocurilor </i><i> Zi </i>
+                    </span>
+                            <span class="col-6">
+                        <a href="/edutrack/LessonAttendance/groups/32676">Programare în limbajul C&#x2B;&#x2B;,</a>
+                        <small>semestru 03</small>,
+                        credite 5
+                    </span>
+                            <span class="col-3">
+                        prof.
+                        <i>Matei Radu</i>
+                        <i>Popescu Andrei</i>
+                    </span>
+                        </div>
+                        <div class="row mb-1 mt-2 border-bottom">
+                    <span class="col-3">
+                        <i> Matematică și Informatică, </i>  <i> Informatică </i><i> Zi </i>
+                    </span>
+                            <span class="col-6">
+                        <a href="/edutrack/LessonAttendance/groups/32682">Modele de design software,</a>
+                        <small>semestru 05</small>,
+                        credite 4
+                    </span>
+                            <span class="col-3">
+                        prof.
+                        <i>Popescu Andrei</i>
+                        <i>Dumitrescu Gabriel-Cătălin</i>
+                    </span>
+                        </div>
+                        <div class="row mb-1 mt-2 border-bottom">
+                    <span class="col-3">
+                        <i> Matematică și Informatică, </i>  <i> Informatică aplicată </i><i> Zi </i>
+                    </span>
+                            <span class="col-6">
+                        <a href="/edutrack/LessonAttendance/groups/32692">Modele de design software,</a>
+                        <small>semestru 05</small>,
+                        credite 4
+                    </span>
+                            <span class="col-3">
+                        prof.
+                        <i>Popescu Andrei</i>
+                        <i>Dumitrescu Gabriel-Cătălin</i>
+                    </span>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" role="tabpanel" id="nav-2" aria-labelledby="nav-2-tab">
+                        <span> Nu-s discipline</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </main>
+</div>
+
+<footer class="border-top footer text-muted">
+    <div class="container">
+        &copy; 2020 - EduTrack - <a href="/edutrack/Home/Privacy">Privacy</a>
+    </div>
+</footer>
+</body>
+</html>

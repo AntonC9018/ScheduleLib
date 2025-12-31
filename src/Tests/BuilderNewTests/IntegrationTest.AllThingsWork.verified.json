@@ -1,0 +1,71 @@
+﻿[
+  {
+    "Marker": "Anton Curmanschii",
+    "Configs": [
+      {
+        "$type": "LessonAttendanceConfig",
+        "Sources": [
+          {
+            "FilePath": "{UserProfile}\\Desktop\\lipse.xlsx",
+            "RepeatedCourseBehavior": "Error"
+          }
+        ],
+        "MissingDaysFiller": null
+      },
+      {
+        "$type": "LessonTopicsConfig",
+        "Sources": [
+          {
+            "$type": "ManifestLessonTopicSourceDefinition",
+            "Path": null
+          },
+          {
+            "$type": "ManifestLessonTopicSourceDefinition",
+            "Path": "path.xlsx"
+          }
+        ],
+        "FallbackProviders": [
+          {
+            "LessonType": "Lab",
+            "Provider": {
+              "$type": "NoNameProvider"
+            }
+          }
+        ]
+      },
+      {
+        "$type": "MoodleConfig",
+        "Credentials": {
+          "IsRequired": true
+        }
+      },
+      {
+        "$type": "RegistryConfig",
+        "Credentials": {
+          "IsRequired": false
+        },
+        "ExtraLessonInstanceAction": "LeaveAlone",
+        "EquationCommandsDerivation": {
+          "$type": "AnyDayDerivation"
+        },
+        "CommandProcessingConfig": {}
+      }
+    ]
+  },
+  {
+    "Marker": "Tamara Iatasina",
+    "Configs": [
+      {
+        "$type": "RegistryConfig",
+        "Credentials": {
+          "IsRequired": false
+        },
+        "ExtraLessonInstanceAction": "LeaveAlone",
+        "EquationCommandsDerivation": {
+          "$type": "AnyDayDerivation"
+        },
+        "CommandProcessingConfig": {}
+      }
+    ]
+  }
+]

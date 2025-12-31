@@ -230,10 +230,7 @@ public static class LessonBuilderHelper
 
     public static void Group(this ILessonBuilder b, GroupId group, SubGroup? subGroup = null)
     {
-        b.Model.Group.Groups = new()
-        {
-            Group0 = group,
-        };
+        b.Model.Group.Groups = [group];
         b.Model.Group.SubGroup = subGroup ?? SubGroup.All;
     }
 
@@ -330,6 +327,10 @@ public static class LessonBuilderHelper
     {
         var ret = RegularLesson(s);
         ret.Model.Data = modelData;
+
+        ref var subGroup = ref ret.Model.Group.SubGroup;
+        subGroup = s.RemapSubGroup(subGroup);
+
         ret.InitLookup();
         return ret;
     }
@@ -629,7 +630,7 @@ public static class LessonBuilderHelper
         }
         if (whatToDiff.Period)
         {
-            if (a.Lesson.Period != b.Lesson.Period)
+            if (a.Date.Period != b.Date.Period)
             {
                 ret.Period = true;
             }

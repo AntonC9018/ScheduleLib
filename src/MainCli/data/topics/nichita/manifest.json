@@ -1,0 +1,11 @@
+{
+    "teacher": "Nartea Nichita",
+    "documents":
+    [
+        {
+            "path": "cloud.csv",
+            "course": "Cloud Computing",
+            "faculty": ["I", "IA"]
+        }
+    ]
+}

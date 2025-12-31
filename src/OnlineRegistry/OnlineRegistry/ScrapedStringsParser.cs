@@ -1,7 +1,5 @@
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -12,6 +10,9 @@ public static partial class RegistryScraping
     // DJ2302ru(II)
     // DJ2301
     // IA2401fr
+
+    // wildcard syntax:
+    // IA24(GA2D)ru
     internal static GroupForSearch ParseGroupFromOnlineRegistry(
         GroupParseContext context,
         string s)
@@ -19,21 +20,45 @@ public static partial class RegistryScraping
         var mainParser = new Parser(s);
         mainParser.SkipWhitespace();
 
-        var bparser = mainParser.BufferedView();
+        bool isRepeat = mainParser.ConsumeExactString("Repetare");
+        if (isRepeat)
+        {
+            mainParser.SkipWhitespace();
+            if (!mainParser.ConsumeExactString("-"))
+            {
+                JustThrow("expected dash for repetare");
+            }
+            mainParser.SkipWhitespace();
+        }
 
-        var label = ParseLabel(ref bparser);
-        var year = ParseYear(ref bparser);
-        var groupNumber = ParseGroupNumber(ref bparser);
-        var nameWithoutFR = mainParser.PeekSpanUntilPosition(bparser.Position);
-        _ = nameWithoutFR;
+        var label = ParseLabel(ref mainParser);
+        var year = ParseYear(ref mainParser);
 
-        mainParser.MoveTo(bparser.Position);
+        bool isWildcard = false;
+        uint? groupNumber = null;
+        var subGroup = ParseSubGroup(ref mainParser);
+        if (!subGroup.IsEmpty)
+        {
+            isWildcard = true;
+        }
+        else
+        {
+            groupNumber = ParseGroupNumber(ref mainParser);
+        }
 
         var languageOrFR = ParseLanguageOrFR(ref mainParser);
-        var subGroup = ParseSubGroup(ref mainParser);
+
+        if (!isWildcard)
+        {
+            subGroup = ParseSubGroup(ref mainParser);
+        }
+        if (ParseFR(ref mainParser))
+        {
+            languageOrFR.FR = true;
+        }
 
         mainParser.SkipWhitespace();
-        if (!mainParser.IsEmpty)
+        if (!mainParser.IsEmpty && !isRepeat)
         {
             throw new NotSupportedException("Group name not parsed fully.");
         }
@@ -42,23 +67,29 @@ public static partial class RegistryScraping
 
         return new()
         {
+            UnparsedName = s,
             Grade = grade,
             FacultyName = label,
-            GroupNumber = (int) groupNumber,
+            GroupNumber = (int?) groupNumber,
             // Don't have precedents for master yet.
             QualificationType = QualificationType.Licenta,
             AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
             SubGroupName = subGroup,
+            IsRepeat = isRepeat,
+            IsWildcard = isWildcard,
+            Language = languageOrFR.Language,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
         {
-            if (!parser.CanPeekCount(2))
+            var bparser = parser.BufferedView();
+            bparser.SkipLetters();
+            var ret = parser.SourceUntilExclusive(bparser.Position);
+            if (ret.Length == 0)
             {
-                JustThrow("group label");
+                JustThrow("no label");
             }
-            var ret = parser.PeekSource(2);
-            parser.Move(2);
+            parser.MoveTo(bparser.Position);
             return ret;
         }
 
@@ -74,45 +105,60 @@ public static partial class RegistryScraping
 
         static uint ParseGroupNumber(ref Parser parser)
         {
-            var numberResult = parser.ConsumePositiveInt(GroupHelper.GroupNumberLen);
-            if (numberResult.Status != ConsumeIntStatus.Ok)
+            // sometimes they don't denote this completely
+            var numberResult = parser.ConsumePositiveIntWithMaxLength(GroupHelper.GroupNumberLen);
+            if (numberResult is not { } num)
             {
                 JustThrow("group number");
             }
-            return numberResult.Value;
+            return num;
         }
 
         static LanguageOrFR ParseLanguageOrFR(ref Parser parser)
         {
-            var bparser = parser.BufferedView();
-            var skipResult = bparser.Skip(new SkipUntilOpenParenOrWhiteSpace());
-            if (!skipResult.SkippedAny)
+            var ret = new LanguageOrFR();
+            if (ParseFR(ref parser))
             {
-                return default;
+                ret.FR = true;
+            }
+            if (parser.ConsumeExactString("SE"))
+            {
+                // ignore this
             }
 
-            var languageOrFRName = parser.PeekSpanUntilPosition(bparser.Position);
-            var ret = DetermineIfLabelIsLanguageOrFR(languageOrFRName);
-            parser.MoveTo(bparser.Position);
+            if (LanguageHelper.ParseName(ref parser) is { } language)
+            {
+                ret.Language = language;
+            }
+            else if (parser.ConsumeExactString("R"))
+            {
+                ret.Language = Language.Ru;
+            }
+
+            if (!ret.FR && ret.IsLanguage)
+            {
+                if (ParseFR(ref parser))
+                {
+                    ret.FR = true;
+                }
+            }
             return ret;
         }
 
-        static LanguageOrFR DetermineIfLabelIsLanguageOrFR(ReadOnlySpan<char> languageOrFRName)
+        static bool ParseFR(ref Parser p)
         {
-            LanguageOrFR ret = default;
-            if (languageOrFRName.Equals("fr", StringComparison.OrdinalIgnoreCase))
+            const string fr = "fr";
+            if (!p.CanPeekCount(fr.Length))
             {
-                ret.FR = true;
-                return ret;
+                return false;
             }
-
-            var maybeLang = LanguageHelper.ParseName(languageOrFRName);
-            if (maybeLang is not { } lang)
+            var span = p.PeekSpan(fr.Length);
+            if (span.Equals(fr, StringComparison.OrdinalIgnoreCase))
             {
-                JustThrow("language");
+                p.Move(fr.Length);
+                return true;
             }
-            ret.Language = lang;
-            return ret;
+            return false;
         }
 
         static ReadOnlyMemory<char> ParseSubGroup(ref Parser parser)
@@ -130,7 +176,7 @@ public static partial class RegistryScraping
 
             parser.Move();
             var bparser = parser.BufferedView();
-            var skipResult = bparser.SkipUntil([')']);
+            var skipResult = bparser.SkipUntilAny([')']);
             if (skipResult.EndOfInput)
             {
                 JustThrow("subgroup number");
@@ -164,89 +210,6 @@ public static partial class RegistryScraping
             return true;
         }
     }
-
-    // Intentionally duplicated, because the strings are actually different.
-    internal static LessonType ParseLessonType(
-        string s,
-        IRegistryErrorHandler errorHandler)
-    {
-        var parser = new Parser(s);
-        parser.SkipWhitespace();
-        if (parser.IsEmpty)
-        {
-            return LessonType.Unspecified;
-        }
-        var bparser = parser.BufferedView();
-        _ = bparser.SkipNotWhitespace();
-        var lessonTypeSpan = parser.PeekSpanUntilPosition(bparser.Position);
-        var lessonType = Get(lessonTypeSpan);
-        if (lessonType == LessonType.Custom)
-        {
-            errorHandler.CustomLessonType(lessonTypeSpan);
-        }
-
-        parser.MoveTo(bparser.Position);
-
-        parser.SkipWhitespace();
-        if (!parser.IsEmpty)
-        {
-            throw new NotSupportedException("Lesson type not parsed fully.");
-        }
-        return lessonType;
-
-        LessonType Get(ReadOnlySpan<char> str)
-        {
-            static bool Equal(
-                ReadOnlySpan<char> str,
-                string literal)
-            {
-                return str.Equals(
-                    literal.AsSpan(),
-                    StringComparison.Ordinal);
-            }
-
-            for (var i = 0; i < LessonTypeNames.Length; i++)
-            {
-                if (Equal(str, LessonTypeNames[i]))
-                {
-                    return (LessonType) i;
-                }
-            }
-            return LessonType.Custom;
-        }
-    }
-
-    internal static string? GetLessonTypeName(LessonType type)
-    {
-        if (LessonTypeNames.Length <= (int) type)
-        {
-            return null;
-        }
-        return LessonTypeNames[(int) type];
-    }
-
-
-    private static readonly ImmutableArray<string> LessonTypeNames = CreateLessonTypeNames();
-    private static ImmutableArray<string> CreateLessonTypeNames()
-    {
-        // ReSharper disable once CollectionNeverUpdated.Local
-        var ret = ImmutableArray.CreateBuilder<string>();
-        ret.Capacity = 3;
-        ret.Count = 3;
-
-        Set(LessonType.Lab, "laborator");
-        Set(LessonType.Curs, "curs");
-        Set(LessonType.Seminar, "seminar");
-
-        Debug.Assert(ret.All(x => x != null));
-
-        return ret.ToImmutable();
-
-        void Set(LessonType t, string value)
-        {
-            ret[(int) t] = value;
-        }
-    }
 }
 
 internal record struct LanguageOrFR
@@ -258,10 +221,14 @@ internal record struct LanguageOrFR
 
 internal struct GroupForSearch
 {
+    public required string UnparsedName;
     public required AttendanceMode AttendanceMode;
     public required Grade Grade;
-    public required int GroupNumber;
+    public required int? GroupNumber;
     public required ReadOnlyMemory<char> FacultyName;
     public required QualificationType QualificationType;
     public required ReadOnlyMemory<char> SubGroupName;
+    public required Language? Language;
+    public required bool IsRepeat;
+    public required bool IsWildcard;
 }

@@ -1,0 +1,68 @@
+﻿{
+  Students: [
+    {
+      Name: Stan Mihai Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Popescu Ana Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Tudor Laura Vasile,
+      IsExpelled: false
+    },
+    {
+      Name: Petrescu Radu Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Costin Andrei Valeriu,
+      IsExpelled: false
+    },
+    {
+      Name: Preda Andrei Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Petrescu Cristina Andrei,
+      IsExpelled: false
+    },
+    {
+      Name: Stan Laura Valeriu,
+      IsExpelled: false
+    },
+    {
+      Name: Georgescu Radu Daniel,
+      IsExpelled: true
+    },
+    {
+      Name: Preda Laura Vasile,
+      IsExpelled: false
+    },
+    {
+      Name: Barbu Andrei Ion,
+      IsExpelled: false
+    },
+    {
+      Name: Voicu Lucian Nicolae,
+      IsExpelled: false
+    },
+    {
+      Name: Stan Irina Cristian,
+      IsExpelled: false
+    },
+    {
+      Name: Stan Sorin Andrei,
+      IsExpelled: false
+    },
+    {
+      Name: Stan Maria Petru,
+      IsExpelled: false
+    },
+    {
+      Name: Ionescu Lucian Valeriu,
+      IsExpelled: false
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+using ScheduleLib;
+
 public readonly ref struct WordSpan(ReadOnlySpan<char> v)
 {
     public readonly ReadOnlySpan<char> Value = v;
@@ -79,7 +81,7 @@ public static class WordHelper
         int len = int.Min(a.Value.Length, b.Value.Length);
         var a1 = a.Value[.. len];
         var b1 = b.Value[.. len];
-        if (!a1.Equals(b1, StringComparison.CurrentCultureIgnoreCase))
+        if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(a1, b1))
         {
             return CompareShortenedWordsResult.NotEqual;
         }

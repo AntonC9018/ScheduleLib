@@ -1,6 +1,4 @@
-using ScheduleLib;
-
-namespace App.Tests;
+namespace ScheduleLib.Tests;
 
 public sealed class ComparerTests
 {
@@ -15,7 +13,7 @@ public sealed class ComparerTests
     [Fact]
     public void DiacriticsComparer()
     {
-        var set = new HashSet<string>(IgnoreDiacriticsComparer.Instance);
+        var set = new HashSet<string>(IgnoreDiacriticsAndCaseComparer.Instance);
         set.Add("A.Șchiopu");
         Assert.False(set.Add("A.Schiopu"));
     }

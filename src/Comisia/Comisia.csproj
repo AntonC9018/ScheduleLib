@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Comisia.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+﻿[
+  {
+    Uri: about:///studregistry/LessonAttendance/LessonsList/32658?groupId=26682,
+    GroupNumber: 2,
+    SubGroup: I,
+    FacultyName: DJ
+  },
+  {
+    Uri: about:///studregistry/LessonAttendance/LessonsList/32658?groupId=26683,
+    GroupNumber: 2,
+    SubGroup: II,
+    FacultyName: DJ
+  }
+]

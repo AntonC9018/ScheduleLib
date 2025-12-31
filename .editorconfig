@@ -14,10 +14,16 @@ csharp_new_line_before_members_in_object_initializers = true
 csharp_preserve_single_line_blocks = true
 
 # ReSharper properties
+resharper_csharp_wrap_after_declaration_lpar = true
+resharper_csharp_wrap_after_invocation_lpar = true
 resharper_csharp_wrap_arguments_style = chop_if_long
 resharper_csharp_wrap_multiple_type_parameter_constraints_style = chop_if_long
+resharper_csharp_wrap_parameters_style = chop_if_long
 resharper_keep_existing_embedded_block_arrangement = false
 resharper_keep_existing_switch_expression_arrangement = false
+resharper_max_formal_parameters_on_line = 2
+resharper_max_invocation_arguments_on_line = 2
+resharper_max_primary_constructor_parameters_on_line = 3
 resharper_wrap_array_initializer_style = chop_always
 resharper_wrap_list_pattern = chop_always
 resharper_wrap_object_and_collection_initializer_style = chop_always
@@ -147,72 +153,72 @@ resharper_csharp_braces_for_fixed = required
 
 [*.cs]
 # Disposable member none cleaned up
-dotnet_diagnostic.CA1001.severity = error
-dotnet_diagnostic.CA1816.severity = error
+dotnet_diagnostic.ca1001.severity = error
+dotnet_diagnostic.ca1816.severity = error
 
 # Disposable not cleaned up
-dotnet_diagnostic.CA2000.severity = error
+dotnet_diagnostic.ca2000.severity = error
 
 # Parameter name should match in overriden method
-dotnet_diagnostic.CA1725.severity = none
+dotnet_diagnostic.ca1725.severity = none
 
 # No null checks (why? if it's not null in the signature already)
-dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.ca1062.severity = none
 
 # Force member functions to be static if they don't reference anything
-dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.ca1822.severity = none
 
 # Redundant usings
-dotnet_diagnostic.IDE0005.severity = error
+dotnet_diagnostic.ide0005.severity = error
 
 # Exceptions should be public
-dotnet_diagnostic.CA1064.severity = none
+dotnet_diagnostic.ca1064.severity = none
 # Exceptions should implement basic constructors
-dotnet_diagnostic.CA1032.severity = none
+dotnet_diagnostic.ca1032.severity = none
 
 # No underscores in names
-dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.ca1707.severity = none
 
 # E.g. can't name non-collection XXXCollection
-dotnet_diagnostic.CA1711.severity = none
+dotnet_diagnostic.ca1711.severity = none
 
 # No array properties (well, duh, you don't have a readonly array type
 # in the language, unless you're fine with an interface).
-dotnet_diagnostic.CA1819.severity = none
+dotnet_diagnostic.ca1819.severity = none
 
 # No List<T> public properties
-dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.ca1002.severity = none
 
 # ConfigureAwait(false)
 # Generally, not necessary anymore
-dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.ca2007.severity = none
 
 # Don't nest types
-dotnet_diagnostic.CA1034.severity = none
+dotnet_diagnostic.ca1034.severity = none
 
 # Implicit cast operator should be accompanied with a conversion method.
-dotnet_diagnostic.CA2225.severity = none
+dotnet_diagnostic.ca2225.severity = none
 
 # Require an attribute property corresponding to the constructor arg
-dotnet_diagnostic.CA1019.severity = none
+dotnet_diagnostic.ca1019.severity = none
 
 # Avoid unsealed attributes
 # dotnet_diagnostic.CA1813.severity = none
 
 # Properties names as types
-dotnet_diagnostic.CA1720.severity = none
+dotnet_diagnostic.ca1720.severity = none
 
 # Public fields not allowed
-dotnet_diagnostic.CA1051.severity = none
+dotnet_diagnostic.ca1051.severity = none
 
 # Enums must have a member equal to 0
-dotnet_diagnostic.CA1008.severity = none
+dotnet_diagnostic.ca1008.severity = none
 
 # Name conflicts with namespace
-dotnet_diagnostic.CA1724.severity = none
+dotnet_diagnostic.ca1724.severity = none
 
 # Internal class not instantiated -- just produces a bunch of false positives
-dotnet_diagnostic.CA1812.severity = none
+dotnet_diagnostic.ca1812.severity = none
 
 # Name generic params with T in front (using letters (T, U, W), so no).
-dotnet_diagnostic.CA1715.severity = none
+dotnet_diagnostic.ca1715.severity = none

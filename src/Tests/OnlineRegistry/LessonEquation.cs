@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using ScheduleLib.Builders;
+using ScheduleLib.OnlineRegistry.Impl;
 using ScheduleLib.Parsing.GroupParser;
 using DateOnly = System.DateOnly;
 
@@ -78,7 +79,7 @@ public sealed class LessonEquationTests
             });
     }
 
-    [Fact]
+    [Fact(Skip = "It is not ignored anymore, it counts as a separate type but does not produce changes at a later point")]
     public void LessonTypeNotSet_IgnoredInChecks()
     {
         var ctx = new Context();
@@ -267,7 +268,7 @@ file sealed class Context
     private const int Year = 2024;
     public static readonly DefaultLessonTimeConfig TimeConfig = LessonTimeConfig.CreateDefault();
     private readonly List<LessonConfig> _lessonConfigs = new();
-    private readonly List<LessonInstanceLink> _existingLessons = new();
+    private readonly List<RemoteLessonInstance> _existingLessons = new();
     private static DateOnly BaseDate
     {
         get
@@ -311,12 +312,14 @@ file sealed class Context
     {
         var date = GetDate(config.Day);
         var time = TimeConfig.Base.GetTimeSlotInterval(config.TimeSlot).Start;
-        var l = new LessonInstanceLink
+        var l = new RemoteLessonInstance
         {
             DateTime = new DateTime(date: date, time: time),
             LessonType = config.Type,
             EditUri = null!,
             ViewUri = null!,
+            Attendance = [],
+            Topic = "",
         };
         _existingLessons.Add(l);
     }
@@ -415,24 +418,21 @@ file sealed class Context
             {
                 DateTime = new DateTime(date, time),
                 LessonId = new(lessonId),
+                Attendance = [],
+                Topic = "",
             });
         }
 
-        var lists = new MatchingLists();
-        var result = MissingLessonDetection.GetLessonEquationCommands(new()
-        {
-            Lists = lists,
-            Schedule = schedule,
-            AllLessons = scheduled,
-            ExistingLessons = existing,
-        });
+        var derivationAlgorithm = new SameDayDerivation();
+        var result = derivationAlgorithm.DeriveCommands(
+            new(schedule, existing, scheduled));
         return result.Select(x =>
         {
             var ret = new ResolvedCommand(x.Type);
             if (x.HasAll)
             {
-                var (day, timeSlot) = ReverseEngineerDateTime(x.All.DateTime);
-                var type = schedule.Get(x.All.LessonId).Lesson.Type;
+                var (day, timeSlot) = ReverseEngineerDateTime(x.Local.DateTime);
+                var type = schedule.Get(x.Local.LessonId).Lesson.Type;
                 ret.All = new()
                 {
                     Day = day,
@@ -442,8 +442,8 @@ file sealed class Context
             }
             if (x.HasExisting)
             {
-                var (day, timeSlot) = ReverseEngineerDateTime(x.Existing.DateTime);
-                var type = x.Existing.LessonType;
+                var (day, timeSlot) = ReverseEngineerDateTime(x.Remote.DateTime);
+                var type = x.Remote.LessonType;
                 ret.Existing = new()
                 {
                     Day = day,

@@ -1,0 +1,23 @@
+﻿[
+  {
+    "Sources": [
+      {
+        "$type": "ManifestLessonTopicSourceDefinition",
+        "Path": null
+      },
+      {
+        "$type": "ManifestLessonTopicSourceDefinition",
+        "Path": "path.xlsx"
+      }
+    ],
+    "FallbackProviders": [
+      {
+        "LessonType": "Lab",
+        "Provider": {
+          "$type": "NoNameProvider"
+        }
+      }
+    ]
+  },
+  null
+]

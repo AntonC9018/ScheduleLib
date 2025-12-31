@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+    </ItemGroup>
+</Project>

@@ -1,7 +1,6 @@
-using ScheduleLib;
 using ScheduleLib.Builders;
 
-namespace App.Tests;
+namespace ScheduleLib.ParserTests;
 
 using static Helper;
 
@@ -53,7 +52,7 @@ public sealed class ScheduleTeacherNamesTests
         // Doesn't throw
         t.ShortFirstName(name);
 
-        Assert.Equal("Fi.", t.Model.Name.FirstName.A.Short);
+        Assert.Equal("Fi.", t.Model.Name.FirstName[0].Short);
     }
 
     [Fact]
@@ -63,7 +62,7 @@ public sealed class ScheduleTeacherNamesTests
         var t = s.Teacher("First Last");
         var name = CreateSinglePartNameWord("La.");
         Assert.Throws<ArgumentException>(() => t.ShortFirstName(name));
-        Assert.Null(t.Model.Name.FirstName.A.Short);
+        Assert.Null(t.Model.Name.FirstName[0].Short);
     }
 
     [Fact]
@@ -77,14 +76,14 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
 
         t.FirstName(CreateSinglePartName(new()
         {
             Full = "Fist",
             Short = null,
         }));
-        Assert.Equal("Fist", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("Fist", t.Model.Name.FirstName[0].Full);
     }
 
     [Fact]
@@ -98,7 +97,7 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
 
         Assert.Throws<ArgumentException>(() =>
             t.FirstName(CreateSinglePartName(new()
@@ -106,7 +105,7 @@ public sealed class ScheduleTeacherNamesTests
                 Full = "Irst",
                 Short = null,
             })));
-        Assert.Equal("First", t.Model.Name.FirstName.A.Full);
+        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
     }
 
     [Fact]
@@ -114,9 +113,10 @@ public sealed class ScheduleTeacherNamesTests
     {
         var s = new ScheduleBuilder();
         s.EnableLookupModule();
+        var lookup = s.Lookup(null!);
 
         var t = s.Teacher("First Last");
-        Assert.Equal(t.Id, s.Lookup().Teacher(lastName: "Last"));
+        Assert.Equal(t.Id, lookup.Teacher(lastName: "Last"));
     }
 
     [Fact]
@@ -126,30 +126,68 @@ public sealed class ScheduleTeacherNamesTests
         s.EnableLookupModule();
         var t = s.Teacher("First Last");
         t.LastName("Otherlast");
+        var lookup = s.Lookup(null!);
 
-        Assert.Null(s.Lookup().Teacher(lastName: "Last"));
-        Assert.Equal(t.Id, s.Lookup().Teacher(lastName: "Otherlast"));
+        Assert.Null(lookup.Teacher(lastName: "Last"));
+        Assert.Equal(t.Id, lookup.Teacher(lastName: "Otherlast"));
     }
 }
 
-public sealed class TeacherFindIndexOfBestMatchTests
+public sealed class TeacherFindIndexOfBestMatchTests : IClassFixture<Db>
 {
-    private static TeacherBuilderModel Create(string lastName, FirstNameParts<OptionalFirstNamePart> firstName)
+    private readonly Db _db;
+
+    public TeacherFindIndexOfBestMatchTests(Db db)
     {
-        return new()
-        {
-            Name = new()
-            {
-                LastName = lastName,
-                FirstName = firstName,
-            },
-        };
+        _db = db;
     }
 
     [Fact]
     public void FindBestMatch()
     {
-        TeacherBuilderModel[] teachers = [
+        _db.Check(CreateSinglePartNameWord("I."), 1);
+        _db.Check(CreateSinglePartNameWord("F."), 0);
+        _db.Check(CreateSinglePartNameWord("Fi."), 0);
+        _db.Check(CreateSinglePartNameWord("Rs"), -1);
+        _db.Check(CreateSinglePartNameWord("Rst"), 2);
+        _db.Check(CreateSinglePartNameWord("R."), 2);
+        _db.Check(CreateSinglePartNameWord("Unrelated"), -1);
+    }
+
+    [Fact]
+    public void SearchByFullFirstName_WithShortFirstNameInDb()
+    {
+        _db.Check(CreateSinglePartNameWord("Other"), 3);
+    }
+}
+
+file static class Helper
+{
+    public static NameParts<OptionalNamePart> CreateSinglePartName(OptionalNamePart p)
+    {
+        var ret = default(NameParts<OptionalNamePart>);
+        ret[0] = p;
+        return ret;
+    }
+
+    public static NameParts<Word> CreateSinglePartNameWord(string name)
+    {
+        var ret = default(NameParts<Word>);
+        ret[0] = new(name);
+        ret[1] = Word.Empty;
+        return ret;
+    }
+}
+
+
+public sealed class Db
+{
+    private readonly int[] _ids;
+    private readonly TeacherBuilderModel[] _teachers;
+
+    public Db()
+    {
+        _teachers = [
             Create("Last", CreateSinglePartName(new()
             {
                 Full = "First",
@@ -165,48 +203,43 @@ public sealed class TeacherFindIndexOfBestMatchTests
                 Full = "Rst",
                 Short = null,
             })),
+            Create("Last", CreateSinglePartName(new()
+            {
+                Full = null,
+                Short = "O.",
+            })),
             Create("Unrelated", CreateSinglePartName(new()
             {
                 Full = "First",
                 Short = "F.",
             })),
         ];
-        int[] ids = teachers.WhereSelectIndex(x => x.Name.LastName == "Last").ToArray();
 
-        Check(CreateSinglePartNameWord("I."), 1);
-        Check(CreateSinglePartNameWord("F."), 0);
-        Check(CreateSinglePartNameWord("Fi."), 0);
-        Check(CreateSinglePartNameWord("Rs"), -1);
-        Check(CreateSinglePartNameWord("Rst"), 2);
-        Check(CreateSinglePartNameWord("R."), 2);
-        Check(CreateSinglePartNameWord("Unrelated"), -1);
-        return;
+        _ids = _teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last").ToArray();
+    }
 
-        void Check(FirstNameParts<Word> firstName, int expected)
+    public void Check(NameParts<Word> firstName, int expected)
+    {
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            _teachers,
+            _ids,
+            firstName);
+        Assert.Equal(expected, i);
+    }
+
+    private static TeacherBuilderModel Create(string lastName, NameParts<OptionalNamePart> name)
+    {
+        var l = new LastName();
+        l[0] = lastName;
+
+        return new()
         {
-            int i = TeacherLookupHelper.FindIndexOfBestMatch(
-                teachers,
-                ids,
-                firstName);
-            Assert.Equal(expected, i);
-        }
+            Name = new()
+            {
+                LastName = l,
+                FirstName = name,
+            },
+        };
     }
 }
 
-file static class Helper
-{
-    public static FirstNameParts<OptionalFirstNamePart> CreateSinglePartName(OptionalFirstNamePart p)
-    {
-        var ret = default(FirstNameParts<OptionalFirstNamePart>);
-        ret.A = p;
-        return ret;
-    }
-
-    public static FirstNameParts<Word> CreateSinglePartNameWord(string name)
-    {
-        var ret = default(FirstNameParts<Word>);
-        ret.A = new(name);
-        ret.B = Word.Empty;
-        return ret;
-    }
-}
