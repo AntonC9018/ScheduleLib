@@ -3,11 +3,14 @@
     "Marker": "Anton Curmanschii",
     "Configs": [
       {
-        "$type": "GoogleDriveConfig"
-      },
-      {
         "$type": "LessonAttendanceConfig",
-        "Sources": null
+        "Sources": [
+          {
+            "FilePath": "{UserProfile}\\Desktop\\lipse.xlsx",
+            "RepeatedCourseBehavior": "Error"
+          }
+        ],
+        "MissingDaysFiller": null
       },
       {
         "$type": "LessonTopicsConfig",
@@ -15,6 +18,10 @@
           {
             "$type": "ManifestLessonTopicSourceDefinition",
             "Path": null
+          },
+          {
+            "$type": "ManifestLessonTopicSourceDefinition",
+            "Path": "path.xlsx"
           }
         ],
         "FallbackProviders": [
@@ -28,11 +35,15 @@
       },
       {
         "$type": "MoodleConfig",
-        "Credentials": {}
+        "Credentials": {
+          "IsRequired": true
+        }
       },
       {
         "$type": "RegistryConfig",
-        "Credentials": {},
+        "Credentials": {
+          "IsRequired": false
+        },
         "ExtraLessonInstanceAction": "LeaveAlone",
         "EquationCommandsDerivation": {
           "$type": "AnyDayDerivation"
@@ -45,17 +56,10 @@
     "Marker": "Tamara Iatasina",
     "Configs": [
       {
-        "$type": "LessonTopicsConfig",
-        "Sources": null,
-        "FallbackProviders": null
-      },
-      {
-        "$type": "MoodleConfig",
-        "Credentials": null
-      },
-      {
         "$type": "RegistryConfig",
-        "Credentials": {},
+        "Credentials": {
+          "IsRequired": false
+        },
         "ExtraLessonInstanceAction": "LeaveAlone",
         "EquationCommandsDerivation": {
           "$type": "AnyDayDerivation"

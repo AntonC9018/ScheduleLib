@@ -56,46 +56,60 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     public ExtraLessonInstanceAction ExtraLessonAction { get; set; } = ExtraLessonInstanceAction.LeaveAlone;
     private readonly ILogger _logger;
 
-    public void CourseNotFound(string courseName)
-    {
-        Console.WriteLine($"Course not found: {courseName}");
-    }
+    public void CourseNotFound(string courseName) => LogCourseNotFound(courseName);
 
     public void StudentsNotInDbButInRegistry(StudentsInGroup students)
     {
+        using var loggerScope = LoggerScope();
+        foreach (var student in students.Students)
+        {
+            LogStudentNotInDbButInRegistry(student);
+        }
+
+        IDisposable? LoggerScope()
         {
             var groupName = students.Groups.Value.ToString(students.Schedule);
             var lesson = students.Schedule.Get(students.LessonId);
             var lessonType = lesson.Lesson.Type;
             var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
             var subGroup = lesson.Lesson.SubGroup.Value ?? "all subgroups";
-            Console.WriteLine($"Group {groupName} ({subGroup}), Course {course} ({lessonType})");
+            return _logger.BeginScope(new
+            {
+                groupName,
+                subGroup,
+                course,
+                lessonType,
+            });
         }
-
-        foreach (var student in students.Students)
-        {
-            Console.WriteLine($"Student not in DB but in registry: {student}");
-        }
     }
 
-    public void LessonWithoutName()
-    {
-        Console.WriteLine("Lesson without name");
-    }
+    public void LessonWithoutName() => LogLessonWithoutName();
 
-    public void CustomLessonType(ReadOnlySpan<char> ch)
-    {
-        Console.WriteLine($"Custom lesson type: {ch.ToString()}");
-    }
+    public void CustomLessonType(ReadOnlySpan<char> ch) => LogCustomLessonType(ch.ToString());
 
     public ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date)
     {
-        Console.WriteLine($"Extra lesson instance found: {date}");
+        LogExtraLessonInstanceFound(date);
         return ExtraLessonAction;
     }
 
-    public void GroupNotFound(string groupName)
-    {
-        Console.WriteLine($"Group not found: {groupName}");
-    }
+    public void GroupNotFound(string groupName) => LogGroupNotFound(groupName);
+
+    [LoggerMessage(LogLevel.Warning, "Course not found: {CourseName}")]
+    partial void LogCourseNotFound(string CourseName);
+
+    [LoggerMessage(LogLevel.Warning, "Lesson without name")]
+    partial void LogLessonWithoutName();
+
+    [LoggerMessage(LogLevel.Warning, "Custom lesson type: {LessonType}")]
+    partial void LogCustomLessonType(string LessonType);
+
+    [LoggerMessage(LogLevel.Information, "Extra lesson instance found: {Date}")]
+    partial void LogExtraLessonInstanceFound(DateTime Date);
+
+    [LoggerMessage(LogLevel.Warning, "Group not found: {GroupName}")]
+    partial void LogGroupNotFound(string GroupName);
+
+    [LoggerMessage(LogLevel.Warning, "Student not in DB but in registry: {Student}")]
+    partial void LogStudentNotInDbButInRegistry(Name Student);
 }

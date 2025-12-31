@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using MainCli.BuilderNew;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -89,7 +90,6 @@ public static class LayerQueries
         where T : class
     {
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();
-        // var merger = serviceProvider.GetRequiredService<IMerger<T>>();
         T? current = null;
 
         foreach (var layer in path.Path)
@@ -100,19 +100,25 @@ public static class LayerQueries
                 continue;
             }
 
+            var config = maybe.Value;
+            if (config.UpdateActions.IsEmpty)
+            {
+                continue;
+            }
+
             if (current == null)
             {
                 current = basicOperations.Empty();
             }
+            Debug.Assert(current != null);
 
-            var config = maybe.Value;
             foreach (var a in config.UpdateActions)
             {
+                current = a.Update(serviceProvider, current);
                 if (current == null)
                 {
                     break;
                 }
-                current = a.Update(serviceProvider, current);
             }
         }
         return current;

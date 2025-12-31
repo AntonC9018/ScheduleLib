@@ -15,8 +15,8 @@ public static class TestBuilderHelper
     // (so that running tasks are never affected).
     public static ApplicationConfigBuilder Configure(ApplicationConfigBuilder b)
     {
-        // allows to configure the defaults at this level
-        // they will take effect if later they are not overriden,
+        // Allows to configure the defaults at this level.
+        // they will take effect if later they are not overriden.
         b.Defaults.Configure(defaults =>
         {
             defaults.Registry().Configure(x =>
@@ -33,25 +33,20 @@ public static class TestBuilderHelper
             {
                 // If someone else tries using topics.Manifest()
                 // in their source config, it would bind to this one.
+                _ = topics;
             });
 
             defaults.Registry().Credentials().FromConfig();
             defaults.Moodle().Credentials().FromConfig(isRequired: true);
-
-            // this is allowed too
-            // t.Registry.Credentials.FromConfig(isRequired: true);
-            // defaults.Registry.Configure(x =>
-            // {
-            //     x.Credentials.FromConfig(isRequired: true);
-            // });
         });
 
         // As an idea (ignore for now)
         // var scope = defaults.Scope(scope =>
         // {
-        //     // This will always be added to all, even if not overriddent.
+        //     // This will always be added to all, even if not overridden.
         //     scope.LessonTopics.Manifest();
         // });
+
         b.Defaults.TeacherLayer("Anton Curmanschii", t =>
         {
             t.GoogleDrive();
@@ -64,30 +59,14 @@ public static class TestBuilderHelper
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                // a.Format(...) allows to reset the format.
-                // each format has specific configurations like header configs for excel.
-                // attendance.SetPath();
             });
             t.LessonTopics().Configure(topics =>
             {
                 topics.Manifest();
-                // If this is set, it won't register the default source.
-                // topics.SetPath();
-
-                topics.FallbackProvider(LessonType.Lab, new NoNameProvider());
-
-                // to configure for all, use
-                // topics.FallbackProvider(new NoNameProvider);
-
-                // also allowed:
-                // topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                t.LessonTopics().Manifest(m => m.Path("path.xlsx"));
             });
-
             t.Moodle().Credentials().FromConfig(isRequired: true);
-            // t.Moodle.Configure(moodle =>
-            // {
-            //     moodle.Credentials.FromConfig(isRequired: true);
-            // });
         });
 
         b.Defaults.TeacherLayer("Tamara Iatasina", t =>

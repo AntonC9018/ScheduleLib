@@ -31,21 +31,11 @@ public sealed class NoLessonTopics : ILessonTopics
     }
 }
 
-public sealed class CoursesNavigator
+[AutoConstructor]
+public sealed partial class CoursesNavigator
 {
     private readonly OnlineRegistryNavigator _navigator;
-    private readonly CourseNameUnifierModule _unifier;
-    private readonly LookupModule _lookup;
-
-    public CoursesNavigator(
-        OnlineRegistryNavigator navigator,
-        CourseNameUnifierModule unifier,
-        LookupModule lookup)
-    {
-        _unifier = unifier;
-        _lookup = lookup;
-        _navigator = navigator;
-    }
+    private readonly LookupFacade _lookup;
 
     public async Task<IEnumerable<CourseLink>> Get(Semester semester)
     {
@@ -62,14 +52,9 @@ public sealed class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = _unifier.Find(new()
+                var maybeCourseId = _lookup.Course(courseName, new()
                 {
-                    CourseName = courseName,
-                    Lookup = _lookup,
-                    ParseOptions = new()
-                    {
-                        IgnorePunctuation = true,
-                    },
+                    IgnorePunctuation = true,
                 });
                 if (maybeCourseId is not { } courseId)
                 {

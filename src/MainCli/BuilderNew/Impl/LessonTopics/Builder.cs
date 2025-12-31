@@ -16,7 +16,7 @@ public partial class Extensions
             configure?.Invoke(x);
 
             var sources = builder.Value().Sources;
-            var source = new ManifestLessonTopicSourceDefinition();
+            var source = x.Definition;
             sources.Add(source);
         }
 

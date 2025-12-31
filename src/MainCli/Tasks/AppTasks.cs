@@ -203,7 +203,7 @@ public static class AppTasks
                     RegistryNavigator = navigator,
                     CancellationToken = c.CancellationToken,
                     MoodleContext = moodleContext,
-                    QuizId = "317382",
+                    QuizId = c.MoodleQuizId,
                     Semester = semester,
                 });
                 break;
@@ -369,6 +369,7 @@ public sealed class AppTasksExecutionContext
     public required Name TeacherName { get; init; }
     public required ServiceProvider RootServiceProvider { get; init; }
     public required CancellationToken CancellationToken { get; init; }
+    public required string MoodleQuizId { get; set; }
 
     public FileInDirectory FreeRoomsFile => OutputDirectory.File(FreeRoomsExcelOutputFileName);
     public FileInDirectory AllTeachersFile => OutputDirectory.File(AllTeachersOutputFileName);
@@ -383,4 +384,5 @@ public readonly struct TaskExecutionContext
     public FileInDirectory FreeRoomsFile => Context.FreeRoomsFile;
     public FileInDirectory AllTeachersFile => Context.AllTeachersFile;
     public CancellationToken CancellationToken => Context.CancellationToken;
+    public string MoodleQuizId => Context.MoodleQuizId;
 }

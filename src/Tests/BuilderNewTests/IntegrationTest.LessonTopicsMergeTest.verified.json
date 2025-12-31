@@ -4,6 +4,10 @@
       {
         "$type": "ManifestLessonTopicSourceDefinition",
         "Path": null
+      },
+      {
+        "$type": "ManifestLessonTopicSourceDefinition",
+        "Path": "path.xlsx"
       }
     ],
     "FallbackProviders": [
@@ -15,8 +19,5 @@
       }
     ]
   },
-  {
-    "Sources": null,
-    "FallbackProviders": null
-  }
+  null
 ]

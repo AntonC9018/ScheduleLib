@@ -17,16 +17,17 @@ using Tests.ScheduleCommon;
 public sealed class IntegrationTest
 {
     [Fact]
-    public async Task Test()
+    public async Task LessonTopicsMergeTest()
     {
         var fixture = Fixture();
-        var list = new List<LessonTopicsConfig>();
-        foreach (var marker in fixture.ConfigBuilder.GetAllMarkers())
+        var list = new List<LessonTopicsConfig?>();
+        foreach (var marker in fixture.ConfigBuilder
+                     .GetAllMarkers()
+                     .OrderBy(x => x.TeacherName.ToString()))
         {
             await using var scope = fixture.ServiceProvider.CreateMarkerScope(marker);
             var provider = scope.ServiceProvider.GetRequiredService<ConfigProvider>();
             var config = provider.Get(LessonTopicsConfig.Key);
-            Assert.NotNull(config);
             list.Add(config);
         }
 
@@ -70,8 +71,10 @@ public sealed class IntegrationTest
             foreach (var key in configKeys)
             {
                 var config = configProvider.GetUntyped(key);
-                Assert.NotNull(config);
-                configsOfMarker.Add(config);
+                if (config != null)
+                {
+                    configsOfMarker.Add(config);
+                }
             }
         }
         await Verify(configs)
@@ -102,7 +105,7 @@ public sealed class IntegrationTest
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        await using var outputFile = outputDirectory.OpenFile(outputPath, FileMode.Create, FileAccess.Write);
+        await using var outputFile = outputDirectory.OpenFile(outputPath, FileMode.Create, FileAccess.ReadWrite);
 
         var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelTaskHandler>(serviceProvider);
 
@@ -121,17 +124,16 @@ public sealed class IntegrationTest
         var services = new ServiceCollection();
         services.AddAllServices();
 
-        services
-            .Configure<ManifestDirectoriesOptions>(x =>
-            {
-                x.Directories.Add("data/topics");
-            });
-        services
-            .Configure<StudyYearOptions>(x =>
-            {
-                x.StudyYear = 2025;
-                x.Semester = Semester.Sem2;
-            });
+        services.Configure<StudyYearOptions>(x =>
+        {
+            x.StudyYear = 2025;
+            x.Semester = Semester.Sem2;
+        });
+        services.Configure<RegularSeminarDateConfig>(x =>
+        {
+            x.Day = DayOfWeek.Wednesday;
+            x.Time = new(hour: 15, minute: 00);
+        });
 
         services.Replace(new(
             typeof(IScheduleInitializer),

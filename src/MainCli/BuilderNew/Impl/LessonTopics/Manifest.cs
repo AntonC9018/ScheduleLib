@@ -91,13 +91,13 @@ public sealed partial class ManifestSource : ILessonTopicSource
     }
 }
 
-public sealed class ManifestSourceBuilder
+public readonly struct ManifestSourceBuilder()
 {
-    private readonly ManifestLessonTopicSourceDefinition Definition = new();
+    internal readonly ManifestLessonTopicSourceDefinition Definition = new();
 
-    public ManifestSource Create()
+    public void Path(string? path)
     {
-        return null!;
+        Definition.Path = path;
     }
 }
 

@@ -40,11 +40,11 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
-        AppTask.UploadDocsToDrive,
+        // AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
-        // AppTask.CreateLessonsInRegistry,
+        AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
@@ -55,6 +55,7 @@ var appExecutionContext = new AppTasksExecutionContext
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
     TeacherName = NameHelper.Parse("Curmanschii Anton"),
+    MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);
 return;

@@ -40,15 +40,18 @@ public sealed class LookupModule()
 
 public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unifier)
 {
-    public CourseId? Course(string name) => unifier.Find(new()
+    public CourseId? Course(string name, CourseNameParseOptions? parseOptions = null)
     {
-        CourseName = name,
-        Lookup = s.LookupModule!,
-        ParseOptions = new()
+        return unifier.Find(new()
         {
-            IgnorePunctuation = false,
-        },
-    });
+            CourseName = name,
+            Lookup = s.LookupModule!,
+            ParseOptions = parseOptions ?? new()
+            {
+                IgnorePunctuation = false,
+            },
+        });
+    }
 
     public IEnumerable<TeacherId> Teachers(LastName lastName)
     {
