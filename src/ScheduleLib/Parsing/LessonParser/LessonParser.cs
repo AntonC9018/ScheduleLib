@@ -1597,7 +1597,7 @@ internal struct ParsingState()
         LessonsInParsing.Clear();
         DefaultModifiers.Clear();
         CommonLesson = new();
-        LastModiferIndex = 0;
+        LastModiferIndex = -1;
     }
 
     public bool IsTerminalState
