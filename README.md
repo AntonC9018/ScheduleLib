@@ -47,7 +47,7 @@ The most complex parts are the following:
 - [LessonParser](src/ScheduleLib/Parsing/LessonParser/LessonParser.cs), 
   which parses the strings in a singular cell in a schedule table.
 - [CourseNameParser](src/ScheduleLib/Parsing/CourseNameParser.cs) and
-  [CourseNameUnifierModule](src/ScheduleLib/Parsing/CoourseNameUnifierModule.cs),
+  [CourseNameUnifierModule](src/ScheduleLib/Parsing/CourseNameUnifierModule.cs),
   which make sure similar course names are considered the same.
 
 The rules around the document format do not officially exist
