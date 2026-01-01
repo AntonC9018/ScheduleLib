@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using AutoConstructor.Attributes;
 
 namespace ScheduleLib;
 
@@ -47,21 +49,10 @@ public struct CourseFilter()
     public CourseId[]? IncludeIds = null;
 }
 
-public readonly struct RegularLessonAccessor
-{
-    public required RegularLessonId Id { get; init; }
-
-    // TODO: Make this a struct and pull it from the schedule
-    public required RegularLesson Item { get; init; }
-
-    public readonly ref readonly LessonData Lesson => ref Item.Lesson;
-    public readonly ref readonly RegularLessonDate Date => ref Item.Date;
-}
-
 public sealed class FilteredSchedule
 {
     public required Schedule Source;
-    public required RegularLessonAccessor[] Lessons;
+    public required WeeklyLessonAccessor[] Lessons;
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
@@ -186,15 +177,10 @@ public static class FilterHelper
             Teachers = teachers,
         };
 
-        IEnumerable<RegularLessonAccessor> GetRegularLessons(ScheduleFilter filter)
+        IEnumerable<WeeklyLessonAccessor> GetRegularLessons(ScheduleFilter filter)
         {
-            foreach (var l in schedule.EnumerateLessons())
+            foreach (var l in schedule.EnumerateWeeklyLessons())
             {
-                var regularLesson = new RegularLessonAccessor
-                {
-                    Id = l.Id,
-                    Item = l.Item,
-                };
                 if (!PassesGradeTest())
                 {
                     continue;
@@ -223,12 +209,12 @@ public static class FilterHelper
                 {
                     continue;
                 }
-                yield return regularLesson;
+                yield return l;
                 continue;
 
                 bool PassesGradeTest()
                 {
-                    var groupId = regularLesson.Lesson.Group;
+                    var groupId = l.Lesson.Group;
                     var g = schedule.Get(groupId);
                     if (filter.QualificationType is { } q)
                     {
@@ -253,7 +239,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    foreach (var teacherId in regularLesson.Lesson.Teachers)
+                    foreach (var teacherId in l.Lesson.Teachers)
                     {
                         if (includedIds.Contains(teacherId))
                         {
@@ -271,7 +257,7 @@ public static class FilterHelper
                     }
                     foreach (var subGroup in subGroups)
                     {
-                        if (subGroup == regularLesson.Lesson.SubGroup)
+                        if (subGroup == l.Lesson.SubGroup)
                         {
                             return true;
                         }
@@ -287,7 +273,7 @@ public static class FilterHelper
                     }
                     bool CheckId(GroupId groupId)
                     {
-                        foreach (var x in regularLesson.Lesson.Groups)
+                        foreach (var x in l.Lesson.Groups)
                         {
                             if (x == groupId)
                             {
@@ -312,7 +298,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    var p = regularLesson.Date.Period;
+                    var p = l.Date.Period;
                     if (p.IsUnspecified
                         && filter.PeriodFilter.UnspecifiedIsAll)
                     {
@@ -339,7 +325,7 @@ public static class FilterHelper
                         {
                             return true;
                         }
-                        if (regularLesson.Lesson.Type == lessonType)
+                        if (l.Lesson.Type == lessonType)
                         {
                             return true;
                         }
@@ -353,7 +339,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    var courseId = regularLesson.Lesson.Course;
+                    var courseId = l.Lesson.Course;
                     if (courseIds.Contains(courseId))
                     {
                         return true;

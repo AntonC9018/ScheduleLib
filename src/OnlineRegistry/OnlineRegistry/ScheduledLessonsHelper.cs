@@ -2,7 +2,7 @@ namespace ScheduleLib.OnlineRegistry;
 
 public readonly record struct LessonWithDate : IDateTime
 {
-    public required RegularLessonId LessonId { get; init; }
+    public required WeeklyLessonId LessonId { get; init; }
     public required DateTime DateTime { get; init; }
 }
 

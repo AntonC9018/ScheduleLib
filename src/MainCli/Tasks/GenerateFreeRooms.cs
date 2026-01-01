@@ -26,7 +26,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
 
     public async ValueTask Run(RunParams p)
     {
-        var rooms = PreprocessedRooms(_schedule.RegularLessons);
+        var rooms = PreprocessedRooms(_schedule.EnumerateWeeklyLessons());
         var allRooms = rooms.Distinct().ToHashSet();
 
         await using var spreadsheet = await Spreadsheet.CreateNewAsync(
@@ -48,7 +48,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
 
             foreach (var day in new AllEnumEnumerable<DayOfWeek>())
             {
-                var lessonsThisDay = _schedule.RegularLessons
+                var lessonsThisDay = _schedule.EnumerateWeeklyLessons()
                     .Where(x => x.Date.DayOfWeek == day)
                     .ToArray();
                 if (lessonsThisDay.Length == 0)
@@ -110,7 +110,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
             return new RoomId(updated);
         }
 
-        IEnumerable<RoomId> PreprocessedRooms(IEnumerable<RegularLesson> lessons)
+        IEnumerable<RoomId> PreprocessedRooms(IEnumerable<WeeklyLessonAccessor> lessons)
         {
             var preprocessed = lessons
                 .Select(x => x.Lesson.Room)

@@ -163,6 +163,7 @@ public record struct UnsizedBitArray32
     public readonly bool AreNoneSet => _bits == 0;
 
     public readonly uint Bits => _bits;
+    public readonly bool IsEmpty => AreNoneSet;
 
     public static UnsizedBitArray32 AllSet(int length = BitArray32.MaxLength)
     {
@@ -181,6 +182,11 @@ public record struct UnsizedBitArray32
 
         int shift = sizeof(uint) * 8 - length;
         return ~default(uint) >> shift;
+    }
+
+    public readonly UnsizedBitArray32 Union(UnsizedBitArray32 otherArray)
+    {
+        return new(otherArray.Bits | Bits);
     }
 }
 
@@ -330,6 +336,16 @@ public record struct BitArray32
     public static BitArray32 Empty(int length)
     {
         return new(0, length);
+    }
+
+    public readonly BitArray32 Union(BitArray32 other)
+    {
+        Debug.Assert(other.Length == Length);
+        var ret = _array.Union(other._array);
+        return this with
+        {
+            _array = ret,
+        };
     }
 
     private readonly bool PrintMembers(StringBuilder sb)

@@ -1,10 +1,11 @@
 using System.Runtime.InteropServices;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib.Builders;
 
 public partial class ScheduleBuilder
 {
-    public ListBuilder<RegularLessonBuilderModel> RegularLessons = new();
+    public ListBuilder<RegularLessonBuilderModel> WeeklyLessons = new();
 }
 
 public struct RegularLessonModelMergeMask()
@@ -13,7 +14,7 @@ public struct RegularLessonModelMergeMask()
     public bool Groups;
 }
 
-public record struct RegularLessonModelDiffMask()
+public record struct WeeklyLessonModelDiffMask()
 {
     public enum BitIndex
     {
@@ -32,89 +33,96 @@ public record struct RegularLessonModelDiffMask()
         Count,
     }
 
-    public BitArray32 Bits = BitArray32.Empty((int) BitIndex.Count);
+    public EnumBitArray<BitIndex> Impl = default;
 
     public bool Course
     {
-        get => Bits.IsSet((int) BitIndex.Course);
-        set => Bits.Set((int) BitIndex.Course, value);
+        get => Impl.IsSet(BitIndex.Course);
+        set => Impl.Set(BitIndex.Course, value);
     }
     public bool OneTeacher
     {
-        get => Bits.IsSet((int) BitIndex.OneTeacher);
-        set => Bits.Set((int) BitIndex.OneTeacher, value);
+        get => Impl.IsSet(BitIndex.OneTeacher);
+        set => Impl.Set(BitIndex.OneTeacher, value);
     }
 
     public bool AllTeachers
     {
-        get => Bits.IsSet((int) BitIndex.AllTeachers);
-        set => Bits.Set((int) BitIndex.AllTeachers, value);
+        get => Impl.IsSet(BitIndex.AllTeachers);
+        set => Impl.Set(BitIndex.AllTeachers, value);
     }
 
     public bool Room
     {
-        get => Bits.IsSet((int) BitIndex.Room);
-        set => Bits.Set((int) BitIndex.Room, value);
+        get => Impl.IsSet(BitIndex.Room);
+        set => Impl.Set(BitIndex.Room, value);
     }
 
     public bool LessonType
     {
-        get => Bits.IsSet((int) BitIndex.Type);
-        set => Bits.Set((int) BitIndex.Type, value);
+        get => Impl.IsSet(BitIndex.Type);
+        set => Impl.Set(BitIndex.Type, value);
     }
 
     public bool OneGroup
     {
-        get => Bits.IsSet((int) BitIndex.OneGroup);
-        set => Bits.Set((int) BitIndex.OneGroup, value);
+        get => Impl.IsSet(BitIndex.OneGroup);
+        set => Impl.Set(BitIndex.OneGroup, value);
     }
 
     public bool AllGroups
     {
-        get => Bits.IsSet((int) BitIndex.AllGroups);
-        set => Bits.Set((int) BitIndex.AllGroups, value);
+        get => Impl.IsSet(BitIndex.AllGroups);
+        set => Impl.Set(BitIndex.AllGroups, value);
     }
 
     public bool SubGroup
     {
-        get => Bits.IsSet((int) BitIndex.SubGroup);
-        set => Bits.Set((int) BitIndex.SubGroup, value);
+        get => Impl.IsSet(BitIndex.SubGroup);
+        set => Impl.Set(BitIndex.SubGroup, value);
     }
 
     public bool Day
     {
-        get => Bits.IsSet((int) BitIndex.Day);
-        set => Bits.Set((int) BitIndex.Day, value);
+        get => Impl.IsSet(BitIndex.Day);
+        set => Impl.Set(BitIndex.Day, value);
     }
 
     public bool TimeSlot
     {
-        get => Bits.IsSet((int) BitIndex.TimeSlot);
-        set => Bits.Set((int) BitIndex.TimeSlot, value);
+        get => Impl.IsSet(BitIndex.TimeSlot);
+        set => Impl.Set(BitIndex.TimeSlot, value);
     }
 
     public bool Parity
     {
-        get => Bits.IsSet((int) BitIndex.Parity);
-        set => Bits.Set((int) BitIndex.Parity, value);
+        get => Impl.IsSet(BitIndex.Parity);
+        set => Impl.Set(BitIndex.Parity, value);
     }
 
     public bool Period
     {
-        get => Bits.IsSet((int) BitIndex.Period);
-        set => Bits.Set((int) BitIndex.Period, value);
+        get => Impl.IsSet(BitIndex.Period);
+        set => Impl.Set(BitIndex.Period, value);
     }
 
-    public RegularLessonModelDiffMask Intersect(RegularLessonModelDiffMask mask)
+    public readonly WeeklyLessonModelDiffMask Intersect(WeeklyLessonModelDiffMask mask)
     {
         return new()
         {
-            Bits = Bits.Intersect(mask.Bits),
+            Impl = Impl.Intersect(mask.Impl),
+        };
+    }
+    public readonly WeeklyLessonModelDiffMask Union(WeeklyLessonModelDiffMask mask)
+    {
+        return new()
+        {
+            Impl = Impl.Union(mask.Impl),
         };
     }
 
-    public readonly bool TheyAreEqual => Bits.IsEmpty;
-    public readonly bool TheyDiffer => !Bits.IsEmpty;
+    public readonly bool TheyAreEqual => Impl.IsEmpty;
+    public readonly bool TheyDiffer => !Impl.IsEmpty;
 }
 
 public struct RegularLessonBuilderModelData()
@@ -173,7 +181,7 @@ public sealed class RegularLessonBuilder : ILessonBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required int Id { get; init; }
-    public RegularLessonBuilderModel Model => Schedule.RegularLessons.Ref(Id);
+    public RegularLessonBuilderModel Model => Schedule.WeeklyLessons.Ref(Id);
     public static implicit operator int(RegularLessonBuilder r) => r.Id;
 
     // NOTE: to make this more generic, can make the whole state of the builder model a struct.
@@ -276,7 +284,7 @@ public static class LessonBuilderHelper
 
     public static void ValidateLessons(ScheduleBuilder s)
     {
-        foreach (var lesson in CollectionsMarshal.AsSpan(s.RegularLessons.List))
+        foreach (var lesson in CollectionsMarshal.AsSpan(s.WeeklyLessons.List))
         {
             if (lesson.Date.TimeSlot is null)
             {
@@ -312,7 +320,7 @@ public static class LessonBuilderHelper
 
     public static RegularLessonBuilder RegularLesson(this ScheduleBuilder s)
     {
-        var r = s.RegularLessons.New();
+        var r = s.WeeklyLessons.New();
         r.Value = new();
         return new()
         {
@@ -381,12 +389,12 @@ public static class LessonBuilderHelper
         return ret;
     }
 
-    public static RegularLessonModelDiffMask Diff(
+    public static WeeklyLessonModelDiffMask Diff(
         in RegularLessonBuilderModelData a,
         in RegularLessonBuilderModelData b,
-        RegularLessonModelDiffMask whatToDiff)
+        WeeklyLessonModelDiffMask whatToDiff)
     {
-        var ret = new RegularLessonModelDiffMask();
+        var ret = new WeeklyLessonModelDiffMask();
         if (whatToDiff.Course)
         {
             if (a.General.Course != b.General.Course)
@@ -513,22 +521,22 @@ public static class LessonBuilderHelper
     }
 
     // TODO: Move this out of this class.
-    public static RegularLessonModelDiffMask Diff(
-        RegularLesson a,
-        RegularLesson b,
-        RegularLessonModelDiffMask whatToDiff)
+    public static WeeklyLessonModelDiffMask Diff(
+        in LessonData a,
+        in LessonData b,
+        WeeklyLessonModelDiffMask whatToDiff)
     {
-        var ret = new RegularLessonModelDiffMask();
+        var ret = new WeeklyLessonModelDiffMask();
         if (whatToDiff.Course)
         {
-            if (a.Lesson.Course != b.Lesson.Course)
+            if (a.Course != b.Course)
             {
                 ret.Course = true;
             }
         }
         if (whatToDiff.OneTeacher)
         {
-            if (!a.Lesson.Teachers.SequenceEqual(b.Lesson.Teachers))
+            if (!a.Teachers.SequenceEqual(b.Teachers))
             {
                 ret.OneTeacher = true;
             }
@@ -536,16 +544,18 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllTeachers)
         {
-            if (AllTeachersNotEqual())
+            if (AllTeachersNotEqual(a, b))
             {
                 ret.AllTeachers = true;
             }
         }
-        bool AllTeachersNotEqual()
+        bool AllTeachersNotEqual(
+            in LessonData a,
+            in LessonData b)
         {
-            foreach (var teach1 in a.Lesson.Teachers)
+            foreach (var teach1 in a.Teachers)
             {
-                foreach (var teach2 in b.Lesson.Teachers)
+                foreach (var teach2 in b.Teachers)
                 {
                     if (teach1 == teach2)
                     {
@@ -558,21 +568,21 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.Room)
         {
-            if (a.Lesson.Room != b.Lesson.Room)
+            if (a.Room != b.Room)
             {
                 ret.Room = true;
             }
         }
         if (whatToDiff.LessonType)
         {
-            if (a.Lesson.Type != b.Lesson.Type)
+            if (a.Type != b.Type)
             {
                 ret.LessonType = true;
             }
         }
         if (whatToDiff.OneGroup)
         {
-            if (a.Lesson.Groups != b.Lesson.Groups)
+            if (a.Groups != b.Groups)
             {
                 ret.OneGroup = true;
             }
@@ -580,16 +590,18 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllGroups)
         {
-            if (AllGroupsNotEqual())
+            if (AllGroupsNotEqual(a, b))
             {
                 ret.AllGroups = true;
             }
         }
-        bool AllGroupsNotEqual()
+        bool AllGroupsNotEqual(
+            in LessonData a,
+            in LessonData b)
         {
-            foreach (var g in a.Lesson.Groups)
+            foreach (var g in a.Groups)
             {
-                foreach (var g1 in b.Lesson.Groups)
+                foreach (var g1 in b.Groups)
                 {
                     if (g == g1)
                     {
@@ -602,11 +614,26 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.Lesson.SubGroup != b.Lesson.SubGroup)
+            if (a.SubGroup != b.SubGroup)
             {
                 ret.SubGroup = true;
             }
         }
+        return ret;
+    }
+
+    // TODO: Move this out of this class.
+    public static WeeklyLessonModelDiffMask Diff(
+        WeeklyLessonAccessor a,
+        WeeklyLessonAccessor b,
+        WeeklyLessonModelDiffMask whatToDiff)
+    {
+        var ret = new WeeklyLessonModelDiffMask();
+        {
+            var other = Diff(a.Lesson, b.Lesson, whatToDiff);
+            ret = ret.Union(other);
+        }
+
         if (whatToDiff.Day)
         {
             if (a.Date.DayOfWeek != b.Date.DayOfWeek)

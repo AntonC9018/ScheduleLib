@@ -5,7 +5,7 @@ namespace ScheduleLib.OnlineRegistry;
 
 public readonly struct GetDateTimesOfScheduledLessonsParams
 {
-    public required IEnumerable<RegularLessonId> Lessons { get; init; }
+    public required IEnumerable<WeeklyLessonId> Lessons { get; init; }
     public required Schedule Schedule { get; init; }
     public required LessonTimeConfig TimeConfig { get; init; }
     public required IAllScheduledDateProvider DateProvider { get; init; }
@@ -39,7 +39,7 @@ internal readonly record struct LessonMatchParams
 
 internal static class MatchLessonHelper
 {
-    internal static IEnumerable<RegularLessonId> MatchLessonsInSchedule(LessonMatchParams p)
+    internal static IEnumerable<WeeklyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
         bool yielded = false;
         foreach (var x in MatchLessonsImpl(p))
@@ -65,7 +65,7 @@ internal static class MatchLessonHelper
         }
     }
 
-    private static IEnumerable<RegularLessonId> MatchLessonsImpl(
+    private static IEnumerable<WeeklyLessonId> MatchLessonsImpl(
         LessonMatchParams p)
     {
         var lessonsOfCourse = p.Lookup[p.CourseId];

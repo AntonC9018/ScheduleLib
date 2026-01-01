@@ -407,9 +407,8 @@ file sealed class Context
         var existing = _existingLessons;
 
         var scheduled = new List<LessonInstance>();
-        for (int lessonId = 0; lessonId < schedule.RegularLessons.Length; lessonId++)
+        foreach (var lesson in schedule.EnumerateWeeklyLessons())
         {
-            var lesson = schedule.RegularLessons[lessonId];
             var d = lesson.Date;
             // We only do a single week.
             var date = GetDate(d.DayOfWeek);
@@ -417,7 +416,7 @@ file sealed class Context
             scheduled.Add(new()
             {
                 DateTime = new DateTime(date, time),
-                LessonId = new(lessonId),
+                LessonId = lesson.Id,
                 Attendance = [],
                 Topic = "",
             });

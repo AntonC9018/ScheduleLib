@@ -80,10 +80,14 @@ public static class WebsiteJsonScheduleHelper
 
                 // Group lessons by course, type, and room
                 var lessonGroups = timeSlotGroup
-                    .GroupBy(lesson => new LessonGroupKey(
-                        lesson.Item.Lesson.Course,
-                        lesson.Item.Lesson.Type,
-                        lesson.Item.Lesson.Room))
+                    .GroupBy(lesson =>
+                    {
+                        var r = lesson.Ref;
+                        return new LessonGroupKey(
+                            r.Lesson.Course,
+                            r.Lesson.Type,
+                            r.Lesson.Room);
+                    })
                     .ToList();
 
                 foreach (var lessonGroup in lessonGroups)
@@ -124,7 +128,7 @@ public static class WebsiteJsonScheduleHelper
         return new() { ScheduleDaysDto = ret.ToImmutable(), };
     }
 
-    private static string DetermineWeekType(List<RegularLessonAccessor> lessons)
+    private static string DetermineWeekType(List<WeeklyLessonAccessor> lessons)
     {
         // If all lessons have the same parity, use that
         var firstParity = lessons[0].Date.Parity;
@@ -145,7 +149,7 @@ public static class WebsiteJsonScheduleHelper
 
     private static string BuildPairInfo(
         Schedule schedule,
-        List<RegularLessonAccessor> lessons,
+        List<WeeklyLessonAccessor> lessons,
         Services services)
     {
         var sb = new StringBuilder();

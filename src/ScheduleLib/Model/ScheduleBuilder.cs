@@ -127,9 +127,9 @@ public static partial class ScheduleBuilderHelper
 
     public static Schedule CreateDefaultModel(ScheduleBuilder s)
     {
-        var regularLessons = s.RegularLessons.Build(x =>
+        var weeklyLessons = s.WeeklyLessons.Build(x =>
         {
-            var ret = new RegularLesson
+            var ret = new WeeklyLesson
             {
                 Date = new()
                 {
@@ -138,14 +138,17 @@ public static partial class ScheduleBuilderHelper
                     Parity = x.Date.Parity ?? Parity.EveryWeek,
                     Period = x.General.Period,
                 },
-                Lesson = new()
+                Base = new()
                 {
-                    Groups = x.Group.Groups.Ordered(),
-                    SubGroup = x.Group.SubGroup,
-                    Course = x.General.Course!.Value,
-                    Room = x.General.Room,
-                    Teachers = [.. x.General.Teachers],
-                    Type = x.General.Type,
+                    Data = new()
+                    {
+                        Groups = x.Group.Groups.Ordered(),
+                        SubGroup = x.Group.SubGroup,
+                        Course = x.General.Course!.Value,
+                        Room = x.General.Room,
+                        Teachers = [.. x.General.Teachers],
+                        Type = x.General.Type,
+                    },
                 },
             };
             return ret;
@@ -191,7 +194,7 @@ public static partial class ScheduleBuilderHelper
 
         return new Schedule
         {
-            RegularLessons = regularLessons,
+            WeeklyLessons = weeklyLessons,
             OneTimeLessons = oneTimeLessons,
             Groups = groups,
             Teachers = teachers,

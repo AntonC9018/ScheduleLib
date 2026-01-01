@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using ScheduleLib.Builders;
 
 namespace ScheduleLib.Helper;
 
@@ -113,6 +114,7 @@ public record struct EnumBitArray<T>
     public readonly SetEnumValuesEnumerable SetValues() => new(_impl.Bits);
 
     public readonly uint Bits => _impl.Bits;
+    public readonly bool IsEmpty => _impl.IsEmpty;
 
     public readonly struct SetEnumValuesEnumerable : IEnumerable<T>
     {
@@ -139,5 +141,13 @@ public record struct EnumBitArray<T>
         }
 
         public void Dispose() => _inner.Dispose();
+    }
+
+    public readonly EnumBitArray<T> Union(EnumBitArray<T> other)
+    {
+        var sizedSelf = SizedImpl;
+        var sizedOther = other.SizedImpl;
+        var ret = sizedSelf.Union(sizedOther);
+        return new(ret.AsUnsized());
     }
 }

@@ -137,7 +137,7 @@ public static class SerializationModels
         Schedule schedule,
         string hash)
     {
-        var regularLessons = schedule.RegularLessons.Select(rl => new RegularLessonModel
+        var regularLessons = schedule.EnumerateWeeklyLessons().Select(rl => new RegularLessonModel
         {
             Groups = [.. rl.Lesson.Groups],
             Course = rl.Lesson.Course,
@@ -234,10 +234,10 @@ public static class SerializationModels
             _ = teacher;
         }
 
-        Debug.Assert(builder.RegularLessons.Count == 0);
+        Debug.Assert(builder.WeeklyLessons.Count == 0);
         foreach (var rl in schedule.RegularLessons)
         {
-            var lesson = builder.RegularLessons.New();
+            var lesson = builder.WeeklyLessons.New();
             lesson.Value = new();
 
             ref var g = ref lesson.Value.General;

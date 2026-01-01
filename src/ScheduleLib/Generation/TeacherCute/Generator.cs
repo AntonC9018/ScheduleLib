@@ -41,7 +41,7 @@ public sealed class Generator : IDocument
             rowFunc: x => new RowKey(x.Date.TimeSlot),
             colFunc: x => [ new ColumnKey(x.Date.DayOfWeek) ]);
 
-        List<RegularLesson> Lessons(CellKey<RowKey, ColumnKey> cell)
+        List<WeeklyLessonAccessor> Lessons(CellKey<RowKey, ColumnKey> cell)
         {
             return mappings.GetValueOrDefault(cell, []);
         }

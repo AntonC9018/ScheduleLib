@@ -7,11 +7,11 @@ public sealed class LessonDiffTests
     [Fact]
     public void EqualityOperatorOnDiffMaskIsCorrect()
     {
-        var a = new RegularLessonModelDiffMask
+        var a = new WeeklyLessonModelDiffMask
         {
             Day = true,
         };
-        var b = new RegularLessonModelDiffMask
+        var b = new WeeklyLessonModelDiffMask
         {
             AllGroups = true,
         };

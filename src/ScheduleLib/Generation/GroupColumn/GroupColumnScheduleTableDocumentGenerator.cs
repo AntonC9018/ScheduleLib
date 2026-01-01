@@ -248,7 +248,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                         foreach (var lesson in lessons)
                         {
                             {
-                                var key = (lesson, _cache.ColumnOrder[columnKey]);
+                                var key = (lesson.Id, _cache.ColumnOrder[columnKey]);
                                 // We're not the cell that defines this.
                                 if (!layout.SharedCellStart.Contains(key))
                                 {
@@ -256,7 +256,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                                 }
                             }
 
-                            var order = layout.LessonVerticalOrder[lesson];
+                            var order = layout.LessonVerticalOrder[lesson.Id];
                             var rowSpan = sizeComputer.ComputeRowSpan((int) order);
                             yield return new(lesson, order, rowSpan);
                         }
@@ -280,7 +280,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
     private void LessonText(
         TextDescriptor text,
-        RegularLesson lesson,
+        WeeklyLessonAccessor lesson,
         uint columnWidth)
     {
         _services.LessonTextDisplayHandler.Handle(new()
@@ -510,4 +510,4 @@ public struct SchedulePdfSizesConfig()
     public readonly float UsefulGroupsWidth => PageSize.Width - 2 * PageMargin - WeekDayColumnWidth - TimeSlotColumnWidth;
 }
 
-file record struct OwnedLesson(RegularLesson Lesson, uint LessonOrder, uint RowSpan);
+file record struct OwnedLesson(WeeklyLessonAccessor Lesson, uint LessonOrder, uint RowSpan);

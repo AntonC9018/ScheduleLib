@@ -37,7 +37,7 @@ public sealed partial class PdfLessonTextDisplayHandler
         public required TextDescriptor TextDescriptor;
         public required Schedule Schedule;
         public required LessonTimeConfig LessonTimeConfig;
-        public required RegularLesson Lesson;
+        public required WeeklyLessonAccessor Lesson;
         public required uint ColumnWidth;
 
         /// <summary>

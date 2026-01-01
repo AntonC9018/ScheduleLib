@@ -16,7 +16,7 @@ public record struct DefaultRowKey
 
 public static class KeyHelper
 {
-    public static DefaultRowKey DefaultRowKey(this in RegularLessonDate date)
+    public static DefaultRowKey DefaultRowKey(this in WeeklyLessonDate date)
     {
         return new DefaultRowKey
         {
@@ -86,7 +86,7 @@ public readonly struct ColumnOrder<TKey> where TKey : IComparable<TKey>
 }
 
 public sealed class RegularLessonsByCellKey<TRowKey, TColumnKey>
-    : Dictionary<CellKey<TRowKey, TColumnKey>, List<RegularLesson>>
+    : Dictionary<CellKey<TRowKey, TColumnKey>, List<WeeklyLessonAccessor>>
 {
 }
 
@@ -153,16 +153,16 @@ public struct GeneratorCache
 public static class MappingsCreationHelper
 {
     public static RegularLessonsByCellKey<TRowKey, TColumnKey> CreateCellMappings<TRowKey, TColumnKey>(
-        IEnumerable<RegularLessonAccessor> lessons,
+        IEnumerable<WeeklyLessonAccessor> lessons,
         // TODO: Remove the use of this IEnumerable
-        Func<RegularLesson, TRowKey> rowFunc,
-        Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
+        Func<WeeklyLessonRef, TRowKey> rowFunc,
+        Func<WeeklyLessonRef, IEnumerable<TColumnKey>> colFunc)
     {
         var ret = new RegularLessonsByCellKey<TRowKey, TColumnKey>();
         foreach (var lesson in lessons)
         {
-            var rowKey = rowFunc(lesson.Item);
-            var columnKeys = colFunc(lesson.Item);
+            var rowKey = rowFunc(lesson.Ref);
+            var columnKeys = colFunc(lesson.Ref);
             foreach (var columnKey in columnKeys)
             {
                 var cellKey = new CellKey<TRowKey, TColumnKey>
@@ -176,16 +176,16 @@ public static class MappingsCreationHelper
                     list = new(2);
                 }
 
-                list!.Add(lesson.Item);
+                list!.Add(lesson);
             }
         }
         return ret;
     }
 
     public static RegularLessonsByCellKey<DefaultRowKey, TColumnKey> CreateCellMappings<TColumnKey>(
-        IEnumerable<RegularLessonAccessor> lessons,
+        IEnumerable<WeeklyLessonAccessor> lessons,
         // TODO: Remove the use of this IEnumerable
-        Func<RegularLesson, IEnumerable<TColumnKey>> colFunc)
+        Func<WeeklyLessonRef, IEnumerable<TColumnKey>> colFunc)
     {
         return CreateCellMappings(
             lessons,

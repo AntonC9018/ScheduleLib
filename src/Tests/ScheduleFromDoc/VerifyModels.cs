@@ -26,8 +26,8 @@ public static class VerifyModelMapper
 {
     public static ScheduleVerifyModel ToVerifyModel(Schedule schedule)
     {
-        var regular = schedule.RegularLessons
-            .Select(x => MapRegular(schedule, x))
+        var regular = schedule.EnumerateWeeklyLessons()
+            .Select(x => MapRegular(schedule, x.Ref))
             .OrderBy(x => x.Day)
             .ThenBy(x => x.Time)
             .ThenBy(x => x.Course)
@@ -39,7 +39,7 @@ public static class VerifyModelMapper
         };
     }
 
-    private static RegularLessonVM MapRegular(Schedule s, RegularLesson x)
+    private static RegularLessonVM MapRegular(Schedule s, WeeklyLessonRef x)
     {
         var lesson = x.Lesson;
         var date = x.Date;

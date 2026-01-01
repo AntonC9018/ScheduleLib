@@ -32,7 +32,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                         .Where(x => x.Item.Name == group)
                         .Select(x => new GroupId(x.Index))
                         .Single();
-                    var lessons = _schedule.RegularLessons
+                    var lessons = _schedule.EnumerateWeeklyLessons()
                         .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
                         .Where(x =>
                         {

@@ -328,7 +328,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             }
         }
 
-        void FormatLessons(StringBuilder sb, List<RegularLesson> lessons)
+        void FormatLessons(StringBuilder sb, List<WeeklyLessonAccessor> lessons)
         {
             if (TryUniteLessonsBasedOnParity())
             {
@@ -347,7 +347,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     sb.AppendLine();
                 }
                 var lesson = lessons[lessonIndex];
-                PrintLesson(lesson);
+                PrintLesson(lesson.Ref);
             }
 
             bool TryUniteLessonBasedOnEqualityOfAllButGroup()
@@ -361,7 +361,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     var l0 = lessons[index];
                     var l1 = lessons[index + 1];
 
-                    var diffMask = new RegularLessonModelDiffMask
+                    var diffMask = new WeeklyLessonModelDiffMask
                     {
                         LessonType = true,
                         Course = true,
@@ -408,7 +408,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
                 bool shouldPrintParity = metEven != metOdd;
                 PrintLesson(
-                    lessons[0],
+                    lessons[0].Ref,
                     printParity: shouldPrintParity,
                     printGroup: false);
 
@@ -416,7 +416,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             }
 
             void PrintLesson(
-                RegularLesson lesson,
+                WeeklyLessonRef lesson,
                 bool printParity = true,
                 bool printGroup = true)
             {
@@ -474,20 +474,20 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 }
 
                 var listBuilder = new ListStringBuilder(sb);
-                AppendCourse(listBuilder, l0);
+                AppendCourse(listBuilder, l0.Ref);
 
                 if (!diff.LessonType)
                 {
-                    AppendLessonTypeName(listBuilder, l0);
+                    AppendLessonTypeName(listBuilder, l0.Ref);
                 }
                 if (!diff.Room)
                 {
-                    AppendRoom(listBuilder, l0);
+                    AppendRoom(listBuilder, l0.Ref);
                 }
                 if (!diff.OneGroup)
                 {
                     bool subgroupsDiffer = diff.SubGroup;
-                    AppendGroup(listBuilder, l0, appendSubgroup: !subgroupsDiffer);
+                    AppendGroup(listBuilder, l0.Ref, appendSubgroup: !subgroupsDiffer);
                 }
 
                 bool AllWillAppendSomething()
@@ -500,7 +500,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         }
                         bool WillAppendSomething()
                         {
-                            var l = lessons[i];
+                            var l = lessons[i].Ref;
                             if (diff.OneGroup && WillAppendGroup(l))
                             {
                                 return true;
@@ -525,7 +525,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     {
                         sb.AppendLine();
 
-                        var lesson = lessons[i];
+                        var lesson = lessons[i].Ref;
                         var parityName = GetParityName(lesson);
                         sb.Append($"{parityName}: ");
 
@@ -551,41 +551,41 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 return true;
             }
 
-            void AppendCourse(ListStringBuilder b, RegularLesson lesson)
+            void AppendCourse(ListStringBuilder b, WeeklyLessonRef lesson)
             {
                 var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
-            bool WillAppendLessonTypeName(RegularLesson lesson)
+            bool WillAppendLessonTypeName(WeeklyLessonRef lesson)
             {
                 return _lessonTypeDisplay.Get(lesson.Lesson.Type) is not null;
             }
-            void AppendLessonTypeName(ListStringBuilder b, RegularLesson lesson)
+            void AppendLessonTypeName(ListStringBuilder b, WeeklyLessonRef lesson)
             {
                 if (_lessonTypeDisplay.Get(lesson.Lesson.Type) is { } lessonTypeName)
                 {
                     b.Append($"({lessonTypeName})");
                 }
             }
-            bool WillAppendRoom(RegularLesson lesson)
+            bool WillAppendRoom(WeeklyLessonRef lesson)
             {
                 return lesson.Lesson.Room != RoomId.Invalid;
             }
-            void AppendRoom(ListStringBuilder b, RegularLesson lesson)
+            void AppendRoom(ListStringBuilder b, WeeklyLessonRef lesson)
             {
                 if (lesson.Lesson.Room != RoomId.Invalid)
                 {
                     b.Append($"{lesson.Lesson.Room.Id}");
                 }
             }
-            bool WillAppendGroup(RegularLesson lesson)
+            bool WillAppendGroup(WeeklyLessonRef lesson)
             {
                 var groups = lesson.Lesson.Groups;
                 return groups.IsSingleGroup;
             }
             void AppendGroup(
                 ListStringBuilder b,
-                RegularLesson lesson,
+                WeeklyLessonRef lesson,
                 bool appendSubgroup)
             {
                 var groups = lesson.Lesson.Groups;
@@ -606,7 +606,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     b.StringBuilder.Append($"-{lesson.Lesson.SubGroup.Value}");
                 }
             }
-            string GetParityName(RegularLesson l)
+            string GetParityName(WeeklyLessonRef l)
             {
                 var parityName = _parityDisplay.Get(l.Date.Parity);
                 return parityName!;

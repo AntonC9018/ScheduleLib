@@ -541,7 +541,7 @@ public static class CurriculumNameParser
 
 public sealed class FindCurriculumForLessonParams
 {
-    public required RegularLessonId LessonId { get; init; }
+    public required WeeklyLessonId LessonId { get; init; }
     public required Schedule Schedule { get; init; }
     public required CourseNameUnifierModuleWithDeps CourseLookup { get; init; }
     public required LookupFacade Lookup { get; init; }

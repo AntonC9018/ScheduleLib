@@ -4,13 +4,14 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using AutoConstructor.Attributes;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
 
 public sealed class Schedule
 {
-    public required ImmutableArray<RegularLesson> RegularLessons { get; init; }
+    public required ImmutableArray<WeeklyLesson> WeeklyLessons { get; init; }
     public required ImmutableArray<OneTimeLesson> OneTimeLessons { get; init; }
     public required ImmutableArray<Group> Groups { get; init; }
     public required ImmutableArray<Teacher> Teachers { get; init; }
@@ -18,8 +19,13 @@ public sealed class Schedule
     public required ImmutableArray<Period> Periods { get; init; }
 }
 
-public readonly struct Accessor<T, TId>
+public readonly struct Accessor<T, TId> : IAccessor<Accessor<T, TId>, T>
 {
+    static Accessor()
+    {
+        ScheduleAccessorHelper.AssertIsInt<TId>();
+    }
+
     public readonly TId Id;
     private readonly ImmutableArray<T> Items;
 
@@ -38,16 +44,47 @@ public readonly struct Accessor<T, TId>
             return ref Items.AsSpan()[index];
         }
     }
+
+    public static Accessor<T, TId> Create(int index, ImmutableArray<T> arr)
+    {
+        var id = Unsafe.As<int, TId>(ref index);
+        return Create(id, arr);
+    }
+    public static Accessor<T, TId> Create(TId id, ImmutableArray<T> arr)
+    {
+        return new(id, arr);
+    }
 }
 
-public readonly record struct ScheduleObjectEnumerable<TId, T>
-    : IEnumerable<Accessor<T, TId>>
+[AutoConstructor]
+public readonly partial struct RefAccessor<T, TRef, TId>
+    : IAccessor<RefAccessor<T, TRef, TId>, T>
+    where TRef : ILessonRef<TRef, T>, allows ref struct
 {
-    static ScheduleObjectEnumerable()
-    {
-        Debug.Assert(Marshal.SizeOf<TId>() == sizeof(int));
-    }
+    private readonly Accessor<T, TId> _impl;
 
+    public TRef Item => TRef.Create(in _impl.Item);
+    public TId Id => _impl.Id;
+
+    public static RefAccessor<T, TRef, TId> Create(int index, ImmutableArray<T> arr)
+    {
+        return new(Accessor<T, TId>.Create(index, arr));
+    }
+    public static RefAccessor<T, TRef, TId> Create(TId id, ImmutableArray<T> arr)
+    {
+        return new(Accessor<T, TId>.Create(id, arr));
+    }
+}
+
+public interface IAccessor<TSelf, T> where TSelf : IAccessor<TSelf, T>
+{
+    static abstract TSelf Create(int index, ImmutableArray<T> arr);
+}
+
+public readonly record struct ScheduleObjectEnumerable<T, TAccessor>
+    : IEnumerable<TAccessor>
+    where TAccessor : IAccessor<TAccessor, T>
+{
     private readonly ImmutableArray<T> _objects;
 
     public ScheduleObjectEnumerable(ImmutableArray<T> objects)
@@ -55,7 +92,7 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
         _objects = objects;
     }
 
-    public Accessor<T, TId> First()
+    public TAccessor First()
     {
         using var e = GetEnumerator();
         if (!e.MoveNext())
@@ -66,10 +103,10 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
     }
 
     public Enumerator GetEnumerator() => new(_objects);
-    IEnumerator<Accessor<T, TId>> IEnumerable<Accessor<T, TId>>.GetEnumerator() => GetEnumerator();
+    IEnumerator<TAccessor> IEnumerable<TAccessor>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public struct Enumerator : IEnumerator<Accessor<T, TId>>
+    public struct Enumerator : IEnumerator<TAccessor>
     {
         private readonly ImmutableArray<T> _objects;
         private int _index;
@@ -93,14 +130,14 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
 
         object? IEnumerator.Current => Current;
 
-        public readonly Accessor<T, TId> Current
+        public readonly TAccessor Current
         {
             get
             {
                 Debug.Assert(_index >= 0 && _index < _objects.Length);
                 int index = _index;
-                var id = Unsafe.As<int, TId>(ref index);
-                return new Accessor<T, TId>(id, _objects);
+                var ret = TAccessor.Create(index, _objects);
+                return ret;
             }
         }
 
@@ -111,7 +148,158 @@ public readonly record struct ScheduleObjectEnumerable<TId, T>
 
 }
 
-public record struct RegularLessonDate()
+// Should be source-generated as well.
+// This is a crazy amount of complex boilerplate.
+public readonly struct AnyLessonAccessor
+{
+    static AnyLessonAccessor()
+    {
+        ScheduleAccessorHelper.AssertIsInt<WeeklyLessonAccessor>();
+        ScheduleAccessorHelper.AssertIsInt<OneTimeLessonAccessor>();
+    }
+    private readonly int _id;
+    private readonly LessonRegularity _tag;
+    private readonly Schedule _arrays;
+
+    internal AnyLessonAccessor(int id, LessonRegularity tag, Schedule arrays)
+    {
+        _id = id;
+        _tag = tag;
+        _arrays = arrays;
+    }
+    public AnyLessonAccessor(WeeklyLessonId id, Schedule arrays)
+    {
+        _id = ScheduleAccessorHelper.ToStoredId(id);
+        _tag = LessonRegularity.Weekly;
+        _arrays = arrays;
+    }
+    public AnyLessonAccessor(OneTimeLessonId id, Schedule arrays)
+    {
+        _id = ScheduleAccessorHelper.ToStoredId(id);
+        _tag = LessonRegularity.OneTime;
+        _arrays = arrays;
+    }
+
+    public bool IsWeekly => _tag == LessonRegularity.Weekly;
+    public bool IsOneTime => _tag == LessonRegularity.OneTime;
+    public LessonRegularity Regularity => _tag;
+    public WeeklyLessonAccessor? Weekly
+    {
+        get
+        {
+            if (IsWeekly)
+            {
+                return null;
+            }
+            return WeeklyLessonAccessor.Create(_id, _arrays.WeeklyLessons);
+        }
+    }
+    public OneTimeLessonAccessor? OneTime
+    {
+        get
+        {
+            if (IsOneTime)
+            {
+                return null;
+            }
+            return OneTimeLessonAccessor.Create(_id, _arrays.OneTimeLessons);
+        }
+    }
+
+    public readonly ref readonly LessonData Lesson
+    {
+        get
+        {
+            {
+                if (Weekly is { } x)
+                {
+                    return ref x.Ref.Lesson;
+                }
+            }
+            {
+                if (OneTime is { } x)
+                {
+                    return ref x.Ref.Lesson;
+                }
+            }
+            throw Unreachable();
+        }
+    }
+}
+
+public readonly record struct AllLessonsEnumerable
+    : IEnumerable<AnyLessonAccessor>
+{
+    private readonly Schedule _arrays;
+
+    public AllLessonsEnumerable(Schedule arrays)
+    {
+        _arrays = arrays;
+    }
+
+    public Enumerator GetEnumerator() => new(_arrays);
+    IEnumerator<AnyLessonAccessor> IEnumerable<AnyLessonAccessor>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public struct Enumerator : IEnumerator<AnyLessonAccessor>
+    {
+        private LessonRegularity _regularity;
+        private int _index;
+        private Schedule _arrays;
+
+        public Enumerator(Schedule arrays)
+        {
+            _arrays = arrays;
+            _regularity = LessonRegularity.Weekly;
+            _index = -1;
+        }
+
+        public AnyLessonAccessor Current => new(_index, _regularity, _arrays);
+        public bool MoveNext()
+        {
+            _index++;
+
+            while (true)
+            {
+                int len;
+                switch (_regularity)
+                {
+                    case LessonRegularity.Weekly:
+                    {
+                        var arr = _arrays.WeeklyLessons;
+                        len = arr.Length;
+                        break;
+                    }
+                    case LessonRegularity.OneTime:
+                    {
+                        var arr = _arrays.OneTimeLessons;
+                        len = arr.Length;
+                        break;
+                    }
+                    default:
+                    {
+                        return false;
+                    }
+                }
+
+                if (_index < len)
+                {
+                    return true;
+                }
+                _regularity++;
+                _index = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+        }
+        public void Reset() => throw new NotSupportedException();
+        object? IEnumerator.Current => Current;
+    }
+}
+
+public record struct WeeklyLessonDate()
 {
     public Parity Parity = Parity.EveryWeek;
     public required DayOfWeek DayOfWeek;
@@ -119,7 +307,8 @@ public record struct RegularLessonDate()
     public required PeriodId Period;
 }
 
-public record struct OneTimeLessonDate {
+public record struct OneTimeLessonDate
+{
     public required DateOnly Date;
     public required TimeSlot TimeSlot;
 }
@@ -320,7 +509,7 @@ public readonly record struct CourseId(int Id)
     public bool IsInvalid => this == Invalid;
 }
 
-public struct Course
+public record struct Course
 {
     public string FullName => Names[0];
     /// <summary>
@@ -329,7 +518,7 @@ public struct Course
     public required ImmutableArray<string> Names;
 }
 
-public struct LessonData()
+public record struct LessonData()
 {
     // Always ordered with .Ordered()
     public required LessonGroups Groups;
@@ -343,18 +532,84 @@ public struct LessonData()
     public readonly GroupId Group => Groups.Group0;
 }
 
-public sealed class RegularLesson
+public enum LessonRegularity
 {
-    public required LessonData Lesson;
-    public required RegularLessonDate Date;
+    Weekly,
+    OneTime,
+    Count,
 }
 
-public readonly record struct RegularLessonId(int Id);
-
-public sealed class OneTimeLesson
+public struct OneForEachLessonRegularity<T>
 {
-    public required LessonData Lesson;
+    public T Weekly;
+    public T OneTime;
+}
+
+public static class LessonRegularityHelper
+{
+    public static ref T Ref<T>(this ref OneForEachLessonRegularity<T> x, LessonRegularity r)
+    {
+        switch (r)
+        {
+            case LessonRegularity.OneTime: return ref x.OneTime;
+            case LessonRegularity.Weekly: return ref x.Weekly;
+            default: throw Unreachable();
+        }
+    }
+}
+
+public readonly record struct AnyLessonId(LessonRegularity Regulariy, int Id);
+public readonly record struct WeeklyLessonId(int Id);
+public readonly record struct OneTimeLessonId(int Id);
+
+public record struct LessonBase
+{
+    public required LessonData Data;
+}
+public record struct WeeklyLesson
+{
+    public required LessonBase Base;
+    public required WeeklyLessonDate Date;
+}
+public record struct OneTimeLesson
+{
+    public required LessonBase Base;
     public required OneTimeLessonDate Date;
+}
+
+public interface ILessonRef<TSelf, T>
+    where TSelf : ILessonRef<TSelf, T>, allows ref struct
+{
+    static abstract TSelf Create(ref readonly T lesson);
+}
+
+public readonly ref struct WeeklyLessonRef : ILessonRef<WeeklyLessonRef, WeeklyLesson>
+{
+    private readonly ref readonly WeeklyLesson _lesson;
+
+    public WeeklyLessonRef(ref readonly WeeklyLesson lesson)
+    {
+        _lesson = ref lesson;
+    }
+
+    public readonly ref readonly LessonData Lesson => ref _lesson.Base.Data;
+    public readonly ref readonly WeeklyLessonDate Date => ref _lesson.Date;
+
+    public static WeeklyLessonRef Create(ref readonly WeeklyLesson lesson) => new(in lesson);
+}
+
+public readonly ref struct OneTimeLessonRef : ILessonRef<OneTimeLessonRef, OneTimeLesson>
+{
+    private readonly ref readonly OneTimeLesson _lesson;
+
+    public OneTimeLessonRef(ref readonly OneTimeLesson lesson)
+    {
+        _lesson = ref lesson;
+    }
+
+    public readonly ref readonly LessonData Lesson => ref _lesson.Base.Data;
+    public readonly ref readonly OneTimeLessonDate Date => ref _lesson.Date;
+    public static OneTimeLessonRef Create(ref readonly OneTimeLesson lesson) => new(in lesson);
 }
 
 public enum LessonType
@@ -567,14 +822,20 @@ public static class ScheduleAccessorHelper
     {
         return schedule.Teachers[id.Id];
     }
-
     public static string Get(this Schedule schedule, RoomId id)
     {
         Debug.Assert(id.IsValid);
         _ = schedule;
         return id.Id!;
     }
-    public static RegularLesson Get(this Schedule schedule, RegularLessonId id) => schedule.RegularLessons[id.Id];
+    public static WeeklyLessonAccessor Get(this Schedule schedule, WeeklyLessonId id)
+    {
+        return WeeklyLessonAccessor.Create(id, schedule.WeeklyLessons);
+    }
+    public static OneTimeLessonAccessor Get(this Schedule schedule, OneTimeLessonId id)
+    {
+        return OneTimeLessonAccessor.Create(id, schedule.OneTimeLessons);
+    }
 
     public static Period Get(this Schedule schedule, PeriodId id)
     {
@@ -582,32 +843,50 @@ public static class ScheduleAccessorHelper
         return schedule.Periods[id.Value];
     }
 
-    public static ScheduleObjectEnumerable<CourseId, Course> EnumerateCourses(this Schedule schedule)
+    // TODO: Find a way to automatically generate wrapper types for these so they aren't as complex.
+    public static ScheduleObjectEnumerable<Course, Accessor<Course, CourseId>> EnumerateCourses(this Schedule schedule)
     {
         return new(schedule.Courses);
     }
-    public static ScheduleObjectEnumerable<GroupId, Group> EnumerateGroups(this Schedule schedule)
+    public static ScheduleObjectEnumerable<Group, Accessor<Group, GroupId>> EnumerateGroups(this Schedule schedule)
     {
         return new(schedule.Groups);
     }
-    public static ScheduleObjectEnumerable<TeacherId, Teacher> EnumerateTeachers(this Schedule schedule)
+    public static ScheduleObjectEnumerable<Teacher, Accessor<Teacher, TeacherId>> EnumerateTeachers(this Schedule schedule)
     {
         return new(schedule.Teachers);
     }
-    public static ScheduleObjectEnumerable<PeriodId, Period> EnumeratePeriods(this Schedule schedule)
+    public static ScheduleObjectEnumerable<Period, Accessor<Period, PeriodId>> EnumeratePeriods(this Schedule schedule)
     {
         return new(schedule.Periods);
     }
-    public static ScheduleObjectEnumerable<RegularLessonId, RegularLesson> EnumerateLessons(this Schedule schedule)
+    public static ScheduleObjectEnumerable<WeeklyLesson, WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
     {
-        return new(schedule.RegularLessons);
+        return new(schedule.WeeklyLessons);
+    }
+    public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(this Schedule schedule)
+    {
+        return new(schedule.OneTimeLessons);
+    }
+    public static AllLessonsEnumerable EnumerateAllLessons(this Schedule schedule)
+    {
+        return new(schedule);
+    }
+
+    internal static void AssertIsInt<T>()
+    {
+        Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
+    }
+    internal static int ToStoredId<TId>(TId id)
+    {
+        return Unsafe.As<TId, int>(ref id);
     }
 
     // TODO: Move this to cached service
     public static SubGroupsByGroup SubGroupsByGroup(this Schedule schedule)
     {
         var result = new SubGroupsByGroup();
-        foreach (var lesson in schedule.RegularLessons)
+        foreach (var lesson in schedule.EnumerateAllLessons())
         {
             var groupId = lesson.Lesson.Group;
             if (!result.TryGetValue(groupId, out var subGroups))
@@ -623,5 +902,49 @@ public static class ScheduleAccessorHelper
 
 public sealed class SubGroupsByGroup : Dictionary<GroupId, HashSet<SubGroup>>
 {
+}
+
+[AutoConstructor]
+public readonly partial struct WeeklyLessonAccessor : IAccessor<WeeklyLessonAccessor, WeeklyLesson>
+{
+    private readonly RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId> _impl;
+
+    public readonly WeeklyLessonId Id => _impl.Id;
+    public readonly WeeklyLessonRef Ref => _impl.Item;
+    public readonly ref readonly LessonData Lesson => ref Ref.Lesson;
+    public readonly ref readonly WeeklyLessonDate Date => ref Ref.Date;
+
+    public static WeeklyLessonAccessor Create(WeeklyLessonId id, ImmutableArray<WeeklyLesson> arr)
+    {
+        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.Create(id, arr);
+        return new(r);
+    }
+    public static WeeklyLessonAccessor Create(int index, ImmutableArray<WeeklyLesson> arr)
+    {
+        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.Create(index, arr);
+        return new(r);
+    }
+}
+
+[AutoConstructor]
+public readonly partial struct OneTimeLessonAccessor : IAccessor<OneTimeLessonAccessor, OneTimeLesson>
+{
+    private readonly RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId> _impl;
+
+    public readonly OneTimeLessonId Id => _impl.Id;
+    public readonly OneTimeLessonRef Ref => _impl.Item;
+    public readonly ref readonly LessonData Lesson => ref Ref.Lesson;
+    public readonly ref readonly OneTimeLessonDate Date => ref Ref.Date;
+
+    public static OneTimeLessonAccessor Create(OneTimeLessonId id, ImmutableArray<OneTimeLesson> arr)
+    {
+        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.Create(id, arr);
+        return new(r);
+    }
+    public static OneTimeLessonAccessor Create(int index, ImmutableArray<OneTimeLesson> arr)
+    {
+        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.Create(index, arr);
+        return new(r);
+    }
 }
 

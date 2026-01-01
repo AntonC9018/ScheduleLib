@@ -192,7 +192,7 @@ public static class AttendanceExcel
             _lookupModule = lookupModule;
         }
 
-        public RegularLesson? LookupLessonByExcelName(string excelName)
+        public WeeklyLessonAccessor? LookupLessonByExcelName(string excelName)
         {
             _nameE.Reset(excelName);
             _lexer.Reset(_nameE);
@@ -233,41 +233,37 @@ public static class AttendanceExcel
             return LookupLesson(key, _schedule);
         }
 
-        private static RegularLesson? LookupLesson(
+        private static WeeklyLessonAccessor? LookupLesson(
             Key key,
             FilteredSchedule schedule)
         {
-            var diffLesson = new RegularLesson
-            {
-                Date = default,
-                Lesson = default,
-            };
-            var diffMask = new RegularLessonModelDiffMask();
+            var diffLesson = default(LessonData);
+            var diffMask = new WeeklyLessonModelDiffMask();
             {
                 if (!key.CourseId.IsInvalid)
                 {
-                    diffLesson.Lesson.Course = key.CourseId;
+                    diffLesson.Course = key.CourseId;
                     diffMask.Course = true;
                 }
             }
             {
                 if (key.Groups.Count > 0)
                 {
-                    diffLesson.Lesson.Groups = key.Groups;
+                    diffLesson.Groups = key.Groups;
                     diffMask.AllGroups = true;
                 }
             }
             {
-                diffLesson.Lesson.SubGroup = key.SubGroup;
+                diffLesson.SubGroup = key.SubGroup;
                 diffMask.SubGroup = true;
             }
             {
-                diffLesson.Lesson.Type = key.LessonType;
+                diffLesson.Type = key.LessonType;
                 diffMask.LessonType = true;
             }
 
-            RegularLesson? result = null;
-            var resultDiffMask = new RegularLessonModelDiffMask
+            LessonData result = default;
+            var resultDiffMask = new WeeklyLessonModelDiffMask
             {
                 LessonType = true,
                 SubGroup = true,
@@ -275,12 +271,13 @@ public static class AttendanceExcel
                 Course = true,
                 AllTeachers = true,
             };
+            WeeklyLessonId? lessonId = null;
 
             foreach (var lesson in schedule.Lessons)
             {
-                if (result != null)
+                if (result != default)
                 {
-                    var differences = LessonBuilderHelper.Diff(lesson.Item, result, resultDiffMask);
+                    var differences = LessonBuilderHelper.Diff(lesson.Lesson, result, resultDiffMask);
                     if (differences.Intersect(diffMask).TheyDiffer)
                     {
                         continue;
@@ -293,16 +290,21 @@ public static class AttendanceExcel
                 }
                 {
 
-                    var differences = LessonBuilderHelper.Diff(lesson.Item, diffLesson, diffMask);
+                    var differences = LessonBuilderHelper.Diff(lesson.Lesson, diffLesson, diffMask);
                     if (!differences.TheyAreEqual)
                     {
                         continue;
                     }
-                    result = lesson.Item;
+                    result = lesson.Lesson;
+                    lessonId = lesson.Id;
                 }
             }
 
-            return result;
+            if (lessonId is { } val)
+            {
+                return schedule.Source.Get(val);
+            }
+            return null;
         }
     }
 
@@ -321,7 +323,7 @@ public static class AttendanceExcel
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
 
-            ref var g = ref lesson.Lesson.Groups;
+            ref readonly var g = ref lesson.Lesson.Groups;
             if (!g.IsSingleGroup)
             {
                 Add(g);
