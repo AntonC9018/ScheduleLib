@@ -244,7 +244,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
             EnumBitArray<LessonType> foundLessonTypes = new();
-            foreach (var lesson in _schedule.Lessons)
+            foreach (var lesson in _schedule.EnumerateLessons())
             {
                 if (!it.Key.IsLessonGroupsMatch(lesson.Lesson.Groups))
                 {

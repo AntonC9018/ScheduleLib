@@ -70,7 +70,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
         foreach (var group in schedule.Groups)
         {
-            var lessonsBySubgroup = schedule.Lessons
+            var lessonsBySubgroup = schedule
+                .EnumerateLessons()
                 .Where(x => x.Lesson.Group == group)
                 .GroupBy(x => (x.Lesson.SubGroup, x.Lesson.Course))
                 .ToArray();

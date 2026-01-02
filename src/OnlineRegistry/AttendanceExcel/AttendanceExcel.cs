@@ -273,7 +273,7 @@ public static class AttendanceExcel
             };
             WeeklyLessonId? lessonId = null;
 
-            foreach (var lesson in schedule.Lessons)
+            foreach (var lesson in schedule.EnumerateLessons())
             {
                 if (result != default)
                 {

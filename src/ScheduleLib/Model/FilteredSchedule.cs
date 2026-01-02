@@ -52,13 +52,17 @@ public struct CourseFilter()
 public sealed class FilteredSchedule
 {
     public required Schedule Source;
-    public required WeeklyLessonAccessor[] Lessons;
+    public required WeeklyLessonId[] Lessons;
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
     public required TeacherId[] Teachers;
 
     public bool IsEmpty => Days.Length == 0;
+    public IEnumerable<WeeklyLessonAccessor> EnumerateLessons()
+    {
+        return Lessons.Select(x => Source.Get(x));
+    }
 }
 
 public static class FilterHelper
@@ -177,7 +181,7 @@ public static class FilterHelper
             Teachers = teachers,
         };
 
-        IEnumerable<WeeklyLessonAccessor> GetRegularLessons(ScheduleFilter filter)
+        IEnumerable<WeeklyLessonId> GetRegularLessons(ScheduleFilter filter)
         {
             foreach (var l in schedule.EnumerateWeeklyLessons())
             {
@@ -209,7 +213,7 @@ public static class FilterHelper
                 {
                     continue;
                 }
-                yield return l;
+                yield return l.Id;
                 continue;
 
                 bool PassesGradeTest()
@@ -355,7 +359,7 @@ public static class FilterHelper
             HashSet<GroupId> groups1 = new();
             foreach (var lesson in lessons)
             {
-                foreach (var group in lesson.Lesson.Groups)
+                foreach (var group in schedule.Get(lesson).Lesson.Groups)
                 {
                     groups1.Add(group);
                 }
@@ -386,7 +390,7 @@ public static class FilterHelper
                 using var e = lessons.AsEnumerable().GetEnumerator();
                 bool ok = e.MoveNext();
                 Debug.Assert(ok);
-                var min1 = e.Current.Date.TimeSlot;
+                var min1 = schedule.Get(e.Current).Date.TimeSlot;
                 while (true)
                 {
                     if (min1 == TimeSlot.First)
@@ -399,7 +403,7 @@ public static class FilterHelper
                         return min1;
                     }
 
-                    var t = e.Current.Date.TimeSlot;
+                    var t = schedule.Get(e.Current).Date.TimeSlot;
                     if (t < min1)
                     {
                         min1 = t;
@@ -412,7 +416,7 @@ public static class FilterHelper
                 var max1 = TimeSlot.First;
                 foreach (var l in lessons)
                 {
-                    var t = l.Date.TimeSlot;
+                    var t = schedule.Get(l).Date.TimeSlot;
                     if (t > max1)
                     {
                         max1 = t;
@@ -428,7 +432,7 @@ public static class FilterHelper
             var ret = new HashSet<DayOfWeek>();
             foreach (var lesson in lessons)
             {
-                ret.Add(lesson.Date.DayOfWeek);
+                ret.Add(schedule.Get(lesson).Date.DayOfWeek);
             }
             return ret.Order().ToArray();
         }
@@ -436,7 +440,7 @@ public static class FilterHelper
         TeacherId[] TeachersFromLessons()
         {
             return lessons
-                .SelectMany(x => x.Lesson.Teachers)
+                .SelectMany(x => schedule.Get(x).Lesson.Teachers)
                 .Distinct()
                 .OrderBy(x => x.Id)
                 .ToArray();

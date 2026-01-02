@@ -141,7 +141,9 @@ public struct GeneratorCache
 
     private static GeneratorCacheMappings<GroupId> CreateMappings(FilteredSchedule schedule)
     {
-        var mappingByCell = MappingsCreationHelper.CreateCellMappings(schedule.Lessons, l => l.Lesson.Groups);
+        var mappingByCell = MappingsCreationHelper.CreateCellMappings(
+            schedule.EnumerateLessons(),
+            l => l.Lesson.Groups);
         return new()
         {
             MappingByCell = mappingByCell,
@@ -154,8 +156,8 @@ public static class MappingsCreationHelper
 {
     public static RegularLessonsByCellKey<TRowKey, TColumnKey> CreateCellMappings<TRowKey, TColumnKey>(
         IEnumerable<WeeklyLessonAccessor> lessons,
-        // TODO: Remove the use of this IEnumerable
         Func<WeeklyLessonRef, TRowKey> rowFunc,
+        // TODO: Remove the use of this IEnumerable
         Func<WeeklyLessonRef, IEnumerable<TColumnKey>> colFunc)
     {
         var ret = new RegularLessonsByCellKey<TRowKey, TColumnKey>();
