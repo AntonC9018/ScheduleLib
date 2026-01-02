@@ -8,6 +8,7 @@ public readonly struct RentedBuffer<T> : IDisposable
     public readonly int Length;
 
     public Span<T> Span => Array.AsSpan(0, Length);
+    public Memory<T> Memory => Array.AsMemory(0, Length);
 
     public RentedBuffer(int length)
     {
