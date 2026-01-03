@@ -111,6 +111,43 @@ public struct ParsedLesson()
     public SubGroup SubGroup = SubGroup.All;
 }
 
+internal struct ParsingStateStack
+{
+    private ListWithCapacity<ParsingState> _list;
+
+    public ParsingStateStack()
+    {
+        _list = new();
+        _list.Add();
+    }
+
+    public ref ParsingState First() => ref _list.Items[0];
+    public ref ParsingState Last() => ref _list.Items[^1];
+
+    public ref ParsingState Push()
+    {
+        ref var newState = ref _list.Add();
+        _list.Items[_list.Count - 2].CopyInto(ref newState);
+        return ref newState;
+    }
+
+    public void Pop(bool apply)
+    {
+        if (_list.Count < 2)
+        {
+            throw new InvalidOperationException("Cannot pop the base layer.");
+        }
+        if (apply)
+        {
+            ref var x = ref _list.Items[_list.Count - 2];
+            ref var y = ref _list.Items[_list.Count - 1];
+            var c = x;
+            x = y;
+            y = c;
+        }
+        _list.RemoveLast();
+    }
+}
 
 public static class LessonParsingHelper
 {
@@ -124,7 +161,7 @@ public static class LessonParsingHelper
 
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
-        ParsingState state = new();
+        ParsingStateStack stateStack = new();
         var lexer = p.Lexer;
 
         while (lexer.CanPeek())
@@ -143,6 +180,7 @@ public static class LessonParsingHelper
                 break;
             }
 
+            ref var state = ref stateStack.First();
             if (state.Step == ParsingStep.Output)
             {
                 state.Reset();
@@ -155,7 +193,7 @@ public static class LessonParsingHelper
             {
                 Params = ref p,
                 Lexer = ref lexerScope,
-                State = ref state,
+                StateStack = ref stateStack,
             };
             DoParsingIter(context);
 
@@ -177,24 +215,28 @@ public static class LessonParsingHelper
             }
         }
 
-        if (!state.IsTerminalState)
         {
-            throw new WrongFormatException();
-        }
-
-        // Special case
-        // Only appears to happen in Educatia fizica.
-        if (state.IsTerminalState
-            && state.Step is not ParsingStep.Output and not ParsingStep.Start)
-        {
-            foreach (var x in DoOutput())
+            ref var state = ref stateStack.First();
+            if (!state.IsTerminalState)
             {
-                yield return x;
+                throw new WrongFormatException();
+            }
+
+            // Special case
+            // Only appears to happen in Educatia fizica.
+            if (state.IsTerminalState
+                && state.Step is not ParsingStep.Output and not ParsingStep.Start)
+            {
+                foreach (var x in DoOutput())
+                {
+                    yield return x;
+                }
             }
         }
 
         IEnumerable<ParsedLesson> DoOutput()
         {
+            ref var state = ref stateStack.First();
             var allDefaultIndex = state.DefaultModifiers.FindIndex(SubGroup.All);
             DefaultModifiersValue allDefaults;
             if (allDefaultIndex != -1)
@@ -208,10 +250,12 @@ public static class LessonParsingHelper
 
             bool defaultHasOtherThanAllSubGroup = state.DefaultModifiers.HasOtherThanAllSubGroup();
 
-            foreach (var lesson in state.LessonsInParsing)
+            var lessonsE = state.LessonsInParsing.GetEnumerator();
+            while (lessonsE.MoveNext())
             {
                 var allFallback = allDefaults;
 
+                ref var lesson = ref lessonsE.Current;
                 var defaultKeyIndex = lesson.Modifiers.FindIndex(SubLessonModifiersKey.Default);
                 if (defaultKeyIndex != -1)
                 {
@@ -236,10 +280,11 @@ public static class LessonParsingHelper
                         // These are already in the fallback if it's the default.
                         if (!isDefaultKey)
                         {
-                            var defaultIndex = state.DefaultModifiers.FindIndex(mod.Key.SubGroup);
+                            ref var state1 = ref stateStack.First();
+                            var defaultIndex = state1.DefaultModifiers.FindIndex(mod.Key.SubGroup);
                             if (defaultIndex != -1)
                             {
-                                ref var def = ref state.DefaultModifiers.Ref(defaultIndex);
+                                ref var def = ref state1.DefaultModifiers.Ref(defaultIndex);
                                 v.General.UpdateIfNotDefault(def.General);
                                 v.Specific.UpdateIfNotDefault(def.Specific);
                             }
@@ -256,14 +301,16 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        yield return Output(mod.Key.SubGroup, v, lesson.LessonName);
+                        yield return Output(mod.Key.SubGroup, v, lessonsE.Current.LessonName);
                     }
                 }
 
-                foreach (var defaultMod in state.DefaultModifiers)
+                ref var state2 = ref stateStack.First();
+                foreach (var defaultMod in state2.DefaultModifiers)
                 {
+                    ref var lesson1 = ref lessonsE.Current;
                     if (defaultMod.SubGroup == SubGroup.All
-                        && !lesson.Modifiers.IsEmpty)
+                        && !lesson1.Modifiers.IsEmpty)
                     {
                         continue;
                     }
@@ -273,7 +320,7 @@ public static class LessonParsingHelper
                         SubGroup = defaultMod.SubGroup,
                         LessonType = LessonType.Unspecified,
                     };
-                    var lessonModIndex = lesson.Modifiers.FindIndex(key);
+                    var lessonModIndex = lesson1.Modifiers.FindIndex(key);
                     if (lessonModIndex != -1)
                     {
                         continue;
@@ -283,25 +330,35 @@ public static class LessonParsingHelper
                     v.General.UpdateIfNotDefault(defaultMod.General);
                     v.Specific.UpdateIfNotDefault(defaultMod.Specific);
 
-                    yield return Output(defaultMod.SubGroup, v, lesson.LessonName);
+                    yield return Output(defaultMod.SubGroup, v, lesson1.LessonName);
                 }
 
-                if (lesson.Modifiers.IsEmpty
-                    && state.DefaultModifiers.IsEmpty)
                 {
-                    yield return Output(
-                        SubGroup.All,
-                        allFallback,
-                        lesson.LessonName);
+                    ref var lesson1 = ref lessonsE.Current;
+                    ref var state3 = ref stateStack.First();
+
+                    if (lesson1.Modifiers.IsEmpty
+                        && state3.DefaultModifiers.IsEmpty)
+                    {
+                        yield return Output(
+                            SubGroup.All,
+                            allFallback,
+                            lesson1.LessonName);
+                    }
                 }
             }
-
 
             ParsedLesson Output(
                 SubGroup subGroup,
                 in DefaultModifiersValue v,
                 ReadOnlyMemory<char> lessonName)
             {
+                var l = new List<TeacherName>(v.Specific.TeacherNames.Count);
+                foreach (var t in v.Specific.TeacherNames)
+                {
+                    l.Add(t.Name);
+                }
+                ref var state = ref stateStack.First();
                 return new()
                 {
                     LessonName = lessonName,
@@ -310,7 +367,7 @@ public static class LessonParsingHelper
                     Parity = v.General.Parity,
                     SubGroup = subGroup,
                     GroupName = v.General.GroupName,
-                    TeacherNames = v.Specific.TeacherNames,
+                    TeacherNames = l,
                     RoomName = v.Specific.RoomName,
                 };
             }
@@ -320,6 +377,8 @@ public static class LessonParsingHelper
 
     private static void DoParsingIter(ParsingContext c)
     {
+        Console.WriteLine(c.State.Step);
+
         switch (c.State.Step)
         {
             case ParsingStep.TimeOverride:
@@ -339,7 +398,7 @@ public static class LessonParsingHelper
                 {
                     c.State.CommonLesson.HasStar = true;
                 }
-                c.State.Step = ParsingStep.LessonName;
+                c.State.Step = ParsingStep.OptionalSubGroupBeforeLessonName;
                 break;
             }
             case ParsingStep.LessonName:
@@ -353,10 +412,7 @@ public static class LessonParsingHelper
                 {
                     WrongFormatException.ThrowEmptyCourseName();
                 }
-                c.State.LessonsInParsing.Add(new()
-                {
-                    LessonName = name.AsMemory(),
-                });
+                c.State.LessonsInParsing.Add().LessonName = name.AsMemory();
                 c.State.Step = ParsingStep.OptionalParens;
                 c.Lexer.MoveTo(endPosition);
                 break;
@@ -405,18 +461,45 @@ public static class LessonParsingHelper
                     }
                     if (c.State.Step == ParsingStep.OptionalParensBeforeRoom)
                     {
-                        // I don't even know how to get here.
-                        Debug.Assert(!c.Lexer.Current.Is(','));
-
+                        c.Lexer.TryConsume(',');
                         c.State.Step = ParsingStep.OptionalRoomName;
                         return true;
                     }
                     if (c.Lexer.TryConsume(','))
                     {
+                        // Look ahead if the next tokens look like a teacher
+                        if (c.State.LastModiferIndex >= 0)
+                        {
+                            c.StateStack.Push();
+                            c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
+
+                            // Skip whitespace.
+                            // TODO: If used elsewhere, should be moved to a helper.
+                            while (c.Lexer.TryConsume(TokenType.Whitespace))
+                            {
+                            }
+
+                            try
+                            {
+                                var lexerCopy = c.LexerCopy;
+                                DoParsingIter(c);
+                                if (c.Lexer.Position != lexerCopy.Position)
+                                {
+                                    c.StateStack.Pop(apply: true);
+                                    return true;
+                                }
+                            }
+                            catch (WrongFormatException e)
+                            {
+                                _ = e;
+                            }
+
+                            c.StateStack.Pop(apply: false);
+                        }
                         c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         return true;
                     }
-                    c.State.Step = ParsingStep.OptionalSubGroup;
+                    c.State.Step = ParsingStep.OptionalSubGroupBeforeTeacher;
                     return true;
                 }
 
@@ -509,10 +592,11 @@ public static class LessonParsingHelper
                     };
                 }
             }
-            case ParsingStep.OptionalSubGroup:
+            case ParsingStep.OptionalSubGroupBeforeLessonName:
+            case ParsingStep.OptionalSubGroupBeforeTeacher:
             case ParsingStep.MaybeSubGroupAgain:
             {
-                if (c.State.Step == ParsingStep.OptionalSubGroup)
+                if (c.State.Step == ParsingStep.OptionalSubGroupBeforeTeacher)
                 {
                     // Lesson names might be delimited by a comma.
                     if (c.Lexer.TryConsume(','))
@@ -521,7 +605,7 @@ public static class LessonParsingHelper
                         break;
                     }
                 }
-                else
+                else if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
                 {
                     // Just ignore the comma if we're here again.
                     // This handles the case where there are multiple subgroups.
@@ -530,24 +614,86 @@ public static class LessonParsingHelper
                         // Skip whitespace
                         break;
                     }
+
+                    if (c.State.SubGroupAppliedBeforeLessonName)
+                    {
+                        c.State.Step = ParsingStep.Output;
+                        break;
+                    }
                 }
 
-                var t = c.Lexer.Current;
+                var subgroupToken = c.Lexer.Current;
                 var lexer = c.Lexer;
-                if (t.Type != LessonTokenType.Word
-                    || char.IsNumber(t.Value.Span[0])
-                    || !VerifyColon(ref lexer))
+                if (!SkipSubGroup(ref lexer))
                 {
                     SetNoSubgroup(c);
                     break;
                 }
 
-                var subgroup = new SubGroup(t.Value.Span.ToString());
+                if (c.State.Step == ParsingStep.OptionalSubGroupBeforeLessonName)
+                {
+                    c.State.SubGroupAppliedBeforeLessonName = true;
+                }
+
+                var subgroup = new SubGroup(subgroupToken.Value.Span.ToString());
                 c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(subgroup);
 
                 c.Lexer.MoveTo(lexer.Position);
-                c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
+
+                c.State.Step = c.State.Step switch
+                {
+                    ParsingStep.OptionalSubGroupBeforeLessonName
+                        => ParsingStep.LessonName,
+                    ParsingStep.MaybeSubGroupAgain or ParsingStep.OptionalSubGroupBeforeTeacher
+                        => ParsingStep.OptionalTeacherNameOrRoomName,
+                    _ => throw Unreachable(),
+                };
                 break;
+
+                static bool SkipSubGroup(ref LexerScope lexer)
+                {
+                    var t = lexer.Current;
+                    if (t.Type != LessonTokenType.Word)
+                    {
+                        return false;
+                    }
+                    var sp = t.Value.Span;
+                    if (char.IsNumber(sp[0]))
+                    {
+                        return false;
+                    }
+
+                    // Format S{Number}{OptionalNumber}
+                    bool MatchS(ReadOnlyMemory<char> p)
+                    {
+                        var parser = new Parser(p);
+                        Debug.Assert(!parser.IsEmpty);
+                        if (!parser.ConsumeExactChar('S'))
+                        {
+                            return false;
+                        }
+                        if (parser.ConsumePositiveIntWithMaxLength(maxLength: 2) == null)
+                        {
+                            return false;
+                        }
+                        if (!parser.IsEmpty)
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+                    if (MatchS(lexer.Current.Value))
+                    {
+                        lexer.Move();
+                        return true;
+                    }
+
+                    if (VerifyColon(ref lexer))
+                    {
+                        return true;
+                    }
+                    return false;
+                }
 
                 static bool VerifyColon(ref LexerScope lexer)
                 {
@@ -572,6 +718,11 @@ public static class LessonParsingHelper
                     if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
                     {
                         c.State.Step = ParsingStep.Output;
+                        return;
+                    }
+                    if (c.State.Step == ParsingStep.OptionalSubGroupBeforeLessonName)
+                    {
+                        c.State.Step = ParsingStep.LessonName;
                         return;
                     }
                     // Maybe should check how it was added and give an error if it was
@@ -1302,11 +1453,11 @@ public sealed class RoomParser
     }
 }
 
-internal readonly struct DefaultModifiersList()
+internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
 {
-    private readonly List<DefaultModifiers> _list = new();
+    private ListWithCapacity<DefaultModifiers> _list = new();
 
-    public List<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    public ListWithCapacity<DefaultModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
     public bool IsEmpty => _list.Count == 0;
 
     public void Clear()
@@ -1316,7 +1467,7 @@ internal readonly struct DefaultModifiersList()
 
     public ref DefaultModifiers Ref(int index)
     {
-        return ref CollectionsMarshal.AsSpan(_list)[index];
+        return ref _list.Items[index];
     }
 
     public bool HasOtherThanAllSubGroup()
@@ -1334,7 +1485,7 @@ internal readonly struct DefaultModifiersList()
 
     public int FindIndex(SubGroup subGroup)
     {
-        var mods = CollectionsMarshal.AsSpan(_list);
+        var mods = _list.Items;
         for (int i = 0; i < mods.Length; i++)
         {
             ref var it = ref mods[i];
@@ -1354,26 +1505,29 @@ internal readonly struct DefaultModifiersList()
             return index;
         }
 
-        var it = new DefaultModifiers
-        {
-            SubGroup = subGroup,
-        };
-        _list.Add(it);
+        ref var t = ref _list.Add();
+        t.SubGroup = subGroup;
+
         return _list.Count - 1;
+    }
+
+    public void CopyInto(ref DefaultModifiersList other)
+    {
+        _list.CopyInto(ref other._list);
     }
 }
 
-internal readonly struct SubLessonModifiersList()
+internal struct SubLessonModifiersList() : IBasic<SubLessonModifiersList>
 {
-    private readonly List<SubLessonModifiers> _list = new();
+    private ListWithCapacity<SubLessonModifiers> _list = new();
 
-    public List<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    public ListWithCapacity<SubLessonModifiers>.Enumerator GetEnumerator() => _list.GetEnumerator();
 
     public bool IsEmpty => _list.Count == 0;
 
     public ref SubLessonModifiers Ref(int index)
     {
-        return ref CollectionsMarshal.AsSpan(_list)[index];
+        return ref _list.Items[index];
     }
 
     public bool HasOtherThanDefaultKey()
@@ -1387,7 +1541,7 @@ internal readonly struct SubLessonModifiersList()
 
     public int FindIndex(SubLessonModifiersKey key)
     {
-        var mods = CollectionsMarshal.AsSpan(_list);
+        var mods = _list.Items;
         for (int i = 0; i < mods.Length; i++)
         {
             ref var it = ref mods[i];
@@ -1407,11 +1561,10 @@ internal readonly struct SubLessonModifiersList()
             return index;
         }
 
-        var it = new SubLessonModifiers
+        _list.Add() = new SubLessonModifiers
         {
             Key = key,
         };
-        _list.Add(it);
         return _list.Count - 1;
     }
 
@@ -1425,12 +1578,34 @@ internal readonly struct SubLessonModifiersList()
         int index = FindOrAdd(key);
         return ref Ref(index);
     }
+
+    public void CopyInto(ref SubLessonModifiersList other)
+    {
+        _list.CopyInto(ref other._list);
+    }
+
+    public void Clear()
+    {
+        _list.Clear();
+    }
 }
 
-internal struct SubLessonInParsing()
+internal struct SubLessonInParsing() : IBasic<SubLessonInParsing>
 {
     public ReadOnlyMemory<char> LessonName = default;
     public SubLessonModifiersList Modifiers = new();
+
+    public void CopyInto(ref SubLessonInParsing other)
+    {
+        other.LessonName = LessonName;
+        Modifiers.CopyInto(ref other.Modifiers);
+    }
+
+    public void Clear()
+    {
+        LessonName = default;
+        Modifiers.Clear();
+    }
 }
 
 internal struct GeneralModifiersValue()
@@ -1476,16 +1651,31 @@ internal struct GeneralModifiersValue()
     }
 }
 
-internal struct SpecificModifiersValue()
+internal struct TeacherNameWrapper : IBasic<TeacherNameWrapper>
 {
-    public List<TeacherName> TeacherNames = new();
+    public TeacherName Name;
+
+    public void CopyInto(ref TeacherNameWrapper other)
+    {
+        other.Name = Name;
+    }
+
+    public void Clear()
+    {
+        Name = default;
+    }
+}
+
+internal struct SpecificModifiersValue() : IBasic<SpecificModifiersValue>
+{
+    public ListWithCapacity<TeacherNameWrapper> TeacherNames = new();
     public ReadOnlyMemory<char> RoomName = default;
 
     public readonly ref TeacherName LastTeacher
     {
         get
         {
-            return ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
+            return ref TeacherNames.Items[^1].Name;
         }
     }
 
@@ -1501,28 +1691,62 @@ internal struct SpecificModifiersValue()
         }
     }
 
-    public readonly ref TeacherName NewTeacher()
+    public ref TeacherName NewTeacher()
     {
-        CollectionsMarshal.SetCount(TeacherNames, TeacherNames.Count + 1);
-        ref var ret = ref CollectionsMarshal.AsSpan(TeacherNames)[^1];
-        ret = default;
-        return ref ret;
+        ref var ret = ref TeacherNames.Add();
+        return ref ret.Name;
+    }
+
+    public void CopyInto(ref SpecificModifiersValue other)
+    {
+        other.RoomName = RoomName;
+        TeacherNames.CopyInto(ref other.TeacherNames);
+    }
+
+    public void Clear()
+    {
+        RoomName = default;
+        TeacherNames.Clear();
     }
 }
 
-internal struct DefaultModifiersValue()
+internal struct DefaultModifiersValue() : IBasic<DefaultModifiersValue>
 {
     public GeneralModifiersValue General = new();
     public SpecificModifiersValue Specific = new();
+
+    public void CopyInto(ref DefaultModifiersValue other)
+    {
+        other.General = General;
+        other.Specific = Specific;
+    }
+
+    public void Clear()
+    {
+        General = new();
+        Specific.Clear();
+    }
 }
 
-internal struct DefaultModifiers()
+internal struct DefaultModifiers() : IBasic<DefaultModifiers>
 {
     public DefaultModifiersValue Value = new();
-    public required SubGroup SubGroup { get; init; }
+    public SubGroup SubGroup { get; set; }
 
     [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
     [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
+
+    public void CopyInto(ref DefaultModifiers other)
+    {
+        Value.CopyInto(ref other.Value);
+        other.SubGroup = SubGroup;
+    }
+
+    public void Clear()
+    {
+        Value.Clear();
+        SubGroup = SubGroup.All;
+    }
 }
 
 internal readonly record struct SubLessonModifiersKey()
@@ -1532,10 +1756,13 @@ internal readonly record struct SubLessonModifiersKey()
     public LessonType LessonType { get; init; } = LessonType.Unspecified;
 }
 
-internal struct SubLessonModifiers()
+internal struct SubLessonModifiers() : IBasic<SubLessonModifiers>
 {
     public GeneralModifiersValue General = new();
-    public required SubLessonModifiersKey Key { get; init; }
+    public SubLessonModifiersKey Key { get; set; }
+
+    public void CopyInto(ref SubLessonModifiers other) => other = this;
+    public void Clear() => this = new();
 }
 
 internal struct MaybeGeneralModifiersValue()
@@ -1558,13 +1785,16 @@ internal enum ParsingStep
 
     // Star is used for notes.
     OptionalStarBeforeLessonName,
+
+    // May appear.
+    OptionalSubGroupBeforeLessonName,
     LessonName,
 
     // Lesson modifiers.
     OptionalParens,
 
     // Subgroup may be specified before the teacher-room pair.
-    OptionalSubGroup,
+    OptionalSubGroupBeforeTeacher,
     // May be repeated with more teacher-room pairs.
     MaybeSubGroupAgain,
 
@@ -1580,16 +1810,125 @@ internal enum ParsingStep
     Output,
 }
 
-internal struct ParsingState()
+internal interface IBasic<T>
+{
+    void CopyInto(ref T other);
+    void Clear();
+}
+
+internal struct ListWithCapacity<T>() : IBasic<ListWithCapacity<T>>
+    where T : IBasic<T>, new()
+{
+    private readonly List<T> _items = new();
+    private int _count = 0;
+
+    public void Clear()
+    {
+        _count = 0;
+    }
+
+    public readonly Span<T> Items => CollectionsMarshal.AsSpan(_items)[.. _count];
+
+    public int Count => _count;
+
+    public ref T Add()
+    {
+        Debug.Assert(_items.Count >= _count);
+        if (_items.Count == _count)
+        {
+            CollectionsMarshal.SetCount(_items, _count + 1);
+            _items[_count] = new();
+        }
+        else
+        {
+            ref var i = ref CollectionsMarshal.AsSpan(_items)[_count];
+            i.Clear();
+        }
+        _count++;
+        ref var ret = ref Items[_count - 1];
+        return ref ret!;
+    }
+
+    public void CopyInto(ref ListWithCapacity<T> other)
+    {
+        int count = Math.Max(_count, other.Count);
+        var countBefore = other.Count;
+
+        other._count = _count;
+
+        CollectionsMarshal.SetCount(other._items, count);
+        var fromSpan = Items;
+        var toSpan = other.Items;
+        // for (int i = 0; i < countBefore; i++)
+        // {
+        //     toSpan[i].Clear();
+        // }
+        for (int i = countBefore; i < count; i++)
+        {
+            toSpan[i] = new();
+        }
+        for (int i = 0; i < _count; i++)
+        {
+            fromSpan[i].CopyInto(ref toSpan[i]);
+        }
+    }
+
+    public void RemoveLast()
+    {
+        Debug.Assert(_count > 0);
+        _count--;
+    }
+
+    public Enumerator GetEnumerator() => new(this);
+
+    public struct Enumerator
+    {
+        private readonly ListWithCapacity<T> _self;
+        private int _i;
+
+        public Enumerator(ListWithCapacity<T> self)
+        {
+            _self = self;
+            _i = -1;
+        }
+
+        public bool MoveNext()
+        {
+            _i++;
+            if (_i >= _self._count)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public ref T Current => ref _self.Items[_i];
+    }
+}
+
+internal struct ParsingState() : IBasic<ParsingState>
 {
     public ParsingStep Step = ParsingStep.Start;
     public CommonLessonInParsing CommonLesson = new();
     public DefaultModifiersList DefaultModifiers = new();
-    public List<SubLessonInParsing> LessonsInParsing = new();
+    public ListWithCapacity<SubLessonInParsing> LessonsInParsing = new();
     public int LastModiferIndex = -1;
+    public bool SubGroupAppliedBeforeLessonName;
 
-    public ref SubLessonInParsing CurrentSubLesson => ref CollectionsMarshal.AsSpan(LessonsInParsing)[^1];
+    public ref SubLessonInParsing CurrentSubLesson => ref LessonsInParsing.Items[^1];
     public ref DefaultModifiers LastModifiers => ref DefaultModifiers.Ref(LastModiferIndex);
+
+    public void CopyInto(ref ParsingState copy)
+    {
+        copy.CommonLesson = CommonLesson;
+        copy.Step = Step;
+        DefaultModifiers.CopyInto(ref copy.DefaultModifiers);
+        LessonsInParsing.CopyInto(ref copy.LessonsInParsing);
+        copy.LastModiferIndex = LastModiferIndex;
+        copy.SubGroupAppliedBeforeLessonName = SubGroupAppliedBeforeLessonName;
+    }
+
+    public void Clear() => Reset();
 
     public void Reset()
     {
@@ -1598,6 +1937,7 @@ internal struct ParsingState()
         DefaultModifiers.Clear();
         CommonLesson = new();
         LastModiferIndex = -1;
+        SubGroupAppliedBeforeLessonName = false;
     }
 
     public bool IsTerminalState
@@ -1607,7 +1947,7 @@ internal struct ParsingState()
             return Step is ParsingStep.Output
                 or ParsingStep.Start
                 // In this format, the teacher name and the room are optional
-                or ParsingStep.OptionalSubGroup
+                or ParsingStep.OptionalSubGroupBeforeTeacher
                 or ParsingStep.OptionalParens
                 or ParsingStep.OptionalParensBeforeRoom
                 or ParsingStep.OptionalTeacherNameOrRoomName
@@ -1671,8 +2011,9 @@ public class WrongFormatException : Exception
 internal ref struct ParsingContext
 {
     public required ref readonly ParseLessonsParams Params;
-    public required ref ParsingState State;
+    public ref ParsingState State => ref StateStack.Last();
     public required ref LexerScope Lexer;
+    public required ref ParsingStateStack StateStack;
 
     internal readonly LexerScope LexerCopy => Lexer;
 }

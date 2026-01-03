@@ -72,7 +72,7 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             continue;
 
             void AddTodaysItems<T>(
-                ref EnumerableHelper.RememberIsDoneEnumerator<T> e,
+                ref EnumerableExtensions.RememberIsDoneEnumerator<T> e,
                 List<T> list)
 
                 where T : struct, IDateTime

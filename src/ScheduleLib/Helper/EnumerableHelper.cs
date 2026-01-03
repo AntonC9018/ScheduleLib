@@ -5,7 +5,7 @@ namespace ScheduleLib;
 
 public readonly record struct Indexed<T>(int Index, T Item);
 
-public static class EnumerableHelper
+public static class EnumerableExtensions
 {
     public static bool None<T>(this IEnumerable<T> source, Func<T, bool> pred)
     {
@@ -14,6 +14,11 @@ public static class EnumerableHelper
     public static bool None<T>(this IEnumerable<T> source)
     {
         return !source.Any();
+    }
+    public static IEnumerable<T> WhereNotDefault<T>(this IEnumerable<T> source)
+        where T : struct
+    {
+        return source.Where(x => EqualityComparer<T>.Default.Equals(x, default));
     }
 
     public static IEnumerable<Indexed<T>> WithIndex<T>(this IEnumerable<T> source)

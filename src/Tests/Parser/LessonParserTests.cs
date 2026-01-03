@@ -735,5 +735,26 @@ public sealed class LessonParserTests
         AssertEqualName("N.Nartea", Assert.Single(l.TeacherNames));
         Assert.Equal("145/4", l.RoomName.Span);
     }
+
+    [Fact]
+    public void SpecialCase_SubgroupName()
+    {
+        var lessons = ParseLessons([
+            "S21 NameOne (lab), Teacher, 145/4",
+            "S1 NameTwo (lab), Teacher, 143/4",
+        ], spaces: Config.WhiteSpaceActionCourseName);
+
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Assert.Equal(l1.LessonName.Span, "NameOne");
+                Assert.Equal(l1.SubGroup, new SubGroup("S21"));
+            },
+            l2 =>
+            {
+                Assert.Equal(l2.LessonName.Span, "NameTwo");
+                Assert.Equal(l2.SubGroup, new SubGroup("S1"));
+            });
+    }
 }
 
