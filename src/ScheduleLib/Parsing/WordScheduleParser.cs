@@ -748,7 +748,7 @@ public static class WordScheduleParser
         int colSpan,
         PeriodId periodId)
     {
-        RegularLessonBuilderModelData modelData = new();
+        WeeklyLessonBuilderModelData modelData = new();
 
         if (lesson.StartTime is { } startTime)
         {
@@ -762,28 +762,29 @@ public static class WordScheduleParser
 
         modelData.Date.DayOfWeek = state.CurrentDay!.Value;
 
+        ref var b = ref modelData.Base;
         CourseId courseId;
         {
             var courseName = lesson.LessonName.ToString();
             courseId = c.Course(courseName);
-            modelData.General.Course = courseId;
+            b.General.Course = courseId;
         }
         foreach (var t in lesson.TeacherNames)
         {
             var teacherId = c.Teacher(t);
-            modelData.General.Teachers.Add(teacherId);
+            b.General.Teachers.Add(teacherId);
         }
         if (!lesson.RoomName.IsEmpty)
         {
             var roomName = lesson.RoomName.ToString();
             var roomId = c.Room(roomName);
-            modelData.General.Room = roomId;
+            b.General.Room = roomId;
         }
 
-        modelData.General.Type = lesson.LessonType;
+        b.General.Type = lesson.LessonType;
         modelData.Date.Parity = lesson.Parity;
 
-        ref var g = ref modelData.Group;
+        ref var g = ref b.Group;
         var groupFullName = lesson.GroupName.Span.Trim().ToString();
         if (groupFullName.Length == 0
             || HandleSpecialSubGroup(ref g, lesson))
@@ -811,7 +812,7 @@ public static class WordScheduleParser
             g.SubGroup = lesson.SubGroup;
         }
 
-        modelData.General.Period = periodId;
+        b.General.Period = periodId;
 
         if (MaybeMergeIntoAnExistingLesson())
         {
@@ -823,7 +824,7 @@ public static class WordScheduleParser
 
         // Check for special case when it's a subgroup.
         bool HandleSpecialSubGroup(
-            ref RegularLessonBuilderModelData.GroupData g,
+            ref LessonBuilderGroupData g,
             in ParsedLesson lesson)
         {
             var specialGroups = SpecialSubGroups.AllSpecial;
@@ -853,7 +854,7 @@ public static class WordScheduleParser
             {
                 var model = schedule.WeeklyLessons.Ref(existingLesson.Id);
 
-                var diffMask = new WeeklyLessonModelDiffMask
+                var diffMask = new LessonModelDiffMask
                 {
                     Parity = true,
                     Day = true,

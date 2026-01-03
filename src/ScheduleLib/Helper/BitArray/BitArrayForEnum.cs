@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using ScheduleLib.Builders;
 
 namespace ScheduleLib.Helper;
@@ -36,6 +37,7 @@ public record struct EnumBitArray<T>
 
     [UnscopedRef]
     private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(AllEnumEnumerable<T>.Count);
+    [Pure]
     private readonly BitArray32 SizedImpl => _impl.WithFixedSize(AllEnumEnumerable<T>.Count);
 
     public void Set(T index, bool value)
@@ -56,12 +58,14 @@ public record struct EnumBitArray<T>
         SizedImplMut.Clear(offset);
     }
 
+    [Pure]
     public readonly bool IsSet(T index)
     {
         var offset = AllEnumEnumerable<T>.GetOffset(index);
         return SizedImpl.IsSet(offset);
     }
 
+    [Pure]
     public readonly EnumBitArray<T> WithSet(T index)
     {
         var offset = AllEnumEnumerable<T>.GetOffset(index);
@@ -69,6 +73,7 @@ public record struct EnumBitArray<T>
         return new(result.AsUnsized());
     }
 
+    [Pure]
     public readonly EnumBitArray<T> WithClear(T index)
     {
         var offset = AllEnumEnumerable<T>.GetOffset(index);
@@ -76,6 +81,7 @@ public record struct EnumBitArray<T>
         return new(result.AsUnsized());
     }
 
+    [Pure]
     public readonly EnumBitArray<T> Flipped
     {
         get
@@ -85,15 +91,20 @@ public record struct EnumBitArray<T>
         }
     }
 
+    [Pure]
     public readonly EnumBitArray<T> Intersect(EnumBitArray<T> other)
     {
         var result = SizedImpl.Intersect(other.SizedImpl);
         return new(result.AsUnsized());
     }
 
+    [Pure]
     public readonly bool AreAllSet => _impl.AreAllSet(AllEnumEnumerable<T>.Count);
+    [Pure]
     public readonly bool AreNoneSet => _impl.AreNoneSet;
+    [Pure]
     public readonly bool AreAnySet => !_impl.AreNoneSet;
+    [Pure]
     public readonly int SetCount => _impl.SetCount;
 
     public void ClearAll()
@@ -101,6 +112,7 @@ public record struct EnumBitArray<T>
         this = default;
     }
 
+    [Pure]
     public readonly T? GetFirstSet()
     {
         var index = SizedImpl.GetSetAfter(-1);
@@ -111,9 +123,12 @@ public record struct EnumBitArray<T>
         return AllEnumEnumerable<T>.EnumFromOffset(index);
     }
 
+    [Pure]
     public readonly SetEnumValuesEnumerable SetValues() => new(_impl.Bits);
 
+    [Pure]
     public readonly uint Bits => _impl.Bits;
+    [Pure]
     public readonly bool IsEmpty => _impl.IsEmpty;
 
     public readonly struct SetEnumValuesEnumerable : IEnumerable<T>
@@ -132,7 +147,9 @@ public record struct EnumBitArray<T>
 
         public SetEnumValuesEnumerator(SetBitIndicesEnumerator x) => _inner = x;
         public bool MoveNext() => _inner.MoveNext();
+        [Pure]
         public readonly T Current => AllEnumEnumerable<T>.EnumFromOffset(_inner.Current);
+        [Pure]
         readonly object IEnumerator.Current => Current;
 
         public void Reset()
@@ -143,6 +160,7 @@ public record struct EnumBitArray<T>
         public void Dispose() => _inner.Dispose();
     }
 
+    [Pure]
     public readonly EnumBitArray<T> Union(EnumBitArray<T> other)
     {
         var sizedSelf = SizedImpl;

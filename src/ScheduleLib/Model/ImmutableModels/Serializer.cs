@@ -86,16 +86,40 @@ public static class ScheduleSerializer
 
 public static class SerializationModels
 {
-    public sealed class RegularLessonModel
+    public abstract class LessonBaseModel
     {
-        public required ImmutableArray<GroupId> Groups { get; set; }
-        public required CourseId Course { get; set; }
-        public required ImmutableArray<TeacherId> Teachers { get; set; }
-        public required RoomId Room { get; set; }
-        public required LessonType Type { get; set; }
-        public required SubGroup SubGroup { get; set; }
-        public required Parity Parity { get; set; }
+        [JsonRequired]
+        public ImmutableArray<GroupId> Groups { get; set; }
+        [JsonRequired]
+        public CourseId Course { get; set; }
+        [JsonRequired]
+        public ImmutableArray<TeacherId> Teachers { get; set; }
+        [JsonRequired]
+        public RoomId Room { get; set; }
+        [JsonRequired]
+        public LessonType Type { get; set; }
+        [JsonRequired]
+        public SubGroup SubGroup { get; set; }
+
+        public void SetCommon(in LessonData common)
+        {
+            Groups = [.. common.Groups];
+            Course = common.Course;
+            Teachers = common.Teachers;
+            Room = common.Room;
+            Type = common.Type;
+            SubGroup = common.SubGroup;
+        }
+    }
+    public sealed class OneTimeLessonModel : LessonBaseModel
+    {
+        public required DateOnly Date { get; set; }
+        public required TimeSlot TimeSlot { get; set; }
+    }
+    public sealed class WeeklyLessonModel : LessonBaseModel
+    {
         public required DayOfWeek DayOfWeek { get; set; }
+        public required Parity Parity { get; set; }
         public required TimeSlot TimeSlot { get; set; }
         public required PeriodId Period { get; set; }
     }
@@ -125,8 +149,9 @@ public static class SerializationModels
 
     public sealed class ScheduleModel
     {
-        public required string Hash { get; set; }
-        public required ImmutableArray<RegularLessonModel> RegularLessons { get; set; }
+        public string? Hash { get; set; }
+        public required ImmutableArray<WeeklyLessonModel> RegularLessons { get; set; }
+        public required ImmutableArray<OneTimeLessonModel> OneTimeLessons { get; set; }
         public required ImmutableArray<GroupModel> Groups { get; set; }
         public required ImmutableArray<PersonModel> Teachers { get; set; }
         public required ImmutableArray<CourseModel> Courses { get; set; }
@@ -137,18 +162,27 @@ public static class SerializationModels
         Schedule schedule,
         string hash)
     {
-        var regularLessons = schedule.EnumerateWeeklyLessons().Select(rl => new RegularLessonModel
+        var regularLessons = schedule.EnumerateWeeklyLessons().Select(wl =>
         {
-            Groups = [.. rl.Lesson.Groups],
-            Course = rl.Lesson.Course,
-            Teachers = rl.Lesson.Teachers,
-            Room = rl.Lesson.Room,
-            Type = rl.Lesson.Type,
-            SubGroup = rl.Lesson.SubGroup,
-            Parity = rl.Date.Parity,
-            DayOfWeek = rl.Date.DayOfWeek,
-            TimeSlot = rl.Date.TimeSlot,
-            Period = rl.Date.Period,
+            var ret = new WeeklyLessonModel
+            {
+                Parity = wl.Date.Parity,
+                DayOfWeek = wl.Date.DayOfWeek,
+                TimeSlot = wl.Date.TimeSlot,
+                Period = wl.Date.Period,
+            };
+            ret.SetCommon(wl.Lesson);
+            return ret;
+        }).ToImmutableArray();
+        var oneTimeLessons = schedule.EnumerateOneTimeLessons().Select(ol =>
+        {
+            var ret = new OneTimeLessonModel
+            {
+                Date = ol.Date.Date,
+                TimeSlot = ol.Date.TimeSlot,
+            };
+            ret.SetCommon(ol.Lesson);
+            return ret;
         }).ToImmutableArray();
 
         var groups = schedule.Groups.Select(g => new GroupModel
@@ -177,6 +211,7 @@ public static class SerializationModels
         var model = new ScheduleModel
         {
             Hash = hash,
+            OneTimeLessons = oneTimeLessons,
             RegularLessons = regularLessons,
             Groups = groups,
             Teachers = teachers,

@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 using ScheduleLib.Helper;
 
@@ -5,16 +6,16 @@ namespace ScheduleLib.Builders;
 
 public partial class ScheduleBuilder
 {
-    public ListBuilder<RegularLessonBuilderModel> WeeklyLessons = new();
+    public ListBuilder<WeeklyLessonBuilderModel> WeeklyLessons = new();
 }
 
-public struct RegularLessonModelMergeMask()
+public struct LessonModelMergeMask()
 {
     public bool Teachers;
     public bool Groups;
 }
 
-public record struct WeeklyLessonModelDiffMask()
+public record struct LessonModelDiffMask()
 {
     public enum BitIndex
     {
@@ -30,6 +31,7 @@ public record struct WeeklyLessonModelDiffMask()
         TimeSlot,
         Parity,
         Period,
+        Date,
         Count,
     }
 
@@ -106,14 +108,23 @@ public record struct WeeklyLessonModelDiffMask()
         set => Impl.Set(BitIndex.Period, value);
     }
 
-    public readonly WeeklyLessonModelDiffMask Intersect(WeeklyLessonModelDiffMask mask)
+    public bool Date
+    {
+        get => Impl.IsSet(BitIndex.Date);
+        set => Impl.Set(BitIndex.Date, value);
+    }
+
+    [Pure]
+    public readonly LessonModelDiffMask Intersect(LessonModelDiffMask mask)
     {
         return new()
         {
             Impl = Impl.Intersect(mask.Impl),
         };
     }
-    public readonly WeeklyLessonModelDiffMask Union(WeeklyLessonModelDiffMask mask)
+
+    [Pure]
+    public readonly LessonModelDiffMask Union(LessonModelDiffMask mask)
     {
         return new()
         {
@@ -125,43 +136,75 @@ public record struct WeeklyLessonModelDiffMask()
     public readonly bool TheyDiffer => !Impl.IsEmpty;
 }
 
-public struct RegularLessonBuilderModelData()
+public struct LessonBuilderModelDataBase()
 {
-    public GeneralData General = new();
-    public RegularLessonDateBuilderModel Date = new();
-    public GroupData Group = new();
+    public LessonBuilderGeneralData General = new();
+    public LessonBuilderGroupData Group = new();
 
-    public struct GroupData()
+    public readonly LessonBuilderModelDataBase Copy()
     {
-        public LessonGroups Groups = new();
-        public SubGroup SubGroup = SubGroup.All;
-    }
-
-    public struct GeneralData()
-    {
-        public CourseId? Course;
-        public List<TeacherId> Teachers = new();
-        public RoomId Room;
-        public LessonType Type = LessonType.Unspecified;
-        public PeriodId Period = PeriodId.Unspecified;
+        return new()
+        {
+            General = General with
+            {
+                Teachers = [.. General.Teachers],
+            },
+            Group = Group,
+        };
     }
 }
 
-public sealed class RegularLessonBuilderModel
+public struct OneTimeLessonBuilderModelData()
 {
-    public RegularLessonBuilderModelData Data = new();
-    public ref RegularLessonBuilderModelData.GeneralData General => ref Data.General;
-    public ref RegularLessonDateBuilderModel Date => ref Data.Date;
-    public ref RegularLessonBuilderModelData.GroupData Group => ref Data.Group;
+    public LessonBuilderModelDataBase Base = new();
+    public OneTimeLessonDateBuilderModel Date = new();
+}
 
-    public void CopyFrom(in RegularLessonBuilderModelData model)
+public struct WeeklyLessonBuilderModelData()
+{
+    public LessonBuilderModelDataBase Base = new();
+    public RegularLessonDateBuilderModel Date = new();
+}
+
+public struct LessonBuilderGroupData()
+{
+    public LessonGroups Groups = new();
+    public SubGroup SubGroup = SubGroup.All;
+}
+public struct LessonBuilderGeneralData()
+{
+    public CourseId? Course;
+    public List<TeacherId> Teachers = new();
+    public RoomId Room;
+    public LessonType Type = LessonType.Unspecified;
+    public PeriodId Period = PeriodId.Unspecified;
+}
+
+public sealed class WeeklyLessonBuilderModel
+{
+    public WeeklyLessonBuilderModelData Data = new();
+    public ref LessonBuilderGeneralData General => ref Data.Base.General;
+    public ref RegularLessonDateBuilderModel Date => ref Data.Date;
+    public ref LessonBuilderGroupData Group => ref Data.Base.Group;
+
+    public void CopyFrom(in WeeklyLessonBuilderModelData model)
     {
-        General = model.General with
-        {
-            Teachers = [..model.General.Teachers],
-        };
+        Data.Base = model.Base.Copy();
         Date = model.Date;
-        Group = model.Group;
+    }
+}
+
+public sealed class OneTimeLessonBuilderModel
+{
+    public OneTimeLessonBuilderModelData Data = new();
+    public ref LessonBuilderGeneralData General => ref Data.Base.General;
+    public ref OneTimeLessonDateBuilderModel Date => ref Data.Date;
+    public ref LessonBuilderGroupData Group => ref Data.Base.Group;
+
+    public void CopyFrom(in OneTimeLessonBuilderModelData model)
+    {
+        Data.Base = model.Base.Copy();
+        Date = model.Date;
     }
 }
 
@@ -172,16 +215,16 @@ public struct RegularLessonDateBuilderModel()
     public TimeSlot? TimeSlot;
 }
 
-public interface ILessonBuilder
+public struct OneTimeLessonDateBuilderModel()
 {
-    RegularLessonBuilderModel Model { get; }
+    public DateOnly? Date;
+    public TimeSlot? TimeSlot;
 }
-
-public sealed class RegularLessonBuilder : ILessonBuilder
+public sealed class RegularLessonBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required int Id { get; init; }
-    public RegularLessonBuilderModel Model => Schedule.WeeklyLessons.Ref(Id);
+    public WeeklyLessonBuilderModel Model => Schedule.WeeklyLessons.Ref(Id);
     public static implicit operator int(RegularLessonBuilder r) => r.Id;
 
     // NOTE: to make this more generic, can make the whole state of the builder model a struct.
@@ -205,22 +248,13 @@ public sealed class RegularLessonBuilder : ILessonBuilder
     public void InitLookup() => UpdateLookup(prevCourseId: null);
 }
 
-// Allows to specify defaults.
-public sealed class LessonConfigScope : ILessonBuilder
-{
-    public required RegularLessonBuilderModel Defaults;
-    public required ScheduleBuilder Schedule;
-
-    public RegularLessonBuilderModel Model => Defaults;
-}
-
 public static class LessonBuilderHelper
 {
-    public static void DayOfWeek(this ILessonBuilder b, DayOfWeek dayOfWeek) => b.Model.Date.DayOfWeek = dayOfWeek;
-    public static void TimeSlot(this ILessonBuilder b, TimeSlot timeSlot) => b.Model.Date.TimeSlot = timeSlot;
-    public static void Parity(this ILessonBuilder b, Parity parity) => b.Model.Date.Parity = parity;
+    public static void DayOfWeek(this RegularLessonBuilder b, DayOfWeek dayOfWeek) => b.Model.Date.DayOfWeek = dayOfWeek;
+    public static void TimeSlot(this RegularLessonBuilder b, TimeSlot timeSlot) => b.Model.Date.TimeSlot = timeSlot;
+    public static void Parity(this RegularLessonBuilder b, Parity parity) => b.Model.Date.Parity = parity;
 
-    public static void Date(this ILessonBuilder b, RegularLessonDateBuilderModel date)
+    public static void Date(this RegularLessonBuilder b, RegularLessonDateBuilderModel date)
     {
         if (date.Parity is { } p)
         {
@@ -236,13 +270,13 @@ public static class LessonBuilderHelper
         }
     }
 
-    public static void Group(this ILessonBuilder b, GroupId group, SubGroup? subGroup = null)
+    public static void Group(this RegularLessonBuilder b, GroupId group, SubGroup? subGroup = null)
     {
         b.Model.Group.Groups = [group];
         b.Model.Group.SubGroup = subGroup ?? SubGroup.All;
     }
 
-    public static void Groups(this ILessonBuilder b, ReadOnlySpan<GroupId> groups)
+    public static void Groups(this RegularLessonBuilder b, ReadOnlySpan<GroupId> groups)
     {
         if (groups.Length > 3)
         {
@@ -261,10 +295,10 @@ public static class LessonBuilderHelper
         b.Model.Group.Groups = g;
     }
 
-    public static void Teacher(this ILessonBuilder b, TeacherId teacher) => b.Model.General.Teachers.Add(teacher);
-    public static void Room(this ILessonBuilder b, RoomId room) => b.Model.General.Room = room;
-    public static void Type(this ILessonBuilder b, LessonType type) => b.Model.General.Type = type;
-    public static void Course(this ILessonBuilder b, CourseId course)
+    public static void Teacher(this RegularLessonBuilder b, TeacherId teacher) => b.Model.General.Teachers.Add(teacher);
+    public static void Room(this RegularLessonBuilder b, RoomId room) => b.Model.General.Room = room;
+    public static void Type(this RegularLessonBuilder b, LessonType type) => b.Model.General.Type = type;
+    public static void Course(this RegularLessonBuilder b, CourseId course)
     {
         var prev = b.Model.General.Course;
         b.Model.General.Course = course;
@@ -277,7 +311,7 @@ public static class LessonBuilderHelper
         b1.UpdateLookup(prev);
     }
 
-    public static void Period(this ILessonBuilder b, PeriodId period)
+    public static void Period(this RegularLessonBuilder b, PeriodId period)
     {
         b.Model.General.Period = period;
     }
@@ -331,7 +365,7 @@ public static class LessonBuilderHelper
 
     public static RegularLessonBuilder RegularLesson(
         this ScheduleBuilder s,
-        in RegularLessonBuilderModelData modelData)
+        in WeeklyLessonBuilderModelData modelData)
     {
         var ret = RegularLesson(s);
         ret.Model.Data = modelData;
@@ -350,51 +384,12 @@ public static class LessonBuilderHelper
         return ret;
     }
 
-    public static LessonConfigScope Scope(this ScheduleBuilder s)
+    public static LessonModelDiffMask Diff(
+        in LessonBuilderModelDataBase a,
+        in LessonBuilderModelDataBase b,
+        LessonModelDiffMask whatToDiff)
     {
-        return new()
-        {
-            Defaults = new(),
-            Schedule = s,
-        };
-    }
-
-    public static LessonConfigScope Scope(this ScheduleBuilder s, Action<LessonConfigScope> configure)
-    {
-        var ret = Scope(s);
-        configure(ret);
-        return ret;
-    }
-
-    public static LessonConfigScope Scope(this LessonConfigScope s, Action<LessonConfigScope> configure)
-    {
-        var scope1 = Scope(s.Schedule);
-        scope1.Model.CopyFrom(s.Model.Data);
-        configure(scope1);
-        return scope1;
-    }
-
-    public static RegularLessonBuilder RegularLesson(this LessonConfigScope scope)
-    {
-        var lesson = RegularLesson(scope.Schedule);
-        lesson.Model.CopyFrom(scope.Defaults.Data);
-        lesson.InitLookup();
-        return lesson;
-    }
-
-    public static RegularLessonBuilder RegularLesson(this LessonConfigScope scope, Action<RegularLessonBuilder> b)
-    {
-        var ret = RegularLesson(scope);
-        b(ret);
-        return ret;
-    }
-
-    public static WeeklyLessonModelDiffMask Diff(
-        in RegularLessonBuilderModelData a,
-        in RegularLessonBuilderModelData b,
-        WeeklyLessonModelDiffMask whatToDiff)
-    {
-        var ret = new WeeklyLessonModelDiffMask();
+        var ret = new LessonModelDiffMask();
         if (whatToDiff.Course)
         {
             if (a.General.Course != b.General.Course)
@@ -418,8 +413,8 @@ public static class LessonBuilderHelper
             }
         }
         static bool AllTeachersNotEqual(
-            in RegularLessonBuilderModelData a,
-            in RegularLessonBuilderModelData b)
+            in LessonBuilderModelDataBase a,
+            in LessonBuilderModelDataBase b)
         {
             foreach (var teach1 in a.General.Teachers)
             {
@@ -465,8 +460,8 @@ public static class LessonBuilderHelper
         }
 
         bool AllGroupsNotEqual(
-            in RegularLessonBuilderModelData a,
-            in RegularLessonBuilderModelData b)
+            in LessonBuilderModelDataBase a,
+            in LessonBuilderModelDataBase b)
         {
             foreach (var g in a.Group.Groups)
             {
@@ -488,6 +483,29 @@ public static class LessonBuilderHelper
                 ret.SubGroup = true;
             }
         }
+
+        if (whatToDiff.Period)
+        {
+            if (a.General.Period != b.General.Period)
+            {
+                ret.Period = true;
+            }
+        }
+
+        return ret;
+    }
+
+    public static LessonModelDiffMask Diff(
+        in WeeklyLessonBuilderModelData a,
+        in WeeklyLessonBuilderModelData b,
+        LessonModelDiffMask whatToDiff)
+    {
+        var ret = new LessonModelDiffMask();
+        {
+            var other = Diff(in a.Base, in b.Base, whatToDiff);
+            ret = ret.Union(other);
+        }
+
         if (whatToDiff.Day)
         {
             if (a.Date.DayOfWeek != b.Date.DayOfWeek)
@@ -509,24 +527,16 @@ public static class LessonBuilderHelper
                 ret.Parity = true;
             }
         }
-        if (whatToDiff.Period)
-        {
-            if (a.General.Period != b.General.Period)
-            {
-                ret.Period = true;
-            }
-        }
-
         return ret;
     }
 
     // TODO: Move this out of this class.
-    public static WeeklyLessonModelDiffMask Diff(
+    public static LessonModelDiffMask Diff(
         in LessonData a,
         in LessonData b,
-        WeeklyLessonModelDiffMask whatToDiff)
+        LessonModelDiffMask whatToDiff)
     {
-        var ret = new WeeklyLessonModelDiffMask();
+        var ret = new LessonModelDiffMask();
         if (whatToDiff.Course)
         {
             if (a.Course != b.Course)
@@ -623,12 +633,12 @@ public static class LessonBuilderHelper
     }
 
     // TODO: Move this out of this class.
-    public static WeeklyLessonModelDiffMask Diff(
+    public static LessonModelDiffMask Diff(
         WeeklyLessonAccessor a,
         WeeklyLessonAccessor b,
-        WeeklyLessonModelDiffMask whatToDiff)
+        LessonModelDiffMask whatToDiff)
     {
-        var ret = new WeeklyLessonModelDiffMask();
+        var ret = new LessonModelDiffMask();
         {
             var other = Diff(a.Lesson, b.Lesson, whatToDiff);
             ret = ret.Union(other);
@@ -667,9 +677,9 @@ public static class LessonBuilderHelper
     }
 
     public static void Merge(
-        ref RegularLessonBuilderModelData to,
-        in RegularLessonBuilderModelData from,
-        RegularLessonModelMergeMask merge)
+        ref LessonBuilderModelDataBase to,
+        in LessonBuilderModelDataBase from,
+        LessonModelMergeMask merge)
     {
         if (merge.Teachers)
         {
@@ -680,7 +690,7 @@ public static class LessonBuilderHelper
                     to.General.Teachers.Add(teach);
                 }
                 static bool ContainsTeacher(
-                    in RegularLessonBuilderModelData to,
+                    in LessonBuilderModelDataBase to,
                     TeacherId teach1)
                 {
                     foreach (var teach2 in to.General.Teachers)
@@ -703,7 +713,7 @@ public static class LessonBuilderHelper
                     to.Group.Groups.Add(g);
                 }
                 static bool ContainsGroup(
-                    in RegularLessonBuilderModelData to,
+                    in LessonBuilderModelDataBase to,
                     GroupId g1)
                 {
                     foreach (var g2 in to.Group.Groups)
@@ -717,6 +727,14 @@ public static class LessonBuilderHelper
                 }
             }
         }
+    }
+
+    public static void Merge(
+        ref WeeklyLessonBuilderModelData to,
+        in WeeklyLessonBuilderModelData from,
+        LessonModelMergeMask merge)
+    {
+        Merge(ref to.Base, from.Base, merge);
     }
 }
 

@@ -238,7 +238,7 @@ public static class AttendanceExcel
             FilteredSchedule schedule)
         {
             var diffLesson = default(LessonData);
-            var diffMask = new WeeklyLessonModelDiffMask();
+            var diffMask = new LessonModelDiffMask();
             {
                 if (!key.CourseId.IsInvalid)
                 {
@@ -263,7 +263,7 @@ public static class AttendanceExcel
             }
 
             LessonData result = default;
-            var resultDiffMask = new WeeklyLessonModelDiffMask
+            var resultDiffMask = new LessonModelDiffMask
             {
                 LessonType = true,
                 SubGroup = true,

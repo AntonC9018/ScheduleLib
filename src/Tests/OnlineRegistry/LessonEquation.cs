@@ -389,15 +389,12 @@ file sealed class Context
             });
             var group = builder.Group("I2401(ru)");
             var course = builder.Course("Test course");
-            var scope = builder.Scope(s =>
-            {
-                s.Group(group);
-                s.Course(course);
-            });
             foreach (var configure in _lessonConfigs)
             {
-                scope.RegularLesson(lesson =>
+                builder.RegularLesson(lesson =>
                 {
+                    lesson.Group(group);
+                    lesson.Course(course);
                     lesson.DayOfWeek(configure.Day);
                     lesson.TimeSlot(configure.TimeSlot);
                     lesson.Type(configure.Type);

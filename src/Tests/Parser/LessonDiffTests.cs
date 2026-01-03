@@ -7,11 +7,11 @@ public sealed class LessonDiffTests
     [Fact]
     public void EqualityOperatorOnDiffMaskIsCorrect()
     {
-        var a = new WeeklyLessonModelDiffMask
+        var a = new LessonModelDiffMask
         {
             Day = true,
         };
-        var b = new WeeklyLessonModelDiffMask
+        var b = new LessonModelDiffMask
         {
             AllGroups = true,
         };
@@ -21,7 +21,7 @@ public sealed class LessonDiffTests
     [Fact]
     public void DiffTwoLessons()
     {
-        var lesson1 = new RegularLessonBuilderModelData
+        var lesson1 = new LessonBuilderModelDataBase
         {
             General = new()
             {
@@ -29,7 +29,7 @@ public sealed class LessonDiffTests
                 Course = new(1),
             },
         };
-        var lesson2 = new RegularLessonBuilderModelData
+        var lesson2 = new LessonBuilderModelDataBase
         {
             General = new()
             {
@@ -49,14 +49,14 @@ public sealed class LessonDiffTests
     [Fact]
     public void MergeTeachers()
     {
-        var lesson1 = new RegularLessonBuilderModelData
+        var lesson1 = new LessonBuilderModelDataBase
         {
             General = new()
             {
                 Teachers = [new(1), new(2)],
             },
         };
-        var lesson2 = new RegularLessonBuilderModelData
+        var lesson2 = new LessonBuilderModelDataBase
         {
             General = new()
             {
@@ -73,14 +73,14 @@ public sealed class LessonDiffTests
     [Fact]
     public void MergeGroups()
     {
-        var lesson1 = new RegularLessonBuilderModelData
+        var lesson1 = new LessonBuilderModelDataBase
         {
             Group = new()
             {
                 Groups = [new(1), new(2)],
             },
         };
-        var lesson2 = new RegularLessonBuilderModelData
+        var lesson2 = new LessonBuilderModelDataBase
         {
             Group = new()
             {

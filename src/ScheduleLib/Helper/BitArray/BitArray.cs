@@ -1,6 +1,7 @@
 // https://github.com/AntonC9018/uni_csharp/blob/c28e8e3ce047a9cdede5ff825d51674609b75cd5/lab2_a/BitArray.cs#L17
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Text;
 
@@ -35,8 +36,9 @@ public record struct UnsizedBitArray32
         _bits = bits;
     }
 
+    [Pure]
     public readonly BitArray32 WithFixedSize(int size) => new(this, size);
-
+    [Pure]
     public readonly int SetCount => BitOperations.PopCount(_bits);
 
     private static void ValidateIndex(int index)
@@ -73,13 +75,13 @@ public record struct UnsizedBitArray32
         ValidateIndex(index);
         _bits &= ~(1u << index);
     }
-
+    [Pure]
     public readonly bool IsSet(int index)
     {
         ValidateIndex(index);
         return (_bits & (1u << index)) != 0;
     }
-
+    [Pure]
     public readonly int GetSetAfter(int index)
     {
         ValidateIndex(index);
@@ -93,7 +95,7 @@ public record struct UnsizedBitArray32
 
         return BitOperations.TrailingZeroCount(set);
     }
-
+    [Pure]
     public readonly int GetUnsetAfter(int index, int length)
     {
         ValidateIndex(index);
@@ -115,7 +117,7 @@ public record struct UnsizedBitArray32
 
         return BitOperations.TrailingZeroCount(unset);
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 WithSet(int index)
     {
         ValidateIndex(index);
@@ -124,7 +126,7 @@ public record struct UnsizedBitArray32
         copy.Set(index);
         return copy;
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 WithClear(int index)
     {
         ValidateIndex(index);
@@ -133,13 +135,13 @@ public record struct UnsizedBitArray32
         copy.Clear(index);
         return copy;
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 Flipped(int length)
     {
         var not = (~_bits) & GetMask(length);
         return new(not);
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 Slice(int offset, int length)
     {
         ValidateIndex(offset);
@@ -147,22 +149,24 @@ public record struct UnsizedBitArray32
         var mask = GetMask(length);
         return new(bits & mask);
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other)
     {
         return new(_bits & other._bits);
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other, int length)
     {
         var r = Intersect(other);
         return new(r._bits & GetMask(length));
     }
-
+    [Pure]
     public readonly bool AreAllSet(int length) => _bits == GetMask(length);
+    [Pure]
     public readonly bool AreNoneSet => _bits == 0;
-
+    [Pure]
     public readonly uint Bits => _bits;
+    [Pure]
     public readonly bool IsEmpty => AreNoneSet;
 
     public static UnsizedBitArray32 AllSet(int length = BitArray32.MaxLength)
@@ -183,7 +187,7 @@ public record struct UnsizedBitArray32
         int shift = sizeof(uint) * 8 - length;
         return ~default(uint) >> shift;
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 Union(UnsizedBitArray32 otherArray)
     {
         return new(otherArray.Bits | Bits);
@@ -207,16 +211,15 @@ public record struct BitArray32
         this(new UnsizedBitArray32(bits), length)
     {
     }
-
+    [Pure]
     public readonly UnsizedBitArray32 AsUnsized() => _array;
-
     private readonly void ValidateIndex(int index)
     {
         Debug.Assert(index >= 0 && index < _length);
     }
-
+    [Pure]
     public readonly int Length => _length;
-
+    [Pure]
     public readonly int SetCount => _array.SetCount;
 
     public void Unset(int index)
@@ -230,37 +233,37 @@ public record struct BitArray32
         ValidateIndex(index);
         _array.Set(index, value);
     }
-
+    [Pure]
     public readonly bool IsSet(int index)
     {
         ValidateIndex(index);
         return _array.IsSet(index);
     }
-
+    [Pure]
     public readonly int GetSetAfter(int index)
     {
         return _array.GetSetAfter(index);
     }
-
+    [Pure]
     public readonly int GetUnsetAfter(int index)
     {
         Debug.Assert(index <= _length);
         return _array.GetUnsetAfter(index, _length);
     }
-
+    [Pure]
     public readonly int GetUnsetAtOrAfter(int index)
     {
         Debug.Assert(index <= _length);
         return GetUnsetAfter(index - 1);
     }
-
+    [Pure]
     public readonly BitArray32 WithSet(int index)
     {
         ValidateIndex(index);
         var s = _array.WithSet(index);
         return new(s, _length);
     }
-
+    [Pure]
     public readonly BitArray32 WithClear(int index)
     {
         ValidateIndex(index);
@@ -278,7 +281,7 @@ public record struct BitArray32
     {
         _array = new UnsizedBitArray32(0);
     }
-
+    [Pure]
     public readonly BitArray32 Flipped
     {
         get
@@ -287,13 +290,13 @@ public record struct BitArray32
             return new(r, _length);
         }
     }
-
+    [Pure]
     public readonly bool CanSlice(int offset, int length)
     {
         ValidateIndex(offset);
         return offset + length <= _length;
     }
-
+    [Pure]
     public readonly BitArray32 Slice(int offset, int length)
     {
         Debug.Assert(CanSlice(offset, length));
@@ -301,31 +304,34 @@ public record struct BitArray32
         var ret = _array.Slice(offset, length);
         return new(ret, length);
     }
-
+    [Pure]
     public readonly BitArray32 Intersect(BitArray32 other)
     {
         Debug.Assert(other.Length == Length);
         var ret = _array.Intersect(other._array, _length);
         return new(ret, _length);
     }
-
+    [Pure]
     public readonly BitArray32 IntersectAtOffset(BitArray32 other, int offset)
     {
         var slice = Slice(offset, other.Length);
         return slice.Intersect(other);
     }
-
+    [Pure]
     public readonly bool AreAllSet => _array.AreAllSet(_length);
+    [Pure]
     public readonly bool AreNoneSet => _array.AreNoneSet;
-
+    [Pure]
     public readonly bool IsEmpty => _array.Bits == 0;
 
+    [Pure]
     public static BitArray32 AllSet(int length)
     {
         var s = UnsizedBitArray32.AllSet(length);
         return new(s, length);
     }
 
+    [Pure]
     public static BitArray32 NSet(int length, int set)
     {
         Debug.Assert(set <= length);
@@ -333,11 +339,13 @@ public record struct BitArray32
         return new(s, length);
     }
 
+    [Pure]
     public static BitArray32 Empty(int length)
     {
         return new(0, length);
     }
 
+    [Pure]
     public readonly BitArray32 Union(BitArray32 other)
     {
         Debug.Assert(other.Length == Length);
@@ -348,6 +356,7 @@ public record struct BitArray32
         };
     }
 
+    [Pure]
     private readonly bool PrintMembers(StringBuilder sb)
     {
         sb.Append("Bits: ");
@@ -358,11 +367,16 @@ public record struct BitArray32
     }
 
     // These would wrap custom enumerable structs if needed
+    [Pure]
     public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(_array.Bits);
+    [Pure]
     public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(_array.Bits);
+    [Pure]
     public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped._array.Bits);
+    [Pure]
     public readonly SlidingWindowLowToHighEnumerable SlidingWindowLowToHigh(int length) => new(this, length);
 
+    [Pure]
     public readonly Interval SetBitInterval
     {
         get
@@ -375,6 +389,7 @@ public record struct BitArray32
 
     public const int MaxLength = sizeof(uint) * 8;
 }
+
 
 public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
 {
@@ -389,8 +404,8 @@ public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
     IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
-    public int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
+    public readonly int Single() => NonAllocEnumerable.Single<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
+    public readonly int First() => NonAllocEnumerable.First<int, ReverseSetBitIndicesEnumerator>(GetEnumerator());
 }
 
 public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>

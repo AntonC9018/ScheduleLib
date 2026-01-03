@@ -361,7 +361,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     var l0 = lessons[index];
                     var l1 = lessons[index + 1];
 
-                    var diffMask = new WeeklyLessonModelDiffMask
+                    var diffMask = new LessonModelDiffMask
                     {
                         LessonType = true,
                         Course = true,
