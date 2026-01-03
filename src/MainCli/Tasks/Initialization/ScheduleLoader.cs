@@ -149,7 +149,7 @@ public static class HashHelper
             {
                 if (hashPaths)
                 {
-                    var relativePath = filePath.AsMemory(srcFullPath.Length + 1);
+                    var relativePath = filePath.AsSpan(srcFullPath.Length + 1);
                     hasher.AppendFileName(relativePath);
                 }
                 if (hashContents)
@@ -160,12 +160,12 @@ public static class HashHelper
         }
 
         public void AppendFileName(
-            ReadOnlyMemory<char> relativePath)
+            ReadOnlySpan<char> relativePath)
         {
             const int maxPathBytes = 4096;
             using var pathBuffer = new RentedBuffer<byte>(maxPathBytes);
 
-            int byteCount = Encoding.UTF8.GetBytes(relativePath.Span, pathBuffer.Span);
+            int byteCount = Encoding.UTF8.GetBytes(relativePath, pathBuffer.Span);
             hasher.AppendData(pathBuffer.Span[.. byteCount]);
         }
 
