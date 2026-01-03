@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
 
 namespace MainCli;
@@ -32,7 +33,7 @@ public sealed class ScheduleLoader
         }
 
         await using var cachedFile = OpenCachedFile();
-        MaybeDisposable<FileStream> OpenCachedFile()
+        MaybeAsyncDisposable<FileStream> OpenCachedFile()
         {
             if (CachedPath is { } cachedPath)
             {
@@ -181,25 +182,6 @@ public static class HashHelper
             {
                 hasher.AppendData(readBuffer.Span[.. read]);
             }
-        }
-    }
-}
-
-file readonly record struct MaybeDisposable<T> : IAsyncDisposable
-    where T : IAsyncDisposable
-{
-    public T? Value { get; }
-
-    public MaybeDisposable(T? value)
-    {
-        Value = value;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (Value != null)
-        {
-            await Value.DisposeAsync();
         }
     }
 }
