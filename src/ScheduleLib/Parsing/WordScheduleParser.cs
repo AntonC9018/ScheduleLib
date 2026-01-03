@@ -748,46 +748,51 @@ public static class WordScheduleParser
         int colSpan,
         PeriodId periodId)
     {
-        WeeklyLessonBuilderModelData modelData = new();
+        // TODO: This is scuffed.
+        var builder = new LessonBuilder<WeeklyLessonBuilderModel>
+        {
+            Model = new(),
+            Schedule = c.Schedule,
+            Id = -1,
+        };
 
         if (lesson.StartTime is { } startTime)
         {
             int timeSlotIndex = c.FindTimeSlotIndex(startTime);
-            modelData.Date.TimeSlot = new(timeSlotIndex);
+            builder.TimeSlot(new(timeSlotIndex));
         }
         else
         {
-            modelData.Date.TimeSlot = state.Time!.Value.TimeSlot;
+            builder.TimeSlot(state.Time!.Value.TimeSlot);
         }
 
-        modelData.Date.DayOfWeek = state.CurrentDay!.Value;
+        builder.DayOfWeek(state.CurrentDay!.Value);
 
-        ref var b = ref modelData.Base;
         CourseId courseId;
         {
             var courseName = lesson.LessonName.ToString();
             courseId = c.Course(courseName);
-            b.General.Course = courseId;
+            builder.Course(courseId);
         }
         foreach (var t in lesson.TeacherNames)
         {
             var teacherId = c.Teacher(t);
-            b.General.Teachers.Add(teacherId);
+            builder.Teacher(teacherId);
         }
         if (!lesson.RoomName.IsEmpty)
         {
             var roomName = lesson.RoomName.ToString();
             var roomId = c.Room(roomName);
-            b.General.Room = roomId;
+            builder.Room(roomId);
         }
 
-        b.General.Type = lesson.LessonType;
-        modelData.Date.Parity = lesson.Parity;
+        builder.Type(lesson.LessonType);
+        builder.Parity(lesson.Parity);
+        bool subgroupSet = false;
 
-        ref var g = ref b.Group;
         var groupFullName = lesson.GroupName.Span.Trim().ToString();
         if (groupFullName.Length == 0
-            || HandleSpecialSubGroup(ref g, lesson))
+            || HandleSpecialSubGroup(lesson))
         {
             var groups = new LessonGroups();
             for (int i = 0; i < colSpan; i++)
@@ -795,36 +800,36 @@ public static class WordScheduleParser
                 var groupId = state.GroupId(i + columnIndex);
                 groups.Add(groupId);
             }
-            g.Groups = groups;
+            builder.Groups([.. groups]);
         }
         else
         {
             var groupId = c.Schedule.Group(groupFullName);
-            g.Groups.Add(groupId);
+            builder.Group(groupId);
         }
 
         if (lesson.SubGroup != SubGroup.All)
         {
-            if (g.SubGroup != SubGroup.All)
+            if (subgroupSet)
             {
                 throw new InvalidOperationException("SubGroup specified twice?");
             }
-            g.SubGroup = lesson.SubGroup;
+            builder.SubGroup(lesson.SubGroup);
         }
 
-        b.General.Period = periodId;
+        builder.Period(periodId);
 
         if (MaybeMergeIntoAnExistingLesson())
         {
             return;
         }
 
-        _ = c.Schedule.RegularLesson(modelData);
+        var result = c.Schedule.WeeklyLessons.New();
+        result.Value = builder.Model;
         return;
 
         // Check for special case when it's a subgroup.
         bool HandleSpecialSubGroup(
-            ref LessonBuilderGroupData g,
             in ParsedLesson lesson)
         {
             var specialGroups = SpecialSubGroups.AllSpecial;
@@ -838,7 +843,8 @@ public static class WordScheduleParser
                 {
                     throw new NotImplementedException("Multiple subgroups as a single group");
                 }
-                g.SubGroup = group;
+                subgroupSet = true;
+                builder.SubGroup(group);
                 return true;
             }
             return false;
@@ -867,7 +873,7 @@ public static class WordScheduleParser
                     // Course = true,
                 };
                 var diff = LessonBuilderHelper.Diff(
-                    modelData,
+                    builder.Model.Data,
                     model.Data,
                     diffMask);
                 if (diff.TheyDiffer)
@@ -877,7 +883,7 @@ public static class WordScheduleParser
 
                 LessonBuilderHelper.Merge(
                     to: ref model.Data,
-                    from: modelData,
+                    from: builder.Model.Data,
                     new()
                     {
                         Groups = true,

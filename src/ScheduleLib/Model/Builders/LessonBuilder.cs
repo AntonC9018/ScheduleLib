@@ -180,9 +180,15 @@ public struct LessonBuilderGeneralData()
     public PeriodId Period = PeriodId.Unspecified;
 }
 
-public sealed class WeeklyLessonBuilderModel
+public interface ILessonBuilderModel
+{
+    public ref LessonBuilderModelDataBase Base { get; }
+}
+
+public sealed class WeeklyLessonBuilderModel : ILessonBuilderModel
 {
     public WeeklyLessonBuilderModelData Data = new();
+    public ref LessonBuilderModelDataBase Base => ref Data.Base;
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref RegularLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
@@ -194,9 +200,10 @@ public sealed class WeeklyLessonBuilderModel
     }
 }
 
-public sealed class OneTimeLessonBuilderModel
+public sealed class OneTimeLessonBuilderModel : ILessonBuilderModel
 {
     public OneTimeLessonBuilderModelData Data = new();
+    public ref LessonBuilderModelDataBase Base => ref Data.Base;
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref OneTimeLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
@@ -220,100 +227,145 @@ public struct OneTimeLessonDateBuilderModel()
     public DateOnly? Date;
     public TimeSlot? TimeSlot;
 }
-public sealed class RegularLessonBuilder
+
+public interface ILessonBuilder<out T> where T : ILessonBuilderModel
+{
+    public T Model { get; }
+}
+
+public sealed class LessonBuilder<T> : ILessonBuilder<T>
+    where T : ILessonBuilderModel
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required int Id { get; init; }
-    public WeeklyLessonBuilderModel Model => Schedule.WeeklyLessons.Ref(Id);
-    public static implicit operator int(RegularLessonBuilder r) => r.Id;
-
-    // NOTE: to make this more generic, can make the whole state of the builder model a struct.
-    public void UpdateLookup(CourseId? prevCourseId)
-    {
-        if (Schedule.LookupModule is not { } lookupModule)
-        {
-            return;
-        }
-
-        if (prevCourseId is { } p)
-        {
-            lookupModule.LessonsByCourse[p.Id].Remove(new(Id));
-        }
-        if (Model.General.Course is { } p1)
-        {
-            lookupModule.LessonsByCourse[p1.Id].Add(new(Id));
-        }
-    }
-
-    public void InitLookup() => UpdateLookup(prevCourseId: null);
+    public required T Model { get; init; }
+    public static implicit operator int(LessonBuilder<T> r) => r.Id;
 }
 
 public static class LessonBuilderHelper
 {
-    public static void DayOfWeek(this RegularLessonBuilder b, DayOfWeek dayOfWeek) => b.Model.Date.DayOfWeek = dayOfWeek;
-    public static void TimeSlot(this RegularLessonBuilder b, TimeSlot timeSlot) => b.Model.Date.TimeSlot = timeSlot;
-    public static void Parity(this RegularLessonBuilder b, Parity parity) => b.Model.Date.Parity = parity;
-
-    public static void Date(this RegularLessonBuilder b, RegularLessonDateBuilderModel date)
+    extension(ILessonBuilder<WeeklyLessonBuilderModel> b)
     {
-        if (date.Parity is { } p)
+        public void DayOfWeek(DayOfWeek dayOfWeek)
         {
-            b.Model.Date.Parity = p;
+            b.Model.Date.DayOfWeek = dayOfWeek;
         }
-        if (date.DayOfWeek is { } d)
+
+        public void TimeSlot(TimeSlot timeSlot)
         {
-            b.Model.Date.DayOfWeek = d;
+            b.Model.Date.TimeSlot = timeSlot;
         }
-        if (date.TimeSlot is { } t)
+
+        public void Parity(Parity parity)
         {
-            b.Model.Date.TimeSlot = t;
+            b.Model.Date.Parity = parity;
+        }
+
+        public void Date(RegularLessonDateBuilderModel date)
+        {
+            if (date.Parity is { } p)
+            {
+                b.Model.Date.Parity = p;
+            }
+            if (date.DayOfWeek is { } d)
+            {
+                b.Model.Date.DayOfWeek = d;
+            }
+            if (date.TimeSlot is { } t)
+            {
+                b.Model.Date.TimeSlot = t;
+            }
         }
     }
 
-    public static void Group(this RegularLessonBuilder b, GroupId group, SubGroup? subGroup = null)
+    extension(ILessonBuilder<OneTimeLessonBuilderModel> b)
     {
-        b.Model.Group.Groups = [group];
-        b.Model.Group.SubGroup = subGroup ?? SubGroup.All;
+        public void DayOfWeek(DateOnly date)
+        {
+            b.Model.Date.Date = date;
+        }
+
+        public void TimeSlot(TimeSlot timeSlot)
+        {
+            b.Model.Date.TimeSlot = timeSlot;
+        }
     }
 
-    public static void Groups(this RegularLessonBuilder b, ReadOnlySpan<GroupId> groups)
+    extension(ILessonBuilder<ILessonBuilderModel> b)
     {
-        if (groups.Length > 3)
+        public void SubGroup(SubGroup subGroup)
         {
-            throw new ArgumentException("The maximum number of groups is 3.");
+            b.Model.Base.Group.SubGroup = subGroup;
         }
-        if (groups.Length == 0)
+        public void Group(GroupId group, SubGroup? subGroup = null)
         {
-            throw new ArgumentException("At least one group must be specified.");
+            b.Model.Base.Group.Groups = [group];
+            if (subGroup is { } s)
+            {
+                b.SubGroup(s);
+            }
         }
 
-        var g = new LessonGroups();
-        for (int i = 0; i < groups.Length; i++)
+        public void Groups(ReadOnlySpan<GroupId> groups)
         {
-            g[i] = groups[i];
+            if (groups.Length > 3)
+            {
+                throw new ArgumentException("The maximum number of groups is 3.");
+            }
+            if (groups.Length == 0)
+            {
+                throw new ArgumentException("At least one group must be specified.");
+            }
+
+            var g = new LessonGroups();
+            for (int i = 0; i < groups.Length; i++)
+            {
+                g[i] = groups[i];
+            }
+            b.Model.Base.Group.Groups = g;
         }
-        b.Model.Group.Groups = g;
+
+        public void Teacher(TeacherId teacher) => b.Model.Base.General.Teachers.Add(teacher);
+        public void Room(RoomId room) => b.Model.Base.General.Room = room;
+        public void Type(LessonType type) => b.Model.Base.General.Type = type;
+        public void Course(CourseId course)
+        {
+            var prev = b.Model.Base.General.Course;
+            b.Model.Base.General.Course = course;
+
+            if (b is not LessonBuilder<ILessonBuilderModel> b1)
+            {
+                return;
+            }
+
+            b1.UpdateLookup(prev);
+        }
+
+        public void Period(PeriodId period)
+        {
+            b.Model.Base.General.Period = period;
+        }
     }
 
-    public static void Teacher(this RegularLessonBuilder b, TeacherId teacher) => b.Model.General.Teachers.Add(teacher);
-    public static void Room(this RegularLessonBuilder b, RoomId room) => b.Model.General.Room = room;
-    public static void Type(this RegularLessonBuilder b, LessonType type) => b.Model.General.Type = type;
-    public static void Course(this RegularLessonBuilder b, CourseId course)
+    extension<T>(LessonBuilder<T> b) where T : ILessonBuilderModel
     {
-        var prev = b.Model.General.Course;
-        b.Model.General.Course = course;
-
-        if (b is not RegularLessonBuilder b1)
+        public void UpdateLookup(CourseId? prevCourseId)
         {
-            return;
+            if (b.Schedule.LookupModule is not { } lookupModule)
+            {
+                return;
+            }
+
+            if (prevCourseId is { } p)
+            {
+                lookupModule.LessonsByCourse[p.Id].Remove(new(b.Id));
+            }
+            if (b.Model.Base.General.Course is { } p1)
+            {
+                lookupModule.LessonsByCourse[p1.Id].Add(new(b.Id));
+            }
         }
-
-        b1.UpdateLookup(prev);
-    }
-
-    public static void Period(this RegularLessonBuilder b, PeriodId period)
-    {
-        b.Model.General.Period = period;
+        public void InitLookup() => b.UpdateLookup(prevCourseId: null);
     }
 
     public static void ValidateLessons(ScheduleBuilder s)
@@ -352,18 +404,19 @@ public static class LessonBuilderHelper
         }
     }
 
-    public static RegularLessonBuilder RegularLesson(this ScheduleBuilder s)
+    public static LessonBuilder<WeeklyLessonBuilderModel> RegularLesson(this ScheduleBuilder s)
     {
         var r = s.WeeklyLessons.New();
         r.Value = new();
         return new()
         {
+            Model = s.WeeklyLessons.Ref(r.Id),
             Id = r.Id,
             Schedule = s,
         };
     }
 
-    public static RegularLessonBuilder RegularLesson(
+    public static LessonBuilder<WeeklyLessonBuilderModel> RegularLesson(
         this ScheduleBuilder s,
         in WeeklyLessonBuilderModelData modelData)
     {
@@ -377,7 +430,9 @@ public static class LessonBuilderHelper
         return ret;
     }
 
-    public static RegularLessonBuilder RegularLesson(this ScheduleBuilder s, Action<RegularLessonBuilder> b)
+    public static LessonBuilder<WeeklyLessonBuilderModel> RegularLesson(
+        this ScheduleBuilder s,
+        Action<LessonBuilder<WeeklyLessonBuilderModel>> b)
     {
         var ret = RegularLesson(s);
         b(ret);
@@ -737,4 +792,3 @@ public static class LessonBuilderHelper
         Merge(ref to.Base, from.Base, merge);
     }
 }
-
