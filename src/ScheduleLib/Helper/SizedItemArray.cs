@@ -363,3 +363,30 @@ public readonly record struct SizedItemWithPosition<T>(SizedItem<T> SizedItem, i
     public readonly T Item => SizedItem.Item;
     public readonly int Size => SizedItem.Size;
 }
+
+public static class SizedItemArrayExtensions
+{
+    extension<T> (SizedItemArray<T> items)
+    {
+        public int? FindPositionOfFirstOtherThan(T otherValue)
+        {
+            foreach (var e in items.EnumerateWithPosition())
+            {
+                if (!EqualityComparer<T>.Default.Equals(e.Item, otherValue))
+                {
+                    return e.Position;
+                }
+            }
+            return null;
+        }
+
+        public int? FindCountAfterFirstOtherThan(T otherValue)
+        {
+            if (FindPositionOfFirstOtherThan(items, otherValue) is { } pos)
+            {
+                return items.Count - pos;
+            }
+            return 0;
+        }
+    }
+}
