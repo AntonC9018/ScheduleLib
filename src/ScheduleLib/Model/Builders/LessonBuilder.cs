@@ -192,12 +192,6 @@ public sealed class WeeklyLessonBuilderModel : ILessonBuilderModel
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref RegularLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
-
-    public void CopyFrom(in WeeklyLessonBuilderModelData model)
-    {
-        Data.Base = model.Base.Copy();
-        Date = model.Date;
-    }
 }
 
 public sealed class OneTimeLessonBuilderModel : ILessonBuilderModel
@@ -207,12 +201,6 @@ public sealed class OneTimeLessonBuilderModel : ILessonBuilderModel
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref OneTimeLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
-
-    public void CopyFrom(in OneTimeLessonBuilderModelData model)
-    {
-        Data.Base = model.Base.Copy();
-        Date = model.Date;
-    }
 }
 
 public struct RegularLessonDateBuilderModel()
@@ -372,6 +360,8 @@ public static class LessonBuilderHelper
     {
         foreach (var lesson in CollectionsMarshal.AsSpan(s.WeeklyLessons.List))
         {
+            ValidateBase(lesson.Base);
+
             if (lesson.Date.TimeSlot is null)
             {
                 throw new InvalidOperationException("The lesson date must be initialized.");
@@ -381,7 +371,25 @@ public static class LessonBuilderHelper
             {
                 throw new InvalidOperationException("The lesson date must be initialized.");
             }
+        }
 
+        foreach (var lesson in CollectionsMarshal.AsSpan(s.OneTimeLessons.List))
+        {
+            ValidateBase(lesson.Base);
+
+            if (lesson.Date.TimeSlot is null)
+            {
+                throw new InvalidOperationException("The lesson date must be initialized.");
+            }
+
+            if (lesson.Date.Date is null)
+            {
+                throw new InvalidOperationException("The lesson date must be initialized.");
+            }
+        }
+
+        void ValidateBase(in LessonBuilderModelDataBase lesson)
+        {
             {
                 if (lesson.Group.Groups.Group0 == GroupId.Invalid)
                 {
@@ -437,6 +445,18 @@ public static class LessonBuilderHelper
         var ret = RegularLesson(s);
         b(ret);
         return ret;
+    }
+
+    public static LessonBuilder<OneTimeLessonBuilderModel> OneTimeLesson(this ScheduleBuilder s)
+    {
+        var r = s.OneTimeLessons.New();
+        r.Value = new();
+        return new()
+        {
+            Model = s.OneTimeLessons.Ref(r.Id),
+            Id = r.Id,
+            Schedule = s,
+        };
     }
 
     public static LessonModelDiffMask Diff(

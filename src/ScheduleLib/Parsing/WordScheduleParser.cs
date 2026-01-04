@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -182,9 +181,9 @@ public sealed class DayNameParser(DayNameProvider p)
 {
     private readonly Dictionary<string, DayOfWeek> _days = CreateMappings(p);
 
-    public DayOfWeek? Map(string s)
+    public DayOfWeek? Map(ReadOnlySpan<char> s)
     {
-        if (_days.TryGetValue(s, out var day))
+        if (_days.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(s, out var day))
         {
             return day;
         }
@@ -604,7 +603,7 @@ public static class WordScheduleParser
                             throw new InvalidOperationException("Expected time after the time slot");
                         }
 
-                        var parsedTime = Time(ref parser);
+                        var parsedTime = parser.ParseTimeInterval();
 
                         {
                             var timeStarts = c.TimeConfig.TimeSlotStarts;
@@ -625,35 +624,6 @@ public static class WordScheduleParser
                                 TimeSlot = new(timeSlotIndex),
                                 TimeSlotOrdinal = newTimeSlotOrdinal,
                             };
-                        }
-
-                        static (TimeOnly Start, TimeOnly End) Time(ref Parser parser)
-                        {
-                            // HH:MM-HH:MM
-                            parser.SkipWhitespace();
-                            if (ParserHelper.ParseTime(ref parser) is not { } startTime)
-                            {
-                                throw new NotSupportedException("Expected time range start");
-                            }
-                            if (parser.IsEmpty || parser.Current != '-')
-                            {
-                                throw new NotSupportedException("Expected '-' after start time");
-                            }
-                            parser.Move();
-
-                            if (ParserHelper.ParseTime(ref parser) is not { } endTime)
-                            {
-                                throw new NotSupportedException("Expected time range end");
-                            }
-
-                            parser.SkipWhitespace();
-
-                            if (!parser.IsEmpty)
-                            {
-                                throw new NotSupportedException("Time range not consumed fully");
-                            }
-
-                            return (startTime, endTime);
                         }
 
                         int NextTimeSlotIndex()
@@ -1054,11 +1024,14 @@ public static class WordScheduleParser
                 throw new NotSupportedException("Expected the interval");
             }
 
-            var interval = ParseInterval();
+            {
+                var parser = new Parser(paragraphs.Current.InnerText);
+                var interval = parser.ParseDateInterval("dd.MM.yy");
 
-            // Ignored for now.
-            _ = semNumber;
-            _ = interval;
+                // Ignored for now.
+                _ = semNumber;
+                _ = interval;
+            }
 
             // Could make sure the next one is the year?
             // The rest of this row is ignored.
@@ -1089,52 +1062,6 @@ public static class WordScheduleParser
                 return res.Number;
             }
 
-            (DateTime Start, DateTime End) ParseInterval()
-            {
-                var parser = new Parser(paragraphs.Current.InnerText);
-                parser.SkipWhitespace();
-                var bparser = parser.BufferedView();
-                var skipped = bparser.SkipUntilAny(['–', '-', '—']);
-                if (skipped.EndOfInput)
-                {
-                    throw new NotSupportedException("Expected interval separator");
-                }
-
-                var startSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                var startDate = ParseDateTime(startSpan, "Invalid start date");
-
-                bparser.Move();
-                parser.MoveTo(bparser.Position);
-
-                var endSpan = parser.PeekSpanUntilEnd();
-                var endDate = ParseDateTime(endSpan, "Invalid end date");
-
-                if (startDate >= endDate)
-                {
-                    throw new NotSupportedException("The start date must be before the end date");
-                }
-
-                return (startDate, endDate);
-
-                DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
-                {
-                    var culture = CultureInfo.CurrentCulture;
-                    Debug.Assert(culture.Calendar.TwoDigitYearMax == 2049,
-                        "Fix this if you want to parse older docs");
-
-                    const string format = "dd.MM.yy";
-                    if (!DateTime.TryParseExact(
-                            s: s,
-                            format: format,
-                            provider: culture,
-                            style: default,
-                            result: out var date))
-                    {
-                        throw new NotSupportedException(error);
-                    }
-                    return date;
-                }
-            }
         }
 
         int AddGroups(SizedItemArray<GroupId> outputGroups)

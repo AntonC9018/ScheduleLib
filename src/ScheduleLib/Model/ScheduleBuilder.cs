@@ -57,7 +57,7 @@ public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastN
 public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();
-    public List<OneTimeLesson> OneTimeLessons = new();
+    public ListBuilder<OneTimeLessonBuilderModel> OneTimeLessons = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
 
@@ -127,10 +127,27 @@ public static partial class ScheduleBuilderHelper
 
     public static Schedule CreateDefaultModel(ScheduleBuilder s)
     {
+        LessonBase BuildBase(in LessonBuilderModelDataBase x)
+        {
+            return new()
+            {
+                Data = new()
+                {
+                    Groups = x.Group.Groups.Ordered(),
+                    SubGroup = x.Group.SubGroup,
+                    Course = x.General.Course!.Value,
+                    Room = x.General.Room,
+                    Teachers = [.. x.General.Teachers],
+                    Type = x.General.Type,
+                },
+            };
+        }
+
         var weeklyLessons = s.WeeklyLessons.Build(x =>
         {
             var ret = new WeeklyLesson
             {
+                Base = BuildBase(x.Base),
                 Date = new()
                 {
                     TimeSlot = x.Date.TimeSlot!.Value,
@@ -138,22 +155,21 @@ public static partial class ScheduleBuilderHelper
                     Parity = x.Date.Parity ?? Parity.EveryWeek,
                     Period = x.General.Period,
                 },
-                Base = new()
-                {
-                    Data = new()
-                    {
-                        Groups = x.Group.Groups.Ordered(),
-                        SubGroup = x.Group.SubGroup,
-                        Course = x.General.Course!.Value,
-                        Room = x.General.Room,
-                        Teachers = [.. x.General.Teachers],
-                        Type = x.General.Type,
-                    },
-                },
             };
             return ret;
         });
-        var oneTimeLessons = s.OneTimeLessons.ToImmutableArray();
+        var oneTimeLessons = s.OneTimeLessons.Build(x =>
+        {
+            return new OneTimeLesson
+            {
+                Base = BuildBase(x.Base),
+                Date = new()
+                {
+                    Date = x.Date.Date!.Value,
+                    TimeSlot = x.Date.TimeSlot!.Value,
+                },
+            };
+        });
         var groups = s.Groups.Build();
         var teachers = s.Teachers.Build(x =>
         {
