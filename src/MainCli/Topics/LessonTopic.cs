@@ -318,7 +318,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 LessonType = document.LessonType,
             };
 
-            if (lookup.Find(document.Course) is not { } courseId)
+            if (lookup.Find(document.Course.AsMemory()) is not { } courseId)
             {
                 throw new InvalidOperationException($"Course '{document.Course}' not found in lookup.");
             }

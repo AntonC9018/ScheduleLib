@@ -268,7 +268,7 @@ public static class LessonBuilderHelper
 
     extension(ILessonBuilder<OneTimeLessonBuilderModel> b)
     {
-        public void DayOfWeek(DateOnly date)
+        public void Date(DateOnly date)
         {
             b.Model.Date.Date = date;
         }

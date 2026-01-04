@@ -121,7 +121,7 @@ public sealed class ScheduleFromDocTests
         {
             foreach (var name in course.Item.Names)
             {
-                var id = lookup.Course(name);
+                var id = lookup.Course(name.AsMemory());
                 Assert.Equal(course.Id, id);
             }
         }

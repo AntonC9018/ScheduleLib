@@ -116,10 +116,10 @@ public static class CourseNameParsing
 {
     public static ParsedCourseName Parse(
         this CourseNameParserConfig config,
-        ReadOnlySpan<char> course,
+        ReadOnlyMemory<char> course,
         CourseNameParseOptions options = default)
     {
-        var words = new WordEnumerable(course, options);
+        var words = new WordEnumerable(course.Span, options);
         using var buffer = new RentedBuffer<string>(words.Count());
 
         int i = 0;

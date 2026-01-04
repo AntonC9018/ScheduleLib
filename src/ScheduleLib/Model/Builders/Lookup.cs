@@ -40,7 +40,7 @@ public sealed class LookupModule()
 
 public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unifier)
 {
-    public CourseId? Course(string name, CourseNameParseOptions? parseOptions = null)
+    public CourseId? Course(ReadOnlyMemory<char> name, CourseNameParseOptions? parseOptions = null)
     {
         return unifier.Find(new()
         {

@@ -14,7 +14,7 @@ public sealed class NewScheduleTests
         var context = await helper.GetContextFromWord(cts.Token);
         var schedule = context.Schedule.Build();
         var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
-        var nodejsCourseId = lookup.Course("Node.js")!.Value;
+        var nodejsCourseId = lookup.Course("Node.js".AsMemory())!.Value;
         var lessons = lookup.LessonsOfCourse(nodejsCourseId);
         var verifyModel = lessons
             .Select(x => schedule.Get(x))

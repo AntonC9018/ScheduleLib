@@ -673,7 +673,7 @@ public sealed class CurriculumCache
                     facultyInitialsParsed.Segments.Add(
                         CourseNameSegment.AsInitials(letter));
                 }
-                var facultyParsed = CourseNameParsing.Parse(new(new()), group.Key.Name.Value, new()
+                var facultyParsed = CourseNameParsing.Parse(new(new()), group.Key.Name.Value.AsMemory(), new()
                 {
                     IgnorePunctuation = false,
                 });
@@ -737,7 +737,7 @@ public sealed class CurriculumCache
 
             bool CourseOk()
             {
-                if (p.CourseLookup.Find(file.Key.Course.ToString()) is not { } courseId)
+                if (p.CourseLookup.Find(file.Key.Course) is not { } courseId)
                 {
                     return false;
                 }

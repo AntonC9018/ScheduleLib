@@ -19,7 +19,7 @@ public readonly struct CourseNameUnifierModuleWithDeps
     }
 
     public CourseId? Find(
-        string courseName,
+        ReadOnlyMemory<char> courseName,
         CourseNameParseOptions? parseOptions = null)
     {
         CourseNameUnifierModule.FindParams p = new()
@@ -49,8 +49,8 @@ public sealed class CourseNameUnifierConfig
         var remappedNames = ImmutableArray.CreateBuilder<FullyRenamedCourse>(fullyRenamedNames.Length);
         foreach (var (from, to) in fullyRenamedNames)
         {
-            var fromParsed = config.Parse(from);
-            var toParsed = config.Parse(to);
+            var fromParsed = config.Parse(from.AsMemory());
+            var toParsed = config.Parse(to.AsMemory());
             remappedNames.Add(new FullyRenamedCourse(fromParsed, toParsed));
         }
         return new CourseNameUnifierConfig
@@ -85,9 +85,9 @@ public sealed class CourseNameUnifierModule
             var courseId = new CourseId(i);
             var fullName = courses.Ref(i).FullName;
             // Only adding a single instance of this because they are all equivalent.
-            AddSlow(fullName, courseId);
+            AddSlow(fullName.AsMemory(), courseId);
             // Also adding lookup for the future.
-            lookup.Courses.TryAdd(fullName!, courseId);
+            lookup.Courses.TryAdd(fullName, courseId);
         }
     }
 
@@ -103,7 +103,7 @@ public sealed class CourseNameUnifierModule
         return original;
     }
 
-    public void AddSlow(string courseName, CourseId id)
+    public void AddSlow(ReadOnlyMemory<char> courseName, CourseId id)
     {
         var parsedCourse = ParseCourseName(new()
         {
@@ -120,7 +120,7 @@ public sealed class CourseNameUnifierModule
     public ref struct FindParams()
     {
         public required LookupModule Lookup;
-        public required string CourseName;
+        public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
         internal readonly CourseNameForParsing CourseNameForParsing => new()
@@ -132,7 +132,8 @@ public sealed class CourseNameUnifierModule
 
     public CourseId? Find(FindParams p)
     {
-        if (p.Lookup.Courses.TryGetValue(p.CourseName, out var courseId))
+        var alt = p.Lookup.Courses.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (alt.TryGetValue(p.CourseName.Span, out var courseId))
         {
             return courseId;
         }
@@ -140,7 +141,8 @@ public sealed class CourseNameUnifierModule
         var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
         if (FindSlow(ref parsedCourseName) is { } slowCourseId)
         {
-            p.Lookup.Courses.Add(p.CourseName, slowCourseId);
+            var n = p.CourseName.ToString();
+            p.Lookup.Courses.Add(n, slowCourseId);
             return slowCourseId;
         }
 
@@ -150,7 +152,7 @@ public sealed class CourseNameUnifierModule
     public struct FindOrAddParams()
     {
         public required ScheduleBuilder Schedule;
-        public required string CourseName;
+        public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
         internal readonly CourseNameForParsing CourseNameForParsing => new()
@@ -163,12 +165,14 @@ public sealed class CourseNameUnifierModule
     public struct CourseNameForParsing
     {
         public required CourseNameParseOptions ParseOptions;
-        public required string CourseName;
+        public required ReadOnlyMemory<char> CourseName;
     }
 
     private ParsedCourseName ParseCourseName(CourseNameForParsing p)
     {
-        var parsedCourse = _config.ParserConfig.Parse(p.CourseName, p.ParseOptions);
+        var parsedCourse = _config.ParserConfig.Parse(
+            p.CourseName,
+            p.ParseOptions);
         return parsedCourse;
     }
 
@@ -190,9 +194,10 @@ public sealed class CourseNameUnifierModule
 
     public CourseId FindOrAdd(in FindOrAddParams p)
     {
+        var alt = p.Schedule.LookupModule!.Courses.GetAlternateLookup<ReadOnlySpan<char>>();
         ref var courseId = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            p.Schedule.LookupModule!.Courses,
-            p.CourseName,
+            alt,
+            p.CourseName.Span,
             out bool exists);
 
         if (exists)
@@ -228,7 +233,7 @@ public sealed class CourseNameLookup
         Lookup = lookup;
     }
 
-    public CourseId? Get(string s)
+    public CourseId? Get(ReadOnlyMemory<char> s)
     {
         var ret = Unifier.Find(new()
         {

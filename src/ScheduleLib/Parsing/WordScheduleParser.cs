@@ -14,6 +14,12 @@ using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Parsing.WordDoc;
 
+public enum SubGroupStatus
+{
+    GroupNameIsSubGroup,
+    SetFromSubGroup,
+}
+
 public sealed class DocParseContext
 {
     public required ScheduleBuilder Schedule { get; init; }
@@ -21,7 +27,7 @@ public sealed class DocParseContext
     public required DayNameParser DayNameParser { get; init; }
     public required CourseNameUnifierModule CourseNameUnifierModule { get; init; }
     public required LessonParserFactory ParserFactory { get; init; }
-    internal PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
+    public PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
 
     public void SetPeriod(PeriodBeginning? period)
     {
@@ -64,7 +70,68 @@ public sealed class DocParseContext
         };
     }
 
-    internal CourseId Course(string name)
+    public SubGroupStatus SetCommonProps(
+        ILessonBuilder<ILessonBuilderModel> builder,
+        in ParsedLesson parsedLesson)
+    {
+        var courseId = GetOrAddCourse(parsedLesson.LessonName);
+        builder.Course(courseId);
+
+        if (!parsedLesson.RoomName.IsEmpty)
+        {
+            var roomId = GetOrAddRoom(parsedLesson.RoomName.ToString());
+            builder.Room(roomId);
+        }
+
+        foreach (var tname in parsedLesson.TeacherNames)
+        {
+            var teacherId = GetOrAddTeacher(tname);
+            builder.Teacher(teacherId);
+        }
+
+        builder.Period(CurrentPeriodId);
+        builder.Type(parsedLesson.LessonType);
+        builder.SubGroup(parsedLesson.SubGroup);
+
+        if (HandleSpecialSubGroup(parsedLesson, builder))
+        {
+            if (parsedLesson.SubGroup != SubGroup.All)
+            {
+                throw new InvalidOperationException("SubGroup specified twice?");
+            }
+            return SubGroupStatus.GroupNameIsSubGroup;
+        }
+        else
+        {
+            builder.SubGroup(parsedLesson.SubGroup);
+            return SubGroupStatus.SetFromSubGroup;
+        }
+
+        // Check for special case when it's a subgroup.
+        static bool HandleSpecialSubGroup(
+            in ParsedLesson lesson,
+            ILessonBuilder<ILessonBuilderModel> builder)
+        {
+            var specialGroups = SpecialSubGroups.AllSpecial;
+            foreach (var group in specialGroups)
+            {
+                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group.Value!, lesson.GroupName.Span))
+                {
+                    continue;
+                }
+                if (lesson.SubGroup.Value is not null)
+                {
+                    throw new NotImplementedException("Multiple subgroups as a single group");
+                }
+                builder.SubGroup(group);
+                return true;
+            }
+            return false;
+        }
+
+    }
+
+    public CourseId GetOrAddCourse(ReadOnlyMemory<char> name)
     {
         var ret = CourseNameUnifierModule.FindOrAdd(new()
         {
@@ -79,7 +146,7 @@ public sealed class DocParseContext
         return ret;
     }
 
-    internal TeacherId Teacher(TeacherName name)
+    public TeacherId GetOrAddTeacher(TeacherName name)
     {
         var nameModel = new TeacherBuilderModel.NameModel
         {
@@ -135,7 +202,7 @@ public sealed class DocParseContext
         return teacherBuilder.Id;
     }
 
-    internal RoomId Room(string name) => Schedule.Room(name);
+    public RoomId GetOrAddRoom(string name) => Schedule.Room(name);
 
     private PeriodId Period(DateOnly start)
     {
@@ -737,32 +804,11 @@ public static class WordScheduleParser
         }
 
         builder.DayOfWeek(state.CurrentDay!.Value);
-
-        CourseId courseId;
-        {
-            var courseName = lesson.LessonName.ToString();
-            courseId = c.Course(courseName);
-            builder.Course(courseId);
-        }
-        foreach (var t in lesson.TeacherNames)
-        {
-            var teacherId = c.Teacher(t);
-            builder.Teacher(teacherId);
-        }
-        if (!lesson.RoomName.IsEmpty)
-        {
-            var roomName = lesson.RoomName.ToString();
-            var roomId = c.Room(roomName);
-            builder.Room(roomId);
-        }
-
-        builder.Type(lesson.LessonType);
         builder.Parity(lesson.Parity);
-        bool subgroupSet = false;
 
-        var groupFullName = lesson.GroupName.Span.Trim().ToString();
-        if (groupFullName.Length == 0
-            || HandleSpecialSubGroup(lesson))
+        bool groupNameHandled = c.SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
+
+        if (lesson.GroupName.Length == 0 || !groupNameHandled)
         {
             var groups = new LessonGroups();
             for (int i = 0; i < colSpan; i++)
@@ -774,17 +820,9 @@ public static class WordScheduleParser
         }
         else
         {
-            var groupId = c.Schedule.Group(groupFullName);
+            var g = lesson.GroupName.ToString();
+            var groupId = c.Schedule.Group(g);
             builder.Group(groupId);
-        }
-
-        if (lesson.SubGroup != SubGroup.All)
-        {
-            if (subgroupSet)
-            {
-                throw new InvalidOperationException("SubGroup specified twice?");
-            }
-            builder.SubGroup(lesson.SubGroup);
         }
 
         builder.Period(periodId);
@@ -798,32 +836,11 @@ public static class WordScheduleParser
         result.Value = builder.Model;
         return;
 
-        // Check for special case when it's a subgroup.
-        bool HandleSpecialSubGroup(
-            in ParsedLesson lesson)
-        {
-            var specialGroups = SpecialSubGroups.AllSpecial;
-            foreach (var group in specialGroups)
-            {
-                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group.Value!, groupFullName))
-                {
-                    continue;
-                }
-                if (lesson.SubGroup.Value is not null)
-                {
-                    throw new NotImplementedException("Multiple subgroups as a single group");
-                }
-                subgroupSet = true;
-                builder.SubGroup(group);
-                return true;
-            }
-            return false;
-        }
-
         bool MaybeMergeIntoAnExistingLesson()
         {
             var schedule = c.Schedule;
             var lessonsByCourse = schedule.LookupModule!.LessonsByCourse;
+            var courseId = builder.Model.General.Course!.Value;
             var existingLessonsOfThisCourse = lessonsByCourse[courseId];
 
             foreach (var existingLesson in existingLessonsOfThisCourse)

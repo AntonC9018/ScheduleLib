@@ -52,7 +52,7 @@ public sealed partial class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = _lookup.Course(courseName, new()
+                var maybeCourseId = _lookup.Course(courseName.AsMemory(), new()
                 {
                     IgnorePunctuation = true,
                 });

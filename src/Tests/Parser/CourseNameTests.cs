@@ -15,8 +15,8 @@ public sealed class CourseNameTests
             MinUsefulWordLength = 3,
         });
 
-        var course1 = parserConfig.Parse("Programarea jocurilor in Python");
-        var course2 = parserConfig.Parse("PJ Python");
+        var course1 = Parse(parserConfig, "Programarea jocurilor in Python");
+        var course2 = Parse(parserConfig, "PJ Python");
         Assert.Equal(course1, course2);
     }
 
@@ -30,8 +30,8 @@ public sealed class CourseNameTests
         });
 
         // The problem was that "de" got consumed by "design".
-        var course1 = parserConfig.Parse("Modele de design software");
-        var course2 = parserConfig.Parse("Design Soft");
+        var course1 = Parse(parserConfig, "Modele de design software");
+        var course2 = Parse(parserConfig, "Design Soft");
         Assert.Equal(course1, course2);
     }
 
@@ -40,8 +40,13 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameParser;
 
-        var course1 = parserConfig.Parse("Dezvoltarea de aplicatii server-side cu Node.js");
-        var course2 = parserConfig.Parse("Dezv. apl. server-side cu Node.js");
+        var course1 = Parse(parserConfig, "Dezvoltarea de aplicatii server-side cu Node.js");
+        var course2 = Parse(parserConfig, "Dezv. apl. server-side cu Node.js");
         Assert.Equal(course1, course2);
+    }
+
+    private ParsedCourseName Parse(CourseNameParserConfig config, string str)
+    {
+        return config.Parse(str.AsMemory());
     }
 }

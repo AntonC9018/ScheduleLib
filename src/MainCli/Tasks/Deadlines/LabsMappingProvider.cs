@@ -28,7 +28,7 @@ public sealed partial class LabsMappingProvider
         var builder = new Dictionary<(CourseId CourseId, Option Option), LabTasksSource>();
         foreach (var s in config.Sources)
         {
-            if (_lookup.Course(s.Key.CourseName) is not { } courseId)
+            if (_lookup.Course(s.Key.CourseName.AsMemory()) is not { } courseId)
             {
                 LogCourseNotFound(s.Key.CourseName);
                 continue;

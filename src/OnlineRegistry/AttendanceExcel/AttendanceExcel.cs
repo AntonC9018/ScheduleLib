@@ -201,7 +201,7 @@ public static class AttendanceExcel
             var courseId = CourseId.Invalid;
             if (parsedName.NameRange is { } nameRange)
             {
-                var courseName = excelName[nameRange.Start.Index .. nameRange.End.Index];
+                var courseName = excelName.AsMemory()[nameRange.Start.Index .. nameRange.End.Index];
                 if (_courseNames.Find(new()
                     {
                         CourseName = courseName,

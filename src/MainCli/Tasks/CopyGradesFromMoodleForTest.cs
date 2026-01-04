@@ -76,7 +76,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         var courseId = _unifier.Find(new()
         {
             Lookup = _lookup,
-            CourseName = parsedPath.CourseName,
+            CourseName = parsedPath.CourseName.AsMemory(),
         });
         var grade = parsedPath.Grade;
         var qualificationType = parsedPath.QualificationType;

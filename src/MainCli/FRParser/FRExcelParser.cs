@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib;
@@ -16,6 +17,13 @@ public static class FrExcelParser
     {
         public required Stream InputFile { get; init; }
         public required DocParseContext Context { get; init; }
+        public required StringBuilder StringBuilder { get; init; }
+
+        public StringBuilder GetCleanStringBuilder()
+        {
+            StringBuilder.Clear();
+            return StringBuilder;
+        }
     }
 
     private readonly record struct NumberedWorksheet(IXLWorksheet Worksheet, int Semester);
@@ -49,38 +57,80 @@ public static class FrExcelParser
         using var rowE = ws.Worksheet.Rows().GetEnumerator();
         if (!rowE.MoveNext())
         {
-            throw new InvalidOperationException("Expected header row!");
+            throw new NotSupportedException("Expected header row!");
         }
         var years = ParseGrades(rowE);
         var groups = ParseGroups(rowE, p.Context.Schedule, years);
         if (!rowE.MoveNext())
         {
-            throw new InvalidOperationException("Bullshit row not found");
+            throw new NotSupportedException("Bullshit row not found");
         }
 
         var rowIterationContext = new RowIterationContext(
             startRowNumber: rowE.Current!.RowNumber(),
             dayNameParser: p.Context.DayNameParser,
             timeConfig: p.Context.TimeConfig);
+        var lessonParser = p.Context.ParserFactory.Create();
+        var stringBuilder = p.GetCleanStringBuilder();
+        Span<GroupId> lessonGroupsMem = stackalloc GroupId[CellIterationContext.ColSpanHardLimit];
 
-        while (rowE.MoveNext())
+        while (true)
         {
+            if (!rowE.MoveNext())
+            {
+                break;
+            }
             var row = rowE.Current!;
             var cellE = row.Cells().GetEnumerator();
             rowIterationContext.Update(row, cellE);
 
+            var cellIterationContext = new CellIterationContext(cellE);
+
             while (true)
             {
-                if (cellE.MoveNext())
+                if (!cellIterationContext.Update())
                 {
+                    break;
+                }
+
+                var lessonGroups = lessonGroupsMem[.. cellIterationContext.ColSpan];
+                foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
+                {
+                    var groupId = groups.Get(columnNumber);
+                    lessonGroups[index] = groupId;
+                }
+
+                var text = cellIterationContext.Cell.GetText();
+                using var textAsEnumerable = SingleItemEnumerator.Create(text);
+                lessonParser.Lexer.Reset(textAsEnumerable);
+                var parsedLessons = lessonParser.ParseLessons(stringBuilder);
+                foreach (var parsedLesson in parsedLessons)
+                {
+                    if (parsedLesson.Parity != Parity.EveryWeek)
+                    {
+                        throw new NotSupportedException("Parity not supported for FR.");
+                    }
+                    if (parsedLesson.StartTime != null)
+                    {
+                        throw new NotSupportedException("Different start time not supported for FR.");
+                    }
+
+                    var builder = p.Context.Schedule.OneTimeLesson();
+
+                    var subGroupStatus = p.Context.SetCommonProps(builder, parsedLesson);
+                    if (subGroupStatus != SubGroupStatus.GroupNameIsSubGroup)
+                    {
+                        if (!parsedLesson.GroupName.IsEmpty)
+                        {
+                            throw new NotSupportedException("A different group name in FR is not allowed.");
+                        }
+                    }
+
+                    builder.Groups(lessonGroups);
+                    builder.TimeSlot(rowIterationContext.TimeSlot);
+                    builder.Date(rowIterationContext.Day.Date);
                 }
             }
-            // read next cell
-            // parse using a thing I have (I'll do it myself)
-            // the row count must be 1
-            // save the colCount
-            // add a lesson (I'll do it myself)
-            // get the groups involved by doing groups[colNumber] for each of the involved column numbers. for this, use the groups list and subtract the start of the groups
         }
 
         return ValueTask.CompletedTask;
@@ -126,14 +176,14 @@ public static class FrExcelParser
                 int newRowNumber = row.RowNumber();
                 if (newRowNumber != _rowNumber + 1)
                 {
-                    throw new InvalidOperationException("No expected this row number.");
+                    throw new NotSupportedException("No expected this row number.");
                 }
                 _rowNumber = newRowNumber;
             }
 
             if (!cellE.MoveNext())
             {
-                throw new InvalidOperationException("No date column found");
+                throw new NotSupportedException("No date column found");
             }
 
             var range = cellE.Current.MergedRange();
@@ -142,7 +192,7 @@ public static class FrExcelParser
             {
                 if (range.Equals(_lastDateRange))
                 {
-                    throw new InvalidOperationException("Incorrectly computed range length?");
+                    throw new NotSupportedException("Incorrectly computed range length?");
                 }
 
                 _currentRowSpan = range.RowCount();
@@ -153,13 +203,18 @@ public static class FrExcelParser
                 _lastDateRange = range;
                 _previousTimeSlotRoman = NoTimeSlotRoman;
                 _day = newDay;
+
+                if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
+                {
+                    throw new InvalidOperationException("Wrong day of week specified in excel.");
+                }
             }
             else
             {
                 Debug.Assert(_lastDateRange != null);
                 if (!_lastDateRange.Equals(range))
                 {
-                    throw new InvalidOperationException("Expected ranges to have matched.");
+                    throw new NotSupportedException("Expected ranges to have matched.");
                 }
             }
 
@@ -168,43 +223,43 @@ public static class FrExcelParser
 
             if (!cellE.MoveNext())
             {
-                throw new InvalidOperationException("No time slot cell");
+                throw new NotSupportedException("No time slot cell");
             }
 
             {
                 var cell = cellE.Current;
                 if (cell.IsMerged())
                 {
-                    throw new InvalidOperationException("Time slot cell must not be merged!");
+                    throw new NotSupportedException("Time slot cell must not be merged!");
                 }
 
                 var parser = new Parser(cell.GetString());
                 var romanReadResult = parser.ReadRoman();
                 if (romanReadResult.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidOperationException("Expected a roman numeral for the time slot.");
+                    throw new NotSupportedException("Expected a roman numeral for the time slot.");
                 }
                 if (romanReadResult.Number - _previousTimeSlotRoman != 1)
                 {
-                    throw new InvalidOperationException("Expected time slot roman numerals to be consecutive.");
+                    throw new NotSupportedException("Expected time slot roman numerals to be consecutive.");
                 }
                 _previousTimeSlotRoman = romanReadResult.Number;
 
                 if (!parser.SkipWhitespace().SkippedAny)
                 {
-                    throw new InvalidOperationException("Expected whitespace between roman time slot and ");
+                    throw new NotSupportedException("Expected whitespace between roman time slot and ");
                 }
                 var timeInterval = parser.ParseTimeInterval();
 
                 if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
                 {
-                    throw new InvalidOperationException($"Not found time slot with start time `{timeInterval.Start}`");
+                    throw new NotSupportedException($"Not found time slot with start time `{timeInterval.Start}`");
                 }
 
                 var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
                 if (newTimeSlotTime.End != timeInterval.End)
                 {
-                    throw new InvalidOperationException($"The end time of interval `{timeInterval.End}` doesn't match.");
+                    throw new NotSupportedException($"The end time of interval `{timeInterval.End}` doesn't match.");
                 }
 
                 if (_timeSlot is { } timeSlot)
@@ -212,12 +267,82 @@ public static class FrExcelParser
                     int expectedNext = timeSlot.Index + 1;
                     if (expectedNext != timeSlotFound.Index)
                     {
-                        throw new InvalidOperationException("Time slot times must be consecutive.");
+                        throw new NotSupportedException("Time slot times must be consecutive.");
                     }
 
                     _timeSlot = timeSlotFound;
                 }
             }
+        }
+    }
+
+    private struct CellIterationContext(IEnumerator<IXLCell> cellE)
+    {
+        public const int ColSpanHardLimit = 64;
+        private IEnumerator<IXLCell> _cellE = cellE;
+        private int _colNumber = -1;
+        private int _colSpan = 0;
+
+        public IXLCell Cell
+        {
+            get
+            {
+                return _cellE.Current;
+            }
+        }
+
+        public int ColSpan
+        {
+            get
+            {
+                Debug.Assert(_colSpan != 0);
+                return _colSpan;
+            }
+        }
+
+        public IEnumerable<int> ColumnNumbers
+        {
+            get
+            {
+                var range = _cellE.Current.MergedRange();
+                var cols = range.Columns();
+                var ret = cols.Select(x => x.ColumnNumber());
+                return ret;
+            }
+        }
+
+        public bool Update()
+        {
+            if (!_cellE.MoveNext())
+            {
+                return false;
+            }
+            var cell = _cellE.Current;
+            var merged = cell.MergedRange();
+            if (merged.RowCount() != 1)
+            {
+                throw new NotSupportedException("Cells spanning only a single row are allowed.");
+            }
+
+            var newColNumber = cell.AsRange().FirstColumn().ColumnNumber();
+            if (_colNumber != -1)
+            {
+                int expectedNextCol = _colNumber + _colSpan;
+                if (expectedNextCol != newColNumber)
+                {
+                    throw new NotSupportedException("Cells are not consecutive.");
+                }
+            }
+            _colNumber = newColNumber;
+
+            int colCount = merged.ColumnCount();
+            _colSpan = colCount;
+
+            if (colCount > ColSpanHardLimit)
+            {
+                throw new NotSupportedException("Max columns hard limited to 64.");
+            }
+            return true;
         }
     }
 
@@ -227,33 +352,25 @@ public static class FrExcelParser
         // DayOfWeek, dd.MM.yyyy
         if (parser.IsEmpty)
         {
-            throw new InvalidOperationException("Expected cell to have the date");
+            throw new NotSupportedException("Expected cell to have the date");
         }
         var day = parser.ParseDayOfWeek(dayNameParser);
         if (!parser.ConsumeExactChar(','))
         {
-            throw new InvalidOperationException("Expected ',' after the day name");
+            throw new NotSupportedException("Expected ',' after the day name");
         }
         parser.SkipWhitespace();
         var date = parser.ParseDate("dd.MM.yyyy");
         parser.SkipWhitespace();
         if (!parser.IsEmpty)
         {
-            throw new InvalidOperationException("Not parsed the input string fully");
+            throw new NotSupportedException("Not parsed the input string fully");
         }
         return new(day, date);
     }
 
 
-    private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date)
-    {
-    }
-
-    private struct DayTimeSlots
-    {
-        public required TimeSlot Start;
-        public required int Count;
-    }
+    private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date);
 
     private const int NoYear = -1;
     private static SizedItemArray<int> ParseGrades(IEnumerator<IXLRow> rowE)
@@ -261,7 +378,7 @@ public static class FrExcelParser
         var ret = new SizedItemArray<int>();
         if (!rowE.MoveNext())
         {
-            throw new InvalidOperationException("Expected grade row!");
+            throw new NotSupportedException("Expected grade row!");
         }
         foreach (var cell in rowE.Current.Cells())
         {
@@ -275,16 +392,16 @@ public static class FrExcelParser
             var parser = new Parser(str);
             if (!parser.ConsumeExactString("Anul"))
             {
-                throw new InvalidOperationException("Expected `Anul` in the header row.");
+                throw new NotSupportedException("Expected `Anul` in the header row.");
             }
             if (!parser.SkipWhitespace().SkippedAny)
             {
-                throw new InvalidOperationException("Expected whitespace after `Anul`.");
+                throw new NotSupportedException("Expected whitespace after `Anul`.");
             }
             var romanResult = parser.ReadRoman();
             if (romanResult.Status != ReadRomanStatus.Ok)
             {
-                throw new InvalidOperationException("Expected roman after `Anul`.");
+                throw new NotSupportedException("Expected roman after `Anul`.");
             }
 
             var grade = romanResult.Number;
@@ -300,7 +417,7 @@ public static class FrExcelParser
             {
                 if (ret.TotalSize != columnNumber)
                 {
-                    throw new InvalidOperationException("Empty grade cell not allowed.");
+                    throw new NotSupportedException("Empty grade cell not allowed.");
                 }
                 ret.Add(item);
             }
@@ -335,7 +452,7 @@ public static class FrExcelParser
     {
         if (!rowE.MoveNext())
         {
-            throw new InvalidOperationException("No groups row found.");
+            throw new NotSupportedException("No groups row found.");
         }
         if (years.FindPositionOfFirstOtherThan(NoYear) is not { } firstColumnOffset)
         {
@@ -356,11 +473,11 @@ public static class FrExcelParser
             }
             if (col > outputCount)
             {
-                throw new InvalidOperationException("Number of blanks doesn't match");
+                throw new NotSupportedException("Number of blanks doesn't match");
             }
             if (!cellE.Current!.Value.IsBlank)
             {
-                throw new InvalidOperationException("Skipped cells must be blank");
+                throw new NotSupportedException("Skipped cells must be blank");
             }
         }
 
@@ -373,7 +490,7 @@ public static class FrExcelParser
             var group = builder.Group(str);
             if (group.Ref.AttendanceMode != AttendanceMode.FrecventaRedusa)
             {
-                throw new InvalidOperationException("Expected only FR groups in the FR excel");
+                throw new NotSupportedException("Expected only FR groups in the FR excel");
             }
 
             {
@@ -381,7 +498,7 @@ public static class FrExcelParser
                 var colIndex = col - firstColumnOffset;
                 if (colIndex != groupIndex)
                 {
-                    throw new InvalidOperationException("Skipped a column, they must be consecutive.");
+                    throw new NotSupportedException("Skipped a column, they must be consecutive.");
                 }
             }
 
@@ -396,7 +513,7 @@ public static class FrExcelParser
 
         if (groupIndex != outputCount)
         {
-            throw new InvalidOperationException("Not all columns covered by year are covered by groups");
+            throw new NotSupportedException("Not all columns covered by year are covered by groups");
         }
 
         return new(groups, firstColumnOffset);
