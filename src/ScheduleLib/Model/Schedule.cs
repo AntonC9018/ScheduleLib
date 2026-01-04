@@ -154,9 +154,10 @@ public readonly struct AnyLessonAccessor
 {
     static AnyLessonAccessor()
     {
-        ScheduleAccessorHelper.AssertIsInt<WeeklyLessonAccessor>();
-        ScheduleAccessorHelper.AssertIsInt<OneTimeLessonAccessor>();
+        ScheduleAccessorHelper.AssertIsInt<WeeklyLessonId>();
+        ScheduleAccessorHelper.AssertIsInt<OneTimeLessonId>();
     }
+
     private readonly int _id;
     private readonly LessonRegularity _tag;
     private readonly Schedule _arrays;
@@ -187,7 +188,7 @@ public readonly struct AnyLessonAccessor
     {
         get
         {
-            if (IsWeekly)
+            if (!IsWeekly)
             {
                 return null;
             }
@@ -198,7 +199,7 @@ public readonly struct AnyLessonAccessor
     {
         get
         {
-            if (IsOneTime)
+            if (!IsOneTime)
             {
                 return null;
             }

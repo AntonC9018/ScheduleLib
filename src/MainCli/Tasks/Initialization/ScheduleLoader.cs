@@ -45,7 +45,9 @@ public sealed class ScheduleLoader
             return default;
         }
 
-        if (!bypassCache && cachedFile.Value != null)
+        if (!bypassCache
+            && cachedFile.Value != null
+            && cachedFile.Value.Length != 0)
         {
             var serializedModel = await ScheduleSerializer.Deserialize(cachedFile.Value, cancellationToken);
             Debug.Assert(hashHex is not null);
@@ -82,7 +84,11 @@ public interface IScheduleLoaderComponent
 
 public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 {
-    public required string DirectoryPath { get; init; }
+    public required string DirectoryPath
+    {
+        get;
+        init => field = Path.GetFullPath(value);
+    }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
@@ -100,7 +106,11 @@ public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 
 public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : IScheduleLoaderComponent
 {
-    public required string FilePath { get; init; }
+    public required string FilePath
+    {
+        get;
+        init => field = Path.GetFullPath(value);
+    }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {

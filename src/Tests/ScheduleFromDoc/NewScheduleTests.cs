@@ -1,6 +1,5 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleFromDoc.Tests;
 

@@ -89,9 +89,8 @@ public sealed class DocParseContext
             builder.Teacher(teacherId);
         }
 
-        builder.Period(CurrentPeriodId);
         builder.Type(parsedLesson.LessonType);
-        builder.SubGroup(parsedLesson.SubGroup);
+        builder.Period(CurrentPeriodId);
 
         if (HandleSpecialSubGroup(parsedLesson, builder))
         {
@@ -112,6 +111,10 @@ public sealed class DocParseContext
             in ParsedLesson lesson,
             ILessonBuilder<ILessonBuilderModel> builder)
         {
+            if (lesson.GroupName.IsEmpty)
+            {
+                return false;
+            }
             var specialGroups = SpecialSubGroups.AllSpecial;
             foreach (var group in specialGroups)
             {
@@ -725,8 +728,7 @@ public static class WordScheduleParser
                                 in state,
                                 in lesson,
                                 columnIndex: cell.ColumnSizeCounter,
-                                colSpan: colSpan1,
-                                periodId: p.Context.CurrentPeriodId);
+                                colSpan: colSpan1);
                         }
                         return;
 
@@ -782,16 +784,10 @@ public static class WordScheduleParser
         in TableParsingState state,
         in ParsedLesson lesson,
         int columnIndex,
-        int colSpan,
-        PeriodId periodId)
+        int colSpan)
     {
         // TODO: This is scuffed.
-        var builder = new LessonBuilder<WeeklyLessonBuilderModel>
-        {
-            Model = new(),
-            Schedule = c.Schedule,
-            Id = -1,
-        };
+        var builder = c.Schedule.DetachedRegularLesson();
 
         if (lesson.StartTime is { } startTime)
         {
@@ -806,9 +802,8 @@ public static class WordScheduleParser
         builder.DayOfWeek(state.CurrentDay!.Value);
         builder.Parity(lesson.Parity);
 
-        bool groupNameHandled = c.SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
-
-        if (lesson.GroupName.Length == 0 || !groupNameHandled)
+        bool groupNameHandledAsSubgroup = c.SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
+        if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
         {
             var groups = new LessonGroups();
             for (int i = 0; i < colSpan; i++)
@@ -818,22 +813,19 @@ public static class WordScheduleParser
             }
             builder.Groups([.. groups]);
         }
-        else
+        else if (!groupNameHandledAsSubgroup)
         {
             var g = lesson.GroupName.ToString();
             var groupId = c.Schedule.Group(g);
             builder.Group(groupId);
         }
 
-        builder.Period(periodId);
-
         if (MaybeMergeIntoAnExistingLesson())
         {
             return;
         }
 
-        var result = c.Schedule.WeeklyLessons.New();
-        result.Value = builder.Model;
+        builder.Attach();
         return;
 
         bool MaybeMergeIntoAnExistingLesson()

@@ -140,18 +140,6 @@ public struct LessonBuilderModelDataBase()
 {
     public LessonBuilderGeneralData General = new();
     public LessonBuilderGroupData Group = new();
-
-    public readonly LessonBuilderModelDataBase Copy()
-    {
-        return new()
-        {
-            General = General with
-            {
-                Teachers = [.. General.Teachers],
-            },
-            Group = Group,
-        };
-    }
 }
 
 public struct OneTimeLessonBuilderModelData()
@@ -221,17 +209,27 @@ public interface ILessonBuilder<out T> where T : ILessonBuilderModel
     public T Model { get; }
 }
 
-public sealed class LessonBuilder<T> : ILessonBuilder<T>
+public class LessonBuilder<T> : ILessonBuilder<T>
     where T : ILessonBuilderModel
 {
-    public required ScheduleBuilder Schedule { get; init; }
-    public required int Id { get; init; }
-    public required T Model { get; init; }
+    public LessonBuilder(
+        ScheduleBuilder s,
+        T model,
+        int id)
+    {
+        Schedule = s;
+        Model = model;
+        Id = id;
+    }
+    public ScheduleBuilder Schedule { get; }
+    public T Model { get; }
+    public int Id { get; internal set; }
     public static implicit operator int(LessonBuilder<T> r) => r.Id;
 }
 
 public static class LessonBuilderHelper
 {
+    internal const int UninitializedId = -1;
     extension(ILessonBuilder<WeeklyLessonBuilderModel> b)
     {
         public void DayOfWeek(DayOfWeek dayOfWeek)
@@ -296,16 +294,17 @@ public static class LessonBuilderHelper
 
         public void Groups(ReadOnlySpan<GroupId> groups)
         {
-            if (groups.Length > 3)
-            {
-                throw new ArgumentException("The maximum number of groups is 3.");
-            }
             if (groups.Length == 0)
             {
                 throw new ArgumentException("At least one group must be specified.");
             }
 
             var g = new LessonGroups();
+            if (groups.Length > g.Capacity)
+            {
+                throw new ArgumentException($"The maximum number of groups is {g.Capacity}.");
+            }
+
             for (int i = 0; i < groups.Length; i++)
             {
                 g[i] = groups[i];
@@ -340,6 +339,10 @@ public static class LessonBuilderHelper
         public void UpdateLookup(CourseId? prevCourseId)
         {
             if (b.Schedule.LookupModule is not { } lookupModule)
+            {
+                return;
+            }
+            if (b.Id == UninitializedId)
             {
                 return;
             }
@@ -416,12 +419,26 @@ public static class LessonBuilderHelper
     {
         var r = s.WeeklyLessons.New();
         r.Value = new();
-        return new()
+        return new(s, s.WeeklyLessons.Ref(r.Id), r.Id);
+    }
+
+    public static LessonBuilder<WeeklyLessonBuilderModel> DetachedRegularLesson(this ScheduleBuilder s)
+    {
+        var builder = new LessonBuilder<WeeklyLessonBuilderModel>(s, new(), UninitializedId);
+        return builder;
+    }
+
+    public static void Attach(this LessonBuilder<WeeklyLessonBuilderModel> builder)
+    {
+        if (builder.Id != UninitializedId)
         {
-            Model = s.WeeklyLessons.Ref(r.Id),
-            Id = r.Id,
-            Schedule = s,
-        };
+            throw new InvalidOperationException("Can only attach a detached builder.");
+        }
+        var x = builder.Schedule.WeeklyLessons.New();
+        x.Value = builder.Model;
+        builder.Id = x.Id;
+
+        InitLookup(builder);
     }
 
     public static LessonBuilder<WeeklyLessonBuilderModel> RegularLesson(
@@ -451,12 +468,7 @@ public static class LessonBuilderHelper
     {
         var r = s.OneTimeLessons.New();
         r.Value = new();
-        return new()
-        {
-            Model = s.OneTimeLessons.Ref(r.Id),
-            Id = r.Id,
-            Schedule = s,
-        };
+        return new(s, r.Value, r.Id);
     }
 
     public static LessonModelDiffMask Diff(
