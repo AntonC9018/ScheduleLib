@@ -845,7 +845,7 @@ public static class ScheduleAccessorHelper
     }
     public static AnyLessonAccessor Get(this Schedule schedule, AnyLessonId id)
     {
-        return new AnyLessonAccessor();
+        return new AnyLessonAccessor(id, schedule);
     }
 
     public static Period Get(this Schedule schedule, PeriodId id)

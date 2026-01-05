@@ -278,21 +278,37 @@ public static class SerializationModels
             var lesson = builder.WeeklyLessons.New();
             lesson.Value = new();
 
-            ref var g = ref lesson.Value.General;
-            g.Course = rl.Course;
-            g.Room = rl.Room;
-            g.Teachers = rl.Teachers.ToList();
-            g.Type = rl.Type;
-            g.Period = rl.Period;
-
             ref var date = ref lesson.Value.Date;
             date.DayOfWeek = rl.DayOfWeek;
             date.TimeSlot = rl.TimeSlot;
             date.Parity = rl.Parity;
+            lesson.Value.General.Period = rl.Period;
+            CopyBase(ref lesson.Value.Base, rl);
+        }
 
-            ref var group = ref lesson.Value.Group;
-            group.SubGroup = rl.SubGroup;
-            group.Groups = [.. rl.Groups];
+        Debug.Assert(builder.OneTimeLessons.Count == 0);
+        foreach (var ol in schedule.OneTimeLessons)
+        {
+            var lesson = builder.OneTimeLessons.New();
+            lesson.Value = new();
+
+            ref var date = ref lesson.Value.Date;
+            date.Date = ol.Date;
+            date.TimeSlot = ol.TimeSlot;
+            CopyBase(ref lesson.Value.Base, ol);
+        }
+
+        void CopyBase(ref LessonBuilderModelDataBase b, LessonBaseModel model)
+        {
+            ref var g = ref b.General;
+            g.Course = model.Course;
+            g.Room = model.Room;
+            g.Teachers = model.Teachers.ToList();
+            g.Type = model.Type;
+
+            ref var group = ref b.Group;
+            group.SubGroup = model.SubGroup;
+            group.Groups = [.. model.Groups];
         }
     }
 }

@@ -1,5 +1,5 @@
-{
-  "Hash": "7458f05cabf783179187acbee8290e4f",
+﻿{
+  "Hash": "",
   "RegularLessons": [
     {
       "DayOfWeek": "Monday",
@@ -3873,7 +3873,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -3905,7 +3905,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -3921,9 +3921,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -3939,7 +3939,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -3971,7 +3971,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -4003,9 +4003,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Seminar",
@@ -4170,7 +4170,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "419/4",
       "Type": "Seminar",
@@ -4202,7 +4202,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -4283,7 +4283,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -4301,7 +4301,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "425/4",
       "Type": "Curs",
@@ -4317,7 +4317,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        60
+        61
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -4349,7 +4349,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -4365,7 +4365,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        62
+        63
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -4381,7 +4381,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -4413,7 +4413,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -4429,7 +4429,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -4461,7 +4461,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "213a/4",
       "Type": "Seminar",
@@ -4477,7 +4477,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "214/4",
       "Type": "Seminar",
@@ -4493,7 +4493,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -4571,7 +4571,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -4619,7 +4619,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -4683,7 +4683,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -4729,7 +4729,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -4745,7 +4745,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -4777,7 +4777,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -4793,7 +4793,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -4823,7 +4823,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -4839,7 +4839,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -4855,7 +4855,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -4887,7 +4887,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -4903,7 +4903,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -4951,7 +4951,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -4967,7 +4967,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -4983,7 +4983,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -4999,7 +4999,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -5015,7 +5015,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -5031,7 +5031,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -5047,7 +5047,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -5095,7 +5095,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -5157,7 +5157,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -5189,7 +5189,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -5205,7 +5205,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -5221,7 +5221,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -5239,7 +5239,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -5255,7 +5255,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -5273,7 +5273,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -5289,7 +5289,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -5305,7 +5305,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -5321,7 +5321,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5337,7 +5337,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -5353,7 +5353,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -5369,7 +5369,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -5385,7 +5385,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5401,7 +5401,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -5417,7 +5417,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -5433,7 +5433,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -5449,7 +5449,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -5481,7 +5481,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5497,7 +5497,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5529,7 +5529,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5563,7 +5563,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -5595,7 +5595,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -5611,7 +5611,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -5628,7 +5628,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -5645,7 +5645,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -5662,7 +5662,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -5678,7 +5678,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -5710,7 +5710,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Unspecified",
@@ -5726,7 +5726,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5758,7 +5758,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5790,7 +5790,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5854,7 +5854,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -5870,7 +5870,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -5886,7 +5886,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -5966,7 +5966,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        74
+        75
       ],
       "Room": "415/4",
       "Type": "Lab",
@@ -6048,7 +6048,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -6096,7 +6096,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "218/4",
       "Type": "Curs",
@@ -6247,7 +6247,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -6263,7 +6263,7 @@
       ],
       "Course": 53,
       "Teachers": [
-        75
+        76
       ],
       "Room": "237/4",
       "Type": "Unspecified",
@@ -6279,7 +6279,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "237/4",
       "Type": "Unspecified",
@@ -6328,7 +6328,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -6344,7 +6344,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -6392,7 +6392,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "415/4",
       "Type": "Unspecified",
@@ -6425,7 +6425,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "143/4",
       "Type": "Unspecified",
@@ -6458,7 +6458,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -6474,7 +6474,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -6491,7 +6491,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -6507,7 +6507,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -6524,7 +6524,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -6540,7 +6540,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -6557,7 +6557,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -6659,7 +6659,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -6676,7 +6676,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -6693,7 +6693,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -6741,7 +6741,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -6757,7 +6757,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -6774,7 +6774,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -6791,7 +6791,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -6807,7 +6807,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -6855,7 +6855,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -6887,7 +6887,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -6903,7 +6903,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -6919,7 +6919,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -6935,7 +6935,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -6951,7 +6951,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -6967,7 +6967,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -7033,7 +7033,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -7130,7 +7130,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -7162,7 +7162,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -7210,7 +7210,7 @@
       ],
       "Course": 63,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Curs",
@@ -7242,7 +7242,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -7258,7 +7258,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -7275,7 +7275,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -7292,7 +7292,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -7308,7 +7308,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -7324,7 +7324,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -7372,7 +7372,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -7389,7 +7389,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -7405,7 +7405,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -7421,7 +7421,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -7504,7 +7504,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -7522,7 +7522,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -7538,7 +7538,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -7588,7 +7588,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -7621,7 +7621,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -7670,7 +7670,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "326/4",
       "Type": "Unspecified",
@@ -7750,7 +7750,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -7800,7 +7800,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -7818,7 +7818,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -7834,7 +7834,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "404",
       "Type": "Curs",
@@ -7850,7 +7850,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -7866,7 +7866,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -7882,7 +7882,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -7915,7 +7915,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -7931,7 +7931,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -7947,7 +7947,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -7963,7 +7963,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -7979,7 +7979,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -7995,7 +7995,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -8029,7 +8029,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "222/4",
       "Type": "Unspecified",
@@ -8046,7 +8046,7 @@
       ],
       "Course": 54,
       "Teachers": [
-        81
+        85
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -8080,7 +8080,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -8096,7 +8096,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -8130,7 +8130,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -10406,7 +10406,7 @@
       ],
       "Course": 15,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -10770,7 +10770,7 @@
       ],
       "Course": 18,
       "Teachers": [
-        83
+        87
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -11022,7 +11022,7 @@
       ],
       "Course": 16,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -11342,7 +11342,7 @@
       ],
       "Course": 13,
       "Teachers": [
-        83
+        87
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -11374,7 +11374,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        83
+        87
       ],
       "Room": "327/4",
       "Type": "Lab",
@@ -11390,7 +11390,7 @@
       ],
       "Course": 15,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -12485,7 +12485,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -12501,9 +12501,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -12519,7 +12519,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -12551,7 +12551,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -12583,9 +12583,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Seminar",
@@ -12750,7 +12750,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -12831,7 +12831,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -12849,7 +12849,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "425/4",
       "Type": "Curs",
@@ -12865,7 +12865,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "122/4",
       "Type": "Seminar",
@@ -12881,7 +12881,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        60
+        61
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -12913,7 +12913,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -12929,7 +12929,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        62
+        63
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -12945,7 +12945,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -12977,7 +12977,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -12993,7 +12993,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13025,7 +13025,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "213a/4",
       "Type": "Seminar",
@@ -13041,7 +13041,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "214/4",
       "Type": "Seminar",
@@ -13057,7 +13057,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "425/4",
       "Type": "Curs",
@@ -13135,7 +13135,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -13183,7 +13183,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13279,7 +13279,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13325,7 +13325,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -13341,7 +13341,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -13373,7 +13373,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -13389,7 +13389,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -13419,7 +13419,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -13435,7 +13435,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -13451,7 +13451,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -13467,7 +13467,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -13483,7 +13483,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -13515,7 +13515,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13531,7 +13531,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -13563,7 +13563,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -13579,7 +13579,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -13595,7 +13595,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -13611,7 +13611,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -13627,7 +13627,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13659,7 +13659,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -13675,7 +13675,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -13691,7 +13691,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -13753,7 +13753,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -13785,7 +13785,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -13801,7 +13801,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13817,7 +13817,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -13835,7 +13835,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -13851,7 +13851,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -13869,7 +13869,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -13885,7 +13885,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -13901,7 +13901,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -13917,7 +13917,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -13933,7 +13933,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -13949,7 +13949,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -13965,7 +13965,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -13981,7 +13981,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -13997,7 +13997,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -14013,7 +14013,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -14029,7 +14029,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -14045,7 +14045,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -14077,7 +14077,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14093,7 +14093,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14125,7 +14125,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14159,7 +14159,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -14191,7 +14191,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -14207,7 +14207,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -14224,7 +14224,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -14241,7 +14241,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -14258,7 +14258,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -14274,7 +14274,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -14306,7 +14306,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Unspecified",
@@ -14322,7 +14322,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14354,7 +14354,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14386,7 +14386,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14450,7 +14450,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -14466,7 +14466,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -14482,7 +14482,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -14562,7 +14562,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        74
+        75
       ],
       "Room": "415/4",
       "Type": "Lab",
@@ -14644,7 +14644,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -14692,7 +14692,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "218/4",
       "Type": "Curs",
@@ -14843,7 +14843,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -14859,7 +14859,7 @@
       ],
       "Course": 53,
       "Teachers": [
-        75
+        76
       ],
       "Room": "2374",
       "Type": "Unspecified",
@@ -14875,7 +14875,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "237/4",
       "Type": "Unspecified",
@@ -14924,7 +14924,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -14940,7 +14940,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -14988,7 +14988,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "415/4",
       "Type": "Unspecified",
@@ -15021,7 +15021,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "143/4",
       "Type": "Unspecified",
@@ -15054,7 +15054,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -15070,7 +15070,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -15087,7 +15087,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -15103,7 +15103,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -15120,7 +15120,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -15136,7 +15136,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -15153,7 +15153,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -15255,7 +15255,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -15272,7 +15272,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -15289,7 +15289,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -15337,7 +15337,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -15353,7 +15353,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -15370,7 +15370,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -15387,7 +15387,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -15403,7 +15403,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -15451,7 +15451,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -15483,7 +15483,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -15499,7 +15499,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -15515,7 +15515,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -15531,7 +15531,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -15547,7 +15547,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -15563,7 +15563,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -15629,7 +15629,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -15726,7 +15726,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -15758,7 +15758,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -15806,7 +15806,7 @@
       ],
       "Course": 63,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Curs",
@@ -15838,7 +15838,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -15854,7 +15854,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -15871,7 +15871,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -15888,7 +15888,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -15904,7 +15904,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -15920,7 +15920,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -15968,7 +15968,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -15985,7 +15985,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -16001,7 +16001,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -16017,7 +16017,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -16100,7 +16100,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16118,7 +16118,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -16134,7 +16134,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16184,7 +16184,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -16217,7 +16217,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -16266,7 +16266,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "326/4",
       "Type": "Unspecified",
@@ -16346,7 +16346,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16396,7 +16396,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -16414,7 +16414,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -16430,7 +16430,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "404",
       "Type": "Curs",
@@ -16446,7 +16446,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -16462,7 +16462,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -16478,7 +16478,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16511,7 +16511,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -16527,7 +16527,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -16543,7 +16543,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16559,7 +16559,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -16575,7 +16575,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -16591,7 +16591,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -16625,7 +16625,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "222/4",
       "Type": "Unspecified",
@@ -16642,7 +16642,7 @@
       ],
       "Course": 54,
       "Teachers": [
-        81
+        85
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -16676,7 +16676,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -16692,7 +16692,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -16726,7 +16726,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -19002,7 +19002,7 @@
       ],
       "Course": 15,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -19366,7 +19366,7 @@
       ],
       "Course": 18,
       "Teachers": [
-        83
+        87
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -19618,7 +19618,7 @@
       ],
       "Course": 16,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -19938,7 +19938,7 @@
       ],
       "Course": 13,
       "Teachers": [
-        83
+        87
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -19970,7 +19970,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        83
+        87
       ],
       "Room": "327/4",
       "Type": "Lab",
@@ -19986,7 +19986,7 @@
       ],
       "Course": 15,
       "Teachers": [
-        83
+        87
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -21081,7 +21081,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -21097,9 +21097,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -21115,7 +21115,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -21147,7 +21147,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -21179,9 +21179,9 @@
       ],
       "Course": 25,
       "Teachers": [
-        55,
         56,
-        57
+        57,
+        58
       ],
       "Room": "113/4",
       "Type": "Seminar",
@@ -21346,7 +21346,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -21427,7 +21427,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -21445,7 +21445,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "425/4",
       "Type": "Curs",
@@ -21461,7 +21461,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "122/4",
       "Type": "Seminar",
@@ -21477,7 +21477,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        60
+        61
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -21509,7 +21509,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -21525,7 +21525,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        62
+        63
       ],
       "Room": "222/4",
       "Type": "Seminar",
@@ -21541,7 +21541,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -21573,7 +21573,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -21589,7 +21589,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -21621,7 +21621,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        61
+        62
       ],
       "Room": "213a/4",
       "Type": "Seminar",
@@ -21637,7 +21637,7 @@
       ],
       "Course": 25,
       "Teachers": [
-        54
+        55
       ],
       "Room": "214/4",
       "Type": "Seminar",
@@ -21653,7 +21653,7 @@
       ],
       "Course": 37,
       "Teachers": [
-        59
+        60
       ],
       "Room": "425/4",
       "Type": "Curs",
@@ -21731,7 +21731,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -21779,7 +21779,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -21875,7 +21875,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -21921,7 +21921,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -21937,7 +21937,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -21969,7 +21969,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -21985,7 +21985,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -22015,7 +22015,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -22031,7 +22031,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -22047,7 +22047,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -22063,7 +22063,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -22079,7 +22079,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -22111,7 +22111,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -22127,7 +22127,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -22159,7 +22159,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -22175,7 +22175,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -22191,7 +22191,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -22207,7 +22207,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -22223,7 +22223,7 @@
       ],
       "Course": 19,
       "Teachers": [
-        64
+        65
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -22255,7 +22255,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -22271,7 +22271,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -22287,7 +22287,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "145/4",
       "Type": "Lab",
@@ -22349,7 +22349,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -22381,7 +22381,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -22397,7 +22397,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -22413,7 +22413,7 @@
       ],
       "Course": 34,
       "Teachers": [
-        30
+        54
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -22431,7 +22431,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -22447,7 +22447,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "222/4",
       "Type": "Curs",
@@ -22465,7 +22465,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -22481,7 +22481,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -22497,7 +22497,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -22513,7 +22513,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22529,7 +22529,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -22545,7 +22545,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -22561,7 +22561,7 @@
       ],
       "Course": 33,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -22577,7 +22577,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        68
+        69
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22593,7 +22593,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -22609,7 +22609,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        58
+        59
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -22625,7 +22625,7 @@
       ],
       "Course": 35,
       "Teachers": [
-        63
+        64
       ],
       "Room": "237/4",
       "Type": "Lab",
@@ -22641,7 +22641,7 @@
       ],
       "Course": 28,
       "Teachers": [
-        65
+        66
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -22673,7 +22673,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22689,7 +22689,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22721,7 +22721,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22755,7 +22755,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -22787,7 +22787,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -22803,7 +22803,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -22820,7 +22820,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -22837,7 +22837,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -22854,7 +22854,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -22870,7 +22870,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Curs",
@@ -22902,7 +22902,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        73
+        74
       ],
       "Room": "213a/4",
       "Type": "Unspecified",
@@ -22918,7 +22918,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22950,7 +22950,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -22982,7 +22982,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -23046,7 +23046,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23062,7 +23062,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        69
+        70
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -23078,7 +23078,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -23158,7 +23158,7 @@
       ],
       "Course": 43,
       "Teachers": [
-        74
+        75
       ],
       "Room": "415/4",
       "Type": "Lab",
@@ -23240,7 +23240,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -23288,7 +23288,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "218/4",
       "Type": "Curs",
@@ -23439,7 +23439,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23455,7 +23455,7 @@
       ],
       "Course": 53,
       "Teachers": [
-        75
+        76
       ],
       "Room": "2374",
       "Type": "Unspecified",
@@ -23471,7 +23471,7 @@
       ],
       "Course": 49,
       "Teachers": [
-        75
+        76
       ],
       "Room": "237/4",
       "Type": "Unspecified",
@@ -23520,7 +23520,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        76
+        77
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23536,7 +23536,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -23584,7 +23584,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "415/4",
       "Type": "Unspecified",
@@ -23617,7 +23617,7 @@
       ],
       "Course": 38,
       "Teachers": [
-        77
+        78
       ],
       "Room": "143/4",
       "Type": "Unspecified",
@@ -23650,7 +23650,7 @@
       ],
       "Course": 40,
       "Teachers": [
-        70
+        71
       ],
       "Room": "143/4",
       "Type": "Lab",
@@ -23666,7 +23666,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        72
+        73
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23683,7 +23683,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -23699,7 +23699,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -23716,7 +23716,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -23732,7 +23732,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -23749,7 +23749,7 @@
       ],
       "Course": 55,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Unspecified",
@@ -23851,7 +23851,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -23868,7 +23868,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23885,7 +23885,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -23933,7 +23933,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -23949,7 +23949,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        31
+        81
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -23966,7 +23966,7 @@
       ],
       "Course": 42,
       "Teachers": [
-        79
+        80
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -23983,7 +23983,7 @@
       ],
       "Course": 41,
       "Teachers": [
-        71
+        72
       ],
       "Room": "429/4",
       "Type": "Unspecified",
@@ -23999,7 +23999,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -24047,7 +24047,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -24079,7 +24079,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -24095,7 +24095,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -24111,7 +24111,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -24127,7 +24127,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -24143,7 +24143,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -24159,7 +24159,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -24225,7 +24225,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -24322,7 +24322,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -24354,7 +24354,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -24388,7 +24388,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Curs",
@@ -24404,7 +24404,7 @@
       ],
       "Course": 63,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Curs",
@@ -24436,7 +24436,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -24452,7 +24452,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -24469,7 +24469,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -24486,7 +24486,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -24502,7 +24502,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -24518,7 +24518,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -24566,7 +24566,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -24583,7 +24583,7 @@
       ],
       "Course": 52,
       "Teachers": [
-        63
+        64
       ],
       "Room": "145/4",
       "Type": "Unspecified",
@@ -24599,7 +24599,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -24615,7 +24615,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -24698,7 +24698,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -24732,7 +24732,7 @@
       ],
       "Course": 65,
       "Teachers": [
-        63
+        64
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -24780,7 +24780,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -24813,7 +24813,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "350/4",
       "Type": "Lab",
@@ -24862,7 +24862,7 @@
       ],
       "Course": 46,
       "Teachers": [
-        8
+        84
       ],
       "Room": "326/4",
       "Type": "Unspecified",
@@ -24960,7 +24960,7 @@
       ],
       "Course": 39,
       "Teachers": [
-        79
+        80
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -24976,7 +24976,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -24994,7 +24994,7 @@
       ],
       "Course": 64,
       "Teachers": [
-        80
+        82
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -25026,7 +25026,7 @@
       ],
       "Course": 61,
       "Teachers": [
-        38
+        83
       ],
       "Room": "404",
       "Type": "Curs",
@@ -25042,7 +25042,7 @@
       ],
       "Course": 60,
       "Teachers": [
-        80
+        82
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -25058,7 +25058,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -25074,7 +25074,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -25107,7 +25107,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -25123,7 +25123,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -25139,7 +25139,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -25155,7 +25155,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "219/4a",
       "Type": "Unspecified",
@@ -25171,7 +25171,7 @@
       ],
       "Course": 44,
       "Teachers": [
-        66
+        67
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -25187,7 +25187,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -25221,7 +25221,7 @@
       ],
       "Course": 51,
       "Teachers": [
-        82
+        86
       ],
       "Room": "222/4",
       "Type": "Unspecified",
@@ -25238,7 +25238,7 @@
       ],
       "Course": 54,
       "Teachers": [
-        81
+        85
       ],
       "Room": "404/4",
       "Type": "Curs",
@@ -25272,7 +25272,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "113/4",
       "Type": "Curs",
@@ -25288,7 +25288,7 @@
       ],
       "Course": 47,
       "Teachers": [
-        81
+        85
       ],
       "Room": "326/4",
       "Type": "Lab",
@@ -25322,7 +25322,7 @@
       ],
       "Course": 56,
       "Teachers": [
-        67
+        68
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -25357,7 +25357,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        84
+        88
       ],
       "Room": "404/4",
       "Type": "Prelegere",
@@ -25473,7 +25473,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        84
+        88
       ],
       "Room": "404/4",
       "Type": "Prelegere",
@@ -25559,7 +25559,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "326/4",
       "Type": "Prelegere",
@@ -25675,7 +25675,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "350/4",
       "Type": "Prelegere",
@@ -25789,7 +25789,7 @@
       ],
       "Course": 75,
       "Teachers": [
-        77
+        78
       ],
       "Room": "251/4",
       "Type": "Prelegere",
@@ -25803,7 +25803,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "218/4a",
       "Type": "Prelegere",
@@ -25889,7 +25889,7 @@
       ],
       "Course": 75,
       "Teachers": [
-        77
+        78
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -25903,7 +25903,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "218/4a",
       "Type": "Prelegere",
@@ -25959,7 +25959,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -26033,7 +26033,7 @@
       ],
       "Course": 76,
       "Teachers": [
-        86
+        90
       ],
       "Room": "415/4",
       "Type": "Prelegere",
@@ -26047,7 +26047,7 @@
       ],
       "Course": 75,
       "Teachers": [
-        77
+        78
       ],
       "Room": "214/4",
       "Type": "Prelegere",
@@ -26075,7 +26075,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -26149,7 +26149,7 @@
       ],
       "Course": 76,
       "Teachers": [
-        86
+        90
       ],
       "Room": "251/4",
       "Type": "Lab",
@@ -26163,7 +26163,7 @@
       ],
       "Course": 75,
       "Teachers": [
-        77
+        78
       ],
       "Room": "214/4",
       "Type": "Prelegere",
@@ -26205,7 +26205,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "216a/4a",
       "Type": "Lab",
@@ -26249,7 +26249,7 @@
       ],
       "Course": 17,
       "Teachers": [
-        87
+        91
       ],
       "Room": "415/4",
       "Type": "Seminar",
@@ -26291,7 +26291,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "214/4",
       "Type": "Prelegere",
@@ -26347,7 +26347,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -26391,7 +26391,7 @@
       ],
       "Course": 17,
       "Teachers": [
-        87
+        91
       ],
       "Room": "415/4",
       "Type": "Seminar",
@@ -26433,7 +26433,7 @@
       ],
       "Course": 21,
       "Teachers": [
-        66
+        67
       ],
       "Room": "327/4",
       "Type": "Lab",
@@ -26489,7 +26489,7 @@
       ],
       "Course": 79,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Prelegere",
@@ -26517,7 +26517,7 @@
       ],
       "Course": 72,
       "Teachers": [
-        85
+        89
       ],
       "Room": "145a/4",
       "Type": "Lab",
@@ -26615,7 +26615,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        84
+        88
       ],
       "Room": "404/4",
       "Type": "Seminar",
@@ -26713,7 +26713,7 @@
       ],
       "Course": 79,
       "Teachers": [
-        78
+        79
       ],
       "Room": "423/4",
       "Type": "Lab",
@@ -26727,7 +26727,7 @@
       ],
       "Course": 0,
       "Teachers": [
-        84
+        88
       ],
       "Room": "404/4",
       "Type": "Seminar",
@@ -26825,7 +26825,7 @@
       ],
       "Course": 79,
       "Teachers": [
-        78
+        79
       ],
       "Room": "218/4a",
       "Type": "Prelegere",
@@ -26839,7 +26839,7 @@
       ],
       "Course": 80,
       "Teachers": [
-        76
+        77
       ],
       "Room": "219/4a",
       "Type": "Prelegere",
@@ -26881,7 +26881,7 @@
       ],
       "Course": 79,
       "Teachers": [
-        78
+        79
       ],
       "Room": "218/4a",
       "Type": "Lab",
@@ -26895,7 +26895,7 @@
       ],
       "Course": 80,
       "Teachers": [
-        76
+        77
       ],
       "Room": "219/4a",
       "Type": "Lab",
@@ -27080,7 +27080,7 @@
     {
       "FirstName": [
         {
-          "Full": "Viorel",
+          "Full": null,
           "Short": "V."
         }
       ],
@@ -27113,7 +27113,7 @@
     {
       "FirstName": [
         {
-          "Full": "Alexandru",
+          "Full": null,
           "Short": "A."
         }
       ],
@@ -27146,7 +27146,7 @@
     {
       "FirstName": [
         {
-          "Full": "Eleonora",
+          "Full": null,
           "Short": "E."
         }
       ],
@@ -27168,12 +27168,12 @@
     {
       "FirstName": [
         {
-          "Full": "Vlada",
+          "Full": null,
           "Short": "V."
         }
       ],
       "LastName": [
-        "Vișnevschii"
+        "Vișnevschi"
       ]
     },
     {
@@ -27212,7 +27212,7 @@
     {
       "FirstName": [
         {
-          "Full": "Ghenadie",
+          "Full": null,
           "Short": "G."
         }
       ],
@@ -27223,7 +27223,7 @@
     {
       "FirstName": [
         {
-          "Full": "Vsevolod",
+          "Full": null,
           "Short": "V."
         }
       ],
@@ -27234,7 +27234,7 @@
     {
       "FirstName": [
         {
-          "Full": "Cristian",
+          "Full": null,
           "Short": "Cr."
         }
       ],
@@ -27245,7 +27245,7 @@
     {
       "FirstName": [
         {
-          "Full": "Natalia",
+          "Full": null,
           "Short": "N."
         }
       ],
@@ -27256,7 +27256,7 @@
     {
       "FirstName": [
         {
-          "Full": "Titu",
+          "Full": null,
           "Short": "T."
         }
       ],
@@ -27267,7 +27267,7 @@
     {
       "FirstName": [
         {
-          "Full": "Maria",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27278,7 +27278,7 @@
     {
       "FirstName": [
         {
-          "Full": "Ludmila",
+          "Full": null,
           "Short": "L."
         }
       ],
@@ -27300,7 +27300,7 @@
     {
       "FirstName": [
         {
-          "Full": "Tatiana",
+          "Full": null,
           "Short": "T."
         }
       ],
@@ -27322,7 +27322,7 @@
     {
       "FirstName": [
         {
-          "Full": "Gheorghe",
+          "Full": null,
           "Short": "Gh."
         }
       ],
@@ -27333,12 +27333,12 @@
     {
       "FirstName": [
         {
-          "Full": "Tamara",
+          "Full": null,
           "Short": "T."
         }
       ],
       "LastName": [
-        "Iațâșina"
+        "Iațîșina"
       ]
     },
     {
@@ -27377,7 +27377,7 @@
     {
       "FirstName": [
         {
-          "Full": "Alina",
+          "Full": null,
           "Short": "A."
         }
       ],
@@ -27388,7 +27388,7 @@
     {
       "FirstName": [
         {
-          "Full": "Mariana",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27399,7 +27399,7 @@
     {
       "FirstName": [
         {
-          "Full": "Natalia",
+          "Full": null,
           "Short": "N."
         }
       ],
@@ -27410,7 +27410,7 @@
     {
       "FirstName": [
         {
-          "Full": "Anton",
+          "Full": null,
           "Short": "A."
         }
       ],
@@ -27421,18 +27421,18 @@
     {
       "FirstName": [
         {
-          "Full": "Boris",
+          "Full": null,
           "Short": "B."
         }
       ],
       "LastName": [
-        "Vișnevschii"
+        "Vișnevschi"
       ]
     },
     {
       "FirstName": [
         {
-          "Full": "Dan",
+          "Full": null,
           "Short": "D."
         }
       ],
@@ -27476,7 +27476,7 @@
     {
       "FirstName": [
         {
-          "Full": "Vladimir",
+          "Full": null,
           "Short": "V."
         }
       ],
@@ -27487,7 +27487,7 @@
     {
       "FirstName": [
         {
-          "Full": "Valeriu",
+          "Full": null,
           "Short": "V."
         }
       ],
@@ -27498,7 +27498,7 @@
     {
       "FirstName": [
         {
-          "Full": "Irina",
+          "Full": null,
           "Short": "I."
         }
       ],
@@ -27509,7 +27509,7 @@
     {
       "FirstName": [
         {
-          "Full": "Dorin",
+          "Full": null,
           "Short": "D."
         }
       ],
@@ -27652,7 +27652,7 @@
     {
       "FirstName": [
         {
-          "Full": "Marius",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27663,12 +27663,23 @@
     {
       "FirstName": [
         {
-          "Full": "Diana",
+          "Full": null,
           "Short": "D."
         }
       ],
       "LastName": [
         "Pugaci"
+      ]
+    },
+    {
+      "FirstName": [
+        {
+          "Full": null,
+          "Short": "A."
+        }
+      ],
+      "LastName": [
+        "Curmanschi"
       ]
     },
     {
@@ -27784,7 +27795,7 @@
     {
       "FirstName": [
         {
-          "Full": "Sergiu",
+          "Full": null,
           "Short": "S."
         }
       ],
@@ -27795,7 +27806,7 @@
     {
       "FirstName": [
         {
-          "Full": "Olga",
+          "Full": null,
           "Short": "O."
         }
       ],
@@ -27817,7 +27828,7 @@
     {
       "FirstName": [
         {
-          "Full": "Mihail",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27828,7 +27839,7 @@
     {
       "FirstName": [
         {
-          "Full": "Cristian",
+          "Full": null,
           "Short": "Cr."
         }
       ],
@@ -27839,7 +27850,7 @@
     {
       "FirstName": [
         {
-          "Full": "Aurelia",
+          "Full": null,
           "Short": "A."
         }
       ],
@@ -27850,7 +27861,7 @@
     {
       "FirstName": [
         {
-          "Full": "Gabriel-Cătălin",
+          "Full": null,
           "Short": "G."
         }
       ],
@@ -27905,18 +27916,18 @@
     {
       "FirstName": [
         {
-          "Full": "Ion",
+          "Full": null,
           "Short": "I."
         }
       ],
       "LastName": [
-        "Beț"
+        "Băț"
       ]
     },
     {
       "FirstName": [
         {
-          "Full": "Eva-Mădălina",
+          "Full": null,
           "Short": "E."
         }
       ],
@@ -27938,7 +27949,7 @@
     {
       "FirstName": [
         {
-          "Full": "Mihail",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27949,7 +27960,7 @@
     {
       "FirstName": [
         {
-          "Full": "Nichita",
+          "Full": null,
           "Short": "N."
         }
       ],
@@ -27960,7 +27971,18 @@
     {
       "FirstName": [
         {
-          "Full": "Mihail",
+          "Full": null,
+          "Short": "B."
+        }
+      ],
+      "LastName": [
+        "Vișnevschii"
+      ]
+    },
+    {
+      "FirstName": [
+        {
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -27971,7 +27993,29 @@
     {
       "FirstName": [
         {
-          "Full": "Denis",
+          "Full": null,
+          "Short": "I."
+        }
+      ],
+      "LastName": [
+        "Anghelov"
+      ]
+    },
+    {
+      "FirstName": [
+        {
+          "Full": null,
+          "Short": "V."
+        }
+      ],
+      "LastName": [
+        "Vișnevschii"
+      ]
+    },
+    {
+      "FirstName": [
+        {
+          "Full": null,
           "Short": "D."
         }
       ],
@@ -28015,7 +28059,7 @@
     {
       "FirstName": [
         {
-          "Full": "Maria",
+          "Full": null,
           "Short": "M."
         }
       ],
@@ -28043,237 +28087,6 @@
       ],
       "LastName": [
         "Braguta"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Ion",
-          "Short": "I."
-        }
-      ],
-      "LastName": [
-        "Andrieș"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Vladimir",
-          "Short": "V."
-        }
-      ],
-      "LastName": [
-        "Bodiul"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Tudor",
-          "Short": "T."
-        }
-      ],
-      "LastName": [
-        "Bragaru"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Tudor",
-          "Short": "T."
-        }
-      ],
-      "LastName": [
-        "Bumbu"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Felicia",
-          "Short": "F."
-        }
-      ],
-      "LastName": [
-        "Caliman"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Cristian",
-          "Short": "C."
-        }
-      ],
-      "LastName": [
-        "Cemîrtan"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Oleg",
-          "Short": "O."
-        }
-      ],
-      "LastName": [
-        "Ciornei"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Elena",
-          "Short": "E."
-        }
-      ],
-      "LastName": [
-        "Cuznețov"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Anatol",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Gladei"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Eugen",
-          "Short": "E."
-        }
-      ],
-      "LastName": [
-        "Mândru"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Alexei",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Murineț"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Serghei",
-          "Short": "S."
-        }
-      ],
-      "LastName": [
-        "Pascari"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Octavian",
-          "Short": "O."
-        }
-      ],
-      "LastName": [
-        "Pașa"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Anton",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Pavlenco"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Sergiu",
-          "Short": "S."
-        }
-      ],
-      "LastName": [
-        "Pereteatcu"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Anatol",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Poiată"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Arina",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Safin"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Greta",
-          "Short": "G."
-        }
-      ],
-      "LastName": [
-        "Sturza"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Vitalie",
-          "Short": "V."
-        }
-      ],
-      "LastName": [
-        "Ursachi"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Adina",
-          "Short": "A."
-        }
-      ],
-      "LastName": [
-        "Duca"
-      ]
-    },
-    {
-      "FirstName": [
-        {
-          "Full": "Mihaela",
-          "Short": "M."
-        }
-      ],
-      "LastName": [
-        "Rotari"
       ]
     }
   ],

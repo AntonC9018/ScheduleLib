@@ -5,7 +5,6 @@ using ScheduleLib;
 
 namespace MainCli.BuilderNew.Impl;
 
-
 public sealed class LabTasksDatabaseConfig : IConfig<LabTasksDatabaseConfig>
 {
     public static LayerConfigKey<LabTasksDatabaseConfig> Key { get; } = LayerConfigKey.Registry.Register<LabTasksDatabaseConfig>();

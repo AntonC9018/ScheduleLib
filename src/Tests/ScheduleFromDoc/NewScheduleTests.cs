@@ -10,7 +10,7 @@ public sealed class NewScheduleTests
     {
         var helper = IntegrationTestHelper.CreateNew();
         using var cts = IntegrationTestHelper.CreateCts();
-        var context = await helper.GetContextFromWord(cts.Token);
+        var context = await helper.GetContextFromSourceOfTruth(cts.Token);
         var schedule = context.Schedule.Build();
         var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
         var nodejsCourseId = lookup.Course("Node.js".AsMemory())!.Value;

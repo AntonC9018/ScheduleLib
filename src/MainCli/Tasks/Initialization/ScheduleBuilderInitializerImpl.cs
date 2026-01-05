@@ -45,13 +45,14 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         var studyYear = _studyYearOptions.Value;
 
         loader.CachedPath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
+        var dir = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}";
         loader.Components.Add(new DirectoryScheduleLoaderComponent
         {
-            DirectoryPath = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}",
+            DirectoryPath = @$"{dir}\zi",
         });
-        loader.Components.Add(new FRScheduleLoaderComponent
+        loader.Components.Add(new FRScheduleDirectoryLoaderComponent
         {
-            FilePath = @"data\2025_sem1\fr.xlsx",
+            DirectoryPath = @$"{dir}\fr",
         });
         loader.Components.Add(new EnrichWithTeacherFullNamesScheduleLoaderComponent
         {

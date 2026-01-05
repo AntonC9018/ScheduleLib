@@ -127,9 +127,9 @@ public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : ISchedul
     }
 }
 
-public sealed class FRScheduleLoaderComponent : IScheduleLoaderComponent
+public sealed class FRScheduleDirectoryLoaderComponent : IScheduleLoaderComponent
 {
-    public required string FilePath
+    public required string DirectoryPath
     {
         get;
         init => field = Path.GetFullPath(value);
@@ -137,18 +137,21 @@ public sealed class FRScheduleLoaderComponent : IScheduleLoaderComponent
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
-        await hasher.AppendFileContents(FilePath, cancellationToken);
+        await hasher.AppendDirectory(DirectoryPath, cancellationToken);
     }
 
     public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
     {
-        await using var inputFile = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        await FrExcelParser.ParseIntoSchedule(new()
+        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath, "*", SearchOption.AllDirectories))
         {
-            Context = context,
-            InputFile = inputFile,
-            StringBuilder = new(),
-        });
+            await using var inputFile = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            await FrExcelParser.ParseIntoSchedule(new()
+            {
+                Context = context,
+                InputFile = inputFile,
+                StringBuilder = new(),
+            });
+        }
     }
 }
 

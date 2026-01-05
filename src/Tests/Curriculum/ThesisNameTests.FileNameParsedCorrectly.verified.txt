@@ -1,1 +1,10 @@
-﻿
+﻿{
+  Number: 11,
+  Specialty: I,
+  Grade: 1,
+  Course: RC,
+  Teachers: [
+    Capcelea
+  ],
+  Year: 2024
+}
