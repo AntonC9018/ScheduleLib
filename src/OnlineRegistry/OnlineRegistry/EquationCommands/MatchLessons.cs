@@ -3,16 +3,6 @@ using ScheduleLib.Builders;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public readonly struct GetDateTimesOfScheduledLessonsParams
-{
-    public required IEnumerable<AnyLessonId> Lessons { get; init; }
-    public required Schedule Schedule { get; init; }
-    public required LessonTimeConfig TimeConfig { get; init; }
-    public required IAllScheduledDateProvider DateProvider { get; init; }
-    public required SemesterIntervalProvider SemesterIntervalProvider { get; init; }
-    public required Semester Semester { get; init; }
-}
-
 internal readonly record struct LessonMatchParams
 {
     public readonly CourseId CourseId;
@@ -35,7 +25,6 @@ internal readonly record struct LessonMatchParams
         Schedule = schedule;
     }
 }
-
 
 internal static class MatchLessonHelper
 {

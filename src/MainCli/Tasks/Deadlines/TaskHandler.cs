@@ -37,11 +37,9 @@ public sealed class DeadlinesExcelBuiltConfig
 [AutoConstructor]
 public sealed partial class GenerateDeadlinesExcelTaskHandler
 {
-    private readonly SemesterIntervalProvider _semesterIntervalProvider;
-    private readonly IAllScheduledDateProvider _dateProvider;
+    private readonly ScheduledDateTimeProvider _dateTimeProvider;
     private readonly CurrentTeacherIdProvider _idProvider;
     private readonly Schedule _schedule;
-    private readonly LessonTimeConfig _timeConfig;
     private readonly IOptions<StudyYearOptions> _studyYear;
     private readonly ConfigProvider<DeadlinesExcelBuiltConfig> _deadlinesExcelConfigProvider;
     private readonly LabsMappingProvider _labsProvider;
@@ -85,14 +83,10 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             foreach (var l in lessonsBySubgroup)
             {
                 var key = l.Key;
-                var scheduledLessons = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
+                var scheduledLessons = _dateTimeProvider.GetSorted(new()
                 {
                     Lessons = l.Select(x => x.Id),
-                    Schedule = _schedule,
-                    DateProvider = _dateProvider,
                     Semester = _studyYear.Value.Semester,
-                    TimeConfig = _timeConfig,
-                    SemesterIntervalProvider = _semesterIntervalProvider,
                 }).ToArray();
                 if (scheduledLessons.Length == 0)
                 {

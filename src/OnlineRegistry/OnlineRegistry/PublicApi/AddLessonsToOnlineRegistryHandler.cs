@@ -18,9 +18,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     private readonly IRegistryErrorHandler _errorHandler;
 
     private readonly LookupModule _lookup;
-    private readonly IAllScheduledDateProvider _dateProvider;
-    private readonly LessonTimeConfig _timeConfig;
-    private readonly SemesterIntervalProvider _semesterIntervalProvider;
+    private readonly ScheduledDateTimeProvider _dateTimeProvider;
 
     private readonly Schedule _schedule;
     private readonly ConfigProvider<BuiltRegistryConfig> _configProvider;
@@ -61,13 +59,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     subGroup: group.SubGroup));
 
                 // Figure out the exact dates the lessons will occur on.
-                var lessonsWithTimes = ScheduledLessonsHelper.GetSortedScheduledLessons(new()
+                var lessonsWithTimes = _dateTimeProvider.GetSorted(new()
                 {
                     Lessons = lessons,
-                    Schedule = _schedule,
-                    DateProvider = _dateProvider,
-                    TimeConfig = _timeConfig,
-                    SemesterIntervalProvider = _semesterIntervalProvider,
                     Semester = p.Semester,
                 });
 

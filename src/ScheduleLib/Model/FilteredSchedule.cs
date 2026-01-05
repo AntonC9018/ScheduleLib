@@ -316,10 +316,9 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    // TODO: figure out what to do here for FR
                     if (l.Weekly is not { } weekly)
                     {
-                        return false;
+                        return true;
                     }
 
                     var p = weekly.Date.Period;

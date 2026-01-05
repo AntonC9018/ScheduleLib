@@ -1,3 +1,5 @@
+using AutoConstructor.Attributes;
+
 namespace ScheduleLib.OnlineRegistry;
 
 public readonly record struct LessonWithDate : IDateTime
@@ -6,35 +8,37 @@ public readonly record struct LessonWithDate : IDateTime
     public required DateTime DateTime { get; init; }
 }
 
-public static class ScheduledLessonsHelper
+[AutoConstructor]
+public sealed partial class ScheduledDateTimeProvider
 {
-    public static IEnumerable<LessonWithDate> GetSortedScheduledLessons(
-        GetDateTimesOfScheduledLessonsParams p)
+    private readonly Schedule _schedule;
+    private readonly LessonTimeConfig _timeConfig;
+    private readonly IAllScheduledDateProvider _dateProvider;
+    private readonly SemesterIntervalProvider _semesterIntervalProvider;
+
+    public readonly struct Params
     {
-        var t = GetDateTimesOfScheduledLessons(p);
-        // TODO: Do this in the previous function immediately?
-        t = t.OrderBy(x => x.DateTime);
-        return t;
+        public required IEnumerable<AnyLessonId> Lessons { get; init; }
+        public required Semester Semester { get; init; }
     }
 
-    private static IEnumerable<LessonWithDate> GetDateTimesOfScheduledLessons(
-        GetDateTimesOfScheduledLessonsParams p)
+    public IEnumerable<LessonWithDate> Get(Params p)
     {
         foreach (var lessonId in p.Lessons)
         {
-            var lesson = p.Schedule.Get(lessonId);
+            var lesson = _schedule.Get(lessonId);
             var timeSlot = lesson.GetTimeSlot();
-            var startTime = p.TimeConfig.GetTimeSlotInterval(timeSlot).Start;
-            var semester = p.SemesterIntervalProvider.GetSemesterInterval(new()
+            var startTime = _timeConfig.GetTimeSlotInterval(timeSlot).Start;
+            var semester = _semesterIntervalProvider.GetSemesterInterval(new()
             {
-                Schedule = p.Schedule,
+                Schedule = _schedule,
                 GroupId = lesson.Lesson.Group,
                 Semester = p.Semester,
             });
-            var dates = lesson.GetProgrammedDates(new()
+            var dates = GetProgrammedDates(lesson, new()
             {
-                DateProvider = p.DateProvider,
-                Schedule = p.Schedule,
+                DateProvider = _dateProvider,
+                Schedule = _schedule,
                 Semester = semester,
             });
 
@@ -60,7 +64,7 @@ public static class ScheduledLessonsHelper
     }
 
     private static IEnumerable<DateOnly> GetProgrammedDates(
-        this AnyLessonAccessor lesson,
+        AnyLessonAccessor lesson,
         GetProgrammedDatesParams p)
     {
         if (lesson.Weekly is { } weekly)
@@ -109,5 +113,18 @@ public static class ScheduledLessonsHelper
         {
             throw Unreachable();
         }
+    }
+}
+
+public static class ScheduledDateTimeProviderExtensions
+{
+    public static IEnumerable<LessonWithDate> GetSorted(
+        this ScheduledDateTimeProvider provider,
+        ScheduledDateTimeProvider.Params p)
+    {
+        var t = provider.Get(p);
+        // TODO: Do this in the previous function immediately?
+        t = t.OrderBy(x => x.DateTime);
+        return t;
     }
 }
