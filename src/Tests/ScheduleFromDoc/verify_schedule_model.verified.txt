@@ -1845,9 +1845,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         V. Arnaut
@@ -1879,9 +1879,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         V. Arnaut
@@ -2491,7 +2491,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         I. Andrieș
@@ -2674,7 +2674,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         V. Arnaut
@@ -2719,7 +2719,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         I. Andrieș
@@ -2794,7 +2794,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         V. Arnaut
@@ -2864,8 +2864,8 @@
       Room: 214/4,
       Type: Unspecified,
       Groups: [
-        M2401,
         IA2401,
+        M2401,
         I2402,
         IA2403,
         DJ2401,
@@ -2883,8 +2883,8 @@
       Room: 214/4,
       Type: Unspecified,
       Groups: [
-        M2401,
         IA2401,
+        M2401,
         I2402,
         IA2403,
         DJ2401,
@@ -3795,9 +3795,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         A. Niculiță
@@ -3829,9 +3829,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         A. Niculiță
@@ -5496,7 +5496,7 @@
       Room: ,
       Type: Seminar,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         V. Ungureanu
@@ -5525,7 +5525,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         T. Bragaru
@@ -5980,7 +5980,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         V. Ungureanu
@@ -6011,7 +6011,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         T. Bragaru
@@ -6513,7 +6513,7 @@
       Room: ,
       Type: Seminar,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         V. Ungureanu
@@ -6560,7 +6560,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         T. Bragaru
@@ -6898,7 +6898,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         V. Ungureanu
@@ -6929,7 +6929,7 @@
       Room: ,
       Type: Unspecified,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         T. Bragaru
@@ -10001,7 +10001,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         O. Cerbu
@@ -10046,7 +10046,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         V. Arnaut
@@ -10138,7 +10138,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         O. Cerbu
@@ -10153,7 +10153,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         V. Arnaut
@@ -10217,9 +10217,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         A. Donu
@@ -10233,9 +10233,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         A. Donu
@@ -11067,9 +11067,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         N. Pleșca
@@ -11084,9 +11084,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         N. Pleșca
@@ -11507,10 +11507,10 @@
       Room: 404/4,
       Type: Curs,
       Groups: [
-        M2401,
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        M2401,
+        I2401
       ],
       Teachers: [
         E. Bogatu
@@ -11525,10 +11525,10 @@
       Room: 404/4,
       Type: Curs,
       Groups: [
-        M2401,
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        M2401,
+        I2401
       ],
       Teachers: [
         E. Bogatu
@@ -12896,8 +12896,8 @@
       Room: 214/4,
       Type: Unspecified,
       Groups: [
-        M2401,
         IA2401,
+        M2401,
         I2402,
         IA2403,
         DJ2401,
@@ -12915,8 +12915,8 @@
       Room: 214/4,
       Type: Unspecified,
       Groups: [
-        M2401,
         IA2401,
+        M2401,
         I2402,
         IA2403,
         DJ2401,
@@ -13360,9 +13360,9 @@
       Room: 401/4,
       Type: Seminar,
       Groups: [
+        IA2401,
         M2401,
-        I2401,
-        IA2401
+        I2401
       ],
       Teachers: [
         A. Lupușor
@@ -13377,9 +13377,9 @@
       Room: 401/4,
       Type: Seminar,
       Groups: [
+        IA2401,
         M2401,
-        I2401,
-        IA2401
+        I2401
       ],
       Teachers: [
         A. Lupușor
@@ -14352,9 +14352,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         T. Capcelea
@@ -14385,9 +14385,9 @@
       Room: 213a/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         T. Capcelea
@@ -14788,9 +14788,9 @@
       Room: 404/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         I. Cucu
@@ -14805,9 +14805,9 @@
       Room: 404/4,
       Type: Curs,
       Groups: [
-        I2401,
         IA2401,
-        IA2402
+        IA2402,
+        I2401
       ],
       Teachers: [
         I. Cucu
@@ -15582,7 +15582,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         I. Andrieș
@@ -15706,7 +15706,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         O. Cerbu
@@ -15721,7 +15721,7 @@
       Room: ,
       Type: Lab,
       Groups: [
-        MIA2401
+        IA2401
       ],
       Teachers: [
         I. Andrieș
@@ -15813,7 +15813,7 @@
       Room: ,
       Type: Curs,
       Groups: [
-        MIA2402
+        IA2402
       ],
       Teachers: [
         O. Cerbu

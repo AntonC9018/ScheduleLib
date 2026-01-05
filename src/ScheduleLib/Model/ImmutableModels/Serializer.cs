@@ -66,6 +66,9 @@ public static class ScheduleSerializer
         options.Converters.Add(new DateOnlyJsonConverter());
         options.Converters.Add(new SingleValueWrapperConverterFactory());
         options.Converters.Add(new JsonStringEnumConverter<Language>());
+        options.Converters.Add(new JsonStringEnumConverter<LessonType>());
+        options.Converters.Add(new JsonStringEnumConverter<DayOfWeek>());
+        options.Converters.Add(new JsonStringEnumConverter<Parity>());
         options.Converters.Add(new OnlySerializeSettersForUserDefinedTypesConverterFactory());
         var textEncoder = new TextEncoderSettings();
         textEncoder.AllowRanges(

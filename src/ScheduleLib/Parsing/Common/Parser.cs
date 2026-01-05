@@ -76,12 +76,12 @@ public interface IShouldSkipSequence
 
 public static class ParserHelper
 {
-    public static bool IsUpper(char ch)
+    public static bool IsUpperAscii(char ch)
     {
         return ch >= 'A' && ch <= 'Z';
     }
 
-    public static bool IsLower(char ch)
+    public static bool IsLowerAscii(char ch)
     {
         return ch >= 'a' && ch <= 'z';
     }

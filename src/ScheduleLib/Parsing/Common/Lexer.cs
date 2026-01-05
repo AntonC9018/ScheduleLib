@@ -33,10 +33,124 @@ public readonly record struct LexerPosition(int Value)
 {
 }
 
-public struct LexerScope
+public interface ILexer
+{
+    public bool CanPeek(int offset = 1);
+    public Token Peek(int offset = 1);
+    public void Move(int amount = 1);
+}
+
+public static class ClassLexerExtensions
+{
+    extension<T>(T lexer) where T : class, ILexer
+    {
+        public LexerStructWrapper Wrap() => new(lexer);
+
+        public bool IsEmpty
+        {
+            get
+            {
+                var t = lexer.Wrap();
+                return t.IsEmpty;
+            }
+        }
+
+        public Token Current
+        {
+            get
+            {
+                var t = lexer.Wrap();
+                return t.Current;
+            }
+        }
+
+        public bool TryConsumeAny(ReadOnlySpan<TokenType> types)
+        {
+            var t = lexer.Wrap();
+            return t.TryConsumeAny(types);
+        }
+
+        public bool TryConsume(TokenType type)
+        {
+            var t = lexer.Wrap();
+            return t.TryConsume(type);
+        }
+
+        public bool TryConsume(char ch)
+        {
+            var t = lexer.Wrap();
+            return t.TryConsume(ch);
+        }
+    }
+}
+
+public static class StructLexerExtensions
+{
+    extension<T>(ref T lexer) where T : struct, ILexer
+    {
+        public bool IsEmpty => !lexer.CanPeek();
+        public Token Current => lexer.Peek();
+
+        public bool TryConsumeAny(ReadOnlySpan<TokenType> types)
+        {
+            if (lexer.IsEmpty)
+            {
+                return false;
+            }
+            foreach (var type in types)
+            {
+                if (lexer.TryConsume(type))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool TryConsume(TokenType type)
+        {
+            if (lexer.IsEmpty)
+            {
+                return false;
+            }
+            if (lexer.Current.Type == type)
+            {
+                lexer.Move();
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryConsume(char ch)
+        {
+            if (lexer.Current.Is(ch))
+            {
+                lexer.Move();
+                return true;
+            }
+            return false;
+        }
+    }
+}
+
+public readonly struct LexerStructWrapper : ILexer
+{
+    private readonly ILexer _lexer;
+
+    public LexerStructWrapper(ILexer lexer)
+    {
+        _lexer = lexer;
+    }
+
+    public readonly bool CanPeek(int offset = 1) => _lexer.CanPeek(offset);
+    public readonly Token Peek(int offset = 1) => _lexer.Peek(offset);
+    public readonly void Move(int amount = 1) => _lexer.Move(amount);
+}
+
+public struct LexerScope : ILexer
 {
     internal LexerPosition _position;
-    internal Lexer _lexer;
+    internal readonly Lexer _lexer;
 
     public readonly LexerPosition Position => _position;
     internal int PositionIndex
@@ -66,10 +180,6 @@ public struct LexerScope
         PositionIndex += amount;
     }
 
-    public bool IsEmpty => !CanPeek(1);
-
-    public Token Current => Peek(1);
-
     public readonly Token Peek(int offset)
     {
         int i = PositionIndex + offset;
@@ -91,26 +201,6 @@ public struct LexerScope
         }
 
         return true;
-    }
-
-    public bool TryConsume(TokenType type)
-    {
-        if (Current.Type == type)
-        {
-            Move();
-            return true;
-        }
-        return false;
-    }
-
-    public bool TryConsume(char ch)
-    {
-        if (Current.Is(ch))
-        {
-            Move();
-            return true;
-        }
-        return false;
     }
 
     /// <summary>
@@ -143,7 +233,7 @@ public interface ITokenReader
     public TokenType Read(ref Parser parser);
 }
 
-public sealed class Lexer
+public sealed class Lexer : ILexer
 {
     public readonly TokenTypeLabels TokenTypeLabels;
 
@@ -177,6 +267,34 @@ public sealed class Lexer
         _rowIndex = 0;
         _hasOutputEndOfLine = true;
         _hasOutputEndOfStream = false;
+    }
+
+    public bool CanPeek(int offset = 1)
+    {
+        Debug.Assert(offset >= 1);
+        return ReadTokens(offset);
+    }
+
+    public Token Peek(int offset = 1)
+    {
+        Debug.Assert(offset >= 1);
+        if (ReadTokens(offset))
+        {
+            return _queue[offset - 1];
+        }
+        throw new InvalidOperationException("Not enough tokens");
+    }
+
+    public void Move(int amount = 1)
+    {
+        if (!CanPeek(amount))
+        {
+            Debug.Fail("Not enough tokens to skip");
+            _queue.Clear();
+            return;
+        }
+
+        _queue.RemoveRange(0, amount);
     }
 
     internal string ToStringImpl(
@@ -257,8 +375,7 @@ public sealed class Lexer
         return true;
     }
 
-
-    public bool ReadTokens(int count)
+    private bool ReadTokens(int count)
     {
         while (true)
         {
@@ -282,7 +399,6 @@ public sealed class Lexer
             AddCurrentToken(bparser.Position, tokenType);
         }
     }
-
 
     private bool HasEndOfStream => _hasOutputEndOfStream;
 
@@ -324,39 +440,6 @@ public sealed class Lexer
         });
         _hasOutputEndOfLine = true;
         return true;
-    }
-
-    public bool CanPeek(int offset = 1)
-    {
-        Debug.Assert(offset >= 1);
-        return ReadTokens(offset);
-    }
-
-    public Token Peek(int offset = 1)
-    {
-        Debug.Assert(offset >= 1);
-        if (ReadTokens(offset))
-        {
-            return _queue[offset - 1];
-        }
-        throw new InvalidOperationException("Not enough tokens");
-    }
-
-    public void Move(int amount = 1)
-    {
-        if (!CanPeek(amount))
-        {
-            Debug.Fail("Not enough tokens to skip");
-            _queue.Clear();
-            return;
-        }
-
-        _queue.RemoveRange(0, amount);
-    }
-
-    public bool IsEmpty()
-    {
-        return !CanPeek(1);
     }
 }
 
@@ -448,7 +531,7 @@ public readonly record struct TokenTypeLabels(
     }
 }
 
-public struct LimitedLexerScope
+public struct LimitedLexerScope : ILexer
 {
     private LexerScope _lexer;
     private readonly LexerPosition _endPosition;
@@ -459,8 +542,6 @@ public struct LimitedLexerScope
         _endPosition = endPosition;
     }
 
-    public readonly Token Current => _lexer.Current;
-    public readonly bool IsEmpty => !CanPeek(1);
     public readonly LexerPosition Position => _lexer.Position;
 
     public readonly bool CanPeek(int offset)
@@ -481,7 +562,6 @@ public struct LimitedLexerScope
     }
 
     public void Move(int amount = 1) => _lexer.Move(amount);
-    public bool TryConsume(TokenType type) => _lexer.TryConsume(type);
 
     public readonly override string ToString()
     {

@@ -49,13 +49,13 @@ public static class VerifyModelMapper
 
         return new()
         {
-            Day = date.DayOfWeek.ToString(),
+            Day = Enum.GetName(date.DayOfWeek)!,
             Time = date.TimeSlot.Index,
-            Parity = date.Parity.ToString(),
+            Parity = Enum.GetName(date.Parity)!,
             Period = period,
             Course = s.Get(lesson.Course).FullName,
             Room = room,
-            Type = lesson.Type.ToString(),
+            Type = Enum.GetName(lesson.Type)!,
             Groups = EnumerateGroups(s, lesson.Groups),
             Teachers = lesson.Teachers.Select(tid =>
             {

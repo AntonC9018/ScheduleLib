@@ -618,9 +618,9 @@ public enum LessonType
     Lab,
     Seminar,
     Curs,
-    Unspecified,
     Prelegere,
     Custom,
+    Unspecified,
     Count,
 }
 
@@ -887,15 +887,16 @@ public static class ScheduleAccessorHelper
     public static SubGroupsByGroup SubGroupsByGroup(this Schedule schedule)
     {
         var result = new SubGroupsByGroup();
+        foreach (var group in schedule.EnumerateGroups())
+        {
+            result.Add(group.Id, new());
+        }
         foreach (var lesson in schedule.EnumerateAllLessons())
         {
-            var groupId = lesson.Lesson.Group;
-            if (!result.TryGetValue(groupId, out var subGroups))
+            foreach (var g in lesson.Lesson.Groups)
             {
-                subGroups = new HashSet<SubGroup>();
-                result[groupId] = subGroups;
+                result[g].Add(lesson.Lesson.SubGroup);
             }
-            subGroups.Add(lesson.Lesson.SubGroup);
         }
         return result;
     }

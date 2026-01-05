@@ -49,6 +49,10 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         {
             DirectoryPath = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}",
         });
+        loader.Components.Add(new FRScheduleLoaderComponent
+        {
+            FilePath = @"data\2025_sem1\fr.xlsx",
+        });
         loader.Components.Add(new EnrichWithTeacherFullNamesScheduleLoaderComponent
         {
             FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",

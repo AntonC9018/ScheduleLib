@@ -26,9 +26,9 @@ public sealed class LessonParserTests
         var lexer = LessonParsingHelper.CreateLexer();
         lexer.Reset(strings.GetEnumerator());
         List<Token> result = new();
-        while (!lexer.IsEmpty())
+        while (!lexer.IsEmpty)
         {
-            result.Add(lexer.Peek(1));
+            result.Add(lexer.Current);
             lexer.Move();
         }
         Assert.DoesNotContain(result, x => x.Type == TokenType.Invalid);
@@ -210,7 +210,7 @@ public sealed class LessonParserTests
             });
     }
 
-    [Fact]
+    [Fact()]
     public void NoLessonModifiers_MultipleDefaultModifiers()
     {
         var lessons = ParseLessons([
@@ -242,11 +242,11 @@ public sealed class LessonParserTests
 
         }
 
-        Assert.Equal(4, lessons.Length);
         Assert.Contains(lessons, x => Check(x, "LessonA", "A", "TeacherA"));
         Assert.Contains(lessons, x => Check(x, "LessonB", "A", "TeacherA"));
         Assert.Contains(lessons, x => Check(x, "LessonA", "B", "TeacherB"));
         Assert.Contains(lessons, x => Check(x, "LessonB", "B", "TeacherB"));
+        Assert.Equal(4, lessons.Length);
     }
 
     [Fact]
@@ -740,21 +740,68 @@ public sealed class LessonParserTests
     public void SpecialCase_SubgroupName()
     {
         var lessons = ParseLessons([
-            "S21 NameOne (lab), Teacher, 145/4",
-            "S1 NameTwo (lab), Teacher, 143/4",
-        ], spaces: Config.WhiteSpaceActionCourseName);
+            "S21 NameOne (lab), T.Teacher, 145/4",
+            "S1 NameTwo (lab), T.Teacher, 143/4",
+        ]);
 
         Assert.Collection(lessons,
             l1 =>
             {
-                Assert.Equal(l1.LessonName.Span, "NameOne");
-                Assert.Equal(l1.SubGroup, new SubGroup("S21"));
+                Assert.Equal("NameOne", l1.LessonName.Span);
+                Assert.Equal(new SubGroup("S21"), l1.SubGroup);
             },
             l2 =>
             {
-                Assert.Equal(l2.LessonName.Span, "NameTwo");
-                Assert.Equal(l2.SubGroup, new SubGroup("S1"));
+                Assert.Equal("NameTwo", l2.LessonName.Span);
+                Assert.Equal(new SubGroup("S1"), l2.SubGroup);
             });
+    }
+
+    [Fact]
+    public void NoSubGroup_CommasAfterModifiers()
+    {
+        var lessons = ParseLessons([
+            "Fund. Progr. (prel),",
+            "M. Pavel, 404/4",
+        ]);
+
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Assert.Equal("Fund. Progr.", l1.LessonName.Span);
+                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.Equal(LessonType.Prelegere, l1.LessonType);
+                AssertEqualName("M.Pavel", Assert.Single(l1.TeacherNames));
+                Assert.Equal("404/4", l1.RoomName.Span);
+            });
+    }
+
+    [Fact]
+    public void TestBreakingInFr()
+    {
+        var lessons = ParseLessons([
+            "Elab. aplic. graf. (lab),\n M.Marin, 145a/4",
+        ], Config.WhiteSpaceActionCourseName);
+
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Assert.Equal("Elab. aplic. graf.", l1.LessonName.Span);
+                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.Equal(LessonType.Lab, l1.LessonType);
+                AssertEqualName("M.Marin", Assert.Single(l1.TeacherNames));
+                Assert.Equal("145a/4", l1.RoomName.Span);
+            });
+    }
+
+    [Fact]
+    public void EmptyStringTest()
+    {
+        var lessons = ParseLessons([
+            "",
+        ]);
+
+        Assert.Empty(lessons);
     }
 }
 

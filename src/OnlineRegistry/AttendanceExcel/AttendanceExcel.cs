@@ -108,7 +108,7 @@ public static class AttendanceExcel
         var subGroup = SubGroup.All;
         Group? group = null;
 
-        while (!lexer.IsEmpty())
+        while (!lexer.IsEmpty)
         {
             var token = lexer.Peek();
             switch (token.Type)

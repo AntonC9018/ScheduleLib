@@ -118,6 +118,7 @@ public static class ScheduleDocumentParserHelper
                 throw new InvalidOperationException("Date not parsed according to the format.");
             }
 
+            parser.MoveTo(bparser.Position);
             return date;
         }
 

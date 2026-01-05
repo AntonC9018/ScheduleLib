@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
+using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 
 namespace MainCli.FR;
@@ -28,7 +28,7 @@ public static class FrExcelParser
 
     private readonly record struct NumberedWorksheet(IXLWorksheet Worksheet, int Semester);
 
-    public static ValueTask Parse(Params p)
+    public static ValueTask ParseIntoSchedule(Params p)
     {
         using var xl = new XLWorkbook(p.InputFile);
         var ws = xl.Worksheets
@@ -59,8 +59,8 @@ public static class FrExcelParser
         {
             throw new NotSupportedException("Expected header row!");
         }
-        var years = ParseGrades(rowE);
-        var groups = ParseGroups(rowE, p.Context.Schedule, years);
+        var (years, offset) = ParseGrades(rowE);
+        using var groups = ParseGroups(rowE, p.Context.Schedule, years, offset);
         if (!rowE.MoveNext())
         {
             throw new NotSupportedException("Bullshit row not found");
@@ -81,8 +81,11 @@ public static class FrExcelParser
                 break;
             }
             var row = rowE.Current!;
-            var cellE = row.Cells().GetEnumerator();
-            rowIterationContext.Update(row, cellE);
+            var cellE = row.CellsWithMergedAppearingOnce().GetEnumerator();
+            if (!rowIterationContext.Update(row, cellE))
+            {
+                break;
+            }
 
             var cellIterationContext = new CellIterationContext(cellE);
 
@@ -93,26 +96,51 @@ public static class FrExcelParser
                     break;
                 }
 
+                var cell = cellIterationContext.Cell;
+                var value = cell.Value;
+                if (value.IsBlank)
+                {
+                    continue;
+                }
+
                 var lessonGroups = lessonGroupsMem[.. cellIterationContext.ColSpan];
                 foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
                 {
-                    var groupId = groups.Get(columnNumber);
+                    var offsetIndex = offset.GetUnOffsetIndex(columnNumber);
+                    var groupId = groups.Get(offsetIndex);
                     lessonGroups[index] = groupId;
                 }
 
-                var text = cellIterationContext.Cell.GetText();
+                var text = value.GetText();
                 using var textAsEnumerable = SingleItemEnumerator.Create(text);
                 lessonParser.Lexer.Reset(textAsEnumerable);
-                var parsedLessons = lessonParser.ParseLessons(stringBuilder);
-                foreach (var parsedLesson in parsedLessons)
+                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder).GetEnumerator();
+                while (true)
                 {
+                    try
+                    {
+                        if (!parsedLessonE.MoveNext())
+                        {
+                            break;
+                        }
+                    }
+                    catch (WrongFormatException exception)
+                    {
+                        throw cell.Exception("Error while parsing lesson", exception);
+                    }
+                    catch (Exception other)
+                    {
+                        throw cell.Exception("Error when adding lesson", other);
+                    }
+
+                    var parsedLesson = parsedLessonE.Current;
                     if (parsedLesson.Parity != Parity.EveryWeek)
                     {
-                        throw new NotSupportedException("Parity not supported for FR.");
+                        throw cell.Exception("Parity not supported for FR.");
                     }
                     if (parsedLesson.StartTime != null)
                     {
-                        throw new NotSupportedException("Different start time not supported for FR.");
+                        throw cell.Exception("Different start time not supported for FR.");
                     }
 
                     var builder = p.Context.Schedule.OneTimeLesson();
@@ -122,7 +150,7 @@ public static class FrExcelParser
                     {
                         if (!parsedLesson.GroupName.IsEmpty)
                         {
-                            throw new NotSupportedException("A different group name in FR is not allowed.");
+                            throw cell.Exception("A different group name in FR is not allowed.");
                         }
                     }
 
@@ -170,7 +198,7 @@ public static class FrExcelParser
             }
         }
 
-        public void Update(IXLRow row, IEnumerator<IXLCell> cellE)
+        public bool Update(IXLRow row, IEnumerator<IXLCell> cellE)
         {
             {
                 int newRowNumber = row.RowNumber();
@@ -186,7 +214,7 @@ public static class FrExcelParser
                 throw new NotSupportedException("No date column found");
             }
 
-            var range = cellE.Current.MergedRange();
+            var range = cellE.Current.ActualRange();
 
             if (_rowsSinceLastDate == _currentRowSpan)
             {
@@ -198,10 +226,20 @@ public static class FrExcelParser
                 _currentRowSpan = range.RowCount();
                 _rowsSinceLastDate = 0;
                 var cell = cellE.Current;
-                var text = cell.GetText();
+                var value = cell.Value;
+                if (value.IsBlank)
+                {
+                    return false;
+                }
+                var text = value.GetText();
+                if (text == "")
+                {
+                    return false;
+                }
                 var newDay = ParseDay(text, dayNameParser);
                 _lastDateRange = range;
                 _previousTimeSlotRoman = NoTimeSlotRoman;
+                _timeSlot = null;
                 _day = newDay;
 
                 if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
@@ -230,36 +268,44 @@ public static class FrExcelParser
                 var cell = cellE.Current;
                 if (cell.IsMerged())
                 {
-                    throw new NotSupportedException("Time slot cell must not be merged!");
+                    throw cell.Exception("Time slot cell must not be merged!");
                 }
 
                 var parser = new Parser(cell.GetString());
+                parser.SkipWhitespace();
                 var romanReadResult = parser.ReadRoman();
                 if (romanReadResult.Status != ReadRomanStatus.Ok)
                 {
-                    throw new NotSupportedException("Expected a roman numeral for the time slot.");
+                    if (_previousTimeSlotRoman != 0)
+                    {
+                        throw cell.Exception("Expected a roman numeral for the time slot.");
+                    }
                 }
-                if (romanReadResult.Number - _previousTimeSlotRoman != 1)
+                else
                 {
-                    throw new NotSupportedException("Expected time slot roman numerals to be consecutive.");
-                }
-                _previousTimeSlotRoman = romanReadResult.Number;
+                    if (romanReadResult.Number - _previousTimeSlotRoman != 1)
+                    {
+                        throw cell.Exception("Expected time slot roman numerals to be consecutive.");
+                    }
+                    _previousTimeSlotRoman = romanReadResult.Number;
 
-                if (!parser.SkipWhitespace().SkippedAny)
-                {
-                    throw new NotSupportedException("Expected whitespace between roman time slot and ");
+                    if (!parser.SkipWhitespace().SkippedAny)
+                    {
+                        throw cell.Exception("Expected whitespace between roman time slot and ");
+                    }
                 }
+
                 var timeInterval = parser.ParseTimeInterval();
 
                 if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
                 {
-                    throw new NotSupportedException($"Not found time slot with start time `{timeInterval.Start}`");
+                    throw cell.Exception($"Not found time slot with start time `{timeInterval.Start}`");
                 }
 
                 var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
                 if (newTimeSlotTime.End != timeInterval.End)
                 {
-                    throw new NotSupportedException($"The end time of interval `{timeInterval.End}` doesn't match.");
+                    throw cell.Exception($"The end time of interval `{timeInterval.End}` doesn't match.");
                 }
 
                 if (_timeSlot is { } timeSlot)
@@ -267,12 +313,12 @@ public static class FrExcelParser
                     int expectedNext = timeSlot.Index + 1;
                     if (expectedNext != timeSlotFound.Index)
                     {
-                        throw new NotSupportedException("Time slot times must be consecutive.");
+                        throw cell.Exception("Time slot times must be consecutive.");
                     }
-
-                    _timeSlot = timeSlotFound;
                 }
+                _timeSlot = timeSlotFound;
             }
+            return true;
         }
     }
 
@@ -304,7 +350,7 @@ public static class FrExcelParser
         {
             get
             {
-                var range = _cellE.Current.MergedRange();
+                var range = _cellE.Current.ActualRange();
                 var cols = range.Columns();
                 var ret = cols.Select(x => x.ColumnNumber());
                 return ret;
@@ -318,13 +364,13 @@ public static class FrExcelParser
                 return false;
             }
             var cell = _cellE.Current;
-            var merged = cell.MergedRange();
-            if (merged.RowCount() != 1)
+            var range = cell.ActualRange();
+            if (range.RowCount() != 1)
             {
                 throw new NotSupportedException("Cells spanning only a single row are allowed.");
             }
 
-            var newColNumber = cell.AsRange().FirstColumn().ColumnNumber();
+            var newColNumber = range.FirstColumn().ColumnNumber();
             if (_colNumber != -1)
             {
                 int expectedNextCol = _colNumber + _colSpan;
@@ -335,7 +381,7 @@ public static class FrExcelParser
             }
             _colNumber = newColNumber;
 
-            int colCount = merged.ColumnCount();
+            int colCount = range.ColumnCount();
             _colSpan = colCount;
 
             if (colCount > ColSpanHardLimit)
@@ -369,31 +415,75 @@ public static class FrExcelParser
         return new(day, date);
     }
 
-
-    private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date);
-
-    private const int NoYear = -1;
-    private static SizedItemArray<int> ParseGrades(IEnumerator<IXLRow> rowE)
+    private readonly record struct RestoredIndex(int Value);
+    private readonly record struct Offset(int Value)
     {
-        var ret = new SizedItemArray<int>();
+        public RestoredIndex GetUnOffsetIndex(int columnIndex) => new(columnIndex - Value);
+    }
+    private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date);
+    private readonly record struct Grades
+    {
+        private readonly SizedItemArray<Grade> _array;
+
+        public Grades(SizedItemArray<Grade> array)
+        {
+            _array = array;
+        }
+
+        public int Count => _array.TotalSize;
+
+        public Grade Get(RestoredIndex index)
+        {
+            return _array.Find(index.Value);
+        }
+    }
+
+    private static (Grades Grades, Offset Offset) ParseGrades(IEnumerator<IXLRow> rowE)
+    {
+        var ret = new SizedItemArray<Grade>();
         if (!rowE.MoveNext())
         {
             throw new NotSupportedException("Expected grade row!");
         }
-        foreach (var cell in rowE.Current.Cells())
+
+        int? startOffset = null;
+
+        foreach (var cell in rowE.Current.CellsWithMergedAppearingOnce())
         {
-            var merged = cell.MergedRange();
-            if (merged.Rows().Count() != 1)
+            var range = cell.ActualRange();
+            if (range.RowCount() != 1)
             {
+                if (startOffset != null)
+                {
+                    throw new NotSupportedException("Multirow header column after non-empty cell");
+                }
                 continue;
             }
 
             var str = cell.GetString();
+            if (str is null or "")
+            {
+                if (startOffset != null)
+                {
+                    break;
+                }
+                continue;
+            }
+
             var parser = new Parser(str);
             if (!parser.ConsumeExactString("Anul"))
             {
-                throw new NotSupportedException("Expected `Anul` in the header row.");
+                if (startOffset != null)
+                {
+                    throw new NotSupportedException("Expected `Anul` in the header row.");
+                }
+                continue;
             }
+            if (startOffset == null)
+            {
+                startOffset = range.FirstColumn().ColumnNumber();
+            }
+
             if (!parser.SkipWhitespace().SkippedAny)
             {
                 throw new NotSupportedException("Expected whitespace after `Anul`.");
@@ -405,117 +495,193 @@ public static class FrExcelParser
             }
 
             var grade = romanResult.Number;
-            var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
-            var columnCount = merged.ColumnCount();
+            var columnNumber = range.FirstColumn().ColumnNumber();
+            var columnCount = cell.ColumnCount();
+            int index = columnNumber - startOffset.Value;
 
-            var item = new SizedItem<int>(item: grade, size: columnCount);
-            if (ret.IsEmpty)
+            var item = new SizedItem<Grade>(item: new(grade), size: columnCount);
+            if (ret.TotalSize != index)
             {
-                ret.AddAt(columnNumber, item, fillerValue: NoYear);
+                throw new NotSupportedException("Empty grade cell not allowed.");
             }
-            else
-            {
-                if (ret.TotalSize != columnNumber)
-                {
-                    throw new NotSupportedException("Empty grade cell not allowed.");
-                }
-                ret.Add(item);
-            }
+            ret.Add(item);
         }
-        return ret;
+        return (new(ret), new(startOffset ?? 0));
     }
 
-    private readonly struct Groups
+    private readonly struct Groups : IDisposable
     {
-        private readonly GroupId[] _arr;
-        private readonly int _firstColumnOffset;
+        private readonly RentedBuffer<GroupId> _arr;
 
-        public Groups(GroupId[] arr, int firstColumnOffset)
+        public Groups(RentedBuffer<GroupId> arr)
         {
             _arr = arr;
-            _firstColumnOffset = firstColumnOffset;
         }
 
-        public int FirstColumn() => _firstColumnOffset;
-
-        public GroupId Get(int column)
+        public GroupId Get(RestoredIndex index)
         {
-            int index = column - _firstColumnOffset;
-            return _arr[index];
+            return _arr.Span[index.Value];
+        }
+
+        public void Dispose()
+        {
+            if (_arr != default)
+            {
+                _arr.Dispose();
+            }
         }
     }
 
     private static Groups ParseGroups(
         IEnumerator<IXLRow> rowE,
         ScheduleBuilder builder,
-        SizedItemArray<int> years)
+        Grades grades,
+        Offset offset)
     {
         if (!rowE.MoveNext())
         {
             throw new NotSupportedException("No groups row found.");
         }
-        if (years.FindPositionOfFirstOtherThan(NoYear) is not { } firstColumnOffset)
+        var outputCount = grades.Count;
+        if (outputCount == 0)
         {
-            return new([], 0);
+            return default;
         }
-        var outputCount = years.Count - firstColumnOffset;
-        using var cellE = rowE.Current.Cells().GetEnumerator();
+        using var cellE = rowE.Current.CellsWithMergedAppearingOnce().GetEnumerator();
         while (true)
         {
             if (!cellE.MoveNext())
             {
-                return new([], firstColumnOffset);
+                return default;
             }
-            var col = cellE.Current!.AsRange().FirstColumn().ColumnNumber();
-            if (col == outputCount)
+            var cell = cellE.Current;
+            var col = cell.AsRange().FirstColumn().ColumnNumber();
+            var colIndex = offset.GetUnOffsetIndex(col);
+            if (colIndex.Value == 0)
             {
                 break;
             }
-            if (col > outputCount)
+            if (colIndex.Value > 0)
             {
-                throw new NotSupportedException("Number of blanks doesn't match");
+                throw cell.Exception("Number of blanks doesn't match");
             }
-            if (!cellE.Current!.Value.IsBlank)
+            if (!cell.Value.IsBlank)
             {
-                throw new NotSupportedException("Skipped cells must be blank");
+                throw cell.Exception("Skipped cells must be blank");
             }
         }
 
-        var groups = new GroupId[outputCount];
-        int groupIndex = 0;
-        while (true)
+        var groups = new RentedBuffer<GroupId>(outputCount);
+        try
         {
-            var cell = cellE.Current!;
-            var str = cell.GetString();
-            var group = builder.Group(str);
-            if (group.Ref.AttendanceMode != AttendanceMode.FrecventaRedusa)
+            int groupIndex = 0;
+            while (true)
             {
-                throw new NotSupportedException("Expected only FR groups in the FR excel");
-            }
-
-            {
+                var cell = cellE.Current;
                 var col = cell.AsRange().FirstColumn().ColumnNumber();
-                var colIndex = col - firstColumnOffset;
-                if (colIndex != groupIndex)
+                var colIndex = offset.GetUnOffsetIndex(col);
+                if (colIndex.Value != groupIndex)
                 {
-                    throw new NotSupportedException("Skipped a column, they must be consecutive.");
+                    throw cell.Exception("Skipped a column, they must be consecutive.");
+                }
+
+                var str = cell.GetString();
+                if (!string.IsNullOrEmpty(str))
+                {
+                    if (colIndex.Value >= outputCount)
+                    {
+                        throw cell.Exception("Groups beyond the grade ranges are not allowed.");
+                    }
+                }
+                else
+                {
+                    break;
+                }
+
+                var group = builder.Group(str);
+                if (group.Ref.AttendanceMode != AttendanceMode.FrecventaRedusa)
+                {
+                    throw cell.Exception("Expected only FR groups in the FR excel");
+                }
+
+                var grade = grades.Get(colIndex);
+                if (group.Ref.Grade != grade)
+                {
+                    throw cell.Exception("Grade parsed vs specified mismatch");
+                }
+
+                groups.Span[groupIndex] = group;
+                groupIndex++;
+
+                if (!cellE.MoveNext())
+                {
+                    break;
                 }
             }
 
-            groups[groupIndex] = group;
-            groupIndex++;
-
-            if (!cellE.MoveNext())
+            if (groupIndex != outputCount)
             {
-                break;
+                throw new NotSupportedException("Not all columns covered by year are covered by groups");
             }
         }
-
-        if (groupIndex != outputCount)
+        catch
         {
-            throw new NotSupportedException("Not all columns covered by year are covered by groups");
+            groups.Dispose();
+            throw;
         }
 
-        return new(groups, firstColumnOffset);
+        return new(groups);
+    }
+
+    private static int ColumnCount(this IXLCell cell)
+    {
+        if (cell.MergedRange() is { } merged)
+        {
+            return merged.ColumnCount();
+        }
+        return 1;
+    }
+
+    private static IXLRange ActualRange(this IXLCell cell)
+    {
+        if (cell.MergedRange() is { } merged)
+        {
+            return merged;
+        }
+        return cell.AsRange();
+    }
+
+    private static IEnumerable<IXLCell> CellsWithMergedAppearingOnce(this IXLRow row)
+    {
+        IXLRange? currentRange = null;
+
+        foreach (var cell in row.Cells())
+        {
+            var range = cell.ActualRange();
+            if (ReferenceEquals(currentRange, range))
+            {
+                continue;
+            }
+
+            currentRange = range;
+            yield return cell;
+        }
+    }
+
+    private static ExcelCellException Exception(this IXLCell cell, string message, Exception? inner = null)
+    {
+        return new ExcelCellException(cell.ActualRange().RangeAddress.ToString()!, message, inner);
+    }
+
+}
+
+public sealed class ExcelCellException : NotSupportedException
+{
+    public string CellRange { get; set; }
+
+    public ExcelCellException(string cellRange, string message, Exception? inner = null)
+        : base($"{cellRange}: {message}", inner)
+    {
+        CellRange = cellRange;
     }
 }

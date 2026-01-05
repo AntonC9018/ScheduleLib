@@ -70,7 +70,7 @@ public static class LessonTypeConstants
 {
     private static string[] CreateNames()
     {
-        var ret = new string[3];
+        var ret = new string[4];
         void Set(LessonType t, string name)
         {
             ret[(int) t] = name;
@@ -79,6 +79,7 @@ public static class LessonTypeConstants
         Set(LessonType.Curs, "curs");
         Set(LessonType.Lab, "lab");
         Set(LessonType.Seminar, "sem");
+        Set(LessonType.Prelegere, "prel");
         Debug.Assert(ret.None(x => x is null));
         return ret;
     }

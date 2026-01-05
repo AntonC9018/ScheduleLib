@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using MainCli.FR;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
@@ -123,6 +124,31 @@ public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : ISchedul
     {
         TasksHelper.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, FilePath);
         return ValueTask.CompletedTask;
+    }
+}
+
+public sealed class FRScheduleLoaderComponent : IScheduleLoaderComponent
+{
+    public required string FilePath
+    {
+        get;
+        init => field = Path.GetFullPath(value);
+    }
+
+    public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
+    {
+        await hasher.AppendFileContents(FilePath, cancellationToken);
+    }
+
+    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    {
+        await using var inputFile = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        await FrExcelParser.ParseIntoSchedule(new()
+        {
+            Context = context,
+            InputFile = inputFile,
+            StringBuilder = new(),
+        });
     }
 }
 

@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace ScheduleLib;
 
-public readonly struct RentedBuffer<T> : IDisposable
+public readonly record struct RentedBuffer<T> : IDisposable
 {
     public readonly T[] Array;
     public readonly int Length;

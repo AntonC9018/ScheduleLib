@@ -18,7 +18,7 @@ public static class EnumerableExtensions
     public static IEnumerable<T> WhereNotDefault<T>(this IEnumerable<T> source)
         where T : struct
     {
-        return source.Where(x => EqualityComparer<T>.Default.Equals(x, default));
+        return source.Where(x => !EqualityComparer<T>.Default.Equals(x, default));
     }
 
     public static IEnumerable<Indexed<T>> WithIndex<T>(this IEnumerable<T> source)

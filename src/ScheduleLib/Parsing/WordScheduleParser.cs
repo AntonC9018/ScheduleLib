@@ -262,7 +262,7 @@ public sealed class DayNameParser(DayNameProvider p)
 
     private static Dictionary<string, DayOfWeek> CreateMappings(DayNameProvider p)
     {
-        var ret = new Dictionary<string, DayOfWeek>(StringComparer.CurrentCultureIgnoreCase);
+        var ret = new Dictionary<string, DayOfWeek>(IgnoreDiacriticsAndCaseComparer.Instance);
         for (int index = 0; index < p.Names.Length; index++)
         {
             string name = p.Names[index];

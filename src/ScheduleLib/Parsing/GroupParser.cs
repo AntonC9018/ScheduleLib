@@ -99,7 +99,7 @@ public static class GroupHelper
 
             {
                 char ch = parser.Current;
-                if (ParserHelper.IsUpper(ch))
+                if (ParserHelper.IsUpperAscii(ch))
                 {
                     if (ch != 'R')
                     {
@@ -134,7 +134,7 @@ public static class GroupHelper
 
                 char ch = bparser.Current;
                 bparser.Move();
-                if (ParserHelper.IsLower(ch))
+                if (ParserHelper.IsLowerAscii(ch))
                 {
                     languageLen++;
                 }
@@ -155,13 +155,13 @@ public static class GroupHelper
     private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref Parser parser)
     {
         var bparser = parser.BufferedView();
-        if (!ParserHelper.IsUpper(bparser.Current))
+        if (!ParserHelper.IsUpperAscii(bparser.Current))
         {
             throw new InvalidOperationException("Must be prefixed with at least one letter indicating the group.");
         }
 
-        bool isMaybeMaster = bparser.Current == 'M';
-        if (bparser.Current == 'M')
+        bool isMaybeMaster = false;
+        if (bparser.ConsumeExactChar('M'))
         {
             isMaybeMaster = true;
         }
@@ -170,17 +170,31 @@ public static class GroupHelper
         {
             var skip = new SkipUntilFRNotLetter();
             var skipResult = bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
-            if (!skipResult.SkippedAny)
+            if (skipResult.EndOfInput)
             {
                 throw new InvalidOperationException("After the label, it must include a number!");
             }
             isFr = skip.IsFr;
         }
 
+        int minLenForMaster = 2;
+        if (isFr)
+        {
+            const int frLen = 2;
+            bparser.Move(frLen);
+            minLenForMaster += frLen;
+        }
+
         var label1 = parser.PeekSpanUntilPosition(bparser.Position);
-        bool isMaster1 = isMaybeMaster && label1.Length > 1;
+        bool isCertainlyMaster = isMaybeMaster && label1.Length >= minLenForMaster;
+        if (isCertainlyMaster)
+        {
+            // skip the M
+            label1 = label1[1 ..];
+        }
+
         parser.MoveTo(bparser.Position);
-        return (label1.ToString(), isFr, isMaster1);
+        return (label1.ToString(), isFr, isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
@@ -239,7 +253,7 @@ public static class GroupHelper
 
         public bool ShouldSkip(ReadOnlySpan<char> window)
         {
-            if (!ParserHelper.IsUpper(window[0]))
+            if (!char.IsUpper(window[0]))
             {
                 return false;
             }

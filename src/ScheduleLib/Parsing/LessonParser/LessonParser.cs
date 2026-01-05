@@ -121,6 +121,7 @@ internal struct ParsingStateStack
         _list.Add();
     }
 
+    public int Count => _list.Count;
     public ref ParsingState First() => ref _list.Items[0];
     public ref ParsingState Last() => ref _list.Items[^1];
 
@@ -166,27 +167,10 @@ public static class LessonParsingHelper
 
         while (lexer.CanPeek())
         {
-            if (lexer.Peek().Type
-                is TokenType.EndOfLine
-                or TokenType.Whitespace)
+            if (lexer.TryConsume(TokenType.EndOfStream))
             {
-                lexer.Move();
-                continue;
-            }
-
-            if (lexer.Peek().Type == TokenType.EndOfStream)
-            {
-                lexer.Move();
                 break;
             }
-
-            ref var state = ref stateStack.First();
-            if (state.Step == ParsingStep.Output)
-            {
-                state.Reset();
-            }
-
-            var stepBefore = state.Step;
 
             var lexerScope = lexer.Scope();
             var context = new ParsingContext
@@ -195,23 +179,15 @@ public static class LessonParsingHelper
                 Lexer = ref lexerScope,
                 StateStack = ref stateStack,
             };
-            DoParsingIter(context);
-
-            if (stepBefore == state.Step
-                && lexerScope.Position == default)
-            {
-                throw new InvalidOperationException("Infinite loop in the parser");
-            }
+            DoParsingIterWrapped(context);
             lexerScope.Apply();
 
-            if (state.Step != ParsingStep.Output)
+            if (context.State.Step == ParsingStep.Output)
             {
-                continue;
-            }
-
-            foreach (var x in DoOutput())
-            {
-                yield return x;
+                foreach (var x in DoOutput())
+                {
+                    yield return x;
+                }
             }
         }
 
@@ -371,14 +347,46 @@ public static class LessonParsingHelper
                     RoomName = v.Specific.RoomName,
                 };
             }
-
         }
+    }
+
+    private static bool DoParsingIterWrapped(ParsingContext c)
+    {
+        while (c.Lexer.TryConsumeAny([
+                   TokenType.EndOfLine,
+                   TokenType.Whitespace]))
+        {
+        }
+        if (c.Lexer.IsEmpty)
+        {
+            return false;
+        }
+        ref var state = ref c.StateStack.Last();
+        if (state.Step == ParsingStep.Output)
+        {
+            state.Reset();
+        }
+
+        int countBefore = c.StateStack.Count;
+        var stepBefore = state.Step;
+        var posBefore = c.Lexer.Position;
+
+        DoParsingIter(c);
+
+        if (countBefore != c.StateStack.Count)
+        {
+            throw new InvalidOperationException("Stack frame pushed and not popped.");
+        }
+        if (stepBefore == state.Step
+            && c.Lexer.Position == default)
+        {
+            throw new InvalidOperationException("Infinite loop in the parser");
+        }
+        return posBefore != c.Lexer.Position;
     }
 
     private static void DoParsingIter(ParsingContext c)
     {
-        Console.WriteLine(c.State.Step);
-
         switch (c.State.Step)
         {
             case ParsingStep.TimeOverride:
@@ -468,24 +476,24 @@ public static class LessonParsingHelper
                     if (c.Lexer.TryConsume(','))
                     {
                         // Look ahead if the next tokens look like a teacher
-                        if (c.State.LastModiferIndex >= 0)
+                        // NOTE:
+                        // This is only done when there are modifiers,
+                        // in order to disambiguate lessons with commas in name.
+                        if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
                         {
                             c.StateStack.Push();
-                            c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
-
-                            // Skip whitespace.
-                            // TODO: If used elsewhere, should be moved to a helper.
-                            while (c.Lexer.TryConsume(TokenType.Whitespace))
-                            {
-                            }
+                            c.State.Step = ParsingStep.OptionalFullTeacherNameOrRoomName;
 
                             try
                             {
                                 var lexerCopy = c.LexerCopy;
-                                DoParsingIter(c);
-                                if (c.Lexer.Position != lexerCopy.Position)
+                                if (DoParsingIterWrapped(c with
+                                    {
+                                        Lexer = ref lexerCopy,
+                                    }))
                                 {
                                     c.StateStack.Pop(apply: true);
+                                    c.Lexer.MoveTo(lexerCopy.Position);
                                     return true;
                                 }
                             }
@@ -561,12 +569,12 @@ public static class LessonParsingHelper
                 {
                     if (lexer.IsEmpty)
                     {
-                        WrongFormatException.InvalidToken();
+                        WrongFormatException.LexerEmpty();
                     }
                     var t = lexer.Current;
                     if (t.Type != LessonTokenType.Word)
                     {
-                        WrongFormatException.InvalidToken();
+                        WrongFormatException.InvalidToken(t);
                     }
 
                     lexer.Move();
@@ -636,7 +644,7 @@ public static class LessonParsingHelper
                 }
 
                 var subgroup = new SubGroup(subgroupToken.Value.Span.ToString());
-                c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(subgroup);
+                c.State.SetDefaultModifier(subgroup);
 
                 c.Lexer.MoveTo(lexer.Position);
 
@@ -727,12 +735,13 @@ public static class LessonParsingHelper
                     }
                     // Maybe should check how it was added and give an error if it was
                     // added through "subgroup:" rather than "subgroup-modifier" syntax.
-                    c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(SubGroup.All);
+                    c.State.SetDefaultModifier(SubGroup.All);
                     c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                 }
             }
             case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
+            case ParsingStep.OptionalFullTeacherNameOrRoomName:
             {
                 if (TryParseAndSetRoomName(c))
                 {
@@ -754,7 +763,10 @@ public static class LessonParsingHelper
                 }
 
                 var lexer = c.Lexer;
-                bool success = Teacher(c, ref lexer);
+                bool success = Teacher(
+                    c,
+                    ref lexer,
+                    onlyAllowFullForm: c.State.Step == ParsingStep.OptionalFullTeacherNameOrRoomName);
                 if (success)
                 {
                     c.State.Step = NextStep(ref lexer);
@@ -777,7 +789,7 @@ public static class LessonParsingHelper
                         }
                         if (ret is not { } step)
                         {
-                            WrongFormatException.InvalidToken();
+                            WrongFormatException.InvalidToken(lexer.Current);
                             return default;
                         }
                         return step;
@@ -795,10 +807,17 @@ public static class LessonParsingHelper
                 }
                 break;
 
-                static bool Teacher(ParsingContext c, ref LexerScope lexer)
+                static bool Teacher(
+                    ParsingContext c,
+                    ref LexerScope lexer,
+                    bool onlyAllowFullForm)
                 {
                     TeacherName result = new();
-                    if (!ParseTeacherName(c, ref result, ref lexer))
+                    if (!ParseTeacherName(
+                            c,
+                            ref result,
+                            ref lexer,
+                            onlyAllowFullForm))
                     {
                         return false;
                     }
@@ -815,6 +834,10 @@ public static class LessonParsingHelper
                         }
                     }
 
+                    if (c.State.LastModiferIndex == -1)
+                    {
+                        c.State.SetDefaultModifier(SubGroup.All);
+                    }
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
                     teacher = result;
                     return true;
@@ -841,26 +864,57 @@ public static class LessonParsingHelper
                 static bool ParseTeacherName(
                     ParsingContext c,
                     ref TeacherName res,
-                    ref LexerScope lexer)
+                    ref LexerScope lexer,
+                    bool onlyAllowFullForm)
                 {
-                    var name1 = Name(ref lexer);
+                    var copy = lexer;
+
+                    var name1 = Name(ref copy);
                     if (name1 == default)
                     {
                         return false;
                     }
+                    if (onlyAllowFullForm)
+                    {
+                        if (name1[0].Length > 3)
+                        {
+                            return false;
+                        }
+                        if (name1[0].Span[^1] != WordHelper.ShortenedWordCharacter)
+                        {
+                            return false;
+                        }
+                    }
+
+                    bool FullFormReturn(ref LexerScope lexer)
+                    {
+                        if (onlyAllowFullForm)
+                        {
+                            return false;
+                        }
+                        lexer.MoveTo(copy.Position);
+                        return true;
+                    }
 
                     res.LastName = name1;
-                    var copy = lexer;
 
                     if (WhitespaceHandling_IsDone(c, ref copy))
                     {
-                        return true;
+                        return FullFormReturn(ref lexer);
                     }
 
                     var name2 = Name(ref copy);
                     if (name2 == default)
                     {
-                        return true;
+                        return FullFormReturn(ref lexer);
+                    }
+
+                    if (onlyAllowFullForm)
+                    {
+                        if (name2[0].Span[^1] == WordHelper.ShortenedWordCharacter)
+                        {
+                            return false;
+                        }
                     }
 
                     lexer.MoveTo(copy.Position);
@@ -946,7 +1000,7 @@ public static class LessonParsingHelper
                 var t = lexer.Current;
                 if (t.Type == TokenType.Invalid)
                 {
-                    WrongFormatException.InvalidToken();
+                    WrongFormatException.InvalidToken(t);
                     return false;
                 }
                 if (t.IsAnyWord())
@@ -981,7 +1035,7 @@ public static class LessonParsingHelper
                     return true;
                 }
 
-                WrongFormatException.InvalidToken();
+                WrongFormatException.InvalidToken(t);
                 return false;
             }
 
@@ -1802,6 +1856,13 @@ internal enum ParsingStep
     RequiredTeacherNameOrRoomName,
     OptionalTeacherNameOrRoomName,
 
+    // NOTE:
+    // For trying to see if it's a teacher or not using recursion.
+    // This will fail for teachers that don't have the name yet.
+    // Currently doing it this way, because I don't have
+    // a full list of teachers to do a context-sensitive grammar
+    OptionalFullTeacherNameOrRoomName,
+
     // Room modifiers.
     OptionalParensBeforeRoom,
     // Only room allowed after room modifiers.
@@ -1955,6 +2016,11 @@ internal struct ParsingState() : IBasic<ParsingState>
                 or ParsingStep.MaybeSubGroupAgain;
         }
     }
+
+    public void SetDefaultModifier(SubGroup subGroup)
+    {
+        LastModiferIndex = DefaultModifiers.FindOrAdd(subGroup);
+    }
 }
 
 public sealed class RoomAlreadySpecifiedException : WrongFormatException
@@ -1972,7 +2038,10 @@ public class WrongFormatException : Exception
     }
 
     [DoesNotReturn]
-    internal static void InvalidToken() => throw new WrongFormatException("Invalid Token");
+    internal static void InvalidToken(Token token) => throw new WrongFormatException($"Invalid Token `{token}`");
+
+    [DoesNotReturn]
+    internal static void LexerEmpty() => throw new WrongFormatException("Lexer is empty");
 
     [DoesNotReturn]
     internal static void ExtraWordsInModifier() => throw new WrongFormatException("Extra words in a modifier item");
