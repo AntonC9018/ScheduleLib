@@ -192,7 +192,7 @@ public static class AttendanceExcel
             _lookupModule = lookupModule;
         }
 
-        public WeeklyLessonAccessor? LookupLessonByExcelName(string excelName)
+        public AnyLessonAccessor? LookupLessonByExcelName(string excelName)
         {
             _nameE.Reset(excelName);
             _lexer.Reset(_nameE);
@@ -233,7 +233,7 @@ public static class AttendanceExcel
             return LookupLesson(key, _schedule);
         }
 
-        private static WeeklyLessonAccessor? LookupLesson(
+        private static AnyLessonAccessor? LookupLesson(
             Key key,
             FilteredSchedule schedule)
         {
@@ -271,7 +271,7 @@ public static class AttendanceExcel
                 Course = true,
                 AllTeachers = true,
             };
-            WeeklyLessonId? lessonId = null;
+            AnyLessonId? lessonId = null;
 
             foreach (var lesson in schedule.EnumerateLessons())
             {

@@ -2,7 +2,7 @@ namespace ScheduleLib.OnlineRegistry;
 
 public readonly record struct LessonWithDate : IDateTime
 {
-    public required WeeklyLessonId LessonId { get; init; }
+    public required AnyLessonId LessonId { get; init; }
     public required DateTime DateTime { get; init; }
 }
 
@@ -23,11 +23,49 @@ public static class ScheduledLessonsHelper
         foreach (var lessonId in p.Lessons)
         {
             var lesson = p.Schedule.Get(lessonId);
-
-            var lessonDate = lesson.Date;
-            var timeSlot = lessonDate.TimeSlot;
+            var timeSlot = lesson.GetTimeSlot();
             var startTime = p.TimeConfig.GetTimeSlotInterval(timeSlot).Start;
+            var semester = p.SemesterIntervalProvider.GetSemesterInterval(new()
+            {
+                Schedule = p.Schedule,
+                GroupId = lesson.Lesson.Group,
+                Semester = p.Semester,
+            });
+            var dates = lesson.GetProgrammedDates(new()
+            {
+                DateProvider = p.DateProvider,
+                Schedule = p.Schedule,
+                Semester = semester,
+            });
 
+            foreach (var date in dates)
+            {
+                var dateTime = new DateTime(
+                    date: date,
+                    time: startTime);
+                yield return new()
+                {
+                    LessonId = lessonId,
+                    DateTime = dateTime,
+                };
+            }
+        }
+    }
+
+    private readonly struct GetProgrammedDatesParams
+    {
+        public required Schedule Schedule { get; init; }
+        public required IAllScheduledDateProvider DateProvider { get; init; }
+        public required SemesterDateRange Semester { get; init; }
+    }
+
+    private static IEnumerable<DateOnly> GetProgrammedDates(
+        this AnyLessonAccessor lesson,
+        GetProgrammedDatesParams p)
+    {
+        if (lesson.Weekly is { } weekly)
+        {
+            var lessonDate = weekly.Date;
             var datesParams = new GetScheduledDatesParams
             {
                 Day = lessonDate.DayOfWeek,
@@ -47,34 +85,29 @@ public static class ScheduledLessonsHelper
                 }
             }
             {
-                var semester = p.SemesterIntervalProvider.GetSemesterInterval(new()
+                if (p.Semester.End < datesParams.To)
                 {
-                    Schedule = p.Schedule,
-                    GroupId = lesson.Lesson.Group,
-                    Semester = p.Semester,
-                });
-                if (semester.End < datesParams.To)
-                {
-                    datesParams.To = semester.End;
+                    datesParams.To = p.Semester.End;
                 }
-                if (semester.Start > datesParams.From)
+                if (p.Semester.Start > datesParams.From)
                 {
-                    datesParams.From = semester.Start;
+                    datesParams.From = p.Semester.Start;
                 }
             }
-
-            var dates = p.DateProvider.Dates(datesParams);
-            foreach (var date in dates)
+            return p.DateProvider.Dates(datesParams);
+        }
+        else if (lesson.OneTime is { } oneTime)
+        {
+            var date = oneTime.Date.Date;
+            if (p.Semester.Contains(date))
             {
-                var dateTime = new DateTime(
-                    date: date,
-                    time: startTime);
-                yield return new()
-                {
-                    LessonId = lessonId,
-                    DateTime = dateTime,
-                };
+                return [oneTime.Date.Date];
             }
+            return [];
+        }
+        else
+        {
+            throw Unreachable();
         }
     }
 }

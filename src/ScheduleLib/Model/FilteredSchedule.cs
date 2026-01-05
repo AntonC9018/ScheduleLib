@@ -52,21 +52,35 @@ public struct CourseFilter()
 public sealed class FilteredSchedule
 {
     public required Schedule Source;
-    public required WeeklyLessonId[] Lessons;
+    public required AnyLessonId[] Lessons;
     public required GroupId[] Groups;
     public required TimeSlot[] TimeSlots;
     public required DayOfWeek[] Days;
     public required TeacherId[] Teachers;
 
     public bool IsEmpty => Days.Length == 0;
-    public IEnumerable<WeeklyLessonAccessor> EnumerateLessons()
-    {
-        return Lessons.Select(x => Source.Get(x));
-    }
 }
 
 public static class FilterHelper
 {
+    extension(FilteredSchedule s)
+    {
+        public IEnumerable<AnyLessonAccessor> EnumerateLessons()
+        {
+            return s.Lessons.Select(x => s.Source.Get(x));
+        }
+
+        public IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons()
+        {
+            return s.EnumerateLessons().WhereNotNull(x => x.Weekly);
+        }
+
+        public IEnumerable<OneTimeLessonAccessor> EnumerateOneTimeLessons()
+        {
+            return s.EnumerateLessons().WhereNotNull(x => x.OneTime);
+        }
+    }
+
     // NOTE: conceptually returns a builder, even though I'm using the same type here.
     public static ScheduleFilter Builder()
     {
@@ -181,9 +195,9 @@ public static class FilterHelper
             Teachers = teachers,
         };
 
-        IEnumerable<WeeklyLessonId> GetRegularLessons(ScheduleFilter filter)
+        IEnumerable<AnyLessonId> GetRegularLessons(ScheduleFilter filter)
         {
-            foreach (var l in schedule.EnumerateWeeklyLessons())
+            foreach (var l in schedule.EnumerateAllLessons())
             {
                 if (!PassesGradeTest())
                 {
@@ -302,7 +316,13 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    var p = l.Date.Period;
+                    // TODO: figure out what to do here for FR
+                    if (l.Weekly is not { } weekly)
+                    {
+                        return false;
+                    }
+
+                    var p = weekly.Date.Period;
                     if (p.IsUnspecified
                         && filter.PeriodFilter.UnspecifiedIsAll)
                     {
@@ -390,7 +410,8 @@ public static class FilterHelper
                 using var e = lessons.AsEnumerable().GetEnumerator();
                 bool ok = e.MoveNext();
                 Debug.Assert(ok);
-                var min1 = schedule.Get(e.Current).Date.TimeSlot;
+
+                var min1 = schedule.Get(e.Current).GetTimeSlot();
                 while (true)
                 {
                     if (min1 == TimeSlot.First)
@@ -403,7 +424,7 @@ public static class FilterHelper
                         return min1;
                     }
 
-                    var t = schedule.Get(e.Current).Date.TimeSlot;
+                    var t = schedule.Get(e.Current).GetTimeSlot();
                     if (t < min1)
                     {
                         min1 = t;
@@ -416,7 +437,7 @@ public static class FilterHelper
                 var max1 = TimeSlot.First;
                 foreach (var l in lessons)
                 {
-                    var t = schedule.Get(l).Date.TimeSlot;
+                    var t = schedule.Get(l).GetTimeSlot();
                     if (t > max1)
                     {
                         max1 = t;
@@ -424,6 +445,7 @@ public static class FilterHelper
                 }
                 return max1;
             }
+
         }
 
         // TODO: Use bit sets
@@ -432,7 +454,19 @@ public static class FilterHelper
             var ret = new HashSet<DayOfWeek>();
             foreach (var lesson in lessons)
             {
-                ret.Add(schedule.Get(lesson).Date.DayOfWeek);
+                var l = schedule.Get(lesson);
+                if (l.Weekly is { } weekly)
+                {
+                    ret.Add(weekly.Date.DayOfWeek);
+                }
+                else if (l.OneTime is { } oneTime)
+                {
+                    ret.Add(oneTime.Date.Date.DayOfWeek);
+                }
+                else
+                {
+                    throw Unreachable();
+                }
             }
             return ret.Order().ToArray();
         }

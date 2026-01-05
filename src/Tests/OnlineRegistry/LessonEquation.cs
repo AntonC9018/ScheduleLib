@@ -19,7 +19,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void SingleExactMatch_ProducesNoCommands()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(DefaultLesson);
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
@@ -29,7 +29,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void LessonTypeDifferent_ProducesUpdate()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(DefaultLesson with
         {
             Type = LessonType.Curs,
@@ -46,7 +46,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void TimeDifferent_ProducesUpdate()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(DefaultLesson with
         {
             TimeSlot = new(1),
@@ -63,7 +63,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void ExtraExisting_ProducesDelete()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(DefaultLesson);
         ctx.AddExisting(DefaultLesson);
         ctx.AddExisting(DefaultLesson with
@@ -82,7 +82,7 @@ public sealed class LessonEquationTests
     [Fact(Skip = "It is not ignored anymore, it counts as a separate type but does not produce changes at a later point")]
     public void LessonTypeNotSet_IgnoredInChecks()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(new()
         {
             Day = DayOfWeek.Monday,
@@ -118,7 +118,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void MissingLessons_AreAdded()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(DefaultLesson);
         ctx.AddScheduled(DefaultLesson with
         {
@@ -136,7 +136,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void LessonsOnDifferentDays_TreatedSeparately()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(new()
         {
             Day = DayOfWeek.Monday,
@@ -159,7 +159,7 @@ public sealed class LessonEquationTests
     [Fact]
     public void MixedCommandsInOneDay()
     {
-        var ctx = new Context();
+        var ctx = new TestContext();
         ctx.AddScheduled(new()
         {
             TimeSlot = new(0),
@@ -228,7 +228,7 @@ public sealed class LessonEquationTests
         {
             void Check(DayOfWeek day)
             {
-                var date = Context.GetDate(day);
+                var date = TestContext.GetDate(day);
                 var actualDay = date.DayOfWeek;
                 Assert.Equal(day, actualDay);
             }
@@ -240,11 +240,11 @@ public sealed class LessonEquationTests
         {
             void Check(DayOfWeek day, TimeSlot ts)
             {
-                var date = Context.GetDate(day);
-                var time = Context.TimeConfig.Base.GetTimeSlotInterval(ts).Start;
+                var date = TestContext.GetDate(day);
+                var time = TestContext.TimeConfig.Base.GetTimeSlotInterval(ts).Start;
                 var dateTime = new DateTime(date, time);
 
-                var (actualDay, actualTs) = Context.ReverseEngineerDateTime(dateTime);
+                var (actualDay, actualTs) = TestContext.ReverseEngineerDateTime(dateTime);
                 Assert.Equal(day, actualDay);
                 Assert.Equal(ts, actualTs);
             }
@@ -263,7 +263,7 @@ internal record struct LessonConfig()
     public LessonType Type = LessonType.Unspecified;
 }
 
-file sealed class Context
+file sealed class TestContext
 {
     private const int Year = 2024;
     public static readonly DefaultLessonTimeConfig TimeConfig = LessonTimeConfig.CreateDefault();
@@ -413,7 +413,7 @@ file sealed class Context
             scheduled.Add(new()
             {
                 DateTime = new DateTime(date, time),
-                LessonId = lesson.Id,
+                LessonId = lesson.Id.AsAny(),
                 Attendance = [],
                 Topic = "",
             });

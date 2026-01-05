@@ -169,7 +169,7 @@ public sealed class HtmlTests
                 Attendance = attendance,
                 Topic = "My Topic",
                 DateTime = new DateTime(year: 2026, day: 11, month: 10),
-                LessonId = schedule.EnumerateWeeklyLessons().First().Id,
+                LessonId = schedule.EnumerateWeeklyLessons().First().Id.AsAny(),
             },
         });
 

@@ -158,32 +158,28 @@ public readonly struct AnyLessonAccessor
         ScheduleAccessorHelper.AssertIsInt<OneTimeLessonId>();
     }
 
-    private readonly int _id;
-    private readonly LessonRegularity _tag;
+    private readonly AnyLessonId _id;
     private readonly Schedule _arrays;
 
-    internal AnyLessonAccessor(int id, LessonRegularity tag, Schedule arrays)
+    internal AnyLessonAccessor(AnyLessonId id, Schedule arrays)
     {
         _id = id;
-        _tag = tag;
         _arrays = arrays;
     }
     public AnyLessonAccessor(WeeklyLessonId id, Schedule arrays)
     {
-        _id = ScheduleAccessorHelper.ToStoredId(id);
-        _tag = LessonRegularity.Weekly;
+        _id = new(LessonRegularity.Weekly, id.Id);
         _arrays = arrays;
     }
     public AnyLessonAccessor(OneTimeLessonId id, Schedule arrays)
     {
-        _id = ScheduleAccessorHelper.ToStoredId(id);
-        _tag = LessonRegularity.OneTime;
+        _id = new(LessonRegularity.OneTime, id.Id);
         _arrays = arrays;
     }
 
-    public bool IsWeekly => _tag == LessonRegularity.Weekly;
-    public bool IsOneTime => _tag == LessonRegularity.OneTime;
-    public LessonRegularity Regularity => _tag;
+    public bool IsWeekly => Regularity == LessonRegularity.Weekly;
+    public bool IsOneTime => Regularity == LessonRegularity.OneTime;
+    public LessonRegularity Regularity => _id.Regularity;
     public WeeklyLessonAccessor? Weekly
     {
         get
@@ -192,7 +188,7 @@ public readonly struct AnyLessonAccessor
             {
                 return null;
             }
-            return WeeklyLessonAccessor.Create(_id, _arrays.WeeklyLessons);
+            return WeeklyLessonAccessor.Create(_id.Id, _arrays.WeeklyLessons);
         }
     }
     public OneTimeLessonAccessor? OneTime
@@ -203,7 +199,7 @@ public readonly struct AnyLessonAccessor
             {
                 return null;
             }
-            return OneTimeLessonAccessor.Create(_id, _arrays.OneTimeLessons);
+            return OneTimeLessonAccessor.Create(_id.Id, _arrays.OneTimeLessons);
         }
     }
 
@@ -226,6 +222,8 @@ public readonly struct AnyLessonAccessor
             throw Unreachable();
         }
     }
+
+    public AnyLessonId Id => _id;
 }
 
 public readonly record struct AllLessonsEnumerable
@@ -255,7 +253,9 @@ public readonly record struct AllLessonsEnumerable
             _index = -1;
         }
 
-        public AnyLessonAccessor Current => new(_index, _regularity, _arrays);
+        public AnyLessonAccessor Current => new(
+            new AnyLessonId(_regularity, _index),
+            _arrays);
         public bool MoveNext()
         {
             _index++;
@@ -559,9 +559,15 @@ public static class LessonRegularityHelper
     }
 }
 
-public readonly record struct AnyLessonId(LessonRegularity Regulariy, int Id);
-public readonly record struct WeeklyLessonId(int Id);
-public readonly record struct OneTimeLessonId(int Id);
+public readonly record struct AnyLessonId(LessonRegularity Regularity, int Id);
+public readonly record struct WeeklyLessonId(int Id)
+{
+    public AnyLessonId AsAny() => new(LessonRegularity.Weekly, Id);
+}
+public readonly record struct OneTimeLessonId(int Id)
+{
+    public AnyLessonId AsAny() => new(LessonRegularity.OneTime, Id);
+}
 
 public record struct LessonBase
 {
@@ -837,6 +843,10 @@ public static class ScheduleAccessorHelper
     {
         return OneTimeLessonAccessor.Create(id, schedule.OneTimeLessons);
     }
+    public static AnyLessonAccessor Get(this Schedule schedule, AnyLessonId id)
+    {
+        return new AnyLessonAccessor();
+    }
 
     public static Period Get(this Schedule schedule, PeriodId id)
     {
@@ -872,6 +882,19 @@ public static class ScheduleAccessorHelper
     public static AllLessonsEnumerable EnumerateAllLessons(this Schedule schedule)
     {
         return new(schedule);
+    }
+
+    public static TimeSlot GetTimeSlot(this AnyLessonAccessor lesson)
+    {
+        if (lesson.Weekly is { } weekly)
+        {
+            return weekly.Date.TimeSlot;
+        }
+        if (lesson.OneTime is { } oneTime)
+        {
+            return oneTime.Date.TimeSlot;
+        }
+        throw Unreachable();
     }
 
     internal static void AssertIsInt<T>()

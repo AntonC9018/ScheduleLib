@@ -10,9 +10,9 @@ public partial class ScheduleBuilder
     public LookupModule? LookupModule = null;
 }
 
-public sealed class LessonsByCourseMap : List<List<WeeklyLessonId>>
+public sealed class LessonsByCourseMap : List<List<AnyLessonId>>
 {
-    public List<WeeklyLessonId> this[CourseId courseId]
+    public List<AnyLessonId> this[CourseId courseId]
     {
         get
         {
@@ -176,7 +176,7 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         return id;
     }
 
-    public IReadOnlyList<WeeklyLessonId> LessonsOfCourse(CourseId courseId)
+    public IReadOnlyList<AnyLessonId> LessonsOfCourse(CourseId courseId)
     {
         return LookupModule.LessonsByCourse[courseId];
     }
@@ -261,7 +261,17 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(new(i));
+                list.Add(new(LessonRegularity.Weekly, i));
+            }
+            for (int i = 0; i < s.OneTimeLessons.Count; i++)
+            {
+                ref var lesson = ref s.OneTimeLessons.Ref(i);
+                if (lesson.General.Course is not { } courseId)
+                {
+                    continue;
+                }
+                var list = lookup.LessonsByCourse[courseId.Id];
+                list.Add(new(LessonRegularity.OneTime, i));
             }
         }
     }

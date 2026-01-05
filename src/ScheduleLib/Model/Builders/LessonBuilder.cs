@@ -171,6 +171,7 @@ public struct LessonBuilderGeneralData()
 public interface ILessonBuilderModel
 {
     public ref LessonBuilderModelDataBase Base { get; }
+    public LessonRegularity Regularity { get; }
 }
 
 public sealed class WeeklyLessonBuilderModel : ILessonBuilderModel
@@ -180,6 +181,7 @@ public sealed class WeeklyLessonBuilderModel : ILessonBuilderModel
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref RegularLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
+    public LessonRegularity Regularity => LessonRegularity.Weekly;
 }
 
 public sealed class OneTimeLessonBuilderModel : ILessonBuilderModel
@@ -189,6 +191,7 @@ public sealed class OneTimeLessonBuilderModel : ILessonBuilderModel
     public ref LessonBuilderGeneralData General => ref Data.Base.General;
     public ref OneTimeLessonDateBuilderModel Date => ref Data.Date;
     public ref LessonBuilderGroupData Group => ref Data.Base.Group;
+    public LessonRegularity Regularity => LessonRegularity.OneTime;
 }
 
 public struct RegularLessonDateBuilderModel()
@@ -347,13 +350,14 @@ public static class LessonBuilderHelper
                 return;
             }
 
+            var id = new AnyLessonId(b.Model.Regularity, b.Id);
             if (prevCourseId is { } p)
             {
-                lookupModule.LessonsByCourse[p.Id].Remove(new(b.Id));
+                lookupModule.LessonsByCourse[p.Id].Remove(id);
             }
             if (b.Model.Base.General.Course is { } p1)
             {
-                lookupModule.LessonsByCourse[p1.Id].Add(new(b.Id));
+                lookupModule.LessonsByCourse[p1.Id].Add(id);
             }
         }
         public void InitLookup() => b.UpdateLookup(prevCourseId: null);

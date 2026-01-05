@@ -218,7 +218,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         void Body()
         {
             var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-                p.Schedule.EnumerateLessons(),
+                p.Schedule.EnumerateWeeklyLessons(),
                 l => l.Lesson.Teachers);
             int timeSlotCount = _timeConfig.TimeSlotCount;
 

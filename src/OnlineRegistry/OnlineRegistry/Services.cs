@@ -14,14 +14,14 @@ public readonly struct StudentsInGroup
 {
     public readonly IEnumerable<Name> Students;
     public readonly Schedule Schedule;
-    public readonly WeeklyLessonId LessonId;
+    public readonly AnyLessonId LessonId;
     public readonly FoundGroups Groups;
 
     public StudentsInGroup(
         IEnumerable<Name> students,
         Schedule schedule,
         FoundGroups groups,
-        WeeklyLessonId lessonId)
+        AnyLessonId lessonId)
     {
         Students = students;
         Schedule = schedule;

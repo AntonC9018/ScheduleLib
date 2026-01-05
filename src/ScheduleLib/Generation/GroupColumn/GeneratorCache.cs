@@ -142,7 +142,7 @@ public struct GeneratorCache
     private static GeneratorCacheMappings<GroupId> CreateMappings(FilteredSchedule schedule)
     {
         var mappingByCell = MappingsCreationHelper.CreateCellMappings(
-            schedule.EnumerateLessons(),
+            schedule.EnumerateWeeklyLessons(),
             l => l.Lesson.Groups);
         return new()
         {

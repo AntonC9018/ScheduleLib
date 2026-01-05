@@ -37,7 +37,7 @@ public sealed class Generator : IDocument
     public void Compose(IDocumentContainer container)
     {
         var mappings = MappingsCreationHelper.CreateCellMappings<RowKey, ColumnKey>(
-            _schedule.EnumerateLessons(),
+            _schedule.EnumerateWeeklyLessons(),
             rowFunc: x => new RowKey(x.Date.TimeSlot),
             colFunc: x => [ new ColumnKey(x.Date.DayOfWeek) ]);
 

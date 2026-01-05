@@ -17,7 +17,14 @@ public sealed class NewScheduleTests
         var lessons = lookup.LessonsOfCourse(nodejsCourseId);
         var verifyModel = lessons
             .Select(x => schedule.Get(x))
-            .Where(x => x.Date.Period == schedule.LatestPeriodId())
+            .Where(x =>
+            {
+                if (x.Weekly is { } w)
+                {
+                    return w.Date.Period == schedule.LatestPeriodId();
+                }
+                return true;
+            })
             .Select(x =>
             {
                 var groups = x.Lesson.Groups;

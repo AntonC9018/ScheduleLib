@@ -31,7 +31,7 @@ public readonly struct GetLessonEquationCommandsParams
 
 public readonly record struct LessonInstance : IDateTime
 {
-    public required WeeklyLessonId LessonId { get; init; }
+    public required AnyLessonId LessonId { get; init; }
     public required DateTime DateTime { get; init; }
     public required string? Topic { get; init; }
     public required Attendance[]? Attendance { get; init; }

@@ -60,7 +60,7 @@ public static class WebsiteJsonScheduleHelper
         Services services)
     {
         var ret = ImmutableArray.CreateBuilder<ScheduleDaysDto>();
-        var groupedLessons = schedule.EnumerateLessons()
+        var groupedLessons = schedule.EnumerateWeeklyLessons()
             .GroupBy(x => x.Date.DayOfWeek)
             .OrderBy(x => x.Key);
 

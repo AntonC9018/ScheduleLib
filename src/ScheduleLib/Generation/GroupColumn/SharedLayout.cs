@@ -110,7 +110,7 @@ public static class ColumnArrangementHelper
 
         {
             var columnOrder1 = columnOrder.Build();
-            var ret = SharedLayout.Create(schedule.EnumerateLessons(), columnOrder1);
+            var ret = SharedLayout.Create(schedule.EnumerateWeeklyLessons(), columnOrder1);
             return (columnOrder1, ret);
         }
     }
@@ -129,7 +129,7 @@ public static class ColumnArrangementHelper
     {
         var groupings = new Dictionary<DefaultRowKey, HashSet<GroupId>>();
 
-        foreach (var lesson in schedule.EnumerateLessons())
+        foreach (var lesson in schedule.EnumerateWeeklyLessons())
         {
             if (lesson.Lesson.Groups.IsSingleGroup)
             {

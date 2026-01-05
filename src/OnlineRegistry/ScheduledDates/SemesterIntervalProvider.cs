@@ -14,6 +14,19 @@ public readonly record struct SemesterDateRange
 {
     public required DateOnly Start { get; init; }
     public required DateOnly End { get; init; }
+
+    public bool Contains(DateOnly date)
+    {
+        if (date < Start)
+        {
+            return false;
+        }
+        if (date > End)
+        {
+            return false;
+        }
+        return true;
+    }
 }
 
 [InlineArray((int) Semester.Count)]
