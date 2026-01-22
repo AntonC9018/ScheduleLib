@@ -34,18 +34,6 @@
             Include="data\topics\**\*"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
-        <None Update="data\2025_sem1\fr.xlsx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem1\fr\fr.xlsx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2024_sem2\zi\master.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -59,8 +47,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.71.0.3905" />
+        <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.3996" />
+        <PackageReference Include="Google.Apis.Calendar.v3" Version="1.73.0.3993" />
+        
     </ItemGroup>
 
     <ItemGroup>

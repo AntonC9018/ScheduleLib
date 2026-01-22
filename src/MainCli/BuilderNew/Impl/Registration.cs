@@ -163,6 +163,8 @@ public static class Registration
                         holidays: Config.HolidayPeriods);
                     return ret;
                 });
+
+                services.AddSingleton<IAllScheduledItemsProvider, ScheduledItemsProviderTransformer>();
             }
 
             void AddScheduleLifetimeServices()

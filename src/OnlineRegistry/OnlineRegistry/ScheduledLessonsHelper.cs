@@ -8,6 +8,54 @@ public readonly record struct LessonWithDate : IDateTime
     public required DateTime DateTime { get; init; }
 }
 
+public readonly record struct ProgrammedRepeatableLesson
+{
+    public readonly AnyLessonId Id;
+    public readonly ScheduledItem Item;
+    public readonly TimeOnly Time;
+
+    public ProgrammedRepeatableLesson(
+        AnyLessonId id,
+        in ScheduledItem item,
+        TimeOnly time)
+    {
+        Id = id;
+        Item = item;
+        Time = time;
+    }
+
+    public readonly IEnumerable<DateTime> DateTimes()
+    {
+        foreach (var it in Item)
+        {
+            yield return new DateTime(it, Time);
+        }
+    }
+}
+
+file readonly record struct LessonHelper
+{
+    public readonly AnyLessonId LessonId;
+    public readonly TimeOnly StartTime;
+
+    public LessonHelper(
+        AnyLessonId lessonId,
+        TimeOnly startTime)
+    {
+        LessonId = lessonId;
+        StartTime = startTime;
+    }
+
+    public LessonWithDate DateReturn(DateOnly date)
+    {
+        return new()
+        {
+            LessonId = LessonId,
+            DateTime = new(date, StartTime),
+        };
+    }
+}
+
 [AutoConstructor]
 public sealed partial class ScheduledDateTimeProvider
 {
@@ -27,8 +75,11 @@ public sealed partial class ScheduledDateTimeProvider
         foreach (var lessonId in p.Lessons)
         {
             var lesson = _schedule.Get(lessonId);
+
             var timeSlot = lesson.GetTimeSlot();
             var startTime = _timeConfig.GetTimeSlotInterval(timeSlot).Start;
+            var helper = new LessonHelper(lessonId, startTime);
+
             var semester = _semesterIntervalProvider.GetSemesterInterval(new()
             {
                 Schedule = _schedule,
@@ -41,17 +92,9 @@ public sealed partial class ScheduledDateTimeProvider
                 Schedule = _schedule,
                 Semester = semester,
             });
-
             foreach (var date in dates)
             {
-                var dateTime = new DateTime(
-                    date: date,
-                    time: startTime);
-                yield return new()
-                {
-                    LessonId = lessonId,
-                    DateTime = dateTime,
-                };
+                yield return helper.DateReturn(date);
             }
         }
     }
