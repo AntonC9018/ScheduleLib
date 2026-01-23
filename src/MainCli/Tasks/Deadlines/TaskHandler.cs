@@ -4,6 +4,7 @@ using ClosedXML.Excel;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using MainCli.BuilderNew.Impl;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
@@ -21,6 +22,14 @@ public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
     public int LessonDelayLimit { get; set; } = -1;
     public int MaxTaskRows { get; set; } = -1;
     public float ColumnWidth { get; set; } = float.NegativeInfinity;
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddMapper<DeadlinesConfigMapper>();
+        services.AddMerger<DeadlinesExcelConfigMerger>();
+        services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
+        services.AddConfigProvider(DeadlinesExcelBuiltConfig.Key);
+    }
 }
 
 public sealed class DeadlinesExcelBuiltConfig

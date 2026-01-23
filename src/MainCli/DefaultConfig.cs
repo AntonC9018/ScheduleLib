@@ -50,6 +50,11 @@ public static class DefaultConfig
                 x.SaveCredentials = true;
                 x.ApiKeysSource = new ConfigurationApiKeysSource();
             });
+
+            defaults.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>
+            {
+                x.SkipAttendance = AttendanceMode.Zi;
+            });
         });
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
@@ -96,6 +101,7 @@ public static class DefaultConfig
             t.LessonTopics().Configure(x =>
             {
                 x.FallbackProvider<LabAutoNumberingNameProvider>(LessonType.Lab);
+                x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
             });
         });
 

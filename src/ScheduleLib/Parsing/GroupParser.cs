@@ -1,3 +1,4 @@
+using System.Text;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Parsing.GroupParser;
@@ -62,7 +63,6 @@ public static class GroupHelper
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
         parser.SkipWhitespace();
 
-        baseParser.MoveTo(parser.Position);
         int year = ParseYear(ref parser);
         var grade = context.DetermineGrade(year);
         int groupNumber = ParseGroup(ref parser);
@@ -70,8 +70,10 @@ public static class GroupHelper
 
         string actualName;
         {
-            var numbers = baseParser.SourceUntilExclusive(parser);
-            actualName = string.Concat(label, numbers.Span);
+            string masterString = isMaster ? "M" : "";
+            string frString = isFr ? "FR" : "";
+            string faculty = label;
+            actualName = $"{masterString}{faculty}{frString}{year:00}{groupNumber:00}";
         }
 
         parser.SkipWhitespace();
@@ -166,60 +168,63 @@ public static class GroupHelper
             isMaybeMaster = true;
         }
 
-        bool isFr;
+        bool isFr = false;
+        if (bparser.ConsumeExactString("FR", StringComparison.OrdinalIgnoreCase))
         {
-            var skip = new SkipUntilFRNotLetter();
-            var skipResult = bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
-            if (skipResult.EndOfInput)
-            {
-                throw new InvalidOperationException("After the label, it must include a number!");
-            }
+            isFr = true;
+        }
+
+        var labelParser = bparser.BufferedView();
+        ReadOnlySpan<char> label;
+
+        if (!isFr)
+        {
+            // Skip until the label is ending.
+            var skip = new SkipLabelUntilFR();
+            bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
             isFr = skip.IsFr;
+
+            label = labelParser.PeekSpanUntilPosition(bparser.Position);
+
+            if (isFr)
+            {
+                const int frLen = 2;
+                bparser.Move(frLen);
+            }
+        }
+        else
+        {
+            bparser.Skip(new SkipLabel());
+            label = labelParser.PeekSpanUntilPosition(bparser.Position);
         }
 
-        int minLenForMaster = 2;
-        if (isFr)
+        bparser.SkipWhitespace();
+
+        if (bparser.IsEmpty
+            || IsLabelChar(bparser.Current))
         {
-            const int frLen = 2;
-            bparser.Move(frLen);
-            minLenForMaster += frLen;
+            throw new InvalidOperationException("After the label, it must include a number!");
         }
 
-        var label1 = parser.PeekSpanUntilPosition(bparser.Position);
-        bool isCertainlyMaster = isMaybeMaster && label1.Length >= minLenForMaster;
-        if (isCertainlyMaster)
+        bool isCertainlyMaster = isMaybeMaster && !label.IsEmpty;
+        if (label.IsEmpty)
         {
-            // skip the M
-            label1 = label1[1 ..];
+            label = "M";
         }
 
         parser.MoveTo(bparser.Position);
-        return (label1.ToString(), isFr, isCertainlyMaster);
+        return (label.ToString(), isFr, isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
     private static int ParseGroup(ref Parser parser)
     {
-        var result = parser.ConsumePositiveInt(GroupNumberLen);
-        switch (result.Status)
+        var result = parser.ConsumePositiveIntWithMaxLength(GroupNumberLen);
+        if (result is { } num)
         {
-            case ConsumeIntStatus.Ok:
-            {
-                return (int) result.Value;
-            }
-            case ConsumeIntStatus.InputTooShort:
-            {
-                throw new InvalidOperationException($"String must include {GroupNumberLen} letters of the group after the year.");
-            }
-            case ConsumeIntStatus.NotAnInteger:
-            {
-                throw new InvalidOperationException($"Must be a valid number that has {GroupNumberLen} letters.");
-            }
-            default:
-            {
-                throw Unreachable();
-            }
+            return (int) num;
         }
+        throw new InvalidOperationException($"String must include {GroupNumberLen} letters of the group after the year.");
     }
 
     public const int YearLen = 2;
@@ -247,13 +252,23 @@ public static class GroupHelper
         }
     }
 
-    private struct SkipUntilFRNotLetter : IShouldSkipSequence
+    private static bool IsLabelChar(char ch)
+    {
+        return char.IsUpper(ch);
+    }
+
+    private struct SkipLabel : IShouldSkip
+    {
+        public bool ShouldSkip(char ch) => IsLabelChar(ch);
+    }
+
+    private struct SkipLabelUntilFR : IShouldSkipSequence
     {
         public bool IsFr { readonly get; private set; }
 
         public bool ShouldSkip(ReadOnlySpan<char> window)
         {
-            if (!char.IsUpper(window[0]))
+            if (!IsLabelChar(window[0]))
             {
                 return false;
             }

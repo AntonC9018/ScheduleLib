@@ -23,12 +23,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     private readonly Schedule _schedule;
     private readonly ConfigProvider<BuiltRegistryConfig> _configProvider;
 
-    public readonly record struct RunParams
+    public readonly record struct RunParams()
     {
         public required OnlineRegistryNavigator Navigator { get; init; }
         public required StudentAttendanceList Attendance { get; init; }
         public required ILessonTopics LessonTopics { get; init; }
         public required Semester Semester { get; init; }
+        public ILessonFilter LessonFilter { get; init; } = ShouldAlwaysProcessLessonFilter.Instance;
     }
 
     public async Task Run(RunParams p)
@@ -51,12 +52,40 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             foreach (var group in groups)
             {
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
+
+                var filter = new LessonSearchFilter(
+                    courseLink.CourseId,
+                    group.Groups,
+                    group.SubGroup);
                 var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
                     lookup: _lookup.LessonsByCourse,
                     schedule: _schedule,
-                    courseId: courseLink.CourseId,
-                    groups: group.Groups,
-                    subGroup: group.SubGroup));
+                    filter: filter))
+                    .ToArray();
+
+                var decision = p.LessonFilter.Filter(new(
+                    filter: filter,
+                    schedule: _schedule,
+                    lessons: lessons));
+
+                switch (decision.Decision)
+                {
+                    case LessonValidityDecision.Process:
+                    case LessonValidityDecision.None:
+                    {
+                        break;
+                    }
+                    case LessonValidityDecision.Error:
+                    {
+                        _errorHandler.LessonsDecidedErroneous(
+                            new(decision.ErrorContext));
+                        continue;
+                    }
+                    case LessonValidityDecision.Skip:
+                    {
+                        continue;
+                    }
+                }
 
                 // Figure out the exact dates the lessons will occur on.
                 var lessonsWithTimes = _dateTimeProvider.GetSorted(new()

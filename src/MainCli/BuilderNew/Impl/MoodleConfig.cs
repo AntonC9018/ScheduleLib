@@ -1,6 +1,7 @@
 using Anton.LayeredConfig;
 using AutoConstructor.Attributes;
 using Anton.LayeredConfig.Retrieval;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
@@ -10,6 +11,12 @@ public sealed class MoodleConfig : IConfig<MoodleConfig>, ICredentialsConfig
 {
     public static LayerConfigKey<MoodleConfig> Key { get; } = LayerConfigKey.Registry.Register<MoodleConfig>();
     public CredentialsSource? Credentials { get; set; }
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddConfigProvider(MoodleConfig.Key);
+        services.RegisterBasicOperationsAndMergers<MoodleConfig>();
+    }
 }
 
 [AutoConstructor]

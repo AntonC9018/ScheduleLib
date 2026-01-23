@@ -18,6 +18,7 @@ public sealed class GroupNameParserTests
         Assert.Equal(1, res.Grade.Value);
         Assert.Equal(Language.Ro, res.Language);
         Assert.Equal("PMS2401", res.Name);
+        Assert.Equal("PMS", res.Faculty.Name);
 
         // The fact that it's not actually licenta
         // must be specified from some other context.
@@ -32,6 +33,7 @@ public sealed class GroupNameParserTests
         Assert.Equal(1, res.Grade.Value);
         Assert.Equal(Language.Ru, res.Language);
         Assert.Equal("MIA2402", res.Name);
+        Assert.Equal("IA", res.Faculty.Name);
         Assert.True(res.QualificationType == QualificationType.Master);
     }
 
@@ -43,5 +45,18 @@ public sealed class GroupNameParserTests
         Assert.Equal(Language.Ro, res.Language);
         Assert.Equal("DJ2401", res.Name);
         Assert.True(res.QualificationType == QualificationType.Licenta);
+    }
+
+    [Fact]
+    // ReSharper disable once InconsistentNaming
+    public void AttendanceModeFR()
+    {
+        var res = Parse("DJFR2401");
+        Assert.Equal(1, res.Grade.Value);
+        Assert.Equal(Language.Ro, res.Language);
+        Assert.Equal("DJFR2401", res.Name);
+        Assert.Equal("DJ", res.Faculty.Name);
+        Assert.Equal(QualificationType.Licenta, res.QualificationType);
+        Assert.Equal(AttendanceMode.FrecventaRedusa, res.AttendanceMode);
     }
 }

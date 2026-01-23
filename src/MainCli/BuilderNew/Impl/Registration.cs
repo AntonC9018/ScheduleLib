@@ -1,4 +1,3 @@
-using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.Configuration;
@@ -37,37 +36,19 @@ public static class Registration
             services.AddSingleton<ConfigMappingRegistry>();
             services.AddSingleton<ApplicationConfigBuilder>();
 
-            services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
-            services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
-            services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
-            services.AddOpenHierarchy<LessonTopicSourceDefinition>();
-            services.AddKeyEqualityComparer((ManifestLessonTopicSourceDefinition x) => x.Path);
-            services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
-
-            services.RegisterBasicOperationsAndMergers<MoodleConfig>();
-
+            LessonTopicsConfig.Register(services);
+            MoodleConfig.Register(services);
             GoogleDriveConfig.Register(services);
-
-            services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
-            services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
-            services.AddConfigProvider(LessonAttendanceConfig.Key);
-
-            services.AddMapper<DeadlinesConfigMapper>();
-            services.AddMerger<DeadlinesExcelConfigMerger>();
-            services.RegisterBasicOperationsAndMergers<DeadlinesExcelConfig>();
-            services.AddConfigProvider(DeadlinesExcelBuiltConfig.Key);
+            LessonAttendanceConfig.Register(services);
+            DeadlinesExcelConfig.Register(services);
             LabTasksDatabaseConfig.Register(services);
+            RegistryLessonFilterConfig.Register(services);
 
             // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
-
             // Binding config from IConfiguration
             services.AddDynamicConfigurationBinders();
-
-            services.AddConfigProvider(MoodleConfig.Key);
             services.AddCredentialsResolver<MoodleConfig>(serviceKey: "Moodle", x => x.Credentials!);
-
-            services.AddConfigProvider(BuiltRegistryConfig.Key);
             services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
         }
 
@@ -165,6 +146,7 @@ public static class Registration
                 });
 
                 services.AddSingleton<IAllScheduledItemsProvider, ScheduledItemsProviderTransformer>();
+                services.AddScoped<ScheduledDateTimeProvider>();
             }
 
             void AddScheduleLifetimeServices()

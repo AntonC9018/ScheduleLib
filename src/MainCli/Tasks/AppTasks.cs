@@ -1,5 +1,6 @@
 using System.Text;
 using Anton.LayeredConfig.Retrieval;
+using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using MainCli.BuilderNew.Impl;
 using MainCli.Helper;
@@ -77,7 +78,6 @@ public static class AppTasks
                 });
                 return;
             }
-            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
             case AppTask.AllTeachersExcel:
             {
                 await GenerateAllTeacherExcel(c);
@@ -85,7 +85,6 @@ public static class AppTasks
                 break;
             }
 
-            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
             case AppTask.PerGroupAndPerTeacherPdfs:
             {
                 await GeneratePdfsForGroupsAndTeachers(c);
@@ -93,7 +92,6 @@ public static class AppTasks
                 break;
             }
 
-            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
             case AppTask.CreateLessonsInRegistry:
             {
                 var attendance = GetAttendanceListOfCurrentTeacher(c);
@@ -106,17 +104,33 @@ public static class AppTasks
                 using var registryContext = await MakeRegistryContext(c);
                 var navigator = registryContext.Navigator(c.Services, c.CancellationToken);
 
+                ILessonFilter LessonFilter()
+                {
+                    var b = c.Services
+                        .LessonFilterBuilder()
+                        .CurrentTeacher();
+
+                    if (c.Services.GetRequiredService<ConfigProvider<RegistryLessonFilterConfig>>().Get() is { } filterConfig)
+                    {
+                        if (filterConfig.SkipAttendance is { } att)
+                        {
+                            b = b.SkipAttendance(att);
+                        }
+                    }
+                    return b.Create();
+                }
+
                 await handler.Run(new()
                 {
                     Navigator = navigator,
                     Attendance = attendance,
                     LessonTopics = topics,
                     Semester = semester,
+                    LessonFilter = LessonFilter(),
                 });
                 break;
             }
 
-            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
             case AppTask.PullCurriculaFromOneDrive:
             {
                 // TODO: Move to per-user config
@@ -125,7 +139,6 @@ public static class AppTasks
                 break;
             }
 
-            // ReSharper disable once UnreachableSwitchCaseDueToIntegerAnalysis
             case AppTask.FreeRooms:
             {
                 await GenerateFreeRoomsExcel(c);

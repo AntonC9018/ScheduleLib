@@ -1,5 +1,6 @@
 using Anton.LayeredConfig;
 using MainCli.Topics;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 
 namespace MainCli.BuilderNew.Impl;
@@ -9,6 +10,16 @@ public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
     public static LayerConfigKey<LessonTopicsConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonTopicsConfig>();
     public List<LessonTopicSourceDefinition> Sources { get; set; } = new();
     public List<LessonNameProviderConfig> FallbackProviders { get; set; } = new();
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
+        services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
+        services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
+        services.AddOpenHierarchy<LessonTopicSourceDefinition>();
+        services.AddKeyEqualityComparer((ManifestLessonTopicSourceDefinition x) => x.Path);
+        services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
+    }
 }
 
 public sealed class LessonNameProviderConfig

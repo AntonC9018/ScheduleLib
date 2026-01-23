@@ -46,6 +46,7 @@ public static partial class RegistryScraping
             groupNumber = ParseGroupNumber(ref mainParser);
         }
 
+        // ReSharper disable once InconsistentNaming
         var languageOrFR = ParseLanguageOrFR(ref mainParser);
 
         if (!isWildcard)
@@ -114,6 +115,7 @@ public static partial class RegistryScraping
             return num;
         }
 
+        // ReSharper disable once InconsistentNaming
         static LanguageOrFR ParseLanguageOrFR(ref Parser parser)
         {
             var ret = new LanguageOrFR();
@@ -145,6 +147,7 @@ public static partial class RegistryScraping
             return ret;
         }
 
+        // ReSharper disable once InconsistentNaming
         static bool ParseFR(ref Parser p)
         {
             const string fr = "fr";
@@ -194,27 +197,13 @@ public static partial class RegistryScraping
             throw new NotSupportedException($"Bad {part}");
         }
     }
-
-    private struct SkipUntilOpenParenOrWhiteSpace : IShouldSkip
-    {
-        public bool ShouldSkip(char c)
-        {
-            if (c == '(')
-            {
-                return false;
-            }
-            if (char.IsWhiteSpace(c))
-            {
-                return false;
-            }
-            return true;
-        }
-    }
 }
 
-internal record struct LanguageOrFR
+// ReSharper disable once InconsistentNaming
+file record struct LanguageOrFR
 {
     public Language? Language;
+    // ReSharper disable once InconsistentNaming
     public bool FR;
     public readonly bool IsLanguage => Language is not null;
 }

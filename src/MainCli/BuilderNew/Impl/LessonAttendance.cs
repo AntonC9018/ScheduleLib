@@ -1,4 +1,6 @@
 using Anton.LayeredConfig;
+using Anton.LayeredConfig.Retrieval;
+using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
 
@@ -16,6 +18,13 @@ public sealed class LessonAttendanceConfig : IConfig<LessonAttendanceConfig>
     // Need a way to allow to remove an item by key.
     public List<LessonAttendanceSource> Sources { get; set; } = new();
     public Attendance? MissingDaysFiller { get; set; }
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
+        services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
+        services.AddConfigProvider(LessonAttendanceConfig.Key);
+    }
 }
 
 public partial class Extensions

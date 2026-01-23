@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using AutoConstructor.Attributes;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib;
@@ -523,9 +524,16 @@ public record struct LessonData()
 {
     // Always ordered with .Ordered()
     public required LessonGroups Groups;
-
     public required CourseId Course;
-    public required ImmutableArray<TeacherId> Teachers;
+
+    // this is
+    private readonly SequenceComparableImmutableArray<TeacherId> _teachers;
+    public required ImmutableArray<TeacherId> Teachers
+    {
+        get => _teachers.Array;
+        init => _teachers = new(value);
+    }
+
     public required RoomId Room;
     public required LessonType Type;
 

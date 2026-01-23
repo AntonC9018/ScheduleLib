@@ -30,12 +30,15 @@ public readonly struct StudentsInGroup
     }
 }
 
+public readonly record struct ErroneousLesson(object? Context);
+
 public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
 {
     void CourseNotFound(string courseName);
     void StudentsNotInDbButInRegistry(StudentsInGroup students);
     void GroupNotFound(string groupName);
     void LessonWithoutName();
+    void LessonsDecidedErroneous(ErroneousLesson lessons);
 
     // TODO: Needs to be passed the context.
     ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date);
@@ -84,6 +87,15 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     }
 
     public void LessonWithoutName() => LogLessonWithoutName();
+
+    public void LessonsDecidedErroneous(ErroneousLesson lesson)
+    {
+        using var scope = _logger.BeginScope(new
+        {
+            ErrorContext = lesson.Context,
+        });
+        _logger.LogError("Found lesson that should not be in the registry of the current person");
+    }
 
     public void CustomLessonType(ReadOnlySpan<char> ch) => LogCustomLessonType(ch.ToString());
 

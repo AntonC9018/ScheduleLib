@@ -30,7 +30,8 @@ public static class RegistrationHelper
         {
             if (type == typeof(string)
                 || type == typeof(Type)
-                || type.IsInterface)
+                || type.IsInterface
+                || type.IsSubclassOf(typeof(Delegate)))
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(type);
