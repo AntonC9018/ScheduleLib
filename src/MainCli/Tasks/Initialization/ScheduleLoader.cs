@@ -71,8 +71,10 @@ public sealed class ScheduleLoader
         {
             var schedule = context.Schedule.Build();
             Debug.Assert(hashHex != null);
-            cachedFile.Value.Seek(0, SeekOrigin.Begin);
-            await ScheduleSerializer.Serialize(schedule, cachedFile.Value, hashHex, cancellationToken);
+            var f = cachedFile.Value;
+            f.Seek(0, SeekOrigin.Begin);
+            await ScheduleSerializer.Serialize(schedule, f, hashHex, cancellationToken);
+            f.SetLength(f.Position);
         }
     }
 }

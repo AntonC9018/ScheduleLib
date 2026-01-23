@@ -54,16 +54,35 @@ internal static class MatchLessonHelper
             // Gonna need to add more logic like this.
             // Make an abstraction.
             // It might be better to add group remaps at the schedule level.
+
             var subGroup = p.Filter.SubGroup.Value;
-            var roman = NumberHelper.FromRoman(subGroup);
-            if (roman is { } subGroupNum
-                && subGroupNum is >= 1 and <= 10)
+            // Roman -> Letter mapping
             {
-                var subGroupLetter = ('a' + subGroupNum - 1).ToString();
-                foreach (var x in MatchLessonsImpl(p, new(subGroupLetter)))
+                var roman = NumberHelper.FromRoman(subGroup);
+                if (roman is { } subGroupNum
+                    && subGroupNum is >= 1 and <= 10)
                 {
-                    yield return x;
-                    yielded = true;
+                    var subGroupLetter = ('a' + subGroupNum - 1).ToString();
+                    foreach (var x in MatchLessonsImpl(p, new(subGroupLetter)))
+                    {
+                        yield return x;
+                        yielded = true;
+                    }
+                }
+            }
+            // Letter -> Roman mapping
+            {
+                if (subGroup != null
+                    && subGroup.Length == 1
+                    && char.IsAsciiLetterLower(subGroup[0]))
+                {
+                    var subGroupNum = subGroup[0] - 'a' + 1;
+                    var roman = NumberHelper.ToRoman(subGroupNum);
+                    foreach (var x in MatchLessonsImpl(p, new(roman)))
+                    {
+                        yield return x;
+                        yielded = true;
+                    }
                 }
             }
 

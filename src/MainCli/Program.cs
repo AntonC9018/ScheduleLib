@@ -24,7 +24,7 @@ services.Configure<RegularSeminarDateConfig>(x =>
 });
 services.Configure<ScheduleBuilderInitializerOptions>(x =>
 {
-    x.BypassCache = true;
+    // x.BypassCache = true;
 });
 
 var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
