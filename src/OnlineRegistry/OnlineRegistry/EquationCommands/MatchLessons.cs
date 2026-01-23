@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
+using ScheduleLib.Generation;
 
 namespace ScheduleLib.OnlineRegistry;
 
@@ -41,25 +42,47 @@ internal static class MatchLessonHelper
 {
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
-        bool yielded = false;
-        foreach (var x in MatchLessonsImpl(p, p.Filter.SubGroup))
         {
-            yield return x;
-            yielded = true;
-        }
-        if (yielded)
-        {
-            yield break;
+            bool yielded = false;
+            foreach (var x in MatchLessonsImpl(p, p.Filter.SubGroup))
+            {
+                yield return x;
+                yielded = true;
+            }
+
+            // TODO:
+            // Gonna need to add more logic like this.
+            // Make an abstraction.
+            // It might be better to add group remaps at the schedule level.
+            var subGroup = p.Filter.SubGroup.Value;
+            var roman = NumberHelper.FromRoman(subGroup);
+            if (roman is { } subGroupNum
+                && subGroupNum is >= 1 and <= 10)
+            {
+                var subGroupLetter = ('a' + subGroupNum - 1).ToString();
+                foreach (var x in MatchLessonsImpl(p, new(subGroupLetter)))
+                {
+                    yield return x;
+                    yielded = true;
+                }
+            }
+
+            if (yielded)
+            {
+                yield break;
+            }
         }
 
-        var subGroup = p.Filter.SubGroup;
-        if (p.Filter.SubGroup != SubGroup.All)
         {
-            subGroup = SpecialSubGroups.Optional;
-        }
-        foreach (var x in MatchLessonsImpl(p, subGroup))
-        {
-            yield return x;
+            var subGroup = p.Filter.SubGroup;
+            if (p.Filter.SubGroup != SubGroup.All)
+            {
+                subGroup = SpecialSubGroups.Optional;
+            }
+            foreach (var x in MatchLessonsImpl(p, subGroup))
+            {
+                yield return x;
+            }
         }
     }
 

@@ -559,8 +559,11 @@ internal static class HtmlSearch
         {
             // Must query this from the lesson add thing.
             var addDoc = await p.GetAddLessonDocument();
-            var table = (IHtmlTableElement) addDoc.QuerySelector("table:last-of-type")!;
-            studentNames = FindStudents(table);
+            var table = (IHtmlTableElement?) addDoc.QuerySelector("table:last-of-type")!;
+            if (table != null)
+            {
+                studentNames = FindStudents(table);
+            }
         }
 
         var ret = new ScanLessonResult
