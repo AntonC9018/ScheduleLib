@@ -23,36 +23,6 @@ public sealed class ValidationSettings()
     public SubGroupValidationMode SubGroup = SubGroupValidationMode.Strict;
 }
 
-public sealed class Remappings()
-{
-    public readonly TeacherNameRemappings TeacherLastNameRemappings = new();
-    public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
-}
-
-public sealed class CourseNameRemappings : Dictionary<string, string>
-{
-}
-
-public sealed class SubGroupNameRemappings : Dictionary<string, string>
-{
-}
-
-public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastName>
-{
-    public TeacherNameRemappings() : base(IgnoreDiacriticsAndCase_Name_Comparer.Instance)
-    {
-    }
-
-    public void Add(string a, string b)
-    {
-        var x = new NameParts<string?>();
-        var y = x;
-        x[0] = a;
-        y[0] = b;
-        this[x] = new(y);
-    }
-}
-
 // TODO: Maybe add versioning for caching.
 public sealed partial class ScheduleBuilder()
 {

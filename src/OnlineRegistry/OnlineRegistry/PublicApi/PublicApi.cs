@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -74,15 +75,18 @@ public sealed class GroupsNavigator
     private readonly Schedule _schedule;
     private readonly GroupParseContext _groupParseContext;
     private readonly SubGroupsByGroup _subGroupsMap;
+    private readonly SubGroupNameRemapper _remapper;
 
     public GroupsNavigator(
         OnlineRegistryNavigator navigator,
         Schedule schedule,
-        GroupParseContext groupParseContext)
+        GroupParseContext groupParseContext,
+        SubGroupNameRemapper remapper)
     {
         _navigator = navigator;
         _schedule = schedule;
         _groupParseContext = groupParseContext;
+        _remapper = remapper;
         _subGroupsMap = _schedule.SubGroupsByGroup();
     }
 
@@ -93,8 +97,9 @@ public sealed class GroupsNavigator
         {
             Document = doc,
             GroupParseContext = _groupParseContext,
-            SearchGroupId = (in GroupForSearch group) =>
+            SearchGroupId = (ref GroupForSearch group) =>
             {
+                group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 var ids = FindGroupMatch(_schedule, _subGroupsMap, group);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)

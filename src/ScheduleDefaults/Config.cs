@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
+using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.Common;
@@ -83,6 +84,13 @@ public static class Config
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("GR"), new("GA2D"));
         subgroup.Add(new("Node"), new("UI"));
+
+        for (int i = 1; i <= 10; i++)
+        {
+            var from = $"{(char)('a' + i - 1)}";
+            var to = NumberHelper.ToRoman(i);
+            subgroup.Add(from, to);
+        }
     }
 
     // TODO: read from image??

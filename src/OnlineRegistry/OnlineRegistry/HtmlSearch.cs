@@ -59,7 +59,7 @@ internal readonly struct ScanGroupsParams
     public required SearchGroupId SearchGroupId { get; init; }
 }
 
-internal delegate LessonGroups SearchGroupId(in GroupForSearch group);
+internal delegate LessonGroups SearchGroupId(ref GroupForSearch group);
 
 
 internal readonly struct ScanLessonsParams
@@ -137,7 +137,7 @@ internal static class HtmlSearch
                     // Not handling this yet.
                     continue;
                 }
-                var groups = p.SearchGroupId(groupForSearch);
+                var groups = p.SearchGroupId(ref groupForSearch);
                 if (groups.Count == 0)
                 {
                     continue;

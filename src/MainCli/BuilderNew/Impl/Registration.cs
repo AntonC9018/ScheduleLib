@@ -83,6 +83,7 @@ public static class Registration
                     builder.EnableLookupModule();
                     return builder;
                 });
+                services.AddSingleton<SubGroupNameRemapper>();
             }
 
             void AddParserServices()
