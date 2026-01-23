@@ -12,6 +12,11 @@ using ScheduleLib.Parsing.WordDoc;
 
 namespace MainCli;
 
+public sealed class ScheduleBuilderInitializerOptions
+{
+    public bool BypassCache { get; set; } = false;
+}
+
 [AutoConstructor]
 public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 {
@@ -22,6 +27,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ILogger _logger;
     private readonly ConfigureRemappingsDelegate _configureRemappings;
+    private readonly IOptions<ScheduleBuilderInitializerOptions> _opts;
 
     public async Task Initialize(
         ScheduleBuilder builder,
@@ -58,10 +64,12 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         {
             FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
         });
+
+        var opts = _opts.Value;
         await loader.Load(
             context,
             cancellationToken,
-            bypassCache: false);
+            bypassCache: opts.BypassCache);
 
         _logger.LogInformation("Schedule built");
     }

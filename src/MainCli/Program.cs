@@ -22,6 +22,10 @@ services.Configure<RegularSeminarDateConfig>(x =>
     x.Day = DayOfWeek.Wednesday;
     x.Time = new(hour: 15, minute: 00);
 });
+services.Configure<ScheduleBuilderInitializerOptions>(x =>
+{
+    x.BypassCache = true;
+});
 
 var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
 {

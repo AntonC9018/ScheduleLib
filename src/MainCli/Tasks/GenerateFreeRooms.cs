@@ -46,7 +46,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
             {
             }, p.CancellationToken);
 
-            foreach (var day in new AllEnumEnumerable<DayOfWeek>())
+            foreach (var day in new EnumMembers<DayOfWeek>())
             {
                 var lessonsThisDay = _schedule.EnumerateWeeklyLessons()
                     .Where(x => x.Date.DayOfWeek == day)

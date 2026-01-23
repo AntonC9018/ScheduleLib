@@ -122,7 +122,7 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
                 {
                     bool AllEquals()
                     {
-                        foreach (var t in new AllEnumEnumerable<LessonProperty>())
+                        foreach (var t in new EnumMembers<LessonProperty>())
                         {
                             if (t is LessonProperty.DateTime or LessonProperty.Date)
                             {

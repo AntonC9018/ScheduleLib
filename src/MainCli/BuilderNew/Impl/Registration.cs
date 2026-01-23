@@ -129,7 +129,7 @@ public static class Registration
             {
                 services.AddSingleton<LessonTimeConfig>(
                     LessonTimeConfig.CreateDefault());
-                services.AddSingleton<SemesterIntervalProvider>(sp =>
+                services.AddSingleton<CurrentYearSemesterIntervalProvider>(sp =>
                 {
                     _ = sp;
                     return Config.SemesterIntervalProvider();
@@ -152,6 +152,7 @@ public static class Registration
             void AddScheduleLifetimeServices()
             {
                 services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
+                services.AddOptions<ScheduleBuilderInitializerOptions>();
 
                 // These don't seem necessary?
                 // I'm not sure how to set up the schedule in DI.

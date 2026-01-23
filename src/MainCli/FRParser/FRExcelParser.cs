@@ -13,7 +13,7 @@ namespace MainCli.FR;
 
 public static class FrExcelParser
 {
-    public struct Params
+    public readonly struct Params
     {
         public required Stream InputFile { get; init; }
         public required DocParseContext Context { get; init; }
@@ -59,20 +59,56 @@ public static class FrExcelParser
         {
             throw new NotSupportedException("Expected header row!");
         }
+
+        var previousResult = ParsingIterResult.None;
+        bool isFirstIter = true;
+        while (true)
+        {
+            var result = DoParsingIter(rowE, p, isFirstIter);
+            if (result == ParsingIterResult.NothingAdded)
+            {
+                if (previousResult == ParsingIterResult.NothingAdded)
+                {
+                    break;
+                }
+            }
+            previousResult = result;
+            isFirstIter = false;
+        }
+        return ValueTask.CompletedTask;
+    }
+
+    private enum ParsingIterResult
+    {
+        None,
+        NothingAdded,
+        ProcessedNormally,
+    }
+
+    private static ParsingIterResult DoParsingIter(
+        IEnumerator<IXLRow> rowE,
+        in Params p,
+        bool isFirstTime)
+    {
+        Span<GroupId> lessonGroupsMem = stackalloc GroupId[CellIterationContext.ColSpanHardLimit];
         var (years, offset) = ParseGrades(rowE);
         using var groups = ParseGroups(rowE, p.Context.Schedule, years, offset);
-        if (!rowE.MoveNext())
+
+        if (isFirstTime)
         {
-            throw new NotSupportedException("Bullshit row not found");
+            if (!rowE.MoveNext())
+            {
+                throw new NotSupportedException("Expected a bullshit row!");
+            }
         }
 
         var rowIterationContext = new RowIterationContext(
-            startRowNumber: rowE.Current!.RowNumber(),
+            startRowNumber: rowE.Current.RowNumber(),
             dayNameParser: p.Context.DayNameParser,
             timeConfig: p.Context.TimeConfig);
         var lessonParser = p.Context.ParserFactory.Create();
         var stringBuilder = p.GetCleanStringBuilder();
-        Span<GroupId> lessonGroupsMem = stackalloc GroupId[CellIterationContext.ColSpanHardLimit];
+        var currentResult = ParsingIterResult.NothingAdded;
 
         while (true)
         {
@@ -80,12 +116,15 @@ public static class FrExcelParser
             {
                 break;
             }
-            var row = rowE.Current!;
+            var row = rowE.Current;
             var cellE = row.CellsWithMergedAppearingOnce().GetEnumerator();
-            if (!rowIterationContext.Update(row, cellE))
+            var action = rowIterationContext.Update(row, cellE);
+            if (action == RowIterationContext.UpdateAction.Done)
             {
                 break;
             }
+            Debug.Assert(action == RowIterationContext.UpdateAction.Process);
+            currentResult = ParsingIterResult.ProcessedNormally;
 
             var cellIterationContext = new CellIterationContext(cellE);
 
@@ -107,6 +146,15 @@ public static class FrExcelParser
                 foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
                 {
                     var offsetIndex = offset.GetUnOffsetIndex(columnNumber);
+                    const string err = "Lesson found in a column that doesn't have a group assigned";
+                    if (offsetIndex.Value < 0)
+                    {
+                        throw cell.Exception($"{err} (appearing BEFORE THE FIRST column with a group)");
+                    }
+                    if (offsetIndex.Value >= groups.Length)
+                    {
+                        throw cell.Exception($"{err} (appearing AFTER THE LAST column with a group)");
+                    }
                     var groupId = groups.Get(offsetIndex);
                     lessonGroups[index] = groupId;
                 }
@@ -160,8 +208,7 @@ public static class FrExcelParser
                 }
             }
         }
-
-        return ValueTask.CompletedTask;
+        return currentResult;
     }
 
     private struct RowIterationContext(
@@ -198,7 +245,13 @@ public static class FrExcelParser
             }
         }
 
-        public bool Update(IXLRow row, IEnumerator<IXLCell> cellE)
+        public enum UpdateAction
+        {
+            Process,
+            Done,
+        }
+
+        public UpdateAction Update(IXLRow row, IEnumerator<IXLCell> cellE)
         {
             {
                 int newRowNumber = row.RowNumber();
@@ -223,19 +276,20 @@ public static class FrExcelParser
                     throw new NotSupportedException("Incorrectly computed range length?");
                 }
 
-                _currentRowSpan = range.RowCount();
-                _rowsSinceLastDate = 0;
                 var cell = cellE.Current;
                 var value = cell.Value;
                 if (value.IsBlank)
                 {
-                    return false;
+                    return UpdateAction.Done;
                 }
                 var text = value.GetText();
                 if (text == "")
                 {
-                    return false;
+                    return UpdateAction.Done;
                 }
+
+                _currentRowSpan = range.RowCount();
+                _rowsSinceLastDate = 0;
                 var newDay = ParseDay(text, dayNameParser);
                 _lastDateRange = range;
                 _previousTimeSlotRoman = NoTimeSlotRoman;
@@ -318,7 +372,7 @@ public static class FrExcelParser
                 }
                 _timeSlot = timeSlotFound;
             }
-            return true;
+            return UpdateAction.Process;
         }
     }
 
@@ -415,7 +469,9 @@ public static class FrExcelParser
         return new(day, date);
     }
 
-    private readonly record struct RestoredIndex(int Value);
+    private readonly record struct RestoredIndex(int Value)
+    {
+    }
     private readonly record struct Offset(int Value)
     {
         public RestoredIndex GetUnOffsetIndex(int columnIndex) => new(columnIndex - Value);
@@ -520,8 +576,11 @@ public static class FrExcelParser
 
         public GroupId Get(RestoredIndex index)
         {
+            Debug.Assert(index.Value < _arr.Span.Length);
             return _arr.Span[index.Value];
         }
+
+        public int Length => _arr.Length;
 
         public void Dispose()
         {

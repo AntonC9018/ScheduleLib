@@ -46,7 +46,7 @@ public sealed class EnumBitArrayTests
         Assert.True(bitArray.AreAllSet);
         Assert.Equal(7, bitArray.SetCount);
 
-        foreach (var day in new AllEnumEnumerable<TestDay>())
+        foreach (var day in new EnumMembers<TestDay>())
         {
             Assert.True(bitArray.IsSet(day));
         }

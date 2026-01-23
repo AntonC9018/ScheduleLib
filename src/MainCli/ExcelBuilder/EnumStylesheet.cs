@@ -68,7 +68,7 @@ public static partial class StylesheetBuilderHelper
             return i;
         }
 
-        var e = new AllEnumEnumerable<TEnum>().GetEnumerator();
+        var e = new EnumMembers<TEnum>().GetEnumerator();
         bool good = e.MoveNext();
         Debug.Assert(good);
         var first = Next(e.Current);

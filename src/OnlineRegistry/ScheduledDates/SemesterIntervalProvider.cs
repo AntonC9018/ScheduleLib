@@ -13,7 +13,7 @@ public readonly struct GetSemesterIntervalParams
 public readonly record struct SemesterDateRange
 {
     public required DateOnly Start { get; init; }
-    public required DateOnly End { get; init; }
+    public required DateOnly EndInclusive { get; init; }
 
     public bool Contains(DateOnly date)
     {
@@ -21,7 +21,7 @@ public readonly record struct SemesterDateRange
         {
             return false;
         }
-        if (date > End)
+        if (date > EndInclusive)
         {
             return false;
         }
@@ -44,7 +44,7 @@ public sealed class YearDateRangeBuilderModel
     public SemesterDateRange LessonDateRange = new()
     {
         Start = DateOnly.MinValue,
-        End = DateOnly.MaxValue,
+        EndInclusive = DateOnly.MaxValue,
     };
     public QualificationType QualificationType = QualificationType.Invalid;
     public Grade Grade = Grade.Invalid;
@@ -85,9 +85,9 @@ public sealed class YearDateRangeBuilder
         Model.LessonDateRange = Model.LessonDateRange with { Start = start };
     }
 
-    public void LessonsEnd(DateOnly end)
+    public void LessonsEndInclusive(DateOnly end)
     {
-        Model.LessonDateRange = Model.LessonDateRange with { End = end };
+        Model.LessonDateRange = Model.LessonDateRange with { EndInclusive = end };
     }
 
     public void QualificationType(QualificationType type)
@@ -112,19 +112,19 @@ public sealed class YearDateRangeBuilder
         LessonsStart(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
     }
 
-    public void LessonsEnd(int month, int day)
+    public void LessonsEndInclusive(int month, int day)
     {
-        LessonsEnd(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
+        LessonsEndInclusive(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
     }
 }
 
 public sealed class YearDateRangeBuilderScope
 {
-    private readonly SemesterIntervalBuilder _mainBuilder;
+    private readonly CurrentYearSemesterIntervalBuilder _mainBuilder;
     private readonly YearDateRangeBuilder _builder;
 
     internal YearDateRangeBuilderScope(
-        SemesterIntervalBuilder mainBuilder,
+        CurrentYearSemesterIntervalBuilder mainBuilder,
         YearDateRangeBuilderModel? model = null)
     {
         _mainBuilder = mainBuilder;
@@ -153,15 +153,15 @@ public sealed class YearDateRangeBuilderScope
     public void Semester(Semester s) => _builder.Semester(s);
     public void AttendanceMode(AttendanceMode mode) => _builder.AttendanceMode(mode);
     public void LessonsStart(DateOnly start) => _builder.LessonsStart(start);
-    public void LessonsEnd(DateOnly end) => _builder.LessonsEnd(end);
+    public void LessonsEndInclusive(DateOnly end) => _builder.LessonsEndInclusive(end);
     public void QualificationType(QualificationType type) => _builder.QualificationType(type);
     public void Grade(Grade grade) => _builder.Grade(grade);
     public void Year(int year) => _builder.Year(year);
     public void LessonsStart(int month, int day) => _builder.LessonsStart(month, day);
-    public void LessonsEnd(int month, int day) => _builder.LessonsEnd(month, day);
+    public void LessonsEndInclusive(int month, int day) => _builder.LessonsEndInclusive(month, day);
 }
 
-public sealed class SemesterIntervalBuilder
+public sealed class CurrentYearSemesterIntervalBuilder
 {
     private List<YearDateRangeBuilderModel> _models = new();
 
@@ -181,7 +181,7 @@ public sealed class SemesterIntervalBuilder
         return builder;
     }
 
-    public SemesterIntervalProvider Build()
+    public CurrentYearSemesterIntervalProvider Build()
     {
         foreach (var model in _models)
         {
@@ -193,7 +193,7 @@ public sealed class SemesterIntervalBuilder
             d = new SemesterDateRange
             {
                 Start = d.Start.WithYearIfNoYear(model.Year),
-                End = d.End.WithYearIfNoYear(model.Year),
+                EndInclusive = d.EndInclusive.WithYearIfNoYear(model.Year),
             };
         }
         foreach (var model in _models)
@@ -215,7 +215,7 @@ public sealed class SemesterIntervalBuilder
             {
                 throw new InvalidOperationException("Start date not specified");
             }
-            if (d.End == DateOnly.MaxValue)
+            if (d.EndInclusive == DateOnly.MaxValue)
             {
                 throw new InvalidOperationException("End date not specified");
             }
@@ -225,12 +225,12 @@ public sealed class SemesterIntervalBuilder
                 {
                     throw new InvalidOperationException("Year not specified");
                 }
-                if (d.End.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
+                if (d.EndInclusive.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
                     throw new InvalidOperationException("Year not specified");
                 }
             }
-            if (d.Start > d.End)
+            if (d.Start > d.EndInclusive)
             {
                 throw new InvalidOperationException("Start date is after end date");
             }
@@ -258,7 +258,7 @@ public sealed class SemesterIntervalBuilder
 }
 
 internal record struct DateRangeKey(
-    Grade grade,
+    Grade Grade,
     Semester Semester,
     AttendanceMode AttendanceMode,
     QualificationType QualificationType)
@@ -280,11 +280,11 @@ internal readonly struct YearDateRanges
     }
 }
 
-public sealed class SemesterIntervalProvider
+public sealed class CurrentYearSemesterIntervalProvider
 {
     internal YearDateRanges Ranges { get; }
 
-    internal SemesterIntervalProvider(YearDateRanges ranges)
+    internal CurrentYearSemesterIntervalProvider(YearDateRanges ranges)
     {
         Ranges = ranges;
     }
@@ -299,6 +299,7 @@ public sealed class SemesterIntervalProvider
             semester,
             group.AttendanceMode,
             group.QualificationType);
+
         var ret = Ranges.Get(key);
         return ret;
     }

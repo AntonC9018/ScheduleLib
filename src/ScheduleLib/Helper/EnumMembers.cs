@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace ScheduleLib.Helper;
 
-public readonly struct AllEnumEnumerable<T> : IEnumerable<T>
+public readonly struct EnumMembers<T> : IEnumerable<T>
     where T : struct, Enum
 {
     public static readonly T Start;
@@ -33,7 +33,7 @@ public readonly struct AllEnumEnumerable<T> : IEnumerable<T>
         return IntAsEnum(ret);
     }
 
-    static AllEnumEnumerable()
+    static EnumMembers()
     {
         Debug.Assert(typeof(T).GetEnumUnderlyingType() == typeof(int));
 
@@ -41,7 +41,7 @@ public readonly struct AllEnumEnumerable<T> : IEnumerable<T>
         Debug.Assert(values.Length > 0, "Empty enum?");
 
         bool adjustForCount = Enum.GetName(typeof(T), values[^1]) == "Count";
-        bool adjustForUnknown = Enum.GetName(typeof(T), values[0]) is "Unknown" or "None";
+        bool adjustForUnknown = Enum.GetName(typeof(T), values[0]) is "Unknown" or "None" or "Invalid";
 
         int length = values.Length;
         if (adjustForCount)

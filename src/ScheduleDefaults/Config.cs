@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
+using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
@@ -85,9 +86,9 @@ public static class Config
     }
 
     // TODO: read from image??
-    public static SemesterIntervalProvider SemesterIntervalProvider()
+    public static CurrentYearSemesterIntervalProvider SemesterIntervalProvider()
     {
-        var s = new SemesterIntervalBuilder();
+        var s = new CurrentYearSemesterIntervalBuilder();
         s.Scope(x =>
         {
             x.AttendanceMode(AttendanceMode.Zi);
@@ -97,7 +98,7 @@ public static class Config
                 x.Year(2025);
                 x.Semester(Semester.Sem1);
                 x.LessonsStart(month: 9, day: 1);
-                x.LessonsEnd(month: 12, day: 14);
+                x.LessonsEndInclusive(month: 12, day: 14);
                 for (int i = 1; i <= 3; i++)
                 {
                     var r = x.Range();
@@ -109,7 +110,7 @@ public static class Config
                 x.Semester(Semester.Sem2);
 
                 x.LessonsStart(month: 2, day: 2);
-                x.LessonsEnd(month: 5, day: 10);
+                x.LessonsEndInclusive(month: 5, day: 10);
                 for (int i = 1; i <= 2; i++)
                 {
                     var r = x.Range();
@@ -120,8 +121,28 @@ public static class Config
                 {
                     r.Grade(new(3));
                     r.LessonsStart(month: 2, day: 23);
-                    r.LessonsEnd(month: 4, day: 11);
+                    r.LessonsEndInclusive(month: 4, day: 11);
                 });
+            }
+        });
+
+        s.Scope(x =>
+        {
+            x.AttendanceMode(AttendanceMode.FrecventaRedusa);
+            x.QualificationType(QualificationType.Licenta);
+
+            // TODO: The semester data on the site is a lie. It doesn't follow this model at all.
+            x.LessonsStart(new DateOnly(year: 2025, month: 9, day: 1));
+            x.LessonsEndInclusive(new DateOnly(year: 2026, month: 8, day: 31));
+
+            foreach (var sem in new EnumMembers<Semester>())
+            {
+                x.Semester(sem);
+                for (int i = 1; i <= 3; i++)
+                {
+                    var r = x.Range();
+                    r.Grade(new(i));
+                }
             }
         });
         return s.Build();

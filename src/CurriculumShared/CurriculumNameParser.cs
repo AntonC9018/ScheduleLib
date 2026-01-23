@@ -2386,13 +2386,13 @@ public static class StringSearchHelper
 
         public SearchArrayBuilder()
         {
-            _builder = ImmutableArray.CreateBuilder<U>(AllEnumEnumerable<T>.Count);
+            _builder = ImmutableArray.CreateBuilder<U>(EnumMembers<T>.Count);
             _builder.Count = _builder.Capacity;
         }
 
         public readonly void Set(T tag, U str)
         {
-            int index = AllEnumEnumerable<T>.EnumAsInt(tag);
+            int index = EnumMembers<T>.EnumAsInt(tag);
             Debug.Assert(index >= 0 && index < _builder.Capacity);
             _builder[index] = str;
         }

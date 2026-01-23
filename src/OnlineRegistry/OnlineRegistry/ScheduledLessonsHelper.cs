@@ -62,7 +62,7 @@ public sealed partial class ScheduledDateTimeProvider
     private readonly Schedule _schedule;
     private readonly LessonTimeConfig _timeConfig;
     private readonly IAllScheduledDateProvider _dateProvider;
-    private readonly SemesterIntervalProvider _semesterIntervalProvider;
+    private readonly CurrentYearSemesterIntervalProvider _semesterIntervalProvider;
 
     public readonly struct Params
     {
@@ -132,9 +132,9 @@ public sealed partial class ScheduledDateTimeProvider
                 }
             }
             {
-                if (p.Semester.End < datesParams.To)
+                if (p.Semester.EndInclusive < datesParams.To)
                 {
-                    datesParams.To = p.Semester.End;
+                    datesParams.To = p.Semester.EndInclusive;
                 }
                 if (p.Semester.Start > datesParams.From)
                 {

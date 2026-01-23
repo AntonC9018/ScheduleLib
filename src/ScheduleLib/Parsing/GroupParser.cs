@@ -1,4 +1,3 @@
-using System.Text;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Parsing.GroupParser;
@@ -6,7 +5,12 @@ namespace ScheduleLib.Parsing.GroupParser;
 public sealed class GroupParseContext
 {
     // Must be modulo 100
-    public required int CurrentStudyYear;
+    public int CurrentStudyYear { get; }
+
+    private GroupParseContext(int currentStudyYear)
+    {
+        CurrentStudyYear = currentStudyYear;
+    }
 
     public struct Params
     {
@@ -16,10 +20,7 @@ public sealed class GroupParseContext
     public static GroupParseContext Create(Params p)
     {
         int year = p.CurrentStudyYear % 100;
-        return new()
-        {
-            CurrentStudyYear = year,
-        };
+        return new(year);
     }
 
     public Grade DetermineGrade(int year)
