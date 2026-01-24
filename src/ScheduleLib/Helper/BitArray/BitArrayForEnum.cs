@@ -97,6 +97,12 @@ public record struct EnumBitArray<T>
         var result = SizedImpl.Intersect(other.SizedImpl);
         return new(result.AsUnsized());
     }
+    [Pure]
+    public readonly EnumBitArray<T> Remove(EnumBitArray<T> other)
+    {
+        var result = SizedImpl.Remove(other.SizedImpl);
+        return new(result.AsUnsized());
+    }
 
     [Pure]
     public readonly bool AreAllSet => _impl.AreAllSet(EnumMembers<T>.Count);

@@ -1,8 +1,10 @@
 using System.Buffers;
+using System.Diagnostics;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib;
 
-public readonly record struct RentedBuffer<T> : IDisposable
+public readonly struct RentedBuffer<T> : IDisposable
 {
     public readonly T[] Array;
     public readonly int Length;
@@ -18,6 +20,11 @@ public readonly record struct RentedBuffer<T> : IDisposable
 
     public void Dispose()
     {
+        Debug.Assert(IsValid);
         ArrayPool<T>.Shared.Return(Array);
     }
+
+    public bool IsValid => Array != null;
+
+    public SpanBuilder<T> Builder() => new(Span);
 }

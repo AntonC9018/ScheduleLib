@@ -71,7 +71,7 @@ public sealed class HtmlTests
         {
             Document = doc,
             GroupParseContext = groupParseContext,
-            SearchGroupId = (in GroupForSearch g) =>
+            SearchGroupId = (ref g) =>
             {
                 groups.Add(g);
                 return [new(groups.Count)];

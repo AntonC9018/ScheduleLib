@@ -280,12 +280,12 @@ public static partial class RegistryScraping
 }
 
 
-public readonly record struct StudentsLookupKey
+public record struct StudentsLookupKey
 {
-    public readonly LessonGroups Groups;
-    public readonly SubGroup SubGroup;
-    public readonly CourseId CourseId;
-    public readonly LessonType LessonType;
+    public LessonGroups Groups;
+    public SubGroup SubGroup;
+    public CourseId CourseId;
+    public LessonType LessonType;
 
     public StudentsLookupKey(
         in LessonGroups groups,
@@ -301,11 +301,10 @@ public readonly record struct StudentsLookupKey
 
     public StudentsLookupKey WithGroups(in LessonGroups g)
     {
-        return new StudentsLookupKey(
-            g,
-            SubGroup,
-            CourseId,
-            LessonType);
+        return this with
+        {
+            Groups = g,
+        };
     }
 }
 

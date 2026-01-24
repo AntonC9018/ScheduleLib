@@ -3,6 +3,7 @@ using System.Text;
 using ClosedXML.Excel;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
@@ -257,7 +258,7 @@ public static class FrExcelParser
                 int newRowNumber = row.RowNumber();
                 if (newRowNumber != _rowNumber + 1)
                 {
-                    throw new NotSupportedException("No expected this row number.");
+                    throw row.Exception("No expected this row number.");
                 }
                 _rowNumber = newRowNumber;
             }
@@ -267,46 +268,48 @@ public static class FrExcelParser
                 throw new NotSupportedException("No date column found");
             }
 
-            var range = cellE.Current.ActualRange();
-
-            if (_rowsSinceLastDate == _currentRowSpan)
             {
-                if (range.Equals(_lastDateRange))
-                {
-                    throw new NotSupportedException("Incorrectly computed range length?");
-                }
-
                 var cell = cellE.Current;
-                var value = cell.Value;
-                if (value.IsBlank)
-                {
-                    return UpdateAction.Done;
-                }
-                var text = value.GetText();
-                if (text == "")
-                {
-                    return UpdateAction.Done;
-                }
+                var range = cell.ActualRange();
 
-                _currentRowSpan = range.RowCount();
-                _rowsSinceLastDate = 0;
-                var newDay = ParseDay(text, dayNameParser);
-                _lastDateRange = range;
-                _previousTimeSlotRoman = NoTimeSlotRoman;
-                _timeSlot = null;
-                _day = newDay;
+                if (_rowsSinceLastDate == _currentRowSpan)
+                {
+                    if (range.Equals(_lastDateRange))
+                    {
+                        throw cell.Exception("Incorrectly computed range length?");
+                    }
 
-                if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
-                {
-                    throw new InvalidOperationException("Wrong day of week specified in excel.");
+                    var value = cell.Value;
+                    if (value.IsBlank)
+                    {
+                        return UpdateAction.Done;
+                    }
+                    var text = value.GetText();
+                    if (text == "")
+                    {
+                        return UpdateAction.Done;
+                    }
+
+                    _currentRowSpan = range.RowCount();
+                    _rowsSinceLastDate = 0;
+                    var newDay = ParseDay(cell, text, dayNameParser);
+                    _lastDateRange = range;
+                    _previousTimeSlotRoman = NoTimeSlotRoman;
+                    _timeSlot = null;
+                    _day = newDay;
+
+                    if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
+                    {
+                        throw cell.Exception("Wrong day of week specified in excel.");
+                    }
                 }
-            }
-            else
-            {
-                Debug.Assert(_lastDateRange != null);
-                if (!_lastDateRange.Equals(range))
+                else
                 {
-                    throw new NotSupportedException("Expected ranges to have matched.");
+                    Debug.Assert(_lastDateRange != null);
+                    if (!_lastDateRange.Equals(range))
+                    {
+                        throw cell.Exception("Expected ranges to have matched.");
+                    }
                 }
             }
 
@@ -421,7 +424,7 @@ public static class FrExcelParser
             var range = cell.ActualRange();
             if (range.RowCount() != 1)
             {
-                throw new NotSupportedException("Cells spanning only a single row are allowed.");
+                throw cell.Exception("Cells spanning only a single row are allowed.");
             }
 
             var newColNumber = range.FirstColumn().ColumnNumber();
@@ -430,7 +433,7 @@ public static class FrExcelParser
                 int expectedNextCol = _colNumber + _colSpan;
                 if (expectedNextCol != newColNumber)
                 {
-                    throw new NotSupportedException("Cells are not consecutive.");
+                    throw cell.Exception("Cells are not consecutive.");
                 }
             }
             _colNumber = newColNumber;
@@ -440,42 +443,36 @@ public static class FrExcelParser
 
             if (colCount > ColSpanHardLimit)
             {
-                throw new NotSupportedException("Max columns hard limited to 64.");
+                throw cell.Exception("Max columns hard limited to 64.");
             }
             return true;
         }
     }
 
-    private static Day ParseDay(string text, DayNameParser dayNameParser)
+    private static Day ParseDay(IXLCell context, string text, DayNameParser dayNameParser)
     {
         var parser = new Parser(text);
         // DayOfWeek, dd.MM.yyyy
         if (parser.IsEmpty)
         {
-            throw new NotSupportedException("Expected cell to have the date");
+            throw context.Exception("Expected cell to have the date");
         }
         var day = parser.ParseDayOfWeek(dayNameParser);
         if (!parser.ConsumeExactChar(','))
         {
-            throw new NotSupportedException("Expected ',' after the day name");
+            throw context.Exception("Expected ',' after the day name");
         }
         parser.SkipWhitespace();
         var date = parser.ParseDate("dd.MM.yyyy");
         parser.SkipWhitespace();
         if (!parser.IsEmpty)
         {
-            throw new NotSupportedException("Not parsed the input string fully");
+            throw context.Exception("Not parsed the input string fully");
         }
         return new(day, date);
     }
 
-    private readonly record struct RestoredIndex(int Value)
-    {
-    }
-    private readonly record struct Offset(int Value)
-    {
-        public RestoredIndex GetUnOffsetIndex(int columnIndex) => new(columnIndex - Value);
-    }
+
     private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date);
     private readonly record struct Grades
     {
@@ -494,7 +491,7 @@ public static class FrExcelParser
         }
     }
 
-    private static (Grades Grades, Offset Offset) ParseGrades(IEnumerator<IXLRow> rowE)
+    private static (Grades Grades, ColumnOffset Offset) ParseGrades(IEnumerator<IXLRow> rowE)
     {
         var ret = new SizedItemArray<Grade>();
         if (!rowE.MoveNext())
@@ -511,7 +508,7 @@ public static class FrExcelParser
             {
                 if (startOffset != null)
                 {
-                    throw new NotSupportedException("Multirow header column after non-empty cell");
+                    throw cell.Exception("Multirow header column after non-empty cell");
                 }
                 continue;
             }
@@ -531,7 +528,7 @@ public static class FrExcelParser
             {
                 if (startOffset != null)
                 {
-                    throw new NotSupportedException("Expected `Anul` in the header row.");
+                    throw cell.Exception("Expected `Anul` in the header row.");
                 }
                 continue;
             }
@@ -542,12 +539,12 @@ public static class FrExcelParser
 
             if (!parser.SkipWhitespace().SkippedAny)
             {
-                throw new NotSupportedException("Expected whitespace after `Anul`.");
+                throw cell.Exception("Expected whitespace after `Anul`.");
             }
             var romanResult = parser.ReadRoman();
             if (romanResult.Status != ReadRomanStatus.Ok)
             {
-                throw new NotSupportedException("Expected roman after `Anul`.");
+                throw cell.Exception("Expected roman after `Anul`.");
             }
 
             var grade = romanResult.Number;
@@ -558,7 +555,7 @@ public static class FrExcelParser
             var item = new SizedItem<Grade>(item: new(grade), size: columnCount);
             if (ret.TotalSize != index)
             {
-                throw new NotSupportedException("Empty grade cell not allowed.");
+                throw cell.Exception("Empty grade cell not allowed.");
             }
             ret.Add(item);
         }
@@ -584,7 +581,7 @@ public static class FrExcelParser
 
         public void Dispose()
         {
-            if (_arr != default)
+            if (_arr.IsValid)
             {
                 _arr.Dispose();
             }
@@ -595,7 +592,7 @@ public static class FrExcelParser
         IEnumerator<IXLRow> rowE,
         ScheduleBuilder builder,
         Grades grades,
-        Offset offset)
+        ColumnOffset offset)
     {
         if (!rowE.MoveNext())
         {
@@ -690,57 +687,5 @@ public static class FrExcelParser
         }
 
         return new(groups);
-    }
-
-    private static int ColumnCount(this IXLCell cell)
-    {
-        if (cell.MergedRange() is { } merged)
-        {
-            return merged.ColumnCount();
-        }
-        return 1;
-    }
-
-    private static IXLRange ActualRange(this IXLCell cell)
-    {
-        if (cell.MergedRange() is { } merged)
-        {
-            return merged;
-        }
-        return cell.AsRange();
-    }
-
-    private static IEnumerable<IXLCell> CellsWithMergedAppearingOnce(this IXLRow row)
-    {
-        IXLRange? currentRange = null;
-
-        foreach (var cell in row.Cells())
-        {
-            var range = cell.ActualRange();
-            if (ReferenceEquals(currentRange, range))
-            {
-                continue;
-            }
-
-            currentRange = range;
-            yield return cell;
-        }
-    }
-
-    private static ExcelCellException Exception(this IXLCell cell, string message, Exception? inner = null)
-    {
-        return new ExcelCellException(cell.ActualRange().RangeAddress.ToString()!, message, inner);
-    }
-
-}
-
-public sealed class ExcelCellException : NotSupportedException
-{
-    public string CellRange { get; set; }
-
-    public ExcelCellException(string cellRange, string message, Exception? inner = null)
-        : base($"{cellRange}: {message}", inner)
-    {
-        CellRange = cellRange;
     }
 }

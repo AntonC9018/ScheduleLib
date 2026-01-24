@@ -629,6 +629,7 @@ public readonly ref struct OneTimeLessonRef : ILessonRef<OneTimeLessonRef, OneTi
 
 public enum LessonType
 {
+    None = -1,
     Lab,
     Seminar,
     Curs,

@@ -1,6 +1,9 @@
+using System.Diagnostics;
+using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Excel.Helper;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
@@ -21,18 +24,39 @@ public enum RepeatedCourseBehavior
     Replace,
 }
 
+public readonly struct ParseAttendanceListsExcelParams
+{
+    public AllStudentAttendanceListBuilder Builder { get; }
+    public FilteredSchedule Schedule { get; }
+    public XLWorkbook Workbook { get; }
+    public GroupParseContext GroupParseContext { get; }
+    public LookupFacade Lookup { get; }
+    public LessonTypeParser LessonTypeParser { get; }
+
+    // Like this is nonsense honestly. Why do I have to care about this so much?
+    public readonly /* ref readonly */ AttendanceExcel.WorksheetParseParameters ParseParameters;
+
+    public ParseAttendanceListsExcelParams(
+        in AttendanceExcel.WorksheetParseParameters parseParameters,
+        AllStudentAttendanceListBuilder builder,
+        FilteredSchedule schedule,
+        XLWorkbook workbook,
+        GroupParseContext groupParseContext,
+        LookupFacade lookup,
+        LessonTypeParser lessonTypeParser)
+    {
+        ParseParameters = parseParameters;
+        Builder = builder;
+        Schedule = schedule;
+        Workbook = workbook;
+        GroupParseContext = groupParseContext;
+        Lookup = lookup;
+        LessonTypeParser = lessonTypeParser;
+    }
+}
+
 public static class AttendanceExcel
 {
-    public readonly struct ParseAttendanceListsExcelParams
-    {
-        public required AllStudentAttendanceListBuilder Builder { get; init; }
-        public required FilteredSchedule Schedule { get; init; }
-        public required XLWorkbook Workbook { get; init; }
-        public required GroupParseContext GroupParseContext { get; init; }
-        public required LookupModule LookupModule { get; init; }
-        public required CourseNameUnifierModule CourseNames { get; init; }
-        public required RepeatedCourseBehavior RepeatedCourseBehavior { get; init; }
-    }
 
     private static class NameTokenType
     {
@@ -174,25 +198,25 @@ public static class AttendanceExcel
         private readonly Lexer _lexer;
 
         private readonly FilteredSchedule _schedule;
-        private readonly CourseNameUnifierModule _courseNames;
         private readonly GroupParseContext _groupParseContext;
-        private readonly LookupModule _lookupModule;
+        private readonly LookupFacade _lookup;
 
         public ParseNameHelper(
             FilteredSchedule schedule,
-            CourseNameUnifierModule courseNames,
             GroupParseContext groupParseContext,
-            LookupModule lookupModule)
+            LookupFacade lookup,
+            Lexer lexer)
         {
             _nameE = new SingleItemEnumerator<string>();
-            _lexer = new Lexer(NameTokenReader.Instance, _labels);
             _schedule = schedule;
-            _courseNames = courseNames;
             _groupParseContext = groupParseContext;
-            _lookupModule = lookupModule;
+            _lookup = lookup;
+            _lexer = lexer;
         }
 
-        public AnyLessonAccessor? LookupLessonByExcelName(string excelName)
+        public AnyLessonAccessor? LookupLessonByExcelName(
+            string excelName,
+            LessonModelDiffMask additionallyIgnoredFields)
         {
             _nameE.Reset(excelName);
             _lexer.Reset(_nameE);
@@ -202,11 +226,7 @@ public static class AttendanceExcel
             if (parsedName.NameRange is { } nameRange)
             {
                 var courseName = excelName.AsMemory()[nameRange.Start.Index .. nameRange.End.Index];
-                if (_courseNames.Find(new()
-                    {
-                        CourseName = courseName,
-                        Lookup = _lookupModule,
-                    }) is not { } x)
+                if (_lookup.Course(courseName) is not { } x)
                 {
                     throw new InvalidOperationException($"Course {courseName} not found");
                 }
@@ -216,11 +236,11 @@ public static class AttendanceExcel
             var groups = new LessonGroups();
             if (parsedName.Group is { } group)
             {
-                if (!_lookupModule.Groups.TryGetValue(group.Name, out var x))
+                if (_lookup.Group(group.Name) is not { } x)
                 {
                     throw new InvalidOperationException($"Group {group.Name} not found");
                 }
-                groups = [x];
+                groups.Add(x);
             }
 
             var key = new Key
@@ -230,12 +250,13 @@ public static class AttendanceExcel
                 LessonType = parsedName.LessonType,
                 SubGroup = parsedName.SubGroup,
             };
-            return LookupLesson(key, _schedule);
+            return LookupLesson(key, _schedule, additionallyIgnoredFields);
         }
 
         private static AnyLessonAccessor? LookupLesson(
             Key key,
-            FilteredSchedule schedule)
+            FilteredSchedule schedule,
+            LessonModelDiffMask additionallyIgnoredFields)
         {
             var diffLesson = default(LessonData);
             var diffMask = new LessonModelDiffMask();
@@ -261,8 +282,11 @@ public static class AttendanceExcel
                 diffLesson.Type = key.LessonType;
                 diffMask.LessonType = true;
             }
+            diffMask = diffMask.Remove(additionallyIgnoredFields);
 
             LessonData result = default;
+            AnyLessonId? lessonId = null;
+
             var resultDiffMask = new LessonModelDiffMask
             {
                 LessonType = true,
@@ -270,8 +294,7 @@ public static class AttendanceExcel
                 AllGroups = true,
                 Course = true,
                 AllTeachers = true,
-            };
-            AnyLessonId? lessonId = null;
+            }.Remove(additionallyIgnoredFields);
 
             foreach (var lesson in schedule.EnumerateLessons())
             {
@@ -310,15 +333,20 @@ public static class AttendanceExcel
 
     public static void ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
     {
+        var lexer = new Lexer(NameTokenReader.Instance, _labels);
         var helper = new ParseNameHelper(
             schedule: p.Schedule,
-            courseNames: p.CourseNames,
+            lookup: p.Lookup,
             groupParseContext: p.GroupParseContext,
-            lookupModule: p.LookupModule);
+            lexer: lexer);
 
         foreach (var sheet in p.Workbook.Worksheets)
         {
-            if (helper.LookupLessonByExcelName(sheet.Name) is not { } lesson)
+            var additionallyIgnoredFields = new LessonModelDiffMask
+            {
+                LessonType = p.ParseParameters.HeaderFormat.FormatType == HeaderFormatType.LessonType,
+            };
+            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
@@ -346,17 +374,30 @@ public static class AttendanceExcel
             {
                 var key = Key(groups);
                 var l = p.Builder.TryList(key);
+
+                void B()
+                {
+                    BuildList(
+                        sheet: sheet,
+                        list: l.Builder,
+                        headerDeps: new()
+                        {
+                            LessonTypeParser = p.LessonTypeParser,
+                        },
+                        p: p.ParseParameters);
+                }
+
                 if (!l.Existed)
                 {
-                    BuildList(sheet, l.Builder);
+                    B();
                     return;
                 }
 
-                switch (p.RepeatedCourseBehavior)
+                switch (p.ParseParameters.RepeatedCourseBehavior)
                 {
                     case RepeatedCourseBehavior.Append:
                     {
-                        BuildList(sheet, l.Builder);
+                        B();
                         break;
                     }
                     case RepeatedCourseBehavior.Ignore:
@@ -371,7 +412,7 @@ public static class AttendanceExcel
                     case RepeatedCourseBehavior.Replace:
                     {
                         l.Builder.Clear();
-                        BuildList(sheet, l.Builder);
+                        B();
                         break;
                     }
                     case RepeatedCourseBehavior.Error:
@@ -383,11 +424,82 @@ public static class AttendanceExcel
         }
     }
 
+    public enum HeaderFormatType
+    {
+        Nothing,
+        LessonType,
+        IgnoreHeader,
+    }
+
+    public struct HeaderFormat()
+    {
+        public HeaderFormatType FormatType = HeaderFormatType.Nothing;
+        public bool IgnoreValuesOutsideHeader = true;
+    }
+
+    public enum CellValueFormat
+    {
+        NotAttendanceIsError,
+        IgnoreGrade,
+    }
+
+    public struct WorksheetParseParameters()
+    {
+        public HeaderFormat HeaderFormat = new();
+        public CellValueFormat CellValueFormat = CellValueFormat.NotAttendanceIsError;
+        public RepeatedCourseBehavior RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+    }
+
+    private readonly struct ParsedHeaderInfo : IDisposable
+    {
+        private readonly RentedBuffer<LessonType> _lessons;
+        public readonly ColumnOffset Offset { get; }
+        public bool IsApplicable => _lessons.IsValid;
+        public int Length => _lessons.Length;
+
+        public ReadOnlySpan<LessonType> LessonTypes => _lessons.Span;
+
+        public ParsedHeaderInfo(
+            RentedBuffer<LessonType> lessons,
+            ColumnOffset offset)
+        {
+            _lessons = lessons;
+            Offset = offset;
+        }
+
+        public LessonType GetLesson(RestoredIndex index)
+        {
+            return _lessons.Span[index.Value];
+        }
+
+        public void Dispose()
+        {
+            if (_lessons.IsValid)
+            {
+                _lessons.Dispose();
+            }
+        }
+    }
+
+    private readonly struct HeaderDeps
+    {
+        public required LessonTypeParser LessonTypeParser { get; init; }
+    }
+
     // TODO: reuse the list
-    private static void BuildList(IXLWorksheet sheet, StudentAttendanceListBuilder list)
+    private static void BuildList(
+        IXLWorksheet sheet,
+        StudentAttendanceListBuilder list,
+        HeaderDeps headerDeps,
+        in WorksheetParseParameters p)
     {
         // ReSharper disable once GenericEnumeratorNotDisposed
         using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
+        using var header = ParseHeader(p.HeaderFormat);
+        if (header.IsApplicable)
+        {
+            list.AddLessonTypes(header.LessonTypes);
+        }
 
         while (true)
         {
@@ -403,10 +515,12 @@ public static class AttendanceExcel
                 break;
             }
 
-            if (!cells.Current!.TryGetValue(out string value))
+            var cell = cells.Current!;
+            if (!cell.TryGetValue(out string value))
             {
                 break;
             }
+
             var parser = new Parser(value);
             if (NameHelper.TryParseName(ref parser) is not { } name)
             {
@@ -421,11 +535,35 @@ public static class AttendanceExcel
                 {
                     throw new InvalidOperationException("Expecting a string in cell");
                 }
+
+                if (attendanceStr != ""
+                    && header.IsApplicable)
+                {
+                    var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
+                    var restoredIndex = header.Offset.GetUnOffsetIndex(columnNumber);
+                    if (restoredIndex.Value < 0 || restoredIndex.Value >= header.Length)
+                    {
+                        if (p.HeaderFormat.IgnoreValuesOutsideHeader)
+                        {
+                            continue;
+                        }
+                        throw cell.Exception("The given cell is not within the range of the table ");
+                    }
+                }
+
                 var attendance = AttendanceHelper.Parse(attendanceStr);
                 if (attendance == Attendance.Grade
                     || attendance == Attendance.None)
                 {
-                    throw new InvalidOperationException($"Expecting empty, 'a', 'na' or 'am', got '{attendanceStr}'");
+                    if (p.CellValueFormat == CellValueFormat.NotAttendanceIsError)
+                    {
+                        throw new InvalidOperationException($"Expecting empty, 'a', 'na' or 'am', got '{attendanceStr}'");
+                    }
+                    else
+                    {
+                        Debug.Assert(p.CellValueFormat == CellValueFormat.IgnoreGrade);
+                        attendance = Attendance.Present;
+                    }
                 }
 
                 student.Day(attendance);
@@ -445,7 +583,128 @@ public static class AttendanceExcel
             rowE.MoveNext();
         }
 
-        list.HintMaxCount(maxLen);
+        list.HintMaxCount(maxLen - 1);
+        return;
+
+        ParsedHeaderInfo ParseHeader(in HeaderFormat headerFormat)
+        {
+            if (headerFormat.FormatType == HeaderFormatType.Nothing)
+            {
+                return default;
+            }
+            if (!rowE.MoveNext())
+            {
+                throw sheet.Exception("Expected a header row");
+            }
+            if (headerFormat.FormatType == HeaderFormatType.IgnoreHeader)
+            {
+                return default;
+            }
+
+            var context = new HeaderParsingContext();
+            if (headerFormat.FormatType == HeaderFormatType.LessonType)
+            {
+                var row = rowE.Current;
+                var cellCount = row.CellCount();
+                var ret = new RentedBuffer<LessonType>(cellCount);
+                try
+                {
+                    using var cellE = row.Cells(usedCellsOnly: false).GetEnumerator();
+                    var retBuilder = ret.Builder();
+                    while (true)
+                    {
+                        if (!cellE.MoveNext())
+                        {
+                            break;
+                        }
+                        var cell = cellE.Current!;
+                        if (ValidateAndMaybeSkipEmpty(cell, ref context))
+                        {
+                            continue;
+                        }
+
+                        if (!cell.Value.TryGetText(out string strValue))
+                        {
+                            throw cell.Exception("Expected the cell to have a value");
+                        }
+                        if (headerDeps.LessonTypeParser.Parse(strValue) is not { } lessonType)
+                        {
+                            var examples = string.Join(",", headerDeps.LessonTypeParser.AllowedValuesExamples);
+                            throw cell.Exception($"{strValue} is an invalid lesson type. The valid values are: {examples}");
+                        }
+                        retBuilder.Add(lessonType);
+                        continue;
+
+                        static bool ValidateAndMaybeSkipEmpty(
+                            IXLCell cell,
+                            ref HeaderParsingContext c)
+                        {
+                            var range = cell.AsRange();
+                            if (range.IsMerged())
+                            {
+                                throw cell.Exception("Merged cells are just not supported, don't use them");
+                            }
+
+                            var value = cell.Value;
+                            // Handle empty cells
+                            if (c.FirstOffset is null)
+                            {
+                                if (value.IsBlank)
+                                {
+                                    throw cell.Exception("First column of the header row must be empty");
+                                }
+                                var colNumber = range.FirstColumn().ColumnNumber();
+                                c.FirstOffset = new(colNumber);
+                                return true;
+                            }
+                            else if (c.IsInEmptyStreak)
+                            {
+                                if (!value.IsBlank)
+                                {
+                                    throw cell.Exception("Cannot have a non-empty value after an empty streak");
+                                }
+                                return true;
+                            }
+                            else
+                            {
+                                if (value.IsBlank)
+                                {
+                                    c.IsInEmptyStreak = true;
+                                    return true;
+                                }
+                            }
+
+                            {
+                                // Some sanity checks.
+                                Debug.Assert(!c.IsInEmptyStreak);
+                                Debug.Assert(c.FirstOffset.HasValue);
+                                var expectedOffset = c.FirstOffset.Value.Value + 1;
+                                var colNumber = range.FirstColumn().ColumnNumber();
+                                if (expectedOffset != colNumber)
+                                {
+                                    throw cell.Exception("Unexpected column number");
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                catch
+                {
+                    ret.Dispose();
+                    throw;
+                }
+                return new(ret, context.FirstOffset ?? default);
+            }
+            throw Unreachable();
+        }
+
+    }
+
+    private struct HeaderParsingContext()
+    {
+        public ColumnOffset? FirstOffset = null;
+        public bool IsInEmptyStreak = false;
     }
 }
 

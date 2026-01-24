@@ -14,28 +14,5 @@
         <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
-        <PackageReference Include="ClosedXML" Version="0.105.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="data\templates\angajare_didactica.docx">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </None>
-      <None Update="data\templates\cim.docx">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </None>
-      <None Update="data\templates\declaratie_consimtand.docx">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </None>
-      <None Update="data\templates\declaratie_proprie_raspundere.docx">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </None>
-      <None Update="data\.gitignore">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
     </ItemGroup>
 </Project>

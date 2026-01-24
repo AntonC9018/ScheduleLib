@@ -136,6 +136,12 @@ public record struct UnsizedBitArray32
         return copy;
     }
     [Pure]
+    public readonly UnsizedBitArray32 Flipped()
+    {
+        var not = ~_bits;
+        return new(not);
+    }
+    [Pure]
     public readonly UnsizedBitArray32 Flipped(int length)
     {
         var not = (~_bits) & GetMask(length);
@@ -155,11 +161,12 @@ public record struct UnsizedBitArray32
         return new(_bits & other._bits);
     }
     [Pure]
-    public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other, int length)
+    public readonly UnsizedBitArray32 Remove(UnsizedBitArray32 other)
     {
-        var r = Intersect(other);
-        return new(r._bits & GetMask(length));
+        var r = Intersect(other.Flipped());
+        return r;
     }
+
     [Pure]
     public readonly bool AreAllSet(int length) => _bits == GetMask(length);
     [Pure]
@@ -308,7 +315,14 @@ public record struct BitArray32
     public readonly BitArray32 Intersect(BitArray32 other)
     {
         Debug.Assert(other.Length == Length);
-        var ret = _array.Intersect(other._array, _length);
+        var ret = _array.Intersect(other._array);
+        return new(ret, _length);
+    }
+    [Pure]
+    public readonly BitArray32 Remove(BitArray32 other)
+    {
+        Debug.Assert(other.Length == Length);
+        var ret = _array.Remove(other._array);
         return new(ret, _length);
     }
     [Pure]

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
 
@@ -65,18 +66,50 @@ public readonly struct StudentAttendanceBuilder(Name name)
     }
 }
 
+public readonly struct DayAttendanceList(ImmutableArray<Attendance> values)
+{
+    public ImmutableArray<Attendance> AsArray() => values;
+    public Attendance Student(int index) => values[index];
+    public int StudentCount => values.Length;
+}
+
+public struct AttendanceLists(ImmutableArray<DayAttendanceList> values)
+{
+    public DayAttendanceList Day(int index) => values[index];
+    public int DayCount => values.Length;
+    public int StudentCount
+    {
+        get
+        {
+            if (values.Length == 0)
+            {
+                return 0;
+            }
+            return Day(0).StudentCount;
+        }
+    }
+}
+
 public sealed class StudentAttendanceListBuilder()
 {
     private readonly List<StudentAttendanceBuilder> _students = new();
     private readonly HashSet<Name> _allNames = new();
+    private List<LessonType>? _lessonTypesPerDay = null;
 
     private const int NoMaxCount = -1;
     private int _maxCountHint = NoMaxCount;
 
     public void Clear()
     {
+        _lessonTypesPerDay = null;
         _allNames.Clear();
         _students.Clear();
+    }
+
+    public void AddLessonTypes(ReadOnlySpan<LessonType> lessonTypes)
+    {
+        _lessonTypesPerDay ??= new();
+        _lessonTypesPerDay.AddRange(lessonTypes);
     }
 
     public StudentAttendanceBuilder Student(Name name)
@@ -96,7 +129,14 @@ public sealed class StudentAttendanceListBuilder()
         _maxCountHint = count;
     }
 
-    public (ImmutableArray<Name> Names, ImmutableArray<ImmutableArray<Attendance>> Attendance) Build(
+    public record struct Result(
+        ImmutableArray<Name> Names,
+        AttendanceLists Attendance,
+        ImmutableArray<LessonType>? LessonTypes)
+    {
+    }
+
+    public Result Build(
         Attendance? missingDaysFiller)
     {
         var names = ImmutableArray.CreateBuilder<Name>(_students.Count);
@@ -117,6 +157,14 @@ public sealed class StudentAttendanceListBuilder()
             }
         }
 
+        if (_lessonTypesPerDay != null)
+        {
+            if (maxDayCount > _lessonTypesPerDay.Count)
+            {
+                throw new InvalidOperationException("If LessonTypes are specified, there must not be more attendances than that.");
+            }
+        }
+
         foreach (var student in _students)
         {
             if (student.Name is null)
@@ -132,7 +180,7 @@ public sealed class StudentAttendanceListBuilder()
         }
 
         // ReSharper disable once CollectionNeverUpdated.Local
-        var attendance = ImmutableArray.CreateBuilder<ImmutableArray<Attendance>>(maxDayCount);
+        var attendance = ImmutableArray.CreateBuilder<DayAttendanceList>(maxDayCount);
         attendance.Count = maxDayCount;
 
         // ReSharper disable once CollectionNeverUpdated.Local
@@ -156,7 +204,7 @@ public sealed class StudentAttendanceListBuilder()
                 }
                 dayBuilder[studentIndex] = a;
             }
-            attendance[dayIndex] = dayBuilder.MoveToImmutable();
+            attendance[dayIndex] = new(dayBuilder.MoveToImmutable());
         }
 
         foreach (var s in _students)
@@ -164,7 +212,13 @@ public sealed class StudentAttendanceListBuilder()
             s.Attendances.Clear();
         }
 
-        return (names.MoveToImmutable(), attendance.MoveToImmutable());
+        ImmutableArray<LessonType>? lessonTypes = _lessonTypesPerDay is { } t
+            ? [.. t]
+            : null;
+        return new(
+            names.MoveToImmutable(),
+            new(attendance.MoveToImmutable()),
+            lessonTypes);
     }
 }
 
@@ -195,29 +249,85 @@ public readonly struct AllStudentAttendanceListBuilder()
     public StudentAttendanceList Build(
         Attendance? missingDaysFiller = null)
     {
-        var map = new Dictionary<StudentsLookupKey, StudentAttendanceList.AttendanceList>();
+        var map = new Dictionary<StudentsLookupKey, StudentAttendanceList.BetterAttendances>();
         foreach (var (key, builder) in _values)
         {
-            var (names, attendance) = builder.Build(missingDaysFiller);
-            var value = new StudentAttendanceList.AttendanceList(
-                Attendance: attendance,
-                StudentNames: NamesInDb.Create(names));
-            map.Add(key, value);
+            var x = builder.Build(missingDaysFiller);
+            var namesDb = NamesInDb.Create(x.Names);
+
+            {
+                var lessonTypeNotInKey = key.LessonType == LessonType.None;
+                var lessonTypesSpecified = x.LessonTypes != null;
+                if (lessonTypeNotInKey != lessonTypesSpecified)
+                {
+                    throw new InvalidOperationException("LessonType in the builder key must be null only if specifying the lesson types per lesson");
+                }
+            }
+
+            if (x.LessonTypes is { } lessonTypes)
+            {
+                // TODO:
+                // the only immutable array allocation should happen here,
+                // it's also happening in StudentAttendanceListBuilder.Build
+                using var buffer = OneForEach
+                    .Enum<LessonType>()
+                    .RentArray<ImmutableArray<DayAttendanceList>.Builder?>();
+                var perLessonTypeBuilders = buffer.Span;
+                perLessonTypeBuilders.Clear();
+
+                for (int day = 0; day < lessonTypes.Length; day++)
+                {
+                    var lessonType = lessonTypes[day];
+                    var perLessonBuilder = perLessonTypeBuilders[lessonType];
+                    if (perLessonBuilder == null)
+                    {
+                        perLessonBuilder = ImmutableArray.CreateBuilder<DayAttendanceList>();
+                        perLessonBuilder.Count = x.Attendance.DayCount;
+                    }
+
+                    var attendanceList = x.Attendance.Day(day);
+                    perLessonBuilder.Add(attendanceList);
+                }
+
+                foreach (var (lessonType, perLessonBuilder) in perLessonTypeBuilders)
+                {
+                    if (perLessonBuilder == null)
+                    {
+                        continue;
+                    }
+                    var key1 = key with
+                    {
+                        LessonType = lessonType,
+                    };
+
+                    var value = new StudentAttendanceList.BetterAttendances(
+                        Attendance: new(perLessonBuilder.DrainToImmutable()),
+                        StudentNames: namesDb);
+                    map.Add(key1, value);
+                }
+            }
+            else
+            {
+                var value = new StudentAttendanceList.BetterAttendances(
+                    Attendance: x.Attendance,
+                    StudentNames: namesDb);
+                map.Add(key, value);
+            }
         }
         return new(map);
     }
 }
 
 public readonly struct StudentAttendanceList
-    : IEnumerable<KeyValuePair<StudentsLookupKey, StudentAttendanceList.AttendanceList>>
+    : IEnumerable<KeyValuePair<StudentsLookupKey, StudentAttendanceList.BetterAttendances>>
 {
-    public readonly record struct AttendanceList(
-        ImmutableArray<ImmutableArray<Attendance>> Attendance,
+    public readonly record struct BetterAttendances(
+        AttendanceLists Attendance,
         NamesInDb StudentNames);
 
-    private readonly Dictionary<StudentsLookupKey, AttendanceList> _map;
+    private readonly Dictionary<StudentsLookupKey, BetterAttendances> _map;
 
-    public StudentAttendanceList(Dictionary<StudentsLookupKey, AttendanceList> map)
+    public StudentAttendanceList(Dictionary<StudentsLookupKey, BetterAttendances> map)
     {
         _map = map;
     }
@@ -233,7 +343,7 @@ public readonly struct StudentAttendanceList
         return NamesInDb.Empty;
     }
 
-    public ImmutableArray<Attendance> Get(AttendanceLookupKey key)
+    public DayAttendanceList Get(AttendanceLookupKey key)
     {
         var attendanceKey = new StudentsLookupKey(
             courseId: key.CourseId,
@@ -242,14 +352,14 @@ public readonly struct StudentAttendanceList
             lessonType: key.LessonType);
         // TODO: Should work for any subset of the groups, currently it does not.
         if (_map.TryGetValue(attendanceKey, out var list)
-            && key.DayIndex < list.Attendance.Length)
+            && key.DayIndex < list.Attendance.DayCount)
         {
-            return list.Attendance[key.DayIndex];
+            return list.Attendance.Day(key.DayIndex);
         }
-        return [];
+        return new([]);
     }
 
-    public IEnumerator<KeyValuePair<StudentsLookupKey, AttendanceList>> GetEnumerator() => _map.GetEnumerator();
+    public IEnumerator<KeyValuePair<StudentsLookupKey, BetterAttendances>> GetEnumerator() => _map.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 

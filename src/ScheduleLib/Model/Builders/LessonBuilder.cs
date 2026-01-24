@@ -132,6 +132,15 @@ public record struct LessonModelDiffMask()
         };
     }
 
+    [Pure]
+    public readonly LessonModelDiffMask Remove(LessonModelDiffMask mask)
+    {
+        return new()
+        {
+            Impl = Impl.Remove(mask.Impl),
+        };
+    }
+
     public readonly bool TheyAreEqual => Impl.IsEmpty;
     public readonly bool TheyDiffer => !Impl.IsEmpty;
 }

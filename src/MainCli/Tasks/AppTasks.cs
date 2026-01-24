@@ -17,6 +17,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Scraping.Common.Config;
 using WebsiteJsonSchedule;
 
@@ -306,16 +307,17 @@ public static class AppTasks
             }
             using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var workbook = new XLWorkbook(stream);
-            AttendanceExcel.ParseAttendanceListsExcel(new()
-            {
-                RepeatedCourseBehavior = source.RepeatedCourseBehavior ?? RepeatedCourseBehavior.Error,
-                Builder = builder,
-                Schedule = filteredSchedule,
-                Workbook = workbook,
-                CourseNames = c.Services.GetRequiredService<CourseNameUnifierModule>(),
-                LookupModule = c.Services.GetRequiredService<LookupModule>(),
-                GroupParseContext = c.Services.GetRequiredService<GroupParseContext>(),
-            });
+            AttendanceExcel.ParseAttendanceListsExcel(new(
+                lessonTypeParser: c.Services.GetRequiredService<LessonTypeParser>(),
+                parseParameters: new()
+                {
+                    RepeatedCourseBehavior = source.RepeatedCourseBehavior ?? RepeatedCourseBehavior.Error,
+                },
+                builder: builder,
+                schedule: filteredSchedule,
+                workbook: workbook,
+                lookup: c.Services.GetRequiredService<LookupFacade>(),
+                groupParseContext: c.Services.GetRequiredService<GroupParseContext>()));
         }
 
         // Maybe configure this per workbook.

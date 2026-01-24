@@ -2,6 +2,7 @@ using ClosedXML.Excel;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.ScheduleDefaults;
 using Tests.ScheduleCommon;
 
@@ -33,16 +34,17 @@ public sealed class AttendanceExcelTests
 
         using var workbook = new XLWorkbook(ExcelFilePath);
         var attendanceBuilder = new AllStudentAttendanceListBuilder();
-        AttendanceExcel.ParseAttendanceListsExcel(new()
-        {
-            Builder = attendanceBuilder,
-            RepeatedCourseBehavior = RepeatedCourseBehavior.Error,
-            Schedule = filteredSchedule,
-            Workbook = workbook,
-            CourseNames = unifier,
-            LookupModule = builder.EnableLookupModule(),
-            GroupParseContext = builder.GroupParseContext!,
-        });
+        AttendanceExcel.ParseAttendanceListsExcel(new(
+            lessonTypeParser: LessonTypeParser.Instance,
+            builder: attendanceBuilder,
+            parseParameters: new()
+            {
+                RepeatedCourseBehavior = RepeatedCourseBehavior.Error,
+            },
+            schedule: filteredSchedule,
+            workbook: workbook,
+            lookup: builder.Lookup(unifier),
+            groupParseContext: builder.GroupParseContext!));
         var lists = attendanceBuilder.Build(missingDaysFiller: Attendance.Present);
 
         await Verify(lists.Select(x => new

@@ -1,4 +1,6 @@
 // TODO: Remove the use of lists.
+
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -1324,6 +1326,10 @@ public sealed class LessonTypeParser
         }
         return null;
     }
+
+    // This is supposed to be more generic than just all possible values,
+    // hence why it's called "Examples"
+    public ImmutableArray<string> AllowedValuesExamples => LessonTypeConstants.Names;
 }
 
 public sealed class ParityParser

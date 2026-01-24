@@ -2,12 +2,12 @@ using System.Diagnostics;
 
 namespace ScheduleLib.Helper;
 
-public struct ArrayBuilder<T>
+public ref struct SpanBuilder<T>
 {
     private int _index;
-    private T[] Array { get; }
+    private Span<T> Array { get; }
 
-    public ArrayBuilder(T[] arr)
+    public SpanBuilder(Span<T> arr)
     {
         _index = 0;
         Array = arr;
@@ -20,20 +20,19 @@ public struct ArrayBuilder<T>
         _index++;
     }
 
-    public T[] Complete()
+    public Span<T> Complete()
     {
         Debug.Assert(_index == Array.Length);
         return Array;
     }
 
-    public Span<T> SoFar => Array.AsSpan(0, _index);
+    public Span<T> SoFar => Array[.. _index];
 }
 
-public static class ArrayBuilder
+public static class SpanBuilder
 {
-    public static ArrayBuilder<T> Create<T>(int count)
+    public static SpanBuilder<T> Create<T>(Span<T> span)
     {
-        return new(new T[count]);
+        return new(span);
     }
 }
-
