@@ -12,7 +12,7 @@ public struct GetScheduledDatesParams()
     public DateOnly To { get; set; } = DateOnly.MaxValue;
 }
 
-public readonly record struct ScheduledItem
+public readonly record struct Event
 {
     public readonly DateOnly First;
     public readonly DateOnly Last;
@@ -21,7 +21,7 @@ public readonly record struct ScheduledItem
 
     public bool IsRepeated => Count > 1;
 
-    public static ScheduledItem CreateSingle(DateOnly date)
+    public static Event CreateSingle(DateOnly date)
     {
         return new(
             first: date,
@@ -30,7 +30,7 @@ public readonly record struct ScheduledItem
             interval: 0);
     }
 
-    public static ScheduledItem CreateRepeated(
+    public static Event Create(
         DateOnly first,
         DateOnly last,
         int count,
@@ -43,7 +43,28 @@ public readonly record struct ScheduledItem
             interval: interval);
     }
 
-    public ScheduledItem(
+    private static DateOnly FirstToLast(
+        DateOnly first,
+        int count,
+        int interval)
+    {
+        var days = interval * (count - 1);
+        return first.AddDays(days);
+    }
+
+    public static Event CreateRecurring(
+        DateOnly first,
+        int count,
+        int interval)
+    {
+        return new(
+            first: first,
+            last: FirstToLast(first, count, interval),
+            count: count,
+            interval: interval);
+    }
+
+    public Event(
         DateOnly first,
         DateOnly last,
         int count,
@@ -54,7 +75,8 @@ public readonly record struct ScheduledItem
         {
             Debug.Assert(interval >= 1);
             Debug.Assert(last > first);
-            Debug.Assert(last.DayNumber - first.DayNumber == interval * count - 1);
+            var expectedLast = FirstToLast(first, count, interval);
+            Debug.Assert(expectedLast == last);
         }
         else
         {
@@ -72,11 +94,11 @@ public readonly record struct ScheduledItem
 
     public struct Enumerator : IEnumerator<DateOnly>
     {
-        private readonly ScheduledItem _item;
+        private readonly Event _item;
         public DateOnly Current { get; private set; }
         private int _count;
 
-        public Enumerator(ScheduledItem item)
+        public Enumerator(Event item)
         {
             _item = item;
             _count = -1;
@@ -120,9 +142,9 @@ public interface IAllScheduledDateProvider
     IEnumerable<DateOnly> Dates(GetScheduledDatesParams p);
 }
 
-public interface IAllScheduledItemsProvider
+public interface IAllScheduledEventsProvider
 {
-    IEnumerable<ScheduledItem> Items(GetScheduledDatesParams p);
+    IEnumerable<Event> Events(GetScheduledDatesParams p);
 }
 
 public sealed class ManualAllScheduledDateProvider
@@ -216,7 +238,7 @@ public sealed class ManualAllScheduledDateProvider
 }
 
 
-public static class ScheduledDateToItemsTransformerHelper
+public static class ScheduledDatesToEventsTransformerHelper
 {
     public static int GetScheduledInterval(this Parity parity)
     {
@@ -228,7 +250,7 @@ public static class ScheduledDateToItemsTransformerHelper
         return interval;
     }
 
-    public static IEnumerable<ScheduledItem> TransformDatesToItems(
+    public static IEnumerable<Event> TransformDatesToEvents(
         this IEnumerable<DateOnly> dates,
         int interval)
     {
@@ -236,41 +258,65 @@ public static class ScheduledDateToItemsTransformerHelper
         DateOnly prev = default;
         int count = 0;
 
-        foreach (var date in dates)
+        using var dateE = dates.GetEnumerator();
+        while (true)
         {
-            if (count > 0
-                && date.DayNumber - prev.DayNumber != interval)
+            bool hasValue = dateE.MoveNext();
+            var date = hasValue ? dateE.Current : default;
+            bool ShouldOutput()
             {
-                yield return new ScheduledItem(
+               if (count == 0)
+               {
+                   return false;
+               }
+               if (!hasValue)
+               {
+                   return true;
+               }
+               if (date.DayNumber - prev.DayNumber != interval)
+               {
+                   return true;
+               }
+               return false;
+            }
+            if (ShouldOutput())
+            {
+                yield return new Event(
                     first: first,
                     last: prev,
                     count: count,
-                    interval: interval);
+                    interval: count > 1 ? interval : 0);
                 first = default;
                 count = 0;
+            }
+
+            if (!hasValue)
+            {
+                break;
             }
 
             if (count == 0)
             {
                 first = date;
-                prev = first;
-                count++;
             }
+
+            prev = date;
+            count++;
         }
     }
 }
 
 [AutoConstructor]
-public sealed partial class ScheduledItemsProviderTransformer
-    : IAllScheduledItemsProvider
+public sealed partial class ScheduledEventsProviderTransformer
+    : IAllScheduledEventsProvider
 {
     private readonly IAllScheduledDateProvider _impl;
 
-    public IEnumerable<ScheduledItem> Items(GetScheduledDatesParams p)
+    public IEnumerable<Event> Events(GetScheduledDatesParams p)
     {
         var t = _impl.Dates(p);
         var interval = p.Parity.GetScheduledInterval();
-        var ret = t.TransformDatesToItems(interval);
+        var ret = t.TransformDatesToEvents(interval);
         return ret;
     }
 }

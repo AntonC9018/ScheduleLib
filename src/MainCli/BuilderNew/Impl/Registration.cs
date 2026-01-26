@@ -146,7 +146,7 @@ public static class Registration
                     return ret;
                 });
 
-                services.AddSingleton<IAllScheduledItemsProvider, ScheduledItemsProviderTransformer>();
+                services.AddSingleton<IAllScheduledEventsProvider, ScheduledEventsProviderTransformer>();
                 services.AddScoped<ScheduledDateTimeProvider>();
             }
 

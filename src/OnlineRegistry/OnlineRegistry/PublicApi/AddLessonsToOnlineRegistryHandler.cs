@@ -137,7 +137,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
                     attendanceIndex++;
 
-                    var attendanceForHtml = remapHelper.RemapToHtml(attendance);
+                    var attendanceForHtml = remapHelper.RemapToHtml(attendance.AsArray());
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
                     // Note: the index used here is per lesson type as well.

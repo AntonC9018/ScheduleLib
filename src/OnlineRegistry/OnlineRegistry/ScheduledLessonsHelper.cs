@@ -11,12 +11,12 @@ public readonly record struct LessonWithDate : IDateTime
 public readonly record struct ProgrammedRepeatableLesson
 {
     public readonly AnyLessonId Id;
-    public readonly ScheduledItem Item;
+    public readonly Event Item;
     public readonly TimeOnly Time;
 
     public ProgrammedRepeatableLesson(
         AnyLessonId id,
-        in ScheduledItem item,
+        in Event item,
         TimeOnly time)
     {
         Id = id;
