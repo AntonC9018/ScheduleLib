@@ -6,6 +6,7 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
+using TruePath;
 
 namespace MainCli;
 
@@ -87,22 +88,22 @@ public interface IScheduleLoaderComponent
 
 public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 {
-    public required string DirectoryPath
+    public required AbsolutePath DirectoryPath
     {
         get;
-        init => field = Path.GetFullPath(value);
+        init;
     }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
-        await hasher.AppendDirectory(DirectoryPath, cancellationToken);
+        await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
     public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
     {
         await TasksHelper.ParseDocumentDirIntoSchedule(
             context,
-            DirectoryPath,
+            DirectoryPath.Value,
             cancellationToken: cancellationToken);
     }
 }
@@ -129,22 +130,23 @@ public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : ISchedul
     }
 }
 
+// ReSharper disable once InconsistentNaming
 public sealed class FRScheduleDirectoryLoaderComponent : IScheduleLoaderComponent
 {
-    public required string DirectoryPath
+    public required AbsolutePath DirectoryPath
     {
         get;
-        init => field = Path.GetFullPath(value);
+        init;
     }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
-        await hasher.AppendDirectory(DirectoryPath, cancellationToken);
+        await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
     public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath, "*", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*", SearchOption.AllDirectories))
         {
             await using var inputFile = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             await FrExcelParser.ParseIntoSchedule(new()

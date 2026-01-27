@@ -17,11 +17,11 @@ public sealed class LessonParserTests
     [Fact]
     public async Task LexerTest()
     {
-        var strings = new List<string>
+        var strings = new List<ReadOnlyMemory<char>>
         {
-            "15:00 Opț.psihol. (curs,imp),",
-            "Psihologie (sem,par)",
-            "V.Miron  433/3",
+            "15:00 Opț.psihol. (curs,imp),".AsMemory(),
+            "Psihologie (sem,par)".AsMemory(),
+            "V.Miron  433/3".AsMemory(),
         };
         var lexer = LessonParsingHelper.CreateLexer();
         lexer.Reset(strings.GetEnumerator());
@@ -51,7 +51,7 @@ public sealed class LessonParserTests
         ProcessSpaces? spaces = null)
     {
         var lexer = LessonParsingHelper.CreateLexer();
-        using var enumerator = ((IEnumerable<string>) lines).GetEnumerator();
+        using var enumerator = lines.Select(x => x.AsMemory()).GetEnumerator();
         lexer.Reset(enumerator);
         var parameters = new ParseLessonsParams
         {

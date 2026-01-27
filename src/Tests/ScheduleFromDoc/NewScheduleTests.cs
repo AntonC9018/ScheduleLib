@@ -1,3 +1,5 @@
+using MainCli;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
 
@@ -8,11 +10,9 @@ public sealed class NewScheduleTests
     [Fact]
     public async Task NodeJsTest()
     {
-        var helper = IntegrationTestHelper.CreateNew();
-        using var cts = IntegrationTestHelper.CreateCts();
-        var context = await helper.GetContextFromSourceOfTruth(cts.Token);
-        var schedule = context.Schedule.Build();
-        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
+        using var helper = await IntegrationTestHelper.CreateNew();
+        var schedule = helper.ServiceProvider.GetRequiredService<Schedule>();
+        var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
         var nodejsCourseId = lookup.Course("Node.js".AsMemory())!.Value;
         var lessons = lookup.LessonsOfCourse(nodejsCourseId);
         var verifyModel = lessons

@@ -22,12 +22,27 @@ public enum SubGroupStatus
 
 public sealed class DocParseContext
 {
-    public required ScheduleBuilder Schedule { get; init; }
-    public required LessonTimeConfig TimeConfig { get; init; }
-    public required DayNameParser DayNameParser { get; init; }
-    public required CourseNameUnifierModule CourseNameUnifierModule { get; init; }
-    public required LessonParserFactory ParserFactory { get; init; }
+    public ScheduleBuilder Schedule { get; }
+    public LessonTimeConfig TimeConfig { get; }
+    public DayNameParser DayNameParser { get; }
+    public CourseNameUnifierModule CourseNameUnifierModule { get; }
+    public LessonParserFactory ParserFactory { get; }
     public PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
+
+    public DocParseContext(
+        CourseNameUnifierModule courseNameUnifierModule,
+        DayNameParser dayNameParser,
+        LessonParserFactory parserFactory,
+        ScheduleBuilder schedule,
+        LessonTimeConfig timeConfig)
+    {
+        CourseNameUnifierModule = courseNameUnifierModule;
+        DayNameParser = dayNameParser;
+        ParserFactory = parserFactory;
+        Schedule = schedule;
+        TimeConfig = timeConfig;
+    }
+
 
     public void SetPeriod(PeriodBeginning? period)
     {
@@ -60,14 +75,12 @@ public sealed class DocParseContext
         s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
-        return new()
-        {
-            Schedule = s,
-            TimeConfig = timeConfig,
-            CourseNameUnifierModule = new(p.CourseNameUnifierConfig),
-            DayNameParser = new DayNameParser(p.DayNameProvider),
-            ParserFactory = p.ParserFactory,
-        };
+        return new(
+            schedule: s,
+            timeConfig: timeConfig,
+            courseNameUnifierModule: new(p.CourseNameUnifierConfig),
+            dayNameParser: new DayNameParser(p.DayNameProvider),
+            parserFactory: p.ParserFactory);
     }
 
     public SubGroupStatus SetCommonProps(
@@ -746,14 +759,14 @@ public static class WordScheduleParser
                             return false;
                         }
 
-                        IEnumerable<string> Lines()
+                        IEnumerable<ReadOnlyMemory<char>> Lines()
                         {
                             var copy = cell.Cell.CloneNode(deep: true);
                             RemoveHyperlinks(copy);
 
                             foreach (var para in copy.ChildElements.OfType<Paragraph>())
                             {
-                                yield return para.InnerText;
+                                yield return para.InnerText.AsMemory();
                             }
                             yield break;
 

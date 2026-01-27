@@ -237,7 +237,7 @@ public sealed class Lexer : ILexer
 {
     public readonly TokenTypeLabels TokenTypeLabels;
 
-    private IEnumerator<string>? _lines;
+    private IEnumerator<ReadOnlyMemory<char>>? _lines;
     private readonly ITokenReader _readImpl;
     // Just removing from start, since not much is queued usually
     // It's better to use a ring queue
@@ -259,7 +259,7 @@ public sealed class Lexer : ILexer
         _readImpl = readImpl;
     }
 
-    public void Reset(IEnumerator<string> lines)
+    public void Reset(IEnumerator<ReadOnlyMemory<char>> lines)
     {
         _lines = lines;
         _queue.Clear();
@@ -486,7 +486,7 @@ public static class LexerHelper
         }
     }
 
-    public static TokenTypeLabels CreateLabelDict(Type type)
+    public static TokenTypeLabels CreateLabels(Type type)
     {
         var builder = ImmutableDictionary.CreateBuilder<TokenType, string>();
         foreach (var baseValue in Enum.GetValues(typeof(TokenType)))

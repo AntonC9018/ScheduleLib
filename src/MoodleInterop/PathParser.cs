@@ -1,4 +1,5 @@
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing.Common;
 
 namespace ScheduleLib.Parsing.Moodle;
@@ -99,7 +100,7 @@ public sealed class MoodlePathTokenReader : ITokenReader
 public static class MoodlePathParser
 {
     private static readonly TokenTypeLabels _labels =
-        LexerHelper.CreateLabelDict(typeof(MoodlePathTokenType));
+        LexerHelper.CreateLabels(typeof(MoodlePathTokenType));
 
     public static ParsedMoodlePath? TryParse(IEnumerable<string> pathSegments)
     {
@@ -160,7 +161,8 @@ public static class MoodlePathParser
     private static (int? cycle, QualificationType? qualificationType) ParseQualificationSegment(string segment)
     {
         var lexer = new Lexer(MoodlePathTokenReader.Instance, _labels);
-        lexer.Reset(new List<string> { segment }.GetEnumerator());
+        using var e = SingleItemEnumerator.Create(segment.AsMemory());
+        lexer.Reset(e);
 
         var scope = lexer.Scope();
 
@@ -225,7 +227,8 @@ public static class MoodlePathParser
     private static Grade ParseGradeSegment(string segment)
     {
         var lexer = new Lexer(MoodlePathTokenReader.Instance, _labels);
-        lexer.Reset(new List<string> { segment }.GetEnumerator());
+        using var e = SingleItemEnumerator.Create(segment.AsMemory());
+        lexer.Reset(e);
 
         var scope = lexer.Scope();
 
@@ -267,7 +270,8 @@ public static class MoodlePathParser
     private static (string sectionName, int testNumber) ParseSectionSegment(string segment)
     {
         var lexer = new Lexer(MoodlePathTokenReader.Instance, _labels);
-        lexer.Reset(new List<string> { segment }.GetEnumerator());
+        using var e = SingleItemEnumerator.Create(segment.AsMemory());
+        lexer.Reset(e);
 
         var scope = lexer.Scope();
 

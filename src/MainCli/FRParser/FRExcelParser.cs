@@ -161,7 +161,7 @@ public static class FrExcelParser
                 }
 
                 var text = value.GetText();
-                using var textAsEnumerable = SingleItemEnumerator.Create(text);
+                using var textAsEnumerable = SingleItemEnumerator.Create(text.AsMemory());
                 lessonParser.Lexer.Reset(textAsEnumerable);
                 using var parsedLessonE = lessonParser.ParseLessons(stringBuilder).GetEnumerator();
                 while (true)

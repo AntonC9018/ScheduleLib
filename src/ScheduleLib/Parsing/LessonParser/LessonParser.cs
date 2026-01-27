@@ -155,7 +155,7 @@ internal struct ParsingStateStack
 public static class LessonParsingHelper
 {
     private static readonly TokenTypeLabels _labels =
-        LexerHelper.CreateLabelDict(typeof(LessonTokenType));
+        LexerHelper.CreateLabels(typeof(LessonTokenType));
 
     public static Lexer CreateLexer()
     {

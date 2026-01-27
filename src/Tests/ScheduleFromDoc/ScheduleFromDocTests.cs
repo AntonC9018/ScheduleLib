@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
@@ -19,10 +20,9 @@ public sealed class ScheduleFromDocTestExclusive1
     [EnumMembersData<TestOption>]
     public async Task IntegrationTestWord(TestOption option)
     {
-        using var cts = CreateCts();
-        var cancellationToken = cts.Token;
-        var schedule = await IntegrationTestHelper.Create(option).GetScheduleFromSourceOfTruth(cancellationToken);
-        var verify = await ScheduleVerify(schedule, cancellationToken);
+        using var helper = await Create(option);
+        var schedule = helper.GetScheduleFromSourceOfTruth();
+        var verify = await ScheduleVerify(schedule, helper.CancellationToken);
         await verify
             .DisableRequireUniquePrefix()
             .UseFileName(VerifyScheduleSnapshotName(option));
@@ -81,21 +81,15 @@ public sealed class ScheduleFromDocTests
     [EnumMembersData<TestOption>]
     public async Task JsonConversionBackAndForth(TestOption option)
     {
-        using var cts = CreateCts();
-        // read from json
-        // serialize again to another file
-        // compare contents
-        var cancellationToken = cts.Token;
-
         var optionName = Enum.GetName(option);
         string outputPath = $"{optionName}_output.json";
         string otherOutputPath = $"{optionName}_other_output.json";
 
-        var helper = IntegrationTestHelper.Create(option);
+        using var helper = await Create(option);
         {
-            var schedule = await helper.GetScheduleFromSourceOfTruth(cancellationToken);
+            var schedule = helper.GetScheduleFromSourceOfTruth();
             await using var outputFile = new FileStream(outputPath, FileMode.Create);
-            await ScheduleSerializer.Serialize(schedule, outputFile, "", cancellationToken);
+            await ScheduleSerializer.Serialize(schedule, outputFile, "", helper.CancellationToken);
             if (Debugger.IsAttached)
             {
                 ExplorerHelper.TryOpenExplorerAndSelectFile(outputPath);
@@ -107,18 +101,18 @@ public sealed class ScheduleFromDocTests
 
             {
                 await using var inputFile = File.OpenRead(outputPath);
-                var scheduleModel = await ScheduleSerializer.Deserialize(inputFile, cancellationToken);
+                var scheduleModel = await ScheduleSerializer.Deserialize(inputFile, helper.CancellationToken);
                 ScheduleSerializer.AddToBuilder(builder, scheduleModel);
             }
             {
                 var schedule1 = builder.Build();
                 await using var outputFile = new FileStream(otherOutputPath, FileMode.Create);
-                await ScheduleSerializer.Serialize(schedule1, outputFile, "", cancellationToken);
+                await ScheduleSerializer.Serialize(schedule1, outputFile, "", helper.CancellationToken);
             }
         }
         {
-            var text1 = await File.ReadAllTextAsync(outputPath, cancellationToken);
-            var text2 = await File.ReadAllTextAsync(otherOutputPath, cancellationToken);
+            var text1 = await File.ReadAllTextAsync(outputPath, helper.CancellationToken);
+            var text2 = await File.ReadAllTextAsync(otherOutputPath, helper.CancellationToken);
             Assert.Equal(text1, text2);
         }
     }
@@ -127,10 +121,9 @@ public sealed class ScheduleFromDocTests
     [EnumMembersData<TestOption>]
     public async Task JsonSerializationIntegrationTest(TestOption option)
     {
-        using var cts = CreateCts();
-        var cancellationToken = cts.Token;
-        var schedule = await Create(option).GetScheduleFromSourceOfTruth(cancellationToken);
-        var settingsTask = await ScheduleVerify(schedule, cancellationToken);
+        using var helper = await Create(option);
+        var schedule = helper.GetScheduleFromSourceOfTruth();
+        var settingsTask = await ScheduleVerify(schedule, helper.CancellationToken);
         await settingsTask.UseFileName(ScheduleJsonSnapshotName(option));
     }
 
@@ -139,15 +132,14 @@ public sealed class ScheduleFromDocTests
     [InlineData(false)]
     public async Task LookupCompletelyWorks(bool resetLookup)
     {
-        using var cts = CreateCts();
-        var cancellationToken = cts.Token;
-        var context = await CreateDefault().GetContextFromSourceOfTruth(cancellationToken);
-        var schedule = context.Schedule.Build();
-        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
+        using var helper = await CreateDefault();
+        var schedule = helper.GetScheduleFromSourceOfTruth();
+        var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
+        var builder = helper.ServiceProvider.GetRequiredService<ScheduleBuilder>();
 
         if (resetLookup)
         {
-            context.Schedule.RefreshLookup();
+            builder.RefreshLookup();
         }
 
         foreach (var course in schedule.EnumerateCourses())

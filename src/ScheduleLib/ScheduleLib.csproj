@@ -18,5 +18,6 @@
     <ItemGroup>
         <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
         <PackageReference Include="ClosedXML" Version="0.105.0" />
+        <PackageReference Include="TruePath" Version="1.11.0" />
     </ItemGroup>
 </Project>

@@ -1,9 +1,8 @@
 using MainCli;
-using MainCli.FR;
+using MainCli.BuilderNew.Impl;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleFromDoc.Tests;
 
@@ -13,8 +12,7 @@ public enum TestOption
     New,
 }
 
-// TODO: Move context to service provider.
-public sealed class IntegrationTestHelper
+public sealed class IntegrationTestHelper : IDisposable
 {
     public static IEnumerable<object[]> TestOptionMemberData => [
         [TestOption.Default],
@@ -26,34 +24,83 @@ public sealed class IntegrationTestHelper
 
     public readonly int Year;
     public readonly Semester Semester;
+    private readonly ServiceProvider _rootServiceProvider;
+    public CancellationToken CancellationToken;
+    private readonly CancellationTokenSource _cts;
+    public IServiceProvider ServiceProvider => _scope.ServiceProvider;
+    private readonly IServiceScope _scope;
+
+    public async Task InitializeSchedule()
+    {
+        await ServiceProvider.InitializeSchedule(CancellationToken);
+    }
 
     public IntegrationTestHelper(
         int year,
         Semester sem)
     {
+        _cts = CreateCts();
+
         Year = year;
         Semester = sem;
+
+        var services = new ServiceCollection();
+        services.AddScheduleServices();
+        services.AddLogging();
+        services.Configure<StudyYearOptions>(opts =>
+        {
+            opts.StudyYear = year;
+            opts.Semester = sem;
+        });
+        services.Configure<ScheduleBuilderInitializerOptions>(opts =>
+        {
+            opts.UseCache = false;
+            opts.EnrichWithFullNames = false;
+        });
+        _rootServiceProvider = services.BuildServiceProvider();
+        _scope = _rootServiceProvider.CreateScope();
     }
 
-    public static IntegrationTestHelper Create(TestOption option)
+    public static Task<IntegrationTestHelper> Create(TestOption option)
     {
-        var helper = option switch
+        return option switch
         {
+#pragma warning disable CA2000
             TestOption.Default => CreateDefault(),
             TestOption.New => CreateNew(),
+#pragma warning restore CA2000
             _ => throw UnreachableHelper.Unreachable(),
         };
-        return helper;
     }
 
-    public static IntegrationTestHelper CreateDefault()
+    public static async Task<IntegrationTestHelper> CreateDefault()
     {
-        return new(2024, Semester.Sem2);
+        var ret = new IntegrationTestHelper(2024, Semester.Sem2);
+        try
+        {
+            await ret.InitializeSchedule();
+        }
+        catch
+        {
+            ret.Dispose();
+            throw;
+        }
+        return ret;
     }
 
-    public static IntegrationTestHelper CreateNew()
+    public static async Task<IntegrationTestHelper> CreateNew()
     {
-        return new(2025, Semester.Sem1);
+        var ret = new IntegrationTestHelper(2025, Semester.Sem1);
+        try
+        {
+            await ret.InitializeSchedule();
+        }
+        catch
+        {
+            ret.Dispose();
+            throw;
+        }
+        return ret;
     }
 
     public static CancellationTokenSource CreateCts()
@@ -61,46 +108,9 @@ public sealed class IntegrationTestHelper
         return TestHelper.CreateCts();
     }
 
-    public async Task<DocParseContext> GetContextFromSourceOfTruth(CancellationToken cancellationToken)
+    public Schedule GetScheduleFromSourceOfTruth()
     {
-        var context = DocParseContext.Create(new()
-        {
-            DayNameProvider = new(),
-            CourseNameUnifierConfig = Config.CourseNameUnifier,
-            ParserFactory = new(new()
-            {
-                ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
-            }),
-        });
-
-        context.Schedule.SetStudyYear(Year);
-
-        string dirName = @$"data\{Year}_sem{Semester.AsOrdinal()}";
-        await TasksHelper.ParseDocumentDirIntoSchedule(
-            context,
-            @$"{dirName}\zi",
-            cancellationToken: cancellationToken);
-
-        string frPath = @$"{dirName}\fr\1.xlsx";
-        if (File.Exists(frPath))
-        {
-            await using var frFile = new FileStream(frPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            await FrExcelParser.ParseIntoSchedule(new()
-            {
-                Context = context,
-                InputFile = frFile,
-                StringBuilder = new(),
-            });
-        }
-
-        return context;
-    }
-
-    public async Task<Schedule> GetScheduleFromSourceOfTruth(CancellationToken cancellationToken)
-    {
-        var context = await GetContextFromSourceOfTruth(cancellationToken);
-        var schedule = context.Schedule.Build();
-        return schedule;
+        return ServiceProvider.GetRequiredService<Schedule>();
     }
 
     public static async Task AddScheduleToBuilder(
@@ -132,5 +142,12 @@ public sealed class IntegrationTestHelper
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
         var str = reader.ReadToEnd();
         return Verify(new Target("json", str));
+    }
+
+    public void Dispose()
+    {
+        _scope.Dispose();
+        _rootServiceProvider.Dispose();
+        _cts.Dispose();
     }
 }

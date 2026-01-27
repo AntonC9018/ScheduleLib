@@ -14,4 +14,14 @@ public static class SemesterHelper
     {
         return (int) semester + 1;
     }
+
+    public static Semester FromInt(int value)
+    {
+        return value switch
+        {
+            1 => Semester.Sem1,
+            2 => Semester.Sem2,
+            _ => throw new ArgumentException("Invalid semester value", nameof(value)),
+        };
+    }
 }

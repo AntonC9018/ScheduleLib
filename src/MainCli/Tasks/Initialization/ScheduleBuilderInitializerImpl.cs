@@ -1,29 +1,25 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 using AutoConstructor.Attributes;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.CourseName;
-using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
+using TruePath;
 
 namespace MainCli;
 
 public sealed class ScheduleBuilderInitializerOptions
 {
     public bool BypassCache { get; set; } = false;
+    public bool UseCache { get; set; } = true;
+    public bool EnrichWithFullNames { get; set; } = true;
 }
 
 [AutoConstructor]
 public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 {
-    private readonly LessonTimeConfig _timeConfig;
-    private readonly DayNameParser _dayNameParser;
-    private readonly CourseNameUnifierModule _unifier;
-    private readonly LessonParserFactory _lessonParserFactory;
+    private readonly IServiceProvider _sp;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ILogger _logger;
     private readonly ConfigureRemappingsDelegate _configureRemappings;
@@ -36,36 +32,34 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         builder.ConfigureRemappings(_configureRemappings);
         builder.EnableLookupModule();
 
-        var context = new DocParseContext
-        {
-            CourseNameUnifierModule = _unifier,
-            DayNameParser = _dayNameParser,
-            ParserFactory = _lessonParserFactory,
-            Schedule = builder,
-            TimeConfig = _timeConfig,
-        };
-
         var loader = new ScheduleLoader();
 
-        // TODO: Do this config in a more adequate way
         var studyYear = _studyYearOptions.Value;
-
-        loader.CachedPath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
-        var dir = @$"data\{studyYear.StudyYear}_sem{studyYear.Semester.AsOrdinal()}";
-        loader.Components.Add(new DirectoryScheduleLoaderComponent
-        {
-            DirectoryPath = @$"{dir}\zi",
-        });
-        loader.Components.Add(new FRScheduleDirectoryLoaderComponent
-        {
-            DirectoryPath = @$"{dir}\fr",
-        });
-        loader.Components.Add(new EnrichWithTeacherFullNamesScheduleLoaderComponent
-        {
-            FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
-        });
-
         var opts = _opts.Value;
+        if (opts.UseCache)
+        {
+            loader.CachedPath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
+        }
+
+        {
+            var scheduleDirs = ScheduleDirectoryDiscovery.DiscoverDirectories(path: new("data"))
+                .OrderBy(x => x.StudyYear)
+                .ThenBy(x => x.Semester)
+                .ThenBy(x => x.AttendanceMode);
+            var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear);
+            var loaders = matchingDirs.Select(x => x.GetLoader());
+            loader.Components.AddRange(loaders);
+        }
+
+        if (opts.EnrichWithFullNames)
+        {
+            loader.Components.Add(new EnrichWithTeacherFullNamesScheduleLoaderComponent
+            {
+                FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
+            });
+        }
+
+        var context = ActivatorUtilities.CreateInstance<DocParseContext>(_sp, builder);
         await loader.Load(
             context,
             cancellationToken,

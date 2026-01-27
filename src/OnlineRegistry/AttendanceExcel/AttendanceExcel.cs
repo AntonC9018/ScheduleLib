@@ -64,7 +64,7 @@ public static class AttendanceExcel
     }
 
     private static readonly TokenTypeLabels _labels =
-        LexerHelper.CreateLabelDict(typeof(NameTokenType));
+        LexerHelper.CreateLabels(typeof(NameTokenType));
 
     private sealed class NameTokenReader : ITokenReader
     {
@@ -194,7 +194,7 @@ public static class AttendanceExcel
     private struct ParseNameHelper
 #pragma warning restore CA1001
     {
-        private readonly SingleItemEnumerator<string> _nameE;
+        private readonly SingleItemEnumerator<ReadOnlyMemory<char>> _nameE;
         private readonly Lexer _lexer;
 
         private readonly FilteredSchedule _schedule;
@@ -207,7 +207,7 @@ public static class AttendanceExcel
             LookupFacade lookup,
             Lexer lexer)
         {
-            _nameE = new SingleItemEnumerator<string>();
+            _nameE = new();
             _schedule = schedule;
             _groupParseContext = groupParseContext;
             _lookup = lookup;
@@ -218,7 +218,7 @@ public static class AttendanceExcel
             string excelName,
             LessonModelDiffMask additionallyIgnoredFields)
         {
-            _nameE.Reset(excelName);
+            _nameE.Reset(excelName.AsMemory());
             _lexer.Reset(_nameE);
 
             var parsedName = ParseName(_lexer, _groupParseContext);

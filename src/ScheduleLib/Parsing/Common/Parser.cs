@@ -62,7 +62,33 @@ public record struct Parser
     public readonly override string ToString() => WholeSpan[_index ..].ToString();
 }
 
-public record struct ParserPosition(int Index);
+public readonly record struct ParserPosition(int Index);
+
+public readonly record struct ParserSegment(
+    Parser Start,
+    ParserPosition EndExclusive) : ISpanFormattable
+{
+    public string ToString(string? format, IFormatProvider? formatProvider) => $"{this}";
+    public override string ToString() => $"{this}";
+
+    public bool TryFormat(
+        Span<char> destination,
+        out int charsWritten,
+        ReadOnlySpan<char> format,
+        IFormatProvider? provider)
+    {
+        // TODO: Improve this, it doesn't print anything if the segment is empty.
+        var span = Start.PeekSpanUntilPosition(EndExclusive);
+        if (destination.Length < span.Length)
+        {
+            charsWritten = 0;
+            return false;
+        }
+        span.CopyTo(destination);
+        charsWritten = span.Length;
+        return true;
+    }
+}
 
 public interface IShouldSkip
 {
@@ -84,6 +110,11 @@ public static class ParserHelper
     public static bool IsLowerAscii(char ch)
     {
         return ch >= 'a' && ch <= 'z';
+    }
+
+    public static ParserSegment Segment(this Parser parser, ParserPosition until)
+    {
+        return new(parser, until);
     }
 
     public readonly struct SkipSequenceResult
