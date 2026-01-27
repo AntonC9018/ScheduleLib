@@ -38,6 +38,18 @@
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
           <CopyToPublishDirectory>Always</CopyToPublishDirectory>
         </None>
+        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_I Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
+        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_II Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
+        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_III Lic.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -67,5 +79,6 @@
 
     <ItemGroup>
       <Folder Include="data\2025_sem1\zi\" />
+      <Folder Include="data\2025_sem2\zi\27.01.26\" />
     </ItemGroup>
 </Project>

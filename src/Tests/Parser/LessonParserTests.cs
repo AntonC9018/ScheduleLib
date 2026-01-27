@@ -795,6 +795,27 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public void TestSubGroupWithMultipleNames()
+    {
+        var lessons = ParseLessons([
+            "Matematica  discretă  (Algoritmica Grafurilor, curs, imp)",
+            "A.Niculiță   213a/4",
+        ], Config.WhiteSpaceActionCourseName);
+
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Assert.Equal("Matematica discretă", l1.LessonName.Span);
+                Assert.Equal("Algoritmica Grafurilor", l1.GroupName.Span);
+                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.Equal(LessonType.Curs, l1.LessonType);
+                Assert.Equal(Parity.OddWeek, l1.Parity);
+                AssertEqualName("A.Niculiță", Assert.Single(l1.TeacherNames));
+                Assert.Equal("213a/4", l1.RoomName.Span);
+            });
+    }
+
+    [Fact]
     public void EmptyStringTest()
     {
         var lessons = ParseLessons([
@@ -804,4 +825,3 @@ public sealed class LessonParserTests
         Assert.Empty(lessons);
     }
 }
-

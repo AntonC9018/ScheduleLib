@@ -14,7 +14,7 @@ public static class DriveApiHelper
     private const int MaxBatchSize = 100; // Drive limitation per batch
     private const int MaxPageSize = 1000;
 
-    public record struct BatchDeleteOperation(IEnumerable<Task> Tasks, int BatchCount);
+    public record struct BatchDeleteOperation(IEnumerable<Func<Task>> Tasks, int BatchCount);
 
     private static int CeilDiv(int x, int y) => (x + y - 1) / y;
 
@@ -26,7 +26,7 @@ public static class DriveApiHelper
         var batchCount = CeilDiv(fileIdsToDelete.Count, MaxBatchSize);
         return new(Tasks(), batchCount);
 
-        IEnumerable<Task> Tasks()
+        IEnumerable<Func<Task>> Tasks()
         {
             for (int i = 0; i < fileIdsToDelete.Count; i += MaxBatchSize)
             {
@@ -35,29 +35,32 @@ public static class DriveApiHelper
                     .Take(MaxBatchSize)
                     .ToList();
 
-                // Create a batch request
-                var batch = new BatchRequest(driveService);
-                var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
-                    (content, error, index, message) =>
-                    {
-                        _ = content;
-                        _ = error;
-                        _ = index;
-                        _ = message;
-                        if (error != null)
-                        {
-                            Console.WriteLine($"Delete failed for file {chunk[index]}");
-                        }
-                    });
-
-                foreach (var f in chunk)
+                yield return () =>
                 {
-                    var deleteReq = driveService.Files.Delete(f.Id.Value);
-                    batch.Queue(deleteReq, callback);
-                }
+                    // Create a batch request
+                    var batch = new BatchRequest(driveService);
+                    var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
+                        (content, error, index, message) =>
+                        {
+                            _ = content;
+                            _ = error;
+                            _ = index;
+                            _ = message;
+                            if (error != null)
+                            {
+                                Console.WriteLine($"Delete failed for file {chunk[index]}");
+                            }
+                        });
 
-                // Execute the batch
-                yield return batch.ExecuteAsync(cancellationToken);
+                    foreach (var f in chunk)
+                    {
+                        var deleteReq = driveService.Files.Delete(f.Id.Value);
+                        batch.Queue(deleteReq, callback);
+                    }
+
+                    // Execute the batch
+                    return batch.ExecuteAsync(cancellationToken);
+                };
             }
         }
     }

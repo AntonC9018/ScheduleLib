@@ -449,12 +449,13 @@ public static class LessonParsingHelper
                     // ROMAN-modifier
                     var key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
                     ref var modifiers = ref GetCurrentModifiers(c, key);
-                    var modifierValue = ParseOutModifier(c, ref lexer);
+                    var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
                     bool somethingSet = modifiers.Set(modifierValue);
                     if (!somethingSet)
                     {
                         throw new WrongFormatException("Modifier group that did nothing");
                     }
+                    lexer.TryConsume(TokenType.Whitespace);
                     if (!lexer.IsEmpty)
                     {
                         WrongFormatException.ExtraWordsInModifier();
@@ -567,7 +568,10 @@ public static class LessonParsingHelper
                     return ref c.State.LastModifiers.General;
                 }
 
-                static MaybeGeneralModifiersValue ParseOutModifier(ParsingContext c, ref LimitedLexerScope lexer)
+                static MaybeGeneralModifiersValue ParseOutModifier(
+                    ParsingContext c,
+                    ref LimitedLexerScope lexer,
+                    StringBuilder sb)
                 {
                     if (lexer.IsEmpty)
                     {
@@ -579,10 +583,9 @@ public static class LessonParsingHelper
                         WrongFormatException.InvalidToken(t);
                     }
 
-                    lexer.Move();
-
                     if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
                     {
+                        lexer.Move();
                         return new()
                         {
                             LessonType = lessonType,
@@ -590,15 +593,23 @@ public static class LessonParsingHelper
                     }
                     if (c.Params.ParityParser.Parse(t.Value.Span) is { } parity1)
                     {
+                        lexer.Move();
                         return new()
                         {
                             Parity = parity1,
                         };
                     }
 
+                    var groupName = lexer.Concat(new()
+                    {
+                        StringBuilder = sb,
+                        ConcattedType = LessonTokenType.Word,
+                        WhitespaceReplacer = " ",
+                    });
+                    Debug.Assert(!groupName.IsEmpty);
                     return new()
                     {
-                        GroupName = t.Value,
+                        GroupName = groupName,
                     };
                 }
             }

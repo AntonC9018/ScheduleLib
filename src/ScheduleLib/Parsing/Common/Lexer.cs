@@ -81,6 +81,12 @@ public static class ClassLexerExtensions
             var t = lexer.Wrap();
             return t.TryConsume(ch);
         }
+
+        public ReadOnlyMemory<char> Concat(ConcatParams p)
+        {
+            var t = lexer.Wrap();
+            return t.Concat(p);
+        }
     }
 }
 
@@ -130,7 +136,63 @@ public static class StructLexerExtensions
             }
             return false;
         }
+
+        public ReadOnlyMemory<char> Concat(ConcatParams p)
+        {
+            if (lexer.IsEmpty)
+            {
+                return ReadOnlyMemory<char>.Empty;
+            }
+            var first = lexer.Peek(1);
+            if (first.Type != p.ConcattedType)
+            {
+                return ReadOnlyMemory<char>.Empty;
+            }
+            lexer.Move();
+            if (!CanAppendOneMore(ref lexer))
+            {
+                return first.Value;
+            }
+            p.StringBuilder.Append(first.Value.Span);
+
+            while (true)
+            {
+                p.StringBuilder.Append(p.WhitespaceReplacer);
+                p.StringBuilder.Append(lexer.Peek(2).Value.Span);
+                lexer.Move(2);
+
+                if (!CanAppendOneMore(ref lexer))
+                {
+                    return p.StringBuilder.ToStringAndClear().AsMemory();
+                }
+            }
+
+            bool CanAppendOneMore(ref T lexer)
+            {
+                if (!lexer.CanPeek(2))
+                {
+                    return false;
+                }
+                if (lexer.Peek(1).Type != TokenType.Whitespace)
+                {
+                    return false;
+                }
+                if (lexer.Peek(2).Type != p.ConcattedType)
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+
     }
+}
+
+public readonly record struct ConcatParams()
+{
+    public string WhitespaceReplacer { get; init; } = " ";
+    public required StringBuilder StringBuilder { get; init; }
+    public required TokenType ConcattedType { get; init; }
 }
 
 public readonly struct LexerStructWrapper : ILexer
@@ -317,7 +379,8 @@ public sealed class Lexer : ILexer
         var spanSlice = span[start.Value .. end.Value];
         foreach (var t in spanSlice)
         {
-            list.Append($"{t.Type} - {t.Value.Span}");
+            var type = TokenTypeLabels.Get(t.Type);
+            list.Append($"{type} - {t.Value.Span}");
         }
         sb.Append("]");
         return sb.ToString();

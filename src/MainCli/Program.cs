@@ -15,7 +15,7 @@ services.Configure<ManifestDirectoriesOptions>(x =>
 services.Configure<StudyYearOptions>(x =>
 {
     x.StudyYear = 2025;
-    x.Semester = Semester.Sem1;
+    x.Semester = Semester.Sem2;
 });
 services.Configure<RegularSeminarDateConfig>(x =>
 {
@@ -44,11 +44,11 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
-        // AppTask.UploadDocsToDrive,
+        AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
-        AppTask.CreateLessonsInRegistry,
+        // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
@@ -58,7 +58,7 @@ var appExecutionContext = new AppTasksExecutionContext
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Iatasina Tamara"),
+    TeacherName = NameHelper.Parse("Curmanschii Anton"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);

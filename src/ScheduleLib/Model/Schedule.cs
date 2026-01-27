@@ -660,12 +660,20 @@ public static class SpecialSubGroups
         Ru,
         Ro,
         Eng,
+        // TODO: configure these better
+        AG,
+        Logica,
+        AlgoGraf,
     ];
     public static SubGroup Optional => new("opțional");
     public static SubGroup Beginners => new("începători");
     public static SubGroup Ru => new("ru");
     public static SubGroup Ro => new("ro");
     public static SubGroup Eng => new("eng");
+    // ReSharper disable once InconsistentNaming
+    public static SubGroup AG => new("AG");
+    public static SubGroup Logica => new("Logica");
+    public static SubGroup AlgoGraf => new("Algoritmica Grafurilor");
     public static SubGroup FromLanguage(Language lang)
     {
         return lang switch

@@ -60,6 +60,8 @@ public static class GroupHelper
         var baseParser = new Parser(name);
         var parser = baseParser.BufferedView();
 
+        bool isDual = parser.ConsumeExactString("DU-");
+
         var (label, isFr, isMaster) = ParseLabel(ref parser);
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
         parser.SkipWhitespace();
@@ -74,7 +76,8 @@ public static class GroupHelper
             string masterString = isMaster ? "M" : "";
             string frString = isFr ? "FR" : "";
             string faculty = label;
-            actualName = $"{masterString}{faculty}{frString}{year:00}{groupNumber:00}";
+            string dualStr = isDual ? "DU-" : "";
+            actualName = $"{dualStr}{masterString}{faculty}{frString}{year:00}{groupNumber:00}";
         }
 
         parser.SkipWhitespace();
