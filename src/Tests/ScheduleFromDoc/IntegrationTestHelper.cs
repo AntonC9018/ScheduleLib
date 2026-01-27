@@ -1,6 +1,9 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MainCli;
 using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
 using ScheduleLib.Builders;
 
@@ -20,7 +23,7 @@ public sealed class IntegrationTestHelper : IDisposable
     ];
     public static string VerifyScheduleSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_model";
     public static string ScheduleJsonSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_json";
-    public static string ScheduleSnapshotJsonPath(TestOption option) => $"{ScheduleJsonSnapshotName(option)}.verified.json";
+    public static string ScheduleSnapshotJsonPath(TestOption option) => $"schedule_{Enum.GetName(option)}.json";
 
     public readonly int Year;
     public readonly Semester Semester;
@@ -57,6 +60,10 @@ public sealed class IntegrationTestHelper : IDisposable
             opts.UseCache = false;
             opts.EnrichWithFullNames = false;
         });
+        services.Replace(new(
+            typeof(ConfigureRemappingsDelegate),
+            new ConfigureRemappingsDelegate(x => { _ = x; }),
+            ServiceLifetime.Singleton));
         _rootServiceProvider = services.BuildServiceProvider();
         _scope = _rootServiceProvider.CreateScope();
     }
@@ -131,12 +138,88 @@ public sealed class IntegrationTestHelper : IDisposable
         return jsonSchedule;
     }
 
-    public static async Task<SettingsTask> ScheduleVerify(
-        Schedule schedule,
-        CancellationToken cancellationToken)
+    public SettingsTask ScheduleVerify(Schedule schedule)
     {
+        var timeConfig = ServiceProvider.GetRequiredService<LessonTimeConfig>();
+        var readableSchedule = new ReadableScheduleModel
+        {
+            Lessons = schedule.EnumerateAllLessons()
+                .Select(x =>
+                {
+                    ReadablePeriodModel? periodModel = null;
+                    if (x.Weekly?.Date.Period is { IsSpecified: true } periodId)
+                    {
+                        var period = schedule.Get(periodId);
+                        periodModel = new()
+                        {
+                            Id = periodId.Value,
+                            End = period.End,
+                            Start = period.Start,
+                        };
+                    }
+
+                    ReadableRepeatableDate? repeatableDateModel = null;
+                    if (x.Weekly?.Date is { } weeklyDate)
+                    {
+                        repeatableDateModel = new()
+                        {
+                            DayOfWeek = weeklyDate.DayOfWeek,
+                            Parity = weeklyDate.Parity,
+                        };
+                    }
+
+                    ref readonly var lesson = ref x.Lesson;
+
+                    return new ReadableLessonModel
+                    {
+                        Course = schedule.Get(lesson.Course).FullName,
+                        Date = x.OneTime?.Date.Date,
+                        Groups = lesson.Groups.Select(id => schedule.Get(id).Name).ToArray(),
+                        Id = x.Id.Id,
+                        Period = periodModel,
+                        RepeatableDate = repeatableDateModel,
+                        Room = lesson.Room.IsValid ? schedule.Get(lesson.Room) : null,
+                        Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName.ToString()).ToArray(),
+                        Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
+                        LessonType = lesson.Type,
+                    };
+                }).ToArray(),
+            Groups = schedule.EnumerateGroups().Select(g =>
+                {
+                    return new ReadableGroupModel
+                    {
+                        Id = g.Id.Value,
+                        Name = g.Item.Name,
+                    };
+                }).ToArray(),
+            Courses = schedule.EnumerateCourses().Select(c =>
+                {
+                    return new ReadableCourseModel
+                    {
+                        Id = c.Id.Id,
+                        Names = c.Item.Names.ToArray(),
+                    };
+                }).ToArray(),
+            Periods = schedule.EnumeratePeriods().Select(p =>
+                {
+                    return new ReadablePeriodModel
+                    {
+                        Id = p.Id.Value,
+                        Start = p.Item.Start,
+                        End = p.Item.End,
+                    };
+                }).ToArray(),
+        };
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+        };
+        options.Converters.Add(new JsonStringEnumConverter<LessonType>());
+        options.Converters.Add(new JsonStringEnumConverter<DayOfWeek>());
+        options.Converters.Add(new JsonStringEnumConverter<Parity>());
         using var stream = new MemoryStream();
-        await ScheduleSerializer.Serialize(schedule, stream, hash: "", cancellationToken);
+        // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+        JsonSerializer.Serialize(stream, readableSchedule, options);
         stream.Position = 0;
         using var reader = new StreamReader(stream);
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
@@ -150,4 +233,51 @@ public sealed class IntegrationTestHelper : IDisposable
         _rootServiceProvider.Dispose();
         _cts.Dispose();
     }
+}
+
+public sealed class ReadableScheduleModel
+{
+    public required ReadableLessonModel[] Lessons { get; set; }
+    public required ReadableCourseModel[] Courses { get; set; }
+    public required ReadablePeriodModel[] Periods { get; set; }
+    public required ReadableGroupModel[] Groups { get; set; }
+}
+
+public sealed class ReadableLessonModel
+{
+    public required int Id { get; set; }
+    public required string Course { get; set; }
+    public required string[] Teachers { get; set; }
+    public required string[] Groups { get; set; }
+    public required ReadablePeriodModel? Period { get; set; }
+    public required DateOnly? Date { get; set; }
+    public required ReadableRepeatableDate? RepeatableDate { get; set; }
+    public required string? Room { get; set; }
+    public required TimeOnly Time { get; set; }
+    public required LessonType LessonType { get; set; }
+}
+
+public sealed class ReadableCourseModel
+{
+    public required int Id { get; set; }
+    public required string[] Names { get; set; }
+}
+
+public sealed class ReadablePeriodModel
+{
+    public required int Id { get; set; }
+    public required DateOnly Start { get; set; }
+    public required DateOnly? End { get; set; }
+}
+
+public sealed class ReadableRepeatableDate
+{
+    public required DayOfWeek DayOfWeek { get; set; }
+    public required Parity Parity { get; set; }
+}
+
+public sealed class ReadableGroupModel
+{
+    public required int Id { get; set; }
+    public required string Name { get; set; }
 }
