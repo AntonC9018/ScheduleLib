@@ -161,27 +161,28 @@ public static class Config
         get
         {
             static StudyWeek Week(int month, int day, bool isOddWeek) =>
-                new(monday: new(2025, month, day), isOddWeek: isOddWeek);
+                new(monday: new(2026, month, day), isOddWeek: isOddWeek);
+
             StudyWeek[] studyWeeks =
             [
-                Week(month: 9,  day: 1,  isOddWeek: false),
-                Week(month: 9,  day: 8,  isOddWeek: true),
-                Week(month: 9,  day: 15, isOddWeek: false),
-                Week(month: 9,  day: 22, isOddWeek: true),
-                Week(month: 9,  day: 29, isOddWeek: false),
-                Week(month: 10, day: 6,  isOddWeek: true),
-                Week(month: 10, day: 13, isOddWeek: false),
-                Week(month: 10, day: 20, isOddWeek: true),
-                Week(month: 10, day: 27, isOddWeek: false),
-                Week(month: 11, day: 3,  isOddWeek: true),
-                Week(month: 11, day: 10, isOddWeek: false),
-                Week(month: 11, day: 17, isOddWeek: true),
-                Week(month: 11, day: 24, isOddWeek: false),
-                Week(month: 12, day: 1,  isOddWeek: true),
-                Week(month: 12, day: 8,  isOddWeek: false),
-                Week(month: 12, day: 15, isOddWeek: true),
-                Week(month: 12, day: 22, isOddWeek: false),
+                Week(month: 2, day: 2,  isOddWeek: false),
+                Week(month: 2, day: 9,  isOddWeek: true),
+                Week(month: 2, day: 16, isOddWeek: false),
+                Week(month: 2, day: 23, isOddWeek: true),
+                Week(month: 3, day: 2,  isOddWeek: false),
+                Week(month: 3, day: 9,  isOddWeek: true),
+                Week(month: 3, day: 16, isOddWeek: false),
+                Week(month: 3, day: 23, isOddWeek: true),
+                Week(month: 3, day: 30, isOddWeek: false),
+                Week(month: 4, day: 6,  isOddWeek: true),
+                Week(month: 4, day: 13, isOddWeek: false),
+                Week(month: 4, day: 20, isOddWeek: true),
+                Week(month: 4, day: 27, isOddWeek: false),
+                Week(month: 5, day: 4,  isOddWeek: true),
+                Week(month: 5, day: 11, isOddWeek: false),
+                Week(month: 5, day: 18, isOddWeek: true),
             ];
+
             return studyWeeks;
         }
     }
@@ -196,6 +197,8 @@ public static class Config
                 new(new(2025, month: 10, day: 14)),
                 new(new(2026, month: 1, day: 1), new(2026, month: 1, day: 26)),
                 new(new(2026, month: 4, day: 12), new(2026, month: 4, day: 21)),
+                new(new(2026, month: 5, day: 1)),
+                new(new(2026, month: 5, day: 9)),
             ];
             return holidayPeriods;
         }
