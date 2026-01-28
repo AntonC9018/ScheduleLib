@@ -9,21 +9,22 @@ namespace MainCli;
 [AutoConstructor]
 public sealed partial class GoogleCalendarLessons
 {
-    private readonly ScheduledDateTimeProvider _dateTimeProvider;
-    private readonly ConfigProvider<BuiltGoogleDriveConfig> _driveConfigProvider;
+    private readonly ScheduledTimeEventsProvider _eventsProvider;
+    private readonly ConfigProvider<GoogleCalendarConfig> _configProvider;
 
     private static readonly string[] Scopes = [
         CalendarService.Scope.Calendar,
     ];
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+
     public async Task Create()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
-        var config = _driveConfigProvider.Get();
+        var config = _configProvider.Get();
         if (config is null)
         {
             throw new InvalidOperationException("No google drive config found.");
         }
+
+
         return;
     }
 }

@@ -1,3 +1,4 @@
+using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using MainCli.Helper;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +39,11 @@ public static class Registration
 
             LessonTopicsConfig.Register(services);
             MoodleConfig.Register(services);
+
+            GoogleCredentialsConfig.Register(services);
             GoogleDriveConfig.Register(services);
+            GoogleCalendarConfig.Register(services);
+
             LessonAttendanceConfig.Register(services);
             DeadlinesExcelConfig.Register(services);
             LabTasksDatabaseConfig.Register(services);
@@ -201,6 +206,9 @@ public static class Registration
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
             services.AddScoped<SyncDriveFolderTaskHandler>();
+
+            services.AddScoped<GoogleCalendarLessons>();
+            services.AddScoped<GoogleCredentialResolver>();
         }
 
         public IConfiguration AddGlobalConfiguration()

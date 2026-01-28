@@ -18,8 +18,7 @@ public sealed partial class SyncDriveFolderTaskHandler
 {
     private readonly IOptions<GoogleDriveOptions> _options;
     private readonly ConfigProvider<BuiltGoogleDriveConfig> _configProvider;
-    private readonly CurrentUserNameProvider _userNameProvider;
-    private readonly IServiceProvider _sp;
+    private readonly GoogleCredentialResolver _credentialResolver;
 
     public struct RunParams
     {
@@ -39,16 +38,8 @@ public sealed partial class SyncDriveFolderTaskHandler
         {
             throw new InvalidOperationException("No google drive config found.");
         }
-        var clientSecrets = await config.ApiKeysSource.Get(_sp, p.CancellationToken);
-        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-            clientSecrets: clientSecrets,
-            scopes: Scopes,
-            user: _userNameProvider.Get(),
-            taskCancellationToken: CancellationToken.None,
-            dataStore: config.CredentialsPath is { } credPath
-                ? new FileDataStore(credPath, fullPath: true)
-                : null);
 
+        var credential = await _credentialResolver.Resolve(config.Credentials, Scopes, p.CancellationToken);
         using var driveService = new DriveService(
             new BaseClientService.Initializer
             {
