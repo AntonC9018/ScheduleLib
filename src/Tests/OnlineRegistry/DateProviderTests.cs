@@ -6,14 +6,14 @@ public sealed class DateProviderTests
     public void TestHoliday()
     {
         var monday = new DateOnly(year: 2025, month: 4, day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
-        var provider = new ManualAllScheduledDateProvider(
+        var provider = new ManualWeeklyScheduledDateProvider(
             studyWeeks: [
                 new StudyWeek(monday, isOddWeek: true),
             ],
             holidays: [
                 new HolidayPeriod(monday, monday.AddDays(5)),
             ]);
-        var ret = provider.Dates(new()
+        var ret = provider.GetDatesForWeeklyLessons(new()
         {
             Day = DayOfWeek.Monday,
             Parity = Parity.EveryWeek,
@@ -27,12 +27,12 @@ public sealed class DateProviderTests
     public void TestNoHoliday()
     {
         var monday = new DateOnly(year: 2025, month: 4, day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
-        var provider = new ManualAllScheduledDateProvider(
+        var provider = new ManualWeeklyScheduledDateProvider(
             studyWeeks: [
                 new StudyWeek(monday, isOddWeek: true),
             ],
             holidays: []);
-        var ret = provider.Dates(new()
+        var ret = provider.GetDatesForWeeklyLessons(new()
         {
             Day = DayOfWeek.Monday,
             Parity = Parity.EveryWeek,

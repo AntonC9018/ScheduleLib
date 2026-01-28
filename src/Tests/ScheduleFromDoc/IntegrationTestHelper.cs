@@ -112,7 +112,7 @@ public sealed class IntegrationTestHelper : IDisposable
 
     public static CancellationTokenSource CreateCts()
     {
-        return TestHelper.CreateCts();
+        return TestAnyLessonSchedulingDateHelper.CreateCts();
     }
 
     public Schedule GetScheduleFromSourceOfTruth()

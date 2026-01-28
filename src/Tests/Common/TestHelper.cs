@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-public static class TestHelper
+public static class TestAnyLessonSchedulingDateHelper
 {
     public static CancellationTokenSource CreateCts()
     {

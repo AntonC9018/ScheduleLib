@@ -137,16 +137,16 @@ public static class Registration
                 });
                 services.AddSingleton<RegularSeminarDateProvider>();
 
-                services.AddSingleton<IAllScheduledDateProvider, ManualAllScheduledDateProvider>(sp =>
+                services.AddSingleton<IWeeklyScheduledDateProvider, ManualWeeklyScheduledDateProvider>(sp =>
                 {
                     _ = sp;
-                    var ret = new ManualAllScheduledDateProvider(
+                    var ret = new ManualWeeklyScheduledDateProvider(
                         studyWeeks: Config.StudyWeeks,
                         holidays: Config.HolidayPeriods);
                     return ret;
                 });
 
-                services.AddSingleton<IAllScheduledEventsProvider, ScheduledEventsProviderTransformer>();
+                services.AddSingleton<IWeeklyScheduledEventsProvider, ScheduledEventsProviderTransformer>();
                 services.AddScoped<ScheduledDateTimeProvider>();
             }
 

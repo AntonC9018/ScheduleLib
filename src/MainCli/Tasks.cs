@@ -20,13 +20,13 @@ public struct ParseStudyWeekWordDocParams
 public static class TasksHelper
 {
     // ReSharper disable once UnusedMember.Global
-    public static ManualAllScheduledDateProvider CreateDateProviderFromWeekParityExcel(
+    public static ManualWeeklyScheduledDateProvider CreateDateProviderFromWeekParityExcel(
         ParseStudyWeekWordDocParams p)
     {
         using var stream = File.OpenRead(p.InputPath);
         using var word = WordprocessingDocument.Open(stream, isEditable: false);
         var studyWeeks = ParityExcelParser.Parse(word).ToArray();
-        var ret = new ManualAllScheduledDateProvider(
+        var ret = new ManualWeeklyScheduledDateProvider(
             studyWeeks: studyWeeks,
             holidays: p.Holidays);
         return ret;
