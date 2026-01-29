@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation;
 
 namespace ScheduleLib.OnlineRegistry;
 

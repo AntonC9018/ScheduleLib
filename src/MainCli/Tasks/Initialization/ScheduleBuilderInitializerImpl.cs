@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
-using TruePath;
 
 namespace MainCli;
 

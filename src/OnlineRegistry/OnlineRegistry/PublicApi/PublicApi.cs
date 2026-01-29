@@ -1,14 +1,10 @@
-using System.Diagnostics;
 using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using AutoConstructor.Attributes;
-using DocumentFormat.OpenXml.Drawing;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;
 

@@ -1,4 +1,3 @@
-using MainCli;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;

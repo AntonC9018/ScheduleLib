@@ -1,7 +1,3 @@
-using System.Collections;
-using System.Diagnostics;
-using AutoConstructor.Attributes;
-
 namespace ScheduleLib.OnlineRegistry;
 
 public struct GetScheduledDatesParams()

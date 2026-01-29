@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -9,7 +8,6 @@ using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Common;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 

@@ -1,6 +1,5 @@
 using System.Text;
 using Anton.LayeredConfig.Retrieval;
-using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using MainCli.BuilderNew.Impl;
 using MainCli.Helper;
@@ -15,7 +14,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Scraping.Common.Config;

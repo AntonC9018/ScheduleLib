@@ -1,7 +1,5 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using AutoConstructor.Attributes;
 
 namespace ScheduleLib;
 

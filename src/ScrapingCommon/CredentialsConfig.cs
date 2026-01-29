@@ -1,10 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace ScheduleLib.Scraping.Common.Config;
 
