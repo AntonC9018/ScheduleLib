@@ -207,10 +207,10 @@ public static class Registration
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
-            services.AddScoped<SyncDriveFolderTaskHandler>();
 
+            services.AddScoped<SyncDriveFolderTaskHandler>();
             services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
-            services.AddScoped<GoogleCredentialResolver>();
+            GoogleApiHelper.Register(services);
         }
 
         public IConfiguration AddGlobalConfiguration()

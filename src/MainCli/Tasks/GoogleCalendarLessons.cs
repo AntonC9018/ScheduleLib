@@ -18,12 +18,12 @@ namespace MainCli;
 public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 {
     private readonly ScheduledTimeEventsProvider _eventsProvider;
-    private readonly ConfigProvider<GoogleCalendarConfig> _configProvider;
-    private readonly GoogleCredentialResolver _credentialResolver;
+    private readonly ConfigProvider<BuiltGoogleCalendarConfig> _configProvider;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ScopeFilteredScheduleProvider _filteredScheduleProvider;
     private readonly LessonTextDisplayHandler.Services _lessonDisplayServices;
     private readonly LessonTimeConfig _timeConfig;
+    private readonly GoogleApiHelper _helper;
 
     private static readonly string[] Scopes = [
         CalendarService.Scope.Calendar,
@@ -36,26 +36,16 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         {
             throw new InvalidOperationException("No google drive config found.");
         }
-        if (config.Credentials is null)
-        {
-            throw new InvalidOperationException("Expected credentials to have been configured");
-        }
-
-        var credential = await _credentialResolver.Resolve(
-            config.Credentials.Build(),
-            Scopes,
-            cancellationToken);
-        using var service = new CalendarService(
-            new BaseClientService.Initializer
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "Schedule",
-            });
-        var calendarTag = config.CalendarName ?? "Lessons";
-        if (calendarTag == "primary")
+        if (config.CalendarName == "primary")
         {
             throw new InvalidOperationException("Primary calendar not supported!");
         }
+
+        var credential = await _helper.CredentialResolver.Resolve(
+            config.Credentials.Build(),
+            Scopes,
+            cancellationToken);
+        using var service = new CalendarService(_helper.CreateServiceInitializer(credential));
 
         var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices, new()
         {
@@ -78,14 +68,12 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         const string timeZoneId = "Europe/Chisinau";
         var calendarId = await service.MakeSureCleanCalendarWithSummary(new Calendar
         {
-            Summary = calendarTag,
+            Summary = config.CalendarName,
             Location = locationId,
             TimeZone = timeZoneId,
         }, cancellationToken);
 
-        using var runner = new LimitedTaskRunner(
-            maxConcurrentTasks: 10,
-            cancellationToken: cancellationToken);
+        using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var timeEvent in timeEvents)
         {
             // ReSharper disable once VariableHidesOuterVariable
@@ -167,17 +155,6 @@ internal static class GoogleCalendarServiceExtensions
         catch (GoogleApiException)
         {
             return false;
-        }
-    }
-
-    public static async Task CreateCalendarIfNotExist(
-        this CalendarService service,
-        Calendar calendar,
-        CancellationToken cancellationToken)
-    {
-        if (!await service.CheckCalendarExists(calendar.Id, cancellationToken))
-        {
-            await service.Calendars.Insert(calendar).ExecuteAsync(cancellationToken);
         }
     }
 

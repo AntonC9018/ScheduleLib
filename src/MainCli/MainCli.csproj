@@ -34,22 +34,6 @@
             Include="data\topics\**\*"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
-        <None Update="data\topics\tamara\HTML.csv">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_I Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_II Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
-        <None Update="data\2025_sem2\zi\01.09.25\Orar_An_III Lic.docx">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -63,10 +47,15 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Polly.Core" Version="8.6.5" />
+        <PackageReference Include="Polly.Extensions" Version="8.6.5" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
         <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.3996" />
         <PackageReference Include="Google.Apis.Calendar.v3" Version="1.73.0.3993" />
-        
     </ItemGroup>
 
     <ItemGroup>
@@ -75,10 +64,5 @@
 
     <ItemGroup>
         <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="data\2025_sem1\zi\" />
-      <Folder Include="data\2025_sem2\zi\27.01.26\" />
     </ItemGroup>
 </Project>

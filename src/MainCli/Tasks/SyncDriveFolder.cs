@@ -1,24 +1,21 @@
 using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
-using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using MainCli.BuilderNew.Impl;
 using MainCli.Helper;
 using Microsoft.Extensions.Options;
-using ScheduleLib;
-using ScheduleLib.Helper;
 
 namespace MainCli;
+
 
 [AutoConstructor]
 public sealed partial class SyncDriveFolderTaskHandler
 {
     private readonly IOptions<GoogleDriveOptions> _options;
     private readonly ConfigProvider<BuiltGoogleDriveConfig> _configProvider;
-    private readonly GoogleCredentialResolver _credentialResolver;
+    private readonly GoogleApiHelper _helper;
 
     public struct RunParams
     {
@@ -39,13 +36,8 @@ public sealed partial class SyncDriveFolderTaskHandler
             throw new InvalidOperationException("No google drive config found.");
         }
 
-        var credential = await _credentialResolver.Resolve(config.Credentials, Scopes, p.CancellationToken);
-        using var driveService = new DriveService(
-            new BaseClientService.Initializer
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = _options.Value.ApplicationName,
-            });
+        var credential = await _helper.CredentialResolver.Resolve(config.Credentials, Scopes, p.CancellationToken);
+        using var driveService = new DriveService(_helper.CreateServiceInitializer(credential));
         _ = driveService;
 
         var folderId = await driveService.FindFolderId(config.DriveFolderName, p.CancellationToken);
@@ -81,9 +73,7 @@ public sealed partial class SyncDriveFolderTaskHandler
             }
         }
 
-        using var runner = new LimitedTaskRunner(
-            maxConcurrentTasks: 10,
-            cancellationToken: p.CancellationToken);
+        using var runner = _helper.RunnerProvider.Create(p.CancellationToken);
         var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
             driveService,
             cloudFilesToDelete,
@@ -154,50 +144,5 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
     public Stream OpenForReading(FilePath file)
     {
         return _directory.OpenFile(file.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-    }
-}
-
-public sealed class LimitedTaskRunner : IDisposable
-{
-    private readonly SemaphoreSlim _semaphore;
-    private readonly List<Task> _tasks;
-    private readonly CancellationTokenSource _cts;
-    public CancellationToken CancellationToken => _cts.Token;
-
-    public LimitedTaskRunner(
-        int maxConcurrentTasks,
-        CancellationToken cancellationToken)
-    {
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _semaphore = new(initialCount: maxConcurrentTasks, maxCount: maxConcurrentTasks);
-        _tasks = new();
-    }
-
-    public Task WhenDone()
-    {
-        return Task.WhenAll(_tasks);
-    }
-
-    public void Add(Func<CancellationToken, Task> taskFactory)
-    {
-        var t = Task.Run([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async () =>
-        {
-            await _semaphore.WaitAsync(CancellationToken);
-            try
-            {
-                await taskFactory(CancellationToken);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        }, CancellationToken);
-        _tasks.Add(t);
-    }
-
-    public void Dispose()
-    {
-        _semaphore.Dispose();
-        _cts.Dispose();
     }
 }

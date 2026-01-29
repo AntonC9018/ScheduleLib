@@ -1,9 +1,15 @@
+using System.Net;
 using Anton.LayeredConfig;
 using AutoConstructor.Attributes;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Http;
+using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
+using Polly;
+using Polly.Extensions.Http;
 using ScheduleLib.Scraping.Common.Config;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
@@ -119,3 +125,95 @@ public sealed partial class GoogleCredentialResolver
         return credential;
     }
 }
+
+internal sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
+{
+    private readonly IAsyncPolicy<HttpResponseMessage> _policy = CreatePolicy();
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddSingleton<GoogleHttpClientProvider>();
+    }
+
+    public static IAsyncPolicy<HttpResponseMessage> CreatePolicy()
+    {
+        // var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(maxParallelization: 20, maxQueuingActions: 20);
+        var retry = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .OrResult(ex => ex.StatusCode == HttpStatusCode.TooManyRequests)
+            .WaitAndRetryAsync(
+                retryCount: 20,
+                sleepDurationProvider: retryAttempt =>
+                {
+                    var seconds = Math.Pow(2, retryAttempt);
+                    return TimeSpan.FromSeconds(seconds);
+                });
+        // var policy = Policy.WrapAsync(bulkhead, retry);
+        var policy = retry;
+        return policy;
+    }
+
+    protected override HttpMessageHandler CreateHandler(CreateHttpClientArgs args)
+    {
+        var handler = base.CreateHandler(args);
+        return new PolicyHttpMessageHandler(_policy)
+        {
+            InnerHandler = handler,
+        };
+    }
+}
+
+public sealed class GoogleTaskRunnerProvider
+{
+    public const string Key = "Google";
+
+    private readonly LimitedTaskRunnerProvider _provider;
+
+    public GoogleTaskRunnerProvider([FromKeyedServices(Key)] LimitedTaskRunnerProvider provider)
+    {
+        _provider = provider;
+    }
+
+    public LimitedTaskRunner Create(CancellationToken cancellationToken)
+    {
+        return _provider.Create(cancellationToken);
+    }
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddSingleton<GoogleTaskRunnerProvider>();
+        services.AddKeyedSingleton(Key, (sp, key) =>
+        {
+            _ = sp;
+            _ = key;
+            return new LimitedTaskRunnerProvider(maxConcurrentTasks: 20);
+        });
+    }
+}
+
+[AutoConstructor]
+public sealed partial class GoogleApiHelper
+{
+    public readonly GoogleTaskRunnerProvider RunnerProvider;
+    public readonly GoogleCredentialResolver CredentialResolver;
+    private readonly GoogleHttpClientProvider _httpClientProvider;
+
+    public BaseClientService.Initializer CreateServiceInitializer(UserCredential credential)
+    {
+        return new BaseClientService.Initializer
+        {
+            HttpClientInitializer = credential,
+            ApplicationName = "Schedule",
+            HttpClientFactory = _httpClientProvider,
+        };
+    }
+
+    public static void Register(IServiceCollection services)
+    {
+        GoogleHttpClientProvider.Register(services);
+        GoogleTaskRunnerProvider.Register(services);
+        services.AddSingleton<GoogleApiHelper>();
+        services.AddScoped<GoogleCredentialResolver>();
+    }
+}
+
