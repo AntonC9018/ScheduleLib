@@ -43,21 +43,21 @@ public static class DefaultConfig
                 x.ColumnWidth = 5;
             });
 
-            GoogleCredentialsConfig Credentials() => new()
+            var credentials = new GoogleCredentialsConfig
             {
                  CredentialsPath = "google_token_store",
                  SaveCredentials = true,
-                 ApiKeysSource = new ConfigurationApiKeysSource("Google"),
+                 ApiKeysSource = new GlobalConfigurationApiKeysSource("Google"),
             };
 
             defaults.GoogleDrive().ConfigureValue(x =>
             {
-                x.Credentials = Credentials();
+                x.Credentials = credentials;
                 x.DriveFolderName = "orar";
             });
-            defaults.Builder<GoogleCalendarConfig>().ConfigureValue(x =>
+            defaults.GoogleCalendar().ConfigureValue(x =>
             {
-                x.Credentials = Credentials();
+                x.Credentials = credentials;
                 x.CalendarName = "lessons";
             });
 
@@ -69,8 +69,6 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
-            t.GoogleDrive().Enable();
-
             t.Registry().Enable();
 
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
@@ -108,6 +106,7 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Iatasina Tamara", t =>
         {
+            t.Moodle().Remove();
             t.LessonTopics().Configure(x =>
             {
                 x.FallbackProvider<LabAutoNumberingNameProvider>(LessonType.Lab);
@@ -118,6 +117,8 @@ public static class DefaultConfig
         b.Defaults.TeacherLayer("Nartea Nichita", t =>
         {
             t.Moodle().Remove();
+            t.GoogleDrive().Remove();
+            t.GoogleCalendar().Remove();
 
             t.LessonTopics().Configure(x =>
             {

@@ -59,8 +59,8 @@ public static class Registration
 
         public void AddDynamicConfigurationBinders()
         {
-            services.AddScoped<IConfigurationSectionResolver, ConfigurationSectionResolver>();
-            services.AddScoped(typeof(DynamicOptionsResolver<>), typeof(DynamicOptionsResolver<>));
+            services.AddScoped<IMarkedConfigurationSectionResolver, MarkedConfigurationSectionResolver>();
+            services.AddScoped(typeof(MarkedDynamicOptionsResolver<>), typeof(MarkedDynamicOptionsResolver<>));
             services.AddScoped(typeof(DynamicOptionsBinder<>), typeof(DynamicOptionsBinder<>));
         }
 

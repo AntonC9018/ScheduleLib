@@ -4,17 +4,17 @@ using Microsoft.Extensions.Options;
 
 namespace ScheduleLib.Scraping.Common.Config;
 
-public interface IConfigurationSectionResolver
+public interface IMarkedConfigurationSectionResolver
 {
     public IConfigurationSection? Get(IConfiguration c, string serviceKey);
 }
 
 [AutoConstructor]
-public sealed partial class DynamicOptionsResolver<T>
+public sealed partial class MarkedDynamicOptionsResolver<T>
     where T : class
 {
     private readonly DynamicOptionsBinder<T> _binder;
-    private readonly IConfigurationSectionResolver _sectionResolver;
+    private readonly IMarkedConfigurationSectionResolver _sectionResolver;
     private readonly IConfiguration _configuration;
 
     public T? Resolve(string serviceKey)

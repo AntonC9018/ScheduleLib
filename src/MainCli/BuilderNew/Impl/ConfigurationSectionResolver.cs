@@ -5,7 +5,7 @@ using ScheduleLib.Scraping.Common.Config;
 namespace MainCli.BuilderNew.Impl;
 
 [AutoConstructor]
-public sealed partial class ConfigurationSectionResolver : IConfigurationSectionResolver
+public sealed partial class MarkedConfigurationSectionResolver : IMarkedConfigurationSectionResolver
 {
     private readonly CurrentUserNameProvider _userNameProvider;
 

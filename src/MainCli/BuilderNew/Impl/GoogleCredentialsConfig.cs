@@ -2,8 +2,10 @@ using Anton.LayeredConfig;
 using AutoConstructor.Attributes;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Scraping.Common.Config;
+using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace MainCli.BuilderNew.Impl;
 
@@ -18,7 +20,7 @@ public sealed class GoogleCredentialsConfig
     {
         services.AddOpenHierarchy<IGoogleApiKeysSource>();
         services.SetImmutable<ManualGoogleApiKeysSource>();
-        services.SetImmutable<ConfigurationApiKeysSource>();
+        services.SetImmutable<MarkedConfigurationApiKeysSource>();
         services.RegisterBasicOperationsAndMergers<GoogleCredentialsConfig>();
     }
 
@@ -47,13 +49,28 @@ public interface IGoogleApiKeysSource
 }
 
 [AutoConstructor]
-public sealed partial class ConfigurationApiKeysSource : IGoogleApiKeysSource
+public sealed partial class GlobalConfigurationApiKeysSource : IGoogleApiKeysSource
 {
     private readonly string _serviceKey;
 
     public ValueTask<ClientSecrets> Get(IServiceProvider sp, CancellationToken cancellationToken)
     {
-        var secretsResolver = sp.GetRequiredService<DynamicOptionsResolver<ClientSecrets>>();
+        var binder = sp.GetRequiredService<DynamicOptionsBinder<ClientSecrets>>();
+        var config = sp.GetRequiredService<IConfiguration>();
+        var section = config.GetRequiredSection(_serviceKey);
+        var ret = binder.Get(section);
+        return ValueTask.FromResult(ret);
+    }
+}
+
+[AutoConstructor]
+public sealed partial class MarkedConfigurationApiKeysSource : IGoogleApiKeysSource
+{
+    private readonly string _serviceKey;
+
+    public ValueTask<ClientSecrets> Get(IServiceProvider sp, CancellationToken cancellationToken)
+    {
+        var secretsResolver = sp.GetRequiredService<MarkedDynamicOptionsResolver<ClientSecrets>>();
         var value = secretsResolver.Resolve(_serviceKey);
         if (value == null)
         {

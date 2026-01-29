@@ -79,7 +79,7 @@ public interface ICredentialsResolver
 [AutoConstructor]
 public sealed partial class CredentialsResolver : ICredentialsResolver
 {
-    private readonly DynamicOptionsResolver<Credentials> _resolver;
+    private readonly MarkedDynamicOptionsResolver<Credentials> _resolver;
 
     public Credentials? Resolve(
         string serviceKey,
