@@ -43,22 +43,22 @@ public static class DefaultConfig
                 x.ColumnWidth = 5;
             });
 
-            var credentials = new GoogleCredentialsConfig
+            GoogleCredentialsConfig Credentials(string path) => new()
             {
-                 CredentialsPath = "google_token_store",
+                 CredentialsPath = path,
                  SaveCredentials = true,
                  ApiKeysSource = new ConfigurationApiKeysSource("Google"),
             };
 
             defaults.GoogleDrive().ConfigureValue(x =>
             {
-                x.Credentials = credentials;
+                x.Credentials = Credentials("google_drive_tokens_store");
                 x.DriveFolderName = "orar";
             });
             defaults.Builder<GoogleCalendarConfig>().ConfigureValue(x =>
             {
-                x.Credentials = credentials;
-                x.Tag = "lessons";
+                x.Credentials = Credentials("google_calendar_tokens_store");
+                x.CalendarName = "lessons";
             });
 
             defaults.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>

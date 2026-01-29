@@ -5,7 +5,7 @@ namespace ScheduleLib.OnlineRegistry;
 public readonly record struct TimeEvent(
     AnyLessonId LessonId,
     Event Event,
-    TimeOnly Time);
+    TimeSlotInterval TimeInterval);
 
 [AutoConstructor]
 public sealed partial class ScheduledTimeEventsProvider
@@ -19,7 +19,7 @@ public sealed partial class ScheduledTimeEventsProvider
         {
             foreach (var ev in _eventsProvider.GetProgrammedEvents(x.Params))
             {
-                yield return new(x.LessonId, ev, x.Time);
+                yield return new(x.LessonId, ev, x.TimeInterval);
             }
         }
     }

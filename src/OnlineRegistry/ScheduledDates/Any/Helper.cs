@@ -23,7 +23,7 @@ public sealed partial class ScheduledDateTimeProvider
                 yield return new()
                 {
                     LessonId = x.LessonId,
-                    DateTime = new(date, x.Time),
+                    DateTime = new(date, x.TimeInterval.Start),
                 };
             }
         }

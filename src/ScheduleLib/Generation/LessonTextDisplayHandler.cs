@@ -1,12 +1,16 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using AutoConstructor.Attributes;
-using QuestPDF.Fluent;
 
 namespace ScheduleLib.Generation;
 
-public sealed partial class PdfLessonTextDisplayHandler
+public interface IRichText
+{
+    void Span(string str, bool isBold = false);
+    void Line(string str);
+}
+
+public sealed partial class LessonTextDisplayHandler
 {
     [AutoConstructor]
     public sealed partial class Services
@@ -26,7 +30,7 @@ public sealed partial class PdfLessonTextDisplayHandler
     private readonly Services _services;
     private readonly Config _config;
 
-    public PdfLessonTextDisplayHandler(Services services, Config config)
+    public LessonTextDisplayHandler(Services services, Config config)
     {
         _services = services;
         _config = config;
@@ -34,10 +38,10 @@ public sealed partial class PdfLessonTextDisplayHandler
 
     public struct Params
     {
-        public required TextDescriptor TextDescriptor;
+        public required IRichText TextDescriptor;
         public required Schedule Schedule;
         public required LessonTimeConfig LessonTimeConfig;
-        public required WeeklyLessonAccessor Lesson;
+        public required AnyLessonAccessor Lesson;
         public required uint ColumnWidth;
 
         /// <summary>
@@ -84,8 +88,7 @@ public sealed partial class PdfLessonTextDisplayHandler
         }
         {
             var str = sb.ToStringAndClear();
-            var span = p.TextDescriptor.Span(str);
-            span.Bold();
+            p.TextDescriptor.Span(str, isBold: true);
         }
         {
             var courseName = CourseName();
@@ -93,9 +96,19 @@ public sealed partial class PdfLessonTextDisplayHandler
         }
         {
             var lessonType = _services.LessonTypeDisplay.Get(p.Lesson.Lesson.Type);
-            var parity = _services.ParityDisplay.Get(p.Lesson.Date.Parity);
+            string? parity = null;
+            string? date = null;
+            if (p.Lesson.Weekly is { } weekly)
+            {
+                parity = _services.ParityDisplay.Get(weekly.Date.Parity);
+            }
+            else
+            {
+                var oneTime = p.Lesson.OneTime!.Value;
+                date = oneTime.Date.Date.ToString("dd.MM.yy");
+            }
             bool appendGroups = _config.PrintsGroupNames && p.Lesson.Lesson.Groups.Count > 0;
-            bool appendAny = lessonType != null || parity != null || appendGroups;
+            bool appendAny = lessonType != null || parity != null || appendGroups || date != null;
             if (appendAny)
             {
                 sb.Append(" (");
@@ -121,6 +134,7 @@ public sealed partial class PdfLessonTextDisplayHandler
 
                 Write(lessonType);
                 Write(parity);
+                Write(date);
 
                 if (_config.PrintsGroupNames)
                 {

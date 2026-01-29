@@ -153,6 +153,8 @@ public static class Registration
 
                 services.AddSingleton<IWeeklyScheduledEventsProvider, ScheduledEventsProviderTransformer>();
                 services.AddScoped<ScheduledDateTimeProvider>();
+                services.AddScoped<ScheduledTimeEventsProvider>();
+                services.AddScoped<ScheduleDateProviderHelper>();
             }
 
             void AddScheduleLifetimeServices()
@@ -181,7 +183,7 @@ public static class Registration
                 services.AddSingleton<ParityDisplayHandler>();
                 services.AddSingleton<TimeSlotDisplayHandler>();
                 services.AddSingleton<SubGroupNumberDisplayHandler>();
-                services.AddSingleton<PdfLessonTextDisplayHandler.Services>();
+                services.AddSingleton<LessonTextDisplayHandler.Services>();
             }
 
             void AddOptions()
@@ -207,7 +209,7 @@ public static class Registration
             services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
             services.AddScoped<SyncDriveFolderTaskHandler>();
 
-            services.AddScoped<GoogleCalendarLessons>();
+            services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
             services.AddScoped<GoogleCredentialResolver>();
         }
 

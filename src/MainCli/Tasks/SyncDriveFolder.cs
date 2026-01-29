@@ -81,61 +81,50 @@ public sealed partial class SyncDriveFolderTaskHandler
             }
         }
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(p.CancellationToken);
-        var cancellationToken = cts.Token;
-
+        using var runner = new LimitedTaskRunner(
+            maxConcurrentTasks: 10,
+            cancellationToken: p.CancellationToken);
         var batchDeleteOperation = DriveApiHelper.ExecuteBatchDeleteAsync(
             driveService,
             cloudFilesToDelete,
-            cancellationToken);
-        using var runner = new LimitedTaskRunner(
-            maxConcurrentTasks: 10,
-            cancellationToken: cancellationToken,
-            taskCount:
-                cloudFilesToCreate.Count
-                + cloudFilesToUpdate.Count
-                + batchDeleteOperation.BatchCount);
-        try
+            runner.CancellationToken);
+        foreach (var deleteTask in batchDeleteOperation.Tasks)
         {
-            foreach (var deleteTask in batchDeleteOperation.Tasks)
+            runner.Add(c =>
             {
-                runner.Add(deleteTask);
-            }
-            Stream File(string path)
-            {
-                var stream = p.FilesProvider.OpenForReading(new(path));
-                return stream;
-            }
-            foreach (var fileName in cloudFilesToCreate)
-            {
-                runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async () =>
-                {
-                    await using var stream = File(fileName);
-                    await driveService.UploadFile(
-                        stream,
-                        outputFileName: fileName,
-                        folderId: folderId,
-                        cancellationToken: cancellationToken);
-                });
-            }
-            foreach (var file in cloudFilesToUpdate)
-            {
-                runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async () =>
-                {
-                    await using var stream = File(file.Name);
-                    await driveService.UpdateFile(
-                        stream,
-                        fileId: file.Id,
-                        cancellationToken: cancellationToken);
-                });
-            }
-            await runner.WhenDone();
+                _ = c;
+                return deleteTask();
+            });
         }
-        catch (Exception)
+        Stream File(string path)
         {
-            await cts.CancelAsync();
-            throw;
+            var stream = p.FilesProvider.OpenForReading(new(path));
+            return stream;
         }
+        foreach (var fileName in cloudFilesToCreate)
+        {
+            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (cancellationToken) =>
+            {
+                await using var stream = File(fileName);
+                await driveService.UploadFile(
+                    stream,
+                    outputFileName: fileName,
+                    folderId: folderId,
+                    cancellationToken: cancellationToken);
+            });
+        }
+        foreach (var file in cloudFilesToUpdate)
+        {
+            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (cancellationToken) =>
+            {
+                await using var stream = File(file.Name);
+                await driveService.UpdateFile(
+                    stream,
+                    fileId: file.Id,
+                    cancellationToken: cancellationToken);
+            });
+        }
+        await runner.WhenDone();
     }
 }
 
@@ -171,41 +160,44 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
 public sealed class LimitedTaskRunner : IDisposable
 {
     private readonly SemaphoreSlim _semaphore;
-    private readonly CancellationToken _cancellationToken;
-    private readonly RentedBuffer<Task> _tasks;
-    private int _currentCount = 0;
-
-    private SpanBuilderI<Task> TaskBuilder => new(_tasks.Span, ref _currentCount);
+    private readonly List<Task> _tasks;
+    private readonly CancellationTokenSource _cts;
+    public CancellationToken CancellationToken => _cts.Token;
 
     public LimitedTaskRunner(
         int maxConcurrentTasks,
-        CancellationToken cancellationToken,
-        int taskCount)
+        CancellationToken cancellationToken)
     {
-        _cancellationToken = cancellationToken;
-        _semaphore = new(initialCount: 0, maxCount: maxConcurrentTasks);
-        _tasks = new(taskCount);
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _semaphore = new(initialCount: maxConcurrentTasks, maxCount: maxConcurrentTasks);
+        _tasks = new();
     }
 
     public Task WhenDone()
     {
-        var all = TaskBuilder.Complete();
-        return Task.WhenAll(all);
+        return Task.WhenAll(_tasks);
     }
 
-    public void Add(Func<Task> taskFactory)
+    public void Add(Func<CancellationToken, Task> taskFactory)
     {
         var t = Task.Run([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async () =>
         {
-            await _semaphore.WaitAsync(_cancellationToken);
-            await taskFactory();
-        }, _cancellationToken);
-        TaskBuilder.Add(t);
+            await _semaphore.WaitAsync(CancellationToken);
+            try
+            {
+                await taskFactory(CancellationToken);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }, CancellationToken);
+        _tasks.Add(t);
     }
 
     public void Dispose()
     {
         _semaphore.Dispose();
-        _tasks.Dispose();
+        _cts.Dispose();
     }
 }

@@ -14,7 +14,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
         public required LessonTimeConfig LessonTimeConfig;
         public required DayNameProvider DayNameProvider;
         public required TimeSlotDisplayHandler TimeSlotDisplay;
-        public required PdfLessonTextDisplayHandler LessonTextDisplayHandler;
+        public required LessonTextDisplayHandler LessonTextDisplayHandler;
         public required StringBuilder StringBuilder;
 
         public readonly StringBuilder GetCleanStringBuilder()
@@ -285,8 +285,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
     {
         _services.LessonTextDisplayHandler.Handle(new()
         {
-            TextDescriptor = text,
-            Lesson = lesson,
+            TextDescriptor = new PdfTextDescriptorWrapper(text),
+            Lesson = new(lesson.Id, _schedule.Source),
             StringBuilder = _services.GetCleanStringBuilder(),
             Schedule = _schedule.Source,
             ColumnWidth = columnWidth,

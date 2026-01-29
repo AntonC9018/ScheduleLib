@@ -12,7 +12,7 @@ public sealed class Generator : IDocument
         public required LessonTimeConfig LessonTimeConfig;
         public required DayNameProvider DayNameProvider;
         public required TimeSlotDisplayHandler TimeSlotDisplay;
-        public required PdfLessonTextDisplayHandler LessonTextDisplayHandler;
+        public required LessonTextDisplayHandler LessonTextDisplayHandler;
         public required StringBuilder StringBuilder;
 
         public readonly StringBuilder GetCleanStringBuilder()
@@ -174,11 +174,11 @@ public sealed class Generator : IDocument
                                 var sb = _services.GetCleanStringBuilder();
                                 _services.LessonTextDisplayHandler.Handle(new()
                                 {
-                                    Lesson = lesson,
+                                    Lesson = new(lesson.Id, _schedule.Source),
                                     Schedule = _schedule.Source,
                                     StringBuilder = sb,
                                     ColumnWidth = 1,
-                                    TextDescriptor = d,
+                                    TextDescriptor = new PdfTextDescriptorWrapper(d),
                                     LessonTimeConfig = _services.LessonTimeConfig,
                                 });
                             });

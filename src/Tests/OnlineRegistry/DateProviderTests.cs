@@ -13,7 +13,7 @@ public sealed class DateProviderTests
             holidays: [
                 new HolidayPeriod(monday, monday.AddDays(5)),
             ]);
-        var ret = provider.GetDatesForWeeklyLessons(new()
+        var ret = provider.Dates(new()
         {
             Day = DayOfWeek.Monday,
             Parity = Parity.EveryWeek,
@@ -32,7 +32,7 @@ public sealed class DateProviderTests
                 new StudyWeek(monday, isOddWeek: true),
             ],
             holidays: []);
-        var ret = provider.GetDatesForWeeklyLessons(new()
+        var ret = provider.Dates(new()
         {
             Day = DayOfWeek.Monday,
             Parity = Parity.EveryWeek,

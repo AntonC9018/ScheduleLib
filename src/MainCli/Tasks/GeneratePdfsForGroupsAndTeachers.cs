@@ -13,7 +13,7 @@ namespace MainCli;
 [AutoConstructor]
 public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 {
-    private readonly PdfLessonTextDisplayHandler.Services _lessonTextDisplayServices;
+    private readonly LessonTextDisplayHandler.Services _lessonTextDisplayServices;
     private readonly LessonTimeConfig _lessonTimeConfig;
     private readonly TimeSlotDisplayHandler _timeSlotDisplay;
     private readonly DayNameProvider _dayNameProvider;
@@ -31,7 +31,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 
         var tasks = new List<Task>();
         {
-            var textDisplayHandler = new PdfLessonTextDisplayHandler(
+            var textDisplayHandler = new LessonTextDisplayHandler(
                 _lessonTextDisplayServices,
                 new()
                 {
@@ -75,7 +75,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
         }
 
         {
-            var textDisplayHandler = new PdfLessonTextDisplayHandler(_lessonTextDisplayServices, new()
+            var textDisplayHandler = new LessonTextDisplayHandler(_lessonTextDisplayServices, new()
             {
                 PrintsTeacherName = false,
                 PrintsGroupNames = true,
@@ -108,7 +108,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 
         void GenerateWithFilter(
             string name,
-            PdfLessonTextDisplayHandler textDisplayHandler,
+            LessonTextDisplayHandler textDisplayHandler,
             in ScheduleFilter filter)
         {
             var filteredSchedule = _schedule.Filter(

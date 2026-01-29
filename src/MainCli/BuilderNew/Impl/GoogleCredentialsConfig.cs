@@ -73,10 +73,10 @@ public sealed class ManualGoogleApiKeysSource : IGoogleApiKeysSource
     }
 }
 
-public sealed class BuiltGoogleCredentialsConfig
+public readonly struct BuiltGoogleCredentialsConfig
 {
-    public required string? CredentialsPath { get; set; }
-    public required IGoogleApiKeysSource ApiKeysSource { get; set; }
+    public required string? CredentialsPath { get; init; }
+    public required IGoogleApiKeysSource ApiKeysSource { get; init; }
 }
 
 [AutoConstructor]

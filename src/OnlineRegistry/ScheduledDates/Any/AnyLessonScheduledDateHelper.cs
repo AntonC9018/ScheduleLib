@@ -96,7 +96,7 @@ public sealed partial class ScheduleDateProviderHelper
     private readonly CurrentYearSemesterIntervalProvider _semesterIntervalProvider;
 
     public readonly record struct Values(
-        TimeOnly Time,
+        TimeSlotInterval TimeInterval,
         AnyLessonSchedulingDateHelper.GetProgrammedParams Params);
 
     public Values Get(AnyLessonId lessonId, Semester sem)
@@ -104,7 +104,7 @@ public sealed partial class ScheduleDateProviderHelper
         var lesson = _schedule.Get(lessonId);
 
         var timeSlot = lesson.GetTimeSlot();
-        var startTime = _timeConfig.GetTimeSlotInterval(timeSlot).Start;
+        var timeSlotInterval = _timeConfig.GetTimeSlotInterval(timeSlot);
 
         var semesterInterval = _semesterIntervalProvider.GetSemesterInterval(new()
         {
@@ -112,7 +112,7 @@ public sealed partial class ScheduleDateProviderHelper
             GroupId = lesson.Lesson.Group,
             Semester = sem,
         });
-        return new(startTime, new()
+        return new(timeSlotInterval, new()
         {
             Schedule = _schedule,
             Lesson = lessonId,
@@ -122,7 +122,7 @@ public sealed partial class ScheduleDateProviderHelper
 
     public readonly record struct LessonValues(
         AnyLessonId LessonId,
-        TimeOnly Time,
+        TimeSlotInterval TimeInterval,
         AnyLessonSchedulingDateHelper.GetProgrammedParams Params);
 
     public IEnumerable<LessonValues> Iterate(GetDateTimesParams p)
@@ -130,7 +130,7 @@ public sealed partial class ScheduleDateProviderHelper
         foreach (var lessonId in p.Lessons)
         {
             var v = Get(lessonId, p.Semester);
-            yield return new(lessonId, v.Time, v.Params);
+            yield return new(lessonId, v.TimeInterval, v.Params);
         }
     }
 }
