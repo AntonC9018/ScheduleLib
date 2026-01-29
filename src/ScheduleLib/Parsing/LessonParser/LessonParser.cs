@@ -99,6 +99,15 @@ public struct TeacherName
 {
     public NameParts<ReadOnlyMemory<char>> FirstName;
     public NameParts<ReadOnlyMemory<char>> LastName;
+
+    public bool IsNull
+    {
+        get
+        {
+            return FirstName.All(x => x.IsEmpty)
+                && LastName.All(x => x.IsEmpty);
+        }
+    }
 }
 
 public struct ParsedLesson()
@@ -352,7 +361,48 @@ public static class LessonParsingHelper
         }
     }
 
-    private static bool DoParsingIterWrapped(ParsingContext c)
+    private static bool TryParsingUntilOutputOrTerminalState(ParsingContext c)
+    {
+        var lexerCopy = c.LexerCopy;
+        while (true)
+        {
+            try
+            {
+                DoParsingIterWrapped(c with
+                {
+                    Lexer = ref lexerCopy,
+                });
+            }
+            catch (WrongFormatException e)
+            {
+                _ = e;
+                break;
+            }
+
+            void Apply(ref ParsingContext c1)
+            {
+                c1.Lexer.MoveTo(lexerCopy.Position);
+            }
+            if (c.State.Step == ParsingStep.Output)
+            {
+                Apply(ref c);
+                return true;
+            }
+            if (lexerCopy.IsEmpty && c.State.IsTerminalState)
+            {
+                Apply(ref c);
+                return true;
+            }
+            if (lexerCopy.IsEmpty)
+            {
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    private static void DoParsingIterWrapped(ParsingContext c)
     {
         while (c.Lexer.TryConsumeAny([
                    TokenType.EndOfLine,
@@ -361,7 +411,7 @@ public static class LessonParsingHelper
         }
         if (c.Lexer.IsEmpty)
         {
-            return false;
+            return;
         }
         ref var state = ref c.StateStack.Last();
         if (state.Step == ParsingStep.Output)
@@ -380,11 +430,10 @@ public static class LessonParsingHelper
             throw new InvalidOperationException("Stack frame pushed and not popped.");
         }
         if (stepBefore == state.Step
-            && c.Lexer.Position == default)
+            && c.Lexer.Position == posBefore)
         {
             throw new InvalidOperationException("Infinite loop in the parser");
         }
-        return posBefore != c.Lexer.Position;
     }
 
     private static void DoParsingIter(ParsingContext c)
@@ -476,41 +525,31 @@ public static class LessonParsingHelper
                         c.State.Step = ParsingStep.OptionalRoomName;
                         return true;
                     }
-                    if (c.Lexer.TryConsume(','))
+
+                    c.State.Step = ParsingStep.OptionalSubGroupBeforeTeacher;
+                    if (!c.Lexer.TryConsume(','))
                     {
-                        // Look ahead if the next tokens look like a teacher
-                        // NOTE:
-                        // This is only done when there are modifiers,
-                        // in order to disambiguate lessons with commas in name.
-                        if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
-                        {
-                            c.StateStack.Push();
-                            c.State.Step = ParsingStep.OptionalFullTeacherNameOrRoomName;
-
-                            try
-                            {
-                                var lexerCopy = c.LexerCopy;
-                                if (DoParsingIterWrapped(c with
-                                    {
-                                        Lexer = ref lexerCopy,
-                                    }))
-                                {
-                                    c.StateStack.Pop(apply: true);
-                                    c.Lexer.MoveTo(lexerCopy.Position);
-                                    return true;
-                                }
-                            }
-                            catch (WrongFormatException e)
-                            {
-                                _ = e;
-                            }
-
-                            c.StateStack.Pop(apply: false);
-                        }
-                        c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         return true;
                     }
-                    c.State.Step = ParsingStep.OptionalSubGroupBeforeTeacher;
+
+                    // Keep parsing assuming the comma isn't a lesson separator.
+                    // NOTE:
+                    // This is only done when there are modifiers,
+                    // in order to disambiguate lessons with commas in name.
+                    if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
+                    {
+                        c.StateStack.Push();
+                        if (TryParsingUntilOutputOrTerminalState(c)
+                            && !c.State.LastModifiers.Specific.LastTeacher.IsNull)
+                        {
+                            c.StateStack.Pop(apply: true);
+                            return true;
+                        }
+                        c.StateStack.Pop(apply: false);
+                    }
+
+                    // Default to another lesson name.
+                    c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                     return true;
                 }
 
@@ -754,7 +793,7 @@ public static class LessonParsingHelper
             }
             case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
-            case ParsingStep.OptionalFullTeacherNameOrRoomName:
+            case ParsingStep.OptionalFullTeacherNameOrRoomNameOrSubGroup:
             {
                 if (TryParseAndSetRoomName(c))
                 {
@@ -779,7 +818,7 @@ public static class LessonParsingHelper
                 bool success = Teacher(
                     c,
                     ref lexer,
-                    onlyAllowFullForm: c.State.Step == ParsingStep.OptionalFullTeacherNameOrRoomName);
+                    onlyAllowFullForm: c.State.Step == ParsingStep.OptionalFullTeacherNameOrRoomNameOrSubGroup);
                 if (success)
                 {
                     c.State.Step = NextStep(ref lexer);
@@ -1878,7 +1917,7 @@ internal enum ParsingStep
     // This will fail for teachers that don't have the name yet.
     // Currently doing it this way, because I don't have
     // a full list of teachers to do a context-sensitive grammar
-    OptionalFullTeacherNameOrRoomName,
+    OptionalFullTeacherNameOrRoomNameOrSubGroup,
 
     // Room modifiers.
     OptionalParensBeforeRoom,

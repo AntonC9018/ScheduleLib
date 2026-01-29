@@ -24,7 +24,7 @@ services.Configure<RegularSeminarDateConfig>(x =>
 });
 services.Configure<ScheduleBuilderInitializerOptions>(x =>
 {
-    // x.BypassCache = true;
+    x.BypassCache = true;
 });
 
 var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -44,7 +44,7 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
-        // AppTask.UploadDocsToDrive,
+        AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
@@ -52,14 +52,14 @@ var appExecutionContext = new AppTasksExecutionContext
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
-        AppTask.UpdateCalendar,
+        // AppTask.UpdateCalendar,
     ],
     OutputDirectory = new OutputDirectory("output"),
     FreeRoomsExcelOutputFileName = "free_rooms.xlsx",
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Iatasina Tamara"),
+    TeacherName = NameHelper.Parse("Curmanschii Anton"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);

@@ -1,3 +1,4 @@
 /output/
+*token_store
 *tokens_store
 tokens.json
