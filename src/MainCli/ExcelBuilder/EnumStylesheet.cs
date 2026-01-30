@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Helper;
 
-namespace MainCli.ExcelBuilder;
+namespace ScheduleLib.Application.Core.ExcelBuilder;
 
 public readonly struct StyleIds<TEnum, TId> where TEnum : struct, Enum
 {

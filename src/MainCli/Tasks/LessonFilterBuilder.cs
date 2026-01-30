@@ -2,10 +2,9 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public readonly struct LessonFilterBuilder
 {

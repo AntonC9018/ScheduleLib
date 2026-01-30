@@ -1,12 +1,11 @@
-using MainCli.Topics;
+using Anton.LayeredConfig;
+using ScheduleLib.Application.Core.Topics;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
-using MainCli.BuilderNew.Impl;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Scraping.Common.Config;
-
-namespace Anton.LayeredConfig;
 
 public static class TestBuilderHelper
 {

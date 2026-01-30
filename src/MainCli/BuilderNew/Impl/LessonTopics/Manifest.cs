@@ -1,15 +1,15 @@
 using AutoConstructor.Attributes;
 using CsvHelper;
 using Anton.LayeredConfig.Retrieval;
-using MainCli.Topics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 [AutoConstructor]
 public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource

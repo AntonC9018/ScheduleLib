@@ -1,13 +1,12 @@
 using AutoConstructor.Attributes;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using MainCli.ExcelBuilder;
-using ScheduleLib;
+using ScheduleLib.Application.Core.ExcelBuilder;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using SpreadCheetah;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class GenerateFreeRoomsTaskHandler

@@ -1,12 +1,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public interface IKeyEqualityComparer<in T> : IEqualityComparer<T>
 {

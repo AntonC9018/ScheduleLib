@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 internal static class ColorHelper
 {

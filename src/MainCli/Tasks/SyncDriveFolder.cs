@@ -2,11 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
 using Google.Apis.Drive.v3;
-using MainCli.BuilderNew.Impl;
-using MainCli.Helper;
 using Microsoft.Extensions.Options;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Core.Helper;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 
 [AutoConstructor]

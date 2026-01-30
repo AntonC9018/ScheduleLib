@@ -1,8 +1,9 @@
+using Anton.LayeredConfig.Options;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 [AutoConstructor]
 public sealed partial class MarkedConfigurationSectionResolver : IMarkedConfigurationSectionResolver

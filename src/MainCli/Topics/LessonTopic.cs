@@ -4,13 +4,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CsvHelper;
 using CsvHelper.Configuration;
-using MainCli.BuilderNew.Impl;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 
-namespace MainCli.Topics;
+namespace ScheduleLib.Application.Core.Topics;
 
 public sealed class LessonTopic
 {

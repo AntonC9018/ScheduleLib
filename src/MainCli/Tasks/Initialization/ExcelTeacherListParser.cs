@@ -5,7 +5,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing.Common;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public struct ExcelTeacherListParseParams
 {

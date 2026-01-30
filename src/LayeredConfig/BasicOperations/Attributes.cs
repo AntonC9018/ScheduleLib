@@ -1,4 +1,4 @@
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig.Attributes;
 
 // TODO: Add source generation support
 [AttributeUsage(AttributeTargets.Method)]

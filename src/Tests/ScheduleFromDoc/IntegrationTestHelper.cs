@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MainCli;
-using MainCli.BuilderNew.Impl;
+using ScheduleLib.Application.Core;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;

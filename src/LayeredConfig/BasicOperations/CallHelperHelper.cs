@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
 {

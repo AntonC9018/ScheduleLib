@@ -1,7 +1,7 @@
 using Google.Apis.Drive.v3;
 using Google.Apis.Requests;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 using File = Google.Apis.Drive.v3.Data.File;
 

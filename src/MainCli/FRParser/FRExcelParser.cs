@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
@@ -10,7 +9,7 @@ using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 
-namespace MainCli.FR;
+namespace ScheduleLib.Application.Core.FR;
 
 public static class FrExcelParser
 {

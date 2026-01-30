@@ -1,12 +1,11 @@
 using System.Diagnostics;
 using AutoConstructor.Attributes;
-using MainCli.BuilderNew.Impl;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Builders;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public sealed class ScheduleProvider
 {

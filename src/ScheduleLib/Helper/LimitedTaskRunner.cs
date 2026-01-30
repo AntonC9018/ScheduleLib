@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace MainCli;
+namespace ScheduleLib.Helper;
 
 public sealed class LimitedTaskRunnerProvider : IDisposable
 {

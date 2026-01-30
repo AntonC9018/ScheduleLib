@@ -1,9 +1,8 @@
 using System.Diagnostics;
-using ScheduleLib;
 using ScheduleLib.Parsing.Common;
 using TruePath;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public static class ScheduleDirectoryDiscovery
 {

@@ -1,7 +1,7 @@
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Options;
 
-namespace MainCli.Helper;
+namespace ScheduleLib.Application.Core.Helper;
 
 [AutoConstructor]
 public sealed partial class RegularSeminarDateProvider

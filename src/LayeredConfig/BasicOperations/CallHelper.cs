@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
 public static class CallMergerHelper
 {

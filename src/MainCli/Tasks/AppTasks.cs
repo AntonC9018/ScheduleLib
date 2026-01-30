@@ -1,15 +1,14 @@
 using System.Text;
 using Anton.LayeredConfig.Retrieval;
 using ClosedXML.Excel;
-using MainCli.BuilderNew.Impl;
-using MainCli.Helper;
-using MainCli.Topics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OnlineRegistry.AttendanceExcel;
 using QuizModels;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.OnlineRegistry;
@@ -19,7 +18,7 @@ using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Scraping.Common.Config;
 using WebsiteJsonSchedule;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public enum AppTask
 {

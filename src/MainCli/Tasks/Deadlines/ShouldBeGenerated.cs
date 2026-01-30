@@ -1,7 +1,8 @@
-using MainCli.BuilderNew;
+using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
+using ScheduleLib.Application.Core.Config.Impl;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public sealed class DeadlinesConfigMapper : IConfigMapper<DeadlinesExcelConfig, DeadlinesExcelBuiltConfig>
 {

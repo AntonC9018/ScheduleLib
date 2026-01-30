@@ -2,7 +2,7 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
 {

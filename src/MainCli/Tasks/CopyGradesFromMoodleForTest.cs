@@ -2,7 +2,6 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
 using QuizModels;
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
@@ -10,7 +9,7 @@ using ScheduleLib.Parsing.Common;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Moodle;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class CopyGradesFromMoodleForTestTaskHandler

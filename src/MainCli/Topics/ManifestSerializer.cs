@@ -2,12 +2,11 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
-using ScheduleLib;
 using ScheduleLib.Helper.JsonConverters;
 using ScheduleLib.JsonConverters;
 using ScheduleLib.Parsing;
 
-namespace MainCli.Topics;
+namespace ScheduleLib.Application.Core.Topics;
 
 public static class ManifestSerializer
 {

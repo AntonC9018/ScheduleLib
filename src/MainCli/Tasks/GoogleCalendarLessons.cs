@@ -4,14 +4,13 @@ using AutoConstructor.Attributes;
 using Google;
 using Google.Apis.Calendar.v3;
 using Google.Apis.Calendar.v3.Data;
-using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Options;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
 using Event = Google.Apis.Calendar.v3.Data.Event;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace MainCli.ExcelBuilder;
+namespace ScheduleLib.Application.Core.ExcelBuilder;
 
 public readonly struct Spaces : ISpanFormattable
 {

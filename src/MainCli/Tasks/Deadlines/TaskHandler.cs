@@ -3,15 +3,14 @@ using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
-using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.OnlineRegistry;
-using Option = MainCli.BuilderNew.Impl.Option;
-using Schedule = ScheduleLib.Schedule;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
+
+using Option = Config.Impl.Impl.Option;
 
 public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
 {

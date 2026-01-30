@@ -1,4 +1,4 @@
-namespace MainCli.ExcelBuilder;
+namespace ScheduleLib.Application.Core.ExcelBuilder;
 
 public enum OddEdge
 {

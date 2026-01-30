@@ -1,6 +1,6 @@
-using MainCli;
-using MainCli.BuilderNew.Impl;
-using MainCli.Helper;
+using ScheduleLib.Application.Core;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Parsing;

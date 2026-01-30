@@ -1,10 +1,10 @@
 using Argon;
 using AutoConstructor.Attributes;
-using MainCli;
+using ScheduleLib.Application.Core;
 using Anton.LayeredConfig;
-using MainCli.BuilderNew.Impl;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using Anton.LayeredConfig.Retrieval;
-using MainCli.Helper;
+using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleFromDoc.Tests;

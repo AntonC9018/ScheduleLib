@@ -1,10 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MainCli.BuilderNew;
+namespace Anton.LayeredConfig;
 
-public static class ServiceRegistrationHelper
+internal static class ServiceRegistrationHelper
 {
     /// <summary>
     /// Registers the given implementation type under all implementations of a generic service,

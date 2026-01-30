@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace MainCli.ExcelBuilder;
+namespace ScheduleLib.Application.Core.ExcelBuilder;
 
 public readonly record struct FontId(uint Value);
 public readonly record struct FillId(uint Value);

@@ -1,5 +1,6 @@
 using System.Net;
 using Anton.LayeredConfig;
+using Anton.LayeredConfig.Options;
 using AutoConstructor.Attributes;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Http;
@@ -10,10 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Polly;
 using Polly.Extensions.Http;
+using ScheduleLib.Helper;
 using ScheduleLib.Scraping.Common.Config;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public sealed class GoogleCredentialsConfig
 {

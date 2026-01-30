@@ -1,9 +1,9 @@
+using Anton.LayeredConfig.Options;
 using Anton.LayeredConfig.Retrieval;
-using MainCli.Helper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
@@ -11,10 +11,9 @@ using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
-using ScheduleLib.ScheduleDefaults;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public static class Registration
 {
@@ -100,18 +99,18 @@ public static class Registration
                         CurrentStudyYear = options.StudyYear,
                     });
                 });
-                services.AddSingleton<ConfigureRemappingsDelegate>(Config.ConfigureRemappings);
-                services.AddSingleton<CourseNameParserConfig>(Config.CourseNameParser);
+                services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
+                services.AddSingleton<CourseNameParserConfig>(ScheduleDefaults.Config.CourseNameParser);
                 services.AddSingleton<CourseNameUnifierConfig>(sp =>
                 {
                     var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
-                    var unificationConfig = Config.CourseNameUnificationConfig;
+                    var unificationConfig = ScheduleDefaults.Config.CourseNameUnificationConfig;
                     var ret = CourseNameUnifierConfig.Create(parserConfig, unificationConfig);
                     return ret;
                 });
                 services.AddSingleton<CourseNameUnifierModule>();
 
-                services.AddSingleton<ProcessSpaces>(Config.WhiteSpaceActionCourseName);
+                services.AddSingleton<ProcessSpaces>(ScheduleDefaults.Config.WhiteSpaceActionCourseName);
                 services.AddSingleton(ParityParser.Instance);
                 services.AddSingleton(LessonTypeParser.Instance);
                 services.AddSingleton(RoomParser.Instance);
@@ -137,7 +136,7 @@ public static class Registration
                 services.AddSingleton<CurrentYearSemesterIntervalProvider>(sp =>
                 {
                     _ = sp;
-                    return Config.SemesterIntervalProvider();
+                    return ScheduleDefaults.Config.SemesterIntervalProvider();
                 });
                 services.AddSingleton<RegularSeminarDateProvider>();
 
@@ -145,8 +144,8 @@ public static class Registration
                 {
                     _ = sp;
                     var ret = new ManualWeeklyScheduledDateProvider(
-                        studyWeeks: Config.StudyWeeks,
-                        holidays: Config.HolidayPeriods);
+                        studyWeeks: ScheduleDefaults.Config.StudyWeeks,
+                        holidays: ScheduleDefaults.Config.HolidayPeriods);
                     return ret;
                 });
 

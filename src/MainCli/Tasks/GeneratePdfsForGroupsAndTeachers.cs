@@ -1,14 +1,13 @@
 using System.Text;
 using AutoConstructor.Attributes;
-using MainCli.Helper;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Generation.TeacherCute;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler

@@ -1,14 +1,13 @@
 using System.Drawing;
 using Anton.LayeredConfig;
-using MainCli.BuilderNew.Impl;
-using MainCli.Topics;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public static class DefaultConfig
 {

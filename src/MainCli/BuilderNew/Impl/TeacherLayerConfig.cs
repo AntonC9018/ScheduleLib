@@ -1,7 +1,7 @@
 using Anton.LayeredConfig;
 using ScheduleLib.Parsing;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public sealed class TeacherLayerConfig : IConfig<TeacherLayerConfig>
 {

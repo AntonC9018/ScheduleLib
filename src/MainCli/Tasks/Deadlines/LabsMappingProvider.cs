@@ -1,13 +1,13 @@
 using System.Runtime.InteropServices;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
-using MainCli.BuilderNew.Impl;
 using Microsoft.Extensions.Logging;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Builders;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
+using LabTasksDatabaseConfig = Config.Impl.Impl.LabTasksDatabaseConfig;
 using T = Dictionary<CourseId, List<LabsMappingProvider.LabMapping>>;
 
 [AutoConstructor]
@@ -25,7 +25,7 @@ public sealed partial class LabsMappingProvider
         {
             return LabsValue.Empty;
         }
-        var builder = new Dictionary<(CourseId CourseId, Option Option), LabTasksSource>();
+        var builder = new Dictionary<(CourseId CourseId, Config.Impl.Impl.Option Option), LabTasksSource>();
         foreach (var s in config.Sources)
         {
             if (_lookup.Course(s.Key.CourseName.AsMemory()) is not { } courseId)

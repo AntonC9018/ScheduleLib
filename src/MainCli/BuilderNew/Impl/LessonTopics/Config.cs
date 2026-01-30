@@ -1,9 +1,8 @@
 using Anton.LayeredConfig;
-using MainCli.Topics;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib;
+using ScheduleLib.Application.Core.Topics;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
 {

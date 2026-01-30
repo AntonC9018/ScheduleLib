@@ -1,14 +1,13 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using MainCli.FR;
-using ScheduleLib;
+using ScheduleLib.Application.Core.FR;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
 using TruePath;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public sealed class ScheduleLoader
 {

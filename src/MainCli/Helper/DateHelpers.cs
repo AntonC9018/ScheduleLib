@@ -1,4 +1,4 @@
-namespace MainCli.Helper;
+namespace ScheduleLib.Application.Core.Helper;
 
 public static class DateHelpers
 {

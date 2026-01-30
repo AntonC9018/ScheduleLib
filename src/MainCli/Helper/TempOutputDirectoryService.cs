@@ -1,6 +1,6 @@
 using ScheduleLib.Helper;
 
-namespace MainCli.Helper;
+namespace ScheduleLib.Application.Core.Helper;
 
 public readonly record struct FilePath(string Path);
 

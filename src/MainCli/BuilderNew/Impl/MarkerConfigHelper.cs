@@ -4,7 +4,7 @@ using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Parsing;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public static class MarkerConfigExtension
 {
@@ -59,13 +59,13 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
         _builder = builder;
     }
 
-    protected override TeacherLayerConfig GetMarkerConfig(IServiceProvider sp)
+    public override TeacherLayerConfig GetMarkerConfig(IServiceProvider sp)
     {
         var config = sp.GetRequiredService<TeacherLayerConfig>();
         return config;
     }
 
-    protected override LayerPath? GetCurrentPath(TeacherLayerConfig config)
+    public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
     {
         var path = _builder.BaseLayer
             .GetPathsOfDescendantsOrSelf(x =>

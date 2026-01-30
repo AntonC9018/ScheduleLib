@@ -4,12 +4,11 @@ using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
 using OpenHolidays;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public struct ParseStudyWeekWordDocParams
 {

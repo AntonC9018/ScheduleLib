@@ -2,11 +2,10 @@ using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 public sealed class ScheduleBuilderInitializerOptions
 {

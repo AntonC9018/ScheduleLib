@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Anton.LayeredConfig.Retrieval;
-using MainCli.BuilderNew;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anton.LayeredConfig;
@@ -125,7 +124,7 @@ public static class RegistrationHelper
     }
 
     // why tf doesn't this return bool by default???
-    public static bool TryAddSingleton(
+    internal static bool TryAddSingleton(
         this IServiceCollection collection,
         Type service,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
@@ -136,7 +135,7 @@ public static class RegistrationHelper
         ServiceDescriptor descriptor = ServiceDescriptor.Singleton(service, implementationType);
         return collection.TryAdd(descriptor);
     }
-    public static bool TryAddScoped(
+    internal static bool TryAddScoped(
         this IServiceCollection collection,
         Type service,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)

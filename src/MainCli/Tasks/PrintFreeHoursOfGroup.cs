@@ -1,9 +1,8 @@
 using System.Text;
 using AutoConstructor.Attributes;
-using ScheduleLib;
 using ScheduleLib.Generation;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class PrintFreeHoursOfGroupTaskHandler

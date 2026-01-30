@@ -5,14 +5,13 @@ using AutoConstructor.Attributes;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using MainCli.ExcelBuilder;
-using MainCli.Helper;
-using ScheduleLib;
+using ScheduleLib.Application.Core.ExcelBuilder;
+using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper.Excel;
 
-namespace MainCli;
+namespace ScheduleLib.Application.Core;
 
 [AutoConstructor]
 public sealed partial class GenerateAllTeachersExcelTaskHandler

@@ -27,7 +27,7 @@ public abstract class MarkerConfigHelperBase<T> : IMarkerConfigHelper
         return GetCurrentPath(c);
     }
 
-    protected abstract T GetMarkerConfig(IServiceProvider sp);
-    protected abstract LayerPath? GetCurrentPath(T config);
+    public abstract T GetMarkerConfig(IServiceProvider sp);
+    public abstract LayerPath? GetCurrentPath(T marker);
 }
 

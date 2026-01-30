@@ -2,7 +2,7 @@ using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace ScheduleLib.Scraping.Common.Config;
+namespace Anton.LayeredConfig.Options;
 
 public interface IMarkedConfigurationSectionResolver
 {

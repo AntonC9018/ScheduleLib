@@ -1,9 +1,9 @@
 using Anton.LayeredConfig;
+using Anton.LayeredConfig.Attributes;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib;
 
-namespace MainCli.BuilderNew.Impl;
+namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public sealed class LabTasksDatabaseConfig : IConfig<LabTasksDatabaseConfig>
 {
