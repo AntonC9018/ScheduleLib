@@ -4,7 +4,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
-        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\Features\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
     </ItemGroup>
 </Project>

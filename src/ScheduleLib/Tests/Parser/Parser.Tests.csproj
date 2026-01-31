@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+    </ItemGroup>
+</Project>

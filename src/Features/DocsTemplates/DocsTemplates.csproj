@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IncludeHelpers>true</IncludeHelpers>
+        <RootNamespace>Comisia</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
+    </ItemGroup>
+</Project>

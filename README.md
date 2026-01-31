@@ -42,12 +42,12 @@ hence parsing Word is the way that the schedule information gets into the progra
 
 The word parser is one of the most complex aspects of this application.
 The most complex parts are the following:
-- [WordScheduleParser](src/ScheduleLib/Parsing/WordScheduleParser.cs), 
+- [WordScheduleParser](src/ScheduleLib/ScheduleLib.Core/Parsing/WordScheduleParser.cs), 
   which deals with Word itself, using the Microsoft OpenXML library.
-- [LessonParser](src/ScheduleLib/Parsing/LessonParser/LessonParser.cs), 
+- [LessonParser](src/ScheduleLib/ScheduleLib.Core/Parsing/LessonParser/LessonParser.cs), 
   which parses the strings in a singular cell in a schedule table.
-- [CourseNameParser](src/ScheduleLib/Parsing/CourseNameParser.cs) and
-  [CourseNameUnifierModule](src/ScheduleLib/Parsing/CourseNameUnifierModule.cs),
+- [CourseNameParser](src/ScheduleLib/ScheduleLib.Core/Parsing/CourseNameParser.cs) and
+  [CourseNameUnifierModule](src/ScheduleLib/ScheduleLib.Core/Parsing/CourseNameUnifierModule.cs),
   which make sure similar course names are considered the same.
 
 The rules around the document format do not officially exist
@@ -66,5 +66,5 @@ The JSON representation is generated from the source-of-truth schedule in order 
   without reimplementing the Word parser.
 
 The JSON conversion is done using `System.Text.JSON`. 
-You can find the relevant code [here](src/ScheduleLib/Model/ImmutableModels/Serializer.cs).
+You can find the relevant code [here](src/ScheduleLib/ScheduleLib.Core/Model/ImmutableModels/Serializer.cs).
 

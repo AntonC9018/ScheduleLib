@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <IsScheduleIntegrationTest>true</IsScheduleIntegrationTest>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
+        <ProjectReference Include="..\..\OnlineRegistry\OnlineRegistry.csproj" />
+    </ItemGroup>
+
+    <Import Project="$(RootPath)build\UserSecrets.props" />
+
+    <ItemGroup>
+        <PackageReference Include="Moq" Version="4.20.72" />
+    </ItemGroup>
+</Project>

@@ -9,21 +9,22 @@
     <Import Project="$(RootPath)build\UserSecrets.props" />
 
     <ItemGroup>
-        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
-        <ProjectReference Include="..\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />
-        <ProjectReference Include="..\ScheduleLib.Dates\ScheduleLib.Dates.csproj" />
-        <ProjectReference Include="..\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Dates\ScheduleLib.Dates.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\JsonWebsiteSchedule\JsonWebsiteSchedule.csproj" />
         <ProjectReference Include="..\ScheduleDefaults\ScheduleDefaults.csproj" />
-        <ProjectReference Include="..\OnlineRegistry\OnlineRegistry.csproj" />
-        <ProjectReference Include="..\CurriculumDownload\CurriculumDownload.csproj" />
-        <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
-        <ProjectReference Include="..\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
-        <ProjectReference Include="..\MoodleInterop\MoodleInterop.csproj" />
-        <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
+        
+        <ProjectReference Include="..\Features\JsonWebsiteSchedule\JsonWebsiteSchedule.csproj" />
+        <ProjectReference Include="..\Features\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\Features\CurriculumDownload\CurriculumDownload.csproj" />
+        <ProjectReference Include="..\Features\CurriculumShared\CurriculumShared.csproj" />
+        <ProjectReference Include="..\Features\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
+        <ProjectReference Include="..\Features\MoodleInterop\MoodleInterop.csproj" />
+        <ProjectReference Include="..\Features\LayeredConfig\Anton.LayeredConfig.csproj" />
     </ItemGroup>
 
     <ItemGroup>

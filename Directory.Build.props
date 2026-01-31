@@ -9,6 +9,15 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <ProjectPathRelative>$([System.IO.Path]::GetRelativePath('$(RootPath)', '$(MSBuildProjectDirectory)'))</ProjectPathRelative>
+        <ProjectPathRelativeNorm>$([System.String]::Copy('$(ProjectPathRelative)').Replace('\','/'))</ProjectPathRelativeNorm>
+        <IsTestsProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ProjectPathRelativeNorm)', '(^|/)Tests(/|$)'))</IsTestsProject>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <MicrosoftPackagesVersion>10.0.1</MicrosoftPackagesVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsScheduleIntegrationTest)' == 'true'">
     </PropertyGroup>
 </Project>

@@ -193,12 +193,21 @@ public sealed class GoogleTaskRunnerProvider
     }
 }
 
-[AutoConstructor]
 public sealed partial class GoogleApiHelper
 {
     public readonly GoogleTaskRunnerProvider RunnerProvider;
     public readonly GoogleCredentialResolver CredentialResolver;
     private readonly GoogleHttpClientProvider _httpClientProvider;
+
+    internal GoogleApiHelper(
+        GoogleTaskRunnerProvider runnerProvider,
+        GoogleCredentialResolver credentialResolver,
+        GoogleHttpClientProvider httpClientProvider)
+    {
+        RunnerProvider = runnerProvider;
+        CredentialResolver = credentialResolver;
+        _httpClientProvider = httpClientProvider;
+    }
 
     public BaseClientService.Initializer CreateServiceInitializer(UserCredential credential)
     {

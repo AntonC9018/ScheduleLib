@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <IncludeCommonTestData>true</IncludeCommonTestData>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.csproj" />
-    </ItemGroup>
-</Project>

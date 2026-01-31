@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Dates\ScheduleLib.Dates.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Scraping.Common\ScheduleLib.Scraping.Common.csproj" />
+        <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>OnlineRegistry.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ClosedXML" Version="0.105.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
+    </ItemGroup>
+</Project>

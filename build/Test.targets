@@ -1,0 +1,29 @@
+<Project>
+    <Import Project="TestReferences.targets" />
+
+    <PropertyGroup>
+        <IncludeCommonTestData Condition="'$(IsScheduleIntegrationTest)' == 'true'">true</IncludeCommonTestData>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference
+            Condition="'$(MSBuildProjectFullPath)' != '$(RootPath)src\Tests\Common\Tests.Common.csproj'"
+            Include="$(RootPath)src\Tests\Common\Tests.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeCommonTestData)' == 'true'">
+        <None
+            Include="$(RootPath)\Tests\data\**\*"
+            CopyToOutputDirectory="Always"
+            TargetPath="data\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IsScheduleIntegrationTest)' == 'true'">
+        <ProjectReference
+            Condition="'$(MSBuildProjectName)' != 'ScheduleCommon'"
+            Include="$(RootPath)src\ScheduleLib\Tests\ScheduleCommon\ScheduleCommon.csproj" />
+        <ProjectReference
+            Condition="'$(MSBuildProjectName)' != 'ScheduleFromDoc.Tests'"
+            Include="$(RootPath)src\ScheduleLib\Tests\ScheduleFromDoc\ScheduleFromDoc.Tests.csproj" />
+    </ItemGroup>
+</Project>

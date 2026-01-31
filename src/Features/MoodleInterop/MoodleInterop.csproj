@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Scraping.Common\ScheduleLib.Scraping.Common.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
+    </ItemGroup>
+</Project>
