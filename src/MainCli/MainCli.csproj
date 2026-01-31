@@ -9,15 +9,13 @@
     <Import Project="$(RootPath)build\UserSecrets.props" />
 
     <ItemGroup>
-        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />
-        <ProjectReference Include="..\ScheduleLib\ScheduleLib.Dates\ScheduleLib.Dates.csproj" />
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleDefaults\ScheduleDefaults.csproj" />
-        
+
         <ProjectReference Include="..\Features\JsonWebsiteSchedule\JsonWebsiteSchedule.csproj" />
         <ProjectReference Include="..\Features\OnlineRegistry\OnlineRegistry.csproj" />
         <ProjectReference Include="..\Features\CurriculumDownload\CurriculumDownload.csproj" />
@@ -46,10 +44,8 @@
     <ItemGroup>
         <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="2.0.0" />
         <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
-        <PackageReference Include="AngleSharp" Version="1.2.0" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
-        <PackageReference Include="ClosedXML" Version="0.105.0" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 
@@ -67,9 +63,5 @@
 
     <ItemGroup>
         <PackageReference Include="CsvHelper" Version="33.1.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />
     </ItemGroup>
 </Project>
