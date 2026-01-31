@@ -1,3 +1,4 @@
+using System.Reflection;
 using Anton.LayeredConfig.Options;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,7 @@ namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public static class Registration
 {
-    extension(ServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void AddAllServices()
         {
@@ -217,7 +218,7 @@ public static class Registration
             IConfiguration config;
             {
                 var builder = new ConfigurationBuilder();
-                builder.AddUserSecrets<Program>();
+                builder.AddUserSecrets(Assembly.GetEntryAssembly()!);
                 config = builder.Build();
             }
             services.AddSingleton(config);

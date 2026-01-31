@@ -99,7 +99,7 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
     public LessonValidity Filter(LessonFilterContext c)
     {
         var teacherId = _currentTeacherIdProvider.Get();
-        foreach (var lid in c.Lessons)
+        foreach (var lid in c.Lessons.Span)
         {
             var lesson = c.Schedule.Get(lid);
             if (!lesson.Lesson.Teachers.Contains(teacherId))

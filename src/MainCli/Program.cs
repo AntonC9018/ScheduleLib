@@ -1,42 +1,12 @@
 using ScheduleLib.Application.Core;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Dates;
 using ScheduleLib.Parsing;
 
 var services = new ServiceCollection();
-services.AddAllServices();
-
-services.Configure<ManifestDirectoriesOptions>(x =>
-{
-    x.Directories.Add("data/topics");
-});
-services.Configure<StudyYearOptions>(x =>
-{
-    x.StudyYear = 2025;
-    x.Semester = Semester.Sem2;
-});
-services.Configure<RegularSeminarDateConfig>(x =>
-{
-    x.Day = DayOfWeek.Wednesday;
-    x.Time = new(hour: 15, minute: 00);
-});
-services.Configure<ScheduleBuilderInitializerOptions>(x =>
-{
-    x.BypassCache = true;
-});
-
-var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
-{
-    ValidateOnBuild = true,
-    ValidateScopes = true,
-});
-
-{
-    var b = serviceProvider.GetRequiredService<ApplicationConfigBuilder>();
-    b.AddDefaultConfig();
-}
+AppConfiguration.ConfigureServices(services);
+var serviceProvider = AppConfiguration.BuildServiceProvider(services);
+AppConfiguration.ConfigureLayeredConfig(serviceProvider);
 
 var cancellationToken = CancellationToken.None;
 _ = cancellationToken;

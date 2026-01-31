@@ -42,7 +42,7 @@ public sealed class RegistryConfigMapper : IConfigMapper<RegistryConfig, BuiltRe
 
 public static class ConfigExtensions
 {
-    extension (ServiceCollection services)
+    extension (IServiceCollection services)
     {
         public void AddOnlineRegistry()
         {

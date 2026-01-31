@@ -2,10 +2,16 @@ using System.Diagnostics;
 using System.Globalization;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using QuizModels;
+using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;
+using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.WordDoc;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.Application.Core;
 
@@ -130,6 +136,34 @@ public static class TasksHelper
                     Document = document,
                 });
             }
+        }
+    }
+
+    extension(IServiceProvider sp)
+    {
+        public async ValueTask<RegistryScrapingContext> MakeRegistryContext(CancellationToken cancellationToken)
+        {
+            var credentialsResolver = sp.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>();
+            var credentials = credentialsResolver.Get();
+            var registryContext = await RegistryScrapingContext.Create(
+                credentials: credentials,
+                cancellationToken: cancellationToken);
+            return registryContext;
+        }
+
+        public async ValueTask<MoodleScrapingContext> MakeMoodleContext(CancellationToken cancellationToken)
+        {
+            var credentialsResolver = sp.GetRequiredService<CredentialsResolver<MoodleConfig>>();
+            var credentials = credentialsResolver.Get();
+            var registryContext = await MoodleScrapingContext.Create(
+                credentials: credentials,
+                cancellationToken: cancellationToken);
+            return registryContext;
+        }
+
+        public Semester GetCurrentSemester()
+        {
+            return sp.GetRequiredService<IOptions<StudyYearOptions>>().Value.Semester;
         }
     }
 }
