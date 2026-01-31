@@ -128,7 +128,7 @@ public sealed partial class GoogleCredentialResolver
     }
 }
 
-internal sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
+public sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
 {
     private readonly IAsyncPolicy<HttpResponseMessage> _policy = CreatePolicy();
 
@@ -193,21 +193,12 @@ public sealed class GoogleTaskRunnerProvider
     }
 }
 
+[AutoConstructor]
 public sealed partial class GoogleApiHelper
 {
     public readonly GoogleTaskRunnerProvider RunnerProvider;
     public readonly GoogleCredentialResolver CredentialResolver;
     private readonly GoogleHttpClientProvider _httpClientProvider;
-
-    internal GoogleApiHelper(
-        GoogleTaskRunnerProvider runnerProvider,
-        GoogleCredentialResolver credentialResolver,
-        GoogleHttpClientProvider httpClientProvider)
-    {
-        RunnerProvider = runnerProvider;
-        CredentialResolver = credentialResolver;
-        _httpClientProvider = httpClientProvider;
-    }
 
     public BaseClientService.Initializer CreateServiceInitializer(UserCredential credential)
     {
@@ -223,7 +214,7 @@ public sealed partial class GoogleApiHelper
     {
         GoogleHttpClientProvider.Register(services);
         GoogleTaskRunnerProvider.Register(services);
-        services.AddSingleton<GoogleApiHelper>();
+        services.AddScoped<GoogleApiHelper>();
         services.AddScoped<GoogleCredentialResolver>();
     }
 }
