@@ -11,6 +11,7 @@ using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
+using ScheduleLib.Dates;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;

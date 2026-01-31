@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation;
+using ScheduleLib.Dates;
 using ScheduleLib.Helper;
-using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.Lesson.Internal;

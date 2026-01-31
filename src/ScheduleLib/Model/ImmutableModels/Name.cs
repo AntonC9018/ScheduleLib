@@ -102,6 +102,51 @@ public struct NameParts<T>() : IEquatable<NameParts<T>>
     }
 }
 
+public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
+    IEqualityComparer<NameParts<string?>>,
+    IComparer<NameParts<string?>>
+
+    // This is just too much code duplication
+    // IAlternateEqualityComparer<ReadOnlySpan<char>, NameParts<LastNamePartSpan>>
+{
+    public static readonly IgnoreDiacriticsAndCase_Name_Comparer Instance = new();
+
+    public bool Equals(NameParts<string?> x, NameParts<string?> y)
+    {
+        return x.EachEquals(y, (x1, y1) =>
+        {
+            if (x1 is null)
+            {
+                return y1 is null;
+            }
+            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x1, y1);
+        });
+    }
+
+    public int GetHashCode(NameParts<string?> obj)
+    {
+        var hashCode = new HashCode();
+        foreach (var str in obj)
+        {
+            if (str is not null)
+            {
+                hashCode.Add(IgnoreDiacriticsAndCaseComparer.Instance.GetHashCode(str));
+            }
+        }
+        return hashCode.ToHashCode();
+    }
+
+    public int Compare(NameParts<string?> a, NameParts<string?> b)
+    {
+        return NamePartHelper.CompareEach<string?>(
+            a,
+            b,
+            // Handles nulls just fine.
+            IgnoreDiacriticsAndCaseComparer.Instance!);
+    }
+}
+
+
 public record struct LastName
 {
     public NameParts<string?> Parts;

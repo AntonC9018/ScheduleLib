@@ -1,5 +1,5 @@
 using System.Buffers;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing.Lesson.Internal;
 
@@ -167,7 +167,13 @@ public ref struct ListEnumerator
 
     public bool MoveNext()
     {
-        _lexer._position = new(_end.Value + 1);
+        // Skip separator
+        _end = new(_end.Value + 1);
+        if (_lexer.Position != _end)
+        {
+            _lexer.MoveTo(_end);
+        }
+
         if (_isLast)
         {
             return false;

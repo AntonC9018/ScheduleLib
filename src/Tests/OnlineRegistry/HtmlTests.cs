@@ -4,6 +4,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using AngleSharp.Text;
 using ScheduleLib.Builders;
+using ScheduleLib.Dates;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry.Tests;

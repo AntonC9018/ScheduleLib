@@ -5,7 +5,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 

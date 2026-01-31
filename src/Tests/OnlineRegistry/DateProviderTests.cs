@@ -1,3 +1,5 @@
+using ScheduleLib.Dates;
+
 namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class DateProviderTests

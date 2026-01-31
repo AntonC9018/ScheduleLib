@@ -5,6 +5,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ScrapingCommon\ScrapingCommon.csproj" />
+        <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
     </ItemGroup>
 
     <ItemGroup>

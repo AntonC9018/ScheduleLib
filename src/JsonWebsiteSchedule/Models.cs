@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using ScheduleLib;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 
 namespace WebsiteJsonSchedule;
 

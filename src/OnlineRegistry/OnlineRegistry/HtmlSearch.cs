@@ -4,9 +4,10 @@ using System.Diagnostics;
 using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using ScheduleLib.Dates;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.OnlineRegistry;

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Builders;
 

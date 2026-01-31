@@ -3,9 +3,10 @@ using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
 using QuizModels;
 using ScheduleLib.Builders;
+using ScheduleLib.Dates;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Moodle;
 

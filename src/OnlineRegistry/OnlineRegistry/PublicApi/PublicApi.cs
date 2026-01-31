@@ -4,6 +4,7 @@ using AngleSharp.Dom;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
+using ScheduleLib.Dates;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;

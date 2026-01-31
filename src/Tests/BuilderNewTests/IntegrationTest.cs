@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleFromDoc.Tests;
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Dates;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using Tests.ScheduleCommon;

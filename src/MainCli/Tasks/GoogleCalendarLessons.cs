@@ -6,6 +6,7 @@ using Google.Apis.Calendar.v3;
 using Google.Apis.Calendar.v3.Data;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Dates;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
 using Event = Google.Apis.Calendar.v3.Data.Event;

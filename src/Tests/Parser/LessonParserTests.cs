@@ -1,6 +1,6 @@
 using Argon;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.Lesson.Internal;
 using ScheduleLib.ScheduleDefaults;

@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
+        <ProjectReference Include="..\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
     </ItemGroup>
 
     <ItemGroup>

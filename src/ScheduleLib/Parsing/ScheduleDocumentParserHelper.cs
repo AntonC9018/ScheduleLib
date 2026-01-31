@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing;

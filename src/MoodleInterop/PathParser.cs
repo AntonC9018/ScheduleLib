@@ -1,6 +1,6 @@
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing.Moodle;
 

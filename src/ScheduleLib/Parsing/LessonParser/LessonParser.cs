@@ -7,7 +7,8 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using ScheduleLib.Generation;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson.Internal;
 using InvalidOperationException = System.InvalidOperationException;
 

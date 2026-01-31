@@ -1,5 +1,5 @@
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.ParserTests;
 
@@ -61,7 +61,7 @@ public sealed class NameParserTests
     [Fact]
     public void StuffAfterIgnored()
     {
-        var p = new ScheduleLib.Parsing.Common.Parser("Last First Patro (ABC) Extra Stuff");
+        var p = new Helper.Parsing.Parser("Last First Patro (ABC) Extra Stuff");
         var s = NameHelper.ParseName(ref p);
         _ = s;
         Assert.True(p.ConsumeExactString(" (ABC) Extra Stuff"));

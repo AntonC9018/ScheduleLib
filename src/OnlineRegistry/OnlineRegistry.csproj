@@ -5,7 +5,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.csproj" />
-        <ProjectReference Include="..\HolidaysClient\HolidaysClient.csproj" />
+        <ProjectReference Include="..\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
+        <ProjectReference Include="..\ScheduleLib.Dates\ScheduleLib.Dates.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\ScrapingCommon\ScrapingCommon.csproj" />
         <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
     </ItemGroup>

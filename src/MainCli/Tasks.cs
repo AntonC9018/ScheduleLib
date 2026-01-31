@@ -2,9 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using ConvertDocToDocx;
 using DocumentFormat.OpenXml.Packaging;
-using OpenHolidays;
-using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Builders;
+using ScheduleLib.Dates;
 using ScheduleLib.Helper;
 using ScheduleLib.Parsing.WordDoc;
 
@@ -51,27 +50,6 @@ public static class TasksHelper
             Excel = excel,
             Schedule = schedule,
         });
-    }
-
-    // ReSharper disable once UnusedMember.Global
-    public static async Task<HolidayPeriod[]> GetHolidayPeriodsFromApi(
-        Schedule schedule,
-        CancellationToken cancellationToken)
-    {
-        using var holidaysHttpClient = new HttpClient();
-        var holidaysClient = new OpenHolidaysClient(holidaysHttpClient);
-        var holidaysProvider = new HolidaysProvider(holidaysClient, new()
-        {
-            CountryIsoCode = "MD",
-        });
-        var wholePeriod = schedule.WholePeriod();
-        var ret = await holidaysProvider.GetHolidayPeriods(new()
-        {
-            From = wholePeriod.Start,
-            To = wholePeriod.EndExclusive,
-            CancellationToken = cancellationToken,
-        });
-        return ret;
     }
 
     public static async Task ParseDocumentDirIntoSchedule(

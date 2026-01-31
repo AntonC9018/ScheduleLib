@@ -1,5 +1,5 @@
 using System.Text;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing.Lesson;
 

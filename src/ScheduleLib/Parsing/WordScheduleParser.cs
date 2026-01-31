@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 

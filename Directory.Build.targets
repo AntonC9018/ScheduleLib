@@ -6,8 +6,8 @@
     <ItemGroup Condition="'$(IncludeHelpers)' == 'true'">
         <Using Include="ScheduleLib.UnreachableHelper" Static="true" />
         <ProjectReference
-            Condition="'$(MSBuildProjectFullPath)' != '$(RootPath)src\ScheduleLib\ScheduleLib.csproj'"
-            Include="$(RootPath)src\ScheduleLib\ScheduleLib.csproj" />
+            Condition="'$(MSBuildProjectFullPath)' != '$(RootPath)src\ScheduleLib.Helper\ScheduleLib.Helper.csproj'"
+            Include="$(RootPath)src\ScheduleLib.Helper\ScheduleLib.Helper.csproj" />
     </ItemGroup>
 
 </Project>

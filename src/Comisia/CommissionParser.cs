@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Common;
+using ScheduleLib.Helper.Parsing;
 
 public sealed class CommissionSchedule
 {

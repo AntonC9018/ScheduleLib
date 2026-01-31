@@ -8,5 +8,6 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftPackagesVersion)" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftPackagesVersion)" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 </Project>
