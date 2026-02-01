@@ -1,11 +1,9 @@
+using Anton.LayeredConfig;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
-using QuizModels;
 using ScheduleLib.Dates;
-using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Scraping.Common.Config;
 
 public static class AppConfiguration
 {

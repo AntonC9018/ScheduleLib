@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
-using Anton.LayeredConfig;
+
+namespace Anton.LayeredConfig;
 
 public sealed class ApplicationConfigBuilder
 {
@@ -19,7 +20,7 @@ public sealed class ApplicationConfigBuilder
         }
     }
 
-    public ApplicationConfigLayerBuilder AddLayer(Layer layer)
+    public ApplicationConfigLayerBuilder AddLayer(LayerName layer)
     {
         return Defaults.AddLayer(layer);
     }
@@ -27,10 +28,15 @@ public sealed class ApplicationConfigBuilder
     public MutableLayer BaseLayer => _baseLayer;
 }
 
-public readonly struct ApplicationConfigLayerBuilder
+public readonly struct ApplicationConfigLayerBuilder : IEquatable<ApplicationConfigLayerBuilder>
 {
     public MutableLayer Layer { get; }
     public IServiceProvider SingletonServiceProvider { get; }
+
+    public bool Equals(ApplicationConfigLayerBuilder other)
+    {
+        return other.Layer == Layer;
+    }
 
     public ApplicationConfigLayerBuilder(
         MutableLayer layer,
@@ -40,11 +46,27 @@ public readonly struct ApplicationConfigLayerBuilder
         SingletonServiceProvider = singletonServiceProvider;
     }
 
-    public ApplicationConfigLayerBuilder AddLayer(Layer layer)
+    public ApplicationConfigLayerBuilder AddLayer(LayerName layer)
     {
         var model = new MutableLayer();
-        Layer._childLayers.Add(new(layer, model));
-        return new(model, SingletonServiceProvider);
+        model.Name = layer;
+        var namedLayer = new NamedLayer(model);
+        Layer._childLayers.Add(namedLayer);
+        return CreateLayerBuilder(namedLayer);
+    }
+
+    public ApplicationConfigLayerBuilder CreateLayerBuilder(NamedLayer layer)
+    {
+        if (!Layer._childLayers.Contains(layer))
+        {
+            throw new InvalidOperationException("This layer is not a child");
+        }
+        return new(layer.Model, SingletonServiceProvider);
+    }
+
+    public void RemoveLayers(NamedLayer layer)
+    {
+        Layer._childLayers.Remove(layer);
     }
 
     public void Configure(Action<ApplicationConfigLayerBuilder> configure)
@@ -53,13 +75,13 @@ public readonly struct ApplicationConfigLayerBuilder
     }
 }
 
-public readonly record struct NamedLayer(Layer Name, MutableLayer Model);
-public readonly record struct Layer(string Value) : ICreateFromString<Layer>
+public readonly record struct NamedLayer(MutableLayer Model);
+public readonly record struct LayerName(string Value) : ICreateFromString<LayerName>
 {
-    public static readonly NameRegistry<Layer> Registry = new();
-    public static readonly Layer DefaultLayer = Registry.Register("Default");
-    public static Layer Unnamed => new("");
-    public static Layer Create(string v) => new(v);
+    public static readonly NameRegistry<LayerName> Registry = new();
+    public static readonly LayerName DefaultLayer = Registry.Register("Default");
+    public static LayerName Unnamed => new("");
+    public static LayerName Create(string v) => new(v);
 }
 
 
@@ -67,6 +89,8 @@ public sealed class MutableLayer
 {
     private readonly ConcurrentDictionary<LayerConfigKey, LayerConfigContainer> _configs = new();
     internal readonly List<NamedLayer> _childLayers = new();
+
+    public LayerName Name { get; set; } = LayerName.Unnamed;
 
     public IReadOnlyList<NamedLayer> ChildLayers => _childLayers;
 

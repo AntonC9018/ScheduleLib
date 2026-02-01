@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
@@ -13,11 +12,8 @@ public static class MarkerConfigExtension
         services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
         services.AddSingleton<ApplicationConfigBuilder>();
         services.AddScoped<ConfigProvider>();
+        TeacherLayerConfig.Register(services);
         // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
-        services.AddScoped<TeacherLayerConfig>();
-        services.AddSingleton<IBasicOperations<Name>, ImmutableClassBasicOperations<Name>>();
-        services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
-        services.AddConfigProvider(TeacherLayerConfig.Key);
     }
 
     public static AsyncServiceScope CreateMarkerScope(
@@ -42,10 +38,60 @@ public static class MarkerConfigExtension
         return ret;
     }
 
-    public static IEnumerable<TeacherLayerConfig> GetAllMarkers(
-        this ApplicationConfigBuilder b)
+    extension(ApplicationConfigBuilder b)
     {
-        return b.BaseLayer.GetConfigs(TeacherLayerConfig.Key).Select(x => x.Config);
+        public IEnumerable<(TeacherLayerConfig Config, ApplicationConfigLayerBuilder Builder)> GetMarkerLayers()
+        {
+            // NOTE:
+            // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
+            // But we only consider the last such layers.
+            return b.Defaults.GetLeafBuilders()
+                .Select(x =>
+                {
+                    var config = x.Layer.GetConfig(TeacherLayerConfig.Key);
+                    if (!config.Exists)
+                    {
+                        return default;
+                    }
+                    var value = config.Value.GetValue();
+                    if (value == null)
+                    {
+                        throw new InvalidOperationException("Teacher layer config must be explicitly set!");
+                    }
+                    return (value, x);
+                })
+                .WhereNotDefault();
+        }
+
+        public void RemoveLayers(Func<MutableLayer, bool> pred)
+        {
+            Helper(b.Defaults);
+
+            void Helper(ApplicationConfigLayerBuilder parent)
+            {
+                var children = parent.Layer.ChildLayers;
+                for (int i = children.Count - 1; i >= 0; i--)
+                {
+                    var child = children[i];
+                    if (!pred(child.Model))
+                    {
+                        continue;
+                    }
+                    if (child.Model.ChildLayers.Count != 0)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    var builder = parent.CreateLayerBuilder(child);
+                    parent.RemoveLayers(child);
+                    Helper(builder);
+                }
+            }
+        }
+
+        public IEnumerable<TeacherLayerConfig> GetAllMarkers()
+        {
+            return b.GetMarkerLayers().Select(x => x.Config);
+        }
     }
 }
 

@@ -9,6 +9,32 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="Desktop">
 
-  <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+  <StackPanel>
+    <TextBlock Text="Layer Level" />
+    <ComboBox
+      ItemsSource="{Binding AllLayerLevels}"
+      SelectedItem="{Binding LayerLevel}" />
 
+    <TextBlock Text="User" />
+    <ComboBox
+      IsEnabled="{Binding CanSelectUser}"
+      ItemsSource="{Binding UserLayers}"
+      SelectedItem="{Binding SelectedUserLayer}" />
+
+    <Button
+      Content="Click to enable"
+      Command="{Binding EnableSelectedUserCommand}"/>
+    <Button
+      Content="Click to remove selected"
+      Command="{Binding RemoveSelectedUserCommand}"/>
+
+    <TextBlock Text="User Name To Add:" />
+    <TextBox
+      Text="{Binding UserNameToAdd}"
+      IsEnabled="{Binding CanSelectUserToAdd}" />
+
+    <Button
+      Content="Click to create new"
+      Command="{Binding AddUserWithTypedNameCommand}" />
+  </StackPanel>
 </Window>

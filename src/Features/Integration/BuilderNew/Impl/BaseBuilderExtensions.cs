@@ -4,7 +4,7 @@ namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
 public static partial class Extensions
 {
-    public static readonly Layer TeacherLayerKey = Layer.Registry.Register("Teacher");
+    public static readonly LayerName TeacherLayerKey = LayerName.Registry.Register("ProgrammableTeacher");
 
     extension (ApplicationConfigLayerBuilder builder)
     {

@@ -210,6 +210,13 @@ public static class BaseExtensions
             configure(val);
             return val;
         }
+        public T CopyValue(T value)
+        {
+            var x = builder.Enable();
+            value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Copy(value);
+            x.SetValue(value);
+            return value;
+        }
         public T Value()
         {
             var x = builder.Enable();

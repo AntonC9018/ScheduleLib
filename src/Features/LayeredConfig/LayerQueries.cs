@@ -4,7 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Anton.LayeredConfig;
 
-public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path);
+public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
+{
+    public readonly MutableLayer Root => Path[0];
+    public readonly MutableLayer Leaf => Path[^1];
+}
 
 public static class LayerQueries
 {
@@ -61,6 +65,58 @@ public static class LayerQueries
             }
         }
 
+        public IEnumerable<LayerPath> GetLeafLayerPaths()
+        {
+            var builder = ImmutableArray.CreateBuilder<MutableLayer>();
+            return Helper(layer);
+
+            IEnumerable<LayerPath> Helper(MutableLayer layer)
+            {
+                builder.Add(layer);
+                var children = layer.ChildLayers;
+                if (children.Count == 0)
+                {
+                    yield return new(builder.ToImmutableArray());
+                }
+                foreach (var ch in children)
+                {
+                    foreach (var x in Helper(ch.Model))
+                    {
+                        yield return x;
+                    }
+                }
+                builder.Count--;
+            }
+        }
+
+        public IEnumerable<NamedLayer> GetLeafLayers()
+        {
+            Debug.Assert(layer.ChildLayers.Count != 0);
+            foreach (var x in layer.ChildLayers)
+            {
+                foreach (var ch in Helper(x))
+                {
+                    yield return ch;
+                }
+            }
+
+            IEnumerable<NamedLayer> Helper(NamedLayer layer)
+            {
+                var children = layer.Model.ChildLayers;
+                if (children.Count == 0)
+                {
+                    yield return layer;
+                }
+                foreach (var ch in children)
+                {
+                    foreach (var x in Helper(ch))
+                    {
+                        yield return x;
+                    }
+                }
+            }
+        }
+
         public IEnumerable<(LayerPath Path, T Config)> GetConfigs<T>(
             LayerConfigKey<T> key)
             where T : class
@@ -76,7 +132,18 @@ public static class LayerQueries
                 }
             }
         }
+    }
 
+    extension (ApplicationConfigLayerBuilder builder)
+    {
+        public IEnumerable<ApplicationConfigLayerBuilder> GetLeafBuilders()
+        {
+            var leafs = builder.Layer.GetLeafLayers();
+            foreach (var leaf in leafs)
+            {
+                yield return new(leaf.Model, builder.SingletonServiceProvider);
+            }
+        }
     }
 
     // IDEA: Add a way to have a different model for config that is being built.

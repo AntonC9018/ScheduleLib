@@ -1,12 +1,21 @@
 using Anton.LayeredConfig;
+using Anton.LayeredConfig.Retrieval;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Core.Config.Impl.Impl;
 
-public sealed class TeacherLayerConfig : IConfig<TeacherLayerConfig>
+public sealed record class TeacherLayerConfig : IConfig<TeacherLayerConfig>
 {
     public static LayerConfigKey<TeacherLayerConfig> Key { get; } = LayerConfigKey.Registry.Register<TeacherLayerConfig>();
-    public Name TeacherName = null!;
+    public Name TeacherName { get; set; } = null!;
+
+    public static void Register(IServiceCollection services)
+    {
+        services.SetImmutable<Name>();
+        services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
+        services.AddConfigProvider(TeacherLayerConfig.Key);
+    }
 }
 
 public partial class Extensions
