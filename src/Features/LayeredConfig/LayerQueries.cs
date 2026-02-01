@@ -146,8 +146,7 @@ public static class LayerQueries
         }
     }
 
-    // IDEA: Add a way to have a different model for config that is being built.
-    // TODO: Add providers that could modify this after it's constructed?
+    // TODO: When building the config, collect information about which layer the value came from
     public static T? ConstructConfig<T>(
         this LayerPath path,
         LayerConfigKey<T> key,

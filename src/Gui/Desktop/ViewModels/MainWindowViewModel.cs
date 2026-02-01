@@ -2,12 +2,10 @@
 using Anton.LayeredConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.Lesson;
 
 namespace Desktop.ViewModels;
 
@@ -25,10 +23,11 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CanSelectUser))]
     [NotifyPropertyChangedFor(nameof(CanSelectUserToAdd))]
     [NotifyCanExecuteChangedFor(nameof(RemoveSelectedUserCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EnableSelectedUserCommand))]
     public partial LayerLevel LayerLevel { get; set; } = LayerLevel.Default;
     public EnumMembers<LayerLevel> AllLayerLevels => new();
 
-    public bool CanSelectUser => LayerLevel == LayerLevel.User;
+    public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
     [ObservableProperty]
     public partial object[] UserLayers { get; private set; }
     private void ResetUserLayers()
@@ -55,7 +54,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
     public partial string UserNameToAdd { get; set; } = "";
 
-    public bool CanSelectUserToAdd => LayerLevel == LayerLevel.User;
+    public bool CanSelectUserToAdd => true;
 
     private Name? ParseUserNameToAdd()
     {
@@ -86,13 +85,14 @@ public partial class MainWindowViewModel : ViewModelBase
         ResetUserLayers();
         UserNameToAdd = "";
         SelectedUserLayer = new WrappedLayer(layer);
+        LayerLevel = LayerLevel.UiUser;
     }
 
     public bool CanRemoveSelectedUser
     {
         get
         {
-            if (!CanSelectUser)
+            if (LayerLevel != LayerLevel.UiUser)
             {
                 return false;
             }
@@ -116,15 +116,24 @@ public partial class MainWindowViewModel : ViewModelBase
             Debug.Fail("Cannot remove this layer");
             return;
         }
+        var marker = selectedUser.Marker;
         UiLayerHelper.MaybeRemoveLayer(selectedUser.Leaf.Layer, _configBuilder);
         ResetUserLayers();
-        SelectedUserLayer = NoUser;
+        SelectedUserLayer = UserLayers
+            .Where(x => x is WrappedLayer w
+                && EqualityComparer<TeacherLayerConfig>.Default.Equals(w.Marker, marker))
+            .FirstOrDefault(NoUser);
     }
 
     public bool CanEnableSelectedUser
     {
         get
         {
+            if (LayerLevel != LayerLevel.ProgrammableUser
+                && LayerLevel != LayerLevel.UiUser)
+            {
+                return false;
+            }
             if (SelectedUserLayer is not WrappedLayer user)
             {
                 return false;
@@ -147,6 +156,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var newLayer = user.MaybeInitUiLayer();
         ResetUserLayers();
         SelectedUserLayer = newLayer;
+        LayerLevel = LayerLevel.UiUser;
     }
 }
 
@@ -214,7 +224,11 @@ internal static class UiLayerHelper
     {
         root.RemoveLayers(layer =>
         {
-            return ReferenceEquals(layerToRemove, layer);
+            if (ReferenceEquals(layerToRemove, layer))
+            {
+                return true;
+            }
+            return false;
             // if (!layer.IsUiLayer())
             // {
             //     return false;
@@ -256,5 +270,6 @@ public sealed record class WrappedLayer
 public enum LayerLevel
 {
     Default,
-    User,
+    ProgrammableUser,
+    UiUser,
 }

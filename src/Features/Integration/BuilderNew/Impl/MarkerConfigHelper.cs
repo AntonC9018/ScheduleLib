@@ -73,17 +73,19 @@ public static class MarkerConfigExtension
                 for (int i = children.Count - 1; i >= 0; i--)
                 {
                     var child = children[i];
-                    if (!pred(child.Model))
+                    if (pred(child.Model))
                     {
-                        continue;
+                        if (child.Model.ChildLayers.Count != 0)
+                        {
+                            throw new NotImplementedException();
+                        }
+                        parent.RemoveLayers(child);
                     }
-                    if (child.Model.ChildLayers.Count != 0)
+                    else
                     {
-                        throw new NotImplementedException();
+                        var builder = parent.CreateLayerBuilder(child);
+                        Helper(builder);
                     }
-                    var builder = parent.CreateLayerBuilder(child);
-                    parent.RemoveLayers(child);
-                    Helper(builder);
                 }
             }
         }

@@ -22,10 +22,10 @@
       SelectedItem="{Binding SelectedUserLayer}" />
 
     <Button
-      Content="Click to enable"
+      Content="Click to enable selected UI layer"
       Command="{Binding EnableSelectedUserCommand}"/>
     <Button
-      Content="Click to remove selected"
+      Content="Click to remove selected UI layer"
       Command="{Binding RemoveSelectedUserCommand}"/>
 
     <TextBlock Text="User Name To Add:" />
@@ -34,7 +34,7 @@
       IsEnabled="{Binding CanSelectUserToAdd}" />
 
     <Button
-      Content="Click to create new"
+      Content="Click to create new UI layer"
       Command="{Binding AddUserWithTypedNameCommand}" />
   </StackPanel>
 </Window>
