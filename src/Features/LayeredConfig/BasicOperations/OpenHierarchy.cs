@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
@@ -109,12 +110,14 @@ public static class KeyEqualityComparer
             services.AddSingleton<IKeyEqualityComparer<T>>(s);
         }
 
-        public void AddOpenHierarchy<TBase>()
+        public OpenHierarchyConfigurer<TBase> AddOpenHierarchy<TBase>()
             where TBase : class
         {
             services.TryAddSingleton<IKeyEqualityComparer<TBase>, OpenHierarchyKeyEqualityComparer<TBase>>();
             services.AddSingleton<IMerger<TBase>, OpenHierarchyMerger<TBase>>();
             services.AddSingleton<IBasicOperations<TBase>, OpenHierarchyBasicOperations<TBase>>();
+            services.ConfigureOpenHierarchy(opts => opts.AddRootType(typeof(TBase)));
+            return new(services);
         }
 
         public void SetImmutable<T>()
@@ -122,6 +125,70 @@ public static class KeyEqualityComparer
         {
             services.AddMerger<ImmutableObjectsMerger<T>>();
             services.AddBasicOperations<ImmutableClassBasicOperations<T>>();
+        }
+    }
+}
+
+public readonly struct OpenHierarchyConfigurer<TBase>(IServiceCollection services)
+{
+    public DerivedTypeConfig<T> AddDerived<T>() where T : class, TBase
+    {
+        services.ConfigureOpenHierarchy(x => x.AddDerivedType(typeof(TBase), typeof(T)));
+        return new(services);
+    }
+
+    public void AddKeyEqualityComparer<TProperty>(
+        Func<TBase, TProperty?> keyGetter,
+        IEqualityComparer<TProperty>? propertyComparer = null)
+
+        where TProperty : notnull
+    {
+        services.AddKeyEqualityComparer(keyGetter, propertyComparer);
+    }
+}
+
+public readonly struct DerivedTypeConfig<T>(IServiceCollection services)
+    where T : class
+{
+    public DerivedTypeConfig<T> SetImmutable()
+    {
+        services.SetImmutable<T>();
+        return this;
+    }
+
+    public DerivedTypeConfig<T> AddKeyEqualityComparer<TProperty>(
+        Func<T, TProperty?> keyGetter,
+        IEqualityComparer<TProperty>? propertyComparer = null)
+
+        where TProperty : notnull
+    {
+        services.AddKeyEqualityComparer(keyGetter, propertyComparer);
+        return this;
+    }
+}
+
+public sealed class OpenHierarchyOptions
+{
+    public Dictionary<Type, List<Type>> HierarchyRootToDerived { get; } = new();
+
+    public void AddRootType(Type root)
+    {
+        var list = HierarchyRootToDerived.GetOrAdd(root, _ => new());
+        _ = list;
+    }
+    public void AddDerivedType(Type root, Type derived)
+    {
+        HierarchyRootToDerived[root].Add(derived);
+    }
+}
+
+public static class ConfigJsonSerializationConfiguration
+{
+    extension (IServiceCollection services)
+    {
+        public void ConfigureOpenHierarchy(Action<OpenHierarchyOptions> configure)
+        {
+            services.Configure("JsonName", configure);
         }
     }
 }

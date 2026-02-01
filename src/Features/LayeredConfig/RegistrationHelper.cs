@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,6 +9,17 @@ namespace Anton.LayeredConfig;
 
 public static class RegistrationHelper
 {
+    public static void AddLayeredConfig(this IServiceCollection services)
+    {
+        services.AddSingleton<ApplicationConfigBuilder>();
+        services.AddScoped<ConfigProvider>();
+        services.AddOptions<OpenHierarchyOptions>();
+
+        services.AddSingleton<ConfigSerializationHelper>();
+        services.AddOptions<JsonSerializerOptions>(ConfigSerializationHelper.ServiceKey);
+        services.ConfigureOptions<ConfigureSerializationOptions>();
+    }
+
     public static void RegisterBasicOperationsAndMergers<T>(this IServiceCollection services)
         where T : class
     {

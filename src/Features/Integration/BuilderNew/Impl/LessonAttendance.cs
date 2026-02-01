@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;

@@ -10,10 +10,8 @@ public static class MarkerConfigExtension
     public static void AddMarkerServices(this IServiceCollection services)
     {
         services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
-        services.AddSingleton<ApplicationConfigBuilder>();
-        services.AddScoped<ConfigProvider>();
+        services.AddLayeredConfig();
         TeacherLayerConfig.Register(services);
-        // services.AddSingleton<IEqualityComparer<TeacherLayerConfig>>();
     }
 
     public static AsyncServiceScope CreateMarkerScope(

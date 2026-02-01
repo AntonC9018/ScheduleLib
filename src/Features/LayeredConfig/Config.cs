@@ -13,6 +13,10 @@ public sealed class ConfigKeyRegistry
     {
         return _typeMap[key];
     }
+    public Type? TryGetTypeFromKey(LayerConfigKey key)
+    {
+        return _typeMap.GetValueOrDefault(key);
+    }
     public LayerConfigKey<T> Register<T>() where T : class
     {
         var ret = Register<T>(typeof(T).Name);
@@ -26,7 +30,13 @@ public sealed class ConfigKeyRegistry
     }
 }
 
-public readonly record struct LayerConfigKey<T>(LayerConfigKey Value) where T : class;
+public readonly record struct LayerConfigKey<T>(LayerConfigKey Value) where T : class
+{
+    public static bool operator==(LayerConfigKey<T> self, LayerConfigKey other) => self.Value == other;
+    public static bool operator!=(LayerConfigKey<T> self, LayerConfigKey other) => !(self == other);
+    public static bool operator==(LayerConfigKey self, LayerConfigKey<T> other) => other == self;
+    public static bool operator!=(LayerConfigKey self, LayerConfigKey<T> other) => other != self;
+}
 public readonly record struct LayerConfigKey(string Value) : ICreateFromString<LayerConfigKey>
 {
     public static readonly ConfigKeyRegistry Registry = new();
@@ -87,23 +97,26 @@ public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
     }
 }
 
-public readonly struct LayerConfigContainer<T>
-    where T : class
+public readonly struct UntypedLayerConfigContainer
 {
-    private readonly LayerConfigContainer _impl;
+    internal readonly LayerConfigContainer Container { get; }
 
-    public LayerConfigContainer(LayerConfigContainer impl)
+    public UntypedLayerConfigContainer(LayerConfigContainer container)
     {
-        _impl = impl;
+        Container = container;
     }
 
-    private readonly MergeValueUpdater<T>? ValueHolder
+    internal readonly IMergeValueUpdaterBase? ValueHolder
     {
         get
         {
-            foreach (var x in UpdateActions)
+            if (Container.UpdateActions is null)
             {
-                if (x is MergeValueUpdater<T> y)
+                return null;
+            }
+            foreach (var x in Container.UpdateActions)
+            {
+                if (x is IMergeValueUpdaterBase y)
                 {
                     return y;
                 }
@@ -112,7 +125,22 @@ public readonly struct LayerConfigContainer<T>
         }
     }
 
-    public readonly T? GetValue() => ValueHolder?.Value;
+    public readonly object? GetValue() => ValueHolder?.Value;
+}
+
+public readonly struct LayerConfigContainer<T>
+    where T : class
+{
+    private readonly UntypedLayerConfigContainer _impl;
+
+    public LayerConfigContainer(LayerConfigContainer impl)
+    {
+        _impl = new(impl);
+    }
+
+    private readonly MergeValueUpdater<T>? ValueHolder => (MergeValueUpdater<T>?) _impl.ValueHolder;
+
+    public readonly T? GetValue() => (T?) _impl.GetValue();
     public readonly void SetValue(T value)
     {
         if (ValueHolder is not { } holder)
@@ -125,7 +153,7 @@ public readonly struct LayerConfigContainer<T>
             holder.Value = value;
         }
     }
-    public readonly UpdateActionsList<T> UpdateActions => new(_impl);
+    public readonly UpdateActionsList<T> UpdateActions => new(_impl.Container);
 }
 
 public readonly struct MaybeLayerConfigContainer<T>

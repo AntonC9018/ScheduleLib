@@ -33,6 +33,14 @@ public readonly struct ApplicationConfigLayerBuilder : IEquatable<ApplicationCon
     public MutableLayer Layer { get; }
     public IServiceProvider SingletonServiceProvider { get; }
 
+    public bool IsNull
+    {
+        get
+        {
+            return Layer is null;
+        }
+    }
+
     public bool Equals(ApplicationConfigLayerBuilder other)
     {
         return other.Layer == Layer;
@@ -84,6 +92,31 @@ public readonly record struct LayerName(string Value) : ICreateFromString<LayerN
     public static LayerName Create(string v) => new(v);
 }
 
+public readonly record struct ConfigAccessorHelper
+{
+    public LayerConfigKey Key { get; }
+    private readonly LayerConfigContainer _container;
+
+    internal ConfigAccessorHelper(
+        LayerConfigKey key,
+        LayerConfigContainer container)
+    {
+        Key = key;
+        _container = container;
+    }
+
+    public MaybeLayerConfigContainer<T> As<T>(LayerConfigKey<T> key)
+        where T : class
+    {
+        if (key != Key)
+        {
+            return new(null);
+        }
+        return new(_container);
+    }
+
+    public UntypedLayerConfigContainer Container => new(_container);
+}
 
 public sealed class MutableLayer
 {
@@ -95,6 +128,8 @@ public sealed class MutableLayer
     public IReadOnlyList<NamedLayer> ChildLayers => _childLayers;
 
     public ICollection<LayerConfigKey> ConfigKeys => _configs.Keys;
+
+    public IEnumerable<ConfigAccessorHelper> Configs => _configs.Select(x => new ConfigAccessorHelper(x.Key, x.Value));
 
     public LayerConfigContainer? GetConfigUntyped(LayerConfigKey key)
     {

@@ -1,6 +1,7 @@
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.JsonConverters;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Core.Config.Impl.Impl;
@@ -15,6 +16,10 @@ public sealed record class TeacherLayerConfig : IConfig<TeacherLayerConfig>
         services.SetImmutable<Name>();
         services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
         services.AddConfigProvider(TeacherLayerConfig.Key);
+        services.ConfigureConfigJsonSerialization(opts =>
+        {
+            opts.Converters.Add(new NameJsonConverter());
+        });
     }
 }
 

@@ -89,20 +89,20 @@ public sealed class NoNameProvider : ILessonNameProvider
 
 public sealed class ListLessonNameProvider : ILessonNameProvider
 {
-    private readonly ImmutableArray<string> _values;
+    public ImmutableArray<string> Values { get; }
 
     public ListLessonNameProvider(ImmutableArray<string> values)
     {
-        _values = values;
+        Values = values;
     }
 
     public string? Get(int index)
     {
-        if (index < 0 || index >= _values.Length)
+        if (index < 0 || index >= Values.Length)
         {
             return null;
         }
-        return _values[index];
+        return Values[index];
     }
 }
 

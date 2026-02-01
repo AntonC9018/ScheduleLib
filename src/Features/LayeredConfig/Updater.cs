@@ -12,10 +12,21 @@ public interface IUpdater<T> : IUpdaterBase
     public T? Update(IServiceProvider scopedServiceProvider, T value);
 }
 
-public sealed class MergeValueUpdater<T> : IUpdater<T>
+public interface IMergeValueUpdaterBase
+{
+    object Value { get; set; }
+}
+
+public sealed class MergeValueUpdater<T> : IUpdater<T>, IMergeValueUpdaterBase
     where T : class
 {
     public T Value { get; set; }
+
+    object IMergeValueUpdaterBase.Value
+    {
+        get => Value;
+        set => Value = (T) value;
+    }
 
     public MergeValueUpdater(T initialValue)
     {

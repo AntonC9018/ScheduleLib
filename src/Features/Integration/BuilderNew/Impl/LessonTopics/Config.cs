@@ -15,8 +15,26 @@ public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
         services.AddBasicOperations<LessonTopicsSourceDefinitionBasicOperations>();
         services.RegisterBasicOperationsAndMergers<LessonTopicsConfig>();
         services.AddKeyEqualityComparer((LessonNameProviderConfig c) => c.LessonType);
-        services.AddOpenHierarchy<LessonTopicSourceDefinition>();
-        services.AddKeyEqualityComparer((ManifestLessonTopicSourceDefinition x) => x.Path);
+        {
+            var hierarchy = services.AddOpenHierarchy<ILessonNameProvider>();
+            hierarchy
+                .AddDerived<LabAutoNumberingNameProvider>()
+                .SetImmutable();
+            hierarchy
+                .AddDerived<NoNameProvider>()
+                .SetImmutable();
+            hierarchy
+                .AddDerived<ListLessonNameProvider>()
+                .SetImmutable();
+        }
+
+        {
+            var hierarchy = services.AddOpenHierarchy<LessonTopicSourceDefinition>();
+            hierarchy
+                .AddDerived<ManifestLessonTopicSourceDefinition>()
+                .AddKeyEqualityComparer(x => x.Path);
+        }
+
         services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
     }
 }

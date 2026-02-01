@@ -36,5 +36,13 @@
     <Button
       Content="Click to create new UI layer"
       Command="{Binding AddUserWithTypedNameCommand}" />
+
+    <Button
+      Content="Click to serialize UI layers"
+      Command="{Binding SerializeUiLayersCommand}" />
+
+    <Button
+      Content="Click to deserialize UI layers"
+      Command="{Binding DeserializeUiLayersCommand}" />
   </StackPanel>
 </Window>

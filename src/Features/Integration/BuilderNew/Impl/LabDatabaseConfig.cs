@@ -13,10 +13,13 @@ public sealed class LabTasksDatabaseConfig : IConfig<LabTasksDatabaseConfig>
     [RegisterMethod]
     public static void Register(IServiceCollection services)
     {
-        services.AddKeyEqualityComparer((LabTasksSource c) => c.Key);
-        services.AddOpenHierarchy<LabTasksSource>();
-        services.AddKeyEqualityComparer((LabTask t) => t.Name);
+        var hierarchy = services.AddOpenHierarchy<LabTasksSource>();
+        hierarchy.AddKeyEqualityComparer(source => source.Key);
+        hierarchy.AddDerived<ManualLabTaskSource>();
         services.RegisterBasicOperationsAndMergers<ManualLabTaskSource>();
+
+        services.AddKeyEqualityComparer((LabTask t) => t.Name);
+
         services.RegisterBasicOperationsAndMergers<LabTasksDatabaseConfig>();
         services.AddConfigProvider(LabTasksDatabaseConfig.Key);
     }

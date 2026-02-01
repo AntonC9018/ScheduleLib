@@ -1,21 +1,30 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Anton.LayeredConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
 using ScheduleLib.Application.Core.Config.Impl.Impl;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Desktop.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ApplicationConfigBuilder _configBuilder;
+    private readonly ConfigSerializationHelper _serializationHelper;
 
-    public MainWindowViewModel(ApplicationConfigBuilder configBuilder)
+    public MainWindowViewModel(
+        ApplicationConfigBuilder configBuilder,
+        ConfigSerializationHelper serializationHelper)
     {
         _configBuilder = configBuilder;
+        _serializationHelper = serializationHelper;
         ResetUserLayers();
     }
 
@@ -158,6 +167,22 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedUserLayer = newLayer;
         LayerLevel = LayerLevel.UiUser;
     }
+
+    [RelayCommand]
+    public async Task SerializeUiLayers()
+    {
+        await using var output = File.OpenWrite("ui-layers.json");
+        await _serializationHelper.SerializeUiLayers(output, _configBuilder);
+        ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
+
+        ResetUserLayers();
+    }
+    [RelayCommand]
+    public async Task DeserializeUiLayers()
+    {
+        await using var output = File.OpenRead("ui-layers.json");
+        await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
+    }
 }
 
 internal static class UiLayerHelper
@@ -167,16 +192,6 @@ internal static class UiLayerHelper
     public static bool IsUiLayer(this MutableLayer layer)
     {
         return layer.Name == UiTeacherLayer;
-    }
-
-    public static IEnumerable<ApplicationConfigLayerBuilder> GetUiLayersForAll(
-        this ApplicationConfigBuilder builder)
-    {
-        foreach (var x in builder.GetMarkerLayers())
-        {
-            var ret = MaybeCreateUiLayer(x.Builder, x.Config);
-            yield return ret;
-        }
     }
 
     public static IEnumerable<ApplicationConfigLayerBuilder> GetUiLayers(
@@ -249,6 +264,50 @@ internal static class UiLayerHelper
             // }
             // return false;
         });
+    }
+
+    extension(ConfigSerializationHelper helper)
+    {
+        public async Task SerializeUiLayers(
+            Stream output,
+            ApplicationConfigBuilder configRoot)
+        {
+            var uiLayers = configRoot.GetUiLayers().Select(x => x.Layer);
+            await helper.SerializeValues(uiLayers, output, serializeLayerName: false);
+            output.SetLength(output.Position);
+        }
+
+        public async Task DeserializeUiLayers(
+            Stream output,
+            ApplicationConfigBuilder configRoot)
+        {
+            await helper.DeserializeValues(
+                output,
+                (layerName, configs) =>
+                {
+                    {
+                        if (layerName is { } x && x != UiTeacherLayer)
+                        {
+                            throw new InvalidOperationException($"Expected a layer with name {UiTeacherLayer}");
+                        }
+                    }
+                    {
+                        var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
+                        var markerLayer = configRoot
+                            .GetMarkerLayers()
+                            .FirstOrDefault(x => x.Config.Equals(marker))
+                            .Builder;
+
+                        if (markerLayer.IsNull)
+                        {
+                            markerLayer = configRoot.Defaults;
+                        }
+
+                        var ret = markerLayer.MaybeCreateUiLayer();
+                        return ret;
+                    }
+                });
+        }
     }
 }
 

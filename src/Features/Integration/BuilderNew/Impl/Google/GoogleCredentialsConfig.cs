@@ -12,7 +12,6 @@ using Microsoft.Extensions.Http;
 using Polly;
 using Polly.Extensions.Http;
 using ScheduleLib.Helper;
-using ScheduleLib.Scraping.Common.Config;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace ScheduleLib.Application.Core.Config.Impl.Impl;
@@ -26,9 +25,14 @@ public sealed class GoogleCredentialsConfig
 
     public static void Register(IServiceCollection services)
     {
-        services.AddOpenHierarchy<IGoogleApiKeysSource>();
-        services.SetImmutable<ManualGoogleApiKeysSource>();
-        services.SetImmutable<MarkedConfigurationApiKeysSource>();
+        var hierarchy = services.AddOpenHierarchy<IGoogleApiKeysSource>();
+        hierarchy
+            .AddDerived<ManualGoogleApiKeysSource>()
+            .SetImmutable();
+        hierarchy
+            .AddDerived<MarkedConfigurationApiKeysSource>()
+            .SetImmutable();
+
         services.RegisterBasicOperationsAndMergers<GoogleCredentialsConfig>();
     }
 
