@@ -3,7 +3,7 @@ using Anton.LayeredConfig.Attributes;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class LabTasksDatabaseConfig : IConfig<LabTasksDatabaseConfig>
 {

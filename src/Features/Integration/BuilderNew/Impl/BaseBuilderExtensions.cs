@@ -1,6 +1,7 @@
 using Anton.LayeredConfig;
+using ScheduleLib.Application.Core;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public static partial class Extensions
 {

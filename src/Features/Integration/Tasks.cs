@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QuizModels;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;

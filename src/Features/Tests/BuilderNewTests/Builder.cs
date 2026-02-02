@@ -3,7 +3,7 @@ using ScheduleLib.Application.Core.Topics;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Scraping.Common.Config;
 

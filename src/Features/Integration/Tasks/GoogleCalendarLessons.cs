@@ -5,7 +5,7 @@ using Google;
 using Google.Apis.Calendar.v3;
 using Google.Apis.Calendar.v3.Data;
 using Microsoft.Extensions.Options;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;

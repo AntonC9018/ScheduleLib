@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.JsonConverters;
 using ScheduleLib.Parsing;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed record class TeacherLayerConfig : IConfig<TeacherLayerConfig>
 {

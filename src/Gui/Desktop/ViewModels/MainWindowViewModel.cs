@@ -6,7 +6,7 @@ using Anton.LayeredConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;

@@ -5,13 +5,13 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
 using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleLib.Application.Core;
 
-using Option = Config.Impl.Impl.Option;
+using Option = Config.Option;
 
 public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
 {

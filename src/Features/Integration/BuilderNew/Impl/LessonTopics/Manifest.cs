@@ -9,7 +9,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 [AutoConstructor]
 public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource

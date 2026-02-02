@@ -1,6 +1,5 @@
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
-using ScheduleLib.Application.Core.Config.Impl;
 
 namespace ScheduleLib.Application.Core;
 

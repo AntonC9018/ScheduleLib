@@ -69,7 +69,10 @@ public sealed class OutputDirectory
     {
         if (clear)
         {
-            Directory.Delete(_directory, recursive: true);
+            if (Directory.Exists(_directory))
+            {
+                Directory.Delete(_directory, recursive: true);
+            }
         }
         else if (Directory.Exists(_directory))
         {

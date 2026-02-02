@@ -2,7 +2,7 @@ using System.Drawing;
 using Anton.LayeredConfig;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common.Config;
@@ -117,7 +117,6 @@ public static class DefaultConfig
         {
             t.Moodle().Remove();
             t.GoogleDrive().Remove();
-            t.GoogleCalendar().Remove();
 
             t.LessonTopics().Configure(x =>
             {

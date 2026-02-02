@@ -3,13 +3,13 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public static class MarkerConfigExtension
 {
     public static void AddMarkerServices(this IServiceCollection services)
     {
-        services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
+        MarkerConfigHelper.Register(services);
         services.AddLayeredConfig();
         TeacherLayerConfig.Register(services);
     }
@@ -38,6 +38,11 @@ public static class MarkerConfigExtension
 
     extension(ApplicationConfigBuilder b)
     {
+        public IEnumerable<(TeacherLayerConfig Config, LayerPath Path)> GetMarkerLayerPaths()
+        {
+            b.Defaults.GetLeafBuilders
+        }
+
         public IEnumerable<(TeacherLayerConfig Config, ApplicationConfigLayerBuilder Builder)> GetMarkerLayers()
         {
             // NOTE:
@@ -105,6 +110,13 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
         _builder = builder;
     }
 
+    public static void Register(IServiceCollection services)
+    {
+        services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
+        // Used as ambient context.
+        services.AddScoped<TeacherLayerConfig>();
+    }
+
     public override TeacherLayerConfig GetMarkerConfig(IServiceProvider sp)
     {
         var config = sp.GetRequiredService<TeacherLayerConfig>();
@@ -113,7 +125,8 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
 
     public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
     {
-        var path = _builder.BaseLayer
+        var path = _builder
+            .GetMarkerLayers()
             .GetPathsOfDescendantsOrSelf(x =>
             {
                 var c = x.GetConfig(TeacherLayerConfig.Key);

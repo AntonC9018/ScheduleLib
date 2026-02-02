@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class MoodleConfig : IConfig<MoodleConfig>, ICredentialsConfig
 {

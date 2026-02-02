@@ -5,6 +5,7 @@ using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
@@ -16,7 +17,7 @@ using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public static class Registration
 {

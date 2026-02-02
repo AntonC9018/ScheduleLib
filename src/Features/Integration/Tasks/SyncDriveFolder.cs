@@ -3,7 +3,7 @@ using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Options;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
 
 namespace ScheduleLib.Application.Core;

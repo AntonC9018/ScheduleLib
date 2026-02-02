@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class LessonAttendanceSource
 {

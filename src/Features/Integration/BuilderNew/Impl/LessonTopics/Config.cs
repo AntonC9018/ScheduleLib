@@ -2,7 +2,7 @@ using Anton.LayeredConfig;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core.Topics;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
 {

@@ -14,7 +14,7 @@ using Polly.Extensions.Http;
 using ScheduleLib.Helper;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class GoogleCredentialsConfig
 {
@@ -31,6 +31,9 @@ public sealed class GoogleCredentialsConfig
             .SetImmutable();
         hierarchy
             .AddDerived<MarkedConfigurationApiKeysSource>()
+            .SetImmutable();
+        hierarchy
+            .AddDerived<GlobalConfigurationApiKeysSource>()
             .SetImmutable();
 
         services.RegisterBasicOperationsAndMergers<GoogleCredentialsConfig>();

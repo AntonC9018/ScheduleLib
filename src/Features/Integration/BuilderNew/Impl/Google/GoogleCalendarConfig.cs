@@ -2,7 +2,7 @@ using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 public sealed class GoogleCalendarConfig : IConfig<GoogleCalendarConfig>
 {

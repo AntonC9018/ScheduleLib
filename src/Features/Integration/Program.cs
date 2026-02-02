@@ -1,6 +1,6 @@
 using Anton.LayeredConfig;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Dates;
@@ -28,6 +28,7 @@ public static class AppConfiguration
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.BypassCache = true;
+            x.EnrichWithFullNames = false;
         });
     }
 

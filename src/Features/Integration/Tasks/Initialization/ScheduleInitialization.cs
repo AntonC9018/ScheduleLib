@@ -2,7 +2,7 @@ using System.Diagnostics;
 using AutoConstructor.Attributes;
 using Anton.LayeredConfig.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Application.Core.Config.Impl.Impl;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
 
 namespace ScheduleLib.Application.Core;

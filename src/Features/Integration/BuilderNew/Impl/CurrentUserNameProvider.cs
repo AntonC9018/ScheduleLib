@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Anton.LayeredConfig.Retrieval;
 using AutoConstructor.Attributes;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 [AutoConstructor]
 public sealed partial class CurrentUserNameProvider

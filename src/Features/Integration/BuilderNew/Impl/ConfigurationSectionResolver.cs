@@ -3,7 +3,7 @@ using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Scraping.Common.Config;
 
-namespace ScheduleLib.Application.Core.Config.Impl.Impl;
+namespace ScheduleLib.Application.Config;
 
 [AutoConstructor]
 public sealed partial class MarkedConfigurationSectionResolver : IMarkedConfigurationSectionResolver

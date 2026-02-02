@@ -10,19 +10,76 @@ public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
     public readonly MutableLayer Leaf => Path[^1];
 }
 
+public enum VisitorAction
+{
+    Recurse,
+    Skip,
+    StopAll,
+}
+
+public abstract class ILayerVisitorActor
+{
+    public virtual VisitorAction BeforeProcess(MutableLayer layer)
+    {
+        _ = layer;
+        return VisitorAction.Recurse;
+    }
+    public virtual void AfterProcess(MutableLayer layer)
+    {
+    }
+}
+
+public sealed class DefaultVisitorActor : ILayerVisitorActor
+{
+    public static readonly DefaultVisitorActor Instance = new();
+}
+
+public sealed class LayerVisitor
+{
+    private readonly ILayerVisitorActor _actor;
+
+    public LayerVisitor(ILayerVisitorActor actor)
+    {
+        _actor = actor;
+    }
+
+    public VisitorAction BeforeProcess(MutableLayer layer)
+    {
+        return _actor.BeforeProcess(layer);
+    }
+
+    public VisitorAction Visit(MutableLayer layer)
+    {
+        {
+            var result = BeforeProcess(layer);
+            if (result is VisitorAction.Skip or VisitorAction.StopAll)
+            {
+                return result;
+            }
+            Debug.Assert(result is VisitorAction.Recurse);
+        }
+
+        foreach (var x in layer.ChildLayers)
+        {
+            var result = Visit(x.Model);
+            if (result == VisitorAction.StopAll)
+            {
+                return VisitorAction.StopAll;
+            }
+        }
+
+        _actor.AfterProcess(layer);
+        return VisitorAction.Recurse;
+    }
+}
+
 public static class LayerQueries
 {
     extension (MutableLayer layer)
     {
         public IEnumerable<MutableLayer> GetDescendantsOrSelf()
         {
-            foreach (var child in layer._childLayers)
-            {
-                foreach (var x in child.Model.GetDescendantsOrSelf())
-                {
-                    yield return x;
-                }
-            }
+
         }
 
         public IEnumerable<MutableLayer> GetDescendantsOrSelf(
