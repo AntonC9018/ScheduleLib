@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredConfig.TreeEnumeration.Infrastructure;
 
 public enum VisitorAction
 {
@@ -18,128 +18,19 @@ public enum VisitorState
     AfterProcess,
 }
 
-
-public struct ConsumerWrappedLayerEnumerator<TEnumerator, TConsumer> : ILayerStateEnumerator
-    where TConsumer : ILayerStateEnumerationConsumer
-    where TEnumerator : ILayerStateEnumerator
+public readonly struct LayerStateEnumerable : ILayerStateEnumerable
 {
-    // Making this a struct is way too complicated, impossible to maintain.
-    private readonly TConsumer _consumer;
-    public TEnumerator InnerE;
+    private readonly MutableLayer _root;
 
-    public ConsumerWrappedLayerEnumerator(
-        TEnumerator innerE,
-        TConsumer consumer)
+    public LayerStateEnumerable(MutableLayer root)
     {
-        _consumer = consumer;
-        InnerE = innerE;
+        _root = root;
     }
 
-    public bool MoveNext()
-    {
-        if (InnerE.MoveNext())
-        {
-            _consumer.Consume(Current);
-            return true;
-        }
-        return false;
-    }
-
-    public void Reset() => InnerE.MoveNext();
-    public LayerStateEnumerator.Value Current => InnerE.Current;
-    object? IEnumerator.Current => InnerE.Current;
-    public void Dispose() => InnerE.Dispose();
-    public VisitorAction Action
-    {
-        get => InnerE.Action;
-        set => InnerE.Action = value;
-    }
-}
-
-public interface ILayerStateEnumerationConsumer
-{
-    void Consume(LayerStateEnumerator.Value value);
-}
-
-public interface ILayerStateEnumerator : IEnumerator<LayerStateEnumerator.Value>
-{
-    VisitorAction Action { get; set; }
-}
-
-public readonly struct ActionConsumer(Action<LayerStateEnumerator.Value> action) : ILayerStateEnumerationConsumer
-{
-    public void Consume(LayerStateEnumerator.Value value) => action(value);
-}
-
-public struct WrappedClassLayerEnumerator<T> : ILayerStateEnumerator
-    where T : ILayerStateEnumerator
-{
-    private T _value;
-    public WrappedClassLayerEnumerator(T value)
-    {
-        _value = value;
-    }
-
-    public void Dispose() => _value.Dispose();
-    public bool MoveNext() => _value.MoveNext();
-    public void Reset() => _value.Reset();
-    LayerStateEnumerator.Value IEnumerator<LayerStateEnumerator.Value>.Current => _value.Current;
-    object? IEnumerator.Current => _value.Current;
-    public VisitorAction Action
-    {
-        get => _value.Action;
-        set => _value.Action = value;
-    }
-}
-
-public static class LayerStateEnumeratorClassExtensions
-{
-    extension<T>(T e) where T : class, ILayerStateEnumerator
-    {
-        public WrappedClassLayerEnumerator<T> WrapAsStruct() => new(e);
-
-        public bool SkipCurrentChildren()
-        {
-            var s = e.WrapAsStruct();
-            return s.SkipCurrentChildren();
-        }
-    }
-}
-public static class LayerStateEnumeratorExtensions
-{
-    extension<T>(ref T e) where T : struct, ILayerStateEnumerator
-    {
-        public bool SkipCurrentChildren()
-        {
-            // Maybe do this better.
-            e.Action = VisitorAction.KeepPreventingRecursion;
-            while (e.MoveNext())
-            {
-                if (e.Current.State == VisitorState.AfterProcess)
-                {
-                    e.Action = VisitorAction.Recurse;
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-}
-
-public static class LayerStateEnumeratorBuilderExtensions
-{
-    extension<T>(T e) where T : ILayerStateEnumerator
-    {
-        public ConsumerWrappedLayerEnumerator<T, TConsumer> WithConsumer<TConsumer>(TConsumer consumer)
-            where TConsumer : ILayerStateEnumerationConsumer
-        {
-            return new(e, consumer);
-        }
-        public ConsumerWrappedLayerEnumerator<T, ActionConsumer> WithConsumer(Action<LayerStateEnumerator.Value> action)
-        {
-            return new(e, new(action));
-        }
-    }
+    public LayerStateEnumerator GetEnumerator() => new(_root);
+    ILayerStateEnumerator ILayerStateEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator<LayerStateEnumerator.Value> IEnumerable<LayerStateEnumerator.Value>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 public struct LayerStateEnumerator() : ILayerStateEnumerator
@@ -289,4 +180,15 @@ public struct LayerStateEnumerator() : ILayerStateEnumerator
     }
 
     object? IEnumerator.Current => Current;
+}
+
+public interface ILayerStateEnumerator :
+    IEnumerator<LayerStateEnumerator.Value>
+{
+    VisitorAction Action { get; set; }
+}
+
+public interface ILayerStateEnumerable : IEnumerable<LayerStateEnumerator.Value>
+{
+    new ILayerStateEnumerator GetEnumerator();
 }

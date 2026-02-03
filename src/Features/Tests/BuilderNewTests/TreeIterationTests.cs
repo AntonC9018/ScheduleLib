@@ -1,8 +1,10 @@
+using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+
 namespace Anton.LayeredConfig.Tests;
 
 public sealed class TreeIterationTests
 {
-    private sealed class RecorderConsumer : ILayerStateEnumerationConsumer
+    private sealed class RecorderContext : ILayerStateEnumerationContext
     {
         public readonly List<VisitRecord> Records = new();
 
@@ -109,20 +111,18 @@ public sealed class TreeIterationTests
         var child2 = CreateLayer("Child2");
         var root = CreateLayer("Root", child1, child2);
 
-        var recorder = new RecorderConsumer();
-        var enumerator = new LayerStateEnumerator(root)
-            .WithConsumer(recorder);
+        var recorder = new RecorderContext();
+        var enumerator = new LayerStateEnumerable(root)
+            .AsSingleUse(out var controller)
+            .WithContext(() => recorder);
 
         // Act
-        while (enumerator.MoveNext())
+        foreach (var x in enumerator)
         {
-            var current = enumerator.Current;
-
             // Skip children when we process Root
-            if (current.LayerName == "Root"
-                && current.State == VisitorState.Process)
+            if (x.LayerName == "Root" && x.State == VisitorState.Process)
             {
-                enumerator.Action = VisitorAction.PreventRecursionOnce;
+                controller.Action = VisitorAction.PreventRecursionOnce;
             }
         }
 
@@ -145,17 +145,18 @@ public sealed class TreeIterationTests
                 CreateLayer("GrandChild")),
             CreateLayer("Child2"));
 
-        var recorder = new RecorderConsumer();
-        var enumerator = new LayerStateEnumerator(root)
-            .WithConsumer(recorder);
+        var recorder = new RecorderContext();
+        var enumerable = new LayerStateEnumerable(root)
+            .AsSingleUse(out var controller)
+            .WithContext(() => recorder);
+
 
         // Act
-        while (enumerator.MoveNext())
+        foreach (var x in enumerable)
         {
-            var current = enumerator.Current;
-            if (current.LayerName == "Child1" && current.State == VisitorState.BeforeProcess)
+            if (x.LayerName == "Child1" && x.State == VisitorState.BeforeProcess)
             {
-                enumerator.Action = VisitorAction.KeepPreventingRecursion;
+                controller.Action = VisitorAction.KeepPreventingRecursion;
             }
         }
 
@@ -165,82 +166,6 @@ public sealed class TreeIterationTests
             new("Root", VisitorState.BeforeProcess),
             new("Root", VisitorState.Process),
             new("Child1", VisitorState.BeforeProcess),
-            new("Root", VisitorState.AfterProcess),
-        };
-        Assert.Equal(expected, recorder.Records);
-    }
-
-    [Fact]
-    public void SkipCurrentChildren_SkipsChildrenAndReturnsToAfterProcess()
-    {
-        // Arrange
-        var grandChild = CreateLayer("GrandChild");
-        var child1 = CreateLayer("Child1", grandChild);
-        var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
-        var recorder = new RecorderConsumer();
-        var enumerator = new LayerStateEnumerator(root)
-            .WithConsumer(recorder);
-
-        // Act
-        while (enumerator.MoveNext())
-        {
-            var current = enumerator.Current;
-
-            // Skip children of Child1
-            if (current.LayerName == "Child1" && current.State == VisitorState.Process)
-            {
-                enumerator.SkipCurrentChildren();
-            }
-        }
-
-        // Assert
-        var expected = new VisitRecord[]
-        {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
-            new("Child1", VisitorState.BeforeProcess),
-            new("Child1", VisitorState.Process),
-            new("Child1", VisitorState.AfterProcess),
-            new("Child2", VisitorState.BeforeProcess),
-            new("Child2", VisitorState.Process),
-            new("Child2", VisitorState.AfterProcess),
-            new("Root", VisitorState.AfterProcess),
-        };
-        Assert.Equal(expected, recorder.Records);
-
-        // Verify GrandChild was not visited
-        var layerNames = recorder.Records.Select(s => s.LayerName).ToList();
-        Assert.DoesNotContain("GrandChild", layerNames);
-    }
-
-    [Fact]
-    public void SkipCurrentChildren_AtRoot_SkipsAllChildren()
-    {
-        // Arrange
-        var child1 = CreateLayer("Child1");
-        var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
-        var recorder = new RecorderConsumer();
-        var enumerator = new LayerStateEnumerator(root)
-            .WithConsumer(recorder);
-
-        // Act
-        while (enumerator.MoveNext())
-        {
-            var current = enumerator.Current;
-
-            if (current.LayerName == "Root" && current.State == VisitorState.Process)
-            {
-                enumerator.SkipCurrentChildren();
-            }
-        }
-
-        // Assert
-        var expected = new VisitRecord[]
-        {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
             new("Root", VisitorState.AfterProcess),
         };
         Assert.Equal(expected, recorder.Records);
@@ -328,8 +253,8 @@ public sealed class TreeIterationTests
 
     private List<VisitRecord> CollectStates(LayerStateEnumerator enumerator)
     {
-        var recorder = new RecorderConsumer();
-        var wrapped = enumerator.WithConsumer(recorder);
+        var recorder = new RecorderContext();
+        var wrapped = enumerator.WithContext(recorder);
         while (wrapped.MoveNext())
         {
         }

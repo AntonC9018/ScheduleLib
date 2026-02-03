@@ -1,131 +1,65 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
+using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib;
 
 namespace Anton.LayeredConfig;
 
-public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
-{
-    public readonly MutableLayer Root => Path[0];
-    public readonly MutableLayer Leaf => Path[^1];
-}
 
 public static class LayerQueries
 {
-    public readonly struct LayerPathConsumer() : ILayerStateEnumerationConsumer
-    {
-        public readonly ImmutableArray<MutableLayer>.Builder Builder = ImmutableArray.CreateBuilder<MutableLayer>();
-
-        public void Consume(LayerStateEnumerator.Value value)
-        {
-            switch (value.State)
-            {
-                case VisitorState.Process:
-                {
-                    Builder.Add(value.Layer);
-                    break;
-                }
-                case VisitorState.AfterProcess:
-                {
-                    Builder.Count--;
-                    break;
-                }
-            }
-        }
-
-        public LayerPath Path() => new(Builder.ToImmutable());
-    }
-
     extension (MutableLayer layer)
     {
+        public ILayerStateEnumerable Dfs()
+        {
+            return new LayerStateEnumerable(layer);
+        }
+
         public IEnumerable<MutableLayer> GetDescendantsOrSelf()
         {
-            var e = new LayerStateEnumerator();
-            while (e.MoveNext())
-            {
-                var c = e.Current;
-                if (c.State == VisitorState.Process)
-                {
-                    yield return c.Layer;
-                }
-            }
+            return layer.Dfs().Process();
         }
 
-        public IEnumerable<LayerPath> GetPathsOfDescendantsOrSelf(
-            Func<MutableLayer, bool> isMatch)
-        {
-            var layerPath = new LayerPathConsumer();
-            var e = new LayerStateEnumerator()
-                .WithConsumer(layerPath);
-            while (e.MoveNext())
-            {
-                var c = e.Current;
-                if (c.State == VisitorState.Process
-                    && isMatch(e.Current.Layer))
-                {
-                    yield return layerPath.Path();
-                }
-            }
-        }
-
-        public IEnumerable<LayerPath> GetLeafLayerPaths()
-        {
-            var layerPath = new LayerPathConsumer();
-            var e = new LayerStateEnumerator()
-                .WithConsumer(layerPath);
-            while (e.MoveNext())
-            {
-                var c = e.Current;
-                if (c.State == VisitorState.Process
-                    && c.Layer.ChildLayers.Count == 0)
-                {
-                    yield return layerPath.Path();
-                }
-            }
-        }
-
-        public IEnumerable<NamedLayer> GetLeafLayers()
+        public IEnumerable<MutableLayer> GetLeafLayers()
         {
             Debug.Assert(layer.ChildLayers.Count != 0);
-            foreach (var x in layer.ChildLayers)
-            {
-                foreach (var ch in Helper(x))
-                {
-                    yield return ch;
-                }
-            }
+            return layer
+                .Dfs()
+                .Process()
+                .Where(x => x.ChildLayers.Count != 0);
+        }
 
-            IEnumerable<NamedLayer> Helper(NamedLayer layer)
+        public bool IsLeaf()
+        {
+            return layer.ChildLayers.Count == 0;
+        }
+
+        public T? GetConfigValue<T>(LayerConfigKey<T> key) where T : class
+        {
+            var t = layer.GetConfig(key);
+            if (!t.Exists)
             {
-                var children = layer.Model.ChildLayers;
-                if (children.Count == 0)
-                {
-                    yield return layer;
-                }
-                foreach (var ch in children)
-                {
-                    foreach (var x in Helper(ch))
-                    {
-                        yield return x;
-                    }
-                }
+                return null;
             }
+            if (t.Value.GetValue() is { } val)
+            {
+                return val;
+            }
+            return null;
         }
 
         public IEnumerable<(LayerPath Path, T Config)> GetConfigs<T>(
             LayerConfigKey<T> key)
             where T : class
         {
-            var ret = layer.GetPathsOfDescendantsOrSelf(x => x.GetConfig(key).Exists);
-            foreach (var path in ret)
-            {
-                var last = path.Path[^1];
-                var config = last.GetConfig(key).Value;
-                if (config.GetValue() is { } val)
-                {
-                    yield return (path, val);
-                }
-            }
+            return layer.Dfs()
+                .AsSingleUse()
+                .AddLayerPath(out var layerPath)
+                .Process()
+                .Where(x => x.IsLeaf())
+                .Select(x => x.GetConfigValue(key))
+                .WhereNotNull()
+                .Select(x => (layerPath.Path(), x));
         }
     }
 
@@ -136,7 +70,7 @@ public static class LayerQueries
             var leafs = builder.Layer.GetLeafLayers();
             foreach (var leaf in leafs)
             {
-                yield return new(leaf.Model, builder.SingletonServiceProvider);
+                yield return new(leaf, builder.SingletonServiceProvider);
             }
         }
     }
@@ -183,5 +117,4 @@ public static class LayerQueries
         }
         return current;
     }
-
 }

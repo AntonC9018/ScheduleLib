@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Anton.LayeredConfig;
 using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Application.Config;
@@ -48,7 +49,8 @@ public static class MarkerConfigExtension
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
             // But we only consider the last such layers.
-            return b.Defaults.GetLeafBuilders()
+            return b.Defaults
+                .GetLeafBuilders()
                 .Select(x =>
                 {
                     var config = x.Layer.GetConfig(TeacherLayerConfig.Key);
@@ -125,9 +127,13 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
 
     public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
     {
-        var path = _builder
-            .BaseLayer
-            .GetPathsOfDescendantsOrSelf(x =>
+        var layer = _builder.BaseLayer
+            .Dfs()
+            .AsSingleUse()
+            .AddLayerPath(out var layerPath)
+            .Process()
+            .Where(x => x.IsLeaf())
+            .Where(x =>
             {
                 var c = x.GetConfig(TeacherLayerConfig.Key);
                 if (!c.Exists)
@@ -137,15 +143,11 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
                 return CheckEquality(c.Value.GetValue(), config);
             })
             .FirstOrDefault();
-        if (path == default)
+        if (layer == null)
         {
             return null;
         }
-        if (path.Path[^1].ChildLayers.Count != 0)
-        {
-            Debug.Fail("Not terminal layer.");
-        }
-        return path;
+        return layerPath.Path();
 
         static bool CheckEquality(TeacherLayerConfig? existing, TeacherLayerConfig scoped)
         {

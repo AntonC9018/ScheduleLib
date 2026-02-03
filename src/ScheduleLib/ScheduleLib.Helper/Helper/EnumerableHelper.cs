@@ -5,6 +5,17 @@ namespace ScheduleLib;
 
 public readonly record struct Indexed<T>(int Index, T Item);
 
+public static class EnumerableExtensionsClass
+{
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source)
+        where T : class
+    {
+        return source
+            .Where(x => x != null)
+            .Select(x => x!);
+    }
+}
+
 public static class EnumerableExtensions
 {
     public static IEnumerable<T> WhereNotDefault<T>(this IEnumerable<T> source)
