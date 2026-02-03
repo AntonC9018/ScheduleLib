@@ -40,7 +40,7 @@ public static class MarkerConfigExtension
     {
         public IEnumerable<(TeacherLayerConfig Config, LayerPath Path)> GetMarkerLayerPaths()
         {
-            b.Defaults.GetLeafBuilders
+            yield break;
         }
 
         public IEnumerable<(TeacherLayerConfig Config, ApplicationConfigLayerBuilder Builder)> GetMarkerLayers()
@@ -126,7 +126,7 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
     public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
     {
         var path = _builder
-            .GetMarkerLayers()
+            .BaseLayer
             .GetPathsOfDescendantsOrSelf(x =>
             {
                 var c = x.GetConfig(TeacherLayerConfig.Key);

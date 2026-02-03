@@ -10,90 +10,43 @@ public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
     public readonly MutableLayer Leaf => Path[^1];
 }
 
-public enum VisitorAction
-{
-    Recurse,
-    Skip,
-    StopAll,
-}
-
-public abstract class ILayerVisitorActor
-{
-    public virtual VisitorAction BeforeProcess(MutableLayer layer)
-    {
-        _ = layer;
-        return VisitorAction.Recurse;
-    }
-    public virtual void AfterProcess(MutableLayer layer)
-    {
-    }
-}
-
-public sealed class DefaultVisitorActor : ILayerVisitorActor
-{
-    public static readonly DefaultVisitorActor Instance = new();
-}
-
-public sealed class LayerVisitor
-{
-    private readonly ILayerVisitorActor _actor;
-
-    public LayerVisitor(ILayerVisitorActor actor)
-    {
-        _actor = actor;
-    }
-
-    public VisitorAction BeforeProcess(MutableLayer layer)
-    {
-        return _actor.BeforeProcess(layer);
-    }
-
-    public VisitorAction Visit(MutableLayer layer)
-    {
-        {
-            var result = BeforeProcess(layer);
-            if (result is VisitorAction.Skip or VisitorAction.StopAll)
-            {
-                return result;
-            }
-            Debug.Assert(result is VisitorAction.Recurse);
-        }
-
-        foreach (var x in layer.ChildLayers)
-        {
-            var result = Visit(x.Model);
-            if (result == VisitorAction.StopAll)
-            {
-                return VisitorAction.StopAll;
-            }
-        }
-
-        _actor.AfterProcess(layer);
-        return VisitorAction.Recurse;
-    }
-}
-
 public static class LayerQueries
 {
+    public readonly struct LayerPathConsumer() : ILayerStateEnumerationConsumer
+    {
+        public readonly ImmutableArray<MutableLayer>.Builder Builder = ImmutableArray.CreateBuilder<MutableLayer>();
+
+        public void Consume(LayerStateEnumerator.Value value)
+        {
+            switch (value.State)
+            {
+                case VisitorState.Process:
+                {
+                    Builder.Add(value.Layer);
+                    break;
+                }
+                case VisitorState.AfterProcess:
+                {
+                    Builder.Count--;
+                    break;
+                }
+            }
+        }
+
+        public LayerPath Path() => new(Builder.ToImmutable());
+    }
+
     extension (MutableLayer layer)
     {
         public IEnumerable<MutableLayer> GetDescendantsOrSelf()
         {
-
-        }
-
-        public IEnumerable<MutableLayer> GetDescendantsOrSelf(
-            Func<MutableLayer, bool> isMatch)
-        {
-            if (isMatch(layer))
+            var e = new LayerStateEnumerator();
+            while (e.MoveNext())
             {
-                yield return layer;
-            }
-            foreach (var child in layer._childLayers)
-            {
-                foreach (var x in child.Model.GetDescendantsOrSelf(isMatch))
+                var c = e.Current;
+                if (c.State == VisitorState.Process)
                 {
-                    yield return x;
+                    yield return c.Layer;
                 }
             }
         }
@@ -101,48 +54,33 @@ public static class LayerQueries
         public IEnumerable<LayerPath> GetPathsOfDescendantsOrSelf(
             Func<MutableLayer, bool> isMatch)
         {
-            var builder = ImmutableArray.CreateBuilder<MutableLayer>();
-            return Helper(layer);
-
-            IEnumerable<LayerPath> Helper(MutableLayer layer)
+            var layerPath = new LayerPathConsumer();
+            var e = new LayerStateEnumerator()
+                .WithConsumer(layerPath);
+            while (e.MoveNext())
             {
-                builder.Add(layer);
-                if (isMatch(layer))
+                var c = e.Current;
+                if (c.State == VisitorState.Process
+                    && isMatch(e.Current.Layer))
                 {
-                    yield return new(builder.ToImmutable());
+                    yield return layerPath.Path();
                 }
-                foreach (var child in layer._childLayers)
-                {
-                    foreach (var x in Helper(child.Model))
-                    {
-                        yield return x;
-                    }
-                }
-                builder.Count--;
             }
         }
 
         public IEnumerable<LayerPath> GetLeafLayerPaths()
         {
-            var builder = ImmutableArray.CreateBuilder<MutableLayer>();
-            return Helper(layer);
-
-            IEnumerable<LayerPath> Helper(MutableLayer layer)
+            var layerPath = new LayerPathConsumer();
+            var e = new LayerStateEnumerator()
+                .WithConsumer(layerPath);
+            while (e.MoveNext())
             {
-                builder.Add(layer);
-                var children = layer.ChildLayers;
-                if (children.Count == 0)
+                var c = e.Current;
+                if (c.State == VisitorState.Process
+                    && c.Layer.ChildLayers.Count == 0)
                 {
-                    yield return new(builder.ToImmutableArray());
+                    yield return layerPath.Path();
                 }
-                foreach (var ch in children)
-                {
-                    foreach (var x in Helper(ch.Model))
-                    {
-                        yield return x;
-                    }
-                }
-                builder.Count--;
             }
         }
 
