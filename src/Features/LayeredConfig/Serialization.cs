@@ -79,19 +79,23 @@ public sealed class ConfigSerializationHelper
         _jsonSerializerOptions = jsonSerializerOptions.Get(ServiceKey);
     }
 
+    private const string LayerNameName = "$LayerName";
+
     public async Task SerializeValues(
         IEnumerable<MutableLayer> layers,
         Stream output,
         bool serializeLayerName = true)
     {
-        await using var writer = new Utf8JsonWriter(output);
+        await using var writer = new Utf8JsonWriter(
+            output,
+            _jsonSerializerOptions.ToWriterOptions());
         writer.WriteStartArray();
         foreach (var layer in layers)
         {
             writer.WriteStartObject();
             if (serializeLayerName)
             {
-                writer.WritePropertyName("LayerName");
+                writer.WritePropertyName(LayerNameName);
                 writer.WriteStringValue(layer.Name.Value);
             }
             foreach (var config in layer.Configs)
@@ -156,7 +160,7 @@ public sealed class ConfigSerializationHelper
 
                 string propertyName = reader.GetString()!;
 
-                if (propertyName == "LayerName")
+                if (propertyName == LayerNameName)
                 {
                     reader.Read();
                     layerName = new LayerName(reader.GetString()!);
@@ -198,7 +202,16 @@ public sealed class ConfigSerializationHelper
     private static void SetValue<T>(SetValueArgs args)
         where T : class
     {
-        args.Layer.Layer.GetOrAddConfig<T>(new(args.Key)).SetValue((T) args.Value);
+        var conf = args.Layer.Layer.GetOrAddConfig<T>(new(args.Key));
+        var value = conf.GetValue();
+        if (value == null)
+        {
+            conf.SetValue((T) args.Value);
+            return;
+        }
+        var merger = args.Layer.SingletonServiceProvider.GetRequiredService<IMerger<T>>();
+        var ret = merger.Merge(from: (T) args.Value, into: value);
+        conf.SetValue(ret);
     }
 }
 
@@ -209,5 +222,21 @@ public static class SerializationExtensions
         Action<JsonSerializerOptions> configure)
     {
         services.Configure(ConfigSerializationHelper.ServiceKey, configure);
+    }
+}
+
+public static class JsonSerializationOptionsExtensions
+{
+    public static JsonWriterOptions ToWriterOptions(this JsonSerializerOptions opts)
+    {
+        return new()
+        {
+            Encoder = opts.Encoder,
+            IndentCharacter = opts.IndentCharacter,
+            Indented = opts.WriteIndented,
+            IndentSize = opts.IndentSize,
+            MaxDepth = opts.MaxDepth,
+            NewLine = opts.NewLine,
+        };
     }
 }

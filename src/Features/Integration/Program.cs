@@ -30,6 +30,10 @@ public static class AppConfiguration
             x.BypassCache = true;
             x.EnrichWithFullNames = false;
         });
+        services.ConfigureConfigJsonSerialization(x =>
+        {
+            x.WriteIndented = true;
+        });
     }
 
     public static ServiceProvider BuildServiceProvider(IServiceCollection services)

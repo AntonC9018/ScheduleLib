@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredConfig;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScheduleLib.Application.Config;
@@ -14,6 +15,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ApplicationConfigBuilder _configBuilder;
     private readonly ConfigSerializationHelper _serializationHelper;
 
+#pragma warning disable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
     public MainWindowViewModel(
         ApplicationConfigBuilder configBuilder,
         ConfigSerializationHelper serializationHelper)
@@ -111,6 +113,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return false;
         }
     }
+
     [RelayCommand(CanExecute = nameof(CanRemoveSelectedUser))]
     public void RemoveSelectedUser()
     {
@@ -120,13 +123,10 @@ public partial class MainWindowViewModel : ViewModelBase
             Debug.Fail("Cannot remove this layer");
             return;
         }
-        var marker = selectedUser.Marker;
-        UiLayerHelper.MaybeRemoveLayer(selectedUser.Leaf.Layer, _configBuilder);
-        ResetUserLayers();
-        SelectedUserLayer = UserLayers
-            .Where(x => x is WrappedLayer w
-                && EqualityComparer<TeacherLayerConfig>.Default.Equals(w.Marker, marker))
-            .FirstOrDefault(NoUser);
+        ExecTreeAction(() =>
+        {
+            UiLayerHelper.MaybeRemoveLayer(selectedUser.Leaf.Layer, _configBuilder);
+        });
     }
 
     public bool CanEnableSelectedUser
@@ -157,151 +157,66 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             return;
         }
-        var newLayer = user.MaybeInitUiLayer();
-        ResetUserLayers();
-        SelectedUserLayer = newLayer;
+        ExecTreeAction(() =>
+        {
+            user.MaybeInitUiLayer();
+        });
         LayerLevel = LayerLevel.UiUser;
     }
 
     [RelayCommand]
     public async Task SerializeUiLayers()
     {
-        await using var output = File.OpenWrite("ui-layers.json");
-        await _serializationHelper.SerializeUiLayers(output, _configBuilder);
-        ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
-
-        ResetUserLayers();
+        await ExecTreeAction(async () =>
+        {
+            await using var output = File.OpenWrite("ui-layers.json");
+            await _serializationHelper.SerializeUiLayers(output, _configBuilder);
+            ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
+        });
     }
     [RelayCommand]
     public async Task DeserializeUiLayers()
     {
-        await using var output = File.OpenRead("ui-layers.json");
-        await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
-    }
-}
-
-internal static class UiLayerHelper
-{
-    public static readonly LayerName UiTeacherLayer = LayerName.Create("User-UI");
-
-    public static bool IsUiLayer(this MutableLayer layer)
-    {
-        return layer.Name == UiTeacherLayer;
-    }
-
-    public static IEnumerable<ApplicationConfigLayerBuilder> GetUiLayers(
-        this ApplicationConfigBuilder builder)
-    {
-        foreach (var x in builder.GetMarkerLayers())
+        await ExecTreeAction(async () =>
         {
-            if (x.Builder.Layer.IsUiLayer())
-            {
-                yield return x.Builder;
-            }
-        }
-    }
-
-    extension(ApplicationConfigLayerBuilder builder)
-    {
-        public ApplicationConfigLayerBuilder CreateUiLayer()
-        {
-            Debug.Assert(!builder.Layer.IsUiLayer());
-            var b = builder.AddLayer(UiTeacherLayer);
-            b.Builder(TeacherLayerConfig.Key).Enable();
-            return b;
-        }
-
-        public ApplicationConfigLayerBuilder MaybeCreateUiLayer()
-        {
-            if (!builder.Layer.IsUiLayer())
-            {
-                return builder.CreateUiLayer();
-            }
-            return builder;
-        }
-
-        public ApplicationConfigLayerBuilder MaybeCreateUiLayer(TeacherLayerConfig config)
-        {
-            var b = MaybeCreateUiLayer(builder);
-            b.Builder(TeacherLayerConfig.Key).CopyValue(config);
-            return b;
-        }
-    }
-
-    public static void MaybeRemoveLayer(
-        MutableLayer layerToRemove,
-        ApplicationConfigBuilder root)
-    {
-        root.RemoveLayers(layer =>
-        {
-            if (ReferenceEquals(layerToRemove, layer))
-            {
-                return true;
-            }
-            return false;
-            // if (!layer.IsUiLayer())
-            // {
-            //     return false;
-            // }
-            // var config1 = layer.GetConfig(TeacherLayerConfig.Key);
-            // if (!config1.Exists)
-            // {
-            //     return false;
-            // }
-            // var value = config1.Value.GetValue();
-            // if (value is null)
-            // {
-            //     return false;
-            // }
-            // if (EqualityComparer<Name>.Default.Equals(value.TeacherName, name))
-            // {
-            //     return true;
-            // }
-            // return false;
+            await using var output = File.OpenRead("ui-layers.json");
+            await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
         });
     }
 
-    extension(ConfigSerializationHelper helper)
+    private void ExecTreeAction(Action change)
     {
-        public async Task SerializeUiLayers(
-            Stream output,
-            ApplicationConfigBuilder configRoot)
+        ExecTreeAction(() =>
         {
-            var uiLayers = configRoot.GetUiLayers().Select(x => x.Layer);
-            await helper.SerializeValues(uiLayers, output, serializeLayerName: false);
-            output.SetLength(output.Position);
+            change();
+            return ValueTask.CompletedTask;
+        }).EnsureCompletedSync();
+    }
+
+    private async ValueTask ExecTreeAction(Func<ValueTask> change)
+    {
+        TeacherLayerConfig? marker = null;
+        if (SelectedUserLayer is WrappedLayer selectedUser)
+        {
+            marker = selectedUser.Marker;
         }
+        await change();
+        await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
 
-        public async Task DeserializeUiLayers(
-            Stream output,
-            ApplicationConfigBuilder configRoot)
+        void Continue()
         {
-            await helper.DeserializeValues(
-                output,
-                (layerName, configs) =>
-                {
-                    {
-                        if (layerName is { } x && x != UiTeacherLayer)
-                        {
-                            throw new InvalidOperationException($"Expected a layer with name {UiTeacherLayer}");
-                        }
-                    }
-                    {
-                        var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
-                        var markerLayer = configRoot
-                            .GetMarkerLayers()
-                            .FirstOrDefault(x => x.Config.Equals(marker))
-                            .Builder;
-
-                        if (markerLayer.IsNull)
-                        {
-                            markerLayer = configRoot.Defaults;
-                        }
-
-                        var ret = markerLayer.MaybeCreateUiLayer();
-                        return ret;
-                    }
-                });
+            ResetUserLayers();
+            if (marker != null)
+            {
+                SelectedUserLayer = UserLayers
+                    .Where(x => x is WrappedLayer w
+                        && EqualityComparer<TeacherLayerConfig>.Default.Equals(w.Marker, marker))
+                    .FirstOrDefault(NoUser);
+            }
+            else
+            {
+                SelectedUserLayer = NoUser;
+            }
         }
     }
 }
@@ -317,7 +232,7 @@ public sealed record class WrappedLayer
     public TeacherLayerConfig Marker => Leaf.Layer.GetConfig(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Layer.IsUiLayer();
-    public WrappedLayer MaybeInitUiLayer() => new(Leaf.MaybeCreateUiLayer(Marker));
+    public void MaybeInitUiLayer() => Leaf.MaybeCreateUiLayer(Marker);
     public override string ToString() => Name.ToString();
 }
 

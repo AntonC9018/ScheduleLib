@@ -77,8 +77,12 @@ public record struct NameFields
 
         void AppendName(NameParts<string?> parts)
         {
+            if (parts == default)
+            {
+                return;
+            }
             spacesB.MaybeAppendSeparator();
-            spacesB = new(ret, " ");
+            spacesB = spacesB.ResetBuilder;
 
             var list = new ListStringBuilder(ret, "-");
             foreach (var x in parts)
@@ -140,9 +144,11 @@ public sealed record Name
         AssertValid();
     }
 
+    [Conditional("DEBUG")]
     private static void AssertValid(NameParts<string?> p)
     {
         Debug.Assert(p.All(x => x != ""));
+        Debug.Assert(p.All(x => x.Count(' ') == 0));
     }
 
     internal void AssertValid()

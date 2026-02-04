@@ -70,21 +70,16 @@ public static class MarkerConfigExtension
             var deletionList = b.BaseLayer
                 .Dfs(x => x.AddParent())
                 .SkipLayers(1)
+                .SelectWithState(DfsVisitationState.BeforeProcess)
+                .Where(x => pred(x.Layer))
                 .Select(c =>
                 {
-                    if (c.State != DfsVisitationState.BeforeProcess)
-                    {
-                        return default;
-                    }
-                    if (!pred(c.Layer))
-                    {
-                        c.Controller.Action = DfsAction.PreventRecursionOnce;
-                        var parent = c.Get(ParentContext.Key).Parent;
-                        Debug.Assert(parent != null);
-                        return (Parent: parent, Node: c.Layer);
-                    }
-                    return default;
+                    c.Controller.Action = DfsAction.PreventRecursionOnce;
+                    var parent = c.Get(ParentContext.Key).Parent;
+                    Debug.Assert(parent != null);
+                    return (Parent: parent, Node: c.Layer);
                 })
+                .WhereNotDefault()
                 .ToList();
             foreach (var x in deletionList)
             {

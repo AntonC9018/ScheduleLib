@@ -41,6 +41,8 @@ public readonly struct ListStringBuilder(
     private readonly int _initialCount = sb.Length;
     public StringBuilder StringBuilder => sb;
 
+    public ListStringBuilder ResetBuilder => new(sb, separator);
+
     public void MaybeAppendSeparator()
     {
         if (sb.Length <= _initialCount)
