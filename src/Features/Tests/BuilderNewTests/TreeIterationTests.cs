@@ -4,16 +4,6 @@ namespace Anton.LayeredConfig.Tests;
 
 public sealed class TreeIterationTests
 {
-    private sealed class RecorderContext : ILayerStateEnumerationContext
-    {
-        public readonly List<VisitRecord> Records = new();
-
-        public void Consume(LayerStateEnumerator.Value v)
-        {
-            Records.Add(new(v.LayerName, v.State));
-        }
-    }
-
     [Fact]
     public void MoveNext_SingleLayer_VisitsAllStates()
     {
@@ -25,10 +15,10 @@ public sealed class TreeIterationTests
 
         // Assert
         Assert.Collection(states,
-            s1 => Assert.Equal(S(VisitorState.BeforeProcess), s1),
-            s2 => Assert.Equal(S(VisitorState.Process), s2),
-            s3 => Assert.Equal(S(VisitorState.AfterProcess), s3));
-        VisitRecord S(VisitorState state) => new("Root", state);
+            s1 => Assert.Equal(S(DfsVisitationState.BeforeProcess), s1),
+            s2 => Assert.Equal(S(DfsVisitationState.Process), s2),
+            s3 => Assert.Equal(S(DfsVisitationState.AfterProcess), s3));
+        VisitRecord S(DfsVisitationState state) => new("Root", state);
     }
 
     [Fact]
@@ -45,15 +35,15 @@ public sealed class TreeIterationTests
         // Assert
         var expected = new VisitRecord[]
         {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
-            new("Child1", VisitorState.BeforeProcess),
-            new("Child1", VisitorState.Process),
-            new("Child1", VisitorState.AfterProcess),
-            new("Child2", VisitorState.BeforeProcess),
-            new("Child2", VisitorState.Process),
-            new("Child2", VisitorState.AfterProcess),
-            new("Root", VisitorState.AfterProcess),
+            new("Root", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.Process),
+            new("Child1", DfsVisitationState.BeforeProcess),
+            new("Child1", DfsVisitationState.Process),
+            new("Child1", DfsVisitationState.AfterProcess),
+            new("Child2", DfsVisitationState.BeforeProcess),
+            new("Child2", DfsVisitationState.Process),
+            new("Child2", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, states);
     }
@@ -73,34 +63,20 @@ public sealed class TreeIterationTests
         // Assert
         var expected = new VisitRecord[]
         {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
-            new("Child1", VisitorState.BeforeProcess),
-            new("Child1", VisitorState.Process),
-            new("GrandChild", VisitorState.BeforeProcess),
-            new("GrandChild", VisitorState.Process),
-            new("GrandChild", VisitorState.AfterProcess),
-            new("Child1", VisitorState.AfterProcess),
-            new("Child2", VisitorState.BeforeProcess),
-            new("Child2", VisitorState.Process),
-            new("Child2", VisitorState.AfterProcess),
-            new("Root", VisitorState.AfterProcess),
+            new("Root", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.Process),
+            new("Child1", DfsVisitationState.BeforeProcess),
+            new("Child1", DfsVisitationState.Process),
+            new("GrandChild", DfsVisitationState.BeforeProcess),
+            new("GrandChild", DfsVisitationState.Process),
+            new("GrandChild", DfsVisitationState.AfterProcess),
+            new("Child1", DfsVisitationState.AfterProcess),
+            new("Child2", DfsVisitationState.BeforeProcess),
+            new("Child2", DfsVisitationState.Process),
+            new("Child2", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, states);
-    }
-
-    [Fact]
-    public void MoveNext_EmptyStack_ReturnsFalse()
-    {
-        // Arrange
-        var root = CreateLayer("Root");
-        var enumerator = new LayerStateEnumerator(root);
-
-        // Act - Consume all items
-        while (enumerator.MoveNext()) { }
-
-        // Assert
-        Assert.False(enumerator.MoveNext());
     }
 
     [Fact]
@@ -111,27 +87,25 @@ public sealed class TreeIterationTests
         var child2 = CreateLayer("Child2");
         var root = CreateLayer("Root", child1, child2);
 
-        var recorder = new RecorderContext();
-        var enumerator = new LayerStateEnumerable(root)
-            .AsSingleUse(out var controller)
-            .WithContext(() => recorder);
+        var e = new DfsEnumerable(root)
+            .AddRecorder(out var recorder);
 
         // Act
-        foreach (var x in enumerator)
+        foreach (var x in e)
         {
             // Skip children when we process Root
-            if (x.LayerName == "Root" && x.State == VisitorState.Process)
+            if (x.LayerName == "Root" && x.State == DfsVisitationState.Process)
             {
-                controller.Action = VisitorAction.PreventRecursionOnce;
+                x.Controller.Action = DfsAction.PreventRecursionOnce;
             }
         }
 
         // Assert - Should skip to AfterProcess without visiting children
         var expected = new VisitRecord[]
         {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
-            new("Root", VisitorState.AfterProcess),
+            new("Root", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.Process),
+            new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, recorder.Records);
     }
@@ -145,57 +119,27 @@ public sealed class TreeIterationTests
                 CreateLayer("GrandChild")),
             CreateLayer("Child2"));
 
-        var recorder = new RecorderContext();
-        var enumerable = new LayerStateEnumerable(root)
-            .AsSingleUse(out var controller)
-            .WithContext(() => recorder);
-
+        var e = new DfsEnumerable(root)
+            .AddRecorder(out var recorder);
 
         // Act
-        foreach (var x in enumerable)
+        foreach (var x in e)
         {
-            if (x.LayerName == "Child1" && x.State == VisitorState.BeforeProcess)
+            if (x.LayerName == "Child1" && x.State == DfsVisitationState.BeforeProcess)
             {
-                controller.Action = VisitorAction.KeepPreventingRecursion;
+                x.Controller.Action = DfsAction.KeepPreventingRecursion;
             }
         }
 
         // Assert
         var expected = new VisitRecord[]
         {
-            new("Root", VisitorState.BeforeProcess),
-            new("Root", VisitorState.Process),
-            new("Child1", VisitorState.BeforeProcess),
-            new("Root", VisitorState.AfterProcess),
+            new("Root", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.Process),
+            new("Child1", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, recorder.Records);
-    }
-
-    [Fact]
-    public void Current_InitialState_HasStartState()
-    {
-        // Arrange
-        var root = CreateLayer("Root");
-        var enumerator = new LayerStateEnumerator(root);
-
-        // Assert
-        Assert.Equal(VisitorState.Start, enumerator.Current.State);
-    }
-
-    [Fact]
-    public void Current_AfterMoveNext_ReflectsCurrentFrame()
-    {
-        // Arrange
-        var root = CreateLayer("Root");
-        var enumerator = new LayerStateEnumerator(root);
-
-        // Act
-        enumerator.MoveNext();
-        var current = enumerator.Current;
-
-        // Assert
-        Assert.Equal("Root", current.LayerName);
-        Assert.Equal(VisitorState.BeforeProcess, current.State);
     }
 
     [Fact]
@@ -206,14 +150,13 @@ public sealed class TreeIterationTests
             .Select(i => CreateLayer($"Child{i}"))
             .ToArray();
         var root = CreateLayer("Root", children);
-        var enumerator = new LayerStateEnumerator(root);
+        var enumerable = new DfsEnumerable(root);
 
         // Act
         var visitedLayers = new HashSet<string>();
-        while (enumerator.MoveNext())
+        foreach (var x in enumerable)
         {
-            var current = enumerator.Current;
-            visitedLayers.Add(current.LayerName);
+            visitedLayers.Add(x.LayerName);
         }
 
         // Assert
@@ -229,7 +172,7 @@ public sealed class TreeIterationTests
     {
         // Arrange
         var leaf = CreateLayer("Leaf");
-        var enumerator = new LayerStateEnumerator(leaf);
+        using var enumerator = new DfsEnumerator(leaf, new([]));
 
         // Act
         enumerator.MoveNext(); // BeforeProcess
@@ -238,7 +181,7 @@ public sealed class TreeIterationTests
 
         // Assert
         Assert.True(result);
-        Assert.Equal(VisitorState.AfterProcess, enumerator.Current.State);
+        Assert.Equal(DfsVisitationState.AfterProcess, enumerator.Current.State);
     }
 
     private MutableLayer CreateLayer(string name, params ReadOnlySpan<MutableLayer> children)
@@ -251,23 +194,41 @@ public sealed class TreeIterationTests
         return layer;
     }
 
-    private List<VisitRecord> CollectStates(LayerStateEnumerator enumerator)
+    private List<VisitRecord> CollectStates(DfsEnumerable e)
     {
-        var recorder = new RecorderContext();
-        var wrapped = enumerator.WithContext(recorder);
-        while (wrapped.MoveNext())
-        {
-        }
-        return recorder.Records;
+        var x = e.AddContext(RecorderContext.Key, () => new()).Last();
+        return x.Get(RecorderContext.Key).Records;
     }
-
-    private readonly record struct VisitRecord(string LayerName, VisitorState State);
 }
 
 file static class Helper
 {
-    extension (LayerStateEnumerator.Value val)
+    extension (in DfsEnumerationContext val)
     {
         public string LayerName => val.Layer.Name.Value;
     }
+    extension (DfsEnumerable c)
+    {
+        public DfsEnumerable AddRecorder(out RecorderContext recorder)
+        {
+            recorder = new RecorderContext();
+            SingleUseItemHelper<RecorderContext> it = new(recorder);
+            c.AddContext(RecorderContext.Key, () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
+            return c;
+        }
+    }
 }
+
+file sealed class RecorderContext : IDfsEnumerationContext
+{
+    public static readonly EnumerationContextKey<RecorderContext> Key = EnumerationContextKey.Registry.Register<RecorderContext>();
+    public readonly List<VisitRecord> Records = new();
+
+    public void Update(DfsEnumerationContext v)
+    {
+        Records.Add(new(v.LayerName, v.State));
+    }
+}
+
+internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State);
+

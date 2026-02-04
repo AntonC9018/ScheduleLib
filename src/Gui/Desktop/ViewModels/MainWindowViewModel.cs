@@ -1,16 +1,11 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using Anton.LayeredConfig;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Newtonsoft.Json;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Desktop.ViewModels;
 

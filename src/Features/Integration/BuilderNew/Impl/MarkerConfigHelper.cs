@@ -39,18 +39,15 @@ public static class MarkerConfigExtension
 
     extension(ApplicationConfigBuilder b)
     {
-        public IEnumerable<(TeacherLayerConfig Config, LayerPath Path)> GetMarkerLayerPaths()
-        {
-            yield break;
-        }
-
         public IEnumerable<(TeacherLayerConfig Config, ApplicationConfigLayerBuilder Builder)> GetMarkerLayers()
         {
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
             // But we only consider the last such layers.
-            return b.Defaults
-                .GetLeafBuilders()
+            return b.BaseLayer
+                .Dfs()
+                .Process()
+                .Where(x => x.Layer.IsLeaf())
                 .Select(x =>
                 {
                     var config = x.Layer.GetConfig(TeacherLayerConfig.Key);
@@ -63,35 +60,35 @@ public static class MarkerConfigExtension
                     {
                         throw new InvalidOperationException("Teacher layer config must be explicitly set!");
                     }
-                    return (value, x);
+                    return (value, b.CreateBuilder(x.Layer));
                 })
                 .WhereNotDefault();
         }
 
         public void RemoveLayers(Func<MutableLayer, bool> pred)
         {
-            Helper(b.Defaults);
-
-            void Helper(ApplicationConfigLayerBuilder parent)
-            {
-                var children = parent.Layer.ChildLayers;
-                for (int i = children.Count - 1; i >= 0; i--)
+            var deletionList = b.BaseLayer
+                .Dfs(x => x.AddParent())
+                .SkipLayers(1)
+                .Select(c =>
                 {
-                    var child = children[i];
-                    if (pred(child.Model))
+                    if (c.State != DfsVisitationState.BeforeProcess)
                     {
-                        if (child.Model.ChildLayers.Count != 0)
-                        {
-                            throw new NotImplementedException();
-                        }
-                        parent.RemoveLayers(child);
+                        return default;
                     }
-                    else
+                    if (!pred(c.Layer))
                     {
-                        var builder = parent.CreateLayerBuilder(child);
-                        Helper(builder);
+                        c.Controller.Action = DfsAction.PreventRecursionOnce;
+                        var parent = c.Get(ParentContext.Key).Parent;
+                        Debug.Assert(parent != null);
+                        return (Parent: parent, Node: c.Layer);
                     }
-                }
+                    return default;
+                })
+                .ToList();
+            foreach (var x in deletionList)
+            {
+                b.CreateBuilder(x.Parent).RemoveLayer(x.Node);
             }
         }
 
@@ -127,15 +124,13 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
 
     public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
     {
-        var layer = _builder.BaseLayer
+        var c = _builder.BaseLayer
             .Dfs()
-            .AsSingleUse()
-            .AddLayerPath(out var layerPath)
-            .Process()
-            .Where(x => x.IsLeaf())
+            .AddLayerPath()
+            .Where(x => x.Layer.IsLeaf())
             .Where(x =>
             {
-                var c = x.GetConfig(TeacherLayerConfig.Key);
+                var c = x.Layer.GetConfig(TeacherLayerConfig.Key);
                 if (!c.Exists)
                 {
                     return false;
@@ -143,11 +138,11 @@ public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConf
                 return CheckEquality(c.Value.GetValue(), config);
             })
             .FirstOrDefault();
-        if (layer == null)
+        if (c.IsNull)
         {
             return null;
         }
-        return layerPath.Path();
+        return c.Get(LayerPathContext.Key).Path();
 
         static bool CheckEquality(TeacherLayerConfig? existing, TeacherLayerConfig scoped)
         {

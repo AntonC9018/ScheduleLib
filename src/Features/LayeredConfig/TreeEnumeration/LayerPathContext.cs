@@ -9,20 +9,21 @@ public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
     public readonly MutableLayer Leaf => Path[^1];
 }
 
-public readonly struct LayerPathContext() : ILayerStateEnumerationContext
+public sealed class LayerPathContext() : IDfsEnumerationContext
 {
+    public static readonly EnumerationContextKey<LayerPathContext> Key = EnumerationContextKey.Registry.Register<LayerPathContext>();
     public readonly ImmutableArray<MutableLayer>.Builder Builder = ImmutableArray.CreateBuilder<MutableLayer>();
 
-    public void Consume(LayerStateEnumerator.Value value)
+    public void Update(DfsEnumerationContext context)
     {
-        switch (value.State)
+        switch (context.State)
         {
-            case VisitorState.Process:
+            case DfsVisitationState.Process:
             {
-                Builder.Add(value.Layer);
+                Builder.Add(context.Layer);
                 break;
             }
-            case VisitorState.AfterProcess:
+            case DfsVisitationState.AfterProcess:
             {
                 Builder.Count--;
                 break;
@@ -31,18 +32,14 @@ public readonly struct LayerPathContext() : ILayerStateEnumerationContext
     }
 
     public LayerPath Path() => new(Builder.ToImmutable());
+    public MutableLayer? Parent => Builder.Count == 1 ? null : Builder[^2];
 }
 
 public static class LayerPathEnumerationExtensions
 {
-    public static IEnumerable<LayerStateEnumerator.Value> AddLayerPath(
-        this IEnumerable<LayerStateEnumerator.Value> e,
-        out LayerPathContext layerPath)
+    public static DfsEnumerable AddLayerPath(this DfsEnumerable e)
     {
-        e = e.DebugAssertSingleUse();
-
-        var x = new LayerPathContext();
-        layerPath = x;
-        return new ContextWrappedLayerEnumerable(() => x, e);
+        e.AddContext(LayerPathContext.Key, () => new());
+        return e;
     }
 }

@@ -26,6 +26,12 @@ public sealed class ApplicationConfigBuilder
     }
 
     public MutableLayer BaseLayer => _baseLayer;
+
+    // Might want to remove this.
+    public ApplicationConfigLayerBuilder CreateBuilder(MutableLayer layer)
+    {
+        return new(layer, _singletonServiceProvider);
+    }
 }
 
 public readonly struct ApplicationConfigLayerBuilder : IEquatable<ApplicationConfigLayerBuilder>
@@ -72,9 +78,9 @@ public readonly struct ApplicationConfigLayerBuilder : IEquatable<ApplicationCon
         return new(layer.Model, SingletonServiceProvider);
     }
 
-    public void RemoveLayers(NamedLayer layer)
+    public void RemoveLayer(MutableLayer layer)
     {
-        Layer._childLayers.Remove(layer);
+        Layer._childLayers.Remove(new(layer));
     }
 
     public void Configure(Action<ApplicationConfigLayerBuilder> configure)

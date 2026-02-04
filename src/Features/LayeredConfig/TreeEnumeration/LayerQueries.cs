@@ -1,32 +1,33 @@
 using System.Diagnostics;
 using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib;
 
 namespace Anton.LayeredConfig;
-
 
 public static class LayerQueries
 {
     extension (MutableLayer layer)
     {
-        public ILayerStateEnumerable Dfs()
+        public DfsEnumerable Dfs(Action<DfsEnumerable>? contextBuilder = null)
         {
-            return new LayerStateEnumerable(layer);
+            var ret = new DfsEnumerable(layer);
+            contextBuilder?.Invoke(ret);
+            return ret;
         }
 
         public IEnumerable<MutableLayer> GetDescendantsOrSelf()
         {
-            return layer.Dfs().Process();
+            return layer
+                .Dfs()
+                .Process()
+                .Select(x => x.Layer);
         }
 
         public IEnumerable<MutableLayer> GetLeafLayers()
         {
-            Debug.Assert(layer.ChildLayers.Count != 0);
             return layer
-                .Dfs()
-                .Process()
-                .Where(x => x.ChildLayers.Count != 0);
+                .GetDescendantsOrSelf()
+                .Where(x => x.IsLeaf());
         }
 
         public bool IsLeaf()
@@ -52,14 +53,13 @@ public static class LayerQueries
             LayerConfigKey<T> key)
             where T : class
         {
-            return layer.Dfs()
-                .AsSingleUse()
-                .AddLayerPath(out var layerPath)
+            return layer
+                .Dfs(c => c.AddLayerPath())
                 .Process()
-                .Where(x => x.IsLeaf())
-                .Select(x => x.GetConfigValue(key))
-                .WhereNotNull()
-                .Select(x => (layerPath.Path(), x));
+                .Where(x => x.Layer.IsLeaf())
+                .Select(x => (Context: x, Config: x.Layer.GetConfigValue(key)))
+                .Where(x => x.Config != null)
+                .Select(x => (x.Context.Get(LayerPathContext.Key).Path(), x.Config!));
         }
     }
 
