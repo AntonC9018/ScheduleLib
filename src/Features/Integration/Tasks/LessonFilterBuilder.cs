@@ -1,5 +1,5 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.OnlineRegistry;
@@ -115,9 +115,9 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
     }
 }
 
-public sealed class RegistryLessonFilterConfig : IConfig<RegistryLessonFilterConfig>
+public sealed class RegistryLessonFilterConfig : INodeData<RegistryLessonFilterConfig>
 {
-    public static LayerConfigKey<RegistryLessonFilterConfig> Key { get; } = LayerConfigKey.Registry.Register<RegistryLessonFilterConfig>();
+    public static NodeDataKey<RegistryLessonFilterConfig> Key { get; } = NodeDataKey.Registry.Register<RegistryLessonFilterConfig>();
     public AttendanceMode? SkipAttendance { get; set; }
 
     public static void Register(IServiceCollection services)

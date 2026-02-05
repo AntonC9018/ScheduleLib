@@ -1,6 +1,6 @@
 using AutoConstructor.Attributes;
 using CsvHelper;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -181,7 +181,7 @@ public sealed class ManifestLessonTopicSourceDefinition : LessonTopicSourceDefin
 
     public ILessonTopicSource Create(IServiceProvider sp)
     {
-        var configProvider = sp.GetRequiredService<ConfigProvider>();
+        var configProvider = sp.GetRequiredService<DataProvider>();
         var teacherName = configProvider.Get(TeacherLayerConfig.Key)!.TeacherName;
         if (Path == null)
         {

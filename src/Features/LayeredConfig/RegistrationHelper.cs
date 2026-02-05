@@ -2,17 +2,17 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public static class RegistrationHelper
 {
-    public static void AddLayeredConfig(this IServiceCollection services)
+    public static void AddLayeredData(this IServiceCollection services)
     {
-        services.AddSingleton<ApplicationConfigBuilder>();
-        services.AddScoped<ConfigProvider>();
+        services.AddSingleton<TreeBuilder>();
+        services.AddScoped<DataProvider>();
         services.AddOptions<OpenHierarchyOptions>();
 
         services.AddSingleton<ConfigSerializationHelper>();
@@ -177,13 +177,13 @@ public static class RegistrationHelper
     }
 
     public static void AddMapper<T>(this IServiceCollection collection)
-        where T : class, IConfigMapperBase
+        where T : class, IDataMapperBase
     {
         // collection.RegisterRequiredImplementationsOfGenericService<T>(
         //     typeof(IConfigMapperBase),
         //     typeof(IConfigMapper<,>),
         //     ServiceLifetime.Singleton);
-        collection.AddSingleton<IConfigMapperBase, T>();
+        collection.AddSingleton<IDataMapperBase, T>();
     }
     public static void AddMerger<T>(this IServiceCollection collection)
         where T : IMergerBase

@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
-using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Application.Config;
@@ -10,8 +10,8 @@ public static class MarkerConfigExtension
 {
     public static void AddMarkerServices(this IServiceCollection services)
     {
-        MarkerConfigHelper.Register(services);
-        services.AddLayeredConfig();
+        MarkerDataHelper.Register(services);
+        services.AddLayeredData();
         TeacherLayerConfig.Register(services);
     }
 
@@ -37,20 +37,20 @@ public static class MarkerConfigExtension
         return ret;
     }
 
-    extension(ApplicationConfigBuilder b)
+    extension(TreeBuilder b)
     {
-        public IEnumerable<(TeacherLayerConfig Config, ApplicationConfigLayerBuilder Builder)> GetMarkerLayers()
+        public IEnumerable<(TeacherLayerConfig Config, NodeBuilder Builder)> GetMarkerLayers()
         {
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
             // But we only consider the last such layers.
-            return b.BaseLayer
+            return b.BaseNode
                 .Dfs()
                 .Process()
-                .Where(x => x.Layer.IsLeaf())
+                .Where(x => x.Node.IsLeaf())
                 .Select(x =>
                 {
-                    var config = x.Layer.GetConfig(TeacherLayerConfig.Key);
+                    var config = x.Node.Get(TeacherLayerConfig.Key);
                     if (!config.Exists)
                     {
                         return default;
@@ -60,24 +60,24 @@ public static class MarkerConfigExtension
                     {
                         throw new InvalidOperationException("Teacher layer config must be explicitly set!");
                     }
-                    return (value, b.CreateBuilder(x.Layer));
+                    return (value, b.CreateBuilder(x.Node));
                 })
                 .WhereNotDefault();
         }
 
-        public void RemoveLayers(Func<MutableLayer, bool> pred)
+        public void RemoveLayers(Func<MutableNode, bool> pred)
         {
-            var deletionList = b.BaseLayer
+            var deletionList = b.BaseNode
                 .Dfs(x => x.AddParent())
                 .SkipLayers(1)
                 .SelectWithState(DfsVisitationState.BeforeProcess)
-                .Where(x => pred(x.Layer))
+                .Where(x => pred(x.Node))
                 .Select(c =>
                 {
                     c.Controller.Action = DfsAction.PreventRecursionOnce;
                     var parent = c.Get(ParentContext.Key).Parent;
                     Debug.Assert(parent != null);
-                    return (Parent: parent, Node: c.Layer);
+                    return (Parent: parent, Node: c.Node);
                 })
                 .ToList();
             foreach (var x in deletionList)
@@ -93,38 +93,38 @@ public static class MarkerConfigExtension
     }
 }
 
-public sealed class MarkerConfigHelper : MarkerConfigHelperBase<TeacherLayerConfig>
+public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
 {
-    private readonly ApplicationConfigBuilder _builder;
+    private readonly TreeBuilder _builder;
 
-    public MarkerConfigHelper(
-        ApplicationConfigBuilder builder)
+    public MarkerDataHelper(
+        TreeBuilder builder)
     {
         _builder = builder;
     }
 
     public static void Register(IServiceCollection services)
     {
-        services.AddSingleton<IMarkerConfigHelper, MarkerConfigHelper>();
+        services.AddSingleton<IMarkerDataHelper, MarkerDataHelper>();
         // Used as ambient context.
         services.AddScoped<TeacherLayerConfig>();
     }
 
-    public override TeacherLayerConfig GetMarkerConfig(IServiceProvider sp)
+    public override TeacherLayerConfig GetMarkerData(IServiceProvider sp)
     {
         var config = sp.GetRequiredService<TeacherLayerConfig>();
         return config;
     }
 
-    public override LayerPath? GetCurrentPath(TeacherLayerConfig config)
+    public override NodePath? GetCurrentPath(TeacherLayerConfig config)
     {
-        var c = _builder.BaseLayer
+        var c = _builder.BaseNode
             .Dfs()
             .AddLayerPath()
-            .Where(x => x.Layer.IsLeaf())
+            .Where(x => x.Node.IsLeaf())
             .Where(x =>
             {
-                var c = x.Layer.GetConfig(TeacherLayerConfig.Key);
+                var c = x.Node.Get(TeacherLayerConfig.Key);
                 if (!c.Exists)
                 {
                     return false;

@@ -1,27 +1,27 @@
 using System.Reflection;
 
-namespace Anton.LayeredConfig.Retrieval;
+namespace Anton.LayeredData.Retrieval;
 
-public interface IConfigMapperBase
+public interface IDataMapperBase
 {
 }
 
-public static class ConfigMapCallHelper
+public static class DataMapCallHelper
 {
-    private delegate object MapDelegate(IConfigMapperBase mapper, object x);
-    private static readonly MethodInfo GenericMethod = typeof(ConfigMapCallHelper)
+    private delegate object MapDelegate(IDataMapperBase mapper, object x);
+    private static readonly MethodInfo GenericMethod = typeof(DataMapCallHelper)
         .GetMethod(nameof(MapGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
-    private static readonly CallHelper<MapDelegate> _helper = new(typeof(IConfigMapper<,>), GenericMethod);
+    private static readonly CallHelper<MapDelegate> _helper = new(typeof(IDataMapper<,>), GenericMethod);
 
-    private static object MapGeneric<T1, T2>(IConfigMapperBase mapper, object from)
+    private static object MapGeneric<T1, T2>(IDataMapperBase mapper, object from)
     {
-        var m1 = (IConfigMapper<T1, T2>) mapper;
+        var m1 = (IDataMapper<T1, T2>) mapper;
         var from1 = (T1) from;
         var ret = m1.Map(from1);
         return ret!;
     }
 
-    public static object Map(this IConfigMapperBase mapper, object from)
+    public static object Map(this IDataMapperBase mapper, object from)
     {
         var deleg = _helper.Get(mapper.GetType());
         var ret = deleg(mapper, from);
@@ -29,28 +29,28 @@ public static class ConfigMapCallHelper
     }
 }
 
-public interface IConfigMapper<TFrom, TTo> : IConfigMapperBase
+public interface IDataMapper<TFrom, TTo> : IDataMapperBase
 {
     TTo Map(TFrom input);
 }
 
-public readonly record struct ConfigMapping(IConfigMapperBase Mapper, Type From)
+public readonly record struct DataMapping(IDataMapperBase Mapper, Type From)
 {
-    public static ConfigMapping Null => default;
+    public static DataMapping Null => default;
     public bool IsNull => Mapper is null;
 }
 
-public sealed class ConfigMappingRegistry
+public sealed class DataMappingRegistry
 {
-    private readonly Dictionary<Type, ConfigMapping> _mappers;
+    private readonly Dictionary<Type, DataMapping> _mappers;
 
-    public ConfigMappingRegistry(IEnumerable<IConfigMapperBase> mappers)
+    public DataMappingRegistry(IEnumerable<IDataMapperBase> mappers)
     {
         _mappers = new();
         foreach (var m in mappers)
         {
             var type = m.GetType();
-            var itypes = type.GetImplementationsOfGenericInterface(typeof(IConfigMapper<,>));
+            var itypes = type.GetImplementationsOfGenericInterface(typeof(IDataMapper<,>));
             using var itypesE = itypes.GetEnumerator();
             if (!itypesE.MoveNext())
             {
@@ -84,9 +84,9 @@ public sealed class ConfigMappingRegistry
         }
     }
 
-    public ConfigMapping Get(Type outputType)
+    public DataMapping Get(Type outputType)
     {
-        var ret = _mappers.GetValueOrDefault(outputType, ConfigMapping.Null);
+        var ret = _mappers.GetValueOrDefault(outputType, DataMapping.Null);
         return ret;
     }
 }

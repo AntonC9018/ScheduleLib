@@ -1,4 +1,4 @@
-using Anton.LayeredConfig.Options;
+using Anton.LayeredData.Options;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using ScheduleLib.Scraping.Common.Config;

@@ -1,50 +1,50 @@
 using System.Diagnostics;
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using ScheduleLib.Application.Config;
 
 namespace Desktop.ViewModels;
 
 internal static class UiLayerHelper
 {
-    public static readonly LayerName UiTeacherLayer = LayerName.Create("User-UI");
+    public static readonly Layer UiTeacherLayer = Layer.Create("User-UI");
 
-    public static bool IsUiLayer(this MutableLayer layer)
+    public static bool IsUiLayer(this MutableNode node)
     {
-        return layer.Name == UiTeacherLayer;
+        return node.Name == UiTeacherLayer;
     }
 
-    public static IEnumerable<ApplicationConfigLayerBuilder> GetUiLayers(
-        this ApplicationConfigBuilder builder)
+    public static IEnumerable<NodeBuilder> GetUiLayers(
+        this TreeBuilder builder)
     {
         foreach (var x in builder.GetMarkerLayers())
         {
-            if (x.Builder.Layer.IsUiLayer())
+            if (x.Builder.Node.IsUiLayer())
             {
                 yield return x.Builder;
             }
         }
     }
 
-    extension(ApplicationConfigLayerBuilder builder)
+    extension(NodeBuilder builder)
     {
-        public ApplicationConfigLayerBuilder CreateUiLayer()
+        public NodeBuilder CreateUiLayer()
         {
-            Debug.Assert(!builder.Layer.IsUiLayer());
+            Debug.Assert(!builder.Node.IsUiLayer());
             var b = builder.AddLayer(UiTeacherLayer);
             b.Builder(TeacherLayerConfig.Key).Enable();
             return b;
         }
 
-        public ApplicationConfigLayerBuilder MaybeCreateUiLayer()
+        public NodeBuilder MaybeCreateUiLayer()
         {
-            if (!builder.Layer.IsUiLayer())
+            if (!builder.Node.IsUiLayer())
             {
                 return builder.CreateUiLayer();
             }
             return builder;
         }
 
-        public ApplicationConfigLayerBuilder MaybeCreateUiLayer(TeacherLayerConfig config)
+        public NodeBuilder MaybeCreateUiLayer(TeacherLayerConfig config)
         {
             var b = MaybeCreateUiLayer(builder);
             b.Builder(TeacherLayerConfig.Key).CopyValue(config);
@@ -53,12 +53,12 @@ internal static class UiLayerHelper
     }
 
     public static void MaybeRemoveLayer(
-        MutableLayer layerToRemove,
-        ApplicationConfigBuilder root)
+        MutableNode nodeToRemove,
+        TreeBuilder root)
     {
         root.RemoveLayers(layer =>
         {
-            if (ReferenceEquals(layerToRemove, layer))
+            if (ReferenceEquals(nodeToRemove, layer))
             {
                 return true;
             }
@@ -70,16 +70,16 @@ internal static class UiLayerHelper
     {
         public async Task SerializeUiLayers(
             Stream output,
-            ApplicationConfigBuilder configRoot)
+            TreeBuilder configRoot)
         {
-            var uiLayers = configRoot.GetUiLayers().Select(x => x.Layer);
+            var uiLayers = configRoot.GetUiLayers().Select(x => x.Node);
             await helper.SerializeValues(uiLayers, output, serializeLayerName: false);
             output.SetLength(output.Position);
         }
 
         public async Task DeserializeUiLayers(
             Stream output,
-            ApplicationConfigBuilder configRoot)
+            TreeBuilder configRoot)
         {
             await helper.DeserializeValues(
                 output,

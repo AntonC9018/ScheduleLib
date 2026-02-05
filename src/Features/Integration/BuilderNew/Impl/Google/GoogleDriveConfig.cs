@@ -1,12 +1,12 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
+public sealed class GoogleDriveConfig : INodeData<GoogleDriveConfig>
 {
-    public static LayerConfigKey<GoogleDriveConfig> Key { get; } = LayerConfigKey.Registry.Register<GoogleDriveConfig>();
+    public static NodeDataKey<GoogleDriveConfig> Key { get; } = NodeDataKey.Registry.Register<GoogleDriveConfig>();
     public string? DriveFolderName { get; set; }
     public GoogleCredentialsConfig? Credentials { get; set; }
 
@@ -15,7 +15,7 @@ public sealed class GoogleDriveConfig : IConfig<GoogleDriveConfig>
         services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
         services.AddMapper<GoogleDriveConfigMapper>();
         services.AddConfigProvider(GoogleDriveConfig.Key);
-        services.AddConfigProvider(new LayerConfigKey<BuiltGoogleDriveConfig>(Key.Value));
+        services.AddConfigProvider(new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value));
     }
 }
 
@@ -26,7 +26,7 @@ public sealed class BuiltGoogleDriveConfig
 }
 
 // TODO: This should be better.
-public sealed class GoogleDriveConfigMapper : IConfigMapper<GoogleDriveConfig, BuiltGoogleDriveConfig>
+public sealed class GoogleDriveConfigMapper : IDataMapper<GoogleDriveConfig, BuiltGoogleDriveConfig>
 {
     public BuiltGoogleDriveConfig Map(GoogleDriveConfig input)
     {

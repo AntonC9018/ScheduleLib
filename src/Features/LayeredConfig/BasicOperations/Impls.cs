@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public sealed class ListMerger<T> : IMerger<List<T>>
 {

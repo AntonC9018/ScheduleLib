@@ -1,4 +1,4 @@
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
@@ -48,7 +48,7 @@ public static class AppConfiguration
 
     public static void ConfigureLayeredConfig(IServiceProvider sp)
     {
-        var b = sp.GetRequiredService<ApplicationConfigBuilder>();
+        var b = sp.GetRequiredService<TreeBuilder>();
         b.AddDefaultConfig();
     }
 

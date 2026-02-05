@@ -1,4 +1,4 @@
-namespace Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+namespace Anton.LayeredData.TreeEnumeration.Infrastructure;
 
 public static class DfsEnumerableExtensions
 {

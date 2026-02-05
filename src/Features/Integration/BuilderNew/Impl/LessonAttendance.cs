@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.OnlineRegistry;
@@ -13,9 +13,9 @@ public sealed class LessonAttendanceSource
     public RepeatedCourseBehavior? RepeatedCourseBehavior { get; set; }
 }
 
-public sealed class LessonAttendanceConfig : IConfig<LessonAttendanceConfig>
+public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>
 {
-    public static LayerConfigKey<LessonAttendanceConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonAttendanceConfig>();
+    public static NodeDataKey<LessonAttendanceConfig> Key { get; } = NodeDataKey.Registry.Register<LessonAttendanceConfig>();
     // Need a way to allow to remove an item by key.
     public List<LessonAttendanceSource> Sources { get; set; } = new();
     public Attendance? MissingDaysFiller { get; set; }
@@ -30,7 +30,7 @@ public sealed class LessonAttendanceConfig : IConfig<LessonAttendanceConfig>
 
 public partial class Extensions
 {
-    extension (ConfigBuilder<LessonAttendanceConfig> builder)
+    extension (NodeDataBuilder<LessonAttendanceConfig> builder)
     {
         public void Source(Action<LessonAttendanceSource> configure)
         {

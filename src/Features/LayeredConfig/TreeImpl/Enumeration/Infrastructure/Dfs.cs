@@ -1,7 +1,7 @@
 using System.Collections;
 using ScheduleLib.Helper;
 
-namespace Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+namespace Anton.LayeredData.TreeEnumeration.Infrastructure;
 
 public enum DfsAction
 {
@@ -26,7 +26,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
     public DfsAction Action { get; set; } = DfsAction.Recurse;
     private Value _current = new()
     {
-        Layer = null!,
+        Node = null!,
         State = DfsVisitationState.Start,
     };
     private readonly EnumerationContextCollection _enumerationContextCollection;
@@ -38,26 +38,26 @@ public sealed class DfsEnumerator() : IDfsEnumerator
         _enumerationContextCollection);
 
     internal DfsEnumerator(
-        MutableLayer root,
+        MutableNode root,
         EnumerationContextCollection enumerationContextCollection) : this()
     {
         _enumerationContextCollection = enumerationContextCollection;
         _stack.Push(new()
         {
-            Layer = root,
+            Node = root,
             State = DfsVisitationState.BeforeProcess,
         });
     }
 
     public readonly struct Value
     {
-        public required MutableLayer Layer { get; init; }
+        public required MutableNode Node { get; init; }
         public required DfsVisitationState State { get; init; }
     }
 
     public readonly struct StackFrame
     {
-        public required MutableLayer Layer { get; init; }
+        public required MutableNode Node { get; init; }
         public DfsVisitationState State { get; init; }
         public int ChildIndex { get; init; }
     }
@@ -66,7 +66,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
     {
         _current = new()
         {
-            Layer = frame.Layer,
+            Node = frame.Node,
             State = frame.State,
         };
         foreach (var c in _enumerationContextCollection.EnumerateItems())
@@ -130,7 +130,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
                         State = DfsVisitationState.AfterProcess,
                     });
 
-                    if (frame.Layer.ChildLayers.Count > 0)
+                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
@@ -146,7 +146,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
                         State = DfsVisitationState.AfterChildren,
                     });
 
-                    if (frame.Layer.ChildLayers.Count > 0)
+                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
@@ -159,7 +159,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
                 case DfsVisitationState.ProcessChild:
                 {
                     var nextChildIndex = frame.ChildIndex + 1;
-                    var childLayers = frame.Layer.ChildLayers;
+                    var childLayers = frame.Node.ChildNodes;
                     if (nextChildIndex < childLayers.Count)
                     {
                         _stack.Push(frame with
@@ -168,10 +168,10 @@ public sealed class DfsEnumerator() : IDfsEnumerator
                         });
                     }
 
-                    var child = childLayers[frame.ChildIndex].Model;
+                    var child = childLayers[frame.ChildIndex];
                     _stack.Push(new StackFrame
                     {
-                        Layer = child,
+                        Node = child,
                         State = DfsVisitationState.BeforeProcess,
                     });
                     continue;
@@ -208,10 +208,10 @@ public interface IDfsEnumerationContext : IEnumerationContext
 
 public readonly struct DfsEnumerable : IDfsEnumerable
 {
-    private readonly MutableLayer _root;
+    private readonly MutableNode _root;
     private readonly List<(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory)> _contextFactories = new();
 
-    public DfsEnumerable(MutableLayer root)
+    public DfsEnumerable(MutableNode root)
     {
         _root = root;
     }

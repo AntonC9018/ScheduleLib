@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public interface IUpdaterBase
 {
@@ -75,7 +75,7 @@ public sealed class ResetValueUpdater<T> : IUpdater<T>
 
 public static class BuilderUpdaterExtensions
 {
-    extension<T> (ConfigBuilder<T> builder)
+    extension<T> (NodeDataBuilder<T> builder)
         where T : class
     {
         // TODO:

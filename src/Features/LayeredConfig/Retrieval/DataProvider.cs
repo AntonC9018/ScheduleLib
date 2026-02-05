@@ -2,23 +2,23 @@ using System.Reflection;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig.Retrieval;
+namespace Anton.LayeredData.Retrieval;
 
 // Must be a scoped service.
 // TODO: cache
 [AutoConstructor]
-public sealed partial class ConfigProvider
+public sealed partial class DataProvider
 {
-    private readonly IMarkerConfigHelper _helper;
+    private readonly IMarkerDataHelper _helper;
     private readonly IServiceProvider _sp;
-    private readonly ConfigMappingRegistry _mappingRegistry;
+    private readonly DataMappingRegistry _mappingRegistry;
 
-    public object? GetUntyped(LayerConfigKey key)
+    public object? GetUntyped(NodeDataKey key)
     {
-        var type = LayerConfigKey.Registry.GetTypeFromKey(key);
+        var type = NodeDataKey.Registry.GetTypeFromKey(key);
         return GetUntypedInternal(type, key);
     }
-    private object? GetUntypedInternal(Type outputType, LayerConfigKey key)
+    private object? GetUntypedInternal(Type outputType, NodeDataKey key)
     {
         // TODO: Cache globally maybe
         var method = GetConfigMethod.MakeGenericMethod(outputType);
@@ -27,21 +27,21 @@ public sealed partial class ConfigProvider
         var ret = func(key);
         return ret;
     }
-    private delegate object? GetUntypedDelegate(LayerConfigKey key);
+    private delegate object? GetUntypedDelegate(NodeDataKey key);
 
     private static readonly MethodInfo GetConfigMethod =
-        typeof(ConfigProvider).GetMethod(nameof(GetConfigWrapper), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        typeof(DataProvider).GetMethod(nameof(GetWrapper), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
-    private object? GetConfigWrapper<T>(LayerConfigKey key)
+    private object? GetWrapper<T>(NodeDataKey key)
         where T : class
     {
         return Get<T>(new(key));
     }
 
-    public T? Get<T>(LayerConfigKey<T> key)
+    public T? Get<T>(NodeDataKey<T> key)
         where T : class
     {
-        var markerConfig = _helper.GetMarkerConfig(_sp);
+        var markerConfig = _helper.GetMarkerData(_sp);
         if (markerConfig.Value is T m)
         {
             return m;
@@ -68,38 +68,38 @@ public sealed partial class ConfigProvider
         }
 
         {
-            var type = LayerConfigKey.Registry.GetTypeFromKey(key.Value);
+            var type = NodeDataKey.Registry.GetTypeFromKey(key.Value);
             if (type != typeof(T))
             {
                 throw new InvalidOperationException($"Config mapper not registered for type `{typeof(T).Name}`");
             }
         }
 
-        var config = path.ConstructConfig(key, _sp);
+        var config = path.ConstructValue(key, _sp);
         return config;
     }
 }
 
 [AutoConstructor]
-public sealed partial class ConfigProvider<T> where T : class
+public sealed partial class DataProvider<T> where T : class
 {
-    private readonly ConfigProvider _provider;
-    private readonly LayerConfigKey<T> _key;
+    private readonly DataProvider _provider;
+    private readonly NodeDataKey<T> _key;
 
     public T? Get() => _provider.Get(_key);
 }
 
-public static class ConfigProviderHelper
+public static class DataProviderHelper
 {
     extension (IServiceCollection services)
     {
-        private static Func<IServiceProvider, ConfigProvider<T>> Factory<T>(LayerConfigKey<T> key)
+        private static Func<IServiceProvider, DataProvider<T>> Factory<T>(NodeDataKey<T> key)
             where T : class
         {
-            return sp => new(sp.GetRequiredService<ConfigProvider>(), key);
+            return sp => new(sp.GetRequiredService<DataProvider>(), key);
         }
 
-        public void AddConfigProvider<T>(LayerConfigKey<T> key) where T : class
+        public void AddConfigProvider<T>(NodeDataKey<T> key) where T : class
         {
             var f = Factory(key);
             services.AddScoped(f);

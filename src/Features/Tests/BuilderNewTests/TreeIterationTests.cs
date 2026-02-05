@@ -1,6 +1,6 @@
-using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
-namespace Anton.LayeredConfig.Tests;
+namespace Anton.LayeredData.Tests;
 
 public sealed class TreeIterationTests
 {
@@ -184,12 +184,15 @@ public sealed class TreeIterationTests
         Assert.Equal(DfsVisitationState.AfterProcess, enumerator.Current.State);
     }
 
-    private MutableLayer CreateLayer(string name, params ReadOnlySpan<MutableLayer> children)
+    private MutableNode CreateLayer(string name, params ReadOnlySpan<MutableNode> children)
     {
-        var layer = new MutableLayer { Name = new(name) };
+        var layer = new MutableNode
+        {
+            Name = new(name),
+        };
         foreach (var child in children)
         {
-            layer._childLayers.Add(new(child));
+            layer._childNodes.Add(child);
         }
         return layer;
     }
@@ -205,7 +208,7 @@ file static class Helper
 {
     extension (in DfsEnumerationContext val)
     {
-        public string LayerName => val.Layer.Name.Value;
+        public string LayerName => val.Node.Name.Value;
     }
     extension (DfsEnumerable c)
     {

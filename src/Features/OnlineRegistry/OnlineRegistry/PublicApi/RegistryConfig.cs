@@ -1,15 +1,15 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.OnlineRegistry;
 
 public sealed class RegistryConfig :
-    IConfig<RegistryConfig>,
+    INodeData<RegistryConfig>,
     ICredentialsConfig
 {
-    public static LayerConfigKey<RegistryConfig> Key { get; } = LayerConfigKey.Registry.Register<RegistryConfig>();
+    public static NodeDataKey<RegistryConfig> Key { get; } = NodeDataKey.Registry.Register<RegistryConfig>();
     public CredentialsSource? Credentials { get; set; }
     public ExtraLessonInstanceAction? ExtraLessonInstanceAction { get; set; }
     public IEquationCommandsDerivation? EquationCommandsDerivation { get; set; }
@@ -18,7 +18,7 @@ public sealed class RegistryConfig :
 
 public sealed class BuiltRegistryConfig
 {
-    public static LayerConfigKey<BuiltRegistryConfig> Key => new(RegistryConfig.Key.Value);
+    public static NodeDataKey<BuiltRegistryConfig> Key => new(RegistryConfig.Key.Value);
 
     public required CredentialsSource Credentials { get; set; }
     public required ExtraLessonInstanceAction ExtraLessonInstanceAction { get; set; }
@@ -26,7 +26,7 @@ public sealed class BuiltRegistryConfig
     public required CommandProcessingConfig CommandProcessingConfig { get; set; }
 }
 
-public sealed class RegistryConfigMapper : IConfigMapper<RegistryConfig, BuiltRegistryConfig>
+public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegistryConfig>
 {
     public BuiltRegistryConfig Map(RegistryConfig input)
     {
@@ -53,7 +53,7 @@ public static class ConfigExtensions
             // TODO: This should function as a provider then? doing work in DI is not good.
             services.AddScoped<IRegistryErrorHandler>(sp =>
             {
-                var config = sp.GetRequiredService<ConfigProvider<BuiltRegistryConfig>>().Get();
+                var config = sp.GetRequiredService<DataProvider<BuiltRegistryConfig>>().Get();
                 if (config is null)
                 {
                     throw new InvalidOperationException("Registry not enabled.");
@@ -67,11 +67,11 @@ public static class ConfigExtensions
             });
         }
     }
-    extension (ApplicationConfigLayerBuilder builder)
+    extension (NodeBuilder builder)
     {
-        public ConfigBuilder<RegistryConfig> Registry() => builder.Builder<RegistryConfig>();
+        public NodeDataBuilder<RegistryConfig> Registry() => builder.Builder<RegistryConfig>();
     }
-    extension (ConfigBuilder<RegistryConfig> builder)
+    extension (NodeDataBuilder<RegistryConfig> builder)
     {
         public void ExtraLessonAction(ExtraLessonInstanceAction action)
         {

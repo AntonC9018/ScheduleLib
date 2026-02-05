@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -12,12 +12,12 @@ namespace Desktop.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly ApplicationConfigBuilder _configBuilder;
+    private readonly TreeBuilder _configBuilder;
     private readonly ConfigSerializationHelper _serializationHelper;
 
 #pragma warning disable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
     public MainWindowViewModel(
-        ApplicationConfigBuilder configBuilder,
+        TreeBuilder configBuilder,
         ConfigSerializationHelper serializationHelper)
     {
         _configBuilder = configBuilder;
@@ -127,7 +127,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         ExecTreeAction(() =>
         {
-            UiLayerHelper.MaybeRemoveLayer(SelectedUserLayer.Leaf.Layer, _configBuilder);
+            UiLayerHelper.MaybeRemoveLayer(SelectedUserLayer.Leaf.Node, _configBuilder);
             return null;
         });
     }
@@ -233,17 +233,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
 public sealed record class WrappedLayer
 {
-    public readonly ApplicationConfigLayerBuilder Leaf;
-    public WrappedLayer(ApplicationConfigLayerBuilder leaf)
+    public readonly NodeBuilder Leaf;
+    public WrappedLayer(NodeBuilder leaf)
     {
         Leaf = leaf;
     }
 
-    public static readonly WrappedLayer Null = new(default(ApplicationConfigLayerBuilder));
+    public static readonly WrappedLayer Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
-    public TeacherLayerConfig Marker => Leaf.Layer.GetConfig(TeacherLayerConfig.Key).Value.GetValue()!;
+    public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
-    public bool IsUiLayer => Leaf.Layer.IsUiLayer();
+    public bool IsUiLayer => Leaf.Node.IsUiLayer();
     public override string ToString() => IsNull ? "No User" : Name.ToString();
 }
 

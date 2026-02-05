@@ -1,9 +1,9 @@
-namespace Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+namespace Anton.LayeredData.TreeEnumeration.Infrastructure;
 
 public readonly struct DfsEnumerationContext
 {
     public readonly DfsEnumerator.Value Value;
-    public MutableLayer Layer => Value.Layer;
+    public MutableNode Node => Value.Node;
     public DfsVisitationState State => Value.State;
 
     public readonly IDfsController Controller;

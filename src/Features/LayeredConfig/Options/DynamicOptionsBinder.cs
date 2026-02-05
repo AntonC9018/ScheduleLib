@@ -2,7 +2,7 @@ using AutoConstructor.Attributes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Anton.LayeredConfig.Options;
+namespace Anton.LayeredData.Options;
 
 public interface IMarkedConfigurationSectionResolver
 {

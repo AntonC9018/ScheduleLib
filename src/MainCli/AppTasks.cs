@@ -1,5 +1,5 @@
 using System.Text;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -108,7 +108,7 @@ public static class AppTasks
                         .LessonFilterBuilder()
                         .CurrentTeacher();
 
-                    if (c.Services.GetRequiredService<ConfigProvider<RegistryLessonFilterConfig>>().Get() is { } filterConfig)
+                    if (c.Services.GetRequiredService<DataProvider<RegistryLessonFilterConfig>>().Get() is { } filterConfig)
                     {
                         if (filterConfig.SkipAttendance is { } att)
                         {
@@ -295,7 +295,7 @@ public static class AppTasks
 
     public static StudentAttendanceList GetAttendanceListOfCurrentTeacher(TaskExecutionContext c)
     {
-        var attendanceConfig = c.Services.GetRequiredService<ConfigProvider<LessonAttendanceConfig>>().Get();
+        var attendanceConfig = c.Services.GetRequiredService<DataProvider<LessonAttendanceConfig>>().Get();
         if (attendanceConfig is null)
         {
             return new([]);
@@ -332,7 +332,7 @@ public static class AppTasks
 
     public static async ValueTask<ILessonTopics> GetLessonTopicsOfCurrentTeacher(TaskExecutionContext c)
     {
-        var config1 = c.Services.GetRequiredService<ConfigProvider>().Get(LessonTopicsConfig.Key);
+        var config1 = c.Services.GetRequiredService<DataProvider>().Get(LessonTopicsConfig.Key);
         if (config1 == null)
         {
             return NoLessonTopics.Instance;

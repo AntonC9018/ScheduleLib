@@ -1,4 +1,4 @@
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public static class TypeReflectionHelper
 {

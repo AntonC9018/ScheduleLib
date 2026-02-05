@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
@@ -22,7 +22,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     private readonly ScheduledDateTimeProvider _dateTimeProvider;
 
     private readonly Schedule _schedule;
-    private readonly ConfigProvider<BuiltRegistryConfig> _configProvider;
+    private readonly DataProvider<BuiltRegistryConfig> _configProvider;
 
     public readonly record struct RunParams()
     {

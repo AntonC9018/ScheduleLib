@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Config;
@@ -14,7 +14,7 @@ using T = Dictionary<CourseId, List<LabsMappingProvider.LabMapping>>;
 public sealed partial class LabsMappingProvider
 {
     private readonly LookupFacade _lookup;
-    private readonly ConfigProvider<LabTasksDatabaseConfig> _configProvider;
+    private readonly DataProvider<LabTasksDatabaseConfig> _configProvider;
     private readonly ILogger _logger;
     private readonly IServiceProvider _sp;
 

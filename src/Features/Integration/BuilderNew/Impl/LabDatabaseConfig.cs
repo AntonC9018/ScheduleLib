@@ -1,13 +1,13 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Attributes;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Attributes;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed class LabTasksDatabaseConfig : IConfig<LabTasksDatabaseConfig>
+public sealed class LabTasksDatabaseConfig : INodeData<LabTasksDatabaseConfig>
 {
-    public static LayerConfigKey<LabTasksDatabaseConfig> Key { get; } = LayerConfigKey.Registry.Register<LabTasksDatabaseConfig>();
+    public static NodeDataKey<LabTasksDatabaseConfig> Key { get; } = NodeDataKey.Registry.Register<LabTasksDatabaseConfig>();
     public List<LabTasksSource> Sources { get; set; } = new();
 
     [RegisterMethod]

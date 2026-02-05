@@ -1,5 +1,5 @@
 using System.Drawing;
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.Application.Config;
@@ -11,7 +11,7 @@ namespace ScheduleLib.Application.Core;
 
 public static class DefaultConfig
 {
-    public static void AddDefaultConfig(this ApplicationConfigBuilder b)
+    public static void AddDefaultConfig(this TreeBuilder b)
     {
         b.Defaults.Configure(defaults =>
         {

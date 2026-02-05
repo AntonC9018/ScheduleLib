@@ -1,20 +1,20 @@
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Application.Config;
 
 public static partial class Extensions
 {
-    public static readonly LayerName TeacherLayerKey = LayerName.Registry.Register("ProgrammableTeacher");
+    public static readonly Layer TeacherLayerKey = Layer.Registry.Register("ProgrammableTeacher");
 
-    extension (ApplicationConfigLayerBuilder builder)
+    extension (NodeBuilder builder)
     {
-        public ConfigBuilder<LessonTopicsConfig> LessonTopics() => builder.Builder<LessonTopicsConfig>();
-        public ConfigBuilder<MoodleConfig> Moodle() => builder.Builder<MoodleConfig>();
-        public ConfigBuilder<LessonAttendanceConfig> LessonAttendance() => builder.Builder<LessonAttendanceConfig>();
-        public ConfigBuilder<GoogleDriveConfig> GoogleDrive() => builder.Builder(GoogleDriveConfig.Key);
-        public ConfigBuilder<GoogleCalendarConfig> GoogleCalendar() => builder.Builder(GoogleCalendarConfig.Key);
-        public ConfigBuilder<DeadlinesExcelConfig> DeadlinesExcel() => builder.Builder(DeadlinesExcelConfig.Key);
-        public ConfigBuilder<LabTasksDatabaseConfig> LabTasks() => builder.Builder(LabTasksDatabaseConfig.Key);
+        public NodeDataBuilder<LessonTopicsConfig> LessonTopics() => builder.Builder<LessonTopicsConfig>();
+        public NodeDataBuilder<MoodleConfig> Moodle() => builder.Builder<MoodleConfig>();
+        public NodeDataBuilder<LessonAttendanceConfig> LessonAttendance() => builder.Builder<LessonAttendanceConfig>();
+        public NodeDataBuilder<GoogleDriveConfig> GoogleDrive() => builder.Builder(GoogleDriveConfig.Key);
+        public NodeDataBuilder<GoogleCalendarConfig> GoogleCalendar() => builder.Builder(GoogleCalendarConfig.Key);
+        public NodeDataBuilder<DeadlinesExcelConfig> DeadlinesExcel() => builder.Builder(DeadlinesExcelConfig.Key);
+        public NodeDataBuilder<LabTasksDatabaseConfig> LabTasks() => builder.Builder(LabTasksDatabaseConfig.Key);
     }
 }

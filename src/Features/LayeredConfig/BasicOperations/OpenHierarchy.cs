@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public interface IKeyEqualityComparer<in T> : IEqualityComparer<T>
 {

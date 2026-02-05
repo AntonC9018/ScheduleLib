@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Google;
 using Google.Apis.Calendar.v3;
@@ -17,7 +17,7 @@ namespace ScheduleLib.Application.Core;
 public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 {
     private readonly ScheduledTimeEventsProvider _eventsProvider;
-    private readonly ConfigProvider<BuiltGoogleCalendarConfig> _configProvider;
+    private readonly DataProvider<BuiltGoogleCalendarConfig> _configProvider;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ScopeFilteredScheduleProvider _filteredScheduleProvider;
     private readonly LessonTextDisplayHandler.Services _lessonDisplayServices;

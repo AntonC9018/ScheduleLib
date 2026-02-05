@@ -1,12 +1,11 @@
-using System.Collections.Immutable;
-using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public sealed class ParentContext() : IDfsEnumerationContext
 {
     public static readonly EnumerationContextKey<ParentContext> Key = EnumerationContextKey.Registry.Register<ParentContext>();
-    private readonly Stack<MutableLayer> _stack = new();
+    private readonly Stack<MutableNode> _stack = new();
 
     public void Update(DfsEnumerationContext context)
     {
@@ -14,7 +13,7 @@ public sealed class ParentContext() : IDfsEnumerationContext
         {
             case DfsVisitationState.BeforeChildren:
             {
-                _stack.Push(context.Layer);
+                _stack.Push(context.Node);
                 break;
             }
             case DfsVisitationState.AfterChildren:
@@ -25,7 +24,7 @@ public sealed class ParentContext() : IDfsEnumerationContext
         }
     }
 
-    public MutableLayer? Parent => _stack.Count > 0
+    public MutableNode? Parent => _stack.Count > 0
         ? _stack.Peek()
         : null;
 }

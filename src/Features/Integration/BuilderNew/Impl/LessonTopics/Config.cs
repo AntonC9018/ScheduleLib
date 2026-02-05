@@ -1,12 +1,12 @@
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core.Topics;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed class LessonTopicsConfig : IConfig<LessonTopicsConfig>
+public sealed class LessonTopicsConfig : INodeData<LessonTopicsConfig>
 {
-    public static LayerConfigKey<LessonTopicsConfig> Key { get; } = LayerConfigKey.Registry.Register<LessonTopicsConfig>();
+    public static NodeDataKey<LessonTopicsConfig> Key { get; } = NodeDataKey.Registry.Register<LessonTopicsConfig>();
     public List<LessonTopicSourceDefinition> Sources { get; set; } = new();
     public List<LessonNameProviderConfig> FallbackProviders { get; set; } = new();
 

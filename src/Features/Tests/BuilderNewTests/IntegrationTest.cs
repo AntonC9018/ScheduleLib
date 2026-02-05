@@ -1,9 +1,9 @@
 using Argon;
 using AutoConstructor.Attributes;
 using ScheduleLib.Application.Core;
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using ScheduleLib.Application.Config;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -27,7 +27,7 @@ public sealed class IntegrationTest
                      .OrderBy(x => x.TeacherName.ToString()))
         {
             await using var scope = fixture.ServiceProvider.CreateMarkerScope(marker);
-            var provider = scope.ServiceProvider.GetRequiredService<ConfigProvider>();
+            var provider = scope.ServiceProvider.GetRequiredService<DataProvider>();
             var config = provider.Get(LessonTopicsConfig.Key);
             list.Add(config);
         }
@@ -54,12 +54,12 @@ public sealed class IntegrationTest
         foreach (var m in markers)
         {
             await using var scope = fixture.ServiceProvider.CreateMarkerScope(m);
-            var configProvider = scope.ServiceProvider.GetRequiredService<ConfigProvider>();
+            var configProvider = scope.ServiceProvider.GetRequiredService<DataProvider>();
 
             var configsOfMarker = new List<object>();
             configs.Add(new(m.TeacherName.ToString(), configsOfMarker));
 
-            var helper = scope.ServiceProvider.GetRequiredService<IMarkerConfigHelper>();
+            var helper = scope.ServiceProvider.GetRequiredService<IMarkerDataHelper>();
             var currentPath = helper.GetCurrentPath(new(m))!.Value;
             var configKeys = currentPath
                 .Path
@@ -120,7 +120,7 @@ public sealed class IntegrationTest
         outputDirectory.TryOpenFileInExplorer(outputPath);
     }
 
-    private (ServiceProvider ServiceProvider, ApplicationConfigBuilder ConfigBuilder) Fixture()
+    private (ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder) Fixture()
     {
         var services = new ServiceCollection();
         services.AddAllServices();
@@ -146,7 +146,7 @@ public sealed class IntegrationTest
             ValidateOnBuild = true,
             ValidateScopes = true,
         });
-        var builder = serviceProvider.GetRequiredService<ApplicationConfigBuilder>();
+        var builder = serviceProvider.GetRequiredService<TreeBuilder>();
         TestBuilderHelper.Configure(builder);
 
         return (serviceProvider, builder);

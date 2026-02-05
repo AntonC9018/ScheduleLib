@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using AutoConstructor.Attributes;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
@@ -44,7 +44,7 @@ public static class ServiceProviderHelper
 [AutoConstructor]
 public sealed partial class CurrentTeacherIdProvider
 {
-    private readonly ConfigProvider<TeacherLayerConfig> _configProvider;
+    private readonly DataProvider<TeacherLayerConfig> _configProvider;
     private readonly LookupFacade _lookup;
 
     public TeacherId Get()

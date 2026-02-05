@@ -5,7 +5,7 @@ using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 internal sealed class ConfigureSerializationOptions : IConfigureNamedOptions<JsonSerializerOptions>
 {
@@ -82,7 +82,7 @@ public sealed class ConfigSerializationHelper
     private const string LayerNameName = "$LayerName";
 
     public async Task SerializeValues(
-        IEnumerable<MutableLayer> layers,
+        IEnumerable<MutableNode> layers,
         Stream output,
         bool serializeLayerName = true)
     {
@@ -116,14 +116,14 @@ public sealed class ConfigSerializationHelper
         await writer.FlushAsync();
     }
 
-    public readonly record struct PendingConfig(LayerConfigKey Key, object Value);
+    public readonly record struct PendingConfig(NodeDataKey Key, object Value);
     public sealed class PendingConfigs : List<PendingConfig>
     {
     }
 
     public async Task DeserializeValues(
         Stream input,
-        Func<LayerName?, PendingConfigs, ApplicationConfigLayerBuilder> findLayer)
+        Func<Layer?, PendingConfigs, NodeBuilder> findLayer)
     {
         using var ms = new MemoryStream();
         await input.CopyToAsync(ms);
@@ -143,7 +143,7 @@ public sealed class ConfigSerializationHelper
                 throw new JsonException("Expected start of layer object.");
             }
 
-            LayerName? layerName = null;
+            Layer? layerName = null;
             var pendingProperties = new PendingConfigs();
 
             while (reader.Read())
@@ -163,13 +163,13 @@ public sealed class ConfigSerializationHelper
                 if (propertyName == LayerNameName)
                 {
                     reader.Read();
-                    layerName = new LayerName(reader.GetString()!);
+                    layerName = new Layer(reader.GetString()!);
                     continue;
                 }
 
                 reader.Read();
-                var key = new LayerConfigKey(propertyName);
-                var type = LayerConfigKey.Registry.TryGetTypeFromKey(key);
+                var key = new NodeDataKey(propertyName);
+                var type = NodeDataKey.Registry.TryGetTypeFromKey(key);
                 if (type == null)
                 {
                     throw new JsonException($"Invalid config key: {key.Value}");
@@ -187,7 +187,7 @@ public sealed class ConfigSerializationHelper
             var layer = findLayer(layerName, pendingProperties);
             foreach (var (key, value) in pendingProperties)
             {
-                var type = LayerConfigKey.Registry.GetTypeFromKey(key);
+                var type = NodeDataKey.Registry.GetTypeFromKey(key);
                 var method = _setValueGenericMethod.MakeGenericMethod(type);
                 var deleg = method.CreateDelegate<Action<SetValueArgs>>();
                 deleg(new(layer, key, value));
@@ -195,14 +195,14 @@ public sealed class ConfigSerializationHelper
         }
     }
 
-    private readonly record struct SetValueArgs(ApplicationConfigLayerBuilder Layer, LayerConfigKey Key, object Value);
+    private readonly record struct SetValueArgs(NodeBuilder Layer, NodeDataKey Key, object Value);
     private static readonly MethodInfo _setValueGenericMethod = typeof(ConfigSerializationHelper)
         .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
         .Single(x => x.Name == nameof(SetValue));
     private static void SetValue<T>(SetValueArgs args)
         where T : class
     {
-        var conf = args.Layer.Layer.GetOrAddConfig<T>(new(args.Key));
+        var conf = args.Layer.Node.GetOrAdd<T>(new(args.Key));
         var value = conf.GetValue();
         if (value == null)
         {

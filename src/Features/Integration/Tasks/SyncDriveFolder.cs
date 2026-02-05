@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Options;
@@ -13,7 +13,7 @@ namespace ScheduleLib.Application.Core;
 public sealed partial class SyncDriveFolderTaskHandler
 {
     private readonly IOptions<GoogleDriveOptions> _options;
-    private readonly ConfigProvider<BuiltGoogleDriveConfig> _configProvider;
+    private readonly DataProvider<BuiltGoogleDriveConfig> _configProvider;
     private readonly GoogleApiHelper _helper;
 
     public struct RunParams

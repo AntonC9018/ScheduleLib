@@ -1,21 +1,20 @@
 using System.Text;
 using AutoConstructor.Attributes;
 using ClosedXML.Excel;
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
-using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleLib.Application.Core;
 
 using Option = Config.Option;
 
-public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
+public sealed class DeadlinesExcelConfig : INodeData<DeadlinesExcelConfig>
 {
-    public static LayerConfigKey<DeadlinesExcelConfig> Key { get; } = LayerConfigKey.Registry.Register<DeadlinesExcelConfig>();
+    public static NodeDataKey<DeadlinesExcelConfig> Key { get; } = NodeDataKey.Registry.Register<DeadlinesExcelConfig>();
 
     public System.Drawing.Color? GoodColor { get; set; }
     public System.Drawing.Color? BadColor { get; set; }
@@ -34,7 +33,7 @@ public sealed class DeadlinesExcelConfig : IConfig<DeadlinesExcelConfig>
 
 public sealed class DeadlinesExcelBuiltConfig
 {
-    public static LayerConfigKey<DeadlinesExcelBuiltConfig> Key => new(DeadlinesExcelConfig.Key.Value);
+    public static NodeDataKey<DeadlinesExcelBuiltConfig> Key => new(DeadlinesExcelConfig.Key.Value);
 
     public required System.Drawing.Color GoodColor { get; init; }
     public required System.Drawing.Color BadColor { get; init; }
@@ -50,7 +49,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
     private readonly CurrentTeacherIdProvider _idProvider;
     private readonly Schedule _schedule;
     private readonly IOptions<StudyYearOptions> _studyYear;
-    private readonly ConfigProvider<DeadlinesExcelBuiltConfig> _deadlinesExcelConfigProvider;
+    private readonly DataProvider<DeadlinesExcelBuiltConfig> _deadlinesExcelConfigProvider;
     private readonly LabsMappingProvider _labsProvider;
 
     public readonly struct RunParams

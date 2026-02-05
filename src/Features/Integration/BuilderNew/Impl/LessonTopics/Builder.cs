@@ -1,4 +1,4 @@
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core.Topics;
 
@@ -6,7 +6,7 @@ namespace ScheduleLib.Application.Config;
 
 public partial class Extensions
 {
-    extension (ConfigBuilder<LessonTopicsConfig> builder)
+    extension (NodeDataBuilder<LessonTopicsConfig> builder)
     {
         public void Manifest(Action<ManifestSourceBuilder>? configure = null)
         {

@@ -1,4 +1,4 @@
-using Anton.LayeredConfig;
+using Anton.LayeredData;
 using ScheduleLib.Application.Core.Topics;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib;
@@ -12,7 +12,7 @@ public static class TestBuilderHelper
     // Builder + dynamic object so that it could be configured from a UI.
     // Allows to get immutable config for specific things on demand
     // (so that running tasks are never affected).
-    public static ApplicationConfigBuilder Configure(ApplicationConfigBuilder b)
+    public static TreeBuilder Configure(TreeBuilder b)
     {
         // Allows to configure the defaults at this level.
         // they will take effect if later they are not overriden.

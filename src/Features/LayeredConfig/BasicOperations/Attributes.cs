@@ -1,4 +1,4 @@
-namespace Anton.LayeredConfig.Attributes;
+namespace Anton.LayeredData.Attributes;
 
 // TODO: Add source generation support
 [AttributeUsage(AttributeTargets.Method)]

@@ -1,12 +1,12 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed class GoogleCalendarConfig : IConfig<GoogleCalendarConfig>
+public sealed class GoogleCalendarConfig : INodeData<GoogleCalendarConfig>
 {
-    public static LayerConfigKey<GoogleCalendarConfig> Key { get; } = LayerConfigKey.Registry.Register<GoogleCalendarConfig>();
+    public static NodeDataKey<GoogleCalendarConfig> Key { get; } = NodeDataKey.Registry.Register<GoogleCalendarConfig>();
     public GoogleCredentialsConfig? Credentials { get; set; }
     public string? CalendarName { get; set; }
 
@@ -21,12 +21,12 @@ public sealed class GoogleCalendarConfig : IConfig<GoogleCalendarConfig>
 
 public sealed class BuiltGoogleCalendarConfig
 {
-    public static LayerConfigKey<BuiltGoogleCalendarConfig> Key { get; set; } = new (GoogleCalendarConfig.Key.Value);
+    public static NodeDataKey<BuiltGoogleCalendarConfig> Key { get; set; } = new (GoogleCalendarConfig.Key.Value);
     public required GoogleCredentialsConfig Credentials { get; set; }
     public required string CalendarName { get; set; }
 }
 
-public sealed class GoogleCalendarConfigMapper : IConfigMapper<GoogleCalendarConfig, BuiltGoogleCalendarConfig>
+public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfig, BuiltGoogleCalendarConfig>
 {
     public BuiltGoogleCalendarConfig Map(GoogleCalendarConfig input)
     {

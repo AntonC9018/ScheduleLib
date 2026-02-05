@@ -1,14 +1,14 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.JsonConverters;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed record class TeacherLayerConfig : IConfig<TeacherLayerConfig>
+public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
 {
-    public static LayerConfigKey<TeacherLayerConfig> Key { get; } = LayerConfigKey.Registry.Register<TeacherLayerConfig>();
+    public static NodeDataKey<TeacherLayerConfig> Key { get; } = NodeDataKey.Registry.Register<TeacherLayerConfig>();
     public Name TeacherName { get; set; } = null!;
 
     public static void Register(IServiceCollection services)
@@ -25,11 +25,11 @@ public sealed record class TeacherLayerConfig : IConfig<TeacherLayerConfig>
 
 public partial class Extensions
 {
-    extension (ApplicationConfigLayerBuilder builder)
+    extension (NodeBuilder builder)
     {
-        public ApplicationConfigLayerBuilder TeacherLayer(
+        public NodeBuilder TeacherLayer(
             string nameStr,
-            Action<ApplicationConfigLayerBuilder>? configure = null)
+            Action<NodeBuilder>? configure = null)
         {
             var name = NameHelper.Parse(nameStr);
             var layerBuilder = builder.AddLayer(TeacherLayerKey);

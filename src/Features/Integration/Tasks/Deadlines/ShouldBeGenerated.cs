@@ -1,9 +1,9 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 
 namespace ScheduleLib.Application.Core;
 
-public sealed class DeadlinesConfigMapper : IConfigMapper<DeadlinesExcelConfig, DeadlinesExcelBuiltConfig>
+public sealed class DeadlinesConfigMapper : IDataMapper<DeadlinesExcelConfig, DeadlinesExcelBuiltConfig>
 {
     public DeadlinesExcelBuiltConfig Map(DeadlinesExcelConfig input)
     {

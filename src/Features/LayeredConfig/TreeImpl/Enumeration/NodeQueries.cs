@@ -1,43 +1,43 @@
 using System.Diagnostics;
-using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 public static class LayerQueries
 {
-    extension (MutableLayer layer)
+    extension (MutableNode node)
     {
         public DfsEnumerable Dfs(Action<DfsEnumerable>? contextBuilder = null)
         {
-            var ret = new DfsEnumerable(layer);
+            var ret = new DfsEnumerable(node);
             contextBuilder?.Invoke(ret);
             return ret;
         }
 
-        public IEnumerable<MutableLayer> GetDescendantsOrSelf()
+        public IEnumerable<MutableNode> GetDescendantsOrSelf()
         {
-            return layer
+            return node
                 .Dfs()
                 .Process()
-                .Select(x => x.Layer);
+                .Select(x => x.Node);
         }
 
-        public IEnumerable<MutableLayer> GetLeafLayers()
+        public IEnumerable<MutableNode> GetLeafLayers()
         {
-            return layer
+            return node
                 .GetDescendantsOrSelf()
                 .Where(x => x.IsLeaf());
         }
 
         public bool IsLeaf()
         {
-            return layer.ChildLayers.Count == 0;
+            return node.ChildNodes.Count == 0;
         }
 
-        public T? GetConfigValue<T>(LayerConfigKey<T> key) where T : class
+        public T? GetValue<T>(NodeDataKey<T> key) where T : class
         {
-            var t = layer.GetConfig(key);
+            var t = node.Get(key);
             if (!t.Exists)
             {
                 return null;
@@ -48,37 +48,12 @@ public static class LayerQueries
             }
             return null;
         }
-
-        public IEnumerable<(LayerPath Path, T Config)> GetConfigs<T>(
-            LayerConfigKey<T> key)
-            where T : class
-        {
-            return layer
-                .Dfs(c => c.AddLayerPath())
-                .Process()
-                .Where(x => x.Layer.IsLeaf())
-                .Select(x => (Context: x, Config: x.Layer.GetConfigValue(key)))
-                .Where(x => x.Config != null)
-                .Select(x => (x.Context.Get(LayerPathContext.Key).Path(), x.Config!));
-        }
-    }
-
-    extension (ApplicationConfigLayerBuilder builder)
-    {
-        public IEnumerable<ApplicationConfigLayerBuilder> GetLeafBuilders()
-        {
-            var leafs = builder.Layer.GetLeafLayers();
-            foreach (var leaf in leafs)
-            {
-                yield return new(leaf, builder.SingletonServiceProvider);
-            }
-        }
     }
 
     // TODO: When building the config, collect information about which layer the value came from
-    public static T? ConstructConfig<T>(
-        this LayerPath path,
-        LayerConfigKey<T> key,
+    public static T? ConstructValue<T>(
+        this NodePath path,
+        NodeDataKey<T> key,
         IServiceProvider serviceProvider)
 
         where T : class
@@ -86,9 +61,9 @@ public static class LayerQueries
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();
         T? current = null;
 
-        foreach (var layer in path.Path)
+        foreach (var node in path.Path)
         {
-            var maybe = layer.GetConfig(key);
+            var maybe = node.Get(key);
             if (!maybe.Exists)
             {
                 continue;

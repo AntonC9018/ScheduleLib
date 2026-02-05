@@ -1,7 +1,7 @@
 using System.Reflection;
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Options;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Options;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -36,8 +36,8 @@ public static class Registration
         public void AddConfigsServices()
         {
             services.AddMarkerServices();
-            services.AddSingleton<ConfigMappingRegistry>();
-            services.AddSingleton<ApplicationConfigBuilder>();
+            services.AddSingleton<DataMappingRegistry>();
+            services.AddSingleton<TreeBuilder>();
 
             LessonTopicsConfig.Register(services);
             MoodleConfig.Register(services);

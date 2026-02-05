@@ -1,6 +1,6 @@
-using Anton.LayeredConfig;
-using Anton.LayeredConfig.Options;
-using Anton.LayeredConfig.Retrieval;
+using Anton.LayeredData;
+using Anton.LayeredData.Options;
+using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,8 +28,8 @@ public readonly struct CredentialsSourceBuilder
 
 public static class CredentialsBuilderExtensions
 {
-    extension<T> (ConfigBuilder<T> builder)
-        where T : class, ICredentialsConfig, IConfig<T>, new()
+    extension<T> (NodeDataBuilder<T> builder)
+        where T : class, ICredentialsConfig, INodeData<T>, new()
     {
         public CredentialsSourceBuilder Credentials()
         {
@@ -60,7 +60,7 @@ public static class CredentialsBuilderExtensions
                 return new(
                     serviceKey: serviceKey,
                     generalResolver: sp.GetRequiredService<ICredentialsResolver>(),
-                    provider: sp.GetRequiredService<ConfigProvider<T>>(),
+                    provider: sp.GetRequiredService<DataProvider<T>>(),
                     sourceGetter: getter);
             });
         }
@@ -103,7 +103,7 @@ public sealed partial class CredentialsResolver<T>
 {
     private readonly string _serviceKey;
     private readonly ICredentialsResolver _generalResolver;
-    private readonly ConfigProvider<T> _provider;
+    private readonly DataProvider<T> _provider;
     private readonly Func<T, CredentialsSource> _sourceGetter;
 
     public Credentials Get()

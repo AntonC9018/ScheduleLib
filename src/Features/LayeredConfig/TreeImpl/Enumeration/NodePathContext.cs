@@ -1,18 +1,18 @@
 using System.Collections.Immutable;
-using Anton.LayeredConfig.TreeEnumeration.Infrastructure;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
-public readonly record struct LayerPath(ImmutableArray<MutableLayer> Path)
+public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
 {
-    public readonly MutableLayer Root => Path[0];
-    public readonly MutableLayer Leaf => Path[^1];
+    public readonly MutableNode Root => Path[0];
+    public readonly MutableNode Leaf => Path[^1];
 }
 
 public sealed class LayerPathContext() : IDfsEnumerationContext
 {
     public static readonly EnumerationContextKey<LayerPathContext> Key = EnumerationContextKey.Registry.Register<LayerPathContext>();
-    public readonly ImmutableArray<MutableLayer>.Builder Builder = ImmutableArray.CreateBuilder<MutableLayer>();
+    public readonly ImmutableArray<MutableNode>.Builder Builder = ImmutableArray.CreateBuilder<MutableNode>();
 
     public void Update(DfsEnumerationContext context)
     {
@@ -20,7 +20,7 @@ public sealed class LayerPathContext() : IDfsEnumerationContext
         {
             case DfsVisitationState.Process:
             {
-                Builder.Add(context.Layer);
+                Builder.Add(context.Node);
                 break;
             }
             case DfsVisitationState.AfterProcess:
@@ -31,8 +31,8 @@ public sealed class LayerPathContext() : IDfsEnumerationContext
         }
     }
 
-    public LayerPath Path() => new(Builder.ToImmutable());
-    public MutableLayer? Parent => Builder.Count == 1 ? null : Builder[^2];
+    public NodePath Path() => new(Builder.ToImmutable());
+    public MutableNode? Parent => Builder.Count == 1 ? null : Builder[^2];
 }
 
 public static class LayerPathEnumerationExtensions

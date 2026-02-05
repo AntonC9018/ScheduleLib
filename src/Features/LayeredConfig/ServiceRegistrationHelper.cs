@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredConfig;
+namespace Anton.LayeredData;
 
 internal static class ServiceRegistrationHelper
 {
