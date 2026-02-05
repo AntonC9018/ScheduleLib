@@ -39,7 +39,7 @@ public static class MarkerConfigExtension
 
     extension(TreeBuilder b)
     {
-        public IEnumerable<(TeacherLayerConfig Config, NodeBuilder Builder)> GetMarkerLayers()
+        public IEnumerable<(TeacherLayerConfig Config, NodeBuilder Builder)> GetMarkerNodes()
         {
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
@@ -88,7 +88,7 @@ public static class MarkerConfigExtension
 
         public IEnumerable<TeacherLayerConfig> GetAllMarkers()
         {
-            return b.GetMarkerLayers().Select(x => x.Config);
+            return b.GetMarkerNodes().Select(x => x.Config);
         }
     }
 }

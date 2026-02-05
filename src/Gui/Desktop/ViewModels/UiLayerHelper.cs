@@ -10,13 +10,13 @@ internal static class UiLayerHelper
 
     public static bool IsUiLayer(this MutableNode node)
     {
-        return node.Name == UiTeacherLayer;
+        return node.Layer == UiTeacherLayer;
     }
 
     public static IEnumerable<NodeBuilder> GetUiLayers(
         this TreeBuilder builder)
     {
-        foreach (var x in builder.GetMarkerLayers())
+        foreach (var x in builder.GetMarkerNodes())
         {
             if (x.Builder.Node.IsUiLayer())
             {
@@ -94,7 +94,7 @@ internal static class UiLayerHelper
                     {
                         var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
                         var markerLayer = configRoot
-                            .GetMarkerLayers()
+                            .GetMarkerNodes()
                             .FirstOrDefault(x => x.Config.Equals(marker))
                             .Builder;
 

@@ -7,7 +7,7 @@ public sealed class MutableNode
     internal readonly ConcurrentDictionary<NodeDataKey, NodeDataContainer> _configs = new();
     internal readonly List<MutableNode> _childNodes = new();
 
-    public Layer Name { get; set; } = Layer.Unnamed;
+    public Layer Layer { get; set; } = Layer.Unnamed;
 
     public IReadOnlyList<MutableNode> ChildNodes => _childNodes;
 

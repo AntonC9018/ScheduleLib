@@ -26,6 +26,7 @@ public sealed partial class App : Application
 
         services.AddView<MainWindowView>();
         services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<SelectedUserNodeViewModel>();
 
         services.AddSingleton<ViewLocator>();
 

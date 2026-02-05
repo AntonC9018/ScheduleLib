@@ -18,8 +18,8 @@
     <TextBlock Text="User" />
     <ComboBox
       IsEnabled="{Binding CanSelectUser}"
-      ItemsSource="{Binding UserLayers}"
-      SelectedItem="{Binding SelectedUserLayer}" />
+      ItemsSource="{Binding UserNodeSelection.AllNodes}"
+      SelectedItem="{Binding UserNodeSelection.SelectedNode}" />
 
     <Button
       Content="Click to enable selected UI layer"

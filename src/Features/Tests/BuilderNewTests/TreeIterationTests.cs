@@ -188,7 +188,7 @@ public sealed class TreeIterationTests
     {
         var layer = new MutableNode
         {
-            Name = new(name),
+            Layer = new(name),
         };
         foreach (var child in children)
         {
@@ -208,7 +208,7 @@ file static class Helper
 {
     extension (in DfsEnumerationContext val)
     {
-        public string LayerName => val.Node.Name.Value;
+        public string LayerName => val.Node.Layer.Value;
     }
     extension (DfsEnumerable c)
     {

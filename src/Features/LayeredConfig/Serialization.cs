@@ -96,7 +96,7 @@ public sealed class ConfigSerializationHelper
             if (serializeLayerName)
             {
                 writer.WritePropertyName(LayerNameName);
-                writer.WriteStringValue(layer.Name.Value);
+                writer.WriteStringValue(layer.Layer.Value);
             }
             foreach (var config in layer.Configs)
             {

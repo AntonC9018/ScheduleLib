@@ -61,7 +61,7 @@ public readonly struct NodeBuilder : IEquatable<NodeBuilder>
     public NodeBuilder AddLayer(Layer layer)
     {
         var node = new MutableNode();
-        node.Name = layer;
+        node.Layer = layer;
         Node._childNodes.Add(node);
         return CreateNodeBuilder(node);
     }

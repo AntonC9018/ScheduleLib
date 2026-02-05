@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScheduleLib.Application.Config;
@@ -14,17 +13,52 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;
     private readonly ConfigSerializationHelper _serializationHelper;
+    private readonly SelectedUserNodeViewModel _nodeSelection;
 
-#pragma warning disable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
     public MainWindowViewModel(
         TreeBuilder configBuilder,
         ConfigSerializationHelper serializationHelper)
     {
         _configBuilder = configBuilder;
         _serializationHelper = serializationHelper;
-        ResetUserLayers();
+
+        _nodeSelection = new(configBuilder);
+        _nodeSelection.PropertyChanged += (o, args) =>
+        {
+            _ = o;
+            if (args.PropertyName == nameof(_nodeSelection.Model))
+            {
+                OnUserNodeSelectionChanged();
+                AttachUserSelectedChanged();
+            }
+        };
+        AttachUserSelectedChanged();
     }
-#pragma warning enable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
+
+    private void AttachUserSelectedChanged()
+    {
+        _nodeSelection.Model.PropertyChanged += (o, args) =>
+        {
+            Debug.Assert(args.PropertyName == nameof(_nodeSelection.Model.SelectedNode));
+            _ = o;
+            _ = args;
+            OnUserSelectedChanged();
+        };
+    }
+
+    private void OnUserSelectedChanged()
+    {
+        RemoveSelectedUserCommand.NotifyCanExecuteChanged();
+        EnableSelectedUserCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OnUserNodeSelectionChanged()
+    {
+        OnPropertyChanged(nameof(UserNodeSelection));
+        OnUserSelectedChanged();
+    }
+
+    public UserNodeSelectionModel UserNodeSelection => _nodeSelection.Model;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSelectUser))]
@@ -35,25 +69,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public EnumMembers<LayerLevel> AllLayerLevels => new();
 
     public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
-    [ObservableProperty]
-    public partial WrappedLayer[] UserLayers { get; private set; }
-    private void ResetUserLayers()
-    {
-        UserLayers = new[]
-            {
-                WrappedLayer.Null,
-            }
-            .Concat(
-                _configBuilder
-                    .GetMarkerLayers()
-                    .Select(x => new WrappedLayer(x.Builder)))
-            .ToArray();
-    }
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveSelectedUserCommand))]
-    [NotifyCanExecuteChangedFor(nameof(EnableSelectedUserCommand))]
-    public partial WrappedLayer SelectedUserLayer { get; set; } = WrappedLayer.Null;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
@@ -84,12 +99,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void AddUser(Name name)
     {
-        ExecTreeAction(() =>
+        _nodeSelection.ExecTreeAction(() =>
         {
             var layer = _configBuilder.Defaults.CreateUiLayer();
             var val = layer.Builder<TeacherLayerConfig>().Value();
             val.TeacherName = name;
-            return new WrappedLayer(layer);
+            return new WrappedNode(layer);
         });
 
         UserNameToAdd = "";
@@ -104,11 +119,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            if (SelectedUserLayer.IsNull)
+            if (_nodeSelection.SelectedNode.IsNull)
             {
                 return false;
             }
-            if (SelectedUserLayer.IsUiLayer)
+            if (_nodeSelection.SelectedNode.IsUiLayer)
             {
                 return true;
             }
@@ -119,15 +134,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRemoveSelectedUser))]
     public void RemoveSelectedUser()
     {
-        if (SelectedUserLayer.IsNull
-            || !SelectedUserLayer.IsUiLayer)
+        if (_nodeSelection.SelectedNode.IsNull
+            || !_nodeSelection.SelectedNode.IsUiLayer)
         {
             Debug.Fail("Cannot remove this layer");
             return;
         }
-        ExecTreeAction(() =>
+        _nodeSelection.ExecTreeAction(() =>
         {
-            UiLayerHelper.MaybeRemoveLayer(SelectedUserLayer.Leaf.Node, _configBuilder);
+            UiLayerHelper.MaybeRemoveLayer(_nodeSelection.SelectedNode.Leaf.Node, _configBuilder);
             return null;
         });
     }
@@ -141,11 +156,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            if (SelectedUserLayer.IsNull)
+            if (_nodeSelection.SelectedNode.IsNull)
             {
                 return false;
             }
-            if (SelectedUserLayer.IsUiLayer)
+            if (_nodeSelection.SelectedNode.IsUiLayer)
             {
                 return false;
             }
@@ -156,13 +171,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEnableSelectedUser))]
     public void EnableSelectedUser()
     {
-        if (SelectedUserLayer.IsNull)
+        if (_nodeSelection.SelectedNode.IsNull)
         {
             return;
         }
-        ExecTreeAction(() =>
+        _nodeSelection.ExecTreeAction(() =>
         {
-            var b = SelectedUserLayer.Leaf.MaybeCreateUiLayer(SelectedUserLayer.Marker);
+            var b = _nodeSelection.SelectedNode.Leaf.MaybeCreateUiLayer(_nodeSelection.SelectedNode.Marker);
             return new(b);
         });
         LayerLevel = LayerLevel.UiUser;
@@ -171,7 +186,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     public async Task SerializeUiLayers()
     {
-        await ExecTreeAction(async () =>
+        await _nodeSelection.ExecTreeAction(async () =>
         {
             await using var output = File.OpenWrite("ui-layers.json");
             await _serializationHelper.SerializeUiLayers(output, _configBuilder);
@@ -182,64 +197,24 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     public async Task DeserializeUiLayers()
     {
-        await ExecTreeAction(async () =>
+        await _nodeSelection.ExecTreeAction(async () =>
         {
             await using var output = File.OpenRead("ui-layers.json");
             await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
             return null;
         });
     }
-
-    private void ExecTreeAction(Func<WrappedLayer?> change)
-    {
-        ExecTreeAction(() =>
-        {
-            var ret = change();
-            return ValueTask.FromResult(ret);
-        }).EnsureCompletedSync();
-    }
-
-    private async ValueTask ExecTreeAction(Func<ValueTask<WrappedLayer?>> change)
-    {
-        TeacherLayerConfig? marker = null;
-        if (!SelectedUserLayer.IsNull)
-        {
-            marker = SelectedUserLayer.Marker;
-        }
-        var selectedLayer = await change();
-        await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
-
-        void Continue()
-        {
-            ResetUserLayers();
-            if (selectedLayer != null)
-            {
-                Debug.Assert(UserLayers.Contains(selectedLayer));
-                SelectedUserLayer = selectedLayer;
-            }
-            else if (marker != null)
-            {
-                SelectedUserLayer = UserLayers
-                    .Where(x => EqualityComparer<TeacherLayerConfig>.Default.Equals(x.Marker, marker))
-                    .FirstOrDefault(WrappedLayer.Null);
-            }
-            else
-            {
-                SelectedUserLayer = WrappedLayer.Null;
-            }
-        }
-    }
 }
 
-public sealed record class WrappedLayer
+public sealed record class WrappedNode
 {
     public readonly NodeBuilder Leaf;
-    public WrappedLayer(NodeBuilder leaf)
+    public WrappedNode(NodeBuilder leaf)
     {
         Leaf = leaf;
     }
 
-    public static readonly WrappedLayer Null = new(default(NodeBuilder));
+    public static readonly WrappedNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
     public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
