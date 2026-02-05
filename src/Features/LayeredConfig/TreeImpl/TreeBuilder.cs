@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Anton.LayeredData;
 
 public sealed class TreeBuilder
@@ -37,13 +39,7 @@ public readonly struct NodeBuilder : IEquatable<NodeBuilder>
     public MutableNode Node { get; }
     public IServiceProvider SingletonServiceProvider { get; }
 
-    public bool IsNull
-    {
-        get
-        {
-            return Node is null;
-        }
-    }
+    public bool IsNull => Node is null;
 
     public bool Equals(NodeBuilder other)
     {
@@ -75,9 +71,10 @@ public readonly struct NodeBuilder : IEquatable<NodeBuilder>
         return new(node, SingletonServiceProvider);
     }
 
-    public void RemoveLayer(MutableNode node)
+    public void RemoveNode(MutableNode node)
     {
-        Node._childNodes.Remove(node);
+        bool removed = Node._childNodes.Remove(node);
+        Debug.Assert(removed);
     }
 
     public void Configure(Action<NodeBuilder> configure)

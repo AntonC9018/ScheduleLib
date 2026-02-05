@@ -65,7 +65,7 @@ public static class MarkerConfigExtension
                 .WhereNotDefault();
         }
 
-        public void RemoveLayers(Func<MutableNode, bool> pred)
+        public void RemoveNodes(Func<MutableNode, bool> pred)
         {
             var deletionList = b.BaseNode
                 .Dfs(x => x.AddParent())
@@ -82,7 +82,7 @@ public static class MarkerConfigExtension
                 .ToList();
             foreach (var x in deletionList)
             {
-                b.CreateBuilder(x.Parent).RemoveLayer(x.Node);
+                b.CreateBuilder(x.Parent).RemoveNode(x.Node);
             }
         }
 

@@ -56,7 +56,7 @@ internal static class UiLayerHelper
         MutableNode nodeToRemove,
         TreeBuilder root)
     {
-        root.RemoveLayers(layer =>
+        root.RemoveNodes(layer =>
         {
             if (ReferenceEquals(nodeToRemove, layer))
             {
