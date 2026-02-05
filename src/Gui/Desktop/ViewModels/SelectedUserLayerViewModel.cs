@@ -6,6 +6,9 @@ using ScheduleLib.Application.Config;
 
 namespace Desktop.ViewModels;
 
+// This is required to be able to update both AllNodes and SelectedNode at once.
+// ComboBoxes are supposed to bind to the whole model atomically.
+// This model cannot be reused and must be fully replaced.
 public sealed partial class UserNodeSelectionModel : ObservableObject
 {
     public UserNodeSelectionModel(WrappedNode[] all, WrappedNode? selected = null)
@@ -25,16 +28,40 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;
 
+#pragma warning disable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
     public SelectedUserNodeViewModel(TreeBuilder configBuilder)
     {
         _configBuilder = configBuilder;
-        Model = new(GetUserNodes(), WrappedNode.Null);
+        ResetModel(new(GetUserNodes(), WrappedNode.Null));
     }
+#pragma warning restore CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
 
     [ObservableProperty]
     public partial UserNodeSelectionModel Model { get; private set; }
 
-    public WrappedNode SelectedNode => Model.SelectedNode;
+    public WrappedNode SelectedNode
+    {
+        get => Model.SelectedNode;
+        set => Model.SelectedNode = value;
+    }
+
+    private void ResetModel(UserNodeSelectionModel model)
+    {
+        Debug.Assert(!ReferenceEquals(model, Model));
+        model.PropertyChanged += (o, args) =>
+        {
+            _ = o;
+            Debug.Assert(args.PropertyName == nameof(model.SelectedNode));
+            OnPropertyChanged(nameof(SelectedNode));
+        };
+        // Null in the constructor.
+        var oldValue = Model?.SelectedNode;
+        Model = model;
+        if (oldValue != model.SelectedNode)
+        {
+            OnPropertyChanged(nameof(model.SelectedNode));
+        }
+    }
 
     private WrappedNode[] GetUserNodes()
     {
@@ -90,7 +117,7 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase
                 selectedNode = WrappedNode.Null;
             }
 
-            Model = new(userNodes, selectedNode);
+            ResetModel(new(userNodes, selectedNode));
         }
     }
 }

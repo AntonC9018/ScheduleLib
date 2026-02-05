@@ -26,38 +26,18 @@ public partial class MainWindowViewModel : ViewModelBase
         _nodeSelection.PropertyChanged += (o, args) =>
         {
             _ = o;
-            if (args.PropertyName == nameof(_nodeSelection.Model))
+            if (args.PropertyName == nameof(_nodeSelection.SelectedNode))
             {
-                OnUserNodeSelectionChanged();
-                AttachUserSelectedChanged();
+                RemoveSelectedUserCommand.NotifyCanExecuteChanged();
+                EnableSelectedUserCommand.NotifyCanExecuteChanged();
+            }
+            else if (args.PropertyName == nameof(_nodeSelection.Model))
+            {
+                OnPropertyChanged(nameof(UserNodeSelection));
+                // Will trigger the SelectedNode update as well.
             }
         };
-        AttachUserSelectedChanged();
     }
-
-    private void AttachUserSelectedChanged()
-    {
-        _nodeSelection.Model.PropertyChanged += (o, args) =>
-        {
-            Debug.Assert(args.PropertyName == nameof(_nodeSelection.Model.SelectedNode));
-            _ = o;
-            _ = args;
-            OnUserSelectedChanged();
-        };
-    }
-
-    private void OnUserSelectedChanged()
-    {
-        RemoveSelectedUserCommand.NotifyCanExecuteChanged();
-        EnableSelectedUserCommand.NotifyCanExecuteChanged();
-    }
-
-    private void OnUserNodeSelectionChanged()
-    {
-        OnPropertyChanged(nameof(UserNodeSelection));
-        OnUserSelectedChanged();
-    }
-
     public UserNodeSelectionModel UserNodeSelection => _nodeSelection.Model;
 
     [ObservableProperty]

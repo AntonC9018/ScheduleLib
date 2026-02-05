@@ -26,4 +26,13 @@ public static class DispatcherExtensions
         }
         throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
     }
+
+    public static T EnsureCompletedSync<T>(this ValueTask<T> task)
+    {
+        if (task.IsCompleted)
+        {
+            return task.GetAwaiter().GetResult();
+        }
+        throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
+    }
 }
