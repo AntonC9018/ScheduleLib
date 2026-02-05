@@ -24,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _serializationHelper = serializationHelper;
         ResetUserLayers();
     }
+#pragma warning enable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSelectUser))]
@@ -35,26 +36,24 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
     [ObservableProperty]
-    public partial object[] UserLayers { get; private set; }
+    public partial WrappedLayer[] UserLayers { get; private set; }
     private void ResetUserLayers()
     {
         UserLayers = new[]
             {
-                NoUser,
+                WrappedLayer.Null,
             }
             .Concat(
                 _configBuilder
                     .GetMarkerLayers()
-                    .Select(x => (object) new WrappedLayer(x.Builder)))
+                    .Select(x => new WrappedLayer(x.Builder)))
             .ToArray();
     }
-
-    private const string NoUser = "No User";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(EnableSelectedUserCommand))]
-    public partial object SelectedUserLayer { get; set; } = NoUser;
+    public partial WrappedLayer SelectedUserLayer { get; set; } = WrappedLayer.Null;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
@@ -85,12 +84,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void AddUser(Name name)
     {
-        var layer = _configBuilder.Defaults.CreateUiLayer();
-        var val = layer.Builder<TeacherLayerConfig>().Value();
-        val.TeacherName = name;
-        ResetUserLayers();
+        ExecTreeAction(() =>
+        {
+            var layer = _configBuilder.Defaults.CreateUiLayer();
+            var val = layer.Builder<TeacherLayerConfig>().Value();
+            val.TeacherName = name;
+            return new WrappedLayer(layer);
+        });
+
         UserNameToAdd = "";
-        SelectedUserLayer = new WrappedLayer(layer);
         LayerLevel = LayerLevel.UiUser;
     }
 
@@ -102,11 +104,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            if (SelectedUserLayer is not WrappedLayer w)
+            if (SelectedUserLayer.IsNull)
             {
                 return false;
             }
-            if (w.IsUiLayer)
+            if (SelectedUserLayer.IsUiLayer)
             {
                 return true;
             }
@@ -117,15 +119,16 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRemoveSelectedUser))]
     public void RemoveSelectedUser()
     {
-        if (SelectedUserLayer is not WrappedLayer selectedUser
-            || !selectedUser.IsUiLayer)
+        if (SelectedUserLayer.IsNull
+            || !SelectedUserLayer.IsUiLayer)
         {
             Debug.Fail("Cannot remove this layer");
             return;
         }
         ExecTreeAction(() =>
         {
-            UiLayerHelper.MaybeRemoveLayer(selectedUser.Leaf.Layer, _configBuilder);
+            UiLayerHelper.MaybeRemoveLayer(SelectedUserLayer.Leaf.Layer, _configBuilder);
+            return null;
         });
     }
 
@@ -138,11 +141,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            if (SelectedUserLayer is not WrappedLayer user)
+            if (SelectedUserLayer.IsNull)
             {
                 return false;
             }
-            if (user.IsUiLayer)
+            if (SelectedUserLayer.IsUiLayer)
             {
                 return false;
             }
@@ -153,13 +156,14 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEnableSelectedUser))]
     public void EnableSelectedUser()
     {
-        if (SelectedUserLayer is not WrappedLayer user)
+        if (SelectedUserLayer.IsNull)
         {
             return;
         }
         ExecTreeAction(() =>
         {
-            user.MaybeInitUiLayer();
+            var b = SelectedUserLayer.Leaf.MaybeCreateUiLayer(SelectedUserLayer.Marker);
+            return new(b);
         });
         LayerLevel = LayerLevel.UiUser;
     }
@@ -172,6 +176,7 @@ public partial class MainWindowViewModel : ViewModelBase
             await using var output = File.OpenWrite("ui-layers.json");
             await _serializationHelper.SerializeUiLayers(output, _configBuilder);
             ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
+            return null;
         });
     }
     [RelayCommand]
@@ -181,41 +186,46 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             await using var output = File.OpenRead("ui-layers.json");
             await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
+            return null;
         });
     }
 
-    private void ExecTreeAction(Action change)
+    private void ExecTreeAction(Func<WrappedLayer?> change)
     {
         ExecTreeAction(() =>
         {
-            change();
-            return ValueTask.CompletedTask;
+            var ret = change();
+            return ValueTask.FromResult(ret);
         }).EnsureCompletedSync();
     }
 
-    private async ValueTask ExecTreeAction(Func<ValueTask> change)
+    private async ValueTask ExecTreeAction(Func<ValueTask<WrappedLayer?>> change)
     {
         TeacherLayerConfig? marker = null;
-        if (SelectedUserLayer is WrappedLayer selectedUser)
+        if (!SelectedUserLayer.IsNull)
         {
-            marker = selectedUser.Marker;
+            marker = SelectedUserLayer.Marker;
         }
-        await change();
+        var selectedLayer = await change();
         await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
 
         void Continue()
         {
             ResetUserLayers();
-            if (marker != null)
+            if (selectedLayer != null)
+            {
+                Debug.Assert(UserLayers.Contains(selectedLayer));
+                SelectedUserLayer = selectedLayer;
+            }
+            else if (marker != null)
             {
                 SelectedUserLayer = UserLayers
-                    .Where(x => x is WrappedLayer w
-                        && EqualityComparer<TeacherLayerConfig>.Default.Equals(w.Marker, marker))
-                    .FirstOrDefault(NoUser);
+                    .Where(x => EqualityComparer<TeacherLayerConfig>.Default.Equals(x.Marker, marker))
+                    .FirstOrDefault(WrappedLayer.Null);
             }
             else
             {
-                SelectedUserLayer = NoUser;
+                SelectedUserLayer = WrappedLayer.Null;
             }
         }
     }
@@ -229,11 +239,12 @@ public sealed record class WrappedLayer
         Leaf = leaf;
     }
 
+    public static readonly WrappedLayer Null = new(default(ApplicationConfigLayerBuilder));
+    public bool IsNull => Leaf.IsNull;
     public TeacherLayerConfig Marker => Leaf.Layer.GetConfig(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Layer.IsUiLayer();
-    public void MaybeInitUiLayer() => Leaf.MaybeCreateUiLayer(Marker);
-    public override string ToString() => Name.ToString();
+    public override string ToString() => IsNull ? "No User" : Name.ToString();
 }
 
 public enum LayerLevel

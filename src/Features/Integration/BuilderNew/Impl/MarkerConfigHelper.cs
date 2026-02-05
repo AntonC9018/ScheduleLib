@@ -79,7 +79,6 @@ public static class MarkerConfigExtension
                     Debug.Assert(parent != null);
                     return (Parent: parent, Node: c.Layer);
                 })
-                .WhereNotDefault()
                 .ToList();
             foreach (var x in deletionList)
             {
