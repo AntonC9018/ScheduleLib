@@ -24,7 +24,13 @@ public sealed partial class UserNodeSelectionModel : ObservableObject
     public partial WrappedNode SelectedNode { get; set; }
 }
 
-public sealed partial class SelectedUserNodeViewModel : ViewModelBase
+public interface ISelectedUserNode
+{
+    WrappedNode SelectedNode { get; }
+    event Action<WrappedNode>? OnSelectedNodeChanged;
+}
+
+public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelectedUserNode
 {
     private readonly TreeBuilder _configBuilder;
 
@@ -45,6 +51,8 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase
         set => Model.SelectedNode = value;
     }
 
+    public event Action<WrappedNode>? OnSelectedNodeChanged;
+
     private void ResetModel(UserNodeSelectionModel model)
     {
         Debug.Assert(!ReferenceEquals(model, Model));
@@ -53,6 +61,7 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase
             _ = o;
             Debug.Assert(args.PropertyName == nameof(model.SelectedNode));
             OnPropertyChanged(nameof(SelectedNode));
+            OnSelectedNodeChanged?.Invoke(SelectedNode);
         };
         // Null in the constructor.
         var oldValue = Model?.SelectedNode;

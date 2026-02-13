@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 
@@ -9,8 +10,7 @@ public record struct EnumBitArray<T>
 {
     static EnumBitArray()
     {
-        var count = EnumMembers<T>.Count;
-        UnsizedBitArray32.ValidateLength(count);
+        UnsizedBitArray32.ValidateLength(_Length);
     }
 
     private UnsizedBitArray32 _impl;
@@ -21,8 +21,19 @@ public record struct EnumBitArray<T>
 
     public EnumBitArray(UnsizedBitArray32 impl)
     {
+        Debug.Assert(impl.WithShrunkLen(_Length).AsUnsized() == impl);
         _impl = impl;
     }
+
+    public readonly UnsizedBitArray32 AsUnsized() => _impl;
+
+    public static EnumBitArray<T> Create(BitArray32 impl)
+    {
+        Debug.Assert(impl.Length == _Length);
+        return new(impl.AsUnsized());
+    }
+
+    public static EnumBitArray<T> Empty => new();
 
     public static EnumBitArray<T> AllSet
     {
@@ -33,10 +44,11 @@ public record struct EnumBitArray<T>
         }
     }
 
+    private static int _Length => EnumMembers<T>.Count;
     [UnscopedRef]
-    private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(EnumMembers<T>.Count);
+    private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(_Length);
     [Pure]
-    private readonly BitArray32 SizedImpl => _impl.WithFixedSize(EnumMembers<T>.Count);
+    private readonly BitArray32 SizedImpl => _impl.WithFixedSize(_Length);
 
     public void Set(T index, bool value)
     {
@@ -103,7 +115,7 @@ public record struct EnumBitArray<T>
     }
 
     [Pure]
-    public readonly bool AreAllSet => _impl.AreAllSet(EnumMembers<T>.Count);
+    public readonly bool AreAllSet => _impl.AreAllSet(_Length);
     [Pure]
     public readonly bool AreNoneSet => _impl.AreNoneSet;
     [Pure]
@@ -134,6 +146,9 @@ public record struct EnumBitArray<T>
     public readonly uint Bits => _impl.Bits;
     [Pure]
     public readonly bool IsEmpty => _impl.IsEmpty;
+
+    [Pure]
+    public readonly int Length => _Length;
 
     public readonly struct SetEnumValuesEnumerable : IEnumerable<T>
     {

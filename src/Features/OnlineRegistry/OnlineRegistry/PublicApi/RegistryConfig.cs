@@ -14,6 +14,13 @@ public sealed class RegistryConfig :
     public ExtraLessonInstanceAction? ExtraLessonInstanceAction { get; set; }
     public IEquationCommandsDerivation? EquationCommandsDerivation { get; set; }
     public CommandProcessingConfig? CommandProcessingConfig { get; set; }
+
+    public static void Register(IServiceCollection services)
+    {
+        services.RegisterBasicOperationsAndMergers<RegistryConfig>();
+        services.AddConfigProvider(BuiltRegistryConfig.Key);
+        services.AddMapper<RegistryConfigMapper>();
+    }
 }
 
 public sealed class BuiltRegistryConfig
@@ -46,9 +53,7 @@ public static class ConfigExtensions
     {
         public void AddOnlineRegistry()
         {
-            services.RegisterBasicOperationsAndMergers<RegistryConfig>();
-            services.AddConfigProvider(BuiltRegistryConfig.Key);
-            services.AddMapper<RegistryConfigMapper>();
+            RegistryConfig.Register(services);
 
             // TODO: This should function as a provider then? doing work in DI is not good.
             services.AddScoped<IRegistryErrorHandler>(sp =>

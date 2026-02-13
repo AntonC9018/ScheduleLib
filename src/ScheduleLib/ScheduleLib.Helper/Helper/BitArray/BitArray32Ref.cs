@@ -12,6 +12,12 @@ public ref struct SizedBitArray32Ref
         _length = length;
     }
 
+    public static SizedBitArray32Ref Create(ref BitArray32 arr, int len)
+    {
+        Debug.Assert(arr.Length <= len);
+        return new(ref arr._array, len);
+    }
+
     private readonly void ValidateIndex(int index)
     {
         Debug.Assert(index >= 0 && index < _length);
@@ -77,9 +83,8 @@ public ref struct SizedBitArray32Ref
     public readonly BitArray32 Slice(int offset, int length)
     {
         Debug.Assert(CanSlice(offset, length));
-
         var ret = _array.Slice(offset, length);
-        return new(ret, length);
+        return ret;
     }
 
     public readonly bool AreAllSet => _array.AreAllSet(_length);
@@ -97,7 +102,7 @@ public ref struct SizedBitArray32Ref
         get
         {
             var flipped = _array.Flipped(_length);
-            return new(flipped.Bits);
+            return new(flipped._array.Bits);
         }
     }
 

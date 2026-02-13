@@ -31,7 +31,7 @@ public static class DefaultConfig
                 _ = topics;
             });
 
-            defaults.Moodle().Credentials().FromConfig(isRequired: true);
+            defaults.Moodle().Credentials().FromConfig();
 
             defaults.DeadlinesExcel().ConfigureValue(x =>
             {

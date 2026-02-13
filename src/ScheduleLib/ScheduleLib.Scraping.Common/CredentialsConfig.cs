@@ -11,18 +11,32 @@ public interface ICredentialsConfig
     public CredentialsSource? Credentials { get; set; }
 }
 
-public sealed class CredentialsSource
+public sealed class AppConfigCredentialsSource : CredentialsSource
 {
-    public bool? IsRequired { get; set; }
+}
+
+public sealed class ValueCredentialsSource : CredentialsSource
+{
+    public Credentials? Value { get; set; }
+}
+
+public abstract class CredentialsSource
+{
+    public static void Register(IServiceCollection services)
+    {
+        var hierarchy = services.AddOpenHierarchy<CredentialsSource>();
+        hierarchy.AddDerived<ValueCredentialsSource>().SetImmutable();
+        hierarchy.AddDerived<AppConfigCredentialsSource>().SetImmutable();
+    }
 }
 
 public readonly struct CredentialsSourceBuilder
 {
-    internal readonly CredentialsSource _source;
+    internal readonly ICredentialsConfig _storage;
 
-    public CredentialsSourceBuilder(CredentialsSource source)
+    public CredentialsSourceBuilder(ICredentialsConfig storage)
     {
-        _source = source;
+        _storage = storage;
     }
 }
 
@@ -33,17 +47,23 @@ public static class CredentialsBuilderExtensions
     {
         public CredentialsSourceBuilder Credentials()
         {
-            var t = new CredentialsSource();
-            builder.Value().Credentials = t;
-            return new(t);
+            var t = new CredentialsSourceBuilder(builder.Value());
+            return t;
         }
     }
 
     extension (CredentialsSourceBuilder builder)
     {
-        public void FromConfig(bool isRequired = false)
+        public void FromConfig()
         {
-            builder._source.IsRequired = isRequired;
+            builder._storage.Credentials = new AppConfigCredentialsSource();
+        }
+
+        public ValueCredentialsSource Value(Action<ValueCredentialsSource>? configure = null)
+        {
+            var ret = new ValueCredentialsSource();
+            builder._storage.Credentials = ret;
+            return ret;
         }
     }
 
@@ -83,17 +103,29 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
         string serviceKey,
         CredentialsSource source)
     {
-        // TODO: Support other types of sources.
-        var credentials = _resolver.Resolve(serviceKey);
-        if (credentials != null)
+        switch (source)
         {
-            return credentials;
+            case AppConfigCredentialsSource:
+            {
+                // TODO: Support other types of sources.
+                var credentials = _resolver.Resolve(serviceKey);
+                if (credentials != null)
+                {
+                    return credentials;
+                }
+                {
+                    throw new InvalidOperationException("Credentials must be given as per configuration");
+                }
+            }
+            case ValueCredentialsSource v:
+            {
+                return v.Value;
+            }
+            default:
+            {
+                throw Unreachable();
+            }
         }
-        if (source.IsRequired == false)
-        {
-            throw new InvalidOperationException("Credentials must be given as per configuration");
-        }
-        return null;
     }
 }
 

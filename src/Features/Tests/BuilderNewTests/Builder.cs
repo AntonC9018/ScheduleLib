@@ -36,7 +36,7 @@ public static class TestBuilderHelper
             });
 
             defaults.Registry().Credentials().FromConfig();
-            defaults.Moodle().Credentials().FromConfig(isRequired: true);
+            defaults.Moodle().Credentials().FromConfig();
         });
 
         // As an idea (ignore for now)
@@ -65,7 +65,7 @@ public static class TestBuilderHelper
                 topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
                 t.LessonTopics().Manifest(m => m.Path("path.xlsx"));
             });
-            t.Moodle().Credentials().FromConfig(isRequired: true);
+            t.Moodle().Credentials().FromConfig();
         });
 
         b.Defaults.TeacherLayer("Tamara Iatasina", t =>

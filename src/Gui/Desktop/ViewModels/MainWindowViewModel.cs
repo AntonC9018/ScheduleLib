@@ -9,6 +9,75 @@ using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
+public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
+{
+    private readonly TreeBuilder _tree;
+    private readonly SelectedUserNodeViewModel _user;
+    private readonly NodeDataViewModelResolver _modelResolver;
+
+    public static ConfigType[] CachedConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
+        x => new ConfigType
+        {
+            Key = x.Key,
+            Type = x.Value,
+        }).ToArray();
+
+    public NodeDataEditorViewModel(
+        TreeBuilder tree,
+        SelectedUserNodeViewModel user,
+        NodeDataViewModelResolver modelResolver)
+    {
+        _user = user;
+        _modelResolver = modelResolver;
+        _tree = tree;
+        ConfigTypes = CachedConfigTypes.Where(x => modelResolver.Supported.Contains(x.Key)).ToArray();
+    }
+
+    [ObservableProperty]
+    public partial OwnedViewModel? SelectedNodeDataViewModel { get; private set; }
+
+    public IReadOnlyList<ConfigType> ConfigTypes { get; }
+
+    [ObservableProperty]
+    public partial ConfigType? CurrentConfigType { get; set; }
+
+    partial void OnCurrentConfigTypeChanged(ConfigType? value)
+    {
+        if (value == null)
+        {
+            SelectedNodeDataViewModel = null;
+            return;
+        }
+
+        _modelResolver.Resolve(value.Key, _user);
+    }
+
+    partial void OnSelectedNodeDataViewModelChanged(OwnedViewModel? oldValue, OwnedViewModel? newValue)
+    {
+        _ = newValue;
+        if (oldValue is { } x)
+        {
+            x.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (SelectedNodeDataViewModel is { } x)
+        {
+            x.Dispose();
+        }
+    }
+}
+
+public sealed class ConfigType
+{
+    public required NodeDataKey Key { get; init; }
+    public required Type Type { get; init; }
+
+    public override string ToString() => Key.Value.ToString();
+}
+
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;

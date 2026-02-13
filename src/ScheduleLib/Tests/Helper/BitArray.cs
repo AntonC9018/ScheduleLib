@@ -75,4 +75,37 @@ public sealed class BitArray
         Assert.True(e.MoveNext());
         Assert.Equal(5, e.Current);
     }
+
+    [Fact]
+    public void SetArray()
+    {
+        var bitArray = BitArray32.Empty(10);
+        var setArr = UnsizedBitArray32.GetMask(3).ShiftedLeft(5).WithFixedSize(10);
+        bitArray.SetArray(setArr);
+        Assert.Collection(bitArray.SetBitIndicesLowToHigh,
+            f1 => Assert.Equal(5, f1),
+            f2 => Assert.Equal(6, f2),
+            f3 => Assert.Equal(7, f3));
+    }
+
+    [Fact]
+    public void ClearArray()
+    {
+        var bitArray = BitArray32.AllSet(10);
+        var clearArr = UnsizedBitArray32.GetMask(8).ShiftedLeft(1).WithFixedSize(10);
+        bitArray.ClearArray(clearArr);
+        Assert.Collection(bitArray.SetBitIndicesLowToHigh,
+            f1 => Assert.Equal(0, f1),
+            f2 => Assert.Equal(9, f2));
+    }
+
+    [Fact(Skip = "DEBUG")]
+    public void ChecksArrayOps1()
+    {
+        Assert.ThrowsAny<Exception>(() =>
+        {
+            var otherArr = UnsizedBitArray32.GetMask(8).ShiftedLeft(8).WithFixedSize(10);
+            _ = otherArr;
+        });
+    }
 }

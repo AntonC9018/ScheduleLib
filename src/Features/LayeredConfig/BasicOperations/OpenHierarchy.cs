@@ -188,7 +188,7 @@ public static class ConfigJsonSerializationConfiguration
     {
         public void ConfigureOpenHierarchy(Action<OpenHierarchyOptions> configure)
         {
-            services.Configure("JsonName", configure);
+            services.Configure(configure);
         }
     }
 }

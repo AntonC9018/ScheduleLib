@@ -35,6 +35,8 @@ public static class Registration
 
         public void AddConfigsServices()
         {
+            CredentialsSource.Register(services);
+
             services.AddMarkerServices();
             services.AddSingleton<DataMappingRegistry>();
             services.AddSingleton<TreeBuilder>();

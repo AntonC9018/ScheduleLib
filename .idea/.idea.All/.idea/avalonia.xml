@@ -6,6 +6,7 @@
         <entry key="src/Gui/Desktop/App.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/Views/MainWindow.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/Views/MainWindowView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/Views/NodeDataEditorView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
       </map>
     </option>
   </component>

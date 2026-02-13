@@ -7,6 +7,8 @@ public sealed class NodeDataKeyRegistry
     private readonly NameRegistry<NodeDataKey> _impl = new();
     private readonly ConcurrentDictionary<NodeDataKey, Type> _typeMap = new();
 
+    public IEnumerable<KeyValuePair<NodeDataKey, Type>> KeyTypeMappings => _typeMap;
+
     public Type GetTypeFromKey(NodeDataKey key)
     {
         return _typeMap[key];
