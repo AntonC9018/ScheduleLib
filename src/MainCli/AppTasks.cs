@@ -32,6 +32,7 @@ public enum AppTask
     JsonSchedulesForWebsite,
     CopyGradesFromMoodleToRegistry,
     UpdateCalendar,
+    ListOfThesesPerTeacherForSite,
 }
 
 public static class AppTasks
@@ -245,6 +246,11 @@ public static class AppTasks
             {
                 var handler = c.Services.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>();
                 await handler.Update(c.CancellationToken);
+                break;
+            }
+
+            case AppTask.ListOfThesesPerTeacherForSite:
+            {
                 break;
             }
         }
