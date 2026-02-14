@@ -55,7 +55,6 @@ public readonly struct ParseAttendanceListsExcelParams
 
 public static class AttendanceExcel
 {
-
     private static class NameTokenType
     {
         public const TokenType NamePart = TokenType.Invalid + 1;
@@ -581,7 +580,7 @@ public static class AttendanceExcel
             rowE.MoveNext();
         }
 
-        list.HintMaxCount(maxLen - 1);
+        list.HintMaxCount(maxLen);
         return;
 
         ParsedHeaderInfo ParseHeader(in HeaderFormat headerFormat)

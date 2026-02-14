@@ -25,7 +25,7 @@ public ref struct SizedOffsetBitArray32Ref
         int offset,
         int len)
     {
-        Debug.Assert(offset + len <= arr.Length);
+        Debug.Assert(offset + len <= arr.Len);
         return new SizedOffsetBitArray32Ref(
             ref arr._array,
             offset: offset,

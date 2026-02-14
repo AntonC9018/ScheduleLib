@@ -111,9 +111,19 @@ public sealed partial class RegistryViewModel : ViewModelBase
             {
                 throw new InvalidOperationException("Cannot set DryRun when no node selected");
             }
-            var ret = v.CommandProcessingConfig ?? (
-                new CommandProcessingConfig().WithLog(LessonEquationCommandTypes.All).WithProcess(LessonEquationCommandTypes.All));
-
+            CommandProcessingConfigBuilder b;
+            if (v.CommandProcessingConfig is not { } c)
+            {
+                b = new CommandProcessingConfigBuilder();
+                b.Log().SetAll();
+                b.Process().SetAll();
+            }
+            else
+            {
+                b = c.Builder();
+            }
+            b.DryRun().SetAll(value ?? false);
+            v.CommandProcessingConfig = b.Build();
         }
     }
 

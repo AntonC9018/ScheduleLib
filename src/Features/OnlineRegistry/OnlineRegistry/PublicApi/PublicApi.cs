@@ -1,7 +1,7 @@
-using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using AutoConstructor.Attributes;
+using DocumentFormat.OpenXml.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
@@ -331,130 +331,6 @@ public readonly record struct AttendanceLookupKey
         DayIndex = dayIndex;
         DateTime = dateTime;
     }
-}
-
-public readonly struct CommandProcessingConfig
-{
-    private int Bits { get; init; }
-
-    public readonly CommandProcessingConfig WithProcess(LessonEquationCommandTypes types)
-    {
-        var newBits = Bits | ((int) types << ProcessOffset);
-        return new()
-        {
-            Bits = newBits,
-        };
-    }
-
-    public readonly CommandProcessingConfig WithDryRun(LessonEquationCommandTypes types)
-    {
-        var newBits = Bits | ((int) types << DryRunOffset);
-        return new()
-        {
-            Bits = newBits,
-        };
-    }
-
-    public readonly CommandProcessingConfig WithLog(LessonEquationCommandTypes types)
-    {
-        var newBits = Bits | ((int) types << LogOffset);
-        return new()
-        {
-            Bits = newBits,
-        };
-    }
-
-    private const int ProcessOffset = 0;
-    private const int ProcessMask = (1 << (int) LessonEquationCommandType.Count) - 1;
-    private const int DryRunOffset = 8;
-    private const int DryRunMask = ProcessMask << DryRunOffset;
-    private const int LogOffset = 16;
-    private const int LogMask = ProcessMask << LogOffset;
-    private const int ValueMask = ProcessMask;
-
-
-    public static CommandProcessingConfig None => new();
-    public static CommandProcessingConfig Process => None.WithProcess(LessonEquationCommandTypes.All);
-    public static CommandProcessingConfig DryRun => None.WithDryRun(LessonEquationCommandTypes.All);
-    public static CommandProcessingConfig Log => None.WithLog(LessonEquationCommandTypes.All);
-
-    /// <summary>
-    /// Masks out the "process" that are also on "dry run".
-    /// </summary>
-    /// <value></value>
-    public readonly CommandProcessingConfig Normalized
-    {
-        get
-        {
-            int dryRunBits = DryRunMask & Bits;
-            int doNotProcessMask = ((dryRunBits >> DryRunOffset) & ValueMask) << ProcessOffset;
-            int doProcessMask = ~doNotProcessMask;
-            int bits = (doProcessMask & Bits) | ((~ProcessMask) & Bits);
-            return new()
-            {
-                Bits = bits,
-            };
-        }
-    }
-
-    private readonly EnumBitArray<LessonEquationCommandType> CreatePortion(int offset)
-        => new(new UnsizedBitArray32((uint) (Bits >> offset) & ValueMask));
-    private readonly bool CheckAny(int offset, LessonEquationCommandTypes types)
-    {
-        var p = CreatePortion(offset);
-        var mask = new UnsizedBitArray32((uint) types);
-        return p.Intersect(new(mask)).AreAnySet;
-    }
-    private readonly bool CheckOne(int offset, LessonEquationCommandType type)
-    {
-        var p = CreatePortion(offset);
-        return p.IsSet(type);
-    }
-
-    public readonly bool HasProcess(LessonEquationCommandType type) => CheckOne(ProcessOffset, type);
-    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) => CheckAny(ProcessOffset, types);
-
-    public readonly bool HasDryRun(LessonEquationCommandType type) => CheckOne(DryRunOffset, type);
-    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) => CheckAny(DryRunOffset, types);
-
-    public readonly bool HasLog(LessonEquationCommandType type) => CheckOne(LogOffset, type);
-    public readonly bool HasAnyLog(LessonEquationCommandTypes types) => CheckAny(LogOffset, types);
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        var segments = new[]
-        {
-            (Offset: ProcessOffset, Name: "Process"),
-            (Offset: DryRunOffset, Name: "DryRun"),
-            (Offset: LogOffset, Name: "Log"),
-        };
-        var value = Normalized;
-        foreach (var t in segments)
-        {
-            var portion = value.CreatePortion(t.Offset);
-            sb.Append(t.Name);
-            sb.Append('{');
-
-            if (portion.AreAllSet)
-            {
-                sb.Append("All");
-            }
-            else
-            {
-                var list = new ListStringBuilder(sb, ",");
-                foreach (var i in portion.SetValues())
-                {
-                    list.Append(i.ToString());
-                }
-            }
-
-            sb.Append('}');
-            sb.AppendLine();
-        }
-        return sb.ToString();
-    }
-
 }
 
 public record struct FoundGroups

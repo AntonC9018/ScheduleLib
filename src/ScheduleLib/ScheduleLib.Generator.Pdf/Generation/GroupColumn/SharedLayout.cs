@@ -178,7 +178,7 @@ public static class ColumnArrangementHelper
         public readonly (HashSet<GroupId> Set, GroupId[] Array) Current
             => (AllGroupingSets[Index], AllGroupingArrays[Index]);
         public readonly bool IsDone => Index == AllGroupingSets.Length;
-        public readonly int GroupCount => OccupiedGroupPositions.Length;
+        public readonly int GroupCount => OccupiedGroupPositions.Len;
     }
 
     private static bool DoSearch(ref SearchContext context)
@@ -210,7 +210,7 @@ public static class ColumnArrangementHelper
 
         BitArray32 MaskOfPositionsOfIncludedGroups(ref SearchContext context)
         {
-            var ret = BitArray32.Empty(context.OccupiedGroupPositions.Length);
+            var ret = BitArray32.Empty(context.OccupiedGroupPositions.Len);
             foreach (var id in idArray)
             {
                 if (context.ColumnOrder.MaybeGet(id) is { } index)

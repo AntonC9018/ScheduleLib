@@ -13,7 +13,7 @@
 
     <ItemGroup Condition="'$(IncludeCommonTestData)' == 'true'">
         <None
-            Include="$(RootPath)\Tests\data\**\*"
+            Include="$(RootPath)src\Tests\data\**\*"
             CopyToOutputDirectory="Always"
             TargetPath="data\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>

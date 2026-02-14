@@ -7,14 +7,14 @@ public ref struct SizedBitArray32Ref
 
     public SizedBitArray32Ref(ref UnsizedBitArray32 array, int length)
     {
-        UnsizedBitArray32.ValidateLength(length);
+        UnsizedBitArray32.ValidateLen(length);
         _array = ref array;
         _length = length;
     }
 
     public static SizedBitArray32Ref Create(ref BitArray32 arr, int len)
     {
-        Debug.Assert(arr.Length <= len);
+        Debug.Assert(arr.Len <= len);
         return new(ref arr._array, len);
     }
 

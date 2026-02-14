@@ -59,7 +59,9 @@ public sealed class AttendanceExcelTests
                 {
                     Name = y.Key.ToString(),
                 }),
-            x.Value.Attendance,
+            Attendance = x.Value.Attendance.Values.Select(a => a.AsArray()),
         }));
     }
+
+    // TODO: Add test for header format
 }

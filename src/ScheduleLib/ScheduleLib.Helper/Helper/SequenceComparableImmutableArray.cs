@@ -11,7 +11,21 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
         Array = array;
     }
 
-    public bool Equals(SequenceComparableImmutableArray<T> other) => Array.SequenceEqual(other.Array);
+    public bool Equals(SequenceComparableImmutableArray<T> other)
+    {
+        bool isOtherDefault = other.Array == default;
+        bool isSelfDefault = Array == default;
+        if (isSelfDefault && isOtherDefault)
+        {
+            return true;
+        }
+        if (isSelfDefault || isOtherDefault)
+        {
+            return false;
+        }
+        return Array.SequenceEqual(other.Array);
+    }
+
     public override bool Equals(object? other)
     {
         if (other is not SequenceComparableImmutableArray<T> arr)

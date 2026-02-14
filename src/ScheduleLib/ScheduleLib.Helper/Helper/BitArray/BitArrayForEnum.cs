@@ -10,7 +10,7 @@ public record struct EnumBitArray<T>
 {
     static EnumBitArray()
     {
-        UnsizedBitArray32.ValidateLength(_Length);
+        UnsizedBitArray32.ValidateLen(_Length);
     }
 
     private UnsizedBitArray32 _impl;
@@ -29,7 +29,7 @@ public record struct EnumBitArray<T>
 
     public static EnumBitArray<T> Create(BitArray32 impl)
     {
-        Debug.Assert(impl.Length == _Length);
+        Debug.Assert(impl.Len == _Length);
         return new(impl.AsUnsized());
     }
 

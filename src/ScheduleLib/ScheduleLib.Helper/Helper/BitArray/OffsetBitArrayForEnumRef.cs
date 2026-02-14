@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Text;
 
 namespace ScheduleLib.Helper;
 
@@ -8,7 +9,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 {
     static OffsetBitArrayForEnumRef()
     {
-        UnsizedBitArray32.ValidateLength(_Length);
+        UnsizedBitArray32.ValidateLen(_Length);
     }
 
     private ref UnsizedBitArray32 _impl;
@@ -26,7 +27,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
         ref BitArray32 array,
         int offset)
     {
-        Debug.Assert(offset + _Length <= array.Length);
+        Debug.Assert(offset + _Length <= array.Len);
         return new(ref array._array, offset);
     }
 
@@ -46,7 +47,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     private readonly EnumBitArray<T> RestoreSlice(UnsizedBitArray32 array)
     {
-        var ret = array.ShiftedRight(_offset).WithShrunkLen(_Length);
+        var ret = array.ShiftedRightWithDataLoss(_offset).WithShrunkLen(_Length);
         return new(ret.AsUnsized());
     }
 
@@ -61,12 +62,24 @@ public ref struct OffsetBitArrayForEnumRef<T>
         _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
     }
 
+    public void SetAll(bool value = true)
+    {
+        if (value)
+        {
+            SetArray(EnumBitArray<T>.AllSet);
+        }
+        else
+        {
+            ClearArray(EnumBitArray<T>.AllSet);
+        }
+    }
+
     public void ClearArray(EnumBitArray<T> array)
     {
         _impl.ClearArray(array.AsUnsized().ShiftedLeft(_offset));
     }
 
-    private readonly EnumBitArray<T> Slice => RestoreSlice(_impl);
+    public readonly EnumBitArray<T> RestoredSlice => RestoreSlice(_impl);
 
     [Pure]
     private readonly int GetBitIndex(T index)
@@ -101,13 +114,13 @@ public ref struct OffsetBitArrayForEnumRef<T>
     }
 
     [Pure]
-    public readonly bool AreAllSet => Slice.AreAllSet;
+    public readonly bool AreAllSet => RestoredSlice.AreAllSet;
     [Pure]
-    public readonly bool AreNoneSet => Slice.AreNoneSet;
+    public readonly bool AreNoneSet => RestoredSlice.AreNoneSet;
     [Pure]
     public readonly bool AreAnySet => !AreNoneSet;
     [Pure]
-    public readonly int SetCount => Slice.SetCount;
+    public readonly int SetCount => RestoredSlice.SetCount;
 
     public void ClearAll()
     {
@@ -116,9 +129,20 @@ public ref struct OffsetBitArrayForEnumRef<T>
     }
 
     [Pure]
-    public readonly bool IsEmpty => Slice.IsEmpty;
+    public readonly bool IsEmpty => RestoredSlice.IsEmpty;
 
-    public readonly EnumBitArray<T>.SetEnumValuesEnumerable SetValues() => Slice.SetValues();
+    public readonly EnumBitArray<T>.SetEnumValuesEnumerable SetValues() => RestoredSlice.SetValues();
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        var lb = new ListStringBuilder(sb);
+        foreach (var value in SetValues())
+        {
+            lb.Append(Enum.GetName(value));
+        }
+        return sb.ToString();
+    }
 }
 
 public static partial class BitArrayExtensions

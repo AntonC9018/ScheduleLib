@@ -88,6 +88,8 @@ public struct AttendanceLists(ImmutableArray<DayAttendanceList> values)
             return Day(0).StudentCount;
         }
     }
+
+    public readonly ImmutableArray<DayAttendanceList> Values => values;
 }
 
 public sealed class StudentAttendanceListBuilder()

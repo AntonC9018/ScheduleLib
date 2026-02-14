@@ -13,11 +13,12 @@
         <ProjectPathRelativeNorm>$([System.String]::Copy('$(ProjectPathRelative)').Replace('\','/'))</ProjectPathRelativeNorm>
         <IsTestsProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ProjectPathRelativeNorm)', '(^|/)Tests(/|$)'))</IsTestsProject>
     </PropertyGroup>
+    <Target Name="Print" BeforeTargets="Build">
+        <Message Importance="high" Text="$(IsTestsProject)"></Message>
+    </Target>
 
     <PropertyGroup>
         <MicrosoftPackagesVersion>10.0.1</MicrosoftPackagesVersion>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(IsScheduleIntegrationTest)' == 'true'">
-    </PropertyGroup>
 </Project>
