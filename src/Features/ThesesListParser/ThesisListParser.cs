@@ -4,12 +4,13 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
+using ScheduleLib.Curriculum;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 
-namespace Comisia;
+namespace Theses;
 
 public sealed class ThesisList
 {
@@ -55,9 +56,9 @@ public static class ThesisListParser
         Count,
     }
 
-    public static ThesisList Parse(string filePath, ThesisType targetThesisType)
+    public static ThesisList Parse(Stream file, ThesisType targetThesisType)
     {
-        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
+        using var excel = SpreadsheetDocument.Open(file, isEditable: false, new()
         {
             AutoSave = false,
             CompatibilityLevel = CompatibilityLevel.Version_2_20,
@@ -202,7 +203,7 @@ public static class ThesisListParser
                                         break;
                                     }
 
-                                    var studentName = CommissionParser.ParseStudentName(ref parser);
+                                    var studentName = NameHelper.ParseName(ref parser);
                                     state.StudentNames.Add(studentName);
                                     if (!parser.SkipWhitespace().SkippedAny)
                                     {
@@ -323,7 +324,7 @@ public static class ThesisListParser
     {
         var parser = new Parser(text);
         parser.SkipWhitespace();
-        var studentName = CommissionParser.ParseStudentName(ref parser);
+        var studentName = NameHelper.ParseName(ref parser);
         parser.SkipWhitespace();
         if (!parser.IsEmpty)
         {

@@ -4,6 +4,6 @@
         <IsScheduleIntegrationTest>true</IsScheduleIntegrationTest>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\JsonWebsiteSchedule\JsonWebsiteSchedule.csproj" />
+        <ProjectReference Include="..\..\FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
     </ItemGroup>
 </Project>

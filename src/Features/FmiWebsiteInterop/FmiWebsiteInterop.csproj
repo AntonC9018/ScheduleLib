@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <IncludeHelpers>true</IncludeHelpers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+        <ProjectReference Include="..\ThesesListParser\ThesesListParser.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4045" />
+    </ItemGroup>
+</Project>

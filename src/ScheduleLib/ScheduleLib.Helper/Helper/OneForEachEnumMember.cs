@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace ScheduleLib.Helper;
 
 public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
@@ -43,10 +45,10 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
                 Value = ref value;
             }
 
-            public void Deconstruct(out TEnum lessonType, out TValue perLessonBuilder)
+            public void Deconstruct(out TEnum key, out TValue value)
             {
-                lessonType = Key;
-                perLessonBuilder = Value;
+                key = Key;
+                value = Value;
             }
         }
 
@@ -76,8 +78,91 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
     public EnumMembers<TEnum> Keys => new();
 }
 
-public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue>
-    : IDisposable
+public readonly struct MemoryItem<TEnum, TValue>
+    where TEnum : struct, Enum
+{
+    public readonly TEnum Key;
+    private readonly OneForEachEnumMemberMemory<TEnum, TValue> _mem;
+
+    public ref TValue Value => ref _mem[Key];
+
+    public MemoryItem(TEnum key, OneForEachEnumMemberMemory<TEnum, TValue> mem)
+    {
+        Key = key;
+        _mem = mem;
+    }
+
+    public void Deconstruct(out TEnum lessonType, out TValue perLessonBuilder)
+    {
+        lessonType = Key;
+        perLessonBuilder = Value;
+    }
+}
+
+public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
+    : IEnumerable<MemoryItem<TEnum, TValue>>
+    where TEnum : struct, Enum
+{
+    private readonly Memory<TValue> _storage;
+
+    public OneForEachEnumMemberMemory(Memory<TValue> storage)
+    {
+        _storage = storage;
+    }
+
+    public ref TValue this[TEnum e]
+    {
+        get
+        {
+            var index = EnumMembers<TEnum>.GetOffset(e);
+            return ref _storage.Span[index];
+        }
+    }
+
+    public Enumerator GetEnumerator() => new(this);
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
+
+    public struct Enumerator : IEnumerator<MemoryItem<TEnum, TValue>>
+    {
+        private EnumMembers<TEnum>.Enumerator _e;
+        private readonly OneForEachEnumMemberMemory<TEnum, TValue> _mem;
+
+        public Enumerator(OneForEachEnumMemberMemory<TEnum, TValue> mem)
+        {
+            _e = new EnumMembers<TEnum>().GetEnumerator();
+            _mem = mem;
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public void Reset()
+        {
+            throw new NotSupportedException();
+        }
+
+        object? IEnumerator.Current => Current;
+        public MemoryItem<TEnum, TValue> Current => new(_e.Current, _mem);
+
+        public bool MoveNext()
+        {
+            if (!_e.MoveNext())
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    public void Fill(TValue val) => _storage.Span.Fill(val);
+    public void Clear() => _storage.Span.Clear();
+
+    public EnumMembers<TEnum> Keys => new();
+}
+
+public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue> : IDisposable
     where TEnum : struct, Enum
 {
     private readonly RentedBuffer<TValue> _items;
@@ -86,6 +171,21 @@ public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue>
     public void Dispose() => _items.Dispose();
 
     public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.Span);
+    public OneForEachEnumMemberSpan<TEnum, TValue>.Enumerator GetEnumerator() => Span.GetEnumerator();
+    public ref TValue this[TEnum e] => ref Span[e];
+}
+
+public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<MemoryItem<TEnum, TValue>>
+    where TEnum : struct, Enum
+{
+    private readonly TValue[] _items;
+
+    internal OneForEachEnumMemberArray(TValue[] items) => _items = items;
+    public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.AsSpan());
+    public OneForEachEnumMemberMemory<TEnum, TValue> Memory => new(_items.AsMemory());
+    public OneForEachEnumMemberMemory<TEnum, TValue>.Enumerator GetEnumerator() => Memory.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
 }
 
@@ -97,6 +197,13 @@ public static class OneForEach
         {
             var len = EnumMembers<TEnum>.Count;
             var buffer = new RentedBuffer<TValue>(len);
+            return new(buffer);
+        }
+
+        public OneForEachEnumMemberArray<TEnum, TValue> CreateArray<TValue>()
+        {
+            var len = EnumMembers<TEnum>.Count;
+            var buffer = new TValue[len];
             return new(buffer);
         }
     }

@@ -1,0 +1,85 @@
+{
+    "content": [
+        {
+            "thesisId": 10,
+            "thesisType": {
+                "typeId": 2,
+                "type": "TEZA_DE_LICENTA",
+                "label": "Teză de licenta"
+            },
+            "teacher": "Capcelea Titu",
+            "thesisNameRo": "Dezvoltarea unui joc platformer 2D utilizând motorul Godot",
+            "thesisNameEn": "Development of a 2D Platformer game using the Godot Engine",
+            "thesisNameRu": "Разработка 2D-платформера с использованием игрового движка Godot",
+            "studentName": "Petrașco Bogdan",
+            "studentGroup": "I2301"
+        },
+        {
+            "thesisId": 11,
+            "thesisType": {
+                "typeId": 2,
+                "type": "TEZA_DE_LICENTA",
+                "label": "Teză de licenta"
+            },
+            "teacher": "Capcelea Titu",
+            "thesisNameRo": "Generarea procedurală a clădirilor și hărților urbane pentru jocuri video și medii virtuale",
+            "thesisNameEn": "Procedural generation of buildings and urban maps for video games and virtual environments",
+            "thesisNameRu": "Процедурная генерация зданий и городских карт для видеоигр и виртуальных сред",
+            "studentName": "Covrig Andrei",
+            "studentGroup": "I2301"
+        },
+        {
+            "thesisId": 12,
+            "thesisType": {
+                "typeId": 2,
+                "type": "TEZA_DE_LICENTA",
+                "label": "Teză de licenta"
+            },
+            "teacher": "Capcelea Titu",
+            "thesisNameRo": "Dezvoltarea unui chatbot inteligent pentru identificarea și raportarea incidentelor de securitate cibernetică",
+            "thesisNameEn": "Development of an intelligent chatbot for identifying and reporting cybersecurity incidents",
+            "thesisNameRu": "Разработка интеллектуального чат-бота для выявления и отчетности о инцидентах кибербезопасности",
+            "studentName": "Stratan Ivan",
+            "studentGroup": "I2301"
+        },
+        {
+            "thesisId": 13,
+            "thesisType": {
+                "typeId": 2,
+                "type": "TEZA_DE_LICENTA",
+                "label": "Teză de licenta"
+            },
+            "teacher": "Capcelea Titu",
+            "thesisNameRo": "Dezvoltarea unui sistem de gestionare a parolelor bazat pe criptare AES și autentificare biometrică",
+            "thesisNameEn": "Development of a password management system based on AES encryption and biometric authentication",
+            "thesisNameRu": "Разработка системы управления паролями на основе шифрования AES и биометрической аутентификации",
+            "studentName": "Levodeanschi Anastasia",
+            "studentGroup": "IA2301"
+        }
+    ],
+    "pageable": {
+        "pageNumber": 0,
+        "pageSize": 20,
+        "sort": {
+            "unsorted": false,
+            "sorted": true,
+            "empty": false
+        },
+        "offset": 0,
+        "paged": true,
+        "unpaged": false
+    },
+    "totalPages": 1,
+    "totalElements": 4,
+    "last": true,
+    "numberOfElements": 4,
+    "size": 20,
+    "number": 0,
+    "sort": {
+        "unsorted": false,
+        "sorted": true,
+        "empty": false
+    },
+    "first": true,
+    "empty": false
+}

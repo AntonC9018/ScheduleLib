@@ -6,5 +6,6 @@
     <ItemGroup>
         <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
         <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
+        <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
     </ItemGroup>
 </Project>

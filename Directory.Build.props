@@ -11,10 +11,10 @@
     <PropertyGroup>
         <ProjectPathRelative>$([System.IO.Path]::GetRelativePath('$(RootPath)', '$(MSBuildProjectDirectory)'))</ProjectPathRelative>
         <ProjectPathRelativeNorm>$([System.String]::Copy('$(ProjectPathRelative)').Replace('\','/'))</ProjectPathRelativeNorm>
-        <IsTestsProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ProjectPathRelativeNorm)', '(^|/)Tests(/|$)'))</IsTestsProject>
+        <IsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ProjectPathRelativeNorm)', '(^|/)Tests(/|$)'))</IsTestProject>
     </PropertyGroup>
     <Target Name="Print" BeforeTargets="Build">
-        <Message Importance="high" Text="$(IsTestsProject)"></Message>
+        <Message Importance="high" Text="$(IsTestProject)"></Message>
     </Target>
 
     <PropertyGroup>

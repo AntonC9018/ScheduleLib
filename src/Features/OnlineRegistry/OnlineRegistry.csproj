@@ -10,7 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Scraping.Common\ScheduleLib.Scraping.Common.csproj" />
-        <ProjectReference Include="..\LayeredConfig\Anton.LayeredConfig.csproj" />
+        <ProjectReference Include="..\LayeredData\Anton.LayeredData.csproj" />
     </ItemGroup>
 
     <ItemGroup>

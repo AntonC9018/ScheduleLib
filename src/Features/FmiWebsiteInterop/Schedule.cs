@@ -5,7 +5,7 @@ using ScheduleLib;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 
-namespace WebsiteJsonSchedule;
+namespace FmiWebsiteInterop.Schedule;
 
 public sealed class RootObject
 {

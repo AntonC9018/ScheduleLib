@@ -11,5 +11,5 @@
 <!--        <PackageReference Include="Anton.AutoConstructor.SourceGenerator" Version="1.0.3" />-->
     </ItemGroup>
 
-    <Import Project="$(RootPath)build\Test.targets" Condition="'$(IsTestsProject)' == 'true'"/>
+    <Import Project="$(RootPath)build\Test.targets" Condition="'$(IsTestProject)' == 'true'"/>
 </Project>

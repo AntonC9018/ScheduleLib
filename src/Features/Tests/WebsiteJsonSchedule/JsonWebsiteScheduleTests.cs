@@ -2,9 +2,9 @@ using ScheduleLib.Builders;
 using Tests.ScheduleCommon;
 using WebsiteJsonSchedule;
 
-namespace JsonWebsiteSchedule.Tests;
+namespace FmiWebsiteInterop.Tests;
 
-public sealed class JsonWebsiteScheduleTests
+public sealed class FmiWebsiteInteropTests
 {
     [Fact]
     public async Task CountTest()
