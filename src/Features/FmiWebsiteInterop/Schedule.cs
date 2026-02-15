@@ -149,7 +149,7 @@ public static class WebsiteJsonScheduleHelper
     }
 
     private static string BuildPairInfo(
-        Schedule schedule,
+        ScheduleLib.Schedule schedule,
         List<WeeklyLessonAccessor> lessons,
         Services services)
     {

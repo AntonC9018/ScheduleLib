@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 using AutoConstructor.Attributes;
+using FmiWebsiteInterop.Theses.Parsing;
 using Google.Apis.Drive.v3;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Helper;
-using Theses;
 
 namespace FmiWebsiteInterop.Theses;
 
@@ -51,28 +52,29 @@ public static class ThesesJsonHelper
         Label = "Teză de master",
     };
 
-    private static ThesisType ConvertType(global::Theses.ThesisType type)
+    private static ThesisType ConvertType(Parsing.ThesisType type)
     {
         return type switch
         {
-            global::Theses.ThesisType.An => An,
-            global::Theses.ThesisType.Licenta => Licenta,
-            global::Theses.ThesisType.Master => Master,
+            Parsing.ThesisType.An => An,
+            Parsing.ThesisType.Licenta => Licenta,
+            Parsing.ThesisType.Master => Master,
             _ => throw Unreachable(),
         };
     }
-
-
 }
 
 
 [AutoConstructor]
 public sealed partial class ThesesConversionTaskHandler
 {
-    private readonly GoogleHttpClientProvider
-    public async Task Handle(ClientCredentials credentials)
+    private readonly GoogleHttpClientProvider _httpClientProvider;
+    private readonly IServiceProvider _sp;
+
+    public async Task Handle(CancellationToken cancellationToken)
     {
-        var httpClientProvider = c.Services.GetRequiredService<GoogleHttpClientProvider>();
+        var accessor = new GlobalConfigurationApiKeysSource("Google");
+        var credentials = await accessor.Get(_sp, cancellationToken);
 
         await using var outputFile = new FileStream("data/theses.xlsx", FileMode.Create, FileAccess.ReadWrite);
         {
@@ -80,16 +82,16 @@ public sealed partial class ThesesConversionTaskHandler
             {
                 ApiKey = credentials.ClientSecret,
                 ApplicationName = "Schedule",
-                HttpClientFactory = httpClientProvider,
+                HttpClientFactory = _httpClientProvider,
             });
             const string xlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             var request = service.Files.Export(
                 fileId: "1Wvz4SDxm18fKPZkqwGUfnMTSibTSrKrvf0MIPrWqB_I",
                 mimeType: xlsxMimeType);
-            await request.DownloadAsync(outputFile, c.CancellationToken);
+            await request.DownloadAsync(outputFile, cancellationToken);
         }
 
-        var ret = OneForEach.Enum<ThesisType>().CreateArray<ThesisList>();
+        var ret = OneForEach.Enum<Parsing.ThesisType>().CreateArray<ThesisList>();
         foreach (var t in ret)
         {
             outputFile.Seek(0, SeekOrigin.Begin);
