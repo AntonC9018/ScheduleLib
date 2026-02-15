@@ -588,6 +588,11 @@ public static class LexerHelper
 public readonly record struct TokenTypeLabels(
     ImmutableDictionary<TokenType, string> Dict)
 {
+    public TokenTypeLabels Create(Type t)
+    {
+        return LexerHelper.CreateLabels(t);
+    }
+
     public readonly string Get(TokenType t)
     {
         return Dict.GetValueOrDefault(t) ?? t.ToString();

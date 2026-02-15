@@ -56,6 +56,23 @@ public static class ThesisListParser
         Count,
     }
 
+    // public enum Token
+    // {
+    //     QuotationMark = '\"',
+    //     Separator = '/',
+    //     Semicolor = ':',
+    //     Word,
+    // }
+    //
+    // public sealed class TokenReader : ITokenReader
+    // {
+    //     private static readonly TokenTypeLabels Labels = LexerHelper.CreateLabels(typeof(Token));
+    //
+    //     public TokenType Read(ref Parser parser)
+    //     {
+    //     }
+    // }
+
     public static ThesisList Parse(Stream file, ThesisType targetThesisType)
     {
         using var excel = SpreadsheetDocument.Open(file, isEditable: false, new()

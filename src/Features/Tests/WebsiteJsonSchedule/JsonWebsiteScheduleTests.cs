@@ -1,6 +1,6 @@
+using FmiWebsiteInterop.Schedule;
 using ScheduleLib.Builders;
 using Tests.ScheduleCommon;
-using WebsiteJsonSchedule;
 
 namespace FmiWebsiteInterop.Tests;
 

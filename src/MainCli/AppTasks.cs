@@ -1,9 +1,7 @@
 using System.Text;
 using Anton.LayeredData.Retrieval;
 using ClosedXML.Excel;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
+using FmiWebsiteInterop.Schedule;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
@@ -12,13 +10,10 @@ using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
-using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
-using Theses;
-using WebsiteJsonSchedule;
 
 namespace ScheduleLib.Application.Core;
 
@@ -254,8 +249,6 @@ public static class AppTasks
 
             case AppTask.ListOfThesesPerTeacherForSite:
             {
-                var accessor = new GlobalConfigurationApiKeysSource("Google");
-                var credentials = await accessor.Get(c.Services, c.CancellationToken);
                 break;
             }
         }

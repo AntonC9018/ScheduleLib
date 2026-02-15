@@ -1,48 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0-windows</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />
-        <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="$(RootPath)src\ScheduleDefaults\ScheduleDefaults.csproj" />
-
-        <ProjectReference Include="$(RootPath)src\Features\FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
         <ProjectReference Include="$(RootPath)src\Features\OnlineRegistry\OnlineRegistry.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\CurriculumDownload\CurriculumDownload.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\CurriculumShared\CurriculumShared.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\MoodleInterop\MoodleInterop.csproj" />
         <ProjectReference Include="$(RootPath)src\Features\LayeredData\Anton.LayeredData.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\ThesesListParser\ThesesListParser.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <None
-            Include="data\**\*.docx"
-            Exclude="data\**\~$*.docx"
-            CopyToOutputDirectory="Always"
-            CopyToPublishDirectory="Always" />
-        <None
-            Include="data\**\*.xlsx"
-            CopyToOutputDirectory="Always"
-            CopyToPublishDirectory="Always" />
-        <None
-            Include="data\topics\**\*"
-            CopyToOutputDirectory="Always"
-            CopyToPublishDirectory="Always" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="2.0.0" />
-        <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
-        <PackageReference Include="System.Linq.Async" Version="6.0.1" />
-        <PackageReference Include="SpreadCheetah" Version="1.22.0" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 
@@ -54,10 +20,7 @@
 
     <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4045" />
-        <PackageReference Include="Google.Apis.Calendar.v3" Version="1.73.0.3993" />
     </ItemGroup>
-
 
     <ItemGroup>
         <PackageReference Include="CsvHelper" Version="33.1.0" />
