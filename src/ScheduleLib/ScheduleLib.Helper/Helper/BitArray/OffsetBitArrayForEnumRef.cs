@@ -133,16 +133,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public readonly EnumBitArray<T>.SetEnumValuesEnumerable SetValues() => RestoredSlice.SetValues();
 
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        var lb = new ListStringBuilder(sb);
-        foreach (var value in SetValues())
-        {
-            lb.Append(Enum.GetName(value));
-        }
-        return sb.ToString();
-    }
+    public override string ToString() => RestoredSlice.ToString();
 }
 
 public static partial class BitArrayExtensions

@@ -2,6 +2,7 @@ using System.Text;
 using Anton.LayeredData.Retrieval;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Schedule;
+using FmiWebsiteInterop.Theses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
@@ -30,7 +31,7 @@ public enum AppTask
     JsonSchedulesForWebsite,
     CopyGradesFromMoodleToRegistry,
     UpdateCalendar,
-    ListOfThesesPerTeacherForSite,
+    ListOfThesesPerTeacherForWebsite,
 }
 
 public static class AppTasks
@@ -247,8 +248,10 @@ public static class AppTasks
                 break;
             }
 
-            case AppTask.ListOfThesesPerTeacherForSite:
+            case AppTask.ListOfThesesPerTeacherForWebsite:
             {
+                var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
+                await handler.Handle(c.CancellationToken, "data/theses.xlsx", c.OutputDirectory);
                 break;
             }
         }

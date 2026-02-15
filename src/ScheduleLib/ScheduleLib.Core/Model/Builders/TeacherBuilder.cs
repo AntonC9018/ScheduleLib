@@ -731,7 +731,6 @@ public static class TeacherNameHelper
                 }
 
                 var w = new Word(s);
-
                 firstNameBuilder.Append(w.Span.Shortened.Value);
             }
         }

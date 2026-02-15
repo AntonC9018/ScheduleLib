@@ -1,10 +1,12 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
 using ScheduleLib.Curriculum;
+using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Helper.Parsing;
@@ -75,33 +77,11 @@ public static class ThesisListParser
 
     public static ThesisList Parse(Stream file, ThesisType targetThesisType)
     {
-        using var excel = SpreadsheetDocument.Open(file, isEditable: false, new()
-        {
-            AutoSave = false,
-            CompatibilityLevel = CompatibilityLevel.Version_2_20,
-        });
+        using var excel = new XLWorkbook(file);
 
-        var workbook = excel.WorkbookPart;
-        if (workbook is null)
+        var sheet = excel.Worksheets.FirstOrDefault(s =>
         {
-            throw new InvalidOperationException("Excel is wrong");
-        }
-        if (workbook.Workbook.Sheets is not { } sheets)
-        {
-            throw new InvalidOperationException("No sheets in excel");
-        }
-        var sheet = sheets.Elements<Sheet>().FirstOrDefault(x =>
-        {
-            if (x.Name?.Value is not { } name)
-            {
-                return false;
-            }
-            if (x.State is { } state
-                && state != SheetStateValues.Visible)
-            {
-                return false;
-            }
-            if (x.Id?.Value is null)
+            if (s.Visibility != XLWorksheetVisibility.Visible)
             {
                 return false;
             }
@@ -109,13 +89,13 @@ public static class ThesisListParser
             switch (targetThesisType)
             {
                 case ThesisType.An:
-                    return comparer.Contains(name, "an");
+                    return comparer.Contains(s.Name, "an");
                 case ThesisType.Licenta:
-                    return comparer.Contains(name, "licenta");
+                    return comparer.Contains(s.Name, "licenta");
                 case ThesisType.Master:
-                    return comparer.Contains(name, "master");
+                    return comparer.Contains(s.Name, "master");
                 default:
-                    throw UnreachableHelper.Unreachable();
+                    throw Unreachable();
             }
         });
 
@@ -124,28 +104,12 @@ public static class ThesisListParser
             throw new InvalidOperationException("Sheet not found");
         }
 
-        var stringTable = ParsedStringTable.Create(workbook);
-        var worksheetPart = (WorksheetPart) workbook.GetPartById(sheet.Id!.Value!);
-        var widths = MergeCellMap.Create(worksheetPart);
-        var worksheet = worksheetPart.Worksheet;
-        var sheetData = worksheet.GetFirstChild<SheetData>();
-        if (sheetData is null)
-        {
-            throw new InvalidOperationException("SheetData not found");
-        }
-
-        var rows = sheetData.IndexedRows();
+        var rows = sheet.Rows();
         var state = new State();
-        foreach (var row in rows)
+        const int meaninglessRowCount = 3;
+        state.Action = Action.MeaningfulHeaders;
+        foreach (var row in rows.Skip(meaninglessRowCount))
         {
-            if (state.Action == Action.MeaninglessHeaders)
-            {
-                if (row.SizedCells(widths).MoreThanOneItem())
-                {
-                    state.Action = Action.MeaningfulHeaders;
-                }
-            }
-
             switch (state.Action)
             {
                 case Action.MeaninglessHeaders:
@@ -154,33 +118,39 @@ public static class ThesisListParser
                 }
                 case Action.MeaningfulHeaders:
                 {
-                    foreach (var cell in row.SizedCells(widths))
+                    foreach (var cell in row.CellsWithMergedAppearingOnce())
                     {
-                        var text = stringTable.GetStringValue(cell.Cell);
-                        if (text is null)
+                        if (!cell.TryGetValue(out string text))
                         {
-                            throw new InvalidOperationException("Text must not be null");
+                            break;
                         }
                         var column = MatchColumn(text);
-                        state.ColumnMappings.AddAt(cell.Position, new(column, cell.Size));
+                        var range = cell.ActualRange();
+                        if (range.RowCount() != 1)
+                        {
+                            throw cell.Exception("Row count > 1");
+                        }
+                        state.ColumnMappings.AddAt(
+                            range.FirstColumn().ColumnNumber(),
+                            new(column, range.ColumnCount()));
                         if (column != Column.Unknown)
                         {
-                            state.PresentColumns.Set((int) column);
+                            state.PresentColumns.Set(column);
                         }
                     }
 
-                    var requiredColumns = BitArray32.AllSet((int) Column.Count);
-                    if (targetThesisType != ThesisType.An)
+                    var requiredColumns = EnumBitArray<Column>.AllSet;
+                    if (targetThesisType == ThesisType.An)
                     {
-                        requiredColumns.Set((int) Column.ThesisNameEnglish, false);
+                        requiredColumns.Clear(Column.ThesisNameEnglish);
                     }
 
-                    var presentColumns = state.PresentColumns.WithFixedSize((int) Column.Count);
+                    var presentColumns = state.PresentColumns;
                     var missingColumns = presentColumns.Flipped;
-                    if (!missingColumns.Intersect(requiredColumns).IsEmpty)
+                    var missingRequiredColumns = missingColumns.Intersect(requiredColumns);
+                    if (missingRequiredColumns.AreAnySet)
                     {
-                        // TODO: Wrap bit array with enum to present these.
-                        throw new InvalidOperationException("There are missing columns");
+                        throw new InvalidOperationException($"There are missing required columns: {missingRequiredColumns}");
                     }
 
                     state.Action = Action.Data;
@@ -189,131 +159,19 @@ public static class ThesisListParser
                 case Action.Data:
                 {
                     var thesis = new ThesisInParsing();
-                    if (row.SizedCells(widths).All(x => x.Cell.CellValue == null))
+                    var cells = row.CellsWithMergedAppearingOnce().ToArray();
+                    if (cells.All(x => x.Value.IsBlank))
                     {
                         break;
                     }
-                    foreach (var cell in row.SizedCells(widths))
+                    foreach (var cell in cells)
                     {
-                        if (!state.ColumnMappings.TryFind(cell.Position, out var column))
+                        if (!ParseColumn(cell, ref state, ref thesis))
                         {
                             break;
                         }
-                        var text = stringTable.GetStringValue(cell.Cell);
-                        switch (column)
-                        {
-                            case Column.Number:
-                                continue;
-
-                            case Column.StudentName:
-                            {
-                                if (text is null or "")
-                                {
-                                    throw new InvalidOperationException("Student name is required");
-                                }
-                                var parser = new Parser(text);
-                                while (true)
-                                {
-                                    parser.SkipWhitespace();
-                                    if (parser.IsEmpty)
-                                    {
-                                        break;
-                                    }
-
-                                    var studentName = NameHelper.ParseName(ref parser);
-                                    state.StudentNames.Add(studentName);
-                                    if (!parser.SkipWhitespace().SkippedAny)
-                                    {
-                                        break;
-                                    }
-                                }
-                                if (!parser.IsEmpty)
-                                {
-                                    throw new InvalidOperationException("Parser not empty after student name");
-                                }
-                                if (state.StudentNames.Count == 0)
-                                {
-                                    throw new InvalidOperationException("No student names found");
-                                }
-                                break;
-                            }
-                            case Column.Mentor:
-                            {
-                                if (text is null or "")
-                                {
-                                    continue;
-                                }
-                                thesis.TeacherName = ParseName(text);
-                                break;
-                            }
-                            case Column.Group:
-                            {
-                                if (text is null or "")
-                                {
-                                    throw new InvalidOperationException("Group is required");
-                                }
-
-                                var parser = new Parser(text);
-                                var sb = state.StringBuilder;
-                                int parenDepth = 0;
-                                while (true)
-                                {
-                                    if (parser.IsEmpty)
-                                    {
-                                        break;
-                                    }
-                                    switch (parser.Current)
-                                    {
-                                        case '(':
-                                            parenDepth += 1;
-                                            break;
-                                        case ')':
-                                            parenDepth -= 1;
-                                            break;
-
-                                        case '-':
-                                            break;
-
-                                        default:
-                                        {
-                                            if (char.IsWhiteSpace(parser.Current))
-                                            {
-                                                break;
-                                            }
-                                            if (parenDepth > 0)
-                                            {
-                                                break;
-                                            }
-                                            sb.Append(parser.Current);
-                                            break;
-                                        }
-                                    }
-                                    parser.Move();
-                                }
-
-                                var groupName = sb.ToStringAndClear();
-                                thesis.GroupName = groupName;
-                                break;
-                            }
-                            case Column.ThesisName:
-                            {
-                                if (text is null or "")
-                                {
-                                    continue;
-                                }
-                                var ret = ParseThesisNames(text);
-                                thesis.ThesisNameRomanian = ret.Ro.ToString();
-                                thesis.ThesisNameRussian = ret.Ru.Length > 0 ? ret.Ru.ToString() : null;
-                                break;
-                            }
-                            case Column.ThesisNameEnglish:
-                            {
-                                thesis.ThesisNameEnglish = text;
-                                break;
-                            }
-                        }
                     }
-
+                    // Won't fail if no students parsed, which is fine.
                     foreach (var studentName in state.StudentNames)
                     {
                         state.Result.Add(new()
@@ -335,6 +193,139 @@ public static class ThesisListParser
         {
             Items = state.Result.DrainToImmutable(),
         };
+    }
+
+    private static bool ParseColumn(
+        IXLCell cell,
+        ref State state,
+        ref ThesisInParsing thesis)
+    {
+        var range = cell.ActualRange();
+        if (!state.ColumnMappings.TryFind(range.FirstColumn().ColumnNumber(), out var column))
+        {
+            return false;
+        }
+
+        switch (column)
+        {
+            case Column.Number:
+            {
+                return true;
+            }
+
+            case Column.StudentName:
+            {
+                if (!cell.TryGetValue(out string text))
+                {
+                    return false;
+                }
+                var parser = new Parser(text);
+                while (true)
+                {
+                    parser.SkipWhitespace();
+                    if (parser.IsEmpty)
+                    {
+                        break;
+                    }
+
+                    var studentName = NameHelper.ParseName(ref parser);
+                    state.StudentNames.Add(studentName);
+                    if (!parser.SkipWhitespace().SkippedAny)
+                    {
+                        break;
+                    }
+                }
+                if (!parser.IsEmpty)
+                {
+                    throw new InvalidOperationException("Parser not empty after student name");
+                }
+                if (state.StudentNames.Count == 0)
+                {
+                    return false;
+                }
+                break;
+            }
+            case Column.Mentor:
+            {
+                if (!cell.TryGetValue(out string text))
+                {
+                    return false;
+                }
+                thesis.TeacherName = ParseName(text);
+                break;
+            }
+            case Column.Group:
+            {
+                if (!cell.TryGetValue(out string text))
+                {
+                    return false;
+                }
+
+                var parser = new Parser(text);
+                var sb = state.StringBuilder;
+                int parenDepth = 0;
+                while (true)
+                {
+                    if (parser.IsEmpty)
+                    {
+                        break;
+                    }
+                    switch (parser.Current)
+                    {
+                        case '(':
+                            parenDepth += 1;
+                            break;
+                        case ')':
+                            parenDepth -= 1;
+                            break;
+
+                        case '-':
+                            break;
+
+                        default:
+                        {
+                            if (char.IsWhiteSpace(parser.Current))
+                            {
+                                break;
+                            }
+                            if (parenDepth > 0)
+                            {
+                                break;
+                            }
+                            sb.Append(parser.Current);
+                            break;
+                        }
+                    }
+                    parser.Move();
+                }
+
+                var groupName = sb.ToStringAndClear();
+                thesis.GroupName = groupName;
+                break;
+            }
+            case Column.ThesisName:
+            {
+                if (!cell.TryGetValue(out string text))
+                {
+                    return false;
+                }
+                var ret = ParseThesisNames(text);
+                thesis.ThesisNameRomanian = ret.Ro.ToString();
+                thesis.ThesisNameRussian = ret.Ru.Length > 0 ? ret.Ru.ToString() : null;
+                break;
+            }
+            case Column.ThesisNameEnglish:
+            {
+                if (!cell.TryGetValue(out string text))
+                {
+                    return true;
+                }
+                thesis.ThesisNameEnglish = text;
+                break;
+            }
+        }
+
+        return true;
     }
 
     private static Name ParseName(string text)
@@ -376,7 +367,7 @@ public static class ThesisListParser
             }
             else
             {
-                throw UnreachableHelper.Unreachable();
+                throw Unreachable();
             }
         }
         return Column.Unknown;
@@ -468,7 +459,7 @@ public static class ThesisListParser
     {
         public Action Action = Action.MeaninglessHeaders;
         public readonly SizedItemArray<Column> ColumnMappings = new();
-        public UnsizedBitArray32 PresentColumns = default;
+        public EnumBitArray<Column> PresentColumns = default;
         public StringBuilder StringBuilder = new();
         public ImmutableArray<Thesis>.Builder Result = ImmutableArray.CreateBuilder<Thesis>();
         public readonly List<Name> StudentNames = new();

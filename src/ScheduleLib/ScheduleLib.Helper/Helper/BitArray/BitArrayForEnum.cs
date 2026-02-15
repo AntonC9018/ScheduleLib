@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Text;
 
 namespace ScheduleLib.Helper;
 
@@ -186,5 +187,16 @@ public record struct EnumBitArray<T>
         var sizedOther = other.SizedImpl;
         var ret = sizedSelf.Union(sizedOther);
         return new(ret.AsUnsized());
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        var lb = new ListStringBuilder(sb);
+        foreach (var value in SetValues())
+        {
+            lb.Append(Enum.GetName(value));
+        }
+        return sb.ToString();
     }
 }
