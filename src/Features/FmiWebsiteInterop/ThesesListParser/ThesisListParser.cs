@@ -30,7 +30,7 @@ public sealed class Thesis
 
 internal struct ThesisInParsing()
 {
-    public Name? TeacherName;
+    public List<Name>? TeacherName;
     public string? GroupName;
     public string? ThesisNameRomanian;
     public string? ThesisNameRussian;
@@ -174,15 +174,23 @@ public static class ThesisListParser
                     // Won't fail if no students parsed, which is fine.
                     foreach (var studentName in state.StudentNames)
                     {
-                        state.Result.Add(new()
+                        if (thesis.TeacherName is null
+                            || thesis.TeacherName.Count == 0)
                         {
-                            GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
-                            StudentName = studentName,
-                            TeacherName = thesis.TeacherName ?? throw new InvalidOperationException("Teacher name is required"),
-                            ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
-                            ThesisNameRussian = thesis.ThesisNameRussian,
-                            ThesisNameEnglish = thesis.ThesisNameEnglish,
-                        });
+                            throw new InvalidOperationException("Teacher name is required");
+                        }
+                        foreach (var teacherName in thesis.TeacherName)
+                        {
+                            state.Result.Add(new()
+                            {
+                                GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                                StudentName = studentName,
+                                TeacherName = teacherName,
+                                ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
+                                ThesisNameRussian = thesis.ThesisNameRussian,
+                                ThesisNameEnglish = thesis.ThesisNameEnglish,
+                            });
+                        }
                     }
                     state.StudentNames.Clear();
                     break;
@@ -251,7 +259,7 @@ public static class ThesisListParser
                 {
                     return false;
                 }
-                thesis.TeacherName = ParseName(text);
+                thesis.TeacherName = ParseNames(text);
                 break;
             }
             case Column.Group:
@@ -328,18 +336,28 @@ public static class ThesisListParser
         return true;
     }
 
-    private static Name ParseName(string text)
+    private static List<Name> ParseNames(string text)
     {
         var parser = new Parser(text);
-        parser.SkipWhitespace();
-        var studentName = NameHelper.ParseName(ref parser);
-        parser.SkipWhitespace();
-        if (!parser.IsEmpty)
+        while (true)
         {
-            throw new InvalidOperationException("Parser not empty after name");
-        }
+            var ret = new List<Name>();
 
-        return studentName;
+            parser.SkipWhitespace();
+            var name = NameHelper.ParseName(ref parser);
+            ret.Add(name);
+            parser.SkipWhitespace();
+
+            if (parser.ConsumeExactChar(','))
+            {
+                continue;
+            }
+            if (!parser.IsEmpty)
+            {
+                throw new InvalidOperationException("Parser not empty after name");
+            }
+            return ret;
+        }
     }
 
     private static Column MatchColumn(string text)
@@ -619,7 +637,12 @@ public static class ThesisListParser
         {
             if (RoStart is not { } start)
             {
-                throw new InvalidOperationException("Romanian name is required");
+                return "Nu este specificat".AsMemory();
+            }
+            // Temp fix for bug where english letters are in russian?? idk
+            if (start.Index > RoEnd?.Index)
+            {
+                start = p.Position;
             }
             var ret = Slice(p, start, RoEnd);
             return ret;
@@ -640,6 +663,11 @@ public static class ThesisListParser
 
     internal static ThesisNames ParseThesisNames(string text)
     {
+        // TODO: Bring this stupid ass table into an adequate format
+        text = text.Trim();
+        text = text.TrimEnd('/');
+        text = text.TrimEnd();
+
         var initialParser = new Parser(text);
         initialParser.SkipWhitespace();
 

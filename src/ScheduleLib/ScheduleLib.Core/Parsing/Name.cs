@@ -226,6 +226,10 @@ public static class NameHelper
         {
             return new(ret);
         }
+        if (!char.IsLetter(parser.Current))
+        {
+            return new(ret);
+        }
 
         ret.Patronymic[0] = ParseNamePart(ref parser, "No patronymic");
         if (parser.IsEmpty)

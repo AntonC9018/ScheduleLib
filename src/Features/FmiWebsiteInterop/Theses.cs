@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
-using AngleSharp;
 using FmiWebsiteInterop.Theses.Parsing;
-using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using ScheduleLib;
