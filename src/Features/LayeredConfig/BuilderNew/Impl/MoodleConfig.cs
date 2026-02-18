@@ -7,7 +7,7 @@ using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.Application.Config;
 
-public sealed class MoodleConfig : INodeData<MoodleConfig>, ICredentialsConfig
+public sealed class MoodleConfig : INodeData<MoodleConfig>, ICredentialsHolder
 {
     public static NodeDataKey<MoodleConfig> Key { get; } = NodeDataKey.Registry.Register<MoodleConfig>();
     public CredentialsSource? Credentials { get; set; }

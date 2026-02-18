@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.Scraping.Common.Config;
 
-public interface ICredentialsConfig
+public interface ICredentialsHolder
 {
     public CredentialsSource? Credentials { get; set; }
 }
@@ -32,9 +32,9 @@ public abstract class CredentialsSource
 
 public readonly struct CredentialsSourceBuilder
 {
-    internal readonly ICredentialsConfig _storage;
+    internal readonly ICredentialsHolder _storage;
 
-    public CredentialsSourceBuilder(ICredentialsConfig storage)
+    public CredentialsSourceBuilder(ICredentialsHolder storage)
     {
         _storage = storage;
     }
@@ -43,7 +43,7 @@ public readonly struct CredentialsSourceBuilder
 public static class CredentialsBuilderExtensions
 {
     extension<T> (NodeDataBuilder<T> builder)
-        where T : class, ICredentialsConfig, INodeData<T>, new()
+        where T : class, ICredentialsHolder
     {
         public CredentialsSourceBuilder Credentials()
         {

@@ -7,7 +7,7 @@ namespace ScheduleLib.OnlineRegistry;
 
 public sealed class RegistryConfig :
     INodeData<RegistryConfig>,
-    ICredentialsConfig
+    ICredentialsHolder
 {
     public static NodeDataKey<RegistryConfig> Key { get; } = NodeDataKey.Registry.Register<RegistryConfig>();
     public CredentialsSource? Credentials { get; set; }

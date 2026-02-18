@@ -14,14 +14,16 @@ public sealed class RegistryViewModelFactory : INodeDataViewModelFactory
 
     public ObservableObject Create(IServiceProvider sp, ISelectedUserNode selectedUserNode)
     {
-        return ActivatorUtilities.CreateInstance<RegistryViewModel>(sp, selectedUserNode);
+        var ret = ActivatorUtilities.CreateInstance<RegistryViewModel>(sp, selectedUserNode);
+        return ret;
     }
 }
 
 [AutoConstructor]
-public sealed partial class ObservableCredentials : ObservableObject
+public sealed partial class ObservableCredentials<T> : ObservableObject
+    where T : class, ICredentialsHolder
 {
-    private readonly NodeDataBuilder<RegistryConfig> _builder;
+    private readonly NodeDataBuilder<T> _builder;
 
     public Credentials Model => _builder.Credentials().Value().Value ?? new Credentials
     {
@@ -50,27 +52,40 @@ public sealed partial class ObservableCredentials : ObservableObject
     }
 }
 
-public sealed partial class RegistryViewModel : ViewModelBase
+public readonly struct ConfigViewModelHelper<T> : IDisposable
+    where T : class
 {
-    private readonly ISelectedUserNode _selectedUserNode;
+    public readonly ISelectedUserNode SelectedUserNode;
+    private readonly Action<WrappedNode> _nodeChanged;
+    private readonly NodeDataKey<T> _key;
 
-    public RegistryViewModel(ISelectedUserNode selectedUserNode)
+    public ConfigViewModelHelper(
+        NodeDataKey<T> key,
+        ISelectedUserNode selectedUserNode,
+        Action<WrappedNode> onNodeChanged)
     {
-        _selectedUserNode = selectedUserNode;
-        _selectedUserNode.OnSelectedNodeChanged += OnNodeChanged;
+        _key = key;
+        SelectedUserNode = selectedUserNode;
+        _nodeChanged = onNodeChanged;
+        selectedUserNode.OnSelectedNodeChanged += _nodeChanged;
     }
 
-    private WrappedNode SelectedNode => _selectedUserNode.SelectedNode;
+    public readonly void Dispose()
+    {
+        SelectedUserNode.OnSelectedNodeChanged -= _nodeChanged;
+    }
 
-    private NodeDataBuilder<RegistryConfig> Builder()
+    public WrappedNode SelectedNode => SelectedUserNode.SelectedNode;
+
+    public NodeDataBuilder<T> Builder()
     {
         if (SelectedNode.IsNull)
         {
             throw new InvalidOperationException();
         }
-        return SelectedNode.Leaf.Builder(RegistryConfig.Key);
+        return SelectedNode.Leaf.Builder(_key);
     }
-    private RegistryConfig? Config
+    public T? Config
     {
         get
         {
@@ -82,9 +97,33 @@ public sealed partial class RegistryViewModel : ViewModelBase
             return ret;
         }
     }
+}
+
+public sealed partial class RegistryViewModel : ViewModelBase, IDisposable
+{
+    private readonly ConfigViewModelHelper<RegistryConfig> _helper;
+    public RegistryViewModel(ISelectedUserNode selectedUserNode)
+    {
+        _helper = new(
+            RegistryConfig.Key,
+            selectedUserNode,
+            node =>
+            {
+                if (node.IsNull)
+                {
+                    Credentials = null;
+                }
+                else
+                {
+                    var builder = _helper.Builder();
+                    Credentials = new(builder);
+                }
+            });
+    }
+    public void Dispose() => _helper.Dispose();
 
     [ObservableProperty]
-    public partial ObservableCredentials? Credentials { get; private set; }
+    public partial ObservableCredentials<RegistryConfig>? Credentials { get; private set; }
 
     public ExtraLessonInstanceAction[] ExtraLessonInstanceActions => [
         ExtraLessonInstanceAction.Delete,
@@ -94,7 +133,7 @@ public sealed partial class RegistryViewModel : ViewModelBase
     {
         get
         {
-            if (Config?.CommandProcessingConfig is not { } c)
+            if (_helper.Config?.CommandProcessingConfig is not { } c)
             {
                 return null;
             }
@@ -106,7 +145,7 @@ public sealed partial class RegistryViewModel : ViewModelBase
         }
         set
         {
-            var v = Config;
+            var v = _helper.Config;
             if (v == null)
             {
                 throw new InvalidOperationException("Cannot set DryRun when no node selected");
@@ -124,19 +163,6 @@ public sealed partial class RegistryViewModel : ViewModelBase
             }
             b.DryRun().SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
-        }
-    }
-
-    public void OnNodeChanged(WrappedNode node)
-    {
-        if (node.IsNull)
-        {
-            Credentials = null;
-        }
-        else
-        {
-            var builder = Builder();
-            Credentials = new(builder);
         }
     }
 }
