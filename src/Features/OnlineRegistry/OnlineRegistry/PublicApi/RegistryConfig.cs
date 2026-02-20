@@ -1,6 +1,7 @@
 using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Helper;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -64,12 +65,12 @@ public static class ConfigExtensions
                     throw new InvalidOperationException("Registry not enabled.");
                 }
                 var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
-                if (config.ExtraLessonInstanceAction is { } action)
-                {
-                    ret.ExtraLessonAction = action;
-                }
+                ret.ExtraLessonAction = config.ExtraLessonInstanceAction;
                 return ret;
             });
+
+            services.ConfigureNodeDataJsonSerialization(
+                CommandProcessingConfigJsonConverter.Register);
         }
     }
     extension (NodeBuilder builder)

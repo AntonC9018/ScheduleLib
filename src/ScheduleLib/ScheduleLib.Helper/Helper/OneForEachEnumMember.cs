@@ -1,15 +1,18 @@
 using System.Collections;
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
 public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
     where TEnum : struct, Enum
 {
-    private readonly Span<TValue> _storage;
+    public readonly Span<TValue> Storage;
 
     public OneForEachEnumMemberSpan(Span<TValue> storage)
     {
-        _storage = storage;
+        Storage = storage;
     }
 
     public ref TValue this[TEnum e]
@@ -17,7 +20,7 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
         get
         {
             var index = EnumMembers<TEnum>.GetOffset(e);
-            return ref _storage[index];
+            return ref Storage[index];
         }
     }
 
@@ -72,8 +75,8 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
         }
     }
 
-    public void Fill(TValue val) => _storage.Fill(val);
-    public void Clear() => _storage.Clear();
+    public void Fill(TValue val) => Storage.Fill(val);
+    public void Clear() => Storage.Clear();
 
     public EnumMembers<TEnum> Keys => new();
 }
@@ -103,11 +106,11 @@ public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
     : IEnumerable<MemoryItem<TEnum, TValue>>
     where TEnum : struct, Enum
 {
-    private readonly Memory<TValue> _storage;
+    public readonly Memory<TValue> Storage;
 
     public OneForEachEnumMemberMemory(Memory<TValue> storage)
     {
-        _storage = storage;
+        Storage = storage;
     }
 
     public ref TValue this[TEnum e]
@@ -115,7 +118,7 @@ public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
         get
         {
             var index = EnumMembers<TEnum>.GetOffset(e);
-            return ref _storage.Span[index];
+            return ref Storage.Span[index];
         }
     }
 
@@ -156,8 +159,8 @@ public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
         }
     }
 
-    public void Fill(TValue val) => _storage.Span.Fill(val);
-    public void Clear() => _storage.Span.Clear();
+    public void Fill(TValue val) => Storage.Span.Fill(val);
+    public void Clear() => Storage.Span.Clear();
 
     public EnumMembers<TEnum> Keys => new();
 }
@@ -210,5 +213,116 @@ public static class OneForEach
     public static Helper<TEnum> Enum<TEnum>() where TEnum : struct, Enum
     {
         return new();
+    }
+
+    public static SameGenericArgsConverterFactory RentedConverterFactory { get; } = new(
+        objectType: typeof(RentedOneForEachEnumMemberArray<,>),
+        converterType: typeof(RentedOneForEachEnumMemberArrayConverter<,>));
+}
+
+public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
+    : JsonConverter<RentedOneForEachEnumMemberArray<TEnum, TValue?>>
+    where TEnum : struct, Enum
+{
+    public override RentedOneForEachEnumMemberArray<TEnum, TValue?> Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            throw new JsonException("Expected an object");
+        }
+
+        var ret = OneForEach.Enum<TEnum>().RentArray<TValue>();
+        try
+        {
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                var e = ParseEnumName(ref reader);
+                reader.Read();
+
+                var v = JsonSerializer.Deserialize<TValue>(ref reader, options);
+                ret[e] = v!;
+            }
+        }
+        catch
+        {
+            // May still leak if it's a property inside another object,
+            // but it's undetectable from here and literally cannot be prevented.
+            ret.Dispose();
+            if (typeof(TValue).IsClass
+                && !typeof(TValue).IsSealed
+                && !typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            {
+                foreach (var x in ret)
+                {
+                    if (x.Value is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
+                }
+            }
+            else if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            {
+                foreach (var x in ret)
+                {
+                    ((IDisposable?) x.Value)?.Dispose();
+                }
+            }
+            throw;
+        }
+        return ret!;
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        RentedOneForEachEnumMemberArray<TEnum, TValue?> value,
+        JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        foreach (var (key, val) in value)
+        {
+            writer.WritePropertyName(Enum.GetName(key)!);
+            JsonSerializer.Serialize(writer, val, options);
+        }
+        writer.WriteEndObject();
+    }
+
+    private static TEnum ParseEnumName(ref Utf8JsonReader reader)
+    {
+        Debug.Assert(reader.TokenType == JsonTokenType.PropertyName);
+        Span<char> buf = stackalloc char[128];
+
+        int len = -1;
+        try
+        {
+            len = reader.CopyString(buf);
+        }
+        catch (ArgumentException)
+        {
+        }
+
+        TEnum e;
+        if (len != -1)
+        {
+            var name = buf[.. len];
+            e = Enum.Parse<TEnum>(name);
+        }
+        else
+        {
+            var name = reader.GetString();
+            if (name == null)
+            {
+                throw new JsonException("Null key");
+            }
+            e = Enum.Parse<TEnum>(name);
+        }
+        return e;
     }
 }

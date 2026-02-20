@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>$(WindowsTarget)</TargetFramework>
-        <IsScheduleIntegrationTest>true</IsScheduleIntegrationTest>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
+        <ProjectReference Include="..\..\Desktop\Desktop.csproj" />
     </ItemGroup>
 </Project>

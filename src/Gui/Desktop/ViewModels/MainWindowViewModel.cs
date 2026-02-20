@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;
     private readonly ConfigSerializationHelper _serializationHelper;
-    private readonly SelectedUserNodeViewModel _nodeSelection;
+    internal readonly SelectedUserNodeViewModel _nodeSelection;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
 
@@ -183,7 +183,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         await _nodeSelection.ExecTreeAction(async () =>
         {
             await using var output = File.OpenWrite("ui-layers.json");
-            await _serializationHelper.SerializeUiLayers(output, _configBuilder);
+            await _serializationHelper.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
             ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
             return null;
         });
@@ -194,7 +194,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         await _nodeSelection.ExecTreeAction(async () =>
         {
             await using var output = File.OpenRead("ui-layers.json");
-            await _serializationHelper.DeserializeUiLayers(output, _configBuilder);
+            await _serializationHelper.DeserializeUiLayers(output, _configBuilder).ConfigureAwait(false);
             return null;
         });
     }

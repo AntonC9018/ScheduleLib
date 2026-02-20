@@ -73,7 +73,8 @@ internal static class UiLayerHelper
             TreeBuilder configRoot)
         {
             var uiLayers = configRoot.GetUiLayers().Select(x => x.Node);
-            await helper.SerializeValues(uiLayers, output, serializeLayerName: false);
+            await helper.SerializeValues(uiLayers, output, serializeLayerName: false)
+                .ConfigureAwait(false);
             output.SetLength(output.Position);
         }
 
@@ -106,7 +107,7 @@ internal static class UiLayerHelper
                         var ret = markerLayer.MaybeCreateUiLayer();
                         return ret;
                     }
-                });
+                }).ConfigureAwait(false);
         }
     }
 }

@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
@@ -198,5 +200,52 @@ public record struct EnumBitArray<T>
             lb.Append(Enum.GetName(value));
         }
         return sb.ToString();
+    }
+}
+
+public static class EnumBitArrayJsonHelper
+{
+    public static SameGenericArgsConverterFactory ConverterFactory { get; } = new(
+        objectType: typeof(EnumBitArray<>),
+        converterType: typeof(EnumBitArrayJsonConverter<>));
+}
+
+public sealed class EnumBitArrayJsonConverter<T> : JsonConverter<EnumBitArray<T>>
+    where T : struct, Enum
+{
+    public override EnumBitArray<T> Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartArray)
+        {
+            throw new JsonException("Expected an array");
+        }
+        var ret = new EnumBitArray<T>();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                break;
+            }
+
+            var t = JsonSerializer.Deserialize<T>(ref reader, options);
+            ret.Set(t);
+        }
+        return ret;
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        EnumBitArray<T> value,
+        JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var v in value.SetValues())
+        {
+            JsonSerializer.Serialize(writer, v, options);
+        }
+        writer.WriteEndArray();
     }
 }

@@ -1,11 +1,20 @@
+using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ScheduleLib.Helper;
+using ScheduleLib.Helper.Helper;
 
 namespace ScheduleLib.OnlineRegistry;
 
 public readonly struct CommandProcessingConfig
 {
-    internal UnsizedBitArray32 _impl { get; init; }
+    internal readonly UnsizedBitArray32 _impl;
+
+    public CommandProcessingConfig(UnsizedBitArray32 impl)
+    {
+        _impl = impl;
+    }
 
     public CommandProcessingConfigBuilder Builder() => new(this);
 
@@ -124,10 +133,7 @@ public struct CommandProcessingConfigBuilder
         _impl = c._impl;
     }
 
-    public CommandProcessingConfig Build() => new()
-    {
-        _impl = _impl,
-    };
+    public CommandProcessingConfig Build() => new(_impl);
 }
 
 public enum CommandProcessingConfigPortion
@@ -173,5 +179,46 @@ public static class CommandProcessingConfigBuilderExtensions
             var t = new UnsizedBitArray32((uint) mask);
             return new(t);
         }
+    }
+}
+
+public sealed class CommandProcessingConfigJsonConverter : JsonConverter<CommandProcessingConfig>
+{
+    public static void Register(JsonSerializerOptions opts)
+    {
+        opts.Converters.Add(new CommandProcessingConfigJsonConverter());
+        opts.Converters.TryAdd(EnumBitArrayJsonHelper.ConverterFactory);
+        opts.Converters.TryAdd(OneForEach.RentedConverterFactory);
+    }
+
+    public override CommandProcessingConfig Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        using var model = JsonSerializer.Deserialize<
+            RentedOneForEachEnumMemberArray<
+                CommandProcessingConfigPortion,
+                EnumBitArray<LessonEquationCommandType>>>(ref reader, options);
+        var b = new CommandProcessingConfigBuilder();
+        foreach (var x in model)
+        {
+            b.Portion(x.Key).ResetArray(x.Value);
+        }
+        return b.Build();
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        CommandProcessingConfig value,
+        JsonSerializerOptions options)
+    {
+        using var model = OneForEach.Enum<CommandProcessingConfigPortion>().RentArray<EnumBitArray<LessonEquationCommandType>>();
+        var b = value.Builder();
+        foreach (var x in model)
+        {
+            x.Value = b.Portion(x.Key).RestoredSlice;
+        }
+        JsonSerializer.Serialize(writer, model, options);
     }
 }

@@ -28,6 +28,7 @@ public interface ISelectedUserNode
 {
     WrappedNode SelectedNode { get; }
     event Action<WrappedNode>? OnSelectedNodeChanged;
+    event Action<WrappedNode>? OnDataPossiblyChanged;
 }
 
 public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelectedUserNode
@@ -52,6 +53,7 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
     }
 
     public event Action<WrappedNode>? OnSelectedNodeChanged;
+    public event Action<WrappedNode>? OnDataPossiblyChanged;
 
     private void ResetModel(UserNodeSelectionModel model)
     {
@@ -68,8 +70,11 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
         Model = model;
         if (oldValue != model.SelectedNode)
         {
-            OnPropertyChanged(nameof(model.SelectedNode));
+            OnPropertyChanged(nameof(SelectedNode));
+            OnSelectedNodeChanged?.Invoke(SelectedNode);
         }
+
+        OnDataPossiblyChanged?.Invoke(SelectedNode);
     }
 
     private WrappedNode[] GetUserNodes()

@@ -17,6 +17,16 @@ public sealed partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
+    public static void AddViewModels(IServiceCollection services)
+    {
+        services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<SelectedUserNodeViewModel>();
+
+        services.AddSingleton<INodeDataViewModelFactory, RegistryViewModelFactory>();
+        NodeDataViewModelResolver.Register(services);
+
+    }
+
     public override void OnFrameworkInitializationCompleted()
     {
         DisableAvaloniaDataAnnotationValidation();
@@ -25,14 +35,15 @@ public sealed partial class App : Application
         AppConfiguration.ConfigureServices(services);
 
         services.AddView<MainWindowView>();
-        services.AddTransient<MainWindowViewModel>();
-        services.AddTransient<SelectedUserNodeViewModel>();
-        services.AddTransient<NodeDataEditorView>();
 
-        services.AddSingleton<INodeDataViewModelFactory, RegistryViewModelFactory>();
-        NodeDataViewModelResolver.Register(services);
+        services.AddTransient<NodeDataEditorView>();
+        services.AddTransient<ConfigNodeVmHostView>();
+
+        services.AddTransient<RegistryConfigView>();
 
         services.AddSingleton<ViewLocator>();
+
+        AddViewModels(services);
 
         // services.ValidateViewsAreNotDisposable();
         var serviceProvider = AppConfiguration.BuildServiceProvider(services);

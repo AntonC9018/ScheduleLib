@@ -217,7 +217,7 @@ public sealed class ConfigSerializationHelper
 
 public static class SerializationExtensions
 {
-    public static void ConfigureConfigJsonSerialization(
+    public static void ConfigureNodeDataJsonSerialization(
         this IServiceCollection services,
         Action<JsonSerializerOptions> configure)
     {

@@ -16,7 +16,7 @@ public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
         services.SetImmutable<Name>();
         services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
         services.AddConfigProvider(TeacherLayerConfig.Key);
-        services.ConfigureConfigJsonSerialization(opts =>
+        services.ConfigureNodeDataJsonSerialization(opts =>
         {
             opts.Converters.Add(new NameJsonConverter());
         });

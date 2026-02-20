@@ -30,7 +30,7 @@ public static class AppConfiguration
             x.BypassCache = false;
             x.EnrichWithFullNames = false;
         });
-        services.ConfigureConfigJsonSerialization(x =>
+        services.ConfigureNodeDataJsonSerialization(x =>
         {
             x.WriteIndented = true;
         });

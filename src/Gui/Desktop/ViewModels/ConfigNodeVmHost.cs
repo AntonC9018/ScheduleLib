@@ -133,11 +133,11 @@ public readonly struct ConfigViewModelSubscription<T> : IDisposable
             var b = accessor.MaybeBuilder();
             onNodeChanged(b);
         };
-        Accessor.SelectedNodeProvider.OnSelectedNodeChanged += _nodeChanged;
+        Accessor.SelectedNodeProvider.OnDataPossiblyChanged += _nodeChanged;
     }
 
     public void Dispose()
     {
-        Accessor.SelectedNodeProvider.OnSelectedNodeChanged -= _nodeChanged;
+        Accessor.SelectedNodeProvider.OnDataPossiblyChanged -= _nodeChanged;
     }
 }
