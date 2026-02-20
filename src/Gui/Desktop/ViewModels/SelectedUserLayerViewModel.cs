@@ -64,6 +64,7 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
             Debug.Assert(args.PropertyName == nameof(model.SelectedNode));
             OnPropertyChanged(nameof(SelectedNode));
             OnSelectedNodeChanged?.Invoke(SelectedNode);
+            OnDataPossiblyChanged?.Invoke(SelectedNode);
         };
         // Null in the constructor.
         var oldValue = Model?.SelectedNode;

@@ -1,7 +1,4 @@
-using System.ComponentModel;
 using Anton.LayeredData;
-using AutoConstructor.Attributes;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;

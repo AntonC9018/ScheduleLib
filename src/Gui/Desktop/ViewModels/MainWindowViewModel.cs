@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,7 @@ using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
-public sealed partial class MainWindowViewModel : ViewModelBase
+public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly TreeBuilder _configBuilder;
     private readonly ConfigSerializationHelper _serializationHelper;
@@ -42,8 +43,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             }
         };
 
-        // Root SP owns the instance.
-        // This might become an issue, should be careful.
+        // We own the instance, not the SP
         NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_nodeSelection]);
     }
 
@@ -180,13 +180,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     public async Task SerializeUiLayers()
     {
-        await _nodeSelection.ExecTreeAction(async () =>
-        {
-            await using var output = File.OpenWrite("ui-layers.json");
-            await _serializationHelper.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
-            ExplorerHelper.TryOpenExplorerAndSelectFile("ui-layers.json");
-            return null;
-        });
+        var file = "ui-layers.json";
+        await using var output = File.OpenWrite(file);
+        await _serializationHelper.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
+        ExplorerHelper.TryOpenExplorerAndSelectFile(file);
     }
     [RelayCommand]
     public async Task DeserializeUiLayers()

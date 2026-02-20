@@ -48,6 +48,11 @@ public abstract class ConfigViewModelBase<T> : ViewModelBase, IDisposable, IConf
 
     public virtual void UpdateSelection(NodeDataBuilder<T> builder)
     {
+    }
+
+    void IConfigViewModel<T>.UpdateSelection(NodeDataBuilder<T> builder)
+    {
+        UpdateSelection(builder);
         AllPropertiesChanged();
     }
 
