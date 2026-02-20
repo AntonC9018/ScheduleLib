@@ -9,6 +9,7 @@ public readonly struct NodeDataBuilder<T>
     public NodeDataKey<T> DataKey { get; }
     internal MutableNode Node => _node.Node;
     public IServiceProvider SingletonServiceProvider => _node.SingletonServiceProvider;
+    public bool IsNull => _node.IsNull;
 
     public NodeDataBuilder(
         NodeBuilder node,

@@ -5,33 +5,45 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Desktop.ViewModels;
 
-public readonly struct OwnedViewModel : IDisposable, IEquatable<OwnedViewModel>
+public readonly struct OwnedViewModel : IDisposable
 {
     private readonly IServiceScope _scope;
-    public ObservableObject Value { get; }
+    private readonly NodeDataViewModelResult _value;
 
-    public OwnedViewModel(IServiceScope scope, ObservableObject value)
+    public ObservableObject Value => _value.ViewModel;
+
+    public bool IsNull => Value == null;
+
+    public OwnedViewModel(IServiceScope scope, NodeDataViewModelResult value)
     {
         _scope = scope;
-        Value = value;
+        _value = value;
     }
 
-    public void Dispose() => _scope.Dispose();
-
-    public bool Equals(OwnedViewModel other)
+    public void Dispose()
     {
-        if (ReferenceEquals(other.Value, this.Value))
-        {
-            return true;
-        }
-        return false;
+        _value.Dispose();
+        _scope.Dispose();
     }
+}
+
+public readonly record struct NodeDataViewModelResult(
+    ObservableObject ViewModel,
+    IDisposable Disposable) : IDisposable
+{
+    public static NodeDataViewModelResult Create<T>(T vm)
+        where T : ObservableObject, IDisposable
+    {
+        return new(vm, vm);
+    }
+
+    public void Dispose() => Disposable.Dispose();
 }
 
 public interface INodeDataViewModelFactory
 {
     NodeDataKey Key { get; }
-    ObservableObject Create(
+    NodeDataViewModelResult Create(
         IServiceProvider sp,
         ISelectedUserNode selectedUserNode);
 }

@@ -27,10 +27,14 @@ public sealed partial class App : Application
         services.AddView<MainWindowView>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SelectedUserNodeViewModel>();
+        services.AddTransient<NodeDataEditorView>();
+
+        services.AddSingleton<INodeDataViewModelFactory, RegistryViewModelFactory>();
+        NodeDataViewModelResolver.Register(services);
 
         services.AddSingleton<ViewLocator>();
 
-        services.ValidateViewsAreNotDisposable();
+        // services.ValidateViewsAreNotDisposable();
         var serviceProvider = AppConfiguration.BuildServiceProvider(services);
         AppConfiguration.ConfigureLayeredConfig(serviceProvider);
 

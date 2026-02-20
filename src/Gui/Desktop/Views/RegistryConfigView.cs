@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Desktop.Views;
 
-public sealed partial class NodeDataEditorView : UserControl
+public sealed partial class RegistryConfigView : UserControl
 {
-    public NodeDataEditorView()
+    public RegistryConfigView()
     {
         InitializeComponent();
     }

@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Desktop.Views;
 
-public sealed partial class NodeDataEditorView : UserControl
+public sealed partial class ConfigNodeVmHostView : UserControl
 {
-    public NodeDataEditorView()
+    public ConfigNodeVmHostView()
     {
         InitializeComponent();
     }

@@ -3,6 +3,8 @@ using AutoConstructor.Attributes;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Desktop.ViewModels;
+using Desktop.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Desktop;
 
@@ -24,15 +26,28 @@ public sealed partial class ViewLocator : IDataTemplate
             return null;
         }
 
-        var viewType = ViewAndViewModelConverter.TypeFromViewModelToView(param.GetType());
+        var t = param.GetType();
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ConfigNodeVmHost<>))
+        {
+            return _sp.GetRequiredService<ConfigNodeVmHostView>();
+        }
+
+        var viewType = ViewAndViewModelConverter.TypeFromViewModelToView(t);
         if (viewType != null)
         {
-            return (Control?) _sp.GetService(viewType);
+            if (_sp.GetService(viewType) is { } s)
+            {
+                return (Control?) s;
+            }
+            return new TextBlock
+            {
+                Text = $"Service not registered for type {viewType}",
+            };
         }
 
         return new TextBlock
         {
-            Text = $"Not Found: {viewType}",
+            Text = $"Not found view for type: {param.GetType()}",
         };
     }
 

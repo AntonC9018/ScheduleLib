@@ -10,39 +10,43 @@
         Title="Desktop">
 
   <StackPanel>
-    <TextBlock Text="Layer Level" />
-    <ComboBox
-      ItemsSource="{Binding AllLayerLevels}"
-      SelectedItem="{Binding LayerLevel}" />
+    <StackPanel>
+      <TextBlock Text="Layer Level" />
+      <ComboBox
+        ItemsSource="{Binding AllLayerLevels}"
+        SelectedItem="{Binding LayerLevel}" />
 
-    <TextBlock Text="User" />
-    <ComboBox
-      IsEnabled="{Binding CanSelectUser}"
-      ItemsSource="{Binding UserNodeSelection.AllNodes}"
-      SelectedItem="{Binding UserNodeSelection.SelectedNode}" />
+      <TextBlock Text="User" />
+      <ComboBox
+        IsEnabled="{Binding CanSelectUser}"
+        ItemsSource="{Binding UserNodeSelection.AllNodes}"
+        SelectedItem="{Binding UserNodeSelection.SelectedNode}" />
 
-    <Button
-      Content="Click to enable selected UI layer"
-      Command="{Binding EnableSelectedUserCommand}"/>
-    <Button
-      Content="Click to remove selected UI layer"
-      Command="{Binding RemoveSelectedUserCommand}"/>
+      <Button
+        Content="Click to enable selected UI layer"
+        Command="{Binding EnableSelectedUserCommand}" />
+      <Button
+        Content="Click to remove selected UI layer"
+        Command="{Binding RemoveSelectedUserCommand}" />
 
-    <TextBlock Text="User Name To Add:" />
-    <TextBox
-      Text="{Binding UserNameToAdd}"
-      IsEnabled="{Binding CanSelectUserToAdd}" />
+      <TextBlock Text="User Name To Add:" />
+      <TextBox
+        Text="{Binding UserNameToAdd}"
+        IsEnabled="{Binding CanSelectUserToAdd}" />
 
-    <Button
-      Content="Click to create new UI layer"
-      Command="{Binding AddUserWithTypedNameCommand}" />
+      <Button
+        Content="Click to create new UI layer"
+        Command="{Binding AddUserWithTypedNameCommand}" />
 
-    <Button
-      Content="Click to serialize UI layers"
-      Command="{Binding SerializeUiLayersCommand}" />
+      <Button
+        Content="Click to serialize UI layers"
+        Command="{Binding SerializeUiLayersCommand}" />
 
-    <Button
-      Content="Click to deserialize UI layers"
-      Command="{Binding DeserializeUiLayersCommand}" />
+      <Button
+        Content="Click to deserialize UI layers"
+        Command="{Binding DeserializeUiLayersCommand}" />
+    </StackPanel>
+    <Separator/>
+    <ContentControl Content="{Binding NodeDataEditor}" />
   </StackPanel>
 </Window>

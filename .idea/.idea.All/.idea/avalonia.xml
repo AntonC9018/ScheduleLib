@@ -4,9 +4,12 @@
     <option name="projectPerEditor">
       <map>
         <entry key="src/Gui/Desktop/App.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/Views/ConfigNodeVmHostView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/Views/MainWindow.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/Views/MainWindowView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/Views/NodeDataEditorView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/Views/RegistryConfigEditorView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/Views/RegistryConfigView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
       </map>
     </option>
   </component>

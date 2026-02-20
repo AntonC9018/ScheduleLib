@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Anton.LayeredData;
 using AutoConstructor.Attributes;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,122 +9,20 @@ using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.ViewModels;
 
-public sealed class RegistryViewModelFactory : INodeDataViewModelFactory
+public sealed partial class RegistryConfigViewModel : ConfigViewModelBase<RegistryConfig>
 {
-    public NodeDataKey Key => RegistryConfig.Key.Value;
-
-    public ObservableObject Create(IServiceProvider sp, ISelectedUserNode selectedUserNode)
+    private readonly ConfigAccessor<RegistryConfig> _helper;
+    public RegistryConfigViewModel(ConfigAccessor<RegistryConfig> helper)
     {
-        var ret = ActivatorUtilities.CreateInstance<RegistryViewModel>(sp, selectedUserNode);
-        return ret;
-    }
-}
-
-[AutoConstructor]
-public sealed partial class ObservableCredentials<T> : ObservableObject
-    where T : class, ICredentialsHolder
-{
-    private readonly NodeDataBuilder<T> _builder;
-
-    public Credentials Model => _builder.Credentials().Value().Value ?? new Credentials
-    {
-        Login = "",
-        Password = "",
-    };
-
-    public string Login
-    {
-        get => Model.Login;
-        set
-        {
-            var m = Model;
-            SetProperty(m.Login, value, m, static (m, v) => m.Login = v);
-        }
+        _helper = helper;
     }
 
-    public string Password
+    public override void UpdateSelection(NodeDataBuilder<RegistryConfig> builder)
     {
-        get => Model.Password;
-        set
-        {
-            var m = Model;
-            SetProperty(m.Password, value, m, static (m, v) => m.Password = v);
-        }
-    }
-}
-
-public readonly struct ConfigViewModelHelper<T> : IDisposable
-    where T : class
-{
-    public readonly ISelectedUserNode SelectedUserNode;
-    private readonly Action<WrappedNode> _nodeChanged;
-    private readonly NodeDataKey<T> _key;
-
-    public ConfigViewModelHelper(
-        NodeDataKey<T> key,
-        ISelectedUserNode selectedUserNode,
-        Action<WrappedNode> onNodeChanged)
-    {
-        _key = key;
-        SelectedUserNode = selectedUserNode;
-        _nodeChanged = onNodeChanged;
-        selectedUserNode.OnSelectedNodeChanged += _nodeChanged;
+        Credentials.SetBuilder(builder);
     }
 
-    public readonly void Dispose()
-    {
-        SelectedUserNode.OnSelectedNodeChanged -= _nodeChanged;
-    }
-
-    public WrappedNode SelectedNode => SelectedUserNode.SelectedNode;
-
-    public NodeDataBuilder<T> Builder()
-    {
-        if (SelectedNode.IsNull)
-        {
-            throw new InvalidOperationException();
-        }
-        return SelectedNode.Leaf.Builder(_key);
-    }
-    public T? Config
-    {
-        get
-        {
-            if (SelectedNode.IsNull)
-            {
-                return null;
-            }
-            var ret = Builder().Value();
-            return ret;
-        }
-    }
-}
-
-public sealed partial class RegistryViewModel : ViewModelBase, IDisposable
-{
-    private readonly ConfigViewModelHelper<RegistryConfig> _helper;
-    public RegistryViewModel(ISelectedUserNode selectedUserNode)
-    {
-        _helper = new(
-            RegistryConfig.Key,
-            selectedUserNode,
-            node =>
-            {
-                if (node.IsNull)
-                {
-                    Credentials = null;
-                }
-                else
-                {
-                    var builder = _helper.Builder();
-                    Credentials = new(builder);
-                }
-            });
-    }
-    public void Dispose() => _helper.Dispose();
-
-    [ObservableProperty]
-    public partial ObservableCredentials<RegistryConfig>? Credentials { get; private set; }
+    public ObservableCredentials<RegistryConfig> Credentials { get; } = new();
 
     public ExtraLessonInstanceAction[] ExtraLessonInstanceActions => [
         ExtraLessonInstanceAction.Delete,
@@ -166,3 +65,61 @@ public sealed partial class RegistryViewModel : ViewModelBase, IDisposable
         }
     }
 }
+
+public sealed class RegistryViewModelFactory : INodeDataViewModelFactory
+{
+    public NodeDataKey Key => RegistryConfig.Key.Value;
+
+    public NodeDataViewModelResult Create(IServiceProvider sp, ISelectedUserNode selectedUserNode)
+    {
+        var accessor = ConfigAccessor.Create(selectedUserNode, RegistryConfig.Key);
+#pragma warning disable CA2000 // Compiler thinks this leaks disposable
+        var vm = ActivatorUtilities.CreateInstance<RegistryConfigViewModel>(sp, accessor);
+        var host = new ConfigNodeVmHost<RegistryConfig>(accessor, vm);
+#pragma warning restore CA2000
+        return NodeDataViewModelResult.Create(host);
+    }
+}
+
+public sealed class ObservableCredentials<T>
+    where T : class, ICredentialsHolder
+{
+    private NodeDataBuilder<T> _builder;
+    public void SetBuilder(NodeDataBuilder<T> builder) => _builder = builder;
+
+    public string Login
+    {
+        get => Model()?.Login ?? "";
+        set => Model()?.Login = value;
+        // {
+        //     var m = Model;
+        //     SetProperty(m.Login, value, m, static (m, v) => m.Login = v);
+        // }
+    }
+
+    public string Password
+    {
+        get => Model()?.Password ?? "";
+        set => Model()?.Password = value;
+        // {
+        //     var m = Model;
+        //     SetProperty(m.Password, value, m, static (m, v) => m.Password = v);
+        // }
+    }
+
+    public Credentials? Model()
+    {
+        if (_builder.IsNull)
+        {
+            return null;
+        }
+        var source = _builder.Credentials().Value();
+        var x = source.Value ??= new Credentials
+        {
+            Login = "",
+            Password = "",
+        };
+        return x;
+    }
+}
+
