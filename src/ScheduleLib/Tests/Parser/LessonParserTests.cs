@@ -900,4 +900,52 @@ public sealed class LessonParserTests
 
         Assert.Empty(lessons);
     }
+
+    [Fact(Skip = "Implement this later, need to bring the domain into the parser as an abstraction.")]
+    public void BreaksFR()
+    {
+        var str = """
+        I. Javascript (lab),
+        N. Nartea, 145/4
+         II: POO (lab),
+        Gh. Latul, 216a/4a
+        """;
+
+
+        var lessons = ParseLessons([str], Config.WhiteSpaceActionCourseName);
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Assert.Equal("I", l1.SubGroup.Value);
+                Assert.Equal("Javascript", l1.LessonName.Span);
+                Assert.Equal(LessonType.Lab, l1.LessonType);
+                AssertEqualName("N. Nartea", Assert.Single(l1.TeacherNames));
+                Assert.Equal("145/4", l1.RoomName.Span);
+            },
+            l2 =>
+            {
+                Assert.Equal("II", l2.SubGroup.Value);
+                Assert.Equal("POO", l2.LessonName.Span);
+                Assert.Equal(LessonType.Lab, l2.LessonType);
+                AssertEqualName("Gh. Latul", Assert.Single(l2.TeacherNames));
+                Assert.Equal("216a/4a", l2.RoomName.Span);
+            });
+    }
+
+    [Fact]
+    public void DoubleNameTest()
+    {
+        var str =
+            """
+            Design soft. (prel),
+            G-C. Stănescu, 404/4
+            """;
+
+        var lessons = ParseLessons([str], Config.WhiteSpaceActionCourseName);
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Design soft.", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Prelegere, lesson.LessonType);
+        AssertEqualName("G.-C. Stănescu", Assert.Single(lesson.TeacherNames));
+        Assert.Equal("404/4", lesson.RoomName.Span);
+    }
 }

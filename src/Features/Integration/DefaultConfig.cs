@@ -62,7 +62,7 @@ public static class DefaultConfig
 
             defaults.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>
             {
-                x.SkipAttendance = AttendanceMode.Zi;
+                // x.SkipAttendance = AttendanceMode.Zi;
             });
         });
 
@@ -70,9 +70,17 @@ public static class DefaultConfig
         {
             t.Registry().Enable();
 
-            t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
+            t.LessonTopics().Configure(x =>
+            {
+                x.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                x.FallbackProvider<NoNameProvider>(LessonType.Curs);
+                x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
+            });
+
+            t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse_2.xlsx", attendance =>
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+                attendance.CellValueFormat = AttendanceExcel.CellValueFormat.IgnoreGrade;
             });
             t.LabTasks().ConfigureValue(x =>
             {

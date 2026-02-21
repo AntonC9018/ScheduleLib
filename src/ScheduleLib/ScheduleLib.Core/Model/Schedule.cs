@@ -634,6 +634,7 @@ public enum LessonType
     Seminar,
     Curs,
     Prelegere,
+    Exam,
     Custom,
     Unspecified,
     Count,

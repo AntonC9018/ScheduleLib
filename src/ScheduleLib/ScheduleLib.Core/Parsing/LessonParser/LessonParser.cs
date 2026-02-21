@@ -749,21 +749,21 @@ public static class LessonParsingHelper
                         return true;
                     }
 
-                    if (VerifyColon(ref lexer))
+                    if (VerifyColonOrDot(ref lexer))
                     {
                         return true;
                     }
                     return false;
                 }
 
-                static bool VerifyColon(ref LexerScope lexer)
+                static bool VerifyColonOrDot(ref LexerScope lexer)
                 {
                     lexer.Move();
                     if (lexer.IsEmpty)
                     {
                         return false;
                     }
-                    if (!lexer.TryConsume(':'))
+                    if (!lexer.TryConsumeAny(":."))
                     {
                         return false;
                     }
@@ -876,7 +876,7 @@ public static class LessonParsingHelper
                     }
 
                     ValidateNotShort(result.LastName);
-                    ValidateIfOneIsShortAllAreShort(result.FirstName);
+                    MakeAllShortIfOneShort(ref result.FirstName);
 
                     {
                         var copy = lexer;
@@ -904,13 +904,35 @@ public static class LessonParsingHelper
                     }
                 }
 
-                static void ValidateIfOneIsShortAllAreShort(NameParts<ReadOnlyMemory<char>> name)
+                static void MakeAllShortIfOneShort(ref NameParts<ReadOnlyMemory<char>> name)
                 {
-                    bool oneIsShort = name.Any(x => !x.IsEmpty && !new WordSpan(x.Span).LooksFull);
-                    bool allAreShortOrEmpty = name.All(x => x.IsEmpty || !new WordSpan(x.Span).LooksFull);
-                    if (oneIsShort && !allAreShortOrEmpty)
+                    bool oneIsShort = name.Any(x =>
                     {
-                        WrongFormatException.ThrowInvalidDoubleName();
+                        if (x.IsEmpty)
+                        {
+                            return false;
+                        }
+                        var w = new WordSpan(x.Span);
+                        if (w.LooksFull)
+                        {
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (oneIsShort)
+                    {
+                        foreach (ref var x in name)
+                        {
+                            if (x.IsEmpty)
+                            {
+                                break;
+                            }
+                            var w = new WordSpan(x.Span);
+                            if (w.LooksFull)
+                            {
+                                x = $"{x.Span}{WordHelper.ShortenedWordCharacter}".AsMemory();
+                            }
+                        }
                     }
                 }
 
@@ -929,11 +951,13 @@ public static class LessonParsingHelper
                     }
                     if (onlyAllowFullForm)
                     {
-                        if (name1[0].Length > 3)
+                        var n = name1.LastNotEmpty();
+                        if (n.Length > 3)
                         {
                             return false;
                         }
-                        if (name1[0].Span[^1] != WordHelper.ShortenedWordCharacter)
+                        var w = new WordSpan(n.Span);
+                        if (w.LooksFull)
                         {
                             return false;
                         }
@@ -2126,9 +2150,6 @@ public class WrongFormatException : Exception
 
     [DoesNotReturn]
     internal static void UnclosedParens() => throw new WrongFormatException("Unclosed parens");
-
-    [DoesNotReturn]
-    internal static void ThrowInvalidDoubleName() => throw new WrongFormatException($"Double names must have the second short name after the '{NameConstants.DoubleNameSeparator}'");
 
     [DoesNotReturn]
     internal static void InvalidLastName() => throw new WrongFormatException($"Last name must not be short");

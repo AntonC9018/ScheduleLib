@@ -12,6 +12,13 @@ public readonly struct RentedBuffer<T> : IDisposable
     public Span<T> Span => Array.AsSpan(0, Len);
     public Memory<T> Memory => Array.AsMemory(0, Len);
 
+    private RentedBuffer(RentedBuffer<T> b, int len)
+    {
+        Debug.Assert(len <= b.Len);
+        Array = b.Array;
+        Len = len;
+    }
+
     public RentedBuffer(int len)
     {
         Array = ArrayPool<T>.Shared.Rent(len);
@@ -27,4 +34,6 @@ public readonly struct RentedBuffer<T> : IDisposable
     public bool IsValid => Array != null;
 
     public SpanBuilder<T> Builder() => new(Span);
+
+    public RentedBuffer<T> WithLen(int len) => new(this, len);
 }

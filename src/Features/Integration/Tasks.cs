@@ -146,6 +146,7 @@ public static class TasksHelper
             var credentialsResolver = sp.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>();
             var credentials = credentialsResolver.Get();
             var registryContext = await RegistryScrapingContext.Create(
+                sp,
                 credentials: credentials,
                 cancellationToken: cancellationToken);
             return registryContext;
@@ -156,6 +157,7 @@ public static class TasksHelper
             var credentialsResolver = sp.GetRequiredService<CredentialsResolver<MoodleConfig>>();
             var credentials = credentialsResolver.Get();
             var registryContext = await MoodleScrapingContext.Create(
+                sp,
                 credentials: credentials,
                 cancellationToken: cancellationToken);
             return registryContext;

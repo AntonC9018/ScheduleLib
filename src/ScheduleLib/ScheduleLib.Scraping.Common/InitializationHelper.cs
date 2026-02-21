@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ScheduleLib.Scraping.Common;
@@ -39,7 +40,11 @@ public sealed class ScrapingContextBuilder
             return ctx.Client;
         });
         _services.AddSingleton<BrowsingContextProvider>();
-        _services.AddLogging();
+    }
+
+    public void AddLogging(ILoggerFactory f)
+    {
+        _services.AddSingleton(f);
     }
 
     public void AddConfig<T>(T? value) where T : class

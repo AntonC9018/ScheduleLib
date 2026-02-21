@@ -24,7 +24,8 @@ public abstract class MarkerDataHelperBase<T> : IMarkerDataHelper
         {
             throw new InvalidOperationException("Marker config type mismatch.");
         }
-        return GetCurrentPath(c);
+        var ret = GetCurrentPath(c);
+        return ret;
     }
 
     public abstract T GetMarkerData(IServiceProvider sp);

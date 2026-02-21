@@ -13,10 +13,10 @@ public sealed class DayNameProvider
 
     private static string[] CreateNames()
     {
-        var ret = new string[7];
+        var arr = OneForEach.Enum<DayOfWeek>().CreateArray<string>();
         void Set(DayOfWeek day, string name)
         {
-            ret[(int) day] = name;
+            arr[day] = name;
         }
 
         Set(DayOfWeek.Monday, "Luni");
@@ -26,8 +26,8 @@ public sealed class DayNameProvider
         Set(DayOfWeek.Friday, "Vineri");
         Set(DayOfWeek.Saturday, "Sâmbătă");
         Set(DayOfWeek.Sunday, "Duminică");
-        Debug.Assert(ret.None(x => x is null));
-        return ret;
+        Debug.Assert(arr.Storage.None(x => x is null));
+        return arr.Storage;
     }
     private static readonly ImmutableArray<string> _Names = [.. CreateNames()];
     public readonly ImmutableArray<string> Names = _Names;
@@ -71,7 +71,7 @@ public static class LessonTypeConstants
 {
     private static string[] CreateNames()
     {
-        var ret = new string[4];
+        var ret = new string[5];
         void Set(LessonType t, string name)
         {
             ret[(int) t] = name;
@@ -81,6 +81,7 @@ public static class LessonTypeConstants
         Set(LessonType.Lab, "lab");
         Set(LessonType.Seminar, "sem");
         Set(LessonType.Prelegere, "prel");
+        Set(LessonType.Exam, "exam");
         Debug.Assert(ret.None(x => x is null));
         return ret;
     }

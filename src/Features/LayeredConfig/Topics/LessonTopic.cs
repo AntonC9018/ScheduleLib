@@ -4,7 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Config;
+using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
@@ -219,17 +221,21 @@ public sealed class LessonTopicsBuilder
     }
 }
 
-public sealed class AllLessonTopicsDatabaseBuilder
+public sealed partial class AllLessonTopicsDatabaseBuilder
 {
     private readonly List<LessonTopicsBuilder> _items = new();
     private ValueForEachLessonType<ILessonNameProvider?> _defaultProviders;
     // Only includes the relevant lessons.
     // NOTE: Currently, recreated per teacher.
     private readonly FilteredSchedule _schedule;
+    private readonly ILogger _logger;
 
-    public AllLessonTopicsDatabaseBuilder(FilteredSchedule schedule)
+    public AllLessonTopicsDatabaseBuilder(
+        FilteredSchedule schedule,
+        ILogger<AllLessonTopicsDatabaseBuilder> logger)
     {
         _schedule = schedule;
+        _logger = logger;
     }
 
     public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
@@ -300,7 +306,7 @@ public sealed class AllLessonTopicsDatabaseBuilder
 
     public async Task AddFromManifest(
         ManifestAtLocation m,
-        CourseNameUnifierModuleWithDeps lookup,
+        LookupFacade lookup,
         CancellationToken cancellationToken)
     {
         foreach (var document in m.Manifest.Documents)
@@ -317,19 +323,18 @@ public sealed class AllLessonTopicsDatabaseBuilder
                 LessonType = document.LessonType,
             };
 
-            if (lookup.Find(document.Course.AsMemory()) is not { } courseId)
+            if (lookup.Course(document.Course.AsMemory()) is not { } courseId)
             {
-                throw new InvalidOperationException($"Course '{document.Course}' not found in lookup.");
+                // throw new InvalidOperationException($"");
+                LogCourseCourseNotFoundInLookup(document.Course);
+                continue;
             }
 
-            var lessonGroups = FindMatchingGroups(
-                _schedule,
-                document);
-
+            var lessonGroups = FindMatchingGroups(_schedule, document);
             if (lessonGroups.Count == 0)
             {
-                throw new InvalidOperationException(
-                    $"No matching lesson groups found for document '{document.Path}' with specified faculty/grade filters.");
+                LogNoMatchingGroups(document.Path);
+                continue;
             }
 
             var topics = Topics(new(
@@ -410,4 +415,10 @@ public sealed class AllLessonTopicsDatabaseBuilder
         }
         return ret;
     }
+
+    [LoggerMessage(LogLevel.Warning, "Course '{Course}' not found in lookup")]
+    partial void LogCourseCourseNotFoundInLookup(string Course);
+
+    [LoggerMessage(LogLevel.Warning, "No matching lesson groups found for document '{DocumentPath}' with specified faculty/grade filters")]
+    partial void LogNoMatchingGroups(string DocumentPath);
 }

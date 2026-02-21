@@ -3,6 +3,7 @@ using AngleSharp.Dom;
 using AutoConstructor.Attributes;
 using DocumentFormat.OpenXml.Presentation;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;
@@ -219,11 +220,13 @@ public readonly record struct RegistryScrapingContext(
     }
 
     public static async Task<RegistryScrapingContext> Create(
+        IServiceProvider sp,
         Credentials credentials,
         CancellationToken cancellationToken)
     {
         var builder = new ScrapingContextBuilder();
         RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         builder.TokenAuth(x =>
         {
             x.PasswordLoginCall(credentials);

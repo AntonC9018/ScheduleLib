@@ -108,4 +108,23 @@ public sealed class BitArray
             _ = otherArr;
         });
     }
+
+    [Fact]
+    public void RemoveTest()
+    {
+        var arr = BitArray32.Empty(10);
+        arr.Set(0);
+        arr.Set(1);
+        arr.Set(3);
+        arr.Set(5);
+
+        var mask = BitArray32.Empty(10);
+        mask.Set(3);
+        mask.Set(0);
+        mask.Set(2);
+
+        arr = arr.Remove(mask);
+
+        Assert.Equal(arr.SetBitIndicesLowToHigh, [1, 5]);
+    }
 }

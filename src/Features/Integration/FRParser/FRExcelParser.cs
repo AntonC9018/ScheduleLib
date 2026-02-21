@@ -31,28 +31,38 @@ public static class FrExcelParser
     public static ValueTask ParseIntoSchedule(Params p)
     {
         using var xl = new XLWorkbook(p.InputFile);
-        var ws = xl.Worksheets
-            .Select(x =>
-            {
-                var parser = new Parser(x.Name);
-                if (!parser.ConsumeExactString("sem"))
+        IXLWorksheet ws;
+        if (xl.Worksheets.Count == 1)
+        {
+            ws = xl.Worksheets.First();
+        }
+        else
+        {
+            ws = xl.Worksheets
+                .Select(x =>
                 {
-                    return default;
-                }
-                if (!parser.SkipWhitespace().SkippedAny)
-                {
-                    return default;
-                }
-                var roman = parser.ReadRoman();
-                if (roman.Status != ReadRomanStatus.Ok)
-                {
-                    return default;
-                }
+                    var parser = new Parser(x.Name);
+                    if (!parser.ConsumeExactString("sem"))
+                    {
+                        return default;
+                    }
+                    if (!parser.SkipWhitespace().SkippedAny)
+                    {
+                        return default;
+                    }
+                    var roman = parser.ReadRoman();
+                    if (roman.Status != ReadRomanStatus.Ok)
+                    {
+                        return default;
+                    }
 
-                return new NumberedWorksheet(x, roman.Number);
-            })
-            .WhereNotDefault()
-            .Single();
+                    return new NumberedWorksheet(x, roman.Number);
+                })
+                // TODO: add validation for sem number?
+                .WhereNotDefault()
+                .Single()
+                .Worksheet;
+        }
 
         using var rowE = ws.Worksheet.Rows().GetEnumerator();
         if (!rowE.MoveNext())
@@ -65,6 +75,10 @@ public static class FrExcelParser
         while (true)
         {
             var result = DoParsingIter(rowE, p, isFirstIter);
+            if (result == ParsingIterResult.EndOfFile)
+            {
+                break;
+            }
             if (result == ParsingIterResult.NothingAdded)
             {
                 if (previousResult == ParsingIterResult.NothingAdded)
@@ -82,6 +96,7 @@ public static class FrExcelParser
     {
         None,
         NothingAdded,
+        EndOfFile,
         ProcessedNormally,
     }
 
@@ -91,7 +106,10 @@ public static class FrExcelParser
         bool isFirstTime)
     {
         Span<GroupId> lessonGroupsMem = stackalloc GroupId[CellIterationContext.ColSpanHardLimit];
-        var (years, offset) = ParseGrades(rowE);
+        if (ParseGrades(rowE) is not var (years, offset))
+        {
+            return ParsingIterResult.EndOfFile;
+        }
         using var groups = ParseGroups(rowE, p.Context.Schedule, years, offset);
 
         if (isFirstTime)
@@ -182,6 +200,11 @@ public static class FrExcelParser
                     }
 
                     var parsedLesson = parsedLessonE.Current;
+                    // We don't record these in the schedule.
+                    if (parsedLesson.LessonType == LessonType.Exam)
+                    {
+                        continue;
+                    }
                     if (parsedLesson.Parity != Parity.EveryWeek)
                     {
                         throw cell.Exception("Parity not supported for FR.");
@@ -490,12 +513,12 @@ public static class FrExcelParser
         }
     }
 
-    private static (Grades Grades, ColumnOffset Offset) ParseGrades(IEnumerator<IXLRow> rowE)
+    private static (Grades Grades, ColumnOffset Offset)? ParseGrades(IEnumerator<IXLRow> rowE)
     {
         var ret = new SizedItemArray<Grade>();
         if (!rowE.MoveNext())
         {
-            throw new NotSupportedException("Expected grade row!");
+            return null;
         }
 
         int? startOffset = null;

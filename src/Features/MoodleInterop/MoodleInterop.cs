@@ -1,5 +1,7 @@
 using AngleSharp;
 using AngleSharp.Html.Dom;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Scraping.Common;
 
 namespace QuizModels;
@@ -30,6 +32,7 @@ public sealed class MoodleScrapingContext : IDisposable
     };
 
     public static async Task<MoodleScrapingContext> Create(
+        IServiceProvider sp,
         Credentials credentials,
         CancellationToken cancellationToken)
     {
@@ -39,6 +42,7 @@ public sealed class MoodleScrapingContext : IDisposable
         builder.AddConfig(TokenRetrieverConfig);
         builder.TokenAuth(
             f => f.PasswordLoginForm(credentials));
+        builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         var context = await builder.Build(cancellationToken);
         return new MoodleScrapingContext(context);
     }

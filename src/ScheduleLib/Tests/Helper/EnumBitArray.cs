@@ -174,4 +174,23 @@ public sealed class EnumBitArrayTests
         bitArray.Set(TestDay.Friday);
         Assert.Equal(3, bitArray.SetCount);
     }
+
+    [Fact]
+    public void RemoveTest()
+    {
+        var arr = EnumBitArray<TestDay>.Empty;
+        arr.Set(TestDay.Friday);
+        arr.Set(TestDay.Monday);
+        arr.Set(TestDay.Sunday);
+        arr.Set(TestDay.Wednesday);
+
+        var mask = EnumBitArray<TestDay>.Empty;
+        mask.Set(TestDay.Monday);
+        mask.Set(TestDay.Sunday);
+        mask.Set(TestDay.Saturday);
+
+        arr = arr.Remove(mask);
+
+        Assert.Equal(arr.SetValues(), [TestDay.Wednesday, TestDay.Friday]);
+    }
 }

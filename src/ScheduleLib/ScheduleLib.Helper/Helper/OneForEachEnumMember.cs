@@ -182,8 +182,8 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     where TEnum : struct, Enum
 {
     private readonly TValue[] _items;
-
     internal OneForEachEnumMemberArray(TValue[] items) => _items = items;
+    public TValue[] Storage => _items;
     public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.AsSpan());
     public OneForEachEnumMemberMemory<TEnum, TValue> Memory => new(_items.AsMemory());
     public OneForEachEnumMemberMemory<TEnum, TValue>.Enumerator GetEnumerator() => Memory.GetEnumerator();

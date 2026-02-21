@@ -387,6 +387,24 @@ public static class NamePartHelper
     {
         return name.Map(x => x.Longer);
     }
+
+    public static ReadOnlyMemory<char> LastNotEmpty(this NameParts<ReadOnlyMemory<char>> parts)
+    {
+        int lastIndex = parts.Length - 1;
+        while (true)
+        {
+            var p = parts[lastIndex];
+            if (!p.IsEmpty)
+            {
+                return p;
+            }
+            lastIndex--;
+            if (lastIndex <= 0)
+            {
+                return Memory<char>.Empty;
+            }
+        }
+    }
 }
 
 public static class NameDisplayHelper

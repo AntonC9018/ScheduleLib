@@ -316,14 +316,25 @@ public static class AppTasks
             {
                 throw new InvalidOperationException("Misconfigured source with a null path.");
             }
+            var parseParams = new AttendanceExcel.WorksheetParseParameters();
+            {
+                if (source.RepeatedCourseBehavior is { } x)
+                {
+                    parseParams.RepeatedCourseBehavior = x;
+                }
+            }
+            {
+                if (source.CellValueFormat is { } x)
+                {
+                    parseParams.CellValueFormat = x;
+                }
+            }
+
             using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var workbook = new XLWorkbook(stream);
             AttendanceExcel.ParseAttendanceListsExcel(new(
                 lessonTypeParser: c.Services.GetRequiredService<LessonTypeParser>(),
-                parseParameters: new()
-                {
-                    RepeatedCourseBehavior = source.RepeatedCourseBehavior ?? RepeatedCourseBehavior.Error,
-                },
+                parseParameters: parseParams,
                 builder: builder,
                 schedule: filteredSchedule,
                 workbook: workbook,
@@ -346,7 +357,7 @@ public static class AppTasks
         }
 
         var filteredSchedule = c.Services.ScopedSchedule();
-        var builder = new AllLessonTopicsDatabaseBuilder(filteredSchedule);
+        var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(c.Services, filteredSchedule);
         foreach (var x in config1.Sources)
         {
             var source = x.Create(c.Services);

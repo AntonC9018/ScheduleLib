@@ -436,7 +436,7 @@ internal readonly ref struct WordEnumerable
             {
                 return false;
             }
-            if (ch is ',' or ';' or ':' or '!' or '?')
+            if (ch is ',' or ';' or ':' or '!' or '?' or '&')
             {
                 return true;
             }

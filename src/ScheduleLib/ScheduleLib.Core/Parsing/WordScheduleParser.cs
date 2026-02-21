@@ -280,8 +280,37 @@ public sealed class DayNameParser(DayNameProvider p)
         {
             string name = p.Names[index];
             ret.Add(name, (DayOfWeek) index);
+
+            if (RomanianLanguageHelper.VariantWithOldLetter(name) is { } x)
+            {
+                ret.Add(x, (DayOfWeek) index);
+            }
         }
         return ret;
+    }
+}
+
+public static class RomanianLanguageHelper
+{
+    // Romanian special case: â -> î in the middle of the word.
+    // This is surprisingly common even though it's wrong.
+    public static string? VariantWithOldLetter(string name)
+    {
+        var middle = name.AsSpan()[1 .. ^1];
+        if (!middle.Contains('â'))
+        {
+            return null;
+        }
+
+        return string.Create(name.Length, middle, (output, middle) =>
+        {
+            Debug.Assert(name.Length <= 256);
+            {
+                middle.Replace(output[1 .. ^1], 'â', 'î');
+            }
+            output[0] = name[0];
+            output[^1] = name[^1];
+        });
     }
 }
 

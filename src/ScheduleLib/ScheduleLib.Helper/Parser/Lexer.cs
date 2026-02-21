@@ -76,6 +76,12 @@ public static class ClassLexerExtensions
             return t.TryConsume(type);
         }
 
+        public bool TryConsumeAny(ReadOnlySpan<char> chars)
+        {
+            var t = lexer.Wrap();
+            return t.TryConsumeAny(chars);
+        }
+
         public bool TryConsume(char ch)
         {
             var t = lexer.Wrap();
@@ -87,6 +93,7 @@ public static class ClassLexerExtensions
             var t = lexer.Wrap();
             return t.Concat(p);
         }
+
     }
 }
 
@@ -123,6 +130,18 @@ public static class StructLexerExtensions
             {
                 lexer.Move();
                 return true;
+            }
+            return false;
+        }
+
+        public bool TryConsumeAny(ReadOnlySpan<char> chars)
+        {
+            foreach (var ch in chars)
+            {
+                if (lexer.TryConsume(ch))
+                {
+                    return true;
+                }
             }
             return false;
         }

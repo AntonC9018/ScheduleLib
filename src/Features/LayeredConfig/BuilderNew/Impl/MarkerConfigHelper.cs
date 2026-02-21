@@ -121,6 +121,7 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
         var c = _builder.BaseNode
             .Dfs()
             .AddLayerPath()
+            .Process()
             .Where(x => x.Node.IsLeaf())
             .Where(x =>
             {
@@ -136,7 +137,8 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
         {
             return null;
         }
-        return c.Get(LayerPathContext.Key).Path();
+        var ret = c.Get(LayerPathContext.Key).Path();
+        return ret;
 
         static bool CheckEquality(TeacherLayerConfig? existing, TeacherLayerConfig scoped)
         {

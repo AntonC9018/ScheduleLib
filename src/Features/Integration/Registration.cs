@@ -5,6 +5,7 @@ using Anton.LayeredData.Retrieval;
 using FmiWebsiteInterop.Theses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
@@ -31,7 +32,11 @@ public static class Registration
             services.AddOnlineRegistry();
             services.AddTaskHandlers();
             services.AddGlobalConfiguration();
-            services.AddLogging();
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
         }
 
         public void AddConfigsServices()
