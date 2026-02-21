@@ -150,11 +150,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            if (_nodeSelection.SelectedNode.IsNull)
+            var n = _nodeSelection.SelectedNode;
+            if (n.IsNull)
             {
                 return false;
             }
-            if (_nodeSelection.SelectedNode.IsUiLayer)
+            if (n.IsEditable)
             {
                 return false;
             }
@@ -207,6 +208,7 @@ public sealed record class WrappedNode
 
     public static readonly WrappedNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
+    public bool IsEditable => !IsNull && IsUiLayer;
     public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Node.IsUiLayer();

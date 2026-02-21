@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -10,6 +11,7 @@ using ScheduleLib.Parsing;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
+using Group = ScheduleLib.Group;
 
 namespace OnlineRegistry.AttendanceExcel;
 
@@ -426,11 +428,12 @@ public static class AttendanceExcel
         Nothing,
         LessonType,
         IgnoreHeader,
+        Auto,
     }
 
     public struct HeaderFormat()
     {
-        public HeaderFormatType FormatType = HeaderFormatType.Nothing;
+        public HeaderFormatType FormatType = HeaderFormatType.Auto;
         public bool IgnoreValuesOutsideHeader = true;
     }
 
@@ -451,17 +454,20 @@ public static class AttendanceExcel
     {
         private readonly RentedBuffer<LessonType> _lessons;
         public readonly ColumnOffset Offset { get; }
-        public bool IsApplicable => _lessons.IsValid;
-        public int Length => _lessons.Length;
+        public bool IsApplicable => HeaderType != HeaderType.None;
+        public int Len => _lessons.Len;
+        public readonly HeaderType HeaderType = HeaderType.None;
 
         public ReadOnlySpan<LessonType> LessonTypes => _lessons.Span;
 
         public ParsedHeaderInfo(
             RentedBuffer<LessonType> lessons,
-            ColumnOffset offset)
+            ColumnOffset offset,
+            HeaderType headerType)
         {
             _lessons = lessons;
             Offset = offset;
+            HeaderType = headerType;
         }
 
         public LessonType GetLesson(RestoredIndex index)
@@ -475,6 +481,73 @@ public static class AttendanceExcel
             {
                 _lessons.Dispose();
             }
+        }
+    }
+
+    private enum HeaderType
+    {
+        None,
+        LessonType,
+        // ...
+    }
+
+    private struct ParsedHeaderInfoBuilder() : IDisposable
+    {
+        private const int UnspecifiedLen = -1;
+        private HeaderType _headerType = HeaderType.None;
+        private int _len = UnspecifiedLen;
+        private RentedBuffer<LessonType> _lessons;
+        private int _count = 0;
+        #if DEBUG
+        private bool _built = false;
+        #endif
+
+        public void SetLen(int len)
+        {
+            Debug.Assert(_len == UnspecifiedLen && len >= 0);
+            _len = len;
+        }
+
+        public void DeclareIsLesson()
+        {
+            Debug.Assert(_headerType is HeaderType.None or HeaderType.LessonType);
+            Debug.Assert(_len != UnspecifiedLen);
+            if (_headerType == HeaderType.None)
+            {
+                _headerType = HeaderType.LessonType;
+                _lessons = new RentedBuffer<LessonType>(_len);
+            }
+        }
+
+        public bool IsEmpty => _count == 0;
+
+        public void AddLesson(LessonType t)
+        {
+            DeclareIsLesson();
+            int i = _count;
+            Debug.Assert(i <= _len);
+            _lessons.Span[i] = t;
+            _count++;
+        }
+
+        public void Dispose()
+        {
+            if (_lessons.IsValid)
+            {
+                _lessons.Dispose();
+            }
+        }
+
+        public ParsedHeaderInfo Build(ColumnOffset columnOffset)
+        {
+            #if DEBUG
+            Debug.Assert(!_built);
+            _built = true;
+            #endif
+            var ret = new ParsedHeaderInfo(_lessons, columnOffset, _headerType);
+            // Move into info so it can be disposed.
+            _lessons = default;
+            return ret;
         }
     }
 
@@ -492,10 +565,23 @@ public static class AttendanceExcel
     {
         // ReSharper disable once GenericEnumeratorNotDisposed
         using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
-        using var header = ParseHeader(p.HeaderFormat);
-        if (header.IsApplicable)
+        var headerFormat = p.HeaderFormat;
+        using var header = ParseHeader(headerFormat);
+        switch (header.HeaderType)
         {
-            list.AddLessonTypes(header.LessonTypes);
+            case HeaderType.LessonType:
+            {
+                list.AddLessonTypes(header.LessonTypes);
+                break;
+            }
+            case HeaderType.None:
+            {
+                break;
+            }
+            default:
+            {
+                throw Unreachable();
+            }
         }
 
         while (true)
@@ -538,7 +624,7 @@ public static class AttendanceExcel
                 {
                     var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
                     var restoredIndex = header.Offset.GetUnOffsetIndex(columnNumber);
-                    if (restoredIndex.Value < 0 || restoredIndex.Value >= header.Length)
+                    if (restoredIndex.Value < 0 || restoredIndex.Value >= header.Len)
                     {
                         if (p.HeaderFormat.IgnoreValuesOutsideHeader)
                         {
@@ -583,125 +669,183 @@ public static class AttendanceExcel
         list.HintMaxCount(maxLen);
         return;
 
-        ParsedHeaderInfo ParseHeader(in HeaderFormat headerFormat)
+        ParsedHeaderInfo ParseHeader(HeaderFormat headerFormat1)
         {
-            if (headerFormat.FormatType == HeaderFormatType.Nothing)
+            IXLRow? row = sheet.Rows().FirstOrDefault();
+            if (headerFormat1.FormatType == HeaderFormatType.Nothing)
             {
                 return default;
             }
-            if (!rowE.MoveNext())
+            if (row == null)
             {
+                if (headerFormat1.FormatType == HeaderFormatType.Auto)
+                {
+                    return default;
+                }
                 throw sheet.Exception("Expected a header row");
             }
-            if (headerFormat.FormatType == HeaderFormatType.IgnoreHeader)
+
+            // Consume the first row.
+            {
+                bool skipped = rowE.MoveNext();
+                Debug.Assert(skipped);
+            }
+
+            if (headerFormat1.FormatType == HeaderFormatType.IgnoreHeader)
             {
                 return default;
             }
 
-            var context = new HeaderParsingContext();
-            if (headerFormat.FormatType == HeaderFormatType.LessonType)
-            {
-                var row = rowE.Current;
-                var cellCount = row.CellCount();
-                var ret = new RentedBuffer<LessonType>(cellCount);
-                try
-                {
-                    using var cellE = row.Cells(usedCellsOnly: false).GetEnumerator();
-                    var retBuilder = ret.Builder();
-                    while (true)
-                    {
-                        if (!cellE.MoveNext())
-                        {
-                            break;
-                        }
-                        var cell = cellE.Current!;
-                        if (ValidateAndMaybeSkipEmpty(cell, ref context))
-                        {
-                            continue;
-                        }
 
-                        if (!cell.Value.TryGetText(out string strValue))
+            Debug.Assert(headerFormat1.FormatType is HeaderFormatType.LessonType or HeaderFormatType.Auto,
+                $"Not implemented: {headerFormat.FormatType}");
+
+            var context = new HeaderParsingContext(headerFormat1.FormatType);
+            using var builder = new ParsedHeaderInfoBuilder();
+            {
+                var cellCount = row.CellCount();
+                builder.SetLen(cellCount);
+            }
+
+            using var cellE = row.Cells(usedCellsOnly: false).GetEnumerator();
+            while (true)
+            {
+                if (!cellE.MoveNext())
+                {
+                    break;
+                }
+                var cell = cellE.Current!;
+
+                var action = HeaderValidateAndMaybeSkipEmptyOrValidateFormat(cell, ref context);
+                if (action == HeaderColumnValidationResult.SkipEmpty)
+                {
+                    continue;
+                }
+                if (action == HeaderColumnValidationResult.NotAHeader)
+                {
+                    return default;
+                }
+
+                if (!cell.Value.TryGetText(out string strValue))
+                {
+                    throw cell.Exception("Expected the cell to have a value");
+                }
+
+                switch (context.Format)
+                {
+                    case HeaderFormatType.Auto:
+                    {
+                        if (TryLessonType())
                         {
-                            throw cell.Exception("Expected the cell to have a value");
+                            // Select the type
+                            context.Format = HeaderFormatType.LessonType;
                         }
-                        if (headerDeps.LessonTypeParser.Parse(strValue) is not { } lessonType)
+                        if (builder.IsEmpty)
+                        {
+                            return default;
+                        }
+                        throw Unreachable();
+                    }
+                    case HeaderFormatType.LessonType:
+                    {
+                        if (!TryLessonType())
                         {
                             var examples = string.Join(",", headerDeps.LessonTypeParser.AllowedValuesExamples);
                             throw cell.Exception($"{strValue} is an invalid lesson type. The valid values are: {examples}");
                         }
-                        retBuilder.Add(lessonType);
                         continue;
-
-                        static bool ValidateAndMaybeSkipEmpty(
-                            IXLCell cell,
-                            ref HeaderParsingContext c)
-                        {
-                            var range = cell.AsRange();
-                            if (range.IsMerged())
-                            {
-                                throw cell.Exception("Merged cells are just not supported, don't use them");
-                            }
-
-                            var value = cell.Value;
-                            // Handle empty cells
-                            if (c.FirstOffset is null)
-                            {
-                                if (value.IsBlank)
-                                {
-                                    throw cell.Exception("First column of the header row must be empty");
-                                }
-                                var colNumber = range.FirstColumn().ColumnNumber();
-                                c.FirstOffset = new(colNumber);
-                                return true;
-                            }
-                            else if (c.IsInEmptyStreak)
-                            {
-                                if (!value.IsBlank)
-                                {
-                                    throw cell.Exception("Cannot have a non-empty value after an empty streak");
-                                }
-                                return true;
-                            }
-                            else
-                            {
-                                if (value.IsBlank)
-                                {
-                                    c.IsInEmptyStreak = true;
-                                    return true;
-                                }
-                            }
-
-                            {
-                                // Some sanity checks.
-                                Debug.Assert(!c.IsInEmptyStreak);
-                                Debug.Assert(c.FirstOffset.HasValue);
-                                var expectedOffset = c.FirstOffset.Value.Value + 1;
-                                var colNumber = range.FirstColumn().ColumnNumber();
-                                if (expectedOffset != colNumber)
-                                {
-                                    throw cell.Exception("Unexpected column number");
-                                }
-                            }
-                            return false;
-                        }
+                    }
+                    default:
+                    {
+                        throw Unreachable();
                     }
                 }
-                catch
+
+                bool TryLessonType()
                 {
-                    ret.Dispose();
-                    throw;
+                    if (headerDeps.LessonTypeParser.Parse(strValue) is not { } lessonType)
+                    {
+                        return false;
+                    }
+                    builder.AddLesson(lessonType);
+                    return true;
                 }
-                return new(ret, context.FirstOffset ?? default);
             }
-            throw Unreachable();
+            return builder.Build(context.FirstOffset ?? default);
         }
 
     }
 
-    private struct HeaderParsingContext()
+    private enum HeaderColumnValidationResult
     {
+        SkipEmpty,
+        NotAHeader,
+        Value,
+    }
+
+    private static HeaderColumnValidationResult HeaderValidateAndMaybeSkipEmptyOrValidateFormat(
+        IXLCell cell,
+        ref HeaderParsingContext c)
+    {
+        var range = cell.AsRange();
+        if (range.IsMerged())
+        {
+            throw cell.Exception("Merged cells are just not supported, don't use them");
+        }
+
+        var value = cell.Value;
+        // Handle empty cells
+        if (c.FirstOffset is null)
+        {
+            if (!value.IsBlank)
+            {
+                if (c.Format == HeaderFormatType.Auto)
+                {
+                    return HeaderColumnValidationResult.NotAHeader;
+                }
+                throw cell.Exception("First column of the header row must be empty");
+            }
+            var colNumber = range.FirstColumn().ColumnNumber();
+            c.FirstOffset = new(colNumber);
+            return HeaderColumnValidationResult.SkipEmpty;
+        }
+        else if (c.IsInEmptyStreak)
+        {
+            if (!value.IsBlank)
+            {
+                throw cell.Exception("Cannot have a non-empty value after an empty streak");
+            }
+            return HeaderColumnValidationResult.SkipEmpty;
+        }
+        else
+        {
+            if (value.IsBlank)
+            {
+                c.IsInEmptyStreak = true;
+                return HeaderColumnValidationResult.SkipEmpty;
+            }
+        }
+
+        {
+            // Some sanity checks.
+            Debug.Assert(!c.IsInEmptyStreak);
+            Debug.Assert(c.FirstOffset.HasValue);
+            var expectedOffset = c.FirstOffset.Value.Value + 1;
+            var colNumber = range.FirstColumn().ColumnNumber();
+            if (expectedOffset != colNumber)
+            {
+                throw cell.Exception("Unexpected column number");
+            }
+        }
+        return HeaderColumnValidationResult.Value;
+    }
+
+    private struct HeaderParsingContext(HeaderFormatType format)
+    {
+        public HeaderFormatType Format = format;
         public ColumnOffset? FirstOffset = null;
         public bool IsInEmptyStreak = false;
+        public bool AllowedToSkipEmpty = format != HeaderFormatType.Auto;
     }
 }
 

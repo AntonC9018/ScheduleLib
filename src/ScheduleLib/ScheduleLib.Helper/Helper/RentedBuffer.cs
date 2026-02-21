@@ -7,15 +7,15 @@ namespace ScheduleLib;
 public readonly struct RentedBuffer<T> : IDisposable
 {
     public readonly T[] Array;
-    public readonly int Length;
+    public readonly int Len;
 
-    public Span<T> Span => Array.AsSpan(0, Length);
-    public Memory<T> Memory => Array.AsMemory(0, Length);
+    public Span<T> Span => Array.AsSpan(0, Len);
+    public Memory<T> Memory => Array.AsMemory(0, Len);
 
-    public RentedBuffer(int length)
+    public RentedBuffer(int len)
     {
-        Array = ArrayPool<T>.Shared.Rent(length);
-        Length = length;
+        Array = ArrayPool<T>.Shared.Rent(len);
+        Len = len;
     }
 
     public void Dispose()

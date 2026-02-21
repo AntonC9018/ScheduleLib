@@ -151,7 +151,7 @@ public static class FrExcelParser
                     {
                         throw cell.Exception($"{err} (appearing BEFORE THE FIRST column with a group)");
                     }
-                    if (offsetIndex.Value >= groups.Length)
+                    if (offsetIndex.Value >= groups.Len)
                     {
                         throw cell.Exception($"{err} (appearing AFTER THE LAST column with a group)");
                     }
@@ -576,7 +576,7 @@ public static class FrExcelParser
             return _arr.Span[index.Value];
         }
 
-        public int Length => _arr.Length;
+        public int Len => _arr.Len;
 
         public void Dispose()
         {
