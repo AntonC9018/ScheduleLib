@@ -45,8 +45,25 @@ public sealed class CourseNameTests
         Assert.Equal(course1, course2);
     }
 
-    private ParsedCourseName Parse(CourseNameParserConfig config, string str)
+    private ParsedCourseName Parse(
+        CourseNameParserConfig config,
+        string str,
+        CourseNameParseOptions options = default)
     {
-        return config.Parse(str.AsMemory());
+        return config.Parse(str.AsMemory(), options);
     }
+
+    [Fact]
+    public void MTA32()
+    {
+        var parserConfig = Config.CourseNameParser;
+
+        var course1 = Parse(parserConfig, "Modelare, texturare si animatie 3D p/u jocuri", new()
+        {
+            IgnorePunctuation = true,
+        });
+        var course2 = Parse(parserConfig, "MTA3D");
+        Assert.Equal(course1, course2);
+    }
+
 }

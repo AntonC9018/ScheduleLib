@@ -39,6 +39,7 @@ public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
     void GroupNotFound(string groupName);
     void LessonWithoutName();
     void LessonsDecidedErroneous(ErroneousLesson lessons);
+    void GroupParsingError(GroupParseErrorContext context);
 
     // TODO: Needs to be passed the context.
     ExtraLessonInstanceAction ExtraLessonInstanceFound(DateTime date);
@@ -95,6 +96,14 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
             ErrorContext = lesson.Context,
         });
         _logger.LogError("Found lesson that should not be in the registry of the current person");
+    }
+
+    public void GroupParsingError(GroupParseErrorContext context)
+    {
+        _logger.LogError(
+            context.Exception,
+            "Could not parse group {Group}",
+            context.String.Trim());
     }
 
     public void CustomLessonType(ReadOnlySpan<char> ch) => LogCustomLessonType(ch.ToString());

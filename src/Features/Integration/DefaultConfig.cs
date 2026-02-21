@@ -20,7 +20,7 @@ public static class DefaultConfig
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
 
-                var f = CommandProcessingConfig.DryRun
+                var f = CommandProcessingConfig.Process
                     .WithLog(LessonEquationCommandTypes.All);
                 x.ProcessingFlags(f);
                 x.Credentials().FromConfig();
@@ -44,9 +44,9 @@ public static class DefaultConfig
 
             var credentials = new GoogleCredentialsConfig
             {
-                 CredentialsPath = "google_token_store",
-                 SaveCredentials = true,
-                 ApiKeysSource = new GlobalConfigurationApiKeysSource("Google"),
+                CredentialsPath = "google_token_store",
+                SaveCredentials = true,
+                ApiKeysSource = new GlobalConfigurationApiKeysSource("Google"),
             };
 
             defaults.GoogleDrive().ConfigureValue(x =>
@@ -118,6 +118,11 @@ public static class DefaultConfig
             {
                 x.FallbackProvider<LabAutoNumberingNameProvider>(LessonType.Lab);
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
+                x.FallbackProvider<NoNameProvider>(LessonType.Curs);
+            });
+            t.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>
+            {
+                x.SkipAttendance = AttendanceMode.FrecventaRedusa;
             });
         });
 

@@ -194,8 +194,15 @@ public static partial class RegistryScraping
         [DoesNotReturn]
         static void JustThrow(string part)
         {
-            throw new NotSupportedException($"Bad {part}");
+            throw new GroupParsingException(part);
         }
+    }
+}
+
+public sealed class GroupParsingException : Exception
+{
+    public GroupParsingException(string part) : base($"Bad {part}")
+    {
     }
 }
 

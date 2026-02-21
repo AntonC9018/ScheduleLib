@@ -280,16 +280,8 @@ public static class CourseNameParsing
         {
             return true;
         }
-        if (a.IsDone)
-        {
-            return false;
-        }
-        if (b.IsDone)
-        {
-            return false;
-        }
 
-        if (a.CanIgnoreCurrent)
+        if (!a.IsDone && a.CanIgnoreCurrent)
         {
             var acopy = a;
             acopy.Move();
@@ -298,7 +290,7 @@ public static class CourseNameParsing
                 return true;
             }
         }
-        if (b.CanIgnoreCurrent)
+        if (!b.IsDone && b.CanIgnoreCurrent)
         {
             var bcopy = b;
             bcopy.Move();
@@ -306,6 +298,15 @@ public static class CourseNameParsing
             {
                 return true;
             }
+        }
+
+        if (a.IsDone)
+        {
+            return false;
+        }
+        if (b.IsDone)
+        {
+            return false;
         }
 
         var selfword = a.CurrentWord;

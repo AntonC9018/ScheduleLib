@@ -58,9 +58,15 @@ internal readonly struct ScanGroupsParams
     public required IDocument Document { get; init; }
     public required GroupParseContext GroupParseContext { get; init; }
     public required SearchGroupId SearchGroupId { get; init; }
+    public required ParseErrorHandler ParseErrorHandler { get; init; }
 }
 
 internal delegate LessonGroups SearchGroupId(ref GroupForSearch group);
+
+public readonly record struct GroupParseErrorContext(
+    GroupParsingException Exception,
+    string String);
+internal delegate void ParseErrorHandler(GroupParseErrorContext context);
 
 
 internal readonly struct ScanLessonsParams
@@ -132,7 +138,17 @@ internal static class HtmlSearch
                 var anchor = urls[0];
                 var url = anchor.Href;
                 var groupName = anchor.Text;
-                var groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
+                GroupForSearch groupForSearch;
+                try
+                {
+                    groupForSearch = RegistryScraping.ParseGroupFromOnlineRegistry(p.GroupParseContext, groupName);
+                }
+                catch (GroupParsingException e)
+                {
+                    p.ParseErrorHandler(new(e, groupName));
+                    continue;
+                }
+
                 if (groupForSearch.IsRepeat)
                 {
                     // Not handling this yet.

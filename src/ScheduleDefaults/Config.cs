@@ -14,7 +14,7 @@ public static class Config
     public static CourseNameParserConfig CourseNameParser => new(new()
     {
         ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js"],
-        IgnoredFullWords = ["p/u", "pentru", "Modele"],
+        IgnoredFullWords = ["p/u", "pentru", "Modele", "jocuri"],
         IgnoredShortenedWords = ["Opț"],
         IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
         MinUsefulWordLength = 3,

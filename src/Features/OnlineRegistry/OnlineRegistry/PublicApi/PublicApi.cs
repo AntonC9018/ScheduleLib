@@ -107,6 +107,7 @@ public sealed class GroupsNavigator
                 }
                 return ids;
             },
+            ParseErrorHandler = c => _navigator.ErrorHandler.GroupParsingError(c),
         });
         return ret;
     }

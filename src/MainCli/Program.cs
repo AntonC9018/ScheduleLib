@@ -30,7 +30,7 @@ var appExecutionContext = new AppTasksExecutionContext
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Curmanschii Anton"),
+    TeacherName = NameHelper.Parse("Iatasina Tamara"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);
