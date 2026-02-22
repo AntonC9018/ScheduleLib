@@ -79,6 +79,17 @@ public record struct EnumBitArray<T>
     }
 
     [Pure]
+    public readonly bool AreSet(params ReadOnlySpan<T> index)
+    {
+        var mask = new EnumBitArray<T>();
+        foreach (var i in index)
+        {
+            mask.Set(i);
+        }
+        return SizedImpl.IsSetArray(mask.SizedImpl);
+    }
+
+    [Pure]
     public readonly EnumBitArray<T> WithSet(T index)
     {
         var offset = EnumMembers<T>.GetOffset(index);
@@ -115,6 +126,11 @@ public record struct EnumBitArray<T>
     {
         var result = SizedImpl.Remove(other.SizedImpl);
         return new(result.AsUnsized());
+    }
+    [Pure]
+    public readonly bool Contains(EnumBitArray<T> arr)
+    {
+        return Intersect(arr) == arr;
     }
 
     [Pure]

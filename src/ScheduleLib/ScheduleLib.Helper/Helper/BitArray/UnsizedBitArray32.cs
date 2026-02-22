@@ -78,6 +78,12 @@ public record struct UnsizedBitArray32
         ValidateIndex(index);
         return (_bits & (1u << index)) != 0;
     }
+
+    [Pure]
+    public readonly bool IsSetArray(UnsizedBitArray32 arr)
+    {
+        return Intersect(arr) == arr;
+    }
     [Pure]
     public readonly int GetSetAfter(int index)
     {

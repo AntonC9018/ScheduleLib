@@ -63,9 +63,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     group.Groups,
                     group.SubGroup);
                 var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
-                    lookup: _lookup.LessonsByCourse,
-                    schedule: _schedule,
-                    filter: filter))
+                        lookup: _lookup.LessonsByCourse,
+                        schedule: _schedule,
+                        filter: filter))
                     .ToArray();
 
                 var decision = p.LessonFilter.Filter(new(
@@ -93,11 +93,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
 
                 // Figure out the exact dates the lessons will occur on.
-                var lessonsWithTimes = _dateTimeProvider.GetSorted(new()
-                {
-                    Lessons = lessons,
-                    Semester = p.Semester,
-                });
+                using var lessonsWithTimes = _dateTimeProvider
+                    .GetSorted(new()
+                    {
+                        Lessons = lessons,
+                        Semester = p.Semester,
+                    })
+                    .ToRentedBuffer();
 
                 var ltHelper = OneForEach.Enum<LessonType>();
 
@@ -108,39 +110,100 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 remapHelpers.Clear();
                 indexesByLessonType.Clear();
 
-                var completeLessons = lessonsWithTimes.Select([SuppressMessage("ReSharper", "AccessToDisposedClosure")](x) =>
+                using var outputBuffer = new RentedBuffer<LessonInstance>(lessonsWithTimes.Len);
+                var outputBuilder = outputBuffer.Builder();
+
+                using var firstLessonIds = ltHelper.RentArray<AnyLessonId>();
+
+                EnumBitArray<LessonType> existingTypes = new();
+                foreach (ref var x in lessonsWithTimes.Span)
+                {
+                    var l = _schedule.Get(x.LessonId);
+                    var lessonType = l.Lesson.Type;
+                    if (!existingTypes.IsSet(lessonType))
+                    {
+                        firstLessonIds[lessonType] = x.LessonId;
+                        existingTypes.Set(lessonType);
+                    }
+                }
+
+                foreach (var dbLessonType in existingTypes.SetValues())
+                {
+                    var studentNames = p.Attendance.StudentNames(new(
+                        courseId: courseLink.CourseId,
+                        groups: group.Groups.Value,
+                        subGroup: group.SubGroup,
+                        lessonType: dbLessonType));
+                    remapHelpers[dbLessonType] = StudentNameRemapHelper.Create(
+                        namesInHtml: scanResult.Students,
+                        namesInDb: studentNames,
+                        outNotFoundIndices: notFoundStudents);
+                    if (notFoundStudents.Count != 0)
+                    {
+                        _errorHandler.StudentsNotInDbButInRegistry(new(
+                            students: notFoundStudents,
+                            schedule: _schedule,
+                            groups: group.Groups,
+                            lessonId: firstLessonIds[dbLessonType]));
+                        notFoundStudents.Clear();
+                    }
+                }
+
+                ProcessAll(ref outputBuilder);
+
+                [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+                void ProcessAll(ref SpanBuilder<LessonInstance> outputBuilder)
+                {
+                    var sp = lessonsWithTimes.Span;
+                    for (int i = 0; i < sp.Length; i++)
+                    {
+                        var l = _schedule.Get(sp[i].LessonId);
+                        var dbLessonType = l.Lesson.Type;
+                        ref var attendanceIndex = ref indexesByLessonType[dbLessonType];
+
+                        var registryLessonType = dbLessonType;
+                        if (dbLessonType == LessonType.Prelegere)
+                        {
+                            registryLessonType = LessonType.Curs;
+                        }
+
+                        int topicsIndex = attendanceIndex;
+                        // if (existingTypes.IsSet(LessonType.Prelegere)
+                        //     && !existingTypes.IsSet(LessonType.Curs)
+                        //     && dbLessonType is LessonType.Prelegere or LessonType.Curs)
+                        // {
+                        //     var a = indexesByLessonType[LessonType.Curs];
+                        //     var b = indexesByLessonType[LessonType.Prelegere];
+                        //     topicsIndex = a + b;
+                        // }
+
+
+                        var lessonInstance = MapLesson(
+                            x: sp[i],
+                            dbLessonType: dbLessonType,
+                            registryLessonType: registryLessonType,
+                            attendanceIndex: attendanceIndex,
+                            remapHelper: remapHelpers[dbLessonType],
+                            topicDayIndex: topicsIndex,
+                            topicLessonType: registryLessonType);
+                        outputBuilder.Add(lessonInstance);
+
+                        attendanceIndex++;
+                    }
+                }
+
+                [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+                LessonInstance MapLesson(
+                    in LessonWithDate x,
+                    LessonType dbLessonType,
+                    LessonType registryLessonType,
+                    int attendanceIndex,
+                    StudentNameRemapHelper remapHelper,
+                    int topicDayIndex,
+                    LessonType topicLessonType)
                 {
                     var lesson = _schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
-                    var dbLessonType = lesson.Lesson.Type;
-
-                    // Prelegere doesn't actually exist in the registry.
-                    var registryLessonType = dbLessonType == LessonType.Prelegere ? LessonType.Curs : dbLessonType;
-
-                    int GetDayIndexWithCursAndPrelMerged()
-                    {
-                        // Note: made this a bit more abstract.
-                        if (dbLessonType == registryLessonType)
-                        {
-                            return indexesByLessonType[dbLessonType];
-                        }
-                        {
-                            int dbIndex = indexesByLessonType[dbLessonType];
-                            int regIndex = indexesByLessonType[registryLessonType];
-                            if (dbIndex != 0 && regIndex != 0)
-                            {
-                                // NOTE:
-                                // this is not fine currently, because we're iterating IN ORDER.
-                                // if we were to iterate BY TYPES, this would be fine,
-                                // as long as we iterate CURS first then PREL.
-                                // (if CURS counter == 0, PREL gets to get the CURS topics and stuff)
-                                throw new NotSupportedException("Both curs and prel not supported at the same time.");
-                            }
-                            return dbIndex + regIndex;
-                        }
-                    }
-
-                    ref var attendanceIndex = ref indexesByLessonType[dbLessonType];
 
                     var key = new AttendanceLookupKey(
                         groups: group.Groups,
@@ -151,38 +214,19 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         dateTime: x.DateTime);
                     var attendance = p.Attendance.Get(key);
 
-                    ref var remapHelper = ref remapHelpers[dbLessonType];
-                    if (attendanceIndex == 0)
-                    {
-                        var studentNames = p.Attendance.StudentNames(new(
-                            courseId: courseLink.CourseId,
-                            groups: group.Groups.Value,
-                            subGroup: group.SubGroup,
-                            lessonType: dbLessonType));
-                        remapHelper = StudentNameRemapHelper.Create(
-                            namesInHtml: scanResult.Students,
-                            namesInDb: studentNames,
-                            outNotFoundIndices: notFoundStudents);
-                        if (notFoundStudents.Count != 0)
-                        {
-                            _errorHandler.StudentsNotInDbButInRegistry(new(
-                                students: notFoundStudents,
-                                schedule: _schedule,
-                                groups: group.Groups,
-                                lessonId: x.LessonId));
-                            notFoundStudents.Clear();
-                        }
-                    }
-                    attendanceIndex++;
-
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance.AsArray());
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
+                    if (topicLessonType is LessonType.Curs
+                        && _schedule.Get(courseId).FullName.Contains("soft"))
+                    {
+                        Debugger.Break();
+                    }
                     // Note: the index used here is per lesson type as well.
                     var topic = p.LessonTopics.Get(key with
                     {
-                        LessonType = registryLessonType,
-                        DayIndex = GetDayIndexWithCursAndPrelMerged(),
+                        LessonType = topicLessonType,
+                        DayIndex = topicDayIndex,
                     });
 
                     return new LessonInstance
@@ -193,13 +237,14 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         Topic = topic,
                         RegistryLessonType = registryLessonType,
                     };
-                });
+                }
 
                 // Update
                 var equationCommands = config.EquationCommandsDerivation.DeriveCommands(new(
                     schedule: _schedule,
                     remoteLessons: scanResult.Lessons.OrderBy(x => x.DateTime),
-                    localLessons: completeLessons));
+                    // Need to copy to be able to enumerate
+                    localLessons: outputBuilder.Complete().ToArray()));
                 foreach (var command in equationCommands)
                 {
                     if (config.CommandProcessingConfig.HasDryRun(command.Type))

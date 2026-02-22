@@ -73,6 +73,13 @@ public record struct BitArray32
         ValidateIndex(index);
         return _array.IsSet(index);
     }
+
+    [Pure]
+    public readonly bool IsSetArray(BitArray32 arr)
+    {
+        Debug.Assert(arr.Len == Len);
+        return _array.IsSetArray(arr._array);
+    }
     [Pure]
     public readonly int GetSetAfter(int index)
     {

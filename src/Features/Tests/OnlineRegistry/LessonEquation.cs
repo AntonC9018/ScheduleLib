@@ -416,6 +416,7 @@ file sealed class TestContext
                 LessonId = lesson.Id.AsAny(),
                 Attendance = [],
                 Topic = "",
+                RegistryLessonType = lesson.Lesson.Type,
             });
         }
 
