@@ -201,16 +201,13 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
     where TValue : notnull
 {
     private readonly Dictionary<TKey, TValue> _items;
-    public SparseArray(int? count = null)
+
+    public SparseArray() : this(0)
     {
-        if (count is { } c)
-        {
-            _items = new(c);
-        }
-        else
-        {
-            _items = new();
-        }
+    }
+    public SparseArray(int count)
+    {
+        _items = new(count);
     }
 
     public Dictionary<TKey, TValue> Storage => _items;
@@ -263,7 +260,7 @@ public static class OneForEach
 
         public OneForEachEnumMemberArray<TEnum, TValue> CreateArray<TValue>() => new();
 
-        public SparseArray<TEnum, TValue> CreateSparseArray<TValue>(int? count = null)
+        public SparseArray<TEnum, TValue> CreateSparseArray<TValue>(int count = 0)
             where TValue : notnull
         {
             return new(count);

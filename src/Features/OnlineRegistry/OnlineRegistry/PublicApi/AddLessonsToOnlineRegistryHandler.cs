@@ -167,7 +167,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             registryLessonType = LessonType.Curs;
                         }
 
-                        int topicsIndex = attendanceIndex;
+                        // int topicsIndex = attendanceIndex;
                         // if (existingTypes.IsSet(LessonType.Prelegere)
                         //     && !existingTypes.IsSet(LessonType.Curs)
                         //     && dbLessonType is LessonType.Prelegere or LessonType.Curs)
@@ -177,15 +177,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         //     topicsIndex = a + b;
                         // }
 
-
                         var lessonInstance = MapLesson(
                             x: sp[i],
                             dbLessonType: dbLessonType,
                             registryLessonType: registryLessonType,
                             attendanceIndex: attendanceIndex,
-                            remapHelper: remapHelpers[dbLessonType],
-                            topicDayIndex: topicsIndex,
-                            topicLessonType: registryLessonType);
+                            remapHelper: remapHelpers[dbLessonType]);
                         outputBuilder.Add(lessonInstance);
 
                         attendanceIndex++;
@@ -198,9 +195,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     LessonType dbLessonType,
                     LessonType registryLessonType,
                     int attendanceIndex,
-                    StudentNameRemapHelper remapHelper,
-                    int topicDayIndex,
-                    LessonType topicLessonType)
+                    StudentNameRemapHelper remapHelper)
                 {
                     var lesson = _schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
@@ -220,8 +215,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     // Note: the index used here is per lesson type as well.
                     var topic = p.LessonTopics.Get(key with
                     {
-                        LessonType = topicLessonType,
-                        DayIndex = topicDayIndex,
+                        LessonType = dbLessonType,
                     });
 
                     return new LessonInstance
