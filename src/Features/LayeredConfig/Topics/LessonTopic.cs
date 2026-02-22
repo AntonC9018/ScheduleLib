@@ -9,7 +9,6 @@ using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib.Application.Core.Topics;
 
@@ -118,10 +117,9 @@ public sealed class LabAutoNumberingNameProvider : ILessonNameProvider
 
 public readonly record struct ClassifiedTopicsProviders(
     in Key Key,
-    in ValueForEachLessonType<ILessonNameProvider?> Providers)
+    in SparseArray<LessonType, ILessonNameProvider> Providers)
 {
     public readonly Key Key = Key;
-    public readonly ValueForEachLessonType<ILessonNameProvider?> Providers = Providers;
 }
 
 public sealed class LessonTopicsFromDatabase : ILessonTopics
@@ -149,7 +147,7 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
             {
                 continue;
             }
-            var provider = it.Providers[(int) key.LessonType];
+            var provider = it.Providers[key.LessonType];
             if (provider is null)
             {
                 return null;
@@ -207,7 +205,7 @@ public readonly record struct Key
 public sealed class LessonTopicsBuilder
 {
     internal readonly Key Key;
-    internal ValueForEachLessonType<List<string>?> _lists;
+    internal readonly SparseArray<LessonType, List<string>> _lists = new();
 
     public LessonTopicsBuilder(Key key)
     {
@@ -216,7 +214,7 @@ public sealed class LessonTopicsBuilder
 
     public void Add(LessonType type, string value)
     {
-        var list = _lists[(int) type] ??= new();
+        var list = _lists.GetOrAdd(type) ??= new();
         list.Add(value);
     }
 }
@@ -224,7 +222,7 @@ public sealed class LessonTopicsBuilder
 public sealed partial class AllLessonTopicsDatabaseBuilder
 {
     private readonly List<LessonTopicsBuilder> _items = new();
-    private ValueForEachLessonType<ILessonNameProvider?> _defaultProviders;
+    private readonly OneForEachEnumMemberArray<LessonType, ILessonNameProvider?> _defaultProviders;
     // Only includes the relevant lessons.
     // NOTE: Currently, recreated per teacher.
     private readonly FilteredSchedule _schedule;
@@ -236,11 +234,12 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
     {
         _schedule = schedule;
         _logger = logger;
+        _defaultProviders = new();
     }
 
     public void FallbackProvider(LessonType lessonType, ILessonNameProvider provider)
     {
-        _defaultProviders[(int) lessonType] = provider;
+        _defaultProviders[lessonType] = provider;
     }
 
     public LessonTopicsFromDatabase Build()
@@ -248,46 +247,24 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         var b = ImmutableArray.CreateBuilder<ClassifiedTopicsProviders>(_items.Count);
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
-            EnumBitArray<LessonType> foundLessonTypes = new();
-            foreach (var lesson in _schedule.EnumerateLessons())
-            {
-                if (!it.Key.IsLessonGroupsMatch(lesson.Lesson.Groups))
-                {
-                    continue;
-                }
-                if (!it.Key.IsSubGroupMatch(lesson.Lesson.SubGroup))
-                {
-                    continue;
-                }
-                if (it.Key.CourseId != lesson.Lesson.Course)
-                {
-                    continue;
-                }
-                foundLessonTypes.Set(lesson.Lesson.Type);
-            }
+            var foundLessonTypes = GetLessonTypesExistingInSchedule(it, _schedule);
+            var augmentor = new ProcessingHooks();
+            var lessonTypesToProcess = augmentor.UpdateLessonTypesToProcess(foundLessonTypes);
 
-            ValueForEachLessonType<ILessonNameProvider?> providers = new();
-            foreach (var lessonType in foundLessonTypes.SetValues())
+            var providers = OneForEach.Enum<LessonType>().CreateSparseArray<ILessonNameProvider>(lessonTypesToProcess.SetCount);
+            foreach (var lessonType in lessonTypesToProcess.SetValues())
             {
-                var list = it._lists[(int) lessonType];
-                if (list is not null)
+                if (it._lists.TryGet(lessonType, out var list))
                 {
                     var arr = list.ToImmutableArray();
                     var provider = new ListLessonNameProvider(arr);
-                    providers[(int) lessonType] = provider;
-                    continue;
+                    providers.Add(lessonType, provider);
                 }
-
-                var defaultProvider = _defaultProviders[(int) lessonType];
-                if (defaultProvider is not null)
-                {
-                    providers[(int) lessonType] = defaultProvider;
-                    continue;
-                }
-
-                throw new InvalidOperationException(
-                    $"No provider for lesson type {lessonType} for course {it.Key.CourseId}.");
             }
+
+            augmentor.UpdateProvidersAfterInitialized(providers);
+            SetDefaultProviders(providers, lessonTypesToProcess, it.Key.CourseId);
+
             b.Add(new(it.Key, providers));
         }
         return new LessonTopicsFromDatabase(b.MoveToImmutable());
@@ -416,9 +393,78 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         return ret;
     }
 
+    private static EnumBitArray<LessonType> GetLessonTypesExistingInSchedule(
+        LessonTopicsBuilder it,
+        FilteredSchedule schedule)
+    {
+        EnumBitArray<LessonType> foundLessonTypes = new();
+        foreach (var lesson in schedule.EnumerateLessons())
+        {
+            if (!it.Key.IsLessonGroupsMatch(lesson.Lesson.Groups))
+            {
+                continue;
+            }
+            if (!it.Key.IsSubGroupMatch(lesson.Lesson.SubGroup))
+            {
+                continue;
+            }
+            if (it.Key.CourseId != lesson.Lesson.Course)
+            {
+                continue;
+            }
+            foundLessonTypes.Set(lesson.Lesson.Type);
+        }
+        return foundLessonTypes;
+    }
+
+    private void SetDefaultProviders(
+        SparseArray<LessonType, ILessonNameProvider> providers,
+        EnumBitArray<LessonType> typesToProcess,
+        CourseId courseId)
+    {
+        foreach (var lessonType in typesToProcess.SetValues())
+        {
+            if (providers[lessonType] != null)
+            {
+                continue;
+            }
+
+            var defaultProvider = _defaultProviders[lessonType];
+            if (defaultProvider is not null)
+            {
+                providers[lessonType] = defaultProvider;
+                continue;
+            }
+
+            throw new InvalidOperationException(
+                $"No provider for lesson type {lessonType} for course {courseId}.");
+        }
+    }
+
     [LoggerMessage(LogLevel.Warning, "Course '{Course}' not found in lookup")]
     partial void LogCourseCourseNotFoundInLookup(string Course);
 
     [LoggerMessage(LogLevel.Warning, "No matching lesson groups found for document '{DocumentPath}' with specified faculty/grade filters")]
     partial void LogNoMatchingGroups(string DocumentPath);
+}
+
+file readonly struct ProcessingHooks
+{
+    public EnumBitArray<LessonType> UpdateLessonTypesToProcess(EnumBitArray<LessonType> foundLessons)
+    {
+        if (foundLessons.IsSet(LessonType.Prelegere))
+        {
+            foundLessons.Set(LessonType.Curs);
+        }
+        return foundLessons;
+    }
+    public void UpdateProvidersAfterInitialized(
+        SparseArray<LessonType, ILessonNameProvider> providers)
+    {
+        if (!providers.TryGet(LessonType.Prelegere, out _)
+            && providers.TryGet(LessonType.Curs, out var curs))
+        {
+            providers.Add(LessonType.Prelegere, curs);
+        }
+    }
 }

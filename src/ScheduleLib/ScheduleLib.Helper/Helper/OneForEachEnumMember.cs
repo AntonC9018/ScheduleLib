@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -169,10 +171,9 @@ public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue> : IDisposa
     where TEnum : struct, Enum
 {
     private readonly RentedBuffer<TValue> _items;
-
+    static RentedOneForEachEnumMemberArray() => EnumMembers<TEnum>.AssertCompiles();
     internal RentedOneForEachEnumMemberArray(RentedBuffer<TValue> items) => _items = items;
     public void Dispose() => _items.Dispose();
-
     public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.Span);
     public OneForEachEnumMemberSpan<TEnum, TValue>.Enumerator GetEnumerator() => Span.GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
@@ -182,7 +183,9 @@ public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue> : IDisposa
 public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<MemoryItem<TEnum, TValue>>
     where TEnum : struct, Enum
 {
+    static OneForEachEnumMemberArray() => EnumMembers<TEnum>.AssertCompiles();
     private readonly TValue[] _items;
+    public OneForEachEnumMemberArray() => _items = new TValue[EnumMembers<TEnum>.Count];
     internal OneForEachEnumMemberArray(TValue[] items) => _items = items;
     public TValue[] Storage => _items;
     public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.AsSpan());
@@ -193,10 +196,64 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     public ref TValue this[TEnum e] => ref Span[e];
 }
 
+public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+    where TKey : struct, Enum
+    where TValue : notnull
+{
+    private readonly Dictionary<TKey, TValue> _items;
+    public SparseArray(int? count = null)
+    {
+        if (count is { } c)
+        {
+            _items = new(c);
+        }
+        else
+        {
+            _items = new();
+        }
+    }
+
+    public Dictionary<TKey, TValue> Storage => _items;
+    public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => _items.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() => GetEnumerator();
+
+    public void Add(TKey key, TValue value)
+    {
+        _items.Add(key, value);
+    }
+
+    public ref TValue? GetOrAdd(TKey key)
+    {
+        ref var ret = ref GetOrAdd(key, out bool e);
+        _ = e;
+        return ref ret;
+    }
+
+    public ref TValue? GetOrAdd(TKey key, out bool existed)
+    {
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(_items, key, out existed);
+    }
+
+    public bool TryGet(TKey key, [NotNullWhen(true)] out TValue? value)
+    {
+        var ret = _items.TryGetValue(key, out value);
+        return ret;
+    }
+
+    public TValue this[TKey key]
+    {
+        get => _items[key];
+        set => _items[key] = value;
+    }
+}
+
 public static class OneForEach
 {
     public struct Helper<TEnum> where TEnum : struct, Enum
     {
+        static Helper() => EnumMembers<TEnum>.AssertCompiles();
+
         public RentedOneForEachEnumMemberArray<TEnum, TValue> RentArray<TValue>()
         {
             var len = EnumMembers<TEnum>.Count;
@@ -204,11 +261,12 @@ public static class OneForEach
             return new(buffer);
         }
 
-        public OneForEachEnumMemberArray<TEnum, TValue> CreateArray<TValue>()
+        public OneForEachEnumMemberArray<TEnum, TValue> CreateArray<TValue>() => new();
+
+        public SparseArray<TEnum, TValue> CreateSparseArray<TValue>(int? count = null)
+            where TValue : notnull
         {
-            var len = EnumMembers<TEnum>.Count;
-            var buffer = new TValue[len];
-            return new(buffer);
+            return new(count);
         }
     }
     public static Helper<TEnum> Enum<TEnum>() where TEnum : struct, Enum

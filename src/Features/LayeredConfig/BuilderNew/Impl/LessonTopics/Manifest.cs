@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib.Application.Config;
 

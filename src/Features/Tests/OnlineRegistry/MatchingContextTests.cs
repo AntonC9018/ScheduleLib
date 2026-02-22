@@ -119,6 +119,7 @@ file static class Extensions
             DateTime = dt,
             Attendance = [],
             Topic = "",
+            RegistryLessonType = LessonType.Lab,
         });
     }
 

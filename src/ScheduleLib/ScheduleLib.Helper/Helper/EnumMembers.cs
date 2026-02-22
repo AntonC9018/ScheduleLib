@@ -10,6 +10,10 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     public static readonly T End;
     public static int Count => EnumAsInt(End) - EnumAsInt(Start) + 1;
 
+    public static void AssertCompiles()
+    {
+    }
+
     public static int GetOffset(T val)
     {
         var t = EnumAsInt(val);

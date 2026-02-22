@@ -217,11 +217,6 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance.AsArray());
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
-                    if (topicLessonType is LessonType.Curs
-                        && _schedule.Get(courseId).FullName.Contains("soft"))
-                    {
-                        Debugger.Break();
-                    }
                     // Note: the index used here is per lesson type as well.
                     var topic = p.LessonTopics.Get(key with
                     {
