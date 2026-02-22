@@ -176,6 +176,7 @@ public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue> : IDisposa
     public OneForEachEnumMemberSpan<TEnum, TValue> Span => new(_items.Span);
     public OneForEachEnumMemberSpan<TEnum, TValue>.Enumerator GetEnumerator() => Span.GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
+    public void Clear() => _items.Span.Fill(default!);
 }
 
 public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<MemoryItem<TEnum, TValue>>

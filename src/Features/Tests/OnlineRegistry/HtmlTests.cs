@@ -77,6 +77,7 @@ public sealed class HtmlTests
                 groups.Add(g);
                 return [new(groups.Count)];
             },
+            ParseErrorHandler = c => throw new Exception("Wrapped parse error", c.Exception),
         }).ToArray();
 
         var mapped = result.Zip(groups, (a, b) => new
@@ -160,6 +161,7 @@ public sealed class HtmlTests
             });
         });
 
+        var lessonId = schedule.EnumerateWeeklyLessons().First().Id.AsAny();
         HtmlSearch.UpdateForm(new()
         {
             Schedule = schedule,
@@ -170,7 +172,8 @@ public sealed class HtmlTests
                 Attendance = attendance,
                 Topic = "My Topic",
                 DateTime = new DateTime(year: 2026, day: 11, month: 10),
-                LessonId = schedule.EnumerateWeeklyLessons().First().Id.AsAny(),
+                LessonId = lessonId,
+                RegistryLessonType = schedule.Get(lessonId).Lesson.Type,
             },
         });
 

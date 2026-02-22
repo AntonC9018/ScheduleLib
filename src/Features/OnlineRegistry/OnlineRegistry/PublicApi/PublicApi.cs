@@ -1,12 +1,10 @@
 using AngleSharp;
 using AngleSharp.Dom;
 using AutoConstructor.Attributes;
-using DocumentFormat.OpenXml.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
-using ScheduleLib.Helper;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;
 
@@ -314,10 +312,10 @@ public readonly record struct AttendanceLookupKey
     public readonly FoundGroups Groups;
     public readonly SubGroup SubGroup;
     public readonly CourseId CourseId;
-    public readonly LessonType LessonType;
+    public LessonType LessonType { get; init; }
 
     // The program may use any of this info to get the right data.
-    public readonly int DayIndex;
+    public int DayIndex { get; init; }
     public readonly DateTime DateTime;
 
     public AttendanceLookupKey(

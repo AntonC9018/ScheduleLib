@@ -1,10 +1,13 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -17,6 +20,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     // because it depends on config from the registry config.
     // Using a mapper could be ok to extract parts of the config.
     private readonly IRegistryErrorHandler _errorHandler;
+    private readonly ILogger _logger;
 
     private readonly LookupModule _lookup;
     private readonly ScheduledDateTimeProvider _dateTimeProvider;
@@ -95,33 +99,66 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     Semester = p.Semester,
                 });
 
-                // TODO: Decouple from the implementation, by making a lookup helper at least.
-                var remapHelpers = new ValueForEachLessonType<StudentNameRemapHelper>();
-                var indexesByLessonType = new ValueForEachLessonType<int>();
+                var ltHelper = OneForEach.Enum<LessonType>();
 
-                var completeLessons = lessonsWithTimes.Select(x =>
+                // TODO: Decouple from the implementation, by making a lookup helper at least.
+                using var remapHelpers = ltHelper.RentArray<StudentNameRemapHelper>();
+                using var indexesByLessonType = ltHelper.RentArray<int>();
+
+                remapHelpers.Clear();
+                indexesByLessonType.Clear();
+
+                var completeLessons = lessonsWithTimes.Select([SuppressMessage("ReSharper", "AccessToDisposedClosure")](x) =>
                 {
                     var lesson = _schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
-                    var lessonType = lesson.Lesson.Type;
-                    ref var attendanceIndex = ref indexesByLessonType[(int) lessonType];
+                    var dbLessonType = lesson.Lesson.Type;
+
+                    // Prelegere doesn't actually exist in the registry.
+                    var registryLessonType = dbLessonType == LessonType.Prelegere ? LessonType.Curs : dbLessonType;
+
+                    int GetDayIndexWithCursAndPrelMerged()
+                    {
+                        // Note: made this a bit more abstract.
+                        if (dbLessonType == registryLessonType)
+                        {
+                            return indexesByLessonType[dbLessonType];
+                        }
+                        {
+                            int dbIndex = indexesByLessonType[dbLessonType];
+                            int regIndex = indexesByLessonType[registryLessonType];
+                            if (dbIndex != 0 && regIndex != 0)
+                            {
+                                // NOTE:
+                                // this is not fine currently, because we're iterating IN ORDER.
+                                // if we were to iterate BY TYPES, this would be fine,
+                                // as long as we iterate CURS first then PREL.
+                                // (if CURS counter == 0, PREL gets to get the CURS topics and stuff)
+                                throw new NotSupportedException("Both curs and prel not supported at the same time.");
+                            }
+                            return dbIndex + regIndex;
+                        }
+                    }
+
+                    ref var attendanceIndex = ref indexesByLessonType[dbLessonType];
+
                     var key = new AttendanceLookupKey(
                         groups: group.Groups,
                         subGroup: group.SubGroup,
                         courseId: courseId,
-                        lessonType: lessonType,
+                        lessonType: dbLessonType,
                         dayIndex: attendanceIndex,
                         dateTime: x.DateTime);
                     var attendance = p.Attendance.Get(key);
 
-                    ref var remapHelper = ref remapHelpers[(int) lessonType];
+                    ref var remapHelper = ref remapHelpers[dbLessonType];
                     if (attendanceIndex == 0)
                     {
                         var studentNames = p.Attendance.StudentNames(new(
                             courseId: courseLink.CourseId,
                             groups: group.Groups.Value,
                             subGroup: group.SubGroup,
-                            lessonType: lessonType));
+                            lessonType: dbLessonType));
                         remapHelper = StudentNameRemapHelper.Create(
                             namesInHtml: scanResult.Students,
                             namesInDb: studentNames,
@@ -142,7 +179,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
                     // Note: the index used here is per lesson type as well.
-                    var topic = p.LessonTopics.Get(key);
+                    var topic = p.LessonTopics.Get(key with
+                    {
+                        LessonType = registryLessonType,
+                        DayIndex = GetDayIndexWithCursAndPrelMerged(),
+                    });
 
                     return new LessonInstance
                     {
@@ -150,6 +191,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         LessonId = x.LessonId,
                         Attendance = attendanceForHtml,
                         Topic = topic,
+                        RegistryLessonType = registryLessonType,
                     };
                 });
 
@@ -209,7 +251,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             var course = _schedule.Get(courseId);
             var lessonName = course.FullName;
             var groupName = groups.Value.ToString(_schedule);
-            Console.WriteLine($"{commandName}: {dateString} - {lessonName} ({groupName} {lessonType})");
+            LogCommandBeforeExecution(
+                CommandName: commandName,
+                DateString: dateString,
+                LessonName: lessonName,
+                GroupName: groupName,
+                LessonType: lessonType);
         }
 
         async ValueTask HandleCommand(
@@ -344,4 +391,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         }
     }
 
+    [LoggerMessage(LogLevel.Information, "{CommandName}: {DateString} - {LessonName} ({GroupName} {LessonType})")]
+    partial void LogCommandBeforeExecution(
+        string CommandName,
+        string DateString,
+        string LessonName,
+        string GroupName,
+        LessonType LessonType);
 }

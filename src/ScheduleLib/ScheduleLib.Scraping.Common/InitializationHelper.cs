@@ -47,6 +47,12 @@ public sealed class ScrapingContextBuilder
         _services.AddSingleton(f);
     }
 
+    public void AddLoggingFrom(IServiceProvider sp)
+    {
+        var f = sp.GetRequiredService<ILoggerFactory>();
+        AddLogging(f);
+    }
+
     public void AddConfig<T>(T? value) where T : class
     {
         if (value != null)

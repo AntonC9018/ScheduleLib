@@ -35,6 +35,7 @@ public readonly record struct LessonInstance : IDateTime
     public required DateTime DateTime { get; init; }
     public required string? Topic { get; init; }
     public required Attendance[]? Attendance { get; init; }
+    public required LessonType RegistryLessonType { get; init; }
 }
 
 public interface IEquationCommandsDerivation

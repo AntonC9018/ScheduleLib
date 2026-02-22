@@ -621,7 +621,7 @@ internal static class HtmlSearch
         void SelectLessonType()
         {
             var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
-            var lessonType = p.Schedule.Get(p.Lesson.LessonId).Lesson.Type;
+            var lessonType = p.Lesson.RegistryLessonType;
             var lessonName = GetLessonTypeName(lessonType);
             if (lessonName is null)
             {

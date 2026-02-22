@@ -38,10 +38,11 @@ internal struct MatchedLessonData
 
     public readonly bool CriterionEquals(LessonProperty criterion, Schedule s)
     {
+        _ = s;
         return criterion switch
         {
             LessonProperty.Time => TimeEquals(),
-            LessonProperty.Type => LessonTypesEqual(s),
+            LessonProperty.Type => LessonTypesEqual(),
             LessonProperty.Topic => TopicEquals(),
             LessonProperty.Attendance => AttendanceEquals(),
             LessonProperty.Date => DateEquals(),
@@ -54,20 +55,18 @@ internal struct MatchedLessonData
     public readonly bool DateEquals() => Local.DateTime.Date == Remote.DateTime.Date;
     public readonly bool DateTimeEquals() => Local.DateTime == Remote.DateTime;
 
-    public readonly bool LessonTypesEqual(Schedule s)
+    public readonly bool LessonTypesEqual()
     {
         if (Remote.LessonType == LessonType.Unspecified)
         {
             return true;
         }
-
-        var lesson = s.Get(Local.LessonId).Lesson;
-        if (lesson.Type == LessonType.Unspecified)
+        if (Local.RegistryLessonType == LessonType.Unspecified)
         {
             return true;
         }
 
-        return lesson.Type == Remote.LessonType;
+        return Local.RegistryLessonType == Remote.LessonType;
     }
     public readonly bool TopicEquals()
     {

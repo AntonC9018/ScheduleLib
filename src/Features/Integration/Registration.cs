@@ -18,6 +18,9 @@ using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common.Config;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace ScheduleLib.Application.Config;
 
@@ -32,10 +35,21 @@ public static class Registration
             services.AddOnlineRegistry();
             services.AddTaskHandlers();
             services.AddGlobalConfiguration();
-            services.AddLogging(builder =>
+            services.AddLogging(logging =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Debug);
+                logging.ClearProviders();
+
+                var builder = new LoggerConfiguration();
+                builder = builder.Enrich.FromLogContext();
+                builder.WriteTo.Logger(w =>
+                {
+                    w = w.Enrich.With(new RemovePropertyEnricher("EventId"));
+                    w = w.Enrich.With(new RemovePropertyEnricher("SourceContext"));
+                    w.WriteTo.Console(outputTemplate:
+                        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+                });
+
+                logging.AddSerilog(builder.CreateLogger());
             });
         }
 
@@ -237,4 +251,13 @@ public static class Registration
             return config;
         }
     }
+}
+
+file sealed class RemovePropertyEnricher : ILogEventEnricher
+{
+    private readonly string _propertyName;
+    public RemovePropertyEnricher(string propertyName) => _propertyName = propertyName;
+
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory factory)
+        => logEvent.RemovePropertyIfPresent(_propertyName);
 }

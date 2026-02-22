@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Parsing;
@@ -77,14 +79,26 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
             var lessonType = lesson.Lesson.Type;
             var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
             var subGroup = lesson.Lesson.SubGroup.Value ?? "all subgroups";
-            return _logger.BeginScope(new
-            {
+            return _logger.BeginScope(new{
                 groupName,
                 subGroup,
                 course,
                 lessonType,
             });
         }
+    }
+
+    private static KeyValuePair<string, object?>[] KVA(
+        KeyValuePair<string, object?>[] arr)
+    {
+        return arr;
+    }
+
+    private static KeyValuePair<string, object?> KV(
+        object? value,
+        [CallerArgumentExpression("value")] string? name = null)
+    {
+        return new(name!, value);
     }
 
     public void LessonWithoutName() => LogLessonWithoutName();
