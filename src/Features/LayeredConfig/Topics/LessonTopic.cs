@@ -248,11 +248,11 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
             var foundLessonTypes = GetLessonTypesExistingInSchedule(it, _schedule);
-            var augmentor = new ProcessingHooks();
-            var lessonTypesToProcess = augmentor.UpdateLessonTypesToProcess(foundLessonTypes);
+            var hooks = new ProcessingHooks();
+            var ltypes = hooks.GetLessonTypesToProcess(foundLessonTypes);
 
-            var providers = OneForEach.Enum<LessonType>().CreateSparseArray<ILessonNameProvider>(lessonTypesToProcess.SetCount);
-            foreach (var lessonType in lessonTypesToProcess.SetValues())
+            var providers = OneForEach.Enum<LessonType>().CreateSparseArray<ILessonNameProvider>();
+            foreach (var lessonType in ltypes.ToProcess.SetValues())
             {
                 if (it._lists.TryGet(lessonType, out var list))
                 {
@@ -262,8 +262,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 }
             }
 
-            augmentor.UpdateProvidersAfterInitialized(providers);
-            SetDefaultProviders(providers, lessonTypesToProcess, it.Key.CourseId);
+            hooks.UpdateProvidersAfterInitialized(providers);
+            SetDefaultProviders(providers, ltypes.Required, it.Key.CourseId);
 
             b.Add(new(it.Key, providers));
         }
@@ -448,15 +448,17 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
     partial void LogNoMatchingGroups(string DocumentPath);
 }
 
+// Abstraction to guide some decisions.
 file readonly struct ProcessingHooks
 {
-    public EnumBitArray<LessonType> UpdateLessonTypesToProcess(EnumBitArray<LessonType> foundLessons)
+    public (EnumBitArray<LessonType> Required, EnumBitArray<LessonType> ToProcess) GetLessonTypesToProcess(
+        EnumBitArray<LessonType> foundLessons)
     {
         if (foundLessons.IsSet(LessonType.Prelegere))
         {
             foundLessons.Set(LessonType.Curs);
         }
-        return foundLessons;
+        return (Required: foundLessons, ToProcess: EnumBitArray<LessonType>.AllSet);
     }
     public void UpdateProvidersAfterInitialized(
         SparseArray<LessonType, ILessonNameProvider> providers)
