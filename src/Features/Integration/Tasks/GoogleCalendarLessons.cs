@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Google;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
 using ScheduleLib.Generation;
-using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Helper;
 using Event = Google.Apis.Calendar.v3.Data.Event;
 
 namespace ScheduleLib.Application.Core;
@@ -72,6 +73,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
             TimeZone = timeZoneId,
         }, cancellationToken);
 
+        var colorConverter = new LessonToColorConverter();
+
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var timeEvent in timeEvents)
         {
@@ -89,6 +92,7 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                     var dateTime = new DateTime(date, time);
                     return new(dateTime, zone.GetUtcOffset(dateTime));
                 }
+
                 // var date = timeEvent.Event.First.ToString("yyyy-MM-dd");
                 var notRichText = new NotRichText();
                 lessonDisplay.Handle(new()
@@ -111,6 +115,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                     return [$"RRULE:FREQ=DAILY;INTERVAL={e.DayInterval};COUNT={e.Count}"];
                 }
 
+                var color = colorConverter.GetColorId(lesson);
+
                 var ev = new Event
                 {
                     Summary = course.FullName,
@@ -127,7 +133,7 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                     Description = notRichText.GetString(),
                     Location = locationId,
                     Recurrence = GetRecurrence(),
-                    ColorId = "11", // tomato
+                    ColorId = color.AsString(),
                 };
 
                 await service.Events.Insert(ev, calendarId).ExecuteAsync(cancellationToken);
@@ -135,6 +141,60 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         }
         await runner.WhenDone();
         return;
+    }
+}
+
+file sealed class LessonToColorConverter()
+{
+    private GoogleCalendarColorId _nextColor;
+    private Dictionary<(LessonGroups, SubGroup, CourseId), GoogleCalendarColorId> lessonToColorMap = new();
+
+    public GoogleCalendarColorId GetColorId(AnyLessonAccessor lesson)
+    {
+        ref readonly var l = ref lesson.Lesson;
+        var course = l.Course;
+        var groups = l.Groups;
+        var subGroup = l.SubGroup;
+        var key = (groups, subGroup, course);
+
+        lock (this)
+        {
+            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(lessonToColorMap, key, out bool exists);
+            if (!exists)
+            {
+                v = _nextColor;
+                _nextColor++;
+                if (_nextColor == GoogleCalendarColorId.Count)
+                {
+                    _nextColor = default;
+                }
+            }
+            return v;
+        }
+    }
+}
+
+public enum GoogleCalendarColorId
+{
+    Blue,
+    Green,
+    Purple,
+    Red,
+    Yellow,
+    Orange,
+    Turquoise,
+    Gray,
+    BoldBlue,
+    BoldGreen,
+    Tomato,
+    Count,
+}
+
+public static class GoogleCalendarColorHelper
+{
+    public static string AsString(this GoogleCalendarColorId colorId)
+    {
+        return ((int) colorId + 1).ToString();
     }
 }
 

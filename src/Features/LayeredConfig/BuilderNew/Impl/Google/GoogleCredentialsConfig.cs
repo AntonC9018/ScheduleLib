@@ -149,7 +149,10 @@ public sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactor
         // var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(maxParallelization: 20, maxQueuingActions: 20);
         var retry = HttpPolicyExtensions
             .HandleTransientHttpError()
-            .OrResult(ex => ex.StatusCode == HttpStatusCode.TooManyRequests)
+            .OrResult(ex => ex.StatusCode == HttpStatusCode.TooManyRequests
+                // Rate limited gets sent as a forbidden.
+                // TODO: Do this properly, this might retry for the wrong reason.
+                || ex.StatusCode == HttpStatusCode.Forbidden)
             .WaitAndRetryAsync(
                 retryCount: 20,
                 sleepDurationProvider: retryAttempt =>

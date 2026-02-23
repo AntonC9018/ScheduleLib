@@ -177,6 +177,8 @@ public record struct EnumBitArray<T>
         public SetEnumValuesEnumerator GetEnumerator() => new(_e.GetEnumerator());
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public T First() => NonAllocEnumerable.First<T, SetEnumValuesEnumerator>(GetEnumerator());
     }
 
     public struct SetEnumValuesEnumerator : IEnumerator<T>
