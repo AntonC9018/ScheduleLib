@@ -222,7 +222,7 @@ public sealed class LessonTopicsBuilder
 public sealed partial class AllLessonTopicsDatabaseBuilder
 {
     private readonly List<LessonTopicsBuilder> _items = new();
-    private readonly OneForEachEnumMemberArray<LessonType, ILessonNameProvider?> _defaultProviders;
+    private readonly SparseArray<LessonType, ILessonNameProvider> _defaultProviders;
     // Only includes the relevant lessons.
     // NOTE: Currently, recreated per teacher.
     private readonly FilteredSchedule _schedule;
@@ -302,7 +302,6 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             if (lookup.Course(document.Course.AsMemory()) is not { } courseId)
             {
-                // throw new InvalidOperationException($"");
                 LogCourseCourseNotFoundInLookup(document.Course);
                 continue;
             }
@@ -429,10 +428,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 continue;
             }
 
-            var defaultProvider = _defaultProviders[lessonType];
-            if (defaultProvider is not null)
+            if (_defaultProviders.TryGet(lessonType, out var provider))
             {
-                providers[lessonType] = defaultProvider;
+                providers[lessonType] = provider;
                 continue;
             }
 
@@ -460,6 +458,7 @@ file readonly struct ProcessingHooks
         }
         return (Required: foundLessons, ToProcess: EnumBitArray<LessonType>.AllSet);
     }
+
     public void UpdateProvidersAfterInitialized(
         SparseArray<LessonType, ILessonNameProvider> providers)
     {
