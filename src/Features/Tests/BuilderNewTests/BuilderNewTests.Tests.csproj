@@ -5,6 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\MainCli\MainCli.csproj" />
+        <ProjectReference Include="..\..\..\Features\Integration\Integration.csproj" />
     </ItemGroup>
 </Project>

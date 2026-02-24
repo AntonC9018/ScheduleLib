@@ -19,7 +19,7 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
 
     public bool Equals(Name? x, Name? y)
     {
-        if (ComparisonHelper.NullGuard(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
         {
             return b;
         }

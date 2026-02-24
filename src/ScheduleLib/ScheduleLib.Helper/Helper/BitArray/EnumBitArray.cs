@@ -209,14 +209,19 @@ public record struct EnumBitArray<T>
         return new(ret.AsUnsized());
     }
 
-    public override string ToString()
+    public void ToString(StringBuilder output)
     {
-        var sb = new StringBuilder();
-        var lb = new ListStringBuilder(sb);
+        var lb = new ListStringBuilder(output);
         foreach (var value in SetValues())
         {
             lb.Append(Enum.GetName(value));
         }
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        ToString(sb);
         return sb.ToString();
     }
 }

@@ -66,7 +66,7 @@ internal static class UiLayerHelper
         });
     }
 
-    extension(ConfigSerializationHelper helper)
+    extension(TreeSerializer helper)
     {
         public async Task SerializeUiLayers(
             Stream output,

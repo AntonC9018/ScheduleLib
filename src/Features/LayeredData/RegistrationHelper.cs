@@ -15,8 +15,8 @@ public static class RegistrationHelper
         services.AddScoped<DataProvider>();
         services.AddOptions<OpenHierarchyOptions>();
 
-        services.AddSingleton<ConfigSerializationHelper>();
-        services.AddOptions<JsonSerializerOptions>(ConfigSerializationHelper.ServiceKey);
+        services.AddSingleton<TreeSerializer>();
+        services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey);
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }
 

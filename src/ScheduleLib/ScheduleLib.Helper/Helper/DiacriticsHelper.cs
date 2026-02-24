@@ -60,7 +60,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public bool Equals(string? x, string? y)
     {
-        if (ComparisonHelper.NullGuard(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
         {
             return b;
         }

@@ -24,7 +24,7 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.NullGuard(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
         {
             return b;
         }
@@ -66,9 +66,9 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.NullGuard(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsDefault(x, y, out bool bothDefault))
         {
-            return b;
+            return bothDefault;
         }
         var keyx = _keyGetter(x);
         var keyy = _keyGetter(y);

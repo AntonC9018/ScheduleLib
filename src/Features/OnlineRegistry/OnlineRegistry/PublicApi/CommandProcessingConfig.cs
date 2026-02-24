@@ -6,7 +6,7 @@ using ScheduleLib.Helper.Helper;
 
 namespace ScheduleLib.OnlineRegistry;
 
-public readonly struct CommandProcessingConfig
+public readonly record struct CommandProcessingConfig : IEquatable<CommandProcessingConfig>
 {
     internal readonly UnsizedBitArray32 _impl;
 
@@ -95,6 +95,7 @@ public readonly struct CommandProcessingConfig
         foreach (var t in new EnumMembers<CommandProcessingConfigPortion>())
         {
             var portion = value.CreatePortion(t);
+
             sb.Append(Enum.GetName(t));
             sb.Append('{');
 
@@ -104,11 +105,7 @@ public readonly struct CommandProcessingConfig
             }
             else
             {
-                var list = new ListStringBuilder(sb, ",");
-                foreach (var i in portion.SetValues())
-                {
-                    list.Append(i.ToString());
-                }
+                portion.ToString(sb);
             }
 
             sb.Append('}');

@@ -1,4 +1,5 @@
 using Anton.LayeredData;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;
@@ -78,11 +79,15 @@ public sealed class RegistryViewModelFactory : INodeDataViewModelFactory
     }
 }
 
-public sealed class ObservableCredentials<T>
+public sealed class ObservableCredentials<T> : ObservableObject
     where T : class, ICredentialsHolder
 {
     private NodeDataBuilder<T> _builder;
-    public void SetBuilder(NodeDataBuilder<T> builder) => _builder = builder;
+    public void SetBuilder(NodeDataBuilder<T> builder)
+    {
+        _builder = builder;
+        OnPropertyChanged((string?) null);
+    }
 
     public string Login
     {

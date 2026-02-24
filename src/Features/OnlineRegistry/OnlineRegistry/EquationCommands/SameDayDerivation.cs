@@ -5,19 +5,10 @@ namespace ScheduleLib.OnlineRegistry.Impl;
 
 public sealed class SameDayDerivation : IEquationCommandsDerivation
 {
-    private MatchingLists _lists;
-
-    public SameDayDerivation() : this(new())
-    {
-    }
-
-    internal SameDayDerivation(MatchingLists lists)
-    {
-        _lists = lists;
-    }
-
     public IEnumerable<LessonEquationCommand> DeriveCommands(GetLessonEquationCommandsParams p)
     {
+        /* using */ var lists = new MatchingLists();
+
         using var a_ = p.LocalLessons.GetEnumerator();
         var allEnumerator = a_.RememberIsDone();
 
@@ -45,11 +36,11 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             var existingDate = existing.GetDateOnly();
             var todaysDate = allDate < existingDate ? allDate : existingDate;
 
-            AddTodaysItems(ref allEnumerator, _lists.AllToday);
-            AddTodaysItems(ref existingEnumerator, _lists.ExistingToday);
+            AddTodaysItems(ref allEnumerator, lists.AllToday);
+            AddTodaysItems(ref existingEnumerator, lists.ExistingToday);
 
             Debug.Assert(!TwoLessonAtSameTime());
-            var matchingContext = _lists.CreateContext();
+            var matchingContext = lists.CreateContext();
 
             UseUpExactMatches();
             AddPartialMatches();
@@ -67,8 +58,6 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             {
                 yield return LessonEquationCommand.Create(r);
             }
-
-            _lists.Clear();
             continue;
 
             void AddTodaysItems<T>(
@@ -146,7 +135,7 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             bool TwoLessonAtSameTime()
             {
                 var dates = new HashSet<DateTime>();
-                foreach (var a in _lists.AllToday)
+                foreach (var a in lists.AllToday)
                 {
                     if (!dates.Add(a.DateTime))
                     {

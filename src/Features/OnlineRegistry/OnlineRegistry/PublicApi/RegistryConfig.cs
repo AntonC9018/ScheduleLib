@@ -20,6 +20,8 @@ public sealed class RegistryConfig :
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
         services.AddConfigProvider(BuiltRegistryConfig.Key);
         services.AddMapper<RegistryConfigMapper>();
+        services.ConfigureNodeDataJsonSerialization(
+            CommandProcessingConfigJsonConverter.Register);
     }
 }
 
@@ -67,9 +69,6 @@ public static class ConfigExtensions
                 ret.ExtraLessonAction = config.ExtraLessonInstanceAction;
                 return ret;
             });
-
-            services.ConfigureNodeDataJsonSerialization(
-                CommandProcessingConfigJsonConverter.Register);
         }
     }
     extension (NodeBuilder builder)

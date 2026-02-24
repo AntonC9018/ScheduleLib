@@ -24,6 +24,8 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable, IConfigNod
             inner.UpdateSelection(b);
             OnPropertyChanged(nameof(IsEditable));
         });
+
+        inner.UpdateSelection(accessor.MaybeBuilder());
     }
 
     public IConfigViewModel<T> Inner { get; }

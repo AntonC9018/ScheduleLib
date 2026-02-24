@@ -14,14 +14,14 @@ namespace Desktop.ViewModels;
 public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly TreeBuilder _configBuilder;
-    private readonly ConfigSerializationHelper _serializationHelper;
+    private readonly TreeSerializer _serializationHelper;
     internal readonly SelectedUserNodeViewModel _nodeSelection;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
 
     public MainWindowViewModel(
         TreeBuilder configBuilder,
-        ConfigSerializationHelper serializationHelper,
+        TreeSerializer serializationHelper,
         IServiceProvider sp)
     {
         _configBuilder = configBuilder;

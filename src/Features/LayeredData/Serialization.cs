@@ -18,7 +18,7 @@ internal sealed class ConfigureSerializationOptions : IConfigureNamedOptions<Jso
 
     public void Configure(string? name, JsonSerializerOptions options)
     {
-        if (name != ConfigSerializationHelper.ServiceKey)
+        if (name != TreeSerializer.ServiceKey)
         {
             return;
         }
@@ -67,13 +67,13 @@ internal sealed class PolymorphicResolver : DefaultJsonTypeInfoResolver
 
 }
 
-public sealed class ConfigSerializationHelper
+public sealed class TreeSerializer
 {
     public const string ServiceKey = "LayeredConfig";
 
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public ConfigSerializationHelper(
+    public TreeSerializer(
         IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
     {
         _jsonSerializerOptions = jsonSerializerOptions.Get(ServiceKey);
@@ -196,7 +196,7 @@ public sealed class ConfigSerializationHelper
     }
 
     private readonly record struct SetValueArgs(NodeBuilder Layer, NodeDataKey Key, object Value);
-    private static readonly MethodInfo _setValueGenericMethod = typeof(ConfigSerializationHelper)
+    private static readonly MethodInfo _setValueGenericMethod = typeof(TreeSerializer)
         .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
         .Single(x => x.Name == nameof(SetValue));
     private static void SetValue<T>(SetValueArgs args)
@@ -221,7 +221,7 @@ public static class SerializationExtensions
         this IServiceCollection services,
         Action<JsonSerializerOptions> configure)
     {
-        services.Configure(ConfigSerializationHelper.ServiceKey, configure);
+        services.Configure(TreeSerializer.ServiceKey, configure);
     }
 }
 
