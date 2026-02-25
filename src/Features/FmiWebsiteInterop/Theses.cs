@@ -1,15 +1,11 @@
 using System.Collections.Immutable;
 using System.Text;
-using FmiWebsiteInterop.Theses.Parsing;
-using Google.Apis.Download;
-using Google.Apis.Drive.v3;
+using AutoConstructor.Attributes;
 using ScheduleLib;
-using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
-using ScheduleLib.Helper;
 using ScheduleLib.Parsing;
-using Microsoft.Extensions.Configuration;
-using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
+
+using Parsing = ScheduleLib.Theses.Parsing;
 
 namespace FmiWebsiteInterop.Theses;
 
@@ -84,41 +80,18 @@ public static class ThesesJsonHelper
     }
 }
 
-
-public sealed class ThesesConversionTaskHandler
+[AutoConstructor]
+public sealed partial class ThesesConversionTaskHandler
 {
-    private readonly GoogleHttpClientProvider _httpClientProvider;
-    private readonly string _apiKey;
-
-    public ThesesConversionTaskHandler(
-        IConfiguration config,
-        GoogleHttpClientProvider httpClientProvider)
-    {
-        _httpClientProvider = httpClientProvider;
-        _apiKey = config.GetRequiredSection("Google:ApiKey").Get<string>()
-            ?? throw new InvalidOperationException("Expected to find Google:ApiKey in the configuration");
-    }
+    private readonly Parsing.ThesesListProvider _thesesListProvider;
 
     public async Task Handle(
         CancellationToken cancellationToken,
-        string thesesOutputFile,
         OutputDirectory outputDirectory)
     {
-        OneForEachEnumMemberArray<Parsing.ThesisType, ThesisList> ret;
-        {
-            await using var outputFile = new FileStream(thesesOutputFile, FileMode.Create, FileAccess.ReadWrite);
-            await DownloadTheses(outputFile, cancellationToken);
+        var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
-            ret = OneForEach.Enum<Parsing.ThesisType>().CreateArray<ThesisList>();
-            foreach (var t in ret)
-            {
-                outputFile.Seek(0, SeekOrigin.Begin);
-                var thesisList = ThesisListParser.Parse(outputFile, t.Key);
-                t.Value = thesisList;
-            }
-        }
-
-        var forSerialization = ret.SelectMany(x => x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i)))
+        var forSerialization = theses.SelectMany(x => x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i)))
             .GroupBy(x => x.Item.TeacherName)
             .Select(x => (
                 Teacher: x.Key,
@@ -159,26 +132,4 @@ public sealed class ThesesConversionTaskHandler
             }
         }
     }
-
-    private async Task DownloadTheses(
-        FileStream outputFile,
-        CancellationToken cancellationToken)
-    {
-        using var service = new DriveService(new()
-        {
-            ApiKey = _apiKey,
-            ApplicationName = "Schedule",
-            HttpClientFactory = _httpClientProvider,
-        });
-        const string xlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        var request = service.Files.Export(
-            fileId: "1Wvz4SDxm18fKPZkqwGUfnMTSibTSrKrvf0MIPrWqB_I",
-            mimeType: xlsxMimeType);
-        var progress = await request.DownloadAsync(outputFile, cancellationToken);
-        if (progress.Status != DownloadStatus.Completed)
-        {
-            throw new Exception("Failed download", progress.Exception);
-        }
-    }
-
 }

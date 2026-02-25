@@ -32,6 +32,7 @@ public enum AppTask
     CopyGradesFromMoodleToRegistry,
     UpdateCalendar,
     ListOfThesesPerTeacherForWebsite,
+    CreatePredzashitaExcels,
 }
 
 public static class AppTasks
@@ -251,7 +252,15 @@ public static class AppTasks
             case AppTask.ListOfThesesPerTeacherForWebsite:
             {
                 var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
-                await handler.Handle(c.CancellationToken, "data/theses.xlsx", c.OutputDirectory);
+                await handler.Handle(c.CancellationToken, c.OutputDirectory);
+                break;
+            }
+
+            case AppTask.CreatePredzashitaExcels:
+            {
+                var handler = c.Services.GetRequiredService<ListsForPredzashitaTaskHandler>();
+                await handler.Handle(c.OutputDirectory, c.CancellationToken);
+                c.OutputDirectory.TryOpenInExplorer();
                 break;
             }
         }

@@ -6,6 +6,8 @@ using ScheduleLib.Helper.Excel;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 
+namespace ScheduleLib.Theses.Parsing;
+
 public sealed class CommissionSchedule
 {
     public required ImmutableArray<Commission> Commissions;

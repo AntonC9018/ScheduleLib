@@ -18,6 +18,7 @@ using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common.Config;
+using ScheduleLib.Theses.Parsing;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -237,6 +238,8 @@ public static class Registration
             GoogleApiHelper.Register(services);
 
             services.AddScoped<ThesesConversionTaskHandler>();
+            services.AddScoped<ListsForPredzashitaTaskHandler>();
+            ThesesListProvider.Register(services);
         }
 
         public IConfiguration AddGlobalConfiguration()

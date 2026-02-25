@@ -9,7 +9,7 @@ using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 
-namespace FmiWebsiteInterop.Theses.Parsing;
+namespace ScheduleLib.Theses.Parsing;
 
 public sealed class ThesisList
 {

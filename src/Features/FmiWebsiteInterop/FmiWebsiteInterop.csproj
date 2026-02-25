@@ -11,14 +11,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\LayeredConfig\LayeredConfig.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4045" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
-        <ProjectReference Include="..\CurriculumShared\CurriculumShared.csproj" />
+        <ProjectReference Include="..\ThesesParsing\ThesesParsing.csproj" />
     </ItemGroup>
 </Project>

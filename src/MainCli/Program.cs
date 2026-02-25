@@ -22,15 +22,16 @@ var appExecutionContext = new AppTasksExecutionContext
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
-        AppTask.UpdateCalendar,
+        // AppTask.UpdateCalendar,
         // AppTask.ListOfThesesPerTeacherForWebsite,
+        AppTask.CreatePredzashitaExcels,
     ],
     OutputDirectory = new OutputDirectory("output"),
     FreeRoomsExcelOutputFileName = "free_rooms.xlsx",
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Nartea Nichita"),
+    TeacherName = NameHelper.Parse("Curmanschii Anton"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);

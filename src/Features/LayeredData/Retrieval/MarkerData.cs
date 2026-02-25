@@ -1,3 +1,5 @@
+using Anton.LayeredData.TreeEnumeration;
+
 namespace Anton.LayeredData.Retrieval;
 
 // Type-erased marker config.
