@@ -1,6 +1,6 @@
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
-namespace Anton.LayeredData;
+namespace Anton.LayeredData.TreeEnumeration;
 
 public sealed class ParentContext() : IDfsEnumerationContext
 {

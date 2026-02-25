@@ -1,4 +1,6 @@
-namespace Anton.LayeredData.TreeEnumeration.Infrastructure;
+using Anton.LayeredData.TreeEnumeration.Infrastructure;
+
+namespace Anton.LayeredData.TreeEnumeration;
 
 public static class DfsEnumerableExtensions
 {
@@ -14,11 +16,6 @@ public static class DfsEnumerableExtensions
                     yield return x;
                 }
             }
-        }
-
-        public IEnumerable<DfsEnumerationContext> Process()
-        {
-            return builder.SelectWithState(DfsVisitationState.Process);
         }
 
         public IEnumerable<DfsEnumerationContext> SkipLayers(int count)

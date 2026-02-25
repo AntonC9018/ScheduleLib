@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +30,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         _nodeSelection.PropertyChanged += (o, args) =>
         {
             _ = o;
-            if (args.PropertyName == nameof(_nodeSelection.SelectedNode))
+            if (args.PropertyName == nameof(_nodeSelection.SelectedUiNode))
             {
                 RemoveSelectedUserCommand.NotifyCanExecuteChanged();
                 EnableSelectedUserCommand.NotifyCanExecuteChanged();
@@ -98,7 +97,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             var layer = _configBuilder.Defaults.CreateUiLayer();
             var val = layer.Builder<TeacherLayerConfig>().Value();
             val.TeacherName = name;
-            return new WrappedNode(layer);
+            return new UiNode(layer);
         });
 
         UserNameToAdd = "";
@@ -113,11 +112,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            if (_nodeSelection.SelectedNode.IsNull)
+            if (_nodeSelection.SelectedUiNode.IsNull)
             {
                 return false;
             }
-            if (_nodeSelection.SelectedNode.IsUiLayer)
+            if (_nodeSelection.SelectedUiNode.IsUiLayer)
             {
                 return true;
             }
@@ -128,15 +127,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanRemoveSelectedUser))]
     public void RemoveSelectedUser()
     {
-        if (_nodeSelection.SelectedNode.IsNull
-            || !_nodeSelection.SelectedNode.IsUiLayer)
+        if (_nodeSelection.SelectedUiNode.IsNull
+            || !_nodeSelection.SelectedUiNode.IsUiLayer)
         {
             Debug.Fail("Cannot remove this layer");
             return;
         }
         _nodeSelection.ExecTreeAction(() =>
         {
-            UiLayerHelper.MaybeRemoveLayer(_nodeSelection.SelectedNode.Leaf.Node, _configBuilder);
+            UiLayerHelper.MaybeRemoveLayer(_nodeSelection.SelectedUiNode.Leaf.Node, _configBuilder);
             return null;
         });
     }
@@ -150,7 +149,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            var n = _nodeSelection.SelectedNode;
+            var n = _nodeSelection.SelectedUiNode;
             if (n.IsNull)
             {
                 return false;
@@ -166,13 +165,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanEnableSelectedUser))]
     public void EnableSelectedUser()
     {
-        if (_nodeSelection.SelectedNode.IsNull)
+        if (_nodeSelection.SelectedUiNode.IsNull)
         {
             return;
         }
         _nodeSelection.ExecTreeAction(() =>
         {
-            var b = _nodeSelection.SelectedNode.Leaf.MaybeCreateUiLayer(_nodeSelection.SelectedNode.Marker);
+            var b = _nodeSelection.SelectedUiNode.Leaf.MaybeCreateUiLayer(_nodeSelection.SelectedUiNode.Marker);
             return new(b);
         });
         LayerLevel = LayerLevel.UiUser;
@@ -198,20 +197,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 }
 
-public sealed record class WrappedNode
+public sealed record class UiNode
 {
     public readonly NodeBuilder Leaf;
-    public WrappedNode(NodeBuilder leaf)
+    public UiNode(NodeBuilder leaf)
     {
         Leaf = leaf;
     }
 
-    public static readonly WrappedNode Null = new(default(NodeBuilder));
+    public static readonly UiNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
     public bool IsEditable => !IsNull && IsUiLayer;
     public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
-    public bool IsUiLayer => Leaf.Node.IsUiLayer();
+    public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();
     public override string ToString() => IsNull ? "No User" : Name.ToString();
 }
 

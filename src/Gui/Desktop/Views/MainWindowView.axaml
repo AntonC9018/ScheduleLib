@@ -20,7 +20,7 @@
       <ComboBox
         IsEnabled="{Binding CanSelectUser}"
         ItemsSource="{Binding UserNodeSelection.AllNodes}"
-        SelectedItem="{Binding UserNodeSelection.SelectedNode}" />
+        SelectedItem="{Binding UserNodeSelection.SelectedUiNode}" />
 
       <Button
         Content="Click to enable selected UI layer"

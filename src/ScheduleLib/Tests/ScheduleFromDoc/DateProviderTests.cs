@@ -1,5 +1,4 @@
 using ScheduleLib.Dates;
-using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleFromDoc.Tests;
 

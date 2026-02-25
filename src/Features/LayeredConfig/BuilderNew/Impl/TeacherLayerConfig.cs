@@ -32,7 +32,7 @@ public partial class Extensions
             Action<NodeBuilder>? configure = null)
         {
             var name = NameHelper.Parse(nameStr);
-            var layerBuilder = builder.AddLayer(TeacherLayerKey);
+            var layerBuilder = builder.AddLayer(LayerKeys.TeacherLayerKey);
             var teacherBuilder = layerBuilder.Builder<TeacherLayerConfig>();
             teacherBuilder.Value().TeacherName = name;
             configure?.Invoke(layerBuilder);

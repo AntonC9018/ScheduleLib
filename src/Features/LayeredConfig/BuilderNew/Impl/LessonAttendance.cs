@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;

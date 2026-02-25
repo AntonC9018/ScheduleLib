@@ -3,10 +3,12 @@ using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Application.Config;
 
-public static partial class Extensions
+public static class LayerKeys
 {
     public static readonly Layer TeacherLayerKey = Layer.Registry.Register("ProgrammableTeacher");
-
+}
+public static partial class Extensions
+{
     extension (NodeBuilder builder)
     {
         public NodeDataBuilder<LessonTopicsConfig> LessonTopics() => builder.Builder<LessonTopicsConfig>();

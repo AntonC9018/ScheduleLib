@@ -26,12 +26,12 @@ public sealed class EventTests
 
         var name = NameHelper.Parse("Curmanschii Anton");
         var meNode = main.UserNodeSelection.AllNodes.First(x => !x.IsNull && x.Name == name);
-        main.UserNodeSelection.SelectedNode = meNode;
+        main.UserNodeSelection.SelectedUiNode = meNode;
         recorder.Expect([
             e =>
             {
                 Assert.Equal(NodeRecorder.EventType.SelectedNodeChanged, e.Type);
-                Assert.Same(meNode, e.Node);
+                Assert.Same(meNode, e.UiNode);
             },
             e =>
             {
@@ -97,7 +97,7 @@ public sealed class EventTests
             SelectedNodeChanged,
             DataChanged,
         }
-        public readonly record struct RecordedEvent(EventType Type, WrappedNode Node);
+        public readonly record struct RecordedEvent(EventType Type, UiNode UiNode);
         private readonly List<RecordedEvent> _recorded;
 
         public NodeRecorder(ISelectedUserNode node)

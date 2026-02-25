@@ -8,7 +8,7 @@ internal static class UiLayerHelper
 {
     public static readonly Layer UiTeacherLayer = Layer.Create("User-UI");
 
-    public static bool IsUiLayer(this MutableNode node)
+    public static bool IsOnEditableLayer(this MutableNode node)
     {
         return node.Layer == UiTeacherLayer;
     }
@@ -18,7 +18,7 @@ internal static class UiLayerHelper
     {
         foreach (var x in builder.GetMarkerNodes())
         {
-            if (x.Builder.Node.IsUiLayer())
+            if (x.Builder.Node.IsOnEditableLayer())
             {
                 yield return x.Builder;
             }
@@ -29,7 +29,7 @@ internal static class UiLayerHelper
     {
         public NodeBuilder CreateUiLayer()
         {
-            Debug.Assert(!builder.Node.IsUiLayer());
+            Debug.Assert(!builder.Node.IsOnEditableLayer());
             var b = builder.AddLayer(UiTeacherLayer);
             b.Builder(TeacherLayerConfig.Key).Enable();
             return b;
@@ -37,7 +37,7 @@ internal static class UiLayerHelper
 
         public NodeBuilder MaybeCreateUiLayer()
         {
-            if (!builder.Node.IsUiLayer())
+            if (!builder.Node.IsOnEditableLayer())
             {
                 return builder.CreateUiLayer();
             }

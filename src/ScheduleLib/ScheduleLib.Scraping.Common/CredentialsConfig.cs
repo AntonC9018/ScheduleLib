@@ -1,7 +1,6 @@
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using Anton.LayeredData.Retrieval;
-using Anton.LayeredData.TreeEnumeration.Infrastructure;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 

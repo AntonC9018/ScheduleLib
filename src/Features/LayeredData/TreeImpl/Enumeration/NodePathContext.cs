@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
-namespace Anton.LayeredData;
+namespace Anton.LayeredData.TreeEnumeration;
 
 public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
 {

@@ -5,7 +5,7 @@ namespace Desktop.ViewModels;
 
 public interface IConfigNodeVmHost
 {
-    public object Inner { get; }
+    public INotifyPropertyChanged Inner { get; }
     public bool IsEditable { get; }
 }
 
@@ -16,22 +16,23 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable, IConfigNod
 
     public ConfigNodeVmHost(
         ConfigAccessor<T> accessor,
-        IConfigViewModel<T> inner)
+        IConfigViewModel<T> inner,
+        INodeDataChangedEventProvider dataChangedProvider)
     {
         Inner = inner;
         _subscription = new(accessor, b =>
         {
             inner.UpdateSelection(b);
             OnPropertyChanged(nameof(IsEditable));
-        });
+        }, dataChangedProvider);
 
         inner.UpdateSelection(accessor.MaybeBuilder());
     }
 
     public IConfigViewModel<T> Inner { get; }
-    object IConfigNodeVmHost.Inner => Inner;
+    INotifyPropertyChanged IConfigNodeVmHost.Inner => Inner;
     public void Dispose() => _subscription.Dispose();
-    public bool IsEditable => !_subscription.Accessor.IsNull;
+    public bool IsEditable => _subscription.Accessor.IsEditable;
 }
 
 public interface IConfigViewModel<T> : INotifyPropertyChanged
@@ -67,53 +68,57 @@ public abstract class ConfigViewModelBase<T> : ViewModelBase, IDisposable, IConf
 public static class ConfigAccessor
 {
     public static ConfigAccessor<T> Create<T>(
-        ISelectedUserNode selectedNodeProvider,
+        TreeBuilder tree,
+        SelectedNodePathModel nodePathModel,
         NodeDataKey<T> key)
         where T : class
     {
-        return new(selectedNodeProvider, key);
+        return new(tree, nodePathModel, key);
     }
 }
 
 public sealed class ConfigAccessor<T> where T : class
 {
-    internal ISelectedUserNode SelectedNodeProvider { get; }
+    internal ISelectedNodeProvider SelectedNodeModel { get; }
+    private readonly TreeBuilder _tree;
     private readonly NodeDataKey<T> _key;
 
     public ConfigAccessor(
-        ISelectedUserNode selectedNodeProvider,
+        TreeBuilder tree,
+        ISelectedNodeProvider selectedNodeModel,
         NodeDataKey<T> key)
     {
-        SelectedNodeProvider = selectedNodeProvider;
+        SelectedNodeModel = selectedNodeModel;
         _key = key;
+        _tree = tree;
     }
 
-    private WrappedNode SelectedNode => SelectedNodeProvider.SelectedNode;
-
-    public bool IsNull => SelectedNode.IsNull || !SelectedNode.IsUiLayer;
+    private MutableNode? SelectedNode => SelectedNodeModel.SelectedNode;
+    public bool IsEditable => SelectedNode?.IsOnEditableLayer() ?? false;
 
     public NodeDataBuilder<T> MaybeBuilder()
     {
-        if (IsNull)
+        if (!IsEditable)
         {
             return default;
         }
         return Builder();
     }
+
     public NodeDataBuilder<T> Builder()
     {
-        if (IsNull)
+        if (!IsEditable)
         {
             throw new InvalidOperationException("Node is not editable.");
         }
-        return SelectedNode.Leaf.Builder(_key);
+        return _tree.CreateBuilder(SelectedNode!).Builder(_key);
     }
 
     public T? Config
     {
         get
         {
-            if (IsNull)
+            if (IsEditable)
             {
                 return null;
             }
@@ -127,24 +132,26 @@ public readonly struct ConfigViewModelSubscription<T> : IDisposable
     where T : class
 {
     public ConfigAccessor<T> Accessor { get; }
-    private readonly Action<WrappedNode> _nodeChanged;
+    private readonly INodeDataChangedEventProvider _dataChangedProvider;
+    private readonly Action _dataChanged;
 
     public ConfigViewModelSubscription(
         ConfigAccessor<T> accessor,
-        Action<NodeDataBuilder<T>> onNodeChanged)
+        Action<NodeDataBuilder<T>> onNodeChanged,
+        INodeDataChangedEventProvider dataChangedProvider)
     {
         Accessor = accessor;
-        _nodeChanged = node =>
+        _dataChangedProvider = dataChangedProvider;
+        _dataChanged = () =>
         {
-            _ = node;
             var b = accessor.MaybeBuilder();
             onNodeChanged(b);
         };
-        Accessor.SelectedNodeProvider.OnDataPossiblyChanged += _nodeChanged;
+        dataChangedProvider.DataChanged += _dataChanged;
     }
 
     public void Dispose()
     {
-        Accessor.SelectedNodeProvider.OnDataPossiblyChanged -= _nodeChanged;
+        _dataChangedProvider.DataChanged -= _dataChanged;
     }
 }

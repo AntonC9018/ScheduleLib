@@ -1,5 +1,3 @@
-using Anton.LayeredData.TreeEnumeration.Infrastructure;
-
 namespace Anton.LayeredData.Tests;
 
 public sealed class LayerPathTests

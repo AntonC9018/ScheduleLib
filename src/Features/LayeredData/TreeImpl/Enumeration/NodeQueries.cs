@@ -2,10 +2,18 @@ using System.Diagnostics;
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anton.LayeredData;
+namespace Anton.LayeredData.TreeEnumeration;
 
 public static class LayerQueries
 {
+    extension(IEnumerable<DfsEnumerationContext> builder)
+    {
+        public IEnumerable<DfsEnumerationContext> Process()
+        {
+            return builder.SelectWithState(DfsVisitationState.Process);
+        }
+    }
+
     extension (MutableNode node)
     {
         public DfsEnumerable Dfs(Action<DfsEnumerable>? contextBuilder = null)

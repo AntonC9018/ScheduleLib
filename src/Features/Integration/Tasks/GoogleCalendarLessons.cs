@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
 using ScheduleLib.Generation;
-using ScheduleLib.Helper;
 using Event = Google.Apis.Calendar.v3.Data.Event;
 
 namespace ScheduleLib.Application.Core;

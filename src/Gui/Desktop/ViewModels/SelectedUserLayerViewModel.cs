@@ -1,37 +1,109 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using Anton.LayeredData;
+using Anton.LayeredData.TreeEnumeration;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ScheduleLib.Application.Config;
 
 namespace Desktop.ViewModels;
 
-// This is required to be able to update both AllNodes and SelectedNode at once.
-// ComboBoxes are supposed to bind to the whole model atomically.
-// This model cannot be reused and must be fully replaced.
-public sealed partial class UserNodeSelectionModel : ObservableObject
+public interface ITreeChangedEventProvider
 {
-    public UserNodeSelectionModel(WrappedNode[] all, WrappedNode? selected = null)
+    public event Action TreeStructureChanged;
+}
+
+public sealed partial class TreeChangedDispatcher
+{
+    public event Action TreeStructureChanged;
+
+    public void Trigger()
     {
-        AllNodes = all;
-        SelectedNode = selected ?? WrappedNode.Null;
+    }
+}
+
+public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposable
+{
+    private readonly Action _pathChangedSub;
+    private readonly ITreeChangedEventProvider _treeChanged;
+    private readonly SelectedNodePathModel _path;
+    private readonly TreeBuilder _tree;
+
+    [ObservableProperty]
+    private UiNode[] _allNodes;
+
+    [ObservableProperty]
+    private UiNode _selectedNode;
+
+    partial void OnSelectedNodeChanged(UiNode value)
+    {
+        _path.NodePath = _tree.BaseNode
+            .Dfs()
+            .AddLayerPath()
+            .Process()
+            .Where(x => x.Value.Node.IsLeaf())
+            .Where(x => x.Node == value.Leaf.Node)
+            .Select(x => x.Get(LayerPathContext.Key).Path())
+            .FirstOrDefault(_path.CreateEmptyPath(_tree));
     }
 
-    [ObservableProperty]
-    public partial WrappedNode[] AllNodes { get; private set; }
+    public UiNodeSelectionViewModel(
+        SelectedNodePathModel path,
+        TreeBuilder tree,
+        ITreeChangedEventProvider treeChanged)
+    {
+        _path = path;
+        _tree = tree;
+        _treeChanged = treeChanged;
 
-    [ObservableProperty]
-    public partial WrappedNode SelectedNode { get; set; }
+        _pathChangedSub += () =>
+        {
+            Reset();
+        };
+        treeChanged.TreeStructureChanged += _pathChangedSub;
+
+        _allNodes = null!;
+        _selectedNode = UiNode.Null;
+        ResetNoEvent();
+    }
+
+    private void ResetNoEvent()
+    {
+#pragma warning disable MVVMTK0034
+        _allNodes = GetUserNodes();
+        if (!_allNodes.Contains(_selectedNode))
+        {
+            _selectedNode = UiNode.Null;
+        }
+#pragma warning restore MVVMTK0034
+    }
+
+    private void Reset()
+    {
+        ResetNoEvent();
+        OnPropertyChanged((string?) null);
+    }
+
+    private UiNode[] GetUserNodes()
+    {
+        return new[]
+            {
+                UiNode.Null,
+            }
+            .Concat(
+                _tree
+                    .GetMarkerNodes()
+                    .Select(x => new UiNode(x.Builder)))
+            .ToArray();
+    }
+
+    public void Dispose()
+    {
+        _treeChanged.TreeStructureChanged -= _pathChangedSub;
+    }
 }
 
-public interface ISelectedUserNode
-{
-    WrappedNode SelectedNode { get; }
-    event Action<WrappedNode>? OnSelectedNodeChanged;
-    event Action<WrappedNode>? OnDataPossiblyChanged;
-}
-
-public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelectedUserNode
+public sealed partial class SelectedUserNodeViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;
 
@@ -39,21 +111,18 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
     public SelectedUserNodeViewModel(TreeBuilder configBuilder)
     {
         _configBuilder = configBuilder;
-        ResetModel(new(GetUserNodes(), WrappedNode.Null));
+        ResetModel(new(GetUserNodes(), UiNode.Null));
     }
 #pragma warning restore CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
 
     [ObservableProperty]
     public partial UserNodeSelectionModel Model { get; private set; }
 
-    public WrappedNode SelectedNode
+    public UiNode SelectedUiNode
     {
-        get => Model.SelectedNode;
-        set => Model.SelectedNode = value;
+        get => Model.SelectedUiNode;
+        set => Model.SelectedUiNode = value;
     }
-
-    public event Action<WrappedNode>? OnSelectedNodeChanged;
-    public event Action<WrappedNode>? OnDataPossiblyChanged;
 
     private void ResetModel(UserNodeSelectionModel model)
     {
@@ -61,37 +130,25 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
         model.PropertyChanged += (o, args) =>
         {
             _ = o;
-            Debug.Assert(args.PropertyName == nameof(model.SelectedNode));
-            OnPropertyChanged(nameof(SelectedNode));
-            OnSelectedNodeChanged?.Invoke(SelectedNode);
-            OnDataPossiblyChanged?.Invoke(SelectedNode);
+            Debug.Assert(args.PropertyName == nameof(model.SelectedUiNode));
+            OnPropertyChanged(nameof(SelectedUiNode));
+            OnSelectedNodeChanged?.Invoke(SelectedUiNode);
+            OnDataPossiblyChanged?.Invoke(SelectedUiNode);
         };
         // Null in the constructor.
-        var oldValue = Model?.SelectedNode;
+        var oldValue = Model?.SelectedUiNode;
         Model = model;
-        if (oldValue != model.SelectedNode)
+        if (oldValue != model.SelectedUiNode)
         {
-            OnPropertyChanged(nameof(SelectedNode));
-            OnSelectedNodeChanged?.Invoke(SelectedNode);
+            OnPropertyChanged(nameof(SelectedUiNode));
+            OnSelectedNodeChanged?.Invoke(SelectedUiNode);
         }
 
-        OnDataPossiblyChanged?.Invoke(SelectedNode);
+        OnDataPossiblyChanged?.Invoke(SelectedUiNode);
     }
 
-    private WrappedNode[] GetUserNodes()
-    {
-        return new[]
-            {
-                WrappedNode.Null,
-            }
-            .Concat(
-                _configBuilder
-                    .GetMarkerNodes()
-                    .Select(x => new WrappedNode(x.Builder)))
-            .ToArray();
-    }
 
-    public void ExecTreeAction(Func<WrappedNode?> change)
+    public void ExecTreeAction(Func<UiNode?> change)
     {
         ExecTreeAction(() =>
         {
@@ -100,12 +157,12 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
         }).EnsureCompletedSync();
     }
 
-    public async ValueTask ExecTreeAction(Func<ValueTask<WrappedNode?>> change)
+    public async ValueTask ExecTreeAction(Func<ValueTask<UiNode?>> change)
     {
         TeacherLayerConfig? marker = null;
-        if (!Model.SelectedNode.IsNull)
+        if (!Model.SelectedUiNode.IsNull)
         {
-            marker = Model.SelectedNode.Marker;
+            marker = Model.SelectedUiNode.Marker;
         }
         var selectedLayer = await change();
         await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
@@ -114,25 +171,25 @@ public sealed partial class SelectedUserNodeViewModel : ViewModelBase, ISelected
         {
             var userNodes = GetUserNodes();
 
-            WrappedNode selectedNode;
+            UiNode selectedUiNode;
             if (selectedLayer != null)
             {
-                selectedNode = selectedLayer;
+                selectedUiNode = selectedLayer;
             }
             else if (marker != null)
             {
-                selectedNode = userNodes
+                selectedUiNode = userNodes
                     // Remove the Null object
                     .Skip(1)
                     .Where(x => EqualityComparer<TeacherLayerConfig>.Default.Equals(x.Marker, marker))
-                    .FirstOrDefault(WrappedNode.Null);
+                    .FirstOrDefault(UiNode.Null);
             }
             else
             {
-                selectedNode = WrappedNode.Null;
+                selectedUiNode = UiNode.Null;
             }
 
-            ResetModel(new(userNodes, selectedNode));
+            ResetModel(new(userNodes, selectedUiNode));
         }
     }
 }

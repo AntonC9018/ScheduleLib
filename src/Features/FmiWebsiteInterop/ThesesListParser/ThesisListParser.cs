@@ -2,13 +2,10 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib;
 using ScheduleLib.Curriculum;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
-using ScheduleLib.Helper.Excel;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 
