@@ -105,48 +105,8 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
 
 public sealed partial class SelectedUserNodeViewModel : ViewModelBase
 {
-    private readonly TreeBuilder _configBuilder;
-
-#pragma warning disable CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
-    public SelectedUserNodeViewModel(TreeBuilder configBuilder)
-    {
-        _configBuilder = configBuilder;
-        ResetModel(new(GetUserNodes(), UiNode.Null));
-    }
-#pragma warning restore CS9264 // Non-nullable property must contain a non-null value when exiting constructor. Consider adding the 'required' modifier, or declaring the property as nullable, or adding '[field: MaybeNull, AllowNull]' attributes.
-
     [ObservableProperty]
     public partial UserNodeSelectionModel Model { get; private set; }
-
-    public UiNode SelectedUiNode
-    {
-        get => Model.SelectedUiNode;
-        set => Model.SelectedUiNode = value;
-    }
-
-    private void ResetModel(UserNodeSelectionModel model)
-    {
-        Debug.Assert(!ReferenceEquals(model, Model));
-        model.PropertyChanged += (o, args) =>
-        {
-            _ = o;
-            Debug.Assert(args.PropertyName == nameof(model.SelectedUiNode));
-            OnPropertyChanged(nameof(SelectedUiNode));
-            OnSelectedNodeChanged?.Invoke(SelectedUiNode);
-            OnDataPossiblyChanged?.Invoke(SelectedUiNode);
-        };
-        // Null in the constructor.
-        var oldValue = Model?.SelectedUiNode;
-        Model = model;
-        if (oldValue != model.SelectedUiNode)
-        {
-            OnPropertyChanged(nameof(SelectedUiNode));
-            OnSelectedNodeChanged?.Invoke(SelectedUiNode);
-        }
-
-        OnDataPossiblyChanged?.Invoke(SelectedUiNode);
-    }
-
 
     public void ExecTreeAction(Func<UiNode?> change)
     {

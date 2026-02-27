@@ -5,7 +5,7 @@ namespace Desktop.ViewModels;
 
 public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
 {
-    private readonly SelectedUserNodeViewModel _user;
+    private readonly DataStore _user;
     private readonly NodeDataViewModelResolver _modelResolver;
 
     public static ConfigType[] CachedConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
@@ -16,10 +16,10 @@ public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
         }).ToArray();
 
     public NodeDataEditorViewModel(
-        SelectedUserNodeViewModel user,
+        DataStore dataStore,
         NodeDataViewModelResolver modelResolver)
     {
-        _user = user;
+        _user = dataStore;
         _modelResolver = modelResolver;
         ConfigTypes = CachedConfigTypes.Where(x => modelResolver.Supported.Contains(x.Key)).ToArray();
     }

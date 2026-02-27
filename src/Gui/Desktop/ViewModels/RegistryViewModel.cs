@@ -7,12 +7,19 @@ using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.ViewModels;
 
-public sealed partial class RegistryConfigViewModel : ConfigViewModelBase<RegistryConfig>
+public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConfig>
 {
     private readonly ConfigAccessor<RegistryConfig> _helper;
     public RegistryConfigViewModel(ConfigAccessor<RegistryConfig> helper)
     {
         _helper = helper;
+    }
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddVmFactory(
+            RegistryConfig.Key,
+            b => b.VM<RegistryConfigViewModel>().UseUpdateOnDataChange());
     }
 
     public override void UpdateSelection(NodeDataBuilder<RegistryConfig> builder)
@@ -61,21 +68,6 @@ public sealed partial class RegistryConfigViewModel : ConfigViewModelBase<Regist
             b.DryRun().SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
         }
-    }
-}
-
-public sealed class RegistryViewModelFactory : INodeDataViewModelFactory
-{
-    public NodeDataKey Key => RegistryConfig.Key.Value;
-
-    public NodeDataViewModelResult Create(IServiceProvider sp, ISelectedUserNode selectedUserNode)
-    {
-        var accessor = ConfigAccessor.Create(selectedUserNode, RegistryConfig.Key);
-#pragma warning disable CA2000 // Compiler thinks this leaks disposable
-        var vm = ActivatorUtilities.CreateInstance<RegistryConfigViewModel>(sp, accessor);
-        var host = new ConfigNodeVmHost<RegistryConfig>(accessor, vm);
-#pragma warning restore CA2000
-        return NodeDataViewModelResult.Create(host);
     }
 }
 

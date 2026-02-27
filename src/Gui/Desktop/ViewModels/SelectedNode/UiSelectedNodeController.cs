@@ -5,14 +5,14 @@ using ScheduleLib.Application.Config;
 
 namespace Desktop.ViewModels;
 
-public sealed partial class UiSelectedNodeController : ObservableObject, IDisposable
+public sealed partial class UiSelectedNodeModel : ObservableObject, IDisposable
 {
     public event Action<UiNode>? NodeSelected;
 
     [ObservableProperty]
     public partial UiNode SelectedUiNode { get; private set; } = UiNode.Null;
 
-    partial void OnSelectedNodeChanged(UiNode value)
+    partial void OnSelectedUiNodeChanged(UiNode value)
     {
         NodeSelected?.Invoke(value);
     }
@@ -21,7 +21,7 @@ public sealed partial class UiSelectedNodeController : ObservableObject, IDispos
     private readonly PropertyChangedEventHandler _subscription1;
     private readonly TreeBuilder _builder;
 
-    public UiSelectedNodeController(
+    public UiSelectedNodeModel(
         TreeBuilder builder,
         SelectedNodePathModel pathSelectionModel)
     {

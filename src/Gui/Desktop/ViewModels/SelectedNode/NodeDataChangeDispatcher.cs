@@ -7,23 +7,23 @@ public interface INodeDataChangedEventProvider
     public event Action? DataChanged;
 }
 
-public sealed class NodeDataChangedDispatcher : INodeDataChangedEventProvider, IDisposable
+public sealed class NodeDataChangeDispatcher : INodeDataChangedEventProvider, IDisposable
 {
     private readonly SelectedNodePathModel _nodePath;
-    private readonly Action<MutableNode?> _subscription;
+    private readonly Action<MutableNode?> _onSelectedNodeChanged;
 
     public event Action? DataChanged;
 
-    public NodeDataChangedDispatcher(
+    public NodeDataChangeDispatcher(
         SelectedNodePathModel nodePath)
     {
         _nodePath = nodePath;
-        _subscription = node =>
+        _onSelectedNodeChanged = node =>
         {
             _ = node;
             DataChanged?.Invoke();
         };
-        nodePath.SelectedNodeChanged += _subscription;
+        nodePath.SelectedNodeChanged += _onSelectedNodeChanged;
     }
 
     public void TriggerDataChanged()
@@ -33,6 +33,6 @@ public sealed class NodeDataChangedDispatcher : INodeDataChangedEventProvider, I
 
     public void Dispose()
     {
-        _nodePath.SelectedNodeChanged -= _subscription;
+        _nodePath.SelectedNodeChanged -= _onSelectedNodeChanged;
     }
 }

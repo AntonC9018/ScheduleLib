@@ -77,5 +77,4 @@ public sealed partial class SelectedNodePathModel : ObservableObject, ISelectedN
         }
         return null;
     }
-
 }

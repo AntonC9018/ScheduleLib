@@ -40,12 +40,14 @@ public readonly record struct NodeDataViewModelResult(
     public void Dispose() => Disposable.Dispose();
 }
 
+public readonly record struct NodeDataVMCreateParams(
+    IServiceProvider ServiceProvider,
+    DataStore DataStore);
+
 public interface INodeDataViewModelFactory
 {
     NodeDataKey Key { get; }
-    NodeDataViewModelResult Create(
-        IServiceProvider sp,
-        ISelectedUserNode selectedUserNode);
+    NodeDataViewModelResult Create(NodeDataVMCreateParams p);
 }
 
 public sealed class NodeDataViewModelResolver
@@ -70,7 +72,7 @@ public sealed class NodeDataViewModelResolver
 
     public OwnedViewModel Resolve(
         NodeDataKey key,
-        ISelectedUserNode selectedUser)
+        DataStore dataStore)
     {
         if (!_factories.TryGetValue(key, out var factory))
         {
@@ -81,7 +83,7 @@ public sealed class NodeDataViewModelResolver
 
         try
         {
-            var ret = factory.Create(scope.ServiceProvider, selectedUser);
+            var ret = factory.Create(new(scope.ServiceProvider, dataStore));
             return new(scope, ret);
         }
         catch

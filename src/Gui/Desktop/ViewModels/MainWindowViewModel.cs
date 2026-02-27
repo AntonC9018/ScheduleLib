@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly TreeBuilder _configBuilder;
     private readonly TreeSerializer _serializationHelper;
-    internal readonly SelectedUserNodeViewModel _nodeSelection;
+    internal readonly DataStore _dataStore;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
 
@@ -25,22 +25,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _configBuilder = configBuilder;
         _serializationHelper = serializationHelper;
-
-        _nodeSelection = new(configBuilder);
-        _nodeSelection.PropertyChanged += (o, args) =>
-        {
-            _ = o;
-            if (args.PropertyName == nameof(_nodeSelection.SelectedUiNode))
-            {
-                RemoveSelectedUserCommand.NotifyCanExecuteChanged();
-                EnableSelectedUserCommand.NotifyCanExecuteChanged();
-            }
-            else if (args.PropertyName == nameof(_nodeSelection.Model))
-            {
-                OnPropertyChanged(nameof(UserNodeSelection));
-                // Will trigger the SelectedNode update as well.
-            }
-        };
+        _dataStore = DataStore.Create(configBuilder);
 
         // We own the instance, not the SP
         NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_nodeSelection]);
