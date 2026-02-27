@@ -1,4 +1,4 @@
-using FmiWebsiteInterop.Theses.Parsing;
+using ScheduleLib.Theses.Parsing;
 
 namespace Comisia.Tests;
 

@@ -35,6 +35,14 @@ public sealed class OutputDirectory
         _directory = Path.GetFullPath(directory);
     }
 
+    public OutputDirectory CreateSubDir(string path)
+    {
+        var subPath = Path.Combine(_directory, path);
+        var ret = new OutputDirectory(subPath);
+        ret.Initialize(clear: true);
+        return ret;
+    }
+
     public void Clear()
     {
         if (Directory.Exists(_directory))

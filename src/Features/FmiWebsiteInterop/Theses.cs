@@ -16,7 +16,6 @@ public sealed class RootObject
 
 public sealed class Thesis
 {
-    // public required int ThesisId { get; init; }
     public required ThesisType ThesisType { get; init; }
     public required string Teacher { get; init; }
     public string? ThesisNameRo { get; init; }
@@ -28,7 +27,6 @@ public sealed class Thesis
 
 public sealed class ThesisType
 {
-    public required int TypeId { get; init; }
     public required string Type { get; init; }
     public required string Label { get; init; }
 }
@@ -37,19 +35,16 @@ public static class ThesesJsonHelper
 {
     private static readonly ThesisType An = new()
     {
-        TypeId = 1,
         Type = "TEZA_DE_AN",
         Label = "Teză de an",
     };
     private static readonly ThesisType Licenta = new()
     {
-        TypeId = 2,
         Type = "TEZA_DE_LICENTA",
         Label = "Teză de licenta",
     };
     private static readonly ThesisType Master = new()
     {
-        TypeId = 3,
         Type = "TEZA_DE_MASTER",
         Label = "Teză de master",
     };

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Theses.Parsing;
 using SpreadCheetah;
 
@@ -22,15 +21,22 @@ public sealed class CommissionMember
     public bool IsPresident { get; init; }
 }
 
-[AutoConstructor]
 public sealed partial class ListsForPredzashitaTaskHandler
 {
-    private static partial (string Student, string Group)[] AvrStudents { get; }
-    private static partial Commission<CommissionMember>[] Commissions { get; }
+    // Initialize these in a static constructor.
+    private static (string Student, string Group)[] AvrStudents { get; set; } = [];
+    private static Commission<CommissionMember>[] Commissions { get; set; } = [];
 
     private readonly ThesesListProvider _thesesListProvider;
     private readonly ILogger _logger;
-    private readonly ScheduleBuilder _builder;
+
+    public ListsForPredzashitaTaskHandler(
+        ThesesListProvider thesesListProvider,
+        ILogger<ListsForPredzashitaTaskHandler> logger)
+    {
+        _thesesListProvider = thesesListProvider;
+        _logger = logger;
+    }
 
     public async Task Handle(
         OutputDirectory outputDirectory,
@@ -46,35 +52,14 @@ public sealed partial class ListsForPredzashitaTaskHandler
         }
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
-        Name FixName(Name name, bool isTeacher)
-        {
-            var x = name.Copy();
-            if (isTeacher)
-            {
-                x.LastName = _builder.RemapTeacherName(new(x.LastName));
-            }
-            NameParts<string?> FixRussian(NameParts<string?> s)
-            {
-                return s.Map(p =>
-                {
-                    return p?.Replace("а", "a").Replace("А", "A").Replace("Е", "E").Replace("е", "e");
-                });
-            }
-
-            x.LastName = FixRussian(x.LastName);
-            x.FirstName = FixRussian(x.FirstName);
-            return x;
-        }
-
         var studentByTeacher = new Dictionary<Name, List<ThesisRecord>>(nameComparer);
         foreach (var t in theses[ThesisType.Licenta].Items)
         {
             var group = t.GroupName;
-            var studentName = FixName(t.StudentName, isTeacher: false);
-            var teacherName = FixName(t.TeacherName, isTeacher: true);
+            var studentName = t.StudentName;
+            var teacherName = t.TeacherName;
 
-            var thesisName = string.IsNullOrEmpty(t.ThesisNameRomanian) ? t.ThesisNameRussian : t.ThesisNameRomanian;
-            thesisName ??= "";
+            var thesisName = t.ThesisNameRomanian ?? t.ThesisNameRussian ?? t.ThesisNameEnglish ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             list.Add(new(studentName, group, thesisName));
         }
@@ -86,23 +71,23 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 Members = x.Members.Select(y =>
                 {
                     var name = NameHelper.Parse(y.Name);
-                    return FixName(name, isTeacher: true);
+                    return name;
                 }).ToArray(),
                 Number = x.Number,
                 Room = x.Room,
             };
         }).ToArray();
 
-        Dictionary<Name, Commission<Name>> commisionByTeacher = new(nameComparer);
+        Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
         foreach (var c in commissionsWithParsedNames)
         {
             foreach (var m in c.Members)
             {
-                commisionByTeacher.Add(m, c);
+                commissionByTeacher.Add(m, c);
             }
         }
 
-        var teachersNotInAnyCommision = studentByTeacher.Keys.Except(commisionByTeacher.Keys);
+        var teachersNotInAnyCommision = studentByTeacher.Keys.Except(commissionByTeacher.Keys);
         foreach (var x in teachersNotInAnyCommision)
         {
             _logger.LogWarning("Teacher {Teacher} has students but is not part of any commission", x.ToString());
@@ -113,7 +98,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
         {
             thesesOfCommision.Add(c.Number, new());
         }
-        foreach (var (teacher, commision) in commisionByTeacher)
+        foreach (var (teacher, commision) in commissionByTeacher)
         {
             var list = thesesOfCommision[commision.Number];
             if (!studentByTeacher.TryGetValue(teacher, out var theses1))

@@ -185,6 +185,7 @@ public static class AppTasks
                 var baseFilter = FilterHelper.Builder()
                     .WithLatestPeriod(schedule);
                 var grouping = schedule.TeacherGrouping(baseFilter);
+                var outputDir = c.OutputDirectory.CreateSubDir("orar");
                 foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
                 {
                     var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
@@ -195,10 +196,10 @@ public static class AppTasks
                     TeacherNameHelper.AsFileName(sb, name);
                     sb.Append(".json");
                     var fileName = sb.ToString();
-                    await using var outputFile = c.OutputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
+                    await using var outputFile = outputDir.OpenFile(fileName, FileMode.Create, FileAccess.Write);
                     await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
                 }
-                c.OutputDirectory.TryOpenInExplorer();
+                outputDir.TryOpenInExplorer();
                 break;
             }
 
@@ -252,7 +253,9 @@ public static class AppTasks
             case AppTask.ListOfThesesPerTeacherForWebsite:
             {
                 var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
-                await handler.Handle(c.CancellationToken, c.OutputDirectory);
+                var outputDir = c.OutputDirectory.CreateSubDir("theses");
+                await handler.Handle(c.CancellationToken, outputDir);
+                outputDir.TryOpenInExplorer();
                 break;
             }
 

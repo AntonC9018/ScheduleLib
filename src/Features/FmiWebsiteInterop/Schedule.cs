@@ -14,14 +14,12 @@ public sealed class RootObject
 
 public sealed class ScheduleDaysDto
 {
-    public required int ScheduleDaysId { get; set; }
     public required ImmutableArray<SchedulePairsDto> SchedulePairsDto { get; set; }
     public required string Weekday { get; set; }
 }
 
 public sealed class SchedulePairsDto
 {
-    public required int SchedulePairsId { get; set; }
     public required string PairInfo { get; set; }
     public required string PairTime { get; set; }
     public required string WeekType { get; set; }
@@ -65,8 +63,6 @@ public static class WebsiteJsonScheduleHelper
             .GroupBy(x => x.Date.DayOfWeek)
             .OrderBy(x => x.Key);
 
-        int pairIdCounter = 1;
-
         foreach (var dayGroup in groupedLessons)
         {
             var daysBuilder = ImmutableArray.CreateBuilder<SchedulePairsDto>();
@@ -102,7 +98,6 @@ public static class WebsiteJsonScheduleHelper
 
                     var pairDto = new SchedulePairsDto
                     {
-                        SchedulePairsId = pairIdCounter++,
                         PairInfo = pairInfo,
                         PairTime = romanTimeSlot,
                         WeekType = weekType,
@@ -113,13 +108,11 @@ public static class WebsiteJsonScheduleHelper
             }
 
             var day = dayGroup.Key;
-            var scheduleDayId = MondayBasedIndex(day) + 1;
             var weekdayLabel = day.ToString().ToUpper();
 
             var daysDto = new ScheduleDaysDto
             {
                 Weekday = weekdayLabel,
-                ScheduleDaysId = scheduleDayId,
                 SchedulePairsDto = daysBuilder.DrainToImmutable(),
             };
 

@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
-using ScheduleLib;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Curriculum;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
@@ -20,7 +20,7 @@ public sealed class Thesis
     public required Name StudentName;
     public required Name TeacherName;
     public required string GroupName;
-    public required string ThesisNameRomanian;
+    public required string? ThesisNameRomanian;
     public required string? ThesisNameRussian; // \ / ignore any " \n  also (russian text) is allowed?
     public required string? ThesisNameEnglish;
 }
@@ -41,8 +41,31 @@ public enum ThesisType
     Master,
 }
 
-public static class ThesisListParser
+public interface INameRemapper
 {
+    public Name RemapName(Name name);
+}
+
+public sealed class ThesisListParser
+{
+    private readonly INameRemapper _teacherNameRemapper;
+
+    public const string TeacherNameRemapperKey = "Teacher";
+
+    public static void Register(IServiceCollection services)
+    {
+        services.AddSingleton<ThesisListParser>(sp =>
+        {
+            var mapper = sp.GetRequiredKeyedService<INameRemapper>(TeacherNameRemapperKey);
+            return new(mapper);
+        });
+    }
+
+    public ThesisListParser(INameRemapper teacherNameRemapper)
+    {
+        _teacherNameRemapper = teacherNameRemapper;
+    }
+
     private enum Column
     {
         Unknown = -1,
@@ -72,7 +95,7 @@ public static class ThesisListParser
     //     }
     // }
 
-    public static ThesisList Parse(Stream file, ThesisType targetThesisType)
+    public ThesisList Parse(Stream file, ThesisType targetThesisType)
     {
         using var excel = new XLWorkbook(file);
 
@@ -178,12 +201,13 @@ public static class ThesisListParser
                         }
                         foreach (var teacherName in thesis.TeacherName)
                         {
+                            var mappedTeacherName = _teacherNameRemapper.RemapName(teacherName);
                             state.Result.Add(new()
                             {
                                 GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
                                 StudentName = studentName,
-                                TeacherName = teacherName,
-                                ThesisNameRomanian = thesis.ThesisNameRomanian ?? throw new InvalidOperationException("Thesis name in Romanian is required"),
+                                TeacherName = mappedTeacherName,
+                                ThesisNameRomanian = thesis.ThesisNameRomanian,
                                 ThesisNameRussian = thesis.ThesisNameRussian,
                                 ThesisNameEnglish = thesis.ThesisNameEnglish,
                             });
@@ -211,6 +235,16 @@ public static class ThesisListParser
             return false;
         }
 
+        string? GetStringForName()
+        {
+            if (!cell.TryGetValue(out string text))
+            {
+                return null;
+            }
+            text = ConfusableNamesHelper.ReplaceConfusableRussianChars(text);
+            return text;
+        }
+
         switch (column)
         {
             case Column.Number:
@@ -220,7 +254,7 @@ public static class ThesisListParser
 
             case Column.StudentName:
             {
-                if (!cell.TryGetValue(out string text))
+                if (GetStringForName() is not { } text)
                 {
                     return false;
                 }
@@ -252,7 +286,7 @@ public static class ThesisListParser
             }
             case Column.Mentor:
             {
-                if (!cell.TryGetValue(out string text))
+                if (GetStringForName() is not { } text)
                 {
                     return false;
                 }
@@ -315,7 +349,7 @@ public static class ThesisListParser
                     return false;
                 }
                 var ret = ParseThesisNames(text);
-                thesis.ThesisNameRomanian = ret.Ro.ToString();
+                thesis.ThesisNameRomanian = ret.Ro.Length > 0 ? ret.Ro.ToString() : null;
                 thesis.ThesisNameRussian = ret.Ru.Length > 0 ? ret.Ru.ToString() : null;
                 break;
             }
@@ -634,7 +668,7 @@ public static class ThesisListParser
         {
             if (RoStart is not { } start)
             {
-                return "Nu este specificat".AsMemory();
+                return null;
             }
             // Temp fix for bug where english letters are in russian?? idk
             if (start.Index > RoEnd?.Index)
@@ -887,5 +921,38 @@ public static class ThesisListParser
 
             parser.MoveTo(bparser.Position);
         }
+    }
+}
+
+file static class ConfusableNamesHelper
+{
+    private static readonly IReadOnlyDictionary<char, char> Confusable = new Dictionary<char, char>
+    {
+        ['А']='A', ['а']='a',
+        ['В']='B',
+        ['Е']='E', ['е']='e',
+        ['К']='K',
+        ['М']='M',
+        ['Н']='H',
+        ['О']='O', ['о']='o',
+        ['Р']='P', ['р']='p',
+        ['С']='C', ['с']='c',
+        ['Т']='T',
+        ['Х']='X', ['х']='x',
+        ['у']='y',
+    };
+
+    public static string ReplaceConfusableRussianChars(string s)
+    {
+        var chars = s.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (Confusable.TryGetValue(chars[i], out var latin))
+            {
+                chars[i] = latin;
+            }
+        }
+
+        return new string(chars);
     }
 }

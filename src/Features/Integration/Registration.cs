@@ -240,6 +240,7 @@ public static class Registration
             services.AddScoped<ThesesConversionTaskHandler>();
             services.AddScoped<ListsForPredzashitaTaskHandler>();
             ThesesListProvider.Register(services);
+            TeacherNameMapper.Register(services);
         }
 
         public IConfiguration AddGlobalConfiguration()

@@ -14,19 +14,23 @@ public sealed class ThesesListProvider
 {
     private readonly GoogleHttpClientProvider _clientProvider;
     private readonly ThesesListProviderOptions _opts;
+    private readonly ThesisListParser _parser;
 
     public static void Register(IServiceCollection services)
     {
         services.AddOptions<ThesesListProviderOptions>().ValidateDataAnnotations();
         services.ConfigureOptions<DefaultThesesListProviderConfigureOptions>();
         services.AddScoped<ThesesListProvider>();
+        ThesisListParser.Register(services);
     }
 
     public ThesesListProvider(
         IOptions<ThesesListProviderOptions> opts,
-        GoogleHttpClientProvider clientProvider)
+        GoogleHttpClientProvider clientProvider,
+        ThesisListParser parser)
     {
         _clientProvider = clientProvider;
+        _parser = parser;
         _opts = opts.Value;
     }
 
@@ -61,7 +65,7 @@ public sealed class ThesesListProvider
         foreach (var t in ret)
         {
             outputFile.Seek(0, SeekOrigin.Begin);
-            var thesisList = ThesisListParser.Parse(outputFile, t.Key);
+            var thesisList = _parser.Parse(outputFile, t.Key);
             t.Value = thesisList;
         }
         return ret;
