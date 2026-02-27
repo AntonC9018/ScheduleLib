@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -194,6 +195,20 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
+
+    [Pure]
+    public TEnum FindKeyOrDefault(TValue value, TEnum defaultKey, IEqualityComparer<TValue>? comparer = null)
+    {
+        comparer ??= EqualityComparer<TValue>.Default;
+        foreach (var x in this)
+        {
+            if (comparer.Equals(x.Value))
+            {
+                return x.Key;
+            }
+        }
+        return defaultKey;
+    }
 }
 
 public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>

@@ -13,14 +13,14 @@
     <StackPanel>
       <TextBlock Text="Layer Level" />
       <ComboBox
-        ItemsSource="{Binding AllLayerLevels}"
-        SelectedItem="{Binding LayerLevel}" />
+        ItemsSource="{Binding LayerLevelSelection.AllLayerLevels}"
+        SelectedItem="{Binding LayerLevelSelection.LayerLevel}" />
 
       <TextBlock Text="User" />
       <ComboBox
         IsEnabled="{Binding CanSelectUser}"
-        ItemsSource="{Binding UserNodeSelection.AllNodes}"
-        SelectedItem="{Binding UserNodeSelection.SelectedUiNode}" />
+        ItemsSource="{Binding NodeSelection.AllNodes}"
+        SelectedItem="{Binding NodeSelection.SelectedNode}" />
 
       <Button
         Content="Click to enable selected UI layer"

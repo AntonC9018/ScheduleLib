@@ -12,27 +12,29 @@ public interface IConfigNodeVmHost
 public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable
     where T : class
 {
-    private readonly ConfigViewModelSubscription<T> _subscription;
+    private readonly ConfigAccessor<T> _accessor;
+    private readonly EventSubscription _subscription;
 
     public ConfigNodeVmHost(
         ConfigAccessor<T> accessor,
         IDisposable inner,
         Action<NodeDataBuilder<T>> onChange,
-        INodeDataChangedEventProvider dataChangedProvider)
+        Event dataChangedProvider)
     {
+        _accessor = accessor;
         Inner = inner;
-        _subscription = new(accessor, b =>
+        _subscription = dataChangedProvider.Sub(() =>
         {
+            var b = accessor.MaybeBuilder();
             onChange(b);
             OnPropertyChanged(nameof(IsEditable));
-        }, dataChangedProvider);
-
+        });
         onChange(accessor.MaybeBuilder());
     }
 
     public IDisposable Inner { get; }
     public void Dispose() => _subscription.Dispose();
-    public bool IsEditable => _subscription.Accessor.IsEditable;
+    public bool IsEditable => _accessor.IsEditable;
 }
 
 public interface IConfigViewModel<T> : INotifyPropertyChanged
@@ -79,13 +81,13 @@ public static class ConfigAccessor
 
 public sealed class ConfigAccessor<T> where T : class
 {
-    internal ISelectedNodeProvider SelectedNodeModel { get; }
+    internal SelectedNodePathModel SelectedNodeModel { get; }
     private readonly TreeBuilder _tree;
     private readonly NodeDataKey<T> _key;
 
     public ConfigAccessor(
         TreeBuilder tree,
-        ISelectedNodeProvider selectedNodeModel,
+        SelectedNodePathModel selectedNodeModel,
         NodeDataKey<T> key)
     {
         SelectedNodeModel = selectedNodeModel;
@@ -125,33 +127,5 @@ public sealed class ConfigAccessor<T> where T : class
             var ret = MaybeBuilder().Value();
             return ret;
         }
-    }
-}
-
-public readonly struct ConfigViewModelSubscription<T> : IDisposable
-    where T : class
-{
-    public ConfigAccessor<T> Accessor { get; }
-    private readonly INodeDataChangedEventProvider _dataChangedProvider;
-    private readonly Action _dataChanged;
-
-    public ConfigViewModelSubscription(
-        ConfigAccessor<T> accessor,
-        Action<NodeDataBuilder<T>> onNodeChanged,
-        INodeDataChangedEventProvider dataChangedProvider)
-    {
-        Accessor = accessor;
-        _dataChangedProvider = dataChangedProvider;
-        _dataChanged = () =>
-        {
-            var b = accessor.MaybeBuilder();
-            onNodeChanged(b);
-        };
-        dataChangedProvider.DataChanged += _dataChanged;
-    }
-
-    public void Dispose()
-    {
-        _dataChangedProvider.DataChanged -= _dataChanged;
     }
 }

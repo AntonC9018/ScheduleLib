@@ -20,11 +20,9 @@ public sealed partial class App : Application
     public static void AddViewModels(IServiceCollection services)
     {
         services.AddTransient<MainWindowViewModel>();
-        services.AddTransient<SelectedUserNodeViewModel>();
 
-        services.AddSingleton<INodeDataViewModelFactory, RegistryViewModelFactory>();
         NodeDataViewModelResolver.Register(services);
-
+        RegistryConfigViewModel.Register(services);
     }
 
     public override void OnFrameworkInitializationCompleted()

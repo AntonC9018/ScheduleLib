@@ -4,15 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Desktop.ViewModels;
 
-public readonly record struct SelectedNodePathValues(NodePath Path, Layer Layer);
+public readonly record struct SelectedNodePathValues(
+    NodePath Path,
+    Layer Layer);
 
-public interface ISelectedNodeProvider
-{
-    public MutableNode? SelectedNode { get; }
-    public event Action<MutableNode?>? SelectedNodeChanged;
-}
-
-public sealed partial class SelectedNodePathModel : ObservableObject, ISelectedNodeProvider
+public sealed partial class SelectedNodePathModel : ObservableObject
 {
     // Maybe change to non-observable
     [ObservableProperty] private NodePath _nodePath;
@@ -20,7 +16,14 @@ public sealed partial class SelectedNodePathModel : ObservableObject, ISelectedN
     private MutableNode? _selectedNode;
     public MutableNode? SelectedNode => _selectedNode;
 
-    public event Action<MutableNode?>? SelectedNodeChanged;
+    private readonly EventSource<MutableNode?> _selectedNodeChanged = new();
+    public Event<MutableNode?> SelectedNodeChanged => _selectedNodeChanged;
+
+    private readonly EventSource<NodePath> _pathChanged = new();
+    public Event<NodePath> PathChanged => _pathChanged;
+
+    private readonly EventSource<Layer> _selectedLayerChanged = new();
+    public Event<Layer> SelectedLayerChanged => _selectedLayerChanged;
 
     public SelectedNodePathModel(TreeBuilder b)
     {
@@ -44,17 +47,22 @@ public sealed partial class SelectedNodePathModel : ObservableObject, ISelectedN
     {
         _ = value;
         ResetNode();
+        _pathChanged.Invoke(value);
     }
     partial void OnSelectedLayerChanged(Layer value)
     {
         _ = value;
         ResetNode();
+        _selectedLayerChanged.Invoke(value);
     }
 
     public void Reset(SelectedNodePathValues v)
     {
         ResetNoUpdate(v);
         OnPropertyChanged((string?) null);
+        _pathChanged.Invoke(NodePath);
+        _selectedNodeChanged.Invoke(SelectedNode);
+        _selectedLayerChanged.Invoke(SelectedLayer);
     }
 
     private void ResetNode()
@@ -62,7 +70,7 @@ public sealed partial class SelectedNodePathModel : ObservableObject, ISelectedN
         var node = FindNode();
         if (SetProperty(ref _selectedNode, node, nameof(SelectedNode)))
         {
-            SelectedNodeChanged?.Invoke(node);
+            _selectedNodeChanged.Invoke(node);
         }
     }
 

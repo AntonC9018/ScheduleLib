@@ -190,7 +190,7 @@ public static class VmBuilderExtensions
                 b.Data.Accessor,
                 vm,
                 vm.UpdateSelection,
-                b.Data.DataStore.NodeDataChangeDispatcher);
+                b.Data.DataStore.NodeDataChangeDispatcher.DataChanged);
             return host;
         });
         return ret;

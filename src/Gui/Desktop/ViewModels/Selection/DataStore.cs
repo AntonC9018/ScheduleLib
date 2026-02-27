@@ -7,25 +7,27 @@ public sealed class DataStore : IDisposable
     public required TreeBuilder TreeBuilder { get; init; }
     public required SelectedNodePathModel SelectedNodePath { get; init; }
     public required NodeDataChangeDispatcher NodeDataChangeDispatcher { get; init; }
-    public required UiSelectedNodeModel UiSelectedNode { get; init; }
+    public required UiSelectedNodeViewModel UiSelectedNodeView { get; init; }
+    public required EventSource TreeStructureChanged { get; init; }
 
     public static DataStore Create(TreeBuilder tree)
     {
         var nodePath = new SelectedNodePathModel(tree);
-        var dispatcher = new NodeDataChangeDispatcher(nodePath);
-        var uiNode = new UiSelectedNodeModel(tree, nodePath);
+        var dispatcher = new NodeDataChangeDispatcher(nodePath.SelectedNodeChanged);
+        var uiNode = new UiSelectedNodeViewModel(tree, nodePath);
         return new()
         {
             TreeBuilder = tree,
             NodeDataChangeDispatcher = dispatcher,
             SelectedNodePath = nodePath,
-            UiSelectedNode = uiNode,
+            UiSelectedNodeView = uiNode,
+            TreeStructureChanged = new(),
         };
     }
 
     public void Dispose()
     {
         NodeDataChangeDispatcher.Dispose();
-        UiSelectedNode.Dispose();
+        UiSelectedNodeView.Dispose();
     }
 }

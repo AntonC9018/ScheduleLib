@@ -10,41 +10,58 @@ using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
-public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
+public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private readonly TreeBuilder _configBuilder;
-    private readonly TreeSerializer _serializationHelper;
+    private readonly TreeSerializer _serializer;
     internal readonly DataStore _dataStore;
+    private readonly UpdateTreeHelper _updateTreeHelper;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
+    public UiNodeSelectionViewModel NodeSelection { get; }
+    public LayerLevelSelectionViewModel LayerLevelSelection { get; }
 
     public MainWindowViewModel(
         TreeBuilder configBuilder,
-        TreeSerializer serializationHelper,
+        TreeSerializer serializer,
         IServiceProvider sp)
     {
         _configBuilder = configBuilder;
-        _serializationHelper = serializationHelper;
+        _serializer = serializer;
         _dataStore = DataStore.Create(configBuilder);
+        _updateTreeHelper = new(_dataStore.SelectedNodePath, configBuilder);
 
         // We own the instance, not the SP
-        NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_nodeSelection]);
+        NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_dataStore]);
+        NodeSelection = new(
+            configBuilder,
+            _dataStore.TreeStructureChanged,
+            _dataStore.UiSelectedNodeView);
+        LayerLevelSelection = new(_dataStore.SelectedNodePath);
+
+        LayerLevelSelection.LayerLevelChanged.Sub(layer =>
+        {
+            _ = layer;
+            OnPropertyChanged(nameof(CanSelectUser));
+            OnPropertyChanged(nameof(CanSelectUserToAdd));
+            EnableSelectedUserCommand.NotifyCanExecuteChanged();
+            RemoveSelectedUserCommand.NotifyCanExecuteChanged();
+        });
     }
 
-    public void Dispose()
+    // public void Dispose()
+    // {
+    //     NodeDataEditor.Dispose();
+    //     NodeSelection.Dispose();
+    //     LayerLevelSelection.Dispose();
+    //     _dataStore.Dispose();
+    // }
+    private LayerLevel LayerLevel
     {
-        NodeDataEditor.Dispose();
+        get => LayerLevelSelection.LayerLevel;
+        set => LayerLevelSelection.LayerLevel = value;
     }
-
-    public UserNodeSelectionModel UserNodeSelection => _nodeSelection.Model;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanSelectUser))]
-    [NotifyPropertyChangedFor(nameof(CanSelectUserToAdd))]
-    [NotifyCanExecuteChangedFor(nameof(RemoveSelectedUserCommand))]
-    [NotifyCanExecuteChangedFor(nameof(EnableSelectedUserCommand))]
-    public partial LayerLevel LayerLevel { get; set; } = LayerLevel.Default;
-    public EnumMembers<LayerLevel> AllLayerLevels => new();
+    private UiNode SelectedUiNode => _dataStore.UiSelectedNodeView.Value;
 
     public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
 
@@ -77,12 +94,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void AddUser(Name name)
     {
-        _nodeSelection.ExecTreeAction(() =>
+        _updateTreeHelper.ExecTreeAction(() =>
         {
             var layer = _configBuilder.Defaults.CreateUiLayer();
             var val = layer.Builder<TeacherLayerConfig>().Value();
             val.TeacherName = name;
-            return new UiNode(layer);
+            return new([_configBuilder.BaseNode, layer.Node]);
         });
 
         UserNameToAdd = "";
@@ -97,11 +114,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            if (_nodeSelection.SelectedUiNode.IsNull)
+            var node = SelectedUiNode;
+            if (node.IsNull)
             {
                 return false;
             }
-            if (_nodeSelection.SelectedUiNode.IsUiLayer)
+            if (node.IsUiLayer)
             {
                 return true;
             }
@@ -112,16 +130,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanRemoveSelectedUser))]
     public void RemoveSelectedUser()
     {
-        if (_nodeSelection.SelectedUiNode.IsNull
-            || !_nodeSelection.SelectedUiNode.IsUiLayer)
+        Debug.Assert(CanRemoveSelectedUser);
+        _updateTreeHelper.ExecTreeAction(() =>
         {
-            Debug.Fail("Cannot remove this layer");
-            return;
-        }
-        _nodeSelection.ExecTreeAction(() =>
-        {
-            UiLayerHelper.MaybeRemoveLayer(_nodeSelection.SelectedUiNode.Leaf.Node, _configBuilder);
-            return null;
+            UiLayerHelper.MaybeRemoveLayer(SelectedUiNode.Leaf.Node, _configBuilder);
+            return default;
         });
     }
 
@@ -134,7 +147,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            var n = _nodeSelection.SelectedUiNode;
+            var n = SelectedUiNode;
             if (n.IsNull)
             {
                 return false;
@@ -150,14 +163,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanEnableSelectedUser))]
     public void EnableSelectedUser()
     {
-        if (_nodeSelection.SelectedUiNode.IsNull)
+        if (SelectedUiNode.IsNull)
         {
             return;
         }
-        _nodeSelection.ExecTreeAction(() =>
+        _updateTreeHelper.ExecTreeAction(() =>
         {
-            var b = _nodeSelection.SelectedUiNode.Leaf.MaybeCreateUiLayer(_nodeSelection.SelectedUiNode.Marker);
-            return new(b);
+            var n = SelectedUiNode;
+            var b = n.Leaf.MaybeCreateUiLayer(n.Marker);
+            _ = b;
+            return default;
         });
         LayerLevel = LayerLevel.UiUser;
     }
@@ -167,41 +182,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         var file = "ui-layers.json";
         await using var output = File.OpenWrite(file);
-        await _serializationHelper.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
+        await _serializer.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
         ExplorerHelper.TryOpenExplorerAndSelectFile(file);
     }
+
     [RelayCommand]
     public async Task DeserializeUiLayers()
     {
-        await _nodeSelection.ExecTreeAction(async () =>
+        await _updateTreeHelper.ExecTreeActionAsync(async () =>
         {
             await using var output = File.OpenRead("ui-layers.json");
-            await _serializationHelper.DeserializeUiLayers(output, _configBuilder).ConfigureAwait(false);
-            return null;
+            await _serializer.DeserializeUiLayers(output, _configBuilder).ConfigureAwait(false);
+            return default;
         });
+        _dataStore.TreeStructureChanged.Invoke();
     }
-}
-
-public sealed record class UiNode
-{
-    public readonly NodeBuilder Leaf;
-    public UiNode(NodeBuilder leaf)
-    {
-        Leaf = leaf;
-    }
-
-    public static readonly UiNode Null = new(default(NodeBuilder));
-    public bool IsNull => Leaf.IsNull;
-    public bool IsEditable => !IsNull && IsUiLayer;
-    public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
-    public Name Name => Marker.TeacherName;
-    public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();
-    public override string ToString() => IsNull ? "No User" : Name.ToString();
-}
-
-public enum LayerLevel
-{
-    Default,
-    ProgrammableUser,
-    UiUser,
 }
