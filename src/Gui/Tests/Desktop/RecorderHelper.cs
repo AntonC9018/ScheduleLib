@@ -58,7 +58,7 @@ public sealed class AllRecorders : IDisposable
         NodePath = s.Record(store.SelectedNodePath.NodePath.Changed).SetName("NodePath");
         SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed).SetName("SelectedLayer");
         SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed).SetName("SelectedNode");
-        SelectedUiNode = s.Record(store.UiSelectedNodeView.NodeSelected()).SetName("UiSelectedNode");
+        SelectedUiNode = s.Record(store.UiSelectedNodeViewModel.NodeSelected()).SetName("UiSelectedNode");
         SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged.As()).SetName("LayerLevel");
         NodeSelected = s.Record(main.NodeSelection).SetName("NodeSelectionProperty");
         NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged.As()).SetName("NodeData");

@@ -29,14 +29,16 @@
         Content="Click to remove selected UI layer"
         Command="{Binding RemoveSelectedUserCommand}" />
 
-      <TextBlock Text="User Name To Add:" />
-      <TextBox
-        Text="{Binding UserNameToAdd}"
-        IsEnabled="{Binding CanSelectUserToAdd}" />
+      <StackPanel DataContext="{Binding AddUser, Mode=OneTime}">
+        <TextBlock Text="User Name To Add:" />
+        <TextBox
+          Text="{Binding UserNameToAdd}"
+          IsEnabled="{Binding CanSelectUserToAdd}" />
 
-      <Button
-        Content="Click to create new UI layer"
-        Command="{Binding AddUserWithTypedNameCommand}" />
+        <Button
+          Content="Click to create new UI layer"
+          Command="{Binding AddUserWithTypedNameCommand}" />
+      </StackPanel>
 
       <Button
         Content="Click to serialize UI layers"

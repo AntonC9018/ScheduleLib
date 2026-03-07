@@ -1,11 +1,7 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Application.Config;
-using ScheduleLib.Helper.Parsing;
-using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
@@ -20,6 +16,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public NodeDataEditorViewModel NodeDataEditor { get; }
     public UiNodeSelectionViewModel NodeSelection { get; }
     public LayerLevelSelectionViewModel LayerLevelSelection { get; }
+    public AddUserViewModel AddUser { get; }
 
     public MainWindowViewModel(
         TreeContext treeContext,
@@ -34,24 +31,29 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         // We own the instance, not the SP
         NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_dataStore]);
+
         NodeSelection = new(
             treeContext,
             _dataStore.TreeStructureChanged,
-            _dataStore.UiSelectedNodeView);
+            _dataStore.UiSelectedNodeViewModel);
         LayerLevelSelection = new(
             treeContext.Dispatcher,
             _dataStore.SelectedNodePath);
+        AddUser = new(
+            treeContext,
+            _updateTreeHelper,
+            _dataStore.TreeStructureChanged,
+            LayerLevelSelection);
 
         LayerLevelSelection.LayerLevelChanged.Sub(layer =>
         {
             _ = layer;
             OnPropertyChanged(nameof(CanSelectUser));
-            OnPropertyChanged(nameof(CanSelectUserToAdd));
             EnableSelectedUserCommand.NotifyCanExecuteChanged();
             RemoveSelectedUserCommand.NotifyCanExecuteChanged();
         });
 
-        _dataStore.UiSelectedNodeView.NodeSelected().Sub(node =>
+        _dataStore.UiSelectedNodeViewModel.NodeSelected().Sub(node =>
         {
             _ = node;
             EnableSelectedUserCommand.NotifyCanExecuteChanged();
@@ -64,50 +66,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         get => LayerLevelSelection.LayerLevel;
         set => LayerLevelSelection.LayerLevel = value;
     }
-    private UiNode SelectedUiNode => _dataStore.UiSelectedNodeView.Value;
+    private UiNode SelectedUiNode => _dataStore.UiSelectedNodeViewModel.Value;
 
     public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
-    public partial string UserNameToAdd { get; set; } = "";
-
-    public bool CanSelectUserToAdd => true;
-
-    private Name? ParseUserNameToAdd()
-    {
-        var parser = new Parser(UserNameToAdd);
-        Name? name = NameHelper.TryParseName(ref parser);
-        return name;
-    }
-
-    public bool CanAddUser => ParseUserNameToAdd() != null;
-
-    [RelayCommand(CanExecute = nameof(CanAddUser))]
-    public void AddUserWithTypedName()
-    {
-        var name = ParseUserNameToAdd();
-        if (name is null)
-        {
-            Debug.Fail("Parsed name was null");
-            return;
-        }
-        AddUser(name);
-    }
-
-    private void AddUser(Name name)
-    {
-        _updateTreeHelper.ExecTreeAction(() =>
-        {
-            var layer = Tree.Defaults.CreateUiLayer();
-            var val = layer.Builder<TeacherLayerConfig>().Value();
-            val.TeacherName = name;
-            return new([Tree.BaseNode, layer.Node]);
-        });
-
-        UserNameToAdd = "";
-        LayerLevel = LayerLevel.UiUser;
-    }
 
     public bool CanRemoveSelectedUser
     {

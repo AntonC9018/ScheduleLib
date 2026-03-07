@@ -12,21 +12,24 @@ public sealed class DataStore : IDisposable
     public TreeContext TreeContext { get; }
     public SelectedNodePathModel SelectedNodePath { get; }
     public NodeDataChangeDispatcher NodeDataChangeDispatcher { get; }
-    public UiSelectedNodeViewModel UiSelectedNodeView { get; }
+    public UiSelectedNodeViewModel UiSelectedNodeViewModel { get; }
+    public LayerLevelSelectionViewModel LayerLevelViewModel { get; }
     public EventSource<Void> TreeStructureChanged { get; }
 
     private DataStore(
         TreeContext t,
         SelectedNodePathModel selectedNodePath,
         NodeDataChangeDispatcher nodeDataChangeDispatcher,
-        UiSelectedNodeViewModel uiSelectedNodeView,
-        EventSource<Void> treeStructureChanged)
+        UiSelectedNodeViewModel uiSelectedNodeViewModel,
+        EventSource<Void> treeStructureChanged,
+        LayerLevelSelectionViewModel layerLevelViewModel)
     {
         TreeContext = t;
         SelectedNodePath = selectedNodePath;
         NodeDataChangeDispatcher = nodeDataChangeDispatcher;
-        UiSelectedNodeView = uiSelectedNodeView;
+        UiSelectedNodeViewModel = uiSelectedNodeViewModel;
         TreeStructureChanged = treeStructureChanged;
+        LayerLevelViewModel = layerLevelViewModel;
     }
 
     public static DataStore Create(TreeContext t)
@@ -37,18 +40,20 @@ public sealed class DataStore : IDisposable
             nodePath.SelectedNode.Changed);
         var uiNode = new UiSelectedNodeViewModel(t, nodePath);
         var treeStructureChanged = t.Dispatcher.CreateEvent();
+        var layerLevelVm = new LayerLevelSelectionViewModel(t.Dispatcher, nodePath);
         return new(
             t: t,
             nodeDataChangeDispatcher: dispatcher,
             selectedNodePath: nodePath,
-            uiSelectedNodeView: uiNode,
-            treeStructureChanged: treeStructureChanged);
+            uiSelectedNodeViewModel: uiNode,
+            treeStructureChanged: treeStructureChanged,
+            layerLevelViewModel: layerLevelVm);
     }
 
     public void Dispose()
     {
         NodeDataChangeDispatcher.Dispose();
-        UiSelectedNodeView.Dispose();
+        UiSelectedNodeViewModel.Dispose();
     }
 }
 

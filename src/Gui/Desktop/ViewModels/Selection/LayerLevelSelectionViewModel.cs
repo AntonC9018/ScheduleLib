@@ -30,7 +30,7 @@ public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDispo
     public EnumMembers<LayerLevel> AllLayerLevels => new();
 
     private readonly EventSource<LayerLevel> _layerLevelChanged;
-    public EventSource<LayerLevel> LayerLevelChanged => _layerLevelChanged;
+    public Event<LayerLevel> LayerLevelChanged => _layerLevelChanged;
 
     private readonly EventSubscription<Layer> _layerChangedSub;
     private readonly SelectedNodePathModel _path;

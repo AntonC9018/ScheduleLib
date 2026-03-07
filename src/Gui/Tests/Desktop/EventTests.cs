@@ -111,7 +111,7 @@ public sealed class EventTests
             .Expect(c.Tags.TreeChangedRecorder)
             .SingleEvent();
 
-        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeView.Value.Name.ToString());
+        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
     }
 }
 
