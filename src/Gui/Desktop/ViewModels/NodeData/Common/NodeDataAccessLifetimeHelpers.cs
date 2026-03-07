@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Anton.LayeredData;
+using Anton.LayeredData.TreeEnumeration;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Desktop.ViewModels;
 
@@ -13,14 +15,14 @@ public interface IConfigNodeVmHost
 public sealed class ConfigNodeVmHost<T> : ViewModelBase, IConfigNodeVmHost, IDisposable
     where T : class
 {
-    private readonly ConfigAccessor<T> _accessor;
+    private readonly NodeDataAccessor<T> _accessor;
     private readonly EventSubscription _subscription;
 
     public ConfigNodeVmHost(
         IDispatcher dispatcher,
-        ConfigAccessor<T> accessor,
+        NodeDataAccessor<T> accessor,
         IDisposable inner,
-        Action<NodeDataBuilder<T>> onChange,
+        Action onChange,
         Event dataChangedProvider)
         : base(dispatcher)
     {
@@ -28,11 +30,11 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IConfigNodeVmHost, IDis
         Inner = inner;
         _subscription = dataChangedProvider.Sub(() =>
         {
-            var b = accessor.MaybeBuilder();
-            onChange(b);
+            accessor.MaybeBuilder();
+            onChange();
             OnPropertyChanged(nameof(IsEditable));
         });
-        onChange(accessor.MaybeBuilder());
+        onChange();
     }
 
     public IDisposable Inner { get; }
@@ -44,7 +46,7 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IConfigNodeVmHost, IDis
 public interface IConfigViewModel<T> : INotifyPropertyChanged
     where T : class
 {
-    public void UpdateSelection(NodeDataBuilder<T> builder);
+    public void UpdateSelection();
 }
 
 public abstract class NodeDataViewModelBase<T> : ObservableObject, IDisposable, IConfigViewModel<T>
@@ -55,42 +57,47 @@ public abstract class NodeDataViewModelBase<T> : ObservableObject, IDisposable, 
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void UpdateSelection(NodeDataBuilder<T> builder)
+    public virtual void UpdateSelection()
     {
+        AllPropertiesChanged();
     }
 
-    void IConfigViewModel<T>.UpdateSelection(NodeDataBuilder<T> builder)
+    protected void AllPropertiesChanged()
     {
-        UpdateSelection(builder);
-    }
-}
-
-public static class ConfigAccessor
-{
-    public static ConfigAccessor<T> Create<T>(
-        TreeBuilder tree,
-        SelectedNodePathModel nodePathModel,
-        NodeDataKey<T> key)
-        where T : class
-    {
-        return new(tree, nodePathModel, key);
+        OnPropertyChanged((string?) "");
     }
 }
 
-public sealed class ConfigAccessor<T> where T : class
+public sealed class NodeDataAccessor<T> : IDisposable
+    where T : class
 {
     internal SelectedNodePathModel SelectedNodeModel { get; }
     private readonly TreeBuilder _tree;
     private readonly NodeDataKey<T> _key;
+    private readonly EventSubscription _nodeDataChangedSub;
 
-    public ConfigAccessor(
+    private T? _someValue;
+    private bool _valueSaved;
+
+    public NodeDataAccessor(
         TreeBuilder tree,
         SelectedNodePathModel selectedNodeModel,
-        NodeDataKey<T> key)
+        NodeDataKey<T> key,
+        Event nodeDataChanged)
     {
         SelectedNodeModel = selectedNodeModel;
         _key = key;
         _tree = tree;
+        _nodeDataChangedSub = nodeDataChanged.Sub(() =>
+        {
+            _someValue = null;
+            _valueSaved = false;
+        });
+    }
+
+    public void Dispose()
+    {
+        _nodeDataChangedSub.Dispose();
     }
 
     private MutableNode? SelectedNode => SelectedNodeModel.SelectedNode.Get();
@@ -105,16 +112,21 @@ public sealed class ConfigAccessor<T> where T : class
         return Builder();
     }
 
+    private NodeDataBuilder<T> _CreateBuilder()
+    {
+        return _tree.CreateBuilder(SelectedNode!).Builder(_key);
+    }
+
     public NodeDataBuilder<T> Builder()
     {
         if (!IsEditable)
         {
             throw new InvalidOperationException("Node is not editable.");
         }
-        return _tree.CreateBuilder(SelectedNode!).Builder(_key);
+        return _CreateBuilder();
     }
 
-    public T? Config
+    public T? EditableData
     {
         get
         {
@@ -122,8 +134,77 @@ public sealed class ConfigAccessor<T> where T : class
             {
                 return null;
             }
-            var ret = MaybeBuilder().Value();
-            return ret;
+            return ConditionallyEditableData.Value;
         }
     }
+
+    public T? Data
+    {
+        get
+        {
+            if (IsEditable)
+            {
+                return EditableData;
+            }
+            return ConditionallyEditableData.Value;
+        }
+    }
+
+    public ConditionallyEditableData<T> ConditionallyEditableData
+    {
+        get
+        {
+            if (!_valueSaved)
+            {
+                _someValue = CreateConditionallyEditableData();
+                _valueSaved = true;
+            }
+            return new(IsEditable: IsEditable, _someValue);
+        }
+    }
+
+    private const bool constructsValue = false;
+
+    private T? CreateConditionallyEditableData()
+    {
+        var selectedNode = SelectedNode;
+        if (selectedNode is null)
+        {
+            return null;
+        }
+        if (IsEditable)
+        {
+            return _CreateBuilder().Value();
+        }
+#pragma warning disable CS0162 // Unreachable code detected
+        if (constructsValue)
+        {
+            var path = SelectedNodeModel.NodePath.Get();
+            var pathPart = path.SliceUntilInclusive(selectedNode);
+            using var scope = _tree.SingletonServiceProvider.CreateScope();
+            try
+            {
+                var value = pathPart.ConstructValue(_key, scope.ServiceProvider);
+                return value;
+            }
+            catch
+            {
+                // Might fail to work if there are updaters
+                // that expects services to be set up in some particular way.
+                return null;
+            }
+        }
+        else
+        {
+            var ret = _CreateBuilder().TryGetValue();
+            return ret;
+        }
+#pragma warning restore CS0162 // Unreachable code detected
+    }
+}
+
+public readonly record struct ConditionallyEditableData<T>(
+    bool IsEditable,
+    T? Value)
+{
 }

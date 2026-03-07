@@ -12,6 +12,11 @@ public sealed class TreeBuilder
         _singletonServiceProvider = singletonServiceProvider;
     }
 
+    public IServiceProvider SingletonServiceProvider
+    {
+        get => _singletonServiceProvider;
+    }
+
     public NodeBuilder Defaults
     {
         get

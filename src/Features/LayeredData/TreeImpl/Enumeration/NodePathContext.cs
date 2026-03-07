@@ -7,6 +7,16 @@ public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
 {
     public readonly MutableNode Root => Path[0];
     public readonly MutableNode Leaf => Path[^1];
+
+    public NodePath SliceUntilInclusive(MutableNode selectedNode)
+    {
+        var i = Path.IndexOf(selectedNode);
+        if (i <= 0)
+        {
+            throw new InvalidOperationException("Node not found in the path");
+        }
+        return new(Path[.. (i + 1)]);
+    }
 }
 
 public sealed class LayerPathContext() : IDfsEnumerationContext

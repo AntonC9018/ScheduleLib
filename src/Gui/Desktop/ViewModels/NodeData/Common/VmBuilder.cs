@@ -41,7 +41,7 @@ public static class VmBuilder
 public struct VmBuilderData<T> : IDisposable
     where T : class
 {
-    public ConfigAccessor<T> Accessor { get; }
+    public NodeDataAccessor<T> Accessor { get; }
     public NodeDataKey<T> Key { get; }
     public DataStore DataStore { get; }
     public IServiceProvider ServiceProvider { get; }
@@ -57,7 +57,8 @@ public struct VmBuilderData<T> : IDisposable
         Accessor = new(
             p.DataStore.TreeContext.Tree,
             p.DataStore.SelectedNodePath,
-            key);
+            key,
+            p.DataStore.NodeDataChangeDispatcher.DataChanged);
     }
 
     public void Dispose()

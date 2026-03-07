@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using Anton.LayeredData.Retrieval;
@@ -32,7 +33,7 @@ public abstract class CredentialsSource
 
 public readonly struct CredentialsSourceBuilder
 {
-    internal readonly ICredentialsHolder _storage;
+    public readonly ICredentialsHolder _storage;
 
     public CredentialsSourceBuilder(ICredentialsHolder storage)
     {
@@ -59,15 +60,26 @@ public static class CredentialsBuilderExtensions
             builder._storage.Credentials = new AppConfigCredentialsSource();
         }
 
-        public ValueCredentialsSource Value(Action<ValueCredentialsSource>? configure = null)
+        public ValueCredentialsSource Value(
+            Action<ValueCredentialsSource>? configure = null)
+        {
+            var ret = builder.Value(overwriteIfAnother: true)!;
+            configure?.Invoke(ret);
+            return ret;
+        }
+
+        public ValueCredentialsSource? Value(bool overwriteIfAnother)
         {
             var s = builder._storage;
             if (s.Credentials is not ValueCredentialsSource ret)
             {
+                if (!overwriteIfAnother)
+                {
+                    return null;
+                }
                 ret = new ValueCredentialsSource();
                 s.Credentials = ret;
             }
-            configure?.Invoke(ret);
             return ret;
         }
     }

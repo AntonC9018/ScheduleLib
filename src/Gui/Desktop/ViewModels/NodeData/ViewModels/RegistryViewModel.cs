@@ -1,4 +1,3 @@
-using Anton.LayeredData;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.OnlineRegistry;
@@ -9,8 +8,8 @@ namespace Desktop.ViewModels;
 
 public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConfig>
 {
-    private readonly ConfigAccessor<RegistryConfig> _helper;
-    public RegistryConfigViewModel(ConfigAccessor<RegistryConfig> helper)
+    private readonly NodeDataAccessor<RegistryConfig> _helper;
+    public RegistryConfigViewModel(NodeDataAccessor<RegistryConfig> helper)
     {
         _helper = helper;
     }
@@ -22,9 +21,9 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
             b => b.VM<RegistryConfigViewModel>().UseUpdateOnDataChange());
     }
 
-    protected override void UpdateSelection(NodeDataBuilder<RegistryConfig> builder)
+    public override void UpdateSelection()
     {
-        Credentials.SetBuilder(builder);
+        Credentials.Set(_helper.ConditionallyEditableData);
         OnPropertyChanged(nameof(DryRun));
     }
 
@@ -38,7 +37,7 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
     {
         get
         {
-            if (_helper.Config?.CommandProcessingConfig is not { } c)
+            if (_helper.Data?.CommandProcessingConfig is not { } c)
             {
                 return null;
             }
@@ -50,7 +49,7 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
         }
         set
         {
-            var v = _helper.Config;
+            var v = _helper.EditableData;
             if (v == null)
             {
                 throw new InvalidOperationException("Cannot set DryRun when no node selected");
@@ -75,12 +74,11 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
 public sealed class ObservableCredentials<T> : ObservableObject
     where T : class, ICredentialsHolder
 {
-    private NodeDataBuilder<T> _builder;
-    public void SetBuilder(NodeDataBuilder<T> builder)
+    private ConditionallyEditableData<T> _m;
+    public void Set(ConditionallyEditableData<T> m)
     {
-        _builder = builder;
-        OnPropertyChanged(nameof(Login));
-        OnPropertyChanged(nameof(Password));
+        _m = m;
+        OnPropertyChanged((string?) "");
     }
 
     public string Login
@@ -105,11 +103,16 @@ public sealed class ObservableCredentials<T> : ObservableObject
 
     public Credentials? Model()
     {
-        if (_builder.IsNull)
+        if (_m.Value is null)
         {
             return null;
         }
-        var source = _builder.Credentials().Value();
+        var builder = new CredentialsSourceBuilder(_m.Value);
+        var source = builder.Value(overwriteIfAnother: _m.IsEditable);
+        if (source is null)
+        {
+            return null;
+        }
         if (source.Value is not { } x)
         {
             x = new Credentials

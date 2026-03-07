@@ -68,8 +68,6 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
-            t.Registry().Enable();
-
             t.LessonTopics().Configure(x =>
             {
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);

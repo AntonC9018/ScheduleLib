@@ -87,6 +87,7 @@ public static class BuilderUpdaterExtensions
         }
         public void AddUpdate(IUpdater<T> updater)
         {
+            builder.MutableGuard();
             builder.Enable().UpdateActions.Add(updater);
         }
         public void AddUpdate(Func<IServiceProvider, T, T?> updateAction)

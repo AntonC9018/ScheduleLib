@@ -7,16 +7,19 @@ public readonly struct NodeDataBuilder<T>
 {
     private readonly NodeBuilder _node;
     public NodeDataKey<T> DataKey { get; }
-    internal MutableNode Node => _node.Node;
+    public MutableNode Node => _node.Node;
     public IServiceProvider SingletonServiceProvider => _node.SingletonServiceProvider;
     public bool IsNull => _node.IsNull;
+    public bool IsReadOnly { get; }
 
     public NodeDataBuilder(
         NodeBuilder node,
-        NodeDataKey<T> dataKey)
+        NodeDataKey<T> dataKey,
+        bool isReadOnly)
     {
         _node = node;
         DataKey = dataKey;
+        IsReadOnly = isReadOnly;
     }
 }
 
@@ -33,7 +36,13 @@ public static class BaseExtensions
         public NodeDataBuilder<T> Builder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder, key);
+            return new(builder, key, isReadOnly: false);
+        }
+
+        public NodeDataBuilder<T> ReadOnlyBuilder<T>(NodeDataKey<T> key)
+            where T : class
+        {
+            return new(builder, key, isReadOnly: true);
         }
 
         public void ClearData()
@@ -45,21 +54,34 @@ public static class BaseExtensions
     extension<T> (NodeDataBuilder<T> builder)
         where T : class
     {
+        public void MutableGuard()
+        {
+            // if (builder.IsReadOnly)
+            // {
+            //     throw new MutatingOperationCalledOnReadOnlyBuilder();
+            // }
+        }
+
         public T ConfigureValue(Action<T> configure)
         {
+            builder.MutableGuard();
             var val = builder.Value();
             configure(val);
             return val;
         }
+
         public T CopyValue(T value)
         {
+            builder.MutableGuard();
             var x = builder.Enable();
             value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Copy(value);
             x.SetValue(value);
             return value;
         }
+
         public T Value()
         {
+            builder.MutableGuard();
             var x = builder.Enable();
             if (x.GetValue() is not { } val)
             {
@@ -73,13 +95,38 @@ public static class BaseExtensions
             return val;
         }
 
+        public T? TryGetValue()
+        {
+            var container = builder.Node.Get(builder.DataKey);
+            if (!container.Exists)
+            {
+                return null;
+            }
+            if (container.Value.GetValue() is { } val)
+            {
+                return val;
+            }
+            return null;
+        }
+
         public NodeDataContainer<T> Enable()
         {
-            return builder.Node.GetOrAdd(builder.DataKey);
+            builder.MutableGuard();
+            var ret = builder.Node.GetOrAdd(builder.DataKey);
+            return ret;
         }
+
         public void Configure(Action<NodeDataBuilder<T>> configure)
         {
+            builder.MutableGuard();
             configure(builder);
         }
     }
 }
+
+// public sealed class MutatingOperationCalledOnReadOnlyBuilder : Exception
+// {
+//     public MutatingOperationCalledOnReadOnlyBuilder() : base("Mutating operation called on read only builder")
+//     {
+//     }
+// }
