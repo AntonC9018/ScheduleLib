@@ -1,8 +1,8 @@
 namespace Desktop.ViewModels;
 
-public struct ObservableValueSource<T>(T initialValue)
+public struct ObservableValueSource<T>(T initialValue, IDispatcher<T> dispatcher)
 {
-    public readonly EventSource<T> Event = new();
+    public readonly EventSource<T> Event = new(dispatcher);
     private T _value = initialValue;
     public void SetDirect(T value) => _value = value;
     public T Value
@@ -56,4 +56,19 @@ public static class ObservableValueHelper
 {
     public static ObservableValue<T> As<T>(this ref ObservableValueSource<T> s) => new(ref s);
     public static ReadOnlyObservableValue<T> AsReadOnly<T>(this ref ObservableValueSource<T> s) => new(ref s);
+
+    extension<T>(IDispatcher<T> d)
+    {
+        public ObservableValueSource<T> CreateObservableValue(T initialValue)
+        {
+            return new(initialValue, d);
+        }
+    }
+    extension (IDispatcher d)
+    {
+        public ObservableValueSource<T> CreateObservableValue<T>(T initialValue)
+        {
+            return new(initialValue, d.GetDispatcher<T>());
+        }
+    }
 }

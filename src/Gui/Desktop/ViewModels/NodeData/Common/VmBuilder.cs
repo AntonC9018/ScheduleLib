@@ -55,7 +55,7 @@ public struct VmBuilderData<T> : IDisposable
         DataStore = p.DataStore;
         ServiceProvider = p.ServiceProvider;
         Accessor = new(
-            p.DataStore.TreeBuilder,
+            p.DataStore.TreeContext.Tree,
             p.DataStore.SelectedNodePath,
             key);
     }
@@ -187,6 +187,7 @@ public static class VmBuilderExtensions
         {
             var vm = b.VM;
             var host = new ConfigNodeVmHost<T>(
+                b.Data.DataStore.TreeContext.Dispatcher,
                 b.Data.Accessor,
                 vm,
                 vm.UpdateSelection,

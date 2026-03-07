@@ -32,6 +32,8 @@ public sealed partial class App : Application
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
 
+        services.AddSingleton<TreeContext>();
+
         services.AddView<MainWindowView>();
 
         services.AddTransient<NodeDataEditorView>();

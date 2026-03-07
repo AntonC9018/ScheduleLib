@@ -17,65 +17,90 @@ public readonly struct EventSubscription<T> : IDisposable
     public void Dispose() => _ev.Unsub(_action);
 }
 
+public readonly struct EventSubscription(EventSubscription<Void> impl) : IDisposable
+{
+    private readonly EventSubscription<Void> _impl = impl;
+    public void Dispose() => _impl.Dispose();
+    public static implicit operator EventSubscription<Void>(EventSubscription s) => s._impl;
+    public static implicit operator EventSubscription(EventSubscription<Void> s) => new(s);
+}
+
+public readonly struct Event
+{
+    private readonly Event<Void> _impl;
+    public Event(Event<Void> impl) => _impl = impl;
+    public EventSubscription Sub(Action action) => _impl.Sub(action);
+    public static implicit operator Event(EventSource<Void> impl) => new(impl);
+}
+
 public readonly struct Event<T>
 {
     private readonly EventSource<T> _impl;
     public Event(EventSource<T> impl) => _impl = impl;
     public EventSubscription<T> Sub(Action<T> action) => _impl.Sub(action);
-    public void Unsub(Action<T> action) => _impl.Unsub(action);
+    internal void Unsub(Action<T> action) => _impl.Unsub(action);
     public static implicit operator Event<T>(EventSource<T> impl) => new(impl);
+}
+
+public readonly struct Void();
+
+public static class EventSourceExtensions
+{
+    extension (EventSource<Void> s)
+    {
+        public void Invoke() => s.Invoke(default);
+    }
+    extension (Event<Void> s)
+    {
+        public EventSubscription<Void> Sub(Action a)
+        {
+            var ret = s.Sub(x =>
+            {
+                _ = x;
+                a();
+            });
+            return ret;
+        }
+    }
+    extension (IDispatcher d)
+    {
+        public EventSource<T> CreateEvent<T>() => new(d.GetDispatcher<T>());
+        public EventSource<Void> CreateEvent() => new(d.GetDispatcher<Void>());
+    }
+    extension<T>(IDispatcher<T> d)
+    {
+        public EventSource<T> CreateEvent() => new(d);
+    }
 }
 
 public sealed class EventSource<T>
 {
     private Action<T>? _impl;
-    public void Invoke(T val) => _impl?.Invoke(val);
+    private readonly IDispatcher<T> _dispatcher;
+
+    public EventSource(IDispatcher<T> dispatcher)
+    {
+        _dispatcher = dispatcher;
+    }
+
+    public void Invoke(T val)
+    {
+        if (_impl != null)
+        {
+            _dispatcher.Post(this, _impl, val);
+        }
+    }
+
     public EventSubscription<T> Sub(Action<T> action)
     {
         _impl += action;
         return new(this, action);
     }
 
-    public void Unsub(Action<T> action)
+    internal void Unsub(Action<T> action)
     {
         _impl -= action;
     }
 
     public Event<T> As() => this;
-}
-
-public readonly struct EventSubscription : IDisposable
-{
-    private readonly Event _ev;
-    private readonly Action _action;
-
-    public EventSubscription(Event ev, Action action)
-    {
-        _ev = ev;
-        _action = action;
-    }
-
-    public void Dispose() => _ev.Unsub(_action);
-}
-
-public readonly struct Event
-{
-    private readonly EventSource _impl;
-    public Event(EventSource impl) => _impl = impl;
-    public EventSubscription Sub(Action action) => _impl.Sub(action);
-    public void Unsub(Action action) => _impl.Unsub(action);
-    public static implicit operator Event(EventSource impl) => new(impl);
-}
-
-public sealed class EventSource
-{
-    private Action? _impl;
-    public void Invoke() => _impl?.Invoke();
-    public EventSubscription Sub(Action action)
-    {
-        _impl += action;
-        return new(this, action);
-    }
-
-    public void Unsub(Action action) => _impl -= action;
 }

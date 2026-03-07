@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
@@ -25,9 +24,9 @@ public sealed record class UiNode
     public override string ToString() => IsNull ? "No User" : Name.ToString();
 }
 
-public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposable
+public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable
 {
-    private readonly EventSource<UiNode> _nodeSelected = new();
+    private readonly EventSource<UiNode> _nodeSelected;
     public Event<UiNode> NodeSelected() => _nodeSelected;
 
     public UiNode Value
@@ -67,11 +66,12 @@ public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposa
     private readonly TreeBuilder _tree;
 
     public UiSelectedNodeViewModel(
-        TreeBuilder tree,
-        SelectedNodePathModel pathSelectionModel)
+        TreeContext t,
+        SelectedNodePathModel pathSelectionModel) : base(t.Dispatcher)
     {
+        _nodeSelected = t.Dispatcher.CreateEvent<UiNode>();
         _path = pathSelectionModel;
-        _tree = tree;
+        _tree = t.Tree;
         _nodePathSub = pathSelectionModel.NodePath.Changed.Sub(path =>
         {
             _ = path;

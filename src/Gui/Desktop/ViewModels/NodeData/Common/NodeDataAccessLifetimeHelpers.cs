@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Anton.LayeredData;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Desktop.ViewModels;
 
@@ -16,10 +17,12 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable
     private readonly EventSubscription _subscription;
 
     public ConfigNodeVmHost(
+        IDispatcher dispatcher,
         ConfigAccessor<T> accessor,
         IDisposable inner,
         Action<NodeDataBuilder<T>> onChange,
         Event dataChangedProvider)
+        : base(dispatcher)
     {
         _accessor = accessor;
         Inner = inner;
@@ -43,7 +46,7 @@ public interface IConfigViewModel<T> : INotifyPropertyChanged
     public void UpdateSelection(NodeDataBuilder<T> builder);
 }
 
-public abstract class NodeDataViewModelBase<T> : ViewModelBase, IDisposable, IConfigViewModel<T>
+public abstract class NodeDataViewModelBase<T> : ObservableObject, IDisposable, IConfigViewModel<T>
     where T : class
 {
     public virtual void Dispose()
@@ -58,11 +61,6 @@ public abstract class NodeDataViewModelBase<T> : ViewModelBase, IDisposable, ICo
     void IConfigViewModel<T>.UpdateSelection(NodeDataBuilder<T> builder)
     {
         UpdateSelection(builder);
-        AllPropertiesChanged();
-    }
-
-    protected void AllPropertiesChanged()
-    {
         OnPropertyChanged((string?) null);
     }
 }

@@ -1,5 +1,5 @@
+using System.Diagnostics;
 using Anton.LayeredData;
-using Anton.LayeredData.TreeEnumeration;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ScheduleLib.Application.Config;
 
@@ -24,11 +24,12 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
     }
 
     public UiNodeSelectionViewModel(
-        TreeBuilder tree,
+        TreeContext t,
         Event treeStructureChanged,
         UiSelectedNodeViewModel uiNode)
+        : base(t.Dispatcher)
     {
-        _tree = tree;
+        _tree = t.Tree;
         _uiNode = uiNode;
         _treeStructureChangedSub = treeStructureChanged.Sub(() =>
         {
@@ -37,10 +38,8 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
         _uiNodeChangedSub = uiNode.NodeSelected().Sub(n =>
         {
             // Maybe assert this?
-            if (AllNodes.Contains(n))
-            {
-                SelectedNode = n;
-            }
+            Debug.Assert(AllNodes.Contains(n));
+            SelectedNode = n;
         });
         _allNodes = null!;
         _selectedNode = UiNode.Null;

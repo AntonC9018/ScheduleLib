@@ -18,6 +18,7 @@ public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
     public NodeDataEditorViewModel(
         DataStore dataStore,
         NodeDataViewModelResolver modelResolver)
+        : base(dataStore.TreeContext.Dispatcher)
     {
         _user = dataStore;
         _modelResolver = modelResolver;

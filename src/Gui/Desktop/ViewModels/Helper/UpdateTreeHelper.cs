@@ -11,7 +11,7 @@ namespace Desktop.ViewModels;
 public sealed partial class UpdateTreeHelper
 {
     private readonly SelectedNodePathModel _path;
-    private readonly TreeBuilder _tree;
+    private readonly TreeContext _treeContext;
 
     public void ExecTreeAction(Func<NodePath> change)
     {
@@ -24,10 +24,11 @@ public sealed partial class UpdateTreeHelper
 
     public async ValueTask ExecTreeActionAsync(Func<ValueTask<NodePath>> change)
     {
+        var previousPath = _path.NodePath.Get();
         var path = await change();
         if (path == default)
         {
-            path = CreateNewPath(_path.NodePath.Get());
+            path = CreateNewPath(previousPath);
         }
         Debug.Assert(path != default);
         await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
@@ -93,7 +94,7 @@ public sealed partial class UpdateTreeHelper
                     continue;
                 }
                 // We only have branching on the first level currently, so this is impossible.
-                Debug.Assert(_tree.BaseNode == currentNode);
+                Debug.Assert(_treeContext.Tree.BaseNode == currentNode);
                 return prevNodePath;
             }
             return new(builder.DrainToImmutable());

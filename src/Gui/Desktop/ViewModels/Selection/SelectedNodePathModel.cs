@@ -3,10 +3,6 @@ using Anton.LayeredData.TreeEnumeration;
 
 namespace Desktop.ViewModels;
 
-public readonly record struct SelectedNodePathValues(
-    NodePath Path,
-    Layer Layer);
-
 public sealed partial class SelectedNodePathModel
 {
     private ObservableValueSource<NodePath> _nodePath;
@@ -18,14 +14,14 @@ public sealed partial class SelectedNodePathModel
     private ObservableValueSource<MutableNode?> _selectedNode;
     public ReadOnlyObservableValue<MutableNode?> SelectedNode => _selectedNode.AsReadOnly();
 
-    public SelectedNodePathModel(TreeBuilder b)
+    public SelectedNodePathModel(TreeContext t)
     {
-        var n = b.BaseNode;
-        var empty = CreateEmptyPath(b);
+        var n = t.Tree.BaseNode;
+        var empty = CreateEmptyPath(t.Tree);
 
-        _nodePath = new(empty);
-        _selectedLayer = new(n.Layer);
-        _selectedNode = new(FindNode());
+        _nodePath = t.Dispatcher.CreateObservableValue(empty);
+        _selectedLayer = t.Dispatcher.CreateObservableValue(n.Layer);
+        _selectedNode = t.Dispatcher.CreateObservableValue(FindNode());
 
         _nodePath.Event.Sub(p =>
         {

@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
@@ -10,34 +12,47 @@ using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
+public sealed class UiSettings
+{
+    public string DatabaseFilePath { get; set; } = "ui-layers.json";
+    public bool OpenAfterSave { get; set; }
+}
+
 public sealed partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly TreeBuilder _configBuilder;
+    private readonly TreeContext _treeContext;
+    private TreeBuilder Tree => _treeContext.Tree;
     private readonly TreeSerializer _serializer;
     internal readonly DataStore _dataStore;
     private readonly UpdateTreeHelper _updateTreeHelper;
+    private readonly IOptions<UiSettings> _settings;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
     public UiNodeSelectionViewModel NodeSelection { get; }
     public LayerLevelSelectionViewModel LayerLevelSelection { get; }
 
     public MainWindowViewModel(
-        TreeBuilder configBuilder,
+        TreeContext treeContext,
         TreeSerializer serializer,
-        IServiceProvider sp)
+        IServiceProvider sp,
+        IOptions<UiSettings> settings)
+        : base(treeContext.Dispatcher)
     {
-        _configBuilder = configBuilder;
+        _treeContext = treeContext;
+        _settings = settings;
         _serializer = serializer;
-        _dataStore = DataStore.Create(configBuilder);
-        _updateTreeHelper = new(_dataStore.SelectedNodePath, configBuilder);
+        _dataStore = DataStore.Create(treeContext);
+        _updateTreeHelper = new(_dataStore.SelectedNodePath, treeContext);
 
         // We own the instance, not the SP
         NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_dataStore]);
         NodeSelection = new(
-            configBuilder,
+            treeContext,
             _dataStore.TreeStructureChanged,
             _dataStore.UiSelectedNodeView);
-        LayerLevelSelection = new(_dataStore.SelectedNodePath);
+        LayerLevelSelection = new(
+            treeContext.Dispatcher,
+            _dataStore.SelectedNodePath);
 
         LayerLevelSelection.LayerLevelChanged.Sub(layer =>
         {
@@ -103,10 +118,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         _updateTreeHelper.ExecTreeAction(() =>
         {
-            var layer = _configBuilder.Defaults.CreateUiLayer();
+            var layer = Tree.Defaults.CreateUiLayer();
             var val = layer.Builder<TeacherLayerConfig>().Value();
             val.TeacherName = name;
-            return new([_configBuilder.BaseNode, layer.Node]);
+            return new([Tree.BaseNode, layer.Node]);
         });
 
         UserNameToAdd = "";
@@ -140,7 +155,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Debug.Assert(CanRemoveSelectedUser);
         _updateTreeHelper.ExecTreeAction(() =>
         {
-            UiLayerHelper.MaybeRemoveLayer(SelectedUiNode.Leaf.Node, _configBuilder);
+            UiLayerHelper.MaybeRemoveLayer(SelectedUiNode.Leaf.Node, Tree);
             return default;
         });
     }
@@ -187,10 +202,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     public async Task SerializeUiLayers()
     {
-        var file = "ui-layers.json";
-        await using var output = File.OpenWrite(file);
-        await _serializer.SerializeUiLayers(output, _configBuilder).ConfigureAwait(false);
-        ExplorerHelper.TryOpenExplorerAndSelectFile(file);
+        var s = _settings.Value;
+        await using var output = File.OpenWrite(s.DatabaseFilePath);
+        await _serializer.SerializeUiLayers(output, Tree).ConfigureAwait(false);
+        ExplorerHelper.TryOpenExplorerAndSelectFile(s.DatabaseFilePath);
     }
 
     [RelayCommand]
@@ -199,9 +214,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         await _updateTreeHelper.ExecTreeActionAsync(async () =>
         {
             await using var output = File.OpenRead("ui-layers.json");
-            await _serializer.DeserializeUiLayers(output, _configBuilder).ConfigureAwait(false);
+            await _serializer.DeserializeUiLayers(output, Tree).ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(
+                () => _dataStore.TreeStructureChanged.Invoke());
             return default;
         });
-        _dataStore.TreeStructureChanged.Invoke();
     }
 }

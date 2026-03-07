@@ -29,14 +29,18 @@ public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDispo
     public partial LayerLevel LayerLevel { get; set; } = LayerLevel.Default;
     public EnumMembers<LayerLevel> AllLayerLevels => new();
 
-    private readonly EventSource<LayerLevel> _layerLevelChanged = new();
+    private readonly EventSource<LayerLevel> _layerLevelChanged;
     public EventSource<LayerLevel> LayerLevelChanged => _layerLevelChanged;
 
     private readonly EventSubscription<Layer> _layerChangedSub;
     private readonly SelectedNodePathModel _path;
 
-    public LayerLevelSelectionViewModel(SelectedNodePathModel path)
+    public LayerLevelSelectionViewModel(
+        TreeEventDispatcher dispatcher,
+        SelectedNodePathModel path)
+        : base(dispatcher)
     {
+        _layerLevelChanged = dispatcher.CreateEvent<LayerLevel>();
         _path = path;
         _layerChangedSub = path.SelectedLayer.Changed.Sub(layer =>
         {
