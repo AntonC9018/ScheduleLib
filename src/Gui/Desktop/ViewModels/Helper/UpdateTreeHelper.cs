@@ -24,6 +24,8 @@ public sealed partial class UpdateTreeHelper
 
     public async ValueTask ExecTreeActionAsync(Func<ValueTask<NodePath>> change)
     {
+        _treeContext.Dispatcher.StartQueueing();
+
         var previousPath = _path.NodePath.Get();
         var path = await change();
         if (path == default)
@@ -31,11 +33,12 @@ public sealed partial class UpdateTreeHelper
             path = CreateNewPath(previousPath);
         }
         Debug.Assert(path != default);
+        _path.NodePath.Set(path);
         await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
 
         void Continue()
         {
-            _path.NodePath.Set(path);
+            _treeContext.Dispatcher.EndQueueing();
         }
     }
 

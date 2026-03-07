@@ -19,6 +19,15 @@ public sealed partial class App : Application
 
     public static void AddViewModels(IServiceCollection services)
     {
+        services.AddSingleton<TreeEventDispatcher>();
+        services.AddSingleton<TreeContext>();
+        services.AddSingleton<UiTreeSerializer>();
+        services.AddSingleton<IUiTreeOutputProvider, UiTreeOutputProvider>();
+        services.AddOptions<UiTreeSerializerSettings>().Configure(x =>
+        {
+            x.OpenAfterSave = true;
+        });
+
         services.AddTransient<MainWindowViewModel>();
 
         NodeDataViewModelResolver.Register(services);
@@ -31,8 +40,6 @@ public sealed partial class App : Application
 
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
-
-        services.AddSingleton<TreeContext>();
 
         services.AddView<MainWindowView>();
 

@@ -1,31 +1,21 @@
 ﻿using System.Diagnostics;
 using Anton.LayeredData;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 
 namespace Desktop.ViewModels;
 
-public sealed class UiSettings
-{
-    public string DatabaseFilePath { get; set; } = "ui-layers.json";
-    public bool OpenAfterSave { get; set; }
-}
-
 public sealed partial class MainWindowViewModel : ViewModelBase
 {
     private readonly TreeContext _treeContext;
     private TreeBuilder Tree => _treeContext.Tree;
-    private readonly TreeSerializer _serializer;
     internal readonly DataStore _dataStore;
+    private readonly UiTreeSerializer _serializer;
     private readonly UpdateTreeHelper _updateTreeHelper;
-    private readonly IOptions<UiSettings> _settings;
 
     public NodeDataEditorViewModel NodeDataEditor { get; }
     public UiNodeSelectionViewModel NodeSelection { get; }
@@ -33,13 +23,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel(
         TreeContext treeContext,
-        TreeSerializer serializer,
-        IServiceProvider sp,
-        IOptions<UiSettings> settings)
+        UiTreeSerializer serializer,
+        IServiceProvider sp)
         : base(treeContext.Dispatcher)
     {
         _treeContext = treeContext;
-        _settings = settings;
         _serializer = serializer;
         _dataStore = DataStore.Create(treeContext);
         _updateTreeHelper = new(_dataStore.SelectedNodePath, treeContext);
@@ -71,13 +59,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-    // public void Dispose()
-    // {
-    //     NodeDataEditor.Dispose();
-    //     NodeSelection.Dispose();
-    //     LayerLevelSelection.Dispose();
-    //     _dataStore.Dispose();
-    // }
     private LayerLevel LayerLevel
     {
         get => LayerLevelSelection.LayerLevel;
@@ -202,10 +183,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     public async Task SerializeUiLayers()
     {
-        var s = _settings.Value;
-        await using var output = File.OpenWrite(s.DatabaseFilePath);
-        await _serializer.SerializeUiLayers(output, Tree).ConfigureAwait(false);
-        ExplorerHelper.TryOpenExplorerAndSelectFile(s.DatabaseFilePath);
+        await _serializer.Serialize(Tree);
     }
 
     [RelayCommand]
@@ -213,11 +191,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         await _updateTreeHelper.ExecTreeActionAsync(async () =>
         {
-            await using var output = File.OpenRead("ui-layers.json");
-            await _serializer.DeserializeUiLayers(output, Tree).ConfigureAwait(false);
-            await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(
-                () => _dataStore.TreeStructureChanged.Invoke());
+            await _serializer.Deserialize(Tree);
             return default;
         });
+        _dataStore.TreeStructureChanged.Invoke();
     }
 }

@@ -5,7 +5,7 @@ namespace Desktop.ViewModels;
 
 public abstract class ViewModelBase : ObservableObject
 {
-    private readonly IDispatcher _dispatcher;
+    protected readonly IDispatcher _dispatcher;
 
     protected ViewModelBase(IDispatcher dispatcher)
     {

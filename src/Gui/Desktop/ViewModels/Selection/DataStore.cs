@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Anton.LayeredData;
 using Avalonia.Threading;
 
@@ -69,25 +70,41 @@ public sealed class TreeEventDispatcher : IDispatcher
 {
     public IDispatcher<T> GetDispatcher<T>() => new DelegatingDispatcher<T>(this);
 
-    private bool _isQueueing;
+    private enum QueueingState
+    {
+        NotQueueing,
+        Queueing,
+        EmptyingQueue,
+    }
+    private QueueingState _isQueueing;
 
-    private readonly record struct Key(CallerIdentity CallerId, Type Type, string? PropertyName);
+    private readonly record struct Key(CallerIdentity CallerId, Type Type, string? PropertyName = null);
+
     private readonly ConcurrentQueue<Key> _keyQueue = new();
     private readonly ConcurrentDictionary<Key, Action> _latestActions = new();
 
     public void StartQueueing()
     {
-        if (!_keyQueue.IsEmpty
-            || Interlocked.CompareExchange(ref _isQueueing, true, false))
+        bool areQueuesEmpty = _keyQueue.IsEmpty && _latestActions.IsEmpty;
+        var prevState = Interlocked.CompareExchange(
+            ref _isQueueing,
+            value: QueueingState.Queueing,
+            comparand: QueueingState.NotQueueing);
+        if (prevState != QueueingState.NotQueueing || !areQueuesEmpty)
         {
             Debug.Fail("Started two queue ops at once?");
             return;
         }
+        Debug.Assert(Volatile.Read(ref _isQueueing) == QueueingState.Queueing);
     }
 
     public void EndQueueing()
     {
-        if (Interlocked.CompareExchange(ref _isQueueing, false, false))
+        var prevQueueing = Interlocked.CompareExchange(
+                ref _isQueueing,
+                value: QueueingState.EmptyingQueue,
+                comparand: QueueingState.Queueing);
+        if (prevQueueing != QueueingState.Queueing)
         {
             throw new InvalidOperationException("Cannot end queueing while not queueing");
         }
@@ -98,8 +115,12 @@ public sealed class TreeEventDispatcher : IDispatcher
                 throw new InvalidOperationException("Can only end queueing on the UI thread");
             }
 
-            while (_keyQueue.TryDequeue(out var key))
+            while (true)
             {
+                if (!_keyQueue.TryDequeue(out var key))
+                {
+                    break;
+                }
                 if (_latestActions.TryRemove(key, out var action))
                 {
                     action();
@@ -110,12 +131,21 @@ public sealed class TreeEventDispatcher : IDispatcher
         {
             _keyQueue.Clear();
             _latestActions.Clear();
+            throw;
+        }
+        finally
+        {
+            var updatedPrevQueueing = Interlocked.CompareExchange(
+                ref _isQueueing,
+                value: QueueingState.NotQueueing,
+                comparand: QueueingState.EmptyingQueue);
+            Debug.Assert(updatedPrevQueueing == QueueingState.EmptyingQueue);
         }
     }
 
     public void Post<T>(PostArgs<T> args)
     {
-        if (Volatile.Read(ref _isQueueing) == false)
+        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
@@ -125,24 +155,40 @@ public sealed class TreeEventDispatcher : IDispatcher
             return;
         }
 
-        var key = new Key(args.CallerId, typeof(T), PropertyName: null);
-        if (args.Arg is PropertyChangedEventArgs changedArgs)
+        var key = new Key(args.CallerId, typeof(T));
+
+        // When queueing, just have it reset all properties for now.
+        // if (args.Arg is PropertyChangedEventArgs)
+        // {
+        //     args = args with
+        //     {
+        //         Arg = (T) (object) new PropertyChangedEventArgs(null),
+        //     };
+        // }
+        // else if (args.Arg is PropertyChangingEventArgs)
+        // {
+        //     args = args with
+        //     {
+        //         Arg = (T) (object) new PropertyChangingEventArgs(null),
+        //     };
+        // }
+
+        if (args.Arg is PropertyChangedEventArgs a1)
         {
             key = key with
             {
-                PropertyName = changedArgs.PropertyName,
+                PropertyName = a1.PropertyName,
             };
         }
-        else if (args.Arg is PropertyChangingEventArgs changingArgs)
+        else if (args.Arg is PropertyChangingEventArgs a2)
         {
             key = key with
             {
-                PropertyName = changingArgs.PropertyName,
+                PropertyName = a2.PropertyName,
             };
         }
 
         var action = args.GetInvoker();
-
         _latestActions.AddOrUpdate(
             key,
             addValueFactory: k =>
@@ -157,11 +203,57 @@ public sealed class TreeEventDispatcher : IDispatcher
                 return action;
             });
 
-        if (Volatile.Read(ref _isQueueing) == false)
+        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
         {
             // This is kind of the best we can do.
             _latestActions.TryRemove(key, out _);
             throw new InvalidOperationException("Queueing ended before the final message was processed");
+        }
+    }
+}
+
+public static class VolatileExtensions
+{
+    extension (Volatile)
+    {
+        public static T Read<T>(ref T location) where T : struct, Enum
+        {
+            switch (Unsafe.SizeOf<T>())
+            {
+                case 1:
+                {
+                    ref var x = ref Unsafe.As<T, byte>(ref location);
+                    byte ret = Volatile.Read(ref x);
+                    ref var ret1 = ref Unsafe.As<byte, T>(ref ret);
+                    return ret1;
+                }
+                case 2:
+                {
+                    ref var x = ref Unsafe.As<T, short>(ref location);
+                    short ret = Volatile.Read(ref x);
+                    ref var ret1 = ref Unsafe.As<short, T>(ref ret);
+                    return ret1;
+                }
+                case 4:
+                {
+                    ref var x = ref Unsafe.As<T, int>(ref location);
+                    int ret = Volatile.Read(ref x);
+                    ref var ret1 = ref Unsafe.As<int, T>(ref ret);
+                    return ret1;
+                }
+                case 8:
+                {
+                    ref var x = ref Unsafe.As<T, long>(ref location);
+                    long ret = Volatile.Read(ref x);
+                    ref var ret1 = ref Unsafe.As<long, T>(ref ret);
+                    return ret1;
+                }
+                default:
+                {
+                    throw new NotSupportedException(
+                        $"Enum underlying type size {Unsafe.SizeOf<T>()} is not supported.");
+                }
+            }
         }
     }
 }

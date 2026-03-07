@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
-using CommunityToolkit.Mvvm.ComponentModel;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Parsing;
 

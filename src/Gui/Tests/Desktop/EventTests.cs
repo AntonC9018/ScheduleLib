@@ -5,6 +5,7 @@ using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
 using Desktop.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib.Parsing;
 
 namespace Desktop.Tests;
@@ -37,6 +38,15 @@ public sealed class EventTests
         Assert.True(c.Main.CanSelectUser);
     }
 
+    private void SelectPerson(Context c)
+    {
+        var name = NameHelper.Parse("Curmanschii Anton");
+        var nodeSelection = c.Main.NodeSelection;
+        var nodeToSelect = nodeSelection.Model.AllNodes
+            .Single(x => !x.IsNull && x.Name == name);
+        nodeSelection.Model.SelectedNode = nodeToSelect;
+    }
+
     [Fact]
     public async Task NodeChangedTest()
     {
@@ -46,11 +56,7 @@ public sealed class EventTests
         c.Main.LayerLevelSelection.LayerLevel = LayerLevel.ProgrammableUser;
         c.RecorderSource.StartRecording();
 
-        var name = NameHelper.Parse("Curmanschii Anton");
-        var nodeSelection = c.Main.NodeSelection;
-        var nodeToSelect = nodeSelection.AllNodes
-            .Single(x => !x.IsNull && x.Name == name);
-        nodeSelection.SelectedNode = nodeToSelect;
+        SelectPerson(c);
 
         c.RecorderSource
             .Expect(c.Tags.SelectedNode)
@@ -84,6 +90,57 @@ public sealed class EventTests
         Assert.True(c.Main.CanRemoveSelectedUser);
     }
 
+    [Fact]
+    public async Task ReloadWorks()
+    {
+        await using var c = Context.Create();
+
+        c.RecorderSource.PauseRecording();
+
+        var layerSelection = c.Main.LayerLevelSelection;
+        layerSelection.LayerLevel = LayerLevel.UiUser;
+        SelectPerson(c);
+        c.Main.EnableSelectedUser();
+
+        c.RecorderSource.StartRecording();
+
+        c.SerializerTreeOutputProvider.SetValue("[]"u8);
+        await c.Main.DeserializeUiLayers();
+
+        c.RecorderSource
+            .Expect(c.Tags.TreeChangedRecorder)
+            .SingleEvent();
+
+        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeView.Value.Name.ToString());
+    }
+}
+
+public sealed class MockUiTreeOutputProvider : IUiTreeOutputProvider, IDisposable
+{
+    private readonly MemoryStream _mem = new();
+
+    public void SetValue(ReadOnlySpan<byte> str)
+    {
+        _mem.Seek(0, SeekOrigin.Begin);
+        _mem.Write(str);
+        _mem.SetLength(_mem.Position);
+    }
+
+    public Stream GetWrite(TreeBuilder tree)
+    {
+        _mem.Seek(0, SeekOrigin.Begin);
+        return _mem;
+    }
+
+    public Stream GetRead(TreeBuilder tree)
+    {
+        return GetWrite(tree);
+    }
+
+    public void Dispose()
+    {
+        _mem.Dispose();
+    }
 }
 
 public sealed class Context : IAsyncDisposable
@@ -93,17 +150,20 @@ public sealed class Context : IAsyncDisposable
     public MainWindowViewModel Main { get; }
     public AllRecorders Tags { get; }
     public DataStore Data => Main._dataStore;
+    public MockUiTreeOutputProvider SerializerTreeOutputProvider { get; }
 
     public Context(
         ServiceProvider serviceProvider,
         EventRecorderSource recorderSource,
         MainWindowViewModel main,
-        AllRecorders tags)
+        AllRecorders tags,
+        MockUiTreeOutputProvider serializerTreeOutputProvider)
     {
         ServiceProvider = serviceProvider;
         RecorderSource = recorderSource;
         Main = main;
         Tags = tags;
+        SerializerTreeOutputProvider = serializerTreeOutputProvider;
     }
 
     public async ValueTask DisposeAsync()
@@ -117,6 +177,10 @@ public sealed class Context : IAsyncDisposable
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
         App.AddViewModels(services);
+
+        services.RemoveAll<IUiTreeOutputProvider>();
+        services.AddSingleton<IUiTreeOutputProvider, MockUiTreeOutputProvider>();
+
         var sp = AppConfiguration.BuildServiceProvider(services);
 
         try
@@ -130,7 +194,14 @@ public sealed class Context : IAsyncDisposable
             _ = tags;
     #pragma warning restore CA2000
 
-            return new(sp, recorderSource, main, tags);
+            var t = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
+
+            return new(
+                sp,
+                recorderSource,
+                main,
+                tags,
+                t);
         }
         catch
         {
@@ -140,327 +211,3 @@ public sealed class Context : IAsyncDisposable
     }
 }
 
-public readonly record struct Ev(EventRecorder Recorder, object? Payload)
-{
-    public T? GetPayload<T>() => (T?) Payload;
-}
-
-public sealed class EventRecorderSource : IEnumerable<Ev>
-{
-    private readonly List<Ev> Events = new();
-    private bool _isRecording = true;
-
-    public bool StartRecording() => _isRecording = true;
-    public bool PauseRecording() => _isRecording = false;
-    public void ClearRecorded() => Events.Clear();
-
-    public void AddEvent(Ev ev)
-    {
-        if (_isRecording)
-        {
-            Events.Add(ev);
-        }
-    }
-
-    public EventRecorder<T> Record<T>(Event<T> e) => new(this, e);
-    public EventRecorder1 Record(Event e) => new(this, e);
-    public PropertyChangedRecorder Record(INotifyPropertyChanged e) => new(e, this);
-    public CanExecuteChangedRecorder Record(ICommand e) => new(e, this);
-
-    public IEnumerator<Ev> GetEnumerator() => Events.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => Events.GetEnumerator();
-}
-
-public sealed class AllRecorders : IDisposable
-{
-    public EventRecorder<NodePath> NodePath { get; }
-    public EventRecorder<Layer> SelectedLayer { get; }
-    public EventRecorder<MutableNode?> SelectedNode { get; }
-    public EventRecorder<LayerLevel> SelectedLevel { get; }
-    public EventRecorder<UiNode> SelectedUiNode { get; }
-    public PropertyChangedRecorder NodeSelected { get; }
-    public EventRecorder1 NodeData { get; }
-    public PropertyChangedRecorder Main { get; }
-    public CanExecuteChangedRecorder CanEnableSelectedUser { get; }
-    public CanExecuteChangedRecorder CanRemoveSelectedUser { get; }
-
-    public AllRecorders(EventRecorderSource s, MainWindowViewModel main)
-    {
-        var store = main._dataStore;
-        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed).SetName("NodePath");
-        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed).SetName("SelectedLayer");
-        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed).SetName("SelectedNode");
-        SelectedUiNode = s.Record(store.UiSelectedNodeView.NodeSelected()).SetName("UiSelectedNode");
-        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged.As()).SetName("LayerLevel");
-        NodeSelected = s.Record(main.NodeSelection).SetName("NodeSelectionProperty");
-        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged).SetName("NodeData");
-        Main = s.Record(main).SetName("MainProperty");
-        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand).SetName("CanEnableSelectedUser");
-        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand).SetName("CanRemoveSelectedUser");
-    }
-
-    public void Dispose()
-    {
-        NodePath.Dispose();
-        SelectedLayer.Dispose();
-        SelectedNode.Dispose();
-        SelectedLevel.Dispose();
-        SelectedUiNode.Dispose();
-        NodeSelected.Dispose();
-        NodeData.Dispose();
-        Main.Dispose();
-    }
-}
-
-public abstract class EventRecorder : IDisposable
-{
-    public string? Name { get; set; }
-    public override string? ToString() => Name;
-    public virtual void Dispose()
-    {
-        GC.SuppressFinalize(this);
-    }
-}
-
-public abstract class EventRecorderBase<T> : EventRecorder
-{
-}
-
-public static partial class RecorderHelper
-{
-    public static T SetName<T>(this T e, string name) where T : EventRecorder
-    {
-        e.Name = name;
-        return e;
-    }
-}
-
-public sealed class PropertyChangedRecorder : EventRecorderBase<PropertyChangedEventArgs>
-{
-    private readonly EventRecorderSource _s;
-    private readonly INotifyPropertyChanged _x;
-
-    public PropertyChangedRecorder(
-        INotifyPropertyChanged x,
-        EventRecorderSource s)
-    {
-        _x = x;
-        _s = s;
-        x.PropertyChanged += Update;
-    }
-
-    public void Update(object? o, PropertyChangedEventArgs? args)
-    {
-        _s.AddEvent(new(this, args));
-    }
-
-    public override void Dispose()
-    {
-        _x.PropertyChanged -= Update;
-    }
-}
-
-public sealed class CanExecuteChangedRecorder : EventRecorderBase<EventArgs>
-{
-    private readonly EventRecorderSource _s;
-    private readonly ICommand _x;
-
-    public CanExecuteChangedRecorder(
-        ICommand x,
-        EventRecorderSource s)
-    {
-        _x = x;
-        _s = s;
-        x.CanExecuteChanged += Update;
-    }
-
-    public void Update(object? o, EventArgs? args)
-    {
-        _s.AddEvent(new(this, args));
-    }
-
-    public override void Dispose()
-    {
-        _x.CanExecuteChanged -= Update;
-    }
-}
-
-public static partial class RecorderHelper
-{
-    public static void Expect(
-        this Ev e,
-        PropertyChangedRecorder rec,
-        Action<PropertyChangedEventArgs?> a)
-    {
-        Assert.Same(rec, e.Recorder);
-        a((PropertyChangedEventArgs?) e.Payload);
-    }
-}
-
-
-public sealed partial class EventRecorder<T> : EventRecorderBase<T>
-{
-    private readonly EventSubscription<T> _eventSub;
-
-    public EventRecorder(
-        EventRecorderSource source,
-        Event<T> e)
-    {
-        _eventSub = e.Sub(x => source.AddEvent(new(this, x)));
-    }
-
-    public override void Dispose()
-    {
-        _eventSub.Dispose();
-    }
-}
-
-public readonly record struct ExpectHelper<T>(IEnumerable<Ev> Events)
-{
-    public void NotToBeFound()
-    {
-        Assert.Empty(Events);
-    }
-
-    public ExpectHelper<T> Where(Func<Ev, bool> f)
-    {
-        var t = Events.Where(f);
-        return new(t);
-    }
-
-    public ExpectHelper<T> WhereValue(Func<T?, bool> f)
-    {
-        var t = Events
-            .Select(x => (x, x.GetPayload<T>()))
-            .Where(x => f(x.Item2))
-            .Select(x => x.x);;
-        return new(t);
-    }
-
-    public ExpectHelperSingle<T> SingleEvent()
-    {
-        var v = Assert.Single(Events);
-        return new(v);
-    }
-
-    // public ExpectHelperOne<T> OnlyOne() => new(Events, HelperOneMode.OnlyOne);
-    public ExpectHelperOne<T> AtLeastOne()
-    {
-        Assert.NotEmpty(Events);
-        return new(Events, HelperOneMode.AtLeastOne);
-    }
-
-    public ExpectHelperAll<T> All() => new(Events);
-}
-
-public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
-{
-    public void WithValue(Action<T?> a)
-    {
-        Assert.All(Events.Select(x => x.GetPayload<T>()), a);
-    }
-
-    public void WithValues(params Action<T?>[] a)
-    {
-        Action<Ev> Wrapped(Action<T?> f)
-        {
-            return x => f(x.GetPayload<T>());
-        }
-        Assert.Collection(Events, a.Select(Wrapped).ToArray());
-    }
-}
-
-public enum HelperOneMode
-{
-    // Single,
-    OnlyOne,
-    AtLeastOne,
-}
-
-public readonly record struct ExpectHelperOne<T>(IEnumerable<Ev> Events, HelperOneMode Mode)
-{
-    public void WithValue(Func<T?, bool> a)
-    {
-        switch (Mode)
-        {
-            case HelperOneMode.OnlyOne:
-            {
-                Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
-            case HelperOneMode.AtLeastOne:
-            {
-                Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
-        }
-    }
-}
-
-public readonly record struct ExpectHelperSingle<T>(Ev Event)
-{
-    public void WithValue(Action<T?> a)
-    {
-        a(Event.GetPayload<T>());
-    }
-}
-
-public static partial class RecorderHelper
-{
-    public static void Expect<T>(
-        this Ev e,
-        EventRecorder<T> rec,
-        Action<T> a)
-    {
-        _ = rec;
-        Assert.Same(rec, e.Recorder);
-        a((T) e.Payload!);
-    }
-
-    // ?
-    // public static IEnumerable<(Ev Event, T? Value)> Expect<T>(
-    //     IEnumerable<Ev> s,
-    //     EventRecorderBase<T> rec)
-    // {
-    // }
-
-    public static ExpectHelper<T> Expect<T>(
-        this EventRecorderSource s,
-        EventRecorderBase<T> rec)
-    {
-        var x = s.Where(e => ReferenceEquals(e.Recorder, rec));
-        return new(x);
-    }
-}
-
-public sealed class EventRecorder1 : EventRecorder, IDisposable
-{
-    private readonly EventSubscription _eventSub;
-
-    public EventRecorder1(
-        EventRecorderSource source,
-        Event e)
-    {
-        _eventSub = e.Sub(() => source.AddEvent(new(this, null)));
-    }
-
-    public void Expect(Ev e)
-    {
-        Assert.Same(this, e.Recorder);
-    }
-
-    public override void Dispose()
-    {
-        _eventSub.Dispose();
-    }
-}
-
-public static partial class RecorderHelper
-{
-    public static void Expect(
-        this Ev e,
-        EventRecorder1 rec)
-    {
-        Assert.Same(rec, e.Recorder);
-    }
-}
