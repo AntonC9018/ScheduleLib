@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -29,10 +30,20 @@ public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposa
     private readonly EventSource<UiNode> _nodeSelected = new();
     public Event<UiNode> NodeSelected() => _nodeSelected;
 
-    [ObservableProperty]
-    public partial UiNode Value { get; set; } = UiNode.Null;
+    public UiNode Value
+    {
+        get;
+        set
+        {
+            Debug.Assert(value != null);
+            if (SetProperty(ref field, value))
+            {
+                OnValueChanged(field);
+            }
+        }
+    } = UiNode.Null;
 
-    partial void OnValueChanged(UiNode value)
+    private void OnValueChanged(UiNode value)
     {
         _nodeSelected.Invoke(value);
 
@@ -48,7 +59,7 @@ public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposa
                 .Select(x => x.Get(LayerPathContext.Key).Path())
                 .FirstOrDefault(path);
         }
-        _path.NodePath = path;
+        _path.NodePath.Set(path);
     }
 
     private readonly SelectedNodePathModel _path;
@@ -61,7 +72,7 @@ public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposa
     {
         _path = pathSelectionModel;
         _tree = tree;
-        _nodePathSub = pathSelectionModel.PathChanged.Sub(path =>
+        _nodePathSub = pathSelectionModel.NodePath.Changed.Sub(path =>
         {
             _ = path;
             var newNode = CreateCurrentNode();
@@ -71,7 +82,7 @@ public sealed partial class UiSelectedNodeViewModel : ObservableObject, IDisposa
 
     private UiNode CreateCurrentNode()
     {
-        var nodePath = _path.NodePath;
+        var nodePath = _path.NodePath.Get();
         var leaf = nodePath.Leaf;
         if (leaf.Layer != LayerKeys.TeacherLayerKey
             && leaf.Layer != UiLayerHelper.UiTeacherLayer)

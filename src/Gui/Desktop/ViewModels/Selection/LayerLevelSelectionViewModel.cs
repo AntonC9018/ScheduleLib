@@ -38,7 +38,7 @@ public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDispo
     public LayerLevelSelectionViewModel(SelectedNodePathModel path)
     {
         _path = path;
-        _layerChangedSub = path.SelectedLayerChanged.Sub(layer =>
+        _layerChangedSub = path.SelectedLayer.Changed.Sub(layer =>
         {
             LayerLevel = _mappings.FindKeyOrDefault(layer, LayerLevel.Default);
         });
@@ -46,7 +46,7 @@ public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDispo
 
     partial void OnLayerLevelChanged(LayerLevel value)
     {
-        _path.SelectedLayer = _mappings[value];
+        _path.SelectedLayer.Set(_mappings[value]);
         _layerLevelChanged.Invoke(value);
     }
 

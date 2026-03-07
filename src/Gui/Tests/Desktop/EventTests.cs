@@ -1,7 +1,10 @@
+using System.Collections;
 using System.ComponentModel;
+using System.Windows.Input;
+using Anton.LayeredData;
+using Anton.LayeredData.TreeEnumeration;
 using Desktop.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 
 namespace Desktop.Tests;
@@ -9,128 +12,455 @@ namespace Desktop.Tests;
 public sealed class EventTests
 {
     [Fact]
-    public async Task NodeEventTests()
+    public async Task LayerChangedTest()
+    {
+        await using var c = Context.Create();
+
+        var layerSelection = c.Main.LayerLevelSelection;
+        layerSelection.LayerLevel = LayerLevel.UiUser;
+
+        c.RecorderSource
+            .Expect(c.Tags.SelectedLevel)
+            .SingleEvent()
+            .WithValue(x => Assert.Equal(LayerLevel.UiUser, x));
+
+        c.RecorderSource
+            .Expect(c.Tags.SelectedLayer)
+            .SingleEvent()
+            .WithValue(x => Assert.Equal(UiLayerHelper.UiTeacherLayer, x));
+
+        var mainEvents = c.RecorderSource.Expect(c.Tags.Main);
+        mainEvents
+            .WhereValue(x => x?.PropertyName == nameof(c.Main.CanSelectUser))
+            .SingleEvent();
+
+        Assert.True(c.Main.CanSelectUser);
+    }
+
+    [Fact]
+    public async Task NodeChangedTest()
+    {
+        await using var c = Context.Create();
+
+        c.RecorderSource.PauseRecording();
+        c.Main.LayerLevelSelection.LayerLevel = LayerLevel.ProgrammableUser;
+        c.RecorderSource.StartRecording();
+
+        var name = NameHelper.Parse("Curmanschii Anton");
+        var nodeSelection = c.Main.NodeSelection;
+        var nodeToSelect = nodeSelection.AllNodes
+            .Single(x => !x.IsNull && x.Name == name);
+        nodeSelection.SelectedNode = nodeToSelect;
+
+        c.RecorderSource
+            .Expect(c.Tags.SelectedNode)
+            .SingleEvent();
+
+        c.RecorderSource
+            .Expect(c.Tags.SelectedUiNode)
+            .SingleEvent();
+
+        c.RecorderSource
+            .Expect(c.Tags.CanEnableSelectedUser)
+            .AtLeastOne();
+
+        Assert.True(c.Main.CanEnableSelectedUser);
+
+        c.RecorderSource.ClearRecorded();
+
+        c.Main.EnableSelectedUser();
+        Assert.True(c.Main.LayerLevelSelection.LayerLevel == LayerLevel.UiUser);
+        Assert.True(c.Data.SelectedNodePath.SelectedLayer.Get() == UiLayerHelper.UiTeacherLayer);
+
+        c.RecorderSource
+            .Expect(c.Tags.CanEnableSelectedUser)
+            .AtLeastOne();
+
+        c.RecorderSource
+            .Expect(c.Tags.CanRemoveSelectedUser)
+            .AtLeastOne();
+
+        Assert.False(c.Main.CanEnableSelectedUser);
+        Assert.True(c.Main.CanRemoveSelectedUser);
+    }
+
+}
+
+public sealed class Context : IAsyncDisposable
+{
+    public ServiceProvider ServiceProvider { get; }
+    public EventRecorderSource RecorderSource { get; }
+    public MainWindowViewModel Main { get; }
+    public AllRecorders Tags { get; }
+    public DataStore Data => Main._dataStore;
+
+    public Context(
+        ServiceProvider serviceProvider,
+        EventRecorderSource recorderSource,
+        MainWindowViewModel main,
+        AllRecorders tags)
+    {
+        ServiceProvider = serviceProvider;
+        RecorderSource = recorderSource;
+        Main = main;
+        Tags = tags;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ServiceProvider.DisposeAsync();
+        Tags.Dispose();
+    }
+
+    public static Context Create()
     {
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
         App.AddViewModels(services);
         var sp = AppConfiguration.BuildServiceProvider(services);
-        AppConfiguration.ConfigureLayeredConfig(sp);
 
-        var main = sp.GetRequiredService<MainWindowViewModel>();
-        var selection = main._nodeSelection;
-        var recorder = new NodeRecorder(selection);
+        try
+        {
+            AppConfiguration.ConfigureLayeredConfig(sp);
+            var recorderSource = new EventRecorderSource();
+            var main = sp.GetRequiredService<MainWindowViewModel>();
 
-        await main.SerializeUiLayers();
-        recorder.Expect([]);
+    #pragma warning disable CA2000
+            var tags = new AllRecorders(recorderSource, main);
+            _ = tags;
+    #pragma warning restore CA2000
 
-        var name = NameHelper.Parse("Curmanschii Anton");
-        var meNode = main.UserNodeSelection.AllNodes.First(x => !x.IsNull && x.Name == name);
-        main.UserNodeSelection.SelectedUiNode = meNode;
-        recorder.Expect([
-            e =>
-            {
-                Assert.Equal(NodeRecorder.EventType.SelectedNodeChanged, e.Type);
-                Assert.Same(meNode, e.UiNode);
-            },
-            e =>
-            {
-                Assert.Equal(NodeRecorder.EventType.DataChanged, e.Type);
-            },
-        ]);
-
-        main.EnableSelectedUser();
-        recorder.Expect([
-            e => Assert.Equal(NodeRecorder.EventType.SelectedNodeChanged, e.Type),
-            e => Assert.Equal(NodeRecorder.EventType.DataChanged, e.Type),
-        ]);
-
-
-        var editor = main.NodeDataEditor;
-        editor.CurrentConfigType = editor.ConfigTypes.First(x => x.Key == RegistryConfig.Key);
-        var host = Assert.IsType<ConfigNodeVmHost<RegistryConfig>>(editor.SelectedNodeEditorViewModel);
-        var regEditor = Assert.IsType<RegistryConfigViewModel>(host.Inner);
-        var regRecorder = new NotifyPropChangedRecorder(regEditor);
-        regEditor.DryRun = true;
-        // Currently, this doesn't fire anything, but it might change.
-        recorder.Expect([]);
-        // This too
-        regRecorder.Expect([]);
-
-        await main.SerializeUiLayers();
-        recorder.Expect([
-            // e =>
-            // {
-            //     Assert.Equal(NodeRecorder.EventType.SelectedNodeChanged, e.Type);
-            //     Assert.Same(meNode, e.Node);
-            // },
-            // e =>
-            // {
-            //     Assert.Equal(NodeRecorder.EventType.DataChanged, e.Type);
-            // },
-        ]);
-        // Chains this.
-        regRecorder.Expect([
-            // e => Assert.Null(e.PropName),
-        ]);
-
-        regEditor.DryRun = false;
-        // Currently only firing for whole external updates.
-        regRecorder.Expect([]);
-
-        await main.DeserializeUiLayers();
-        recorder.Expect([
-            e => Assert.Equal(NodeRecorder.EventType.DataChanged, e.Type),
-        ]);
-        regRecorder.Expect([
-            e => Assert.Null(e.PropName),
-        ]);
-
-        Assert.True(regEditor.DryRun);
+            return new(sp, recorderSource, main, tags);
+        }
+        catch
+        {
+            sp.Dispose();
+            throw;
+        }
     }
+}
 
+public readonly record struct Ev(EventRecorder Recorder, object? Payload)
+{
+    public T? GetPayload<T>() => (T?) Payload;
+}
 
-    private sealed class NodeRecorder
+public sealed class EventRecorderSource : IEnumerable<Ev>
+{
+    private readonly List<Ev> Events = new();
+    private bool _isRecording = true;
+
+    public bool StartRecording() => _isRecording = true;
+    public bool PauseRecording() => _isRecording = false;
+    public void ClearRecorded() => Events.Clear();
+
+    public void AddEvent(Ev ev)
     {
-        public enum EventType
+        if (_isRecording)
         {
-            SelectedNodeChanged,
-            DataChanged,
-        }
-        public readonly record struct RecordedEvent(EventType Type, UiNode UiNode);
-        private readonly List<RecordedEvent> _recorded;
-
-        public NodeRecorder(ISelectedUserNode node)
-        {
-            _recorded = new();
-            node.OnSelectedNodeChanged +=
-                n => _recorded.Add(new(EventType.SelectedNodeChanged, n));
-            node.OnDataPossiblyChanged +=
-                n => _recorded.Add(new(EventType.DataChanged, n));
-        }
-
-        public void Expect(Action<RecordedEvent>[] expectedEvents)
-        {
-            Assert.Collection(_recorded, expectedEvents);
-            _recorded.Clear();
+            Events.Add(ev);
         }
     }
 
-    private sealed class NotifyPropChangedRecorder
+    public EventRecorder<T> Record<T>(Event<T> e) => new(this, e);
+    public EventRecorder1 Record(Event e) => new(this, e);
+    public PropertyChangedRecorder Record(INotifyPropertyChanged e) => new(e, this);
+    public CanExecuteChangedRecorder Record(ICommand e) => new(e, this);
+
+    public IEnumerator<Ev> GetEnumerator() => Events.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => Events.GetEnumerator();
+}
+
+public sealed class AllRecorders : IDisposable
+{
+    public EventRecorder<NodePath> NodePath { get; }
+    public EventRecorder<Layer> SelectedLayer { get; }
+    public EventRecorder<MutableNode?> SelectedNode { get; }
+    public EventRecorder<LayerLevel> SelectedLevel { get; }
+    public EventRecorder<UiNode> SelectedUiNode { get; }
+    public PropertyChangedRecorder NodeSelected { get; }
+    public EventRecorder1 NodeData { get; }
+    public PropertyChangedRecorder Main { get; }
+    public CanExecuteChangedRecorder CanEnableSelectedUser { get; }
+    public CanExecuteChangedRecorder CanRemoveSelectedUser { get; }
+
+    public AllRecorders(EventRecorderSource s, MainWindowViewModel main)
     {
-        public readonly record struct RecordedEvent(string? PropName);
-        private readonly List<RecordedEvent> _recorded;
+        var store = main._dataStore;
+        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed).SetName("NodePath");
+        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed).SetName("SelectedLayer");
+        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed).SetName("SelectedNode");
+        SelectedUiNode = s.Record(store.UiSelectedNodeView.NodeSelected()).SetName("UiSelectedNode");
+        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged.As()).SetName("LayerLevel");
+        NodeSelected = s.Record(main.NodeSelection).SetName("NodeSelectionProperty");
+        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged).SetName("NodeData");
+        Main = s.Record(main).SetName("MainProperty");
+        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand).SetName("CanEnableSelectedUser");
+        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand).SetName("CanRemoveSelectedUser");
+    }
 
-        public NotifyPropChangedRecorder(INotifyPropertyChanged node)
-        {
-            _recorded = new();
-            node.PropertyChanged += (_, args) => _recorded.Add(new(args.PropertyName));
-        }
+    public void Dispose()
+    {
+        NodePath.Dispose();
+        SelectedLayer.Dispose();
+        SelectedNode.Dispose();
+        SelectedLevel.Dispose();
+        SelectedUiNode.Dispose();
+        NodeSelected.Dispose();
+        NodeData.Dispose();
+        Main.Dispose();
+    }
+}
 
-        public void Expect(Action<RecordedEvent>[] expectedEvents)
+public abstract class EventRecorder : IDisposable
+{
+    public string? Name { get; set; }
+    public override string? ToString() => Name;
+    public virtual void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
+}
+
+public abstract class EventRecorderBase<T> : EventRecorder
+{
+}
+
+public static partial class RecorderHelper
+{
+    public static T SetName<T>(this T e, string name) where T : EventRecorder
+    {
+        e.Name = name;
+        return e;
+    }
+}
+
+public sealed class PropertyChangedRecorder : EventRecorderBase<PropertyChangedEventArgs>
+{
+    private readonly EventRecorderSource _s;
+    private readonly INotifyPropertyChanged _x;
+
+    public PropertyChangedRecorder(
+        INotifyPropertyChanged x,
+        EventRecorderSource s)
+    {
+        _x = x;
+        _s = s;
+        x.PropertyChanged += Update;
+    }
+
+    public void Update(object? o, PropertyChangedEventArgs? args)
+    {
+        _s.AddEvent(new(this, args));
+    }
+
+    public override void Dispose()
+    {
+        _x.PropertyChanged -= Update;
+    }
+}
+
+public sealed class CanExecuteChangedRecorder : EventRecorderBase<EventArgs>
+{
+    private readonly EventRecorderSource _s;
+    private readonly ICommand _x;
+
+    public CanExecuteChangedRecorder(
+        ICommand x,
+        EventRecorderSource s)
+    {
+        _x = x;
+        _s = s;
+        x.CanExecuteChanged += Update;
+    }
+
+    public void Update(object? o, EventArgs? args)
+    {
+        _s.AddEvent(new(this, args));
+    }
+
+    public override void Dispose()
+    {
+        _x.CanExecuteChanged -= Update;
+    }
+}
+
+public static partial class RecorderHelper
+{
+    public static void Expect(
+        this Ev e,
+        PropertyChangedRecorder rec,
+        Action<PropertyChangedEventArgs?> a)
+    {
+        Assert.Same(rec, e.Recorder);
+        a((PropertyChangedEventArgs?) e.Payload);
+    }
+}
+
+
+public sealed partial class EventRecorder<T> : EventRecorderBase<T>
+{
+    private readonly EventSubscription<T> _eventSub;
+
+    public EventRecorder(
+        EventRecorderSource source,
+        Event<T> e)
+    {
+        _eventSub = e.Sub(x => source.AddEvent(new(this, x)));
+    }
+
+    public override void Dispose()
+    {
+        _eventSub.Dispose();
+    }
+}
+
+public readonly record struct ExpectHelper<T>(IEnumerable<Ev> Events)
+{
+    public void NotToBeFound()
+    {
+        Assert.Empty(Events);
+    }
+
+    public ExpectHelper<T> Where(Func<Ev, bool> f)
+    {
+        var t = Events.Where(f);
+        return new(t);
+    }
+
+    public ExpectHelper<T> WhereValue(Func<T?, bool> f)
+    {
+        var t = Events
+            .Select(x => (x, x.GetPayload<T>()))
+            .Where(x => f(x.Item2))
+            .Select(x => x.x);;
+        return new(t);
+    }
+
+    public ExpectHelperSingle<T> SingleEvent()
+    {
+        var v = Assert.Single(Events);
+        return new(v);
+    }
+
+    // public ExpectHelperOne<T> OnlyOne() => new(Events, HelperOneMode.OnlyOne);
+    public ExpectHelperOne<T> AtLeastOne()
+    {
+        Assert.NotEmpty(Events);
+        return new(Events, HelperOneMode.AtLeastOne);
+    }
+
+    public ExpectHelperAll<T> All() => new(Events);
+}
+
+public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
+{
+    public void WithValue(Action<T?> a)
+    {
+        Assert.All(Events.Select(x => x.GetPayload<T>()), a);
+    }
+
+    public void WithValues(params Action<T?>[] a)
+    {
+        Action<Ev> Wrapped(Action<T?> f)
         {
-            Assert.Collection(_recorded, expectedEvents);
-            _recorded.Clear();
+            return x => f(x.GetPayload<T>());
         }
+        Assert.Collection(Events, a.Select(Wrapped).ToArray());
+    }
+}
+
+public enum HelperOneMode
+{
+    // Single,
+    OnlyOne,
+    AtLeastOne,
+}
+
+public readonly record struct ExpectHelperOne<T>(IEnumerable<Ev> Events, HelperOneMode Mode)
+{
+    public void WithValue(Func<T?, bool> a)
+    {
+        switch (Mode)
+        {
+            case HelperOneMode.OnlyOne:
+            {
+                Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                break;
+            }
+            case HelperOneMode.AtLeastOne:
+            {
+                Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                break;
+            }
+        }
+    }
+}
+
+public readonly record struct ExpectHelperSingle<T>(Ev Event)
+{
+    public void WithValue(Action<T?> a)
+    {
+        a(Event.GetPayload<T>());
+    }
+}
+
+public static partial class RecorderHelper
+{
+    public static void Expect<T>(
+        this Ev e,
+        EventRecorder<T> rec,
+        Action<T> a)
+    {
+        _ = rec;
+        Assert.Same(rec, e.Recorder);
+        a((T) e.Payload!);
+    }
+
+    // ?
+    // public static IEnumerable<(Ev Event, T? Value)> Expect<T>(
+    //     IEnumerable<Ev> s,
+    //     EventRecorderBase<T> rec)
+    // {
+    // }
+
+    public static ExpectHelper<T> Expect<T>(
+        this EventRecorderSource s,
+        EventRecorderBase<T> rec)
+    {
+        var x = s.Where(e => ReferenceEquals(e.Recorder, rec));
+        return new(x);
+    }
+}
+
+public sealed class EventRecorder1 : EventRecorder, IDisposable
+{
+    private readonly EventSubscription _eventSub;
+
+    public EventRecorder1(
+        EventRecorderSource source,
+        Event e)
+    {
+        _eventSub = e.Sub(() => source.AddEvent(new(this, null)));
+    }
+
+    public void Expect(Ev e)
+    {
+        Assert.Same(this, e.Recorder);
+    }
+
+    public override void Dispose()
+    {
+        _eventSub.Dispose();
+    }
+}
+
+public static partial class RecorderHelper
+{
+    public static void Expect(
+        this Ev e,
+        EventRecorder1 rec)
+    {
+        Assert.Same(rec, e.Recorder);
     }
 }

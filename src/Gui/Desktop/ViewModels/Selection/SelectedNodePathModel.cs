@@ -1,6 +1,5 @@
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Desktop.ViewModels;
 
@@ -8,77 +7,51 @@ public readonly record struct SelectedNodePathValues(
     NodePath Path,
     Layer Layer);
 
-public sealed partial class SelectedNodePathModel : ObservableObject
+public sealed partial class SelectedNodePathModel
 {
-    // Maybe change to non-observable
-    [ObservableProperty] private NodePath _nodePath;
-    [ObservableProperty] private Layer _selectedLayer;
-    private MutableNode? _selectedNode;
-    public MutableNode? SelectedNode => _selectedNode;
+    private ObservableValueSource<NodePath> _nodePath;
+    public ObservableValue<NodePath> NodePath => _nodePath.As();
 
-    private readonly EventSource<MutableNode?> _selectedNodeChanged = new();
-    public Event<MutableNode?> SelectedNodeChanged => _selectedNodeChanged;
+    private ObservableValueSource<Layer> _selectedLayer;
+    public ObservableValue<Layer> SelectedLayer => _selectedLayer.As();
 
-    private readonly EventSource<NodePath> _pathChanged = new();
-    public Event<NodePath> PathChanged => _pathChanged;
-
-    private readonly EventSource<Layer> _selectedLayerChanged = new();
-    public Event<Layer> SelectedLayerChanged => _selectedLayerChanged;
+    private ObservableValueSource<MutableNode?> _selectedNode;
+    public ReadOnlyObservableValue<MutableNode?> SelectedNode => _selectedNode.AsReadOnly();
 
     public SelectedNodePathModel(TreeBuilder b)
     {
         var n = b.BaseNode;
         var empty = CreateEmptyPath(b);
-        ResetNoUpdate(new(empty, n.Layer));
+
+        _nodePath = new(empty);
+        _selectedLayer = new(n.Layer);
+        _selectedNode = new(FindNode());
+
+        _nodePath.Event.Sub(p =>
+        {
+            _ = p;
+            ResetNode();
+        });
+        _selectedLayer.Event.Sub(l =>
+        {
+            _ = l;
+            ResetNode();
+        });
     }
 
     public NodePath CreateEmptyPath(TreeBuilder b) => new([b.BaseNode]);
 
-    private void ResetNoUpdate(SelectedNodePathValues v)
-    {
-#pragma warning disable MVVMTK0034
-        _nodePath = v.Path;
-        _selectedLayer = v.Layer;
-        _selectedNode = FindNode();
-#pragma warning restore MVVMTK0034
-    }
-
-    partial void OnNodePathChanged(NodePath value)
-    {
-        _ = value;
-        ResetNode();
-        _pathChanged.Invoke(value);
-    }
-    partial void OnSelectedLayerChanged(Layer value)
-    {
-        _ = value;
-        ResetNode();
-        _selectedLayerChanged.Invoke(value);
-    }
-
-    public void Reset(SelectedNodePathValues v)
-    {
-        ResetNoUpdate(v);
-        OnPropertyChanged((string?) null);
-        _pathChanged.Invoke(NodePath);
-        _selectedNodeChanged.Invoke(SelectedNode);
-        _selectedLayerChanged.Invoke(SelectedLayer);
-    }
-
     private void ResetNode()
     {
         var node = FindNode();
-        if (SetProperty(ref _selectedNode, node, nameof(SelectedNode)))
-        {
-            _selectedNodeChanged.Invoke(node);
-        }
+        _selectedNode.Value = node;
     }
 
     private MutableNode? FindNode()
     {
-        foreach (var x in NodePath.Path)
+        foreach (var x in _nodePath.Value.Path)
         {
-            if (x.Layer == SelectedLayer)
+            if (x.Layer == _selectedLayer.Value)
             {
                 return x;
             }

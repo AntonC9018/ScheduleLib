@@ -95,7 +95,7 @@ public sealed class ConfigAccessor<T> where T : class
         _tree = tree;
     }
 
-    private MutableNode? SelectedNode => SelectedNodeModel.SelectedNode;
+    private MutableNode? SelectedNode => SelectedNodeModel.SelectedNode.Get();
     public bool IsEditable => SelectedNode?.IsOnEditableLayer() ?? false;
 
     public NodeDataBuilder<T> MaybeBuilder()

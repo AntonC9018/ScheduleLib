@@ -25,15 +25,16 @@ public sealed partial class UpdateTreeHelper
     public async ValueTask ExecTreeActionAsync(Func<ValueTask<NodePath>> change)
     {
         var path = await change();
-        if (path != default)
+        if (path == default)
         {
-            path = CreateNewPath(_path.NodePath);
+            path = CreateNewPath(_path.NodePath.Get());
         }
+        Debug.Assert(path != default);
         await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
 
         void Continue()
         {
-            _path.NodePath = path;
+            _path.NodePath.Set(path);
         }
     }
 
@@ -59,6 +60,8 @@ public sealed partial class UpdateTreeHelper
                 // Can make the function return the new path, if such control is desired.
                 return new(prevPath[.. nextIndex]);
             }
+
+            currentIndex++;
         }
 
         {
@@ -93,7 +96,7 @@ public sealed partial class UpdateTreeHelper
                 Debug.Assert(_tree.BaseNode == currentNode);
                 return prevNodePath;
             }
-            return new(builder.MoveToImmutable());
+            return new(builder.DrainToImmutable());
         }
     }
 }

@@ -47,6 +47,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             EnableSelectedUserCommand.NotifyCanExecuteChanged();
             RemoveSelectedUserCommand.NotifyCanExecuteChanged();
         });
+
+        _dataStore.UiSelectedNodeView.NodeSelected().Sub(node =>
+        {
+            _ = node;
+            EnableSelectedUserCommand.NotifyCanExecuteChanged();
+            RemoveSelectedUserCommand.NotifyCanExecuteChanged();
+        });
     }
 
     // public void Dispose()

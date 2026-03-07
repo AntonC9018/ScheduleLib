@@ -202,7 +202,7 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
         comparer ??= EqualityComparer<TValue>.Default;
         foreach (var x in this)
         {
-            if (comparer.Equals(x.Value))
+            if (comparer.Equals(value, x.Value))
             {
                 return x.Key;
             }

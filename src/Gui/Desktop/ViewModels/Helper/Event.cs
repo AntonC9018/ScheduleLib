@@ -40,6 +40,8 @@ public sealed class EventSource<T>
     {
         _impl -= action;
     }
+
+    public Event<T> As() => this;
 }
 
 public readonly struct EventSubscription : IDisposable

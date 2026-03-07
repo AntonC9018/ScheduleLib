@@ -13,7 +13,7 @@ public sealed class DataStore : IDisposable
     public static DataStore Create(TreeBuilder tree)
     {
         var nodePath = new SelectedNodePathModel(tree);
-        var dispatcher = new NodeDataChangeDispatcher(nodePath.SelectedNodeChanged);
+        var dispatcher = new NodeDataChangeDispatcher(nodePath.SelectedNode.Changed);
         var uiNode = new UiSelectedNodeViewModel(tree, nodePath);
         return new()
         {
