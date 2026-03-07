@@ -14,11 +14,13 @@ public abstract class ViewModelBase : ObservableObject
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
     {
-        _dispatcher.Post(this, x => base.OnPropertyChanged(x), e);
+        var id = new CallerIdentity(this);
+        _dispatcher.Post<PropertyChangedEventArgs>(new(id, x => base.OnPropertyChanged(x), e));
     }
     protected override void OnPropertyChanging(PropertyChangingEventArgs e)
     {
-        _dispatcher.Post(this, x => base.OnPropertyChanging(x), e);
+        var id = new CallerIdentity(this);
+        _dispatcher.Post<PropertyChangingEventArgs>(new(id, x => base.OnPropertyChanging(x), e));
     }
 }
 

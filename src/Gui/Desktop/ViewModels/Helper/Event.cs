@@ -87,7 +87,8 @@ public sealed class EventSource<T>
     {
         if (_impl != null)
         {
-            _dispatcher.Post(this, _impl, val);
+            var callerId = new CallerIdentity(this);
+            _dispatcher.Post(new(callerId, _impl, val));
         }
     }
 

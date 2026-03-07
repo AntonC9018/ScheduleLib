@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using Anton.LayeredData;
 using Avalonia.Threading;
@@ -69,11 +70,14 @@ public sealed class TreeEventDispatcher : IDispatcher
     public IDispatcher<T> GetDispatcher<T>() => new DelegatingDispatcher<T>(this);
 
     private bool _isQueueing;
-    private readonly ConcurrentQueue<Action> _callbackQueue = new();
+
+    private readonly record struct Key(CallerIdentity CallerId, Type Type, string? PropertyName);
+    private readonly ConcurrentQueue<Key> _keyQueue = new();
+    private readonly ConcurrentDictionary<Key, Action> _latestActions = new();
 
     public void StartQueueing()
     {
-        if (!_callbackQueue.IsEmpty
+        if (!_keyQueue.IsEmpty
             || Interlocked.CompareExchange(ref _isQueueing, true, false))
         {
             Debug.Fail("Started two queue ops at once?");
@@ -94,22 +98,22 @@ public sealed class TreeEventDispatcher : IDispatcher
                 throw new InvalidOperationException("Can only end queueing on the UI thread");
             }
 
-            while (true)
+            while (_keyQueue.TryDequeue(out var key))
             {
-                if (!_callbackQueue.TryDequeue(out var item))
+                if (_latestActions.TryRemove(key, out var action))
                 {
-                    break;
+                    action();
                 }
-                item();
             }
         }
         catch
         {
-            _callbackQueue.Clear();
+            _keyQueue.Clear();
+            _latestActions.Clear();
         }
     }
 
-    public void Post<T>(object callerIdentity, Action<T> a, T arg)
+    public void Post<T>(PostArgs<T> args)
     {
         if (Volatile.Read(ref _isQueueing) == false)
         {
@@ -117,18 +121,46 @@ public sealed class TreeEventDispatcher : IDispatcher
             {
                 throw new InvalidOperationException("Cannot execute action immediately when not on UI thread");
             }
-            a(arg);
+            args.Invoke();
             return;
         }
 
-        _callbackQueue.Enqueue(() => a(arg));
+        var key = new Key(args.CallerId, typeof(T), PropertyName: null);
+        if (args.Arg is PropertyChangedEventArgs changedArgs)
+        {
+            key = key with
+            {
+                PropertyName = changedArgs.PropertyName,
+            };
+        }
+        else if (args.Arg is PropertyChangingEventArgs changingArgs)
+        {
+            key = key with
+            {
+                PropertyName = changingArgs.PropertyName,
+            };
+        }
 
-        // It could happen that this executes after the final item has been removed.
+        var action = args.GetInvoker();
+
+        _latestActions.AddOrUpdate(
+            key,
+            addValueFactory: k =>
+            {
+                _keyQueue.Enqueue(k);
+                return action;
+            },
+            updateValueFactory: (k, prev) =>
+            {
+                _ = k;
+                _ = prev;
+                return action;
+            });
+
         if (Volatile.Read(ref _isQueueing) == false)
         {
-            // We can't really do any better, I don't think.
-            _callbackQueue.TryDequeue(out _);
-
+            // This is kind of the best we can do.
+            _latestActions.TryRemove(key, out _);
             throw new InvalidOperationException("Queueing ended before the final message was processed");
         }
     }
