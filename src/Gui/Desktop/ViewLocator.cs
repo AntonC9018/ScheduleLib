@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using AutoConstructor.Attributes;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Desktop.ViewModels;
 using Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +28,7 @@ public sealed partial class ViewLocator : IDataTemplate
         }
 
         var t = param.GetType();
-        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ConfigNodeVmHost<>))
+        if (t.IsAssignableTo(typeof(IConfigNodeVmHost)))
         {
             return _sp.GetRequiredService<ConfigNodeVmHostView>();
         }
@@ -53,7 +54,7 @@ public sealed partial class ViewLocator : IDataTemplate
 
     public bool Match(object? data)
     {
-        return data is ViewModelBase;
+        return data is ObservableObject;
     }
 }
 

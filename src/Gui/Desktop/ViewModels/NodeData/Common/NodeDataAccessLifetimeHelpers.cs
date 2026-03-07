@@ -10,7 +10,7 @@ public interface IConfigNodeVmHost
     public bool IsEditable { get; }
 }
 
-public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable
+public sealed class ConfigNodeVmHost<T> : ViewModelBase, IConfigNodeVmHost, IDisposable
     where T : class
 {
     private readonly ConfigAccessor<T> _accessor;
@@ -36,6 +36,7 @@ public sealed class ConfigNodeVmHost<T> : ViewModelBase, IDisposable
     }
 
     public IDisposable Inner { get; }
+    INotifyPropertyChanged IConfigNodeVmHost.Inner => (INotifyPropertyChanged) Inner;
     public void Dispose() => _subscription.Dispose();
     public bool IsEditable => _accessor.IsEditable;
 }
@@ -54,14 +55,13 @@ public abstract class NodeDataViewModelBase<T> : ObservableObject, IDisposable, 
         GC.SuppressFinalize(this);
     }
 
-    public virtual void UpdateSelection(NodeDataBuilder<T> builder)
+    protected virtual void UpdateSelection(NodeDataBuilder<T> builder)
     {
     }
 
     void IConfigViewModel<T>.UpdateSelection(NodeDataBuilder<T> builder)
     {
         UpdateSelection(builder);
-        OnPropertyChanged((string?) null);
     }
 }
 
@@ -118,7 +118,7 @@ public sealed class ConfigAccessor<T> where T : class
     {
         get
         {
-            if (IsEditable)
+            if (!IsEditable)
             {
                 return null;
             }

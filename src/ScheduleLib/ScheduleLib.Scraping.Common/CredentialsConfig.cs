@@ -61,8 +61,13 @@ public static class CredentialsBuilderExtensions
 
         public ValueCredentialsSource Value(Action<ValueCredentialsSource>? configure = null)
         {
-            var ret = new ValueCredentialsSource();
-            builder._storage.Credentials = ret;
+            var s = builder._storage;
+            if (s.Credentials is not ValueCredentialsSource ret)
+            {
+                ret = new ValueCredentialsSource();
+                s.Credentials = ret;
+            }
+            configure?.Invoke(ret);
             return ret;
         }
     }

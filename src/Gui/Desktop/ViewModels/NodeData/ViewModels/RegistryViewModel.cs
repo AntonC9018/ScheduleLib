@@ -22,9 +22,10 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
             b => b.VM<RegistryConfigViewModel>().UseUpdateOnDataChange());
     }
 
-    public override void UpdateSelection(NodeDataBuilder<RegistryConfig> builder)
+    protected override void UpdateSelection(NodeDataBuilder<RegistryConfig> builder)
     {
         Credentials.SetBuilder(builder);
+        OnPropertyChanged(nameof(DryRun));
     }
 
     public ObservableCredentials<RegistryConfig> Credentials { get; } = new();
@@ -78,7 +79,8 @@ public sealed class ObservableCredentials<T> : ObservableObject
     public void SetBuilder(NodeDataBuilder<T> builder)
     {
         _builder = builder;
-        OnPropertyChanged((string?) null);
+        OnPropertyChanged(nameof(Login));
+        OnPropertyChanged(nameof(Password));
     }
 
     public string Login
@@ -108,11 +110,15 @@ public sealed class ObservableCredentials<T> : ObservableObject
             return null;
         }
         var source = _builder.Credentials().Value();
-        var x = source.Value ??= new Credentials
+        if (source.Value is not { } x)
         {
-            Login = "",
-            Password = "",
-        };
+            x = new Credentials
+            {
+                Login = "",
+                Password = "",
+            };
+            source.Value = x;
+        }
         return x;
     }
 }

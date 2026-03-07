@@ -7,7 +7,7 @@
         x:Class="Desktop.Views.RegistryConfigView"
         x:DataType="vm:RegistryConfigViewModel">
 
-  <StackPanel IsEnabled="{Binding }">
+  <StackPanel>
     <TextBlock Text="Dry Run"/>
     <CheckBox IsChecked="{Binding DryRun}"/>
 

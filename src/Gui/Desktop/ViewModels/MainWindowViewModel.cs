@@ -156,5 +156,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return default;
         });
         _dataStore.TreeStructureChanged.Invoke();
+        _dataStore.NodeDataChangeDispatcher.DataChanged.Invoke();
     }
 }
