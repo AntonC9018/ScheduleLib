@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Desktop.MainWindow"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Desktop.MainWindow.MainWindowView"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Desktop">
+
+  <StackPanel>
+    <StackPanel>
+      <TextBlock Text="Layer Level" />
+      <ComboBox
+        ItemsSource="{Binding LayerLevelSelection.AllLayerLevels}"
+        SelectedItem="{Binding LayerLevelSelection.LayerLevel}" />
+
+      <TextBlock Text="User" />
+      <ComboBox
+        IsEnabled="{Binding CanSelectUser}"
+        ItemsSource="{Binding NodeSelection.Model.AllNodes}"
+        SelectedItem="{Binding NodeSelection.Model.SelectedNode}" />
+
+      <Button
+        Content="Click to enable selected UI layer"
+        Command="{Binding EnableSelectedUserCommand}" />
+      <Button
+        Content="Click to remove selected UI layer"
+        Command="{Binding RemoveSelectedUserCommand}" />
+
+      <StackPanel DataContext="{Binding AddUser, Mode=OneTime}">
+        <TextBlock Text="User Name To Add:" />
+        <TextBox
+          Text="{Binding UserNameToAdd}"
+          IsEnabled="{Binding CanSelectUserToAdd}" />
+
+        <Button
+          Content="Click to create new UI layer"
+          Command="{Binding AddUserWithTypedNameCommand}" />
+      </StackPanel>
+
+      <Button
+        Content="Click to serialize UI layers"
+        Command="{Binding SerializeUiLayersCommand}" />
+
+      <Button
+        Content="Click to deserialize UI layers"
+        Command="{Binding DeserializeUiLayersCommand}" />
+    </StackPanel>
+    <Separator/>
+    <ContentControl Content="{Binding NodeDataEditor}" />
+  </StackPanel>
+</Window>

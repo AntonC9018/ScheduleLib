@@ -4,7 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using Desktop.ViewModels;
+using Desktop.MainWindow;
+using Desktop.MvvmEssentials;
+using Desktop.NodeData.Editor;
+using Desktop.NodeData.Features.Registry;
+using Desktop.ViewModelData;
 using Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,7 +48,7 @@ public sealed partial class App : Application
         services.AddView<MainWindowView>();
 
         services.AddTransient<NodeDataEditorView>();
-        services.AddTransient<ConfigNodeVmHostView>();
+        services.AddTransient<NodeDataVmHostView>();
 
         services.AddTransient<RegistryConfigView>();
 

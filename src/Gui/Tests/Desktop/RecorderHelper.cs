@@ -3,8 +3,9 @@ using System.ComponentModel;
 using System.Windows.Input;
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
-using Desktop.ViewModels;
-using Void = Desktop.ViewModels.Void;
+using Desktop.MainWindow;
+using Desktop.MvvmEssentials;
+using Desktop.ViewModelData;
 
 namespace Desktop.Tests;
 
@@ -46,11 +47,11 @@ public sealed class AllRecorders : IDisposable
     public EventRecorder<LayerLevel> SelectedLevel { get; }
     public EventRecorder<UiNode> SelectedUiNode { get; }
     public PropertyChangedRecorder NodeSelected { get; }
-    public EventRecorder<Void> NodeData { get; }
+    public EventRecorder<Nothing> NodeData { get; }
     public PropertyChangedRecorder Main { get; }
     public CanExecuteChangedRecorder CanEnableSelectedUser { get; }
     public CanExecuteChangedRecorder CanRemoveSelectedUser { get; }
-    public EventRecorder<Void> TreeChangedRecorder { get; }
+    public EventRecorder<Nothing> TreeChangedRecorder { get; }
 
     public AllRecorders(EventRecorderSource s, MainWindowViewModel main)
     {

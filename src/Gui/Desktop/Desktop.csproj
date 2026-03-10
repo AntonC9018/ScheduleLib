@@ -12,7 +12,6 @@
     <Import Project="$(RootPath)build\UserSecrets.props" />
 
     <ItemGroup>
-        <Folder Include="Models\" />
         <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
@@ -37,5 +36,15 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>Desktop.Tests</_Parameter1>
         </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="MainWindow\Views\MainWindowView.axaml" />
+      <AdditionalFiles Include="NodeData\Editor\NodeDataEditorView.axaml" />
+      <AdditionalFiles Include="NodeData\VmHost\ConfigNodeVmHostView.axaml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="NodeData\Features\" />
     </ItemGroup>
 </Project>

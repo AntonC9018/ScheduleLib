@@ -1,9 +1,6 @@
-using System.Collections;
-using System.ComponentModel;
-using System.Windows.Input;
 using Anton.LayeredData;
-using Anton.LayeredData.TreeEnumeration;
-using Desktop.ViewModels;
+using Desktop.MainWindow;
+using Desktop.ViewModelData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib.Parsing;

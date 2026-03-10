@@ -3,7 +3,8 @@ using AutoConstructor.Attributes;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Desktop.ViewModels;
+using Desktop.MvvmEssentials;
+using Desktop.NodeData.Common;
 using Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,9 +29,9 @@ public sealed partial class ViewLocator : IDataTemplate
         }
 
         var t = param.GetType();
-        if (t.IsAssignableTo(typeof(IConfigNodeVmHost)))
+        if (t.IsAssignableTo(typeof(INodeDataVmHost)))
         {
-            return _sp.GetRequiredService<ConfigNodeVmHostView>();
+            return _sp.GetRequiredService<NodeDataVmHostView>();
         }
 
         var viewType = ViewAndViewModelConverter.TypeFromViewModelToView(t);
