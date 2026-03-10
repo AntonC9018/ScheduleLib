@@ -74,7 +74,7 @@ public struct VmBuilderData<T> : IDisposable
     {
         // Move
         var vm = OutermostObject;
-        OutermostObject = vm;
+        OutermostObject = null;
 
         var ret = new NodeDataViewModelResult((ObservableObject) vm!, (IDisposable) vm!);
         return ret;
