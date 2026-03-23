@@ -1,8 +1,17 @@
 using System.Diagnostics;
 using System.Text;
+using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing;
+
+public enum NameField
+{
+    First,
+    Last,
+    Partonymic,
+    Count,
+}
 
 public struct NameToStringParams()
 {
@@ -175,13 +184,56 @@ public sealed record Name
     }
 }
 
+public static class NameTokenType
+{
+    public const TokenType Whitespace = TokenType.Whitespace;
+    public const TokenType DoubleNameSeparator = (TokenType) NameConstants.DoubleNameSeparatorChar;
+    public const TokenType Word = TokenType.Invalid + 1;
+    public const TokenType ParenthesizedText = Word + 1;
+}
+
+public sealed class NameTokenReader : ITokenReader
+{
+    public static readonly NameTokenReader Instance = new();
+    public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(NameTokenType));
+
+    public TokenType Read(ref Parser parser)
+    {
+        if (parser.SkipLetters().SkippedAny)
+        {
+            return NameTokenType.Word;
+        }
+        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
+        {
+            return NameTokenType.DoubleNameSeparator;
+        }
+        if (parser.ConsumeExactChar('('))
+        {
+            var bparser = parser.BufferedView();
+            if (!bparser.SkipUntilAny(")").Satisfied)
+            {
+                return TokenType.Invalid;
+            }
+            parser.MovePast(bparser.Position);
+            return NameTokenType.ParenthesizedText;
+        }
+        if (parser.SkipWhitespace().SkippedAny)
+        {
+            return TokenType.Whitespace;
+        }
+        var s = parser.SkipNotWhitespace();
+        Debug.Assert(s.SkippedAny);
+        return TokenType.Invalid;
+    }
+}
+
 public static class NameHelper
 {
     public static Name? TryParseName(ref Parser parser)
     {
         try
         {
-            return ParseName(ref parser);
+            return Parse(ref parser);
         }
         catch (InvalidOperationException)
         {
@@ -189,146 +241,174 @@ public static class NameHelper
         }
     }
 
-    private static Name ParseNameImpl(ref Parser parser)
+    private static Name ParseImpl(ref LexerScope lexer)
     {
         var ret = new NameFields();
 
-        ret.LastName[0] = ParseNamePart(ref parser, "No last name");
+        ret.LastName = ParseRequiredNamePart(ref lexer, "Last name required", "Last name incomplete");
+        IgnoreParenthesizedTextAndWhitespace(ref lexer);
+        ErrorOnInvalidToken(ref lexer);
 
-        LastNameCheck(ref parser);
-        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
-        {
-            ret.LastName[1] = ParseNamePart(ref parser, "Last name incomplete");
-        }
-
-        parser.SkipWhitespace();
-        IgnoreParenthesizedText(ref parser);
-        FirstNameCheck(ref parser);
-
-        ret.FirstName[0] = ParseNamePart(ref parser, "No first name");
-
-        // parser.SkipWhitespace();
-        if (parser.IsEmpty)
-        {
-            return new(ret);
-        }
-        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
-        {
-            ret.FirstName[1] = ParseNamePart(ref parser, "First name incomplete");
-        }
-
-        parser.SkipWhitespace();
-        IgnoreParenthesizedText(ref parser);
-
-        // Sometimes an empty patronymic is just -
-        parser.Skip(new SkipPatronymicOrWhitespaceImpl());
-        if (parser.IsEmpty)
-        {
-            return new(ret);
-        }
-        if (!char.IsLetter(parser.Current))
+        ret.FirstName = ParseRequiredNamePart(ref lexer, "First name required", "First name incomplete");
+        if (lexer.IsEmpty)
         {
             return new(ret);
         }
 
-        ret.Patronymic[0] = ParseNamePart(ref parser, "No patronymic");
-        if (parser.IsEmpty)
+        var blexer = lexer;
+        IgnoreParenthesizedTextAndWhitespace(ref blexer);
+
+        ret.Patronymic = ParseNamePart(ref blexer, "Patronymic incomplete");
+        if (ret.Patronymic == default)
         {
             return new(ret);
         }
 
-        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
-        {
-            ret.Patronymic[1] = ParseNamePart(ref parser, "Patronymic incomplete");
-        }
+        lexer.MoveTo(blexer.Position);
+        lexer.Apply();
 
         return new(ret);
 
-        static void IgnoreParenthesizedText(ref Parser parser)
+        static void IgnoreParenthesizedTextAndWhitespace(ref LexerScope lexer)
         {
-            if (parser.IsEmpty)
+            lexer.ConsumeMultiple([TokenType.Whitespace]);
+            if (lexer.TryConsume(NameTokenType.ParenthesizedText))
             {
-                return;
-            }
-
-            if (parser.Current != '(')
-            {
-                return;
-            }
-
-            var s = parser.SkipUntilAny([')']);
-            if (!s.Satisfied)
-            {
-                throw new InvalidOperationException("Unclosed parenthesis");
-            }
-
-            parser.Move();
-            parser.SkipWhitespace();
-        }
-
-        static void FirstNameCheck(ref Parser parser)
-        {
-            if (parser.IsEmpty)
-            {
-                throw new InvalidOperationException("First name expected");
+                lexer.ConsumeMultiple([TokenType.Whitespace]);
             }
         }
 
-        static void LastNameCheck(ref Parser parser)
+        static void ErrorOnInvalidToken(ref LexerScope lexer)
         {
-            if (parser.IsEmpty)
+            if (!lexer.IsEmpty && lexer.Current.Type == TokenType.Invalid)
             {
-                throw new InvalidOperationException("Last name expected");
+                throw new InvalidOperationException($"Invalid token {lexer.Current.Value}");
             }
         }
 
-        static string ParseNamePart(ref Parser parser, string error)
+        static NameParts<string?> ParseRequiredNamePart(
+            ref LexerScope lexer,
+            string requiredError,
+            string incompleteError)
         {
-            var bparser = parser.BufferedView();
-            var skipResult = bparser.SkipLetters();
-            if (!skipResult.SkippedAny)
+            var ret = ParseNamePart(ref lexer, incompleteError);
+            if (ret == default)
             {
-                throw new InvalidOperationException(error);
+                throw new InvalidOperationException(requiredError);
             }
-
-            var ret = parser.PeekSpanUntilPosition(bparser.Position).ToString();
-            parser.MoveTo(bparser.Position);
-            return new(ret);
+            return ret;
         }
-    }
 
-    private struct SkipPatronymicOrWhitespaceImpl : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
+        static NameParts<string?> ParseNamePart(ref LexerScope lexer, string incompleteError)
         {
-            if (ch == '-')
+            var ret = new NameParts<string?>();
+
+            bool ParsePartOfPart(ref LexerScope lexer, out string? ret)
             {
+                if (lexer.IsEmpty)
+                {
+                    ret = null;
+                    return false;
+                }
+                var t = lexer.Current;
+                if (t.Type != NameTokenType.Word)
+                {
+                    ret = null;
+                    return false;
+                }
+                lexer.Move();
+                ret = t.Value.ToString();
                 return true;
             }
-            if (char.IsWhiteSpace(ch))
+
+            if (!ParsePartOfPart(ref lexer, out ret[0]))
             {
-                return true;
+                return ret;
             }
-            return false;
+
+            if (lexer.TryConsume(NameTokenType.DoubleNameSeparator))
+            {
+                if (!ParsePartOfPart(ref lexer, out ret[1]))
+                {
+                    throw new InvalidOperationException(incompleteError);
+                }
+            }
+            return ret;
         }
     }
 
     // LastName FirstName Patronymic
-    public static Name ParseName(ref Parser parser)
+    public static Name Parse(ref Parser parser)
     {
-        var ret = ParseNameImpl(ref parser);
+        var p = new NameParser();
+        p.Load(parser.SourceUntilEnd());
+        var scope = p.Scope();
+        var ret = ParseImpl(ref scope);
+        scope.Apply(ref parser);
         return ret;
     }
 
     public static Name Parse(string s)
     {
         var parser = new Parser(s);
-        var ret = ParseNameImpl(ref parser);
+        var ret = Parse(ref parser);
         if (!parser.IsEmpty)
         {
             throw new InvalidOperationException("Extra characters after name");
         }
         return ret;
+    }
+
+    public static ref NameParts<string?> Field(ref NameFields fields, NameField field)
+    {
+        switch (field)
+        {
+            case NameField.First:
+            {
+                return ref fields.FirstName;
+            }
+            case NameField.Last:
+            {
+                return ref fields.LastName;
+            }
+            case NameField.Partonymic:
+            {
+                return ref fields.Patronymic;
+            }
+            default:
+            {
+                throw Unreachable();
+            }
+        }
+    }
+}
+
+#pragma warning disable CA1001 // It is disposable? Fake warning.
+public readonly struct NameParser : IDisposable
+#pragma warning restore CA1001
+{
+    internal readonly Lexer _lexer;
+    private readonly SingleItemEnumerator<ReadOnlyMemory<char>> _s;
+
+    public void Load(ReadOnlyMemory<char> s)
+    {
+        _s.Reset(s);
+        _lexer.Reset(_s);
+    }
+
+    public NameParser()
+    {
+        _s = new();
+        _lexer = new Lexer(NameTokenReader.Instance);
+    }
+
+    public LexerScope Scope()
+    {
+        return _lexer.Scope();
+    }
+
+    public void Dispose()
+    {
     }
 }
 

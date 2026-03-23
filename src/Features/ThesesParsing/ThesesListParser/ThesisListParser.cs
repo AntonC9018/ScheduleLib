@@ -267,7 +267,7 @@ public sealed class ThesisListParser
                         break;
                     }
 
-                    var studentName = NameHelper.ParseName(ref parser);
+                    var studentName = NameHelper.Parse(ref parser);
                     state.StudentNames.Add(studentName);
                     if (!parser.SkipWhitespace().SkippedAny)
                     {
@@ -375,7 +375,7 @@ public sealed class ThesisListParser
             var ret = new List<Name>();
 
             parser.SkipWhitespace();
-            var name = NameHelper.ParseName(ref parser);
+            var name = NameHelper.Parse(ref parser);
             ret.Add(name);
             parser.SkipWhitespace();
 

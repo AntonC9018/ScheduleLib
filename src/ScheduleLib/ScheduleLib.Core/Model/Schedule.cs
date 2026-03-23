@@ -821,14 +821,20 @@ public struct PersonName
     // One is required
     public required LastName LastName;
 
-    public override string ToString()
+    public NameFields AsNameFields()
     {
         var nameFields = new NameFields
         {
             FirstName = FirstName.Map(x => x.Longer),
             LastName = LastName,
         };
-        return nameFields.ToString();
+        return nameFields;
+    }
+
+    public override string ToString()
+    {
+        var f = AsNameFields();
+        return f.ToString();
     }
 }
 

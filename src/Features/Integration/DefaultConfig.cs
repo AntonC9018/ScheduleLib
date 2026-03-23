@@ -78,7 +78,7 @@ public static class DefaultConfig
             t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse_2.xlsx", attendance =>
             {
                 attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                attendance.CellValueFormat = AttendanceExcel.CellValueFormat.IgnoreGrade;
+                attendance.CellValueFormat = CellValueFormat.IgnoreGrade;
             });
             t.LabTasks().ConfigureValue(x =>
             {

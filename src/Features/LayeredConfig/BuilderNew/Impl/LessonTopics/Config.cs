@@ -1,4 +1,5 @@
 using Anton.LayeredData;
+using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core.Topics;
 
@@ -36,6 +37,7 @@ public sealed class LessonTopicsConfig : INodeData<LessonTopicsConfig>
         }
 
         services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
+        services.AddConfigProvider(LessonTopicsConfig.Key);
     }
 }
 

@@ -1,11 +1,9 @@
 using System.Text;
 using Anton.LayeredData.Retrieval;
-using ClosedXML.Excel;
 using FmiWebsiteInterop.Schedule;
 using FmiWebsiteInterop.Theses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Application.Core.Topics;
@@ -13,8 +11,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Application.Core;
 
@@ -93,40 +89,6 @@ public static class AppTasks
 
             case AppTask.CreateLessonsInRegistry:
             {
-                var attendance = GetAttendanceListOfCurrentTeacher(c);
-                var topics = await GetLessonTopicsOfCurrentTeacher(c);
-
-                // Passed manually, because this might be reconfigured to target another semester.
-                var semester = c.Services.GetCurrentSemester();
-                var handler = c.Services.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
-
-                using var registryContext = await c.Services.MakeRegistryContext(c.CancellationToken);
-                var navigator = registryContext.Navigator(c.Services, c.CancellationToken);
-
-                ILessonFilter LessonFilter()
-                {
-                    var b = c.Services
-                        .LessonFilterBuilder()
-                        .CurrentTeacher();
-
-                    if (c.Services.GetRequiredService<DataProvider<RegistryLessonFilterConfig>>().Get() is { } filterConfig)
-                    {
-                        if (filterConfig.SkipAttendance is { } att)
-                        {
-                            b = b.SkipAttendance(att);
-                        }
-                    }
-                    return b.Create();
-                }
-
-                await handler.Run(new()
-                {
-                    Navigator = navigator,
-                    Attendance = attendance,
-                    LessonTopics = topics,
-                    Semester = semester,
-                    LessonFilter = LessonFilter(),
-                });
                 break;
             }
 
@@ -312,76 +274,6 @@ public static class AppTasks
         });
     }
 
-    public static StudentAttendanceList GetAttendanceListOfCurrentTeacher(TaskExecutionContext c)
-    {
-        var attendanceConfig = c.Services.GetRequiredService<DataProvider<LessonAttendanceConfig>>().Get();
-        if (attendanceConfig is null)
-        {
-            return new([]);
-        }
-
-        var filteredSchedule = c.Services.ScopedSchedule();
-        var builder = new AllStudentAttendanceListBuilder();
-        foreach (var source in attendanceConfig.Sources)
-        {
-            if (source.FilePath == null)
-            {
-                throw new InvalidOperationException("Misconfigured source with a null path.");
-            }
-            var parseParams = new AttendanceExcel.WorksheetParseParameters();
-            {
-                if (source.RepeatedCourseBehavior is { } x)
-                {
-                    parseParams.RepeatedCourseBehavior = x;
-                }
-            }
-            {
-                if (source.CellValueFormat is { } x)
-                {
-                    parseParams.CellValueFormat = x;
-                }
-            }
-
-            using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var workbook = new XLWorkbook(stream);
-            AttendanceExcel.ParseAttendanceListsExcel(new(
-                lessonTypeParser: c.Services.GetRequiredService<LessonTypeParser>(),
-                parseParameters: parseParams,
-                builder: builder,
-                schedule: filteredSchedule,
-                workbook: workbook,
-                lookup: c.Services.GetRequiredService<LookupFacade>(),
-                groupParseContext: c.Services.GetRequiredService<GroupParseContext>()));
-        }
-
-        // Maybe configure this per workbook.
-        var ret = builder.Build(missingDaysFiller:
-            attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return ret;
-    }
-
-    public static async ValueTask<ILessonTopics> GetLessonTopicsOfCurrentTeacher(TaskExecutionContext c)
-    {
-        var config1 = c.Services.GetRequiredService<DataProvider>().Get(LessonTopicsConfig.Key);
-        if (config1 == null)
-        {
-            return NoLessonTopics.Instance;
-        }
-
-        var filteredSchedule = c.Services.ScopedSchedule();
-        var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(c.Services, filteredSchedule);
-        foreach (var x in config1.Sources)
-        {
-            var source = x.Create(c.Services);
-            await source.Configure(builder, c.CancellationToken);
-        }
-        foreach (var x in config1.FallbackProviders)
-        {
-            builder.FallbackProvider(x.LessonType, x.Provider);
-        }
-        var topics = builder.Build();
-        return topics;
-    }
 }
 
 public sealed class AppTasksExecutionContext

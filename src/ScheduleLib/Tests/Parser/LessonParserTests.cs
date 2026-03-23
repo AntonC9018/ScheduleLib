@@ -35,7 +35,7 @@ public sealed class LessonParserTests
 
         var verifyModels = result.Select(x => new
         {
-            Type = lexer.TokenTypeLabels.Get(x.Type),
+            Type = LessonTokenReader.Instance.Labels.Get(x.Type),
             Value = x.Value.ToString(),
             x.Span.Row,
             ColStart = x.Span.ColStart.Index,

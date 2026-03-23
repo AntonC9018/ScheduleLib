@@ -10,7 +10,7 @@ public sealed class LessonAttendanceSource
 {
     public string? FilePath { get; set; }
     public RepeatedCourseBehavior? RepeatedCourseBehavior { get; set; }
-    public AttendanceExcel.CellValueFormat? CellValueFormat { get; set; }
+    public CellValueFormat? CellValueFormat { get; set; }
 }
 
 public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>

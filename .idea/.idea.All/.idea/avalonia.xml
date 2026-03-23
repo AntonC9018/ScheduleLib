@@ -4,6 +4,8 @@
     <option name="projectPerEditor">
       <map>
         <entry key="src/Gui/Desktop/App.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/MainWindow/Selection/AddUserView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
+        <entry key="src/Gui/Desktop/MainWindow/Views/AddUserView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/MainWindow/Views/MainWindowView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/NodeData/Editor/NodeDataEditorView.axaml" value="src/Gui/Desktop/Desktop.csproj" />
         <entry key="src/Gui/Desktop/NodeData/Features/Registry/RegistryConfigView.axaml" value="src/Gui/Desktop/Desktop.csproj" />

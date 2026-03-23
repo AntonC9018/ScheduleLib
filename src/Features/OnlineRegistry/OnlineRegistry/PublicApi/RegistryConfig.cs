@@ -1,6 +1,7 @@
 using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -69,6 +70,8 @@ public static class ConfigExtensions
                 ret.ExtraLessonAction = config.ExtraLessonInstanceAction;
                 return ret;
             });
+
+            AttendanceListsExcelParser.Register(services);
         }
     }
     extension (NodeBuilder builder)

@@ -157,7 +157,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     {
                         var nameParser = new Parser(nameCell.TextContent);
                         nameParser.SkipWhitespace();
-                        name = NameHelper.ParseName(ref nameParser);
+                        name = NameHelper.Parse(ref nameParser);
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {

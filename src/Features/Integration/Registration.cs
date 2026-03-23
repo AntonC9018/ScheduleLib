@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
@@ -222,25 +223,31 @@ public static class Registration
 
         public void AddTaskHandlers()
         {
+            {
+                services.AddScoped<GenerateDeadlinesExcelTaskHandler>();
+                services.AddScoped<LabsMappingProvider>();
+            }
             services.AddScoped<GenerateAllTeachersExcelTaskHandler>();
-
-            services.AddScoped<GenerateDeadlinesExcelTaskHandler>();
-            services.AddScoped<LabsMappingProvider>();
-
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
 
-            services.AddScoped<SyncDriveFolderTaskHandler>();
-            services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
-            GoogleApiHelper.Register(services);
-
-            services.AddScoped<ThesesConversionTaskHandler>();
-            services.AddScoped<ListsForPredzashitaTaskHandler>();
-            ThesesListProvider.Register(services);
-            TeacherNameMapper.Register(services);
+            {
+                services.AddScoped<SyncDriveFolderTaskHandler>();
+                services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
+                GoogleApiHelper.Register(services);
+            }
+            {
+                services.AddScoped<ThesesConversionTaskHandler>();
+                services.AddScoped<ListsForPredzashitaTaskHandler>();
+                ThesesListProvider.Register(services);
+                TeacherNameMapper.Register(services);
+            }
+            {
+                StudentAttendanceLoader.Register(services);
+            }
         }
 
         public IConfiguration AddGlobalConfiguration()

@@ -1,9 +1,12 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Unicode;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Config;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.WebEncoders.Testing;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
@@ -61,10 +64,10 @@ public sealed class IntegrationTestHelper : IDisposable
             opts.UseCache = false;
             opts.EnrichWithFullNames = false;
         });
-        services.Replace(new(
-            typeof(ConfigureRemappingsDelegate),
-            new ConfigureRemappingsDelegate(x => { _ = x; }),
-            ServiceLifetime.Singleton));
+
+        services.RemoveAll<ConfigureRemappingsDelegate>();
+        services.AddSingleton(new ConfigureRemappingsDelegate(x => { _ = x; }));
+
         _rootServiceProvider = services.BuildServiceProvider();
         _scope = _rootServiceProvider.CreateScope();
     }
@@ -218,6 +221,11 @@ public sealed class IntegrationTestHelper : IDisposable
         options.Converters.Add(new JsonStringEnumConverter<LessonType>());
         options.Converters.Add(new JsonStringEnumConverter<DayOfWeek>());
         options.Converters.Add(new JsonStringEnumConverter<Parity>());
+
+        var textEncoder = new TextEncoderSettings();
+        textEncoder.AllowRanges(UnicodeRanges.All);
+        options.Encoder = JavaScriptEncoder.Create(textEncoder);
+
         using var stream = new MemoryStream();
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
         JsonSerializer.Serialize(stream, readableSchedule, options);

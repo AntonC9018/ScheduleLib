@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using AutoConstructor.Attributes;
 using ClosedXML.Excel;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -22,49 +24,138 @@ public enum RepeatedCourseBehavior
     Replace,
 }
 
-public readonly struct ParseAttendanceListsExcelParams
+[AutoConstructor]
+public sealed partial class AttendanceListsExcelParser
 {
-    public AllStudentAttendanceListBuilder Builder { get; }
-    public FilteredSchedule Schedule { get; }
-    public XLWorkbook Workbook { get; }
-    public GroupParseContext GroupParseContext { get; }
-    public LookupFacade Lookup { get; }
-    public LessonTypeParser LessonTypeParser { get; }
-
-    // Like this is nonsense honestly. Why do I have to care about this so much?
-    public readonly /* ref readonly */ AttendanceExcel.WorksheetParseParameters ParseParameters;
-
-    public ParseAttendanceListsExcelParams(
-        in AttendanceExcel.WorksheetParseParameters parseParameters,
-        AllStudentAttendanceListBuilder builder,
-        FilteredSchedule schedule,
-        XLWorkbook workbook,
-        GroupParseContext groupParseContext,
-        LookupFacade lookup,
-        LessonTypeParser lessonTypeParser)
+    public static void Register(IServiceCollection services)
     {
-        ParseParameters = parseParameters;
-        Builder = builder;
-        Schedule = schedule;
-        Workbook = workbook;
-        GroupParseContext = groupParseContext;
-        Lookup = lookup;
-        LessonTypeParser = lessonTypeParser;
+        services.AddSingleton<AttendanceListsExcelParser>();
     }
-}
 
-public static class AttendanceExcel
-{
+    private readonly GroupParseContext _groupParser;
+    private readonly LookupFacade _lookup;
+    private readonly LessonTypeParser _lessonTypeParser;
+
+    public void Parse(ParseAttendanceListsExcelParams p)
+    {
+        var lexer = new Lexer(NameTokenReader.Instance);
+        var helper = new ParseNameHelper(
+            schedule: p.Schedule,
+            lookup: _lookup,
+            groupParseContext: _groupParser,
+            lexer: lexer);
+
+        foreach (var sheet in p.Workbook.Worksheets)
+        {
+            using var header = ParseHeaderInfo(
+                sheet,
+                headerDeps: new()
+                {
+                    LessonTypeParser = _lessonTypeParser,
+                },
+                p.ParseParameters.HeaderFormat);
+            var additionallyIgnoredFields = new LessonModelDiffMask();
+            switch (header.HeaderType)
+            {
+                case HeaderType.LessonType:
+                {
+                    additionallyIgnoredFields.LessonType = true;
+                    break;
+                }
+                case HeaderType.None:
+                {
+                    break;
+                }
+                default:
+                {
+                    throw Unreachable();
+                }
+            }
+            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields) is not { } lesson)
+            {
+                throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
+            }
+
+            ref readonly var g = ref lesson.Groups;
+            if (!g.IsSingleGroup)
+            {
+                Add(g);
+            }
+            foreach (var group in g)
+            {
+                Add([group]);
+            }
+
+            StudentsLookupKey Key(in LessonGroups groups)
+            {
+                return new(
+                    courseId: lesson.Course,
+                    groups: groups,
+                    subGroup: lesson.SubGroup,
+                    lessonType: lesson.Type);
+            }
+
+            void Add(in LessonGroups groups)
+            {
+                var key = Key(groups);
+                var l = p.Builder.TryList(key);
+
+                void B()
+                {
+                    BuildList(
+                        sheet: sheet,
+                        list: l.Builder,
+                        header,
+                        p: p.ParseParameters);
+                }
+
+                if (!l.Existed)
+                {
+                    B();
+                    return;
+                }
+
+                switch (p.ParseParameters.RepeatedCourseBehavior)
+                {
+                    case RepeatedCourseBehavior.Append:
+                    {
+                        B();
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Ignore:
+                    {
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Warn:
+                    {
+                        Console.WriteLine($"Repeated course: {p.Schedule.Source.Get(lesson.Course).FullName}");
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Replace:
+                    {
+                        l.Builder.Clear();
+                        B();
+                        break;
+                    }
+                    case RepeatedCourseBehavior.Error:
+                    {
+                        throw new RepeatedCourseException();
+                    }
+                }
+            }
+        }
+    }
+
     private static class NameTokenType
     {
         public const TokenType NamePart = TokenType.Invalid + 1;
     }
 
-    private static readonly TokenTypeLabels _labels =
-        LexerHelper.CreateLabels(typeof(NameTokenType));
-
     private sealed class NameTokenReader : ITokenReader
     {
+        public TokenTypeLabels Labels { get; } =
+            LexerHelper.CreateLabels(typeof(NameTokenType));
+
         public static readonly NameTokenReader Instance = new();
 
         public TokenType Read(ref Parser parser)
@@ -380,143 +471,6 @@ public static class AttendanceExcel
             }
             return null;
         }
-    }
-
-    public static void ParseAttendanceListsExcel(ParseAttendanceListsExcelParams p)
-    {
-        var lexer = new Lexer(NameTokenReader.Instance, _labels);
-        var helper = new ParseNameHelper(
-            schedule: p.Schedule,
-            lookup: p.Lookup,
-            groupParseContext: p.GroupParseContext,
-            lexer: lexer);
-
-        foreach (var sheet in p.Workbook.Worksheets)
-        {
-            using var header = ParseHeaderInfo(
-                sheet,
-                headerDeps: new()
-                {
-                    LessonTypeParser = p.LessonTypeParser,
-                },
-                p.ParseParameters.HeaderFormat);
-            var additionallyIgnoredFields = new LessonModelDiffMask();
-            switch (header.HeaderType)
-            {
-                case HeaderType.LessonType:
-                {
-                    additionallyIgnoredFields.LessonType = true;
-                    break;
-                }
-                case HeaderType.None:
-                {
-                    break;
-                }
-                default:
-                {
-                    throw Unreachable();
-                }
-            }
-            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields) is not { } lesson)
-            {
-                throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
-            }
-
-            ref readonly var g = ref lesson.Groups;
-            if (!g.IsSingleGroup)
-            {
-                Add(g);
-            }
-            foreach (var group in g)
-            {
-                Add([group]);
-            }
-
-            StudentsLookupKey Key(in LessonGroups groups)
-            {
-                return new(
-                    courseId: lesson.Course,
-                    groups: groups,
-                    subGroup: lesson.SubGroup,
-                    lessonType: lesson.Type);
-            }
-
-            void Add(in LessonGroups groups)
-            {
-                var key = Key(groups);
-                var l = p.Builder.TryList(key);
-
-                void B()
-                {
-                    BuildList(
-                        sheet: sheet,
-                        list: l.Builder,
-                        header,
-                        p: p.ParseParameters);
-                }
-
-                if (!l.Existed)
-                {
-                    B();
-                    return;
-                }
-
-                switch (p.ParseParameters.RepeatedCourseBehavior)
-                {
-                    case RepeatedCourseBehavior.Append:
-                    {
-                        B();
-                        break;
-                    }
-                    case RepeatedCourseBehavior.Ignore:
-                    {
-                        break;
-                    }
-                    case RepeatedCourseBehavior.Warn:
-                    {
-                        Console.WriteLine($"Repeated course: {p.Schedule.Source.Get(lesson.Course).FullName}");
-                        break;
-                    }
-                    case RepeatedCourseBehavior.Replace:
-                    {
-                        l.Builder.Clear();
-                        B();
-                        break;
-                    }
-                    case RepeatedCourseBehavior.Error:
-                    {
-                        throw new RepeatedCourseException();
-                    }
-                }
-            }
-        }
-    }
-
-    public enum HeaderFormatType
-    {
-        Nothing,
-        LessonType,
-        IgnoreHeader,
-        Auto,
-    }
-
-    public struct HeaderFormat()
-    {
-        public HeaderFormatType FormatType = HeaderFormatType.Auto;
-        public bool IgnoreValuesOutsideHeader = true;
-    }
-
-    public enum CellValueFormat
-    {
-        NotAttendanceIsError,
-        IgnoreGrade,
-    }
-
-    public struct WorksheetParseParameters()
-    {
-        public HeaderFormat HeaderFormat = new();
-        public CellValueFormat CellValueFormat = CellValueFormat.NotAttendanceIsError;
-        public RepeatedCourseBehavior RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
     }
 
     private readonly struct ParsedHeaderInfo : IDisposable
@@ -941,6 +895,57 @@ public static class AttendanceExcel
         public ColumnOffset PreviousOffset = default;
         public bool IsInEmptyStreak = false;
         public bool AllowedToSkipEmpty = format != HeaderFormatType.Auto;
+    }
+}
+
+
+public enum HeaderFormatType
+{
+    Nothing,
+    LessonType,
+    IgnoreHeader,
+    Auto,
+}
+
+public struct HeaderFormat()
+{
+    public HeaderFormatType FormatType = HeaderFormatType.Auto;
+    public bool IgnoreValuesOutsideHeader = true;
+}
+
+public enum CellValueFormat
+{
+    NotAttendanceIsError,
+    IgnoreGrade,
+}
+
+public struct WorksheetParseParameters()
+{
+    public HeaderFormat HeaderFormat = new();
+    public CellValueFormat CellValueFormat = CellValueFormat.NotAttendanceIsError;
+    public RepeatedCourseBehavior RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+}
+
+
+public readonly struct ParseAttendanceListsExcelParams
+{
+    public AllStudentAttendanceListBuilder Builder { get; }
+    public FilteredSchedule Schedule { get; }
+    public XLWorkbook Workbook { get; }
+
+    // Like this is nonsense honestly. Why do I have to care about this so much?
+    public readonly /* ref readonly */ WorksheetParseParameters ParseParameters;
+
+    public ParseAttendanceListsExcelParams(
+        in WorksheetParseParameters parseParameters,
+        AllStudentAttendanceListBuilder builder,
+        FilteredSchedule schedule,
+        XLWorkbook workbook)
+    {
+        ParseParameters = parseParameters;
+        Builder = builder;
+        Schedule = schedule;
+        Workbook = workbook;
     }
 }
 

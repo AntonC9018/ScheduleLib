@@ -196,7 +196,7 @@ public static class CommissionParser
                         parser.ConsumeExactString(".");
                         parser.SkipWhitespace();
 
-                        var studentName = NameHelper.ParseName(ref parser);
+                        var studentName = NameHelper.Parse(ref parser);
                         var students = state.StudentColumns.Find(x.Cell.Position);
                         if (students is null)
                         {

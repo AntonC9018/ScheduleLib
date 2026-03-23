@@ -23,7 +23,15 @@ public static class MarkerConfigExtension
         var ret = sp.CreateAsyncScope();
         // Doesn't have to be an option snapshot, actually.
         var config = ret.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
-        configure(config);
+        try
+        {
+            configure(config);
+        }
+        catch
+        {
+            ret.Dispose();
+            throw;
+        }
         return ret;
     }
 
@@ -31,10 +39,10 @@ public static class MarkerConfigExtension
         this IServiceProvider sp,
         TeacherLayerConfig marker)
     {
-        var ret = sp.CreateAsyncScope();
-        // Doesn't have to be an option snapshot, actually.
-        var config = ret.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
-        config.TeacherName = marker.TeacherName;
+        var ret = CreateMarkerScope(sp, x =>
+        {
+            x.TeacherName = marker.TeacherName;
+        });
         return ret;
     }
 

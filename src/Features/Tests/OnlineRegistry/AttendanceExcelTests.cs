@@ -34,17 +34,18 @@ public sealed class AttendanceExcelTests
 
         using var workbook = new XLWorkbook(ExcelFilePath);
         var attendanceBuilder = new AllStudentAttendanceListBuilder();
-        AttendanceExcel.ParseAttendanceListsExcel(new(
-            lessonTypeParser: LessonTypeParser.Instance,
+        var parser = new AttendanceListsExcelParser(
+            builder.GroupParseContext!,
+            builder.Lookup(unifier),
+            LessonTypeParser.Instance);
+        parser.Parse(new(
             builder: attendanceBuilder,
             parseParameters: new()
             {
                 RepeatedCourseBehavior = RepeatedCourseBehavior.Error,
             },
             schedule: filteredSchedule,
-            workbook: workbook,
-            lookup: builder.Lookup(unifier),
-            groupParseContext: builder.GroupParseContext!));
+            workbook: workbook));
         var lists = attendanceBuilder.Build(missingDaysFiller: Attendance.Present);
 
         await Verify(lists.Select(x => new

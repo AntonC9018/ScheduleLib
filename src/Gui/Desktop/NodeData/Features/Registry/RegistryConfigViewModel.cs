@@ -1,19 +1,18 @@
+using AutoConstructor.Attributes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Desktop.NodeData.Common;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Application.Config;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.NodeData.Features.Registry;
 
-public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConfig>
+[AutoConstructor]
+public sealed partial class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConfig>
 {
     private readonly NodeDataAccessor<RegistryConfig> _helper;
-    public RegistryConfigViewModel(NodeDataAccessor<RegistryConfig> helper)
-    {
-        _helper = helper;
-    }
 
     public static void Register(IServiceCollection services)
     {
@@ -70,6 +69,7 @@ public sealed class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConf
             v.CommandProcessingConfig = b.Build();
         }
     }
+
 }
 
 public sealed class ObservableCredentials<T> : ObservableObject

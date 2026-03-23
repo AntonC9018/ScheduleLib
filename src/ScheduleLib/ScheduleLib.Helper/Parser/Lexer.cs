@@ -15,8 +15,10 @@ public struct TokenSpan
 
 public record struct Token
 {
+    public readonly ReadOnlyMemory<char> Value => WholeLineMem[Span.ColStart.Index .. Span.ColEnd.Index];
+
+    public required ReadOnlyMemory<char> WholeLineMem;
     public required TokenType Type;
-    public required ReadOnlyMemory<char> Value;
     public required TokenSpan Span;
 
     public readonly bool Is(char ch)
@@ -42,7 +44,7 @@ public interface ILexer
 
 public static class ClassLexerExtensions
 {
-    extension<T>(T lexer) where T : class, ILexer
+    extension(Lexer lexer)
     {
         public LexerStructWrapper Wrap() => new(lexer);
 
@@ -91,7 +93,7 @@ public static class ClassLexerExtensions
         public ReadOnlyMemory<char> Concat(ConcatParams p)
         {
             var t = lexer.Wrap();
-            return t.Concat(p);
+            return t.ConcatWithSpaceReplacement(p);
         }
 
     }
@@ -156,7 +158,7 @@ public static class StructLexerExtensions
             return false;
         }
 
-        public ReadOnlyMemory<char> Concat(ConcatParams p)
+        public ReadOnlyMemory<char> ConcatWithSpaceReplacement(ConcatParams p)
         {
             if (lexer.IsEmpty)
             {
@@ -205,6 +207,73 @@ public static class StructLexerExtensions
         }
 
     }
+
+    extension (LimitedLexerScope lexer)
+    {
+        // Currently not possible to do, because the source string is getting lost
+        // when it's used to make the token.
+        public ReadOnlyMemory<char> Concat(StringBuilder? maybeUsedStringBuilder = null)
+        {
+            if (lexer.IsEmpty)
+            {
+                return ReadOnlyMemory<char>.Empty;
+            }
+
+            var startTok = lexer.Current;
+            var prevTok = lexer.Current;
+
+            ReadOnlyMemory<char> MemUntilNow()
+            {
+                Debug.Assert(startTok.WholeLineMem.Equals(prevTok.WholeLineMem));
+                var startPos = startTok.Span.ColStart;
+                var prevEndPos = prevTok.Span.ColEnd;
+                var untilNowStr = startTok.WholeLineMem[startPos.Index .. prevEndPos.Index];
+                return untilNowStr;
+            }
+
+            bool writtenToSb = false;
+
+            while (true)
+            {
+                if (!lexer.CanPeek())
+                {
+                    if (writtenToSb)
+                    {
+                        return maybeUsedStringBuilder!.ToStringAndClear().AsMemory();
+                    }
+                    else
+                    {
+                        return MemUntilNow();
+                    }
+                }
+
+                var currentTok = lexer.Current;
+                if (currentTok.WholeLineMem.Equals(prevTok.WholeLineMem)
+                        || currentTok.Span.ColStart != prevTok.Span.ColEnd)
+                {
+                    writtenToSb = true;
+                    if (maybeUsedStringBuilder is null)
+                    {
+                        maybeUsedStringBuilder = new();
+                    }
+                    else
+                    {
+                        maybeUsedStringBuilder.Clear();
+                    }
+
+                    maybeUsedStringBuilder.Append(MemUntilNow());
+                }
+
+                if (writtenToSb)
+                {
+                    maybeUsedStringBuilder!.Append(currentTok.Value);
+                }
+
+                prevTok = currentTok;
+                lexer.Move();
+            }
+        }
+    }
 }
 
 public readonly record struct ConcatParams()
@@ -216,9 +285,9 @@ public readonly record struct ConcatParams()
 
 public readonly struct LexerStructWrapper : ILexer
 {
-    private readonly ILexer _lexer;
+    private readonly Lexer _lexer;
 
-    public LexerStructWrapper(ILexer lexer)
+    public LexerStructWrapper(Lexer lexer)
     {
         _lexer = lexer;
     }
@@ -312,11 +381,12 @@ public enum TokenType
 public interface ITokenReader
 {
     public TokenType Read(ref Parser parser);
+    public TokenTypeLabels Labels { get; }
 }
 
 public sealed class Lexer : ILexer
 {
-    public readonly TokenTypeLabels TokenTypeLabels;
+    public TokenTypeLabels TokenTypeLabels => _readImpl.Labels;
 
     private IEnumerator<ReadOnlyMemory<char>>? _lines;
     private readonly ITokenReader _readImpl;
@@ -328,16 +398,21 @@ public sealed class Lexer : ILexer
     private bool _hasOutputEndOfStream;
     private int _rowIndex;
 
-    public Lexer(
-        ITokenReader readImpl,
-        TokenTypeLabels tokenTypeLabels)
+    public Lexer(ITokenReader readImpl)
     {
         _lines = null;
         _queue = new();
         Reset(null!);
         _rowIndex = 0;
-        TokenTypeLabels = tokenTypeLabels;
         _readImpl = readImpl;
+    }
+
+    public (int Row, ParserPosition Position) Position
+    {
+        get
+        {
+            return (_rowIndex, _parser.Position);
+        }
     }
 
     public void Reset(IEnumerator<ReadOnlyMemory<char>> lines)
@@ -429,12 +504,15 @@ public sealed class Lexer : ILexer
             Debug.Assert(value.Length == 1);
             type = (TokenType) value.Span[0];
         }
-        _queue.Add(new()
+        var token = new Token
         {
+            WholeLineMem = _parser.Source,
             Type = type,
-            Value = value,
             Span = span,
-        });
+        };
+        Debug.Assert(value.Equals(token.Value));
+
+        _queue.Add(token);
         _parser.MoveTo(end);
     }
 
@@ -489,6 +567,7 @@ public sealed class Lexer : ILexer
         Debug.Assert(!HasEndOfStream);
         _queue.Add(new Token
         {
+            WholeLineMem = _parser.Source,
             Span = new()
             {
                 Row = _rowIndex,
@@ -497,7 +576,6 @@ public sealed class Lexer : ILexer
                 ColEnd = _parser.Position,
             },
             Type = TokenType.EndOfStream,
-            Value = ReadOnlyMemory<char>.Empty,
         });
         _hasOutputEndOfStream = true;
         return true;
@@ -511,6 +589,7 @@ public sealed class Lexer : ILexer
         }
         _queue.Add(new Token
         {
+            WholeLineMem = _parser.Source,
             Span = new()
             {
                 Row = _rowIndex,
@@ -518,11 +597,12 @@ public sealed class Lexer : ILexer
                 ColEnd = _parser.EndPosition,
             },
             Type = TokenType.EndOfLine,
-            Value = ReadOnlyMemory<char>.Empty,
         });
         _hasOutputEndOfLine = true;
         return true;
     }
+
+
 }
 
 public static class LexerHelper
@@ -602,6 +682,28 @@ public static class LexerHelper
 
         return new(builder.ToImmutable());
     }
+
+    extension (LexerScope lexer)
+    {
+        public void Apply(ref Parser parser)
+        {
+            if (lexer.IsEmpty)
+            {
+                parser.MoveTo(parser.EndPosition);
+            }
+            else
+            {
+                var t = lexer.Current;
+                var source = t.WholeLineMem;
+                if (!source.Equals(parser.Source))
+                {
+                    throw new InvalidOperationException("Cannot apply displacement to this parser, because the lexer is on a different line now");
+                }
+
+                parser.MoveTo(t.Span.ColStart);
+            }
+        }
+    }
 }
 
 public readonly record struct TokenTypeLabels(
@@ -631,7 +733,7 @@ public struct LimitedLexerScope : ILexer
 
     public readonly LexerPosition Position => _lexer.Position;
 
-    public readonly bool CanPeek(int offset)
+    public readonly bool CanPeek(int offset = 1)
     {
         // Check doesn't exceed end
         int i = _lexer.Position.Value + offset - 1;

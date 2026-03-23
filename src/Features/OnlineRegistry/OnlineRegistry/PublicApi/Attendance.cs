@@ -440,7 +440,7 @@ internal readonly struct StudentNameRemapHelper
         for (int i = 0; i < namesInHtml.Length; i++)
         {
             var parser = new Parser(namesInHtml[i].Name);
-            var name = NameHelper.ParseName(ref parser);
+            var name = NameHelper.Parse(ref parser);
             var remappedIndex = namesInDb.NameToIndex(name);
             if (!remappedIndex.IsInvalid)
             {

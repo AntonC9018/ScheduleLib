@@ -39,6 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <AdditionalFiles Include="MainWindow\Selection\AddUserView.axaml" />
       <AdditionalFiles Include="MainWindow\Views\MainWindowView.axaml" />
       <AdditionalFiles Include="NodeData\Editor\NodeDataEditorView.axaml" />
       <AdditionalFiles Include="NodeData\VmHost\ConfigNodeVmHostView.axaml" />
@@ -46,5 +47,12 @@
 
     <ItemGroup>
       <Folder Include="NodeData\Features\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="MainWindow\Selection\AddUserView.axaml.cs">
+        <DependentUpon>AddUserView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>

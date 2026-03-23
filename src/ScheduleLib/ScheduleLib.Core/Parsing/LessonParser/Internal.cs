@@ -16,6 +16,7 @@ public static class LessonTokenType
 public sealed class LessonTokenReader : ITokenReader
 {
     public static readonly LessonTokenReader Instance = new();
+    public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(LessonTokenType));
 
     public TokenType Read(ref Parser parser)
     {

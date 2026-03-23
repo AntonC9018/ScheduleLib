@@ -42,7 +42,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         LayerLevelSelection = new(
             treeContext.Dispatcher,
             _dataStore.SelectedNodePath);
-        AddUser = new(
+        AddUser = ActivatorUtilities.CreateInstance<AddUserViewModel>(
+            sp,
             treeContext,
             _updateTreeHelper,
             _dataStore.TreeStructureChanged,

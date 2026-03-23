@@ -164,13 +164,7 @@ internal struct ParsingStateStack
 
 public static class LessonParsingHelper
 {
-    private static readonly TokenTypeLabels _labels =
-        LexerHelper.CreateLabels(typeof(LessonTokenType));
-
-    public static Lexer CreateLexer()
-    {
-        return new(LessonTokenReader.Instance, _labels);
-    }
+    public static Lexer CreateLexer() => new(LessonTokenReader.Instance);
 
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
@@ -640,7 +634,7 @@ public static class LessonParsingHelper
                         };
                     }
 
-                    var groupName = lexer.Concat(new()
+                    var groupName = lexer.ConcatWithSpaceReplacement(new()
                     {
                         StringBuilder = sb,
                         ConcattedType = LessonTokenType.Word,
@@ -1355,22 +1349,6 @@ public static class LessonParsingHelper
         }
     }
 
-    private static bool IsTeacherSeparator(char ch)
-    {
-        if (ch == ',')
-        {
-            return true;
-        }
-        if (ch == '.')
-        {
-            return true;
-        }
-        if (ch == ' ')
-        {
-            return true;
-        }
-        return false;
-    }
     private static bool IsTeacherNameChar(char ch)
     {
         if (ch is '.')

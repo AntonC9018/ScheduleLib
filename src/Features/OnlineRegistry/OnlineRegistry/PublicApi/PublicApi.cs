@@ -213,6 +213,8 @@ public readonly record struct RegistryScrapingContext(
     public HttpClient HttpClient => ScrapingContext.HttpClient;
     public IServiceProvider Services => ScrapingContext.BuilderServices!;
 
+    public bool IsNull => this == default;
+
     public void Dispose()
     {
         ScrapingContext.Dispose();

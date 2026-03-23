@@ -65,5 +65,4 @@ public sealed class CourseNameTests
         var course2 = Parse(parserConfig, "MTA3D");
         Assert.Equal(course1, course2);
     }
-
 }
