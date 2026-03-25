@@ -232,7 +232,14 @@ public static class Registration
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
-            services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
+            {
+                services.AddScoped<AddLessonsToOnlineRegistryTaskHandler>();
+
+                services.AddScoped<ContextProvider>();
+                services.AddScoped<CurrentTeacherLessonFilterProvider>();
+                services.AddScoped<LessonTopicsOfCurrentTeacherLoader>();
+                services.AddScoped<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+            }
 
             {
                 services.AddScoped<SyncDriveFolderTaskHandler>();

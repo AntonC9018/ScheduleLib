@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
-public record struct EnumBitArray<T>
+public record struct EnumBitArray<T> : IEnumerable<T>
     where T : struct, Enum
 {
     static EnumBitArray()
@@ -217,6 +217,10 @@ public record struct EnumBitArray<T>
             lb.Append(Enum.GetName(value));
         }
     }
+
+    public SetEnumValuesEnumerator GetEnumerator() => SetValues().GetEnumerator();
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public override string ToString()
     {

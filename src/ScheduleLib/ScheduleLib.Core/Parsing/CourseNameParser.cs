@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib.Parsing.CourseName;
 
@@ -281,23 +282,33 @@ public static class CourseNameParsing
             return true;
         }
 
-        if (!a.IsDone && a.CanIgnoreCurrent)
+        static bool TryIngore(
+            CourseIter a,
+            CourseIter b)
         {
-            var acopy = a;
-            acopy.Move();
-            if (IsEqualRecursion(acopy, b))
+            if (!a.IsDone && a.CanIgnoreCurrent)
             {
-                return true;
+                foreach (var w in a.GetPossibleWords())
+                {
+                    var copy = a;
+                    copy.Move(w.Type);
+
+                    if (IsEqualRecursion(copy, b))
+                    {
+                        return true;
+                    }
+                }
             }
+            return false;
         }
-        if (!b.IsDone && b.CanIgnoreCurrent)
+
+        if (TryIngore(a, b))
         {
-            var bcopy = b;
-            bcopy.Move();
-            if (IsEqualRecursion(a, bcopy))
-            {
-                return true;
-            }
+            return true;
+        }
+        if (TryIngore(b, a))
+        {
+            return true;
         }
 
         if (a.IsDone)
@@ -309,17 +320,23 @@ public static class CourseNameParsing
             return false;
         }
 
-        var selfword = a.CurrentWord;
-        var otherword = b.CurrentWord;
-        if (selfword.IsEqual(otherword))
+        foreach (var wa in a.GetPossibleWords())
         {
-            var acopy = a;
-            var bcopy = b;
-            acopy.Move();
-            bcopy.Move();
-            if (IsEqualRecursion(acopy, bcopy))
+            foreach (var wb in b.GetPossibleWords())
             {
-                return true;
+                if (!wa.Word.IsEqual(wb.Word))
+                {
+                    continue;
+                }
+
+                var acopy = a;
+                var bcopy = b;
+                acopy.Move(wa.Type);
+                bcopy.Move(wb.Type);
+                if (IsEqualRecursion(acopy, bcopy))
+                {
+                    return true;
+                }
             }
         }
 
@@ -342,33 +359,114 @@ public static class CourseNameParsing
         public bool IsDone => Index >= _courseName.Segments.Count;
         private CourseNameSegment CurrentSegment => _courseName.Segments[Index];
         public bool CanIgnoreCurrent => CurrentSegment.Flags.CanBeIgnored;
-        public WordSpan CurrentWord
+
+        public WordSpan GetCurrentWord(WordType wordType)
         {
-            get
+            switch (wordType)
             {
-                var s = CurrentSegment;
-                if (s.Flags.IsInitials)
+                case WordType.Plain:
                 {
+                    if (InitialsIndex != 0)
+                    {
+                        return default;
+                    }
+                    return CurrentSegment.Word;
+                }
+                case WordType.Letter:
+                {
+                    var s = CurrentSegment;
+                    if (!s.Flags.IsInitials)
+                    {
+                        return default;
+                    }
                     var all = s.GetInitials();
                     var singleLetterSlice = all.Slice(InitialsIndex, 1);
                     return new(singleLetterSlice);
                 }
-                return s.Word;
+                default:
+                {
+                    throw Unreachable();
+                }
             }
         }
-        public void Move()
+
+        public void Move(WordType t)
         {
             var s = CurrentSegment;
-            if (s.Flags.IsInitials)
+            switch (t)
             {
-                InitialsIndex++;
-                if (InitialsIndex < s.GetInitials().Length)
+                case WordType.Plain:
                 {
-                    return;
+                    Debug.Assert(InitialsIndex == 0);
+                    Index++;
+                    break;
                 }
-                InitialsIndex = 0;
+                case WordType.Letter:
+                {
+                    Debug.Assert(s.Flags.IsInitials);
+                    InitialsIndex++;
+                    if (InitialsIndex < s.GetInitials().Length)
+                    {
+                        return;
+                    }
+                    InitialsIndex = 0;
+                    Index++;
+                    break;
+                }
+                default:
+                {
+                    throw Unreachable();
+                }
             }
-            Index++;
+        }
+
+        public WordEnumerable GetPossibleWords() => new(this);
+        public readonly struct WordEnumerable
+        {
+            private readonly CourseIter _i;
+            public WordEnumerable(CourseIter i) => _i = i;
+            public Enumerator GetEnumerator() => new(_i);
+            public struct Enumerator
+            {
+                private EnumMembers<WordType>.Enumerator _e;
+                private CourseIter _i;
+
+                public Enumerator(CourseIter i)
+                {
+                    _e = new EnumMembers<WordType>().GetEnumerator();
+                    _i = i;
+                }
+
+                public readonly ref struct V
+                {
+                    public readonly WordType Type;
+                    public readonly WordSpan Word;
+
+                    public V(WordType type, WordSpan word)
+                    {
+                        Type = type;
+                        Word = word;
+                    }
+                }
+
+                public V Current => new(_e.Current, _i.GetCurrentWord(_e.Current));
+
+                public bool MoveNext()
+                {
+                    while (true)
+                    {
+                        if (!_e.MoveNext())
+                        {
+                            return false;
+                        }
+                        if (Current.Word.IsNull)
+                        {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+            }
         }
     }
 }
@@ -545,5 +643,11 @@ internal readonly ref struct WordEnumerable
             }
         }
     }
+}
+
+internal enum WordType
+{
+    Plain,
+    Letter,
 }
 

@@ -32,6 +32,30 @@ public static class ComparisonHelper
         return false;
     }
 
+    public static bool NullGuardCompare<T>(
+        [NotNullWhen(false)] T? x,
+        [NotNullWhen(false)] T? y,
+        out int score)
+    {
+        if (x is null && y is null)
+        {
+            score = 0;
+            return true;
+        }
+        if (x is not null && y is null)
+        {
+            score = 1;
+            return true;
+        }
+        if (x is null && y is not null)
+        {
+            score = -1;
+            return true;
+        }
+        score = 0;
+        return false;
+    }
+
     public static bool AtLeastOneIsNull<T>(
         // NOTE:
         // this is technically a lie, but the user is supposed to return immediately,

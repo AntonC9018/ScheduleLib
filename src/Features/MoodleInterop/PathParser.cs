@@ -169,7 +169,7 @@ public static class MoodlePathParser
             return (null, null);
         }
 
-        scope.ConsumeMultiple([TokenType.Whitespace]);
+        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
         if (!scope.CanPeek(1))
         {
@@ -197,7 +197,7 @@ public static class MoodlePathParser
             return (null, null);
         }
 
-        scope.ConsumeMultiple([TokenType.Whitespace]);
+        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
         // Read qualification type text
         var qualificationText = "";
@@ -235,7 +235,7 @@ public static class MoodlePathParser
             return Grade.Invalid;
         }
 
-        scope.ConsumeMultiple([TokenType.Whitespace]);
+        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
         if (!scope.CanPeek(1))
         {
@@ -275,7 +275,7 @@ public static class MoodlePathParser
         // Check if starts with "Atestare"
         if (scope.TryConsume(MoodlePathTokenType.Atestare))
         {
-            scope.ConsumeMultiple([TokenType.Whitespace]);
+            scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
             int testNumber = 0;
             if (scope.CanPeek(1))

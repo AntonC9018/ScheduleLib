@@ -135,5 +135,12 @@ public static class DefaultConfig
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);
             });
         });
+
+        b.Defaults.TeacherLayer("Plesca Natalia", t =>
+        {
+            t.Registry().Configure(x =>
+            {
+            });
+        });
     }
 }

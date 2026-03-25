@@ -27,7 +27,7 @@ public static class AppConfiguration
         });
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
-            x.BypassCache = false;
+            x.BypassCache = true;
             x.EnrichWithFullNames = false;
         });
         services.ConfigureNodeDataJsonSerialization(x =>

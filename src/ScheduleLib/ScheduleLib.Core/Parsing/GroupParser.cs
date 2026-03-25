@@ -64,6 +64,12 @@ public static class GroupHelper
 
         var (label, isFr, isMaster) = ParseLabel(ref parser);
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
+
+        if (isFr && isDual)
+        {
+            throw new InvalidOperationException("Both FR and DUAL parsed, not allowed.");
+        }
+
         parser.SkipWhitespace();
 
         int year = ParseYear(ref parser);
@@ -83,6 +89,20 @@ public static class GroupHelper
         parser.SkipWhitespace();
         var language = ParseLanguage();
 
+        AttendanceMode attendanceMode;
+        if (isFr)
+        {
+            attendanceMode = AttendanceMode.FrecventaRedusa;
+        }
+        else if (isDual)
+        {
+            attendanceMode = AttendanceMode.Dual;
+        }
+        else
+        {
+            attendanceMode = AttendanceMode.Zi;
+        }
+
         return new()
         {
             Faculty = new(label),
@@ -91,7 +111,7 @@ public static class GroupHelper
             Language = language,
             Name = actualName,
             QualificationType = qualificationType,
-            AttendanceMode = isFr ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
+            AttendanceMode = attendanceMode,
         };
 
 

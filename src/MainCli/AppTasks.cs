@@ -9,6 +9,7 @@ using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
+using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 
@@ -29,6 +30,7 @@ public enum AppTask
     UpdateCalendar,
     ListOfThesesPerTeacherForWebsite,
     CreatePredzashitaExcels,
+    Query,
 }
 
 public static class AppTasks
@@ -89,6 +91,8 @@ public static class AppTasks
 
             case AppTask.CreateLessonsInRegistry:
             {
+                var x = c.Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+                await x.Execute(c.CancellationToken);
                 break;
             }
 
@@ -226,6 +230,44 @@ public static class AppTasks
                 var handler = c.Services.GetRequiredService<ListsForPredzashitaTaskHandler>();
                 await handler.Handle(c.OutputDirectory, c.CancellationToken);
                 c.OutputDirectory.TryOpenInExplorer();
+                break;
+            }
+
+            case AppTask.Query:
+            {
+                var schedule = c.Services.GetRequiredService<Schedule>();
+                var filter = FilterHelper.Builder()
+                    .WithLatestPeriod(schedule);
+                var filteredSchedule = schedule.Filter(filter);
+
+                var timeConfig = c.Services.GetRequiredService<LessonTimeConfig>();
+                var startTimeSlot = timeConfig.FindTimeSlotByIncludedTime(new(hour: 17, minute: 00));
+                var timeDisplay = c.Services.GetRequiredService<TimeSlotDisplayHandler>();
+
+                foreach (var x in filteredSchedule.EnumerateWeeklyLessons())
+                {
+                    if (!x.Date.Parity.IsMatch(Parity.OddWeek))
+                    {
+                        continue;
+                    }
+                    if (x.Date.DayOfWeek != DayOfWeek.Tuesday)
+                    {
+                        continue;
+                    }
+                    if (x.Date.TimeSlot > startTimeSlot)
+                    {
+                        continue;
+                    }
+                    if (x.Lesson.Room.Id != "423/4")
+                    {
+                        continue;
+                    }
+                    var teacher = schedule.Get(x.Lesson.Teachers[0]);
+                    var course = schedule.Get(x.Lesson.Course);
+                    var timeInterval = timeConfig.GetTimeSlotInterval(x.Date.TimeSlot);
+                    var time = timeDisplay.IntervalDisplay(timeInterval);
+                    Console.WriteLine($"{teacher.PersonName}, {course.FullName}, {time}");
+                }
                 break;
             }
         }

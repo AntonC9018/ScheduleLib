@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
@@ -9,7 +10,7 @@ public enum NameField
 {
     First,
     Last,
-    Partonymic,
+    Patronymic,
     Count,
 }
 
@@ -116,6 +117,7 @@ public record struct NameFields
 public sealed record Name
 {
     private NameFields _fields;
+    public ref readonly NameFields Fields => ref _fields;
 
     public NameParts<string?> FirstName
     {
@@ -235,7 +237,7 @@ public static class NameHelper
         {
             return Parse(ref parser);
         }
-        catch (InvalidOperationException)
+        catch (NameParsingException)
         {
             return null;
         }
@@ -258,7 +260,11 @@ public static class NameHelper
         var blexer = lexer;
         IgnoreParenthesizedTextAndWhitespace(ref blexer);
 
-        ret.Patronymic = ParseNamePart(ref blexer, "Patronymic incomplete");
+        ret.Patronymic = ParseNamePart(ref blexer, out bool isIncompletePatro);
+        if (isIncompletePatro)
+        {
+            throw blexer.NameParsingException("Patronymic incomplete");
+        }
         if (ret.Patronymic == default)
         {
             return new(ret);
@@ -271,10 +277,10 @@ public static class NameHelper
 
         static void IgnoreParenthesizedTextAndWhitespace(ref LexerScope lexer)
         {
-            lexer.ConsumeMultiple([TokenType.Whitespace]);
+            lexer.ConsumeAllConsecutive([TokenType.Whitespace]);
             if (lexer.TryConsume(NameTokenType.ParenthesizedText))
             {
-                lexer.ConsumeMultiple([TokenType.Whitespace]);
+                lexer.ConsumeAllConsecutive([TokenType.Whitespace]);
             }
         }
 
@@ -282,7 +288,7 @@ public static class NameHelper
         {
             if (!lexer.IsEmpty && lexer.Current.Type == TokenType.Invalid)
             {
-                throw new InvalidOperationException($"Invalid token {lexer.Current.Value}");
+                throw lexer.NameParsingException("Invalid token");
             }
         }
 
@@ -291,50 +297,58 @@ public static class NameHelper
             string requiredError,
             string incompleteError)
         {
-            var ret = ParseNamePart(ref lexer, incompleteError);
+            var ret = ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
+            if (isIncompleteDoubleName)
+            {
+                throw lexer.NameParsingException(incompleteError);
+            }
             if (ret == default)
             {
-                throw new InvalidOperationException(requiredError);
+                throw lexer.NameParsingException(requiredError);
             }
             return ret;
         }
+    }
 
-        static NameParts<string?> ParseNamePart(ref LexerScope lexer, string incompleteError)
+    public static NameParts<string?> ParseNamePart(
+        ref LexerScope lexer,
+        out bool isIncompleteDoubleName)
+    {
+        var ret = new NameParts<string?>();
+
+        static bool ParsePartOfPart(ref LexerScope lexer, out string? ret)
         {
-            var ret = new NameParts<string?>();
-
-            bool ParsePartOfPart(ref LexerScope lexer, out string? ret)
+            if (lexer.IsEmpty)
             {
-                if (lexer.IsEmpty)
-                {
-                    ret = null;
-                    return false;
-                }
-                var t = lexer.Current;
-                if (t.Type != NameTokenType.Word)
-                {
-                    ret = null;
-                    return false;
-                }
-                lexer.Move();
-                ret = t.Value.ToString();
-                return true;
+                ret = null;
+                return false;
             }
-
-            if (!ParsePartOfPart(ref lexer, out ret[0]))
+            var t = lexer.Current;
+            if (t.Type != NameTokenType.Word)
             {
-                return ret;
+                ret = null;
+                return false;
             }
+            lexer.Move();
+            ret = t.Value.ToString();
+            return true;
+        }
 
-            if (lexer.TryConsume(NameTokenType.DoubleNameSeparator))
-            {
-                if (!ParsePartOfPart(ref lexer, out ret[1]))
-                {
-                    throw new InvalidOperationException(incompleteError);
-                }
-            }
+        isIncompleteDoubleName = false;
+
+        if (!ParsePartOfPart(ref lexer, out ret[0]))
+        {
             return ret;
         }
+
+        if (lexer.TryConsume(NameTokenType.DoubleNameSeparator))
+        {
+            if (!ParsePartOfPart(ref lexer, out ret[1]))
+            {
+                isIncompleteDoubleName = true;
+            }
+        }
+        return ret;
     }
 
     // LastName FirstName Patronymic
@@ -354,12 +368,17 @@ public static class NameHelper
         var ret = Parse(ref parser);
         if (!parser.IsEmpty)
         {
-            throw new InvalidOperationException("Extra characters after name");
+            throw new NameParsingException("Extra characters after name");
         }
         return ret;
     }
 
-    public static ref NameParts<string?> Field(ref NameFields fields, NameField field)
+    public static ref NameParts<string?> FieldMut(ref NameFields fields, NameField field)
+    {
+        return ref Unsafe.AsRef(in Field(fields, field));
+    }
+
+    public static ref readonly NameParts<string?> Field(in NameFields fields, NameField field)
     {
         switch (field)
         {
@@ -371,7 +390,7 @@ public static class NameHelper
             {
                 return ref fields.LastName;
             }
-            case NameField.Partonymic:
+            case NameField.Patronymic:
             {
                 return ref fields.Patronymic;
             }
@@ -380,6 +399,12 @@ public static class NameHelper
                 throw Unreachable();
             }
         }
+    }
+
+    private static NameParsingException NameParsingException(this LexerScope lexer, string err)
+    {
+        // TODO: Do token errors properly
+        return new NameParsingException($"{err} at token {lexer}");
     }
 }
 
@@ -412,3 +437,56 @@ public readonly struct NameParser : IDisposable
     }
 }
 
+public sealed class NameParsingException : Exception
+{
+    public NameParsingException(string message) : base(message)
+    {
+    }
+
+    public NameParsingException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
+}
+
+public sealed class NameAlphabeticComparer : IComparer<Name>
+{
+    public static readonly NameAlphabeticComparer CurrentCultureIgnoreCase = new();
+
+    public int Compare(Name? x, Name? y)
+    {
+        {
+            if (ComparisonHelper.NullGuardCompare(x, y, out int score))
+            {
+                return score;
+            }
+        }
+
+        foreach (var f in new EnumMembers<NameField>())
+        {
+            var a = NameHelper.Field(x.Fields, f);
+            var b = NameHelper.Field(y.Fields, f);
+            for (int i = 0; i < a.Length; i++)
+            {
+                var ap = a[i];
+                var bp = b[i];
+                if (ComparisonHelper.NullGuardCompare(ap, bp, out int score))
+                {
+                    if (score == 0)
+                    {
+                        continue;
+                    }
+                    return score;
+                }
+
+                var score1 = ap.CompareTo(bp, StringComparison.CurrentCultureIgnoreCase);
+                if (score1 == 0)
+                {
+                    continue;
+                }
+                return score1;
+            }
+        }
+
+        return 0;
+    }
+}

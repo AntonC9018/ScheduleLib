@@ -145,6 +145,11 @@ public sealed class GroupsNavigator
             return false;
         }
 
+        if (b.IsDual != (a.AttendanceMode == AttendanceMode.Dual))
+        {
+            return false;
+        }
+
         if (b.GroupNumber is { } num
             && num != a.GroupNumber)
         {

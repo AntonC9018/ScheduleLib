@@ -13,7 +13,7 @@ public static class Config
 {
     public static CourseNameParserConfig CourseNameParser => new(new()
     {
-        ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js"],
+        ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js", "PHP"],
         IgnoredFullWords = ["p/u", "pentru", "Modele", "jocuri"],
         IgnoredShortenedWords = ["Opț"],
         IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
@@ -25,6 +25,10 @@ public static class Config
         (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
         (From: "HTML", To: "HTML și CSS"),
         (From: "Modele design soft", To: "Design Soft"),
+        (From: "Python pentru aplicații", To: "Python"),
+        (From: "PHP", To: "Dezvoltare WEB avansată cu PHP"),
+        (From: "Dezvoltare WEB avansată", To: "Dezvoltare WEB avansată cu PHP"),
+        (From: "Dezvoltare WEB PHP", To: "Dezvoltare WEB avansată cu PHP"),
     };
 
     public static CourseNameUnifierConfig CourseNameUnifier =>

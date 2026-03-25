@@ -65,4 +65,33 @@ public sealed class CourseNameTests
         var course2 = Parse(parserConfig, "MTA3D");
         Assert.Equal(course1, course2);
     }
+
+    [Fact]
+    public void Python()
+    {
+        var parserConfig = Config.CourseNameUnifier;
+
+        var course1 = Parse(parserConfig.ParserConfig, "PYTHON pentru aplicatii", new()
+        {
+            IgnorePunctuation = true,
+        });
+        var course2 = Parse(parserConfig.ParserConfig, "Python");
+        var remapped1 = parserConfig.TryRemap(course1);
+        Assert.Equal(remapped1, course2);
+    }
+
+    [Fact]
+    public void DezvoltareaWebPHP()
+    {
+        var parserConfig = Config.CourseNameUnifier;
+
+        var course1 = Parse(parserConfig.ParserConfig, "Dezv. web PHP", new()
+        {
+            IgnorePunctuation = true,
+        });
+        var course2 = Parse(parserConfig.ParserConfig, "Dezvoltare WEB avansată cu PHP");
+        var remapped1 = parserConfig.TryRemap(course1);
+        var remapped2 = parserConfig.TryRemap(course2);
+        Assert.Equal(remapped1, remapped2);
+    }
 }

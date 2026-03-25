@@ -66,7 +66,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         lookup: _lookup.LessonsByCourse,
                         schedule: _schedule,
                         filter: filter))
-                    .ToArray();
+                    .ToList();
+                if (lessons.Count == 0)
+                {
+                    continue;
+                }
 
                 var decision = p.LessonFilter.Filter(new(
                     filter: filter,

@@ -462,6 +462,8 @@ public sealed partial class AttendanceListsExcelParser
                     }
                     result = lesson.Lesson;
                     lessonId = lesson.Id;
+                    var x = LessonBuilderHelper.Diff(lesson.Lesson, diffLesson, diffMask);
+                    _ = x;
                 }
             }
 

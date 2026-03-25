@@ -361,6 +361,7 @@ public struct LexerScope : ILexer
         if (PositionIndex > 0)
         {
             _lexer.Move(PositionIndex);
+            PositionIndex = 0;
         }
     }
 
@@ -617,7 +618,7 @@ public static class LexerHelper
         return new LimitedLexerScope(lexer, end);
     }
 
-    public static bool ConsumeMultiple(this ref LexerScope lexer, ReadOnlySpan<TokenType> types)
+    public static bool ConsumeAllConsecutive(this ref LexerScope lexer, ReadOnlySpan<TokenType> types)
     {
         bool consumed = false;
         while (true)
@@ -645,6 +646,24 @@ public static class LexerHelper
                 }
             }
             return false;
+        }
+    }
+
+    public static bool ConsumeAllConsecutiveThatAreNot(this ref LexerScope lexer, TokenType type)
+    {
+        bool consumed = false;
+        while (true)
+        {
+            if (lexer.IsEmpty)
+            {
+                return consumed;
+            }
+            if (lexer.Current.Type == type)
+            {
+                return consumed;
+            }
+            consumed = true;
+            lexer.Move();
         }
     }
 

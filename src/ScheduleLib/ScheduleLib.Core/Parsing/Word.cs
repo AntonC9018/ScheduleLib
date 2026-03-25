@@ -19,6 +19,8 @@ public readonly ref struct WordSpan(ReadOnlySpan<char> v)
             return new ShortenedWordSpan(Value[.. ^1]);
         }
     }
+
+    public bool IsNull => Value.IsEmpty;
 }
 
 public readonly record struct Word(string Value)

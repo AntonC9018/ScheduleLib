@@ -4,7 +4,7 @@
       "Id": 0,
       "Course": "Analiza datelor statistice multi-dimensionale",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "SMMSPA2401"
@@ -21,9 +21,9 @@
     },
     {
       "Id": 1,
-      "Course": "Predarea probabilit\u0103\u0163ilor \u015Fi combinatoricii \u00EEn liceu",
+      "Course": "Predarea probabilităţilor şi combinatoricii în liceu",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "PMS2401"
@@ -40,7 +40,7 @@
     },
     {
       "Id": 2,
-      "Course": "Operatori liniari \u015Fi aplica\u0163ii",
+      "Course": "Operatori liniari şi aplicaţii",
       "Teachers": [
         "Perjan A."
       ],
@@ -59,9 +59,9 @@
     },
     {
       "Id": 3,
-      "Course": "Sisteme de prelucrare a lucr\u0103rilor \u0219tiin\u021Bifice",
+      "Course": "Sisteme de prelucrare a lucrărilor științifice",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "PMS2401"
@@ -78,7 +78,7 @@
     },
     {
       "Id": 4,
-      "Course": "Operatori liniari \u015Fi aplica\u0163ii",
+      "Course": "Operatori liniari şi aplicaţii",
       "Teachers": [
         "Perjan A."
       ],
@@ -97,9 +97,9 @@
     },
     {
       "Id": 5,
-      "Course": "Sisteme de prelucrare a lucr\u0103rilor \u0219tiin\u021Bifice",
+      "Course": "Sisteme de prelucrare a lucrărilor științifice",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "PMS2401"
@@ -116,7 +116,7 @@
     },
     {
       "Id": 6,
-      "Course": "Met. Cercet. Opera\u0163. \u00EEn fundam. deciziilor",
+      "Course": "Met. Cercet. Operaţ. în fundam. deciziilor",
       "Teachers": [
         "Tkacenko A."
       ],
@@ -135,7 +135,7 @@
     },
     {
       "Id": 7,
-      "Course": "Pedagogia \u015Fi psihologia \u015Fcolar\u0103",
+      "Course": "Pedagogia şi psihologia şcolară",
       "Teachers": [
         "Botezatu V."
       ],
@@ -154,9 +154,9 @@
     },
     {
       "Id": 8,
-      "Course": "Depozite de Date \u0219i Data Mining",
+      "Course": "Depozite de Date și Data Mining",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "MIA2401"
@@ -173,7 +173,7 @@
     },
     {
       "Id": 9,
-      "Course": "Securitatea tranzac\u021Biilor electronice",
+      "Course": "Securitatea tranzacțiilor electronice",
       "Teachers": [
         "Cerbu O."
       ],
@@ -192,7 +192,7 @@
     },
     {
       "Id": 10,
-      "Course": "Proiect practic de \u0219tiin\u021Ba datelor",
+      "Course": "Proiect practic de știința datelor",
       "Teachers": [
         "Bumbu T."
       ],
@@ -211,7 +211,7 @@
     },
     {
       "Id": 11,
-      "Course": "Met. Cercet. Opera\u0163. \u00EEn fundam. deciziilor",
+      "Course": "Met. Cercet. Operaţ. în fundam. deciziilor",
       "Teachers": [
         "Tkacenko A."
       ],
@@ -230,7 +230,7 @@
     },
     {
       "Id": 12,
-      "Course": "Pedagogia \u015Fi psihologia \u015Fcolar\u0103",
+      "Course": "Pedagogia şi psihologia şcolară",
       "Teachers": [
         "Botezatu V."
       ],
@@ -249,9 +249,9 @@
     },
     {
       "Id": 13,
-      "Course": "Depozite de Date \u0219i Data Mining",
+      "Course": "Depozite de Date și Data Mining",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "MIA2401"
@@ -268,7 +268,7 @@
     },
     {
       "Id": 14,
-      "Course": "Securitatea tranzac\u021Biilor electronice",
+      "Course": "Securitatea tranzacțiilor electronice",
       "Teachers": [
         "Cerbu O."
       ],
@@ -287,7 +287,7 @@
     },
     {
       "Id": 15,
-      "Course": "Proiect practic de \u0219tiin\u021Ba datelor",
+      "Course": "Proiect practic de știința datelor",
       "Teachers": [
         "Bumbu T."
       ],
@@ -306,7 +306,7 @@
     },
     {
       "Id": 16,
-      "Course": "Securitatea tranzac\u021Biilor electronice",
+      "Course": "Securitatea tranzacțiilor electronice",
       "Teachers": [
         "Cerbu O."
       ],
@@ -344,9 +344,9 @@
     },
     {
       "Id": 18,
-      "Course": "Etica \u0219i dreptul \u00EEn Inteligen\u021Ba Artificial\u0103",
+      "Course": "Etica și dreptul în Inteligența Artificială",
       "Teachers": [
-        "Poiat\u0103 A."
+        "Poiată A."
       ],
       "Groups": [
         "IASD2401"
@@ -363,7 +363,7 @@
     },
     {
       "Id": 19,
-      "Course": "Securitatea tranzac\u021Biilor electronice",
+      "Course": "Securitatea tranzacțiilor electronice",
       "Teachers": [
         "Cerbu O."
       ],
@@ -401,9 +401,9 @@
     },
     {
       "Id": 21,
-      "Course": "Etica \u0219i dreptul \u00EEn Inteligen\u021Ba Artificial\u0103",
+      "Course": "Etica și dreptul în Inteligența Artificială",
       "Teachers": [
-        "Poiat\u0103 A."
+        "Poiată A."
       ],
       "Groups": [
         "IASD2401"
@@ -420,7 +420,7 @@
     },
     {
       "Id": 22,
-      "Course": "Metode varia\u0163ionale \u00EEn ecua\u0163ii diferen\u0163iale",
+      "Course": "Metode variaţionale în ecuaţii diferenţiale",
       "Teachers": [
         "Perjan A."
       ],
@@ -458,9 +458,9 @@
     },
     {
       "Id": 24,
-      "Course": "Depozite de Date \u0219i Data Mining",
+      "Course": "Depozite de Date și Data Mining",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "MIA2402"
@@ -496,7 +496,7 @@
     },
     {
       "Id": 26,
-      "Course": "Metode varia\u0163ionale \u00EEn ecua\u0163ii diferen\u0163iale",
+      "Course": "Metode variaţionale în ecuaţii diferenţiale",
       "Teachers": [
         "Perjan A."
       ],
@@ -534,9 +534,9 @@
     },
     {
       "Id": 28,
-      "Course": "Depozite de Date \u0219i Data Mining",
+      "Course": "Depozite de Date și Data Mining",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "MIA2402"
@@ -572,9 +572,9 @@
     },
     {
       "Id": 30,
-      "Course": "Metodica pred\u0103rii matematicii competitive",
+      "Course": "Metodica predării matematicii competitive",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "PMS2401"
@@ -610,7 +610,7 @@
     },
     {
       "Id": 32,
-      "Course": "Managementul securit\u0103\u021Bii informa\u021Biei",
+      "Course": "Managementul securității informației",
       "Teachers": [
         "Bragaru T."
       ],
@@ -631,7 +631,7 @@
       "Id": 33,
       "Course": "Analiza datelor statistice multi-dimensionale",
       "Teachers": [
-        "Po\u0219taru A."
+        "Poștaru A."
       ],
       "Groups": [
         "SMMSPA2401"
@@ -648,9 +648,9 @@
     },
     {
       "Id": 34,
-      "Course": "Predarea calcului diferen\u0163ial \u015Fi integral \u00EEn liceu",
+      "Course": "Predarea calcului diferenţial şi integral în liceu",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "PMS2401"
@@ -686,7 +686,7 @@
     },
     {
       "Id": 36,
-      "Course": "Managementul securit\u0103\u021Bii informa\u021Biei",
+      "Course": "Managementul securității informației",
       "Teachers": [
         "Bragaru T."
       ],
@@ -705,9 +705,9 @@
     },
     {
       "Id": 37,
-      "Course": "Cloud computing pentru \u0219tiin\u021Ba datelor",
+      "Course": "Cloud computing pentru știința datelor",
       "Teachers": [
-        "Prepeli\u021B\u0103 A."
+        "Prepeliță A."
       ],
       "Groups": [
         "IASD2401"
@@ -726,7 +726,7 @@
       "Id": 38,
       "Course": "Sisteme dinamice haotice",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "SMMSPA2401"
@@ -743,9 +743,9 @@
     },
     {
       "Id": 39,
-      "Course": "Predarea probabilit\u0103\u0163ilor \u015Fi combinatoricii \u00EEn liceu",
+      "Course": "Predarea probabilităţilor şi combinatoricii în liceu",
       "Teachers": [
-        "Po\u0219taru A."
+        "Poștaru A."
       ],
       "Groups": [
         "PMS2401"
@@ -762,7 +762,7 @@
     },
     {
       "Id": 40,
-      "Course": "Managementul securit\u0103\u021Bii informa\u021Biei",
+      "Course": "Managementul securității informației",
       "Teachers": [
         "Bragaru T."
       ],
@@ -800,9 +800,9 @@
     },
     {
       "Id": 42,
-      "Course": "Cloud computing pentru \u0219tiin\u021Ba datelor",
+      "Course": "Cloud computing pentru știința datelor",
       "Teachers": [
-        "Prepeli\u021B\u0103 A."
+        "Prepeliță A."
       ],
       "Groups": [
         "IASD2401"
@@ -819,7 +819,7 @@
     },
     {
       "Id": 43,
-      "Course": "\u00CEnv\u0103\u021Bare profund\u0103.",
+      "Course": "Învățare profundă.",
       "Teachers": [
         "Bumbu T."
       ],
@@ -840,7 +840,7 @@
       "Id": 44,
       "Course": "Sisteme dinamice haotice",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "SMMSPA2401"
@@ -857,9 +857,9 @@
     },
     {
       "Id": 45,
-      "Course": "Predarea calcului diferen\u0163ial \u015Fi integral \u00EEn liceu",
+      "Course": "Predarea calcului diferenţial şi integral în liceu",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "PMS2401"
@@ -876,7 +876,7 @@
     },
     {
       "Id": 46,
-      "Course": "Managementul securit\u0103\u021Bii informa\u021Biei",
+      "Course": "Managementul securității informației",
       "Teachers": [
         "Bragaru T."
       ],
@@ -914,7 +914,7 @@
     },
     {
       "Id": 48,
-      "Course": "\u00CEnv\u0103\u021Bare profund\u0103.",
+      "Course": "Învățare profundă.",
       "Teachers": [
         "Bumbu T."
       ],
@@ -933,9 +933,9 @@
     },
     {
       "Id": 49,
-      "Course": "Metodica pred\u0103rii matematicii competitive",
+      "Course": "Metodica predării matematicii competitive",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "PMS2401"
@@ -980,7 +980,7 @@
     },
     {
       "Id": 51,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -1005,9 +1005,9 @@
     },
     {
       "Id": 52,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -1028,9 +1028,9 @@
     },
     {
       "Id": 53,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -1068,7 +1068,7 @@
         "DayOfWeek": "Monday",
         "Parity": "OddWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "09:45:00",
       "LessonType": "Lab"
     },
@@ -1091,15 +1091,15 @@
         "DayOfWeek": "Monday",
         "Parity": "EvenWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "09:45:00",
       "LessonType": "Lab"
     },
     {
       "Id": 56,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -1160,15 +1160,15 @@
         "DayOfWeek": "Monday",
         "Parity": "OddWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "11:30:00",
       "LessonType": "Lab"
     },
     {
       "Id": 59,
-      "Course": "Matematica discret\u0103 (AG)",
+      "Course": "Matematica discretă (AG)",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2401",
@@ -1191,7 +1191,7 @@
     },
     {
       "Id": 60,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -1216,9 +1216,9 @@
     },
     {
       "Id": 61,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2401"
@@ -1256,13 +1256,13 @@
         "DayOfWeek": "Monday",
         "Parity": "EvenWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "13:15:00",
       "LessonType": "Lab"
     },
     {
       "Id": 63,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -1285,7 +1285,7 @@
     },
     {
       "Id": 64,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -1333,9 +1333,9 @@
     },
     {
       "Id": 66,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -1356,9 +1356,9 @@
     },
     {
       "Id": 67,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -1379,9 +1379,9 @@
     },
     {
       "Id": 68,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2401",
@@ -1430,7 +1430,7 @@
     },
     {
       "Id": 70,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "M2401",
@@ -1454,7 +1454,7 @@
       "Id": 71,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2401"
@@ -1475,7 +1475,7 @@
     },
     {
       "Id": 72,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2401"
@@ -1496,9 +1496,9 @@
     },
     {
       "Id": 73,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -1519,7 +1519,7 @@
     },
     {
       "Id": 74,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2402"
@@ -1570,7 +1570,7 @@
       "Id": 76,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "I2401"
@@ -1591,9 +1591,9 @@
     },
     {
       "Id": 77,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "IA2401"
@@ -1614,9 +1614,9 @@
     },
     {
       "Id": 78,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2401"
@@ -1639,7 +1639,7 @@
       "Id": 79,
       "Course": "Filozofie",
       "Teachers": [
-        "Lupu\u0219or A."
+        "Lupușor A."
       ],
       "Groups": [
         "IA2402"
@@ -1662,7 +1662,7 @@
       "Id": 80,
       "Course": "Filozofie",
       "Teachers": [
-        "Lupu\u0219or A."
+        "Lupușor A."
       ],
       "Groups": [
         "M2401",
@@ -1687,7 +1687,7 @@
       "Id": 81,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "IA2402"
@@ -1733,7 +1733,7 @@
       "Id": 83,
       "Course": "Teor. graf.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2401"
@@ -1754,7 +1754,7 @@
     },
     {
       "Id": 84,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea T."
       ],
@@ -1781,7 +1781,7 @@
       "Id": 85,
       "Course": "Teor. graf.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2401"
@@ -1802,7 +1802,7 @@
     },
     {
       "Id": 86,
-      "Course": "Matematica discret\u0103 (Logica)",
+      "Course": "Matematica discretă (Logica)",
       "Teachers": [
         "Cucu I."
       ],
@@ -1827,7 +1827,7 @@
     },
     {
       "Id": 87,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -1852,7 +1852,7 @@
     },
     {
       "Id": 88,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -1900,9 +1900,9 @@
     },
     {
       "Id": 90,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2401"
@@ -1923,7 +1923,7 @@
     },
     {
       "Id": 91,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -1946,7 +1946,7 @@
     },
     {
       "Id": 92,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -1969,7 +1969,7 @@
     },
     {
       "Id": 93,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -1994,7 +1994,7 @@
     },
     {
       "Id": 94,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2040,9 +2040,9 @@
     },
     {
       "Id": 96,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -2065,7 +2065,7 @@
       "Id": 97,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "IA2402"
@@ -2088,7 +2088,7 @@
       "Id": 98,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -2132,7 +2132,7 @@
     },
     {
       "Id": 100,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2178,9 +2178,9 @@
     },
     {
       "Id": 102,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -2203,7 +2203,7 @@
       "Id": 103,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -2224,7 +2224,7 @@
     },
     {
       "Id": 104,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2247,7 +2247,7 @@
     },
     {
       "Id": 105,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2270,9 +2270,9 @@
     },
     {
       "Id": 106,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -2293,9 +2293,9 @@
     },
     {
       "Id": 107,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -2316,7 +2316,7 @@
     },
     {
       "Id": 108,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -2339,7 +2339,7 @@
     },
     {
       "Id": 109,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2362,9 +2362,9 @@
     },
     {
       "Id": 110,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2402"
@@ -2385,9 +2385,9 @@
     },
     {
       "Id": 111,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2402"
@@ -2408,7 +2408,7 @@
     },
     {
       "Id": 112,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2431,7 +2431,7 @@
     },
     {
       "Id": 113,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -2454,9 +2454,9 @@
     },
     {
       "Id": 114,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2401"
@@ -2477,7 +2477,7 @@
     },
     {
       "Id": 115,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2502,7 +2502,7 @@
       "Id": 116,
       "Course": "Softuri mat.",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2401"
@@ -2523,9 +2523,9 @@
     },
     {
       "Id": 117,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -2546,9 +2546,9 @@
     },
     {
       "Id": 118,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "IA2401"
@@ -2569,7 +2569,7 @@
     },
     {
       "Id": 119,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -2594,7 +2594,7 @@
       "Id": 120,
       "Course": "Softuri mat.",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2401"
@@ -2615,7 +2615,7 @@
     },
     {
       "Id": 121,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Arnaut V."
       ],
@@ -2642,7 +2642,7 @@
       "Id": 122,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -2663,7 +2663,7 @@
     },
     {
       "Id": 123,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -2703,13 +2703,13 @@
         "DayOfWeek": "Monday",
         "Parity": "EvenWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "15:00:00",
       "LessonType": "Lab"
     },
     {
       "Id": 125,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -2732,7 +2732,7 @@
     },
     {
       "Id": 126,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Grigorcea V."
       ],
@@ -2755,9 +2755,9 @@
     },
     {
       "Id": 127,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -2778,9 +2778,9 @@
     },
     {
       "Id": 128,
-      "Course": "Matematica discret\u0103 (AG)",
+      "Course": "Matematica discretă (AG)",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402",
@@ -2803,9 +2803,9 @@
     },
     {
       "Id": 129,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -2826,9 +2826,9 @@
     },
     {
       "Id": 130,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2402"
@@ -2866,13 +2866,13 @@
         "DayOfWeek": "Monday",
         "Parity": "EvenWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "11:30:00",
       "LessonType": "Lab"
     },
     {
       "Id": 132,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -2895,7 +2895,7 @@
     },
     {
       "Id": 133,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -2918,7 +2918,7 @@
     },
     {
       "Id": 134,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Grigorcea V."
       ],
@@ -2958,13 +2958,13 @@
         "DayOfWeek": "Monday",
         "Parity": "OddWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "13:15:00",
       "LessonType": "Lab"
     },
     {
       "Id": 136,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Pavlenco A."
       ],
@@ -2987,9 +2987,9 @@
     },
     {
       "Id": 137,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -3010,9 +3010,9 @@
     },
     {
       "Id": 138,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2402"
@@ -3033,7 +3033,7 @@
     },
     {
       "Id": 139,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3056,7 +3056,7 @@
     },
     {
       "Id": 140,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3079,9 +3079,9 @@
     },
     {
       "Id": 141,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402"
@@ -3102,7 +3102,7 @@
     },
     {
       "Id": 142,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Bragaru T."
       ],
@@ -3150,9 +3150,9 @@
     },
     {
       "Id": 144,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2404"
@@ -3173,9 +3173,9 @@
     },
     {
       "Id": 145,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -3196,7 +3196,7 @@
     },
     {
       "Id": 146,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "DJ2402"
@@ -3217,9 +3217,9 @@
     },
     {
       "Id": 147,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -3242,7 +3242,7 @@
       "Id": 148,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -3263,7 +3263,7 @@
     },
     {
       "Id": 149,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "I2402"
@@ -3284,7 +3284,7 @@
     },
     {
       "Id": 150,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3309,7 +3309,7 @@
       "Id": 151,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2403"
@@ -3330,9 +3330,9 @@
     },
     {
       "Id": 152,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -3355,7 +3355,7 @@
       "Id": 153,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -3399,7 +3399,7 @@
     },
     {
       "Id": 155,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2404"
@@ -3420,7 +3420,7 @@
     },
     {
       "Id": 156,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3443,9 +3443,9 @@
     },
     {
       "Id": 157,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "I2402"
@@ -3466,7 +3466,7 @@
     },
     {
       "Id": 158,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2403"
@@ -3489,7 +3489,7 @@
       "Id": 159,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2404"
@@ -3512,7 +3512,7 @@
       "Id": 160,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2404"
@@ -3533,7 +3533,7 @@
     },
     {
       "Id": 161,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -3558,7 +3558,7 @@
       "Id": 162,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -3579,9 +3579,9 @@
     },
     {
       "Id": 163,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -3619,7 +3619,7 @@
         "DayOfWeek": "Tuesday",
         "Parity": "EvenWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "11:30:00",
       "LessonType": "Lab"
     },
@@ -3652,7 +3652,7 @@
       "Id": 166,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -3675,7 +3675,7 @@
       "Id": 167,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -3696,7 +3696,7 @@
     },
     {
       "Id": 168,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "DJ2401"
@@ -3717,7 +3717,7 @@
     },
     {
       "Id": 169,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -3740,9 +3740,9 @@
     },
     {
       "Id": 170,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "I2402"
@@ -3786,7 +3786,7 @@
     },
     {
       "Id": 172,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3809,7 +3809,7 @@
     },
     {
       "Id": 173,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3832,9 +3832,9 @@
     },
     {
       "Id": 174,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2404"
@@ -3857,7 +3857,7 @@
       "Id": 175,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -3878,7 +3878,7 @@
     },
     {
       "Id": 176,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -3901,9 +3901,9 @@
     },
     {
       "Id": 177,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -3924,7 +3924,7 @@
     },
     {
       "Id": 178,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -3947,9 +3947,9 @@
     },
     {
       "Id": 179,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2404"
@@ -3972,7 +3972,7 @@
       "Id": 180,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2404"
@@ -3995,7 +3995,7 @@
       "Id": 181,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4018,7 +4018,7 @@
       "Id": 182,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -4041,7 +4041,7 @@
       "Id": 183,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402"
@@ -4062,7 +4062,7 @@
     },
     {
       "Id": 184,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -4108,9 +4108,9 @@
     },
     {
       "Id": 186,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -4131,7 +4131,7 @@
     },
     {
       "Id": 187,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -4154,7 +4154,7 @@
     },
     {
       "Id": 188,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -4179,7 +4179,7 @@
       "Id": 189,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -4200,9 +4200,9 @@
     },
     {
       "Id": 190,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402",
@@ -4250,7 +4250,7 @@
       "Id": 192,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4271,7 +4271,7 @@
     },
     {
       "Id": 193,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -4294,7 +4294,7 @@
     },
     {
       "Id": 194,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -4317,7 +4317,7 @@
     },
     {
       "Id": 195,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -4340,9 +4340,9 @@
     },
     {
       "Id": 196,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -4363,7 +4363,7 @@
     },
     {
       "Id": 197,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -4386,9 +4386,9 @@
     },
     {
       "Id": 198,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -4411,7 +4411,7 @@
       "Id": 199,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4434,7 +4434,7 @@
       "Id": 200,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -4457,7 +4457,7 @@
       "Id": 201,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -4478,9 +4478,9 @@
     },
     {
       "Id": 202,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402"
@@ -4526,7 +4526,7 @@
       "Id": 204,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2403"
@@ -4547,7 +4547,7 @@
     },
     {
       "Id": 205,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -4572,7 +4572,7 @@
       "Id": 206,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4595,7 +4595,7 @@
       "Id": 207,
       "Course": "HTML",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -4616,7 +4616,7 @@
     },
     {
       "Id": 208,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -4664,7 +4664,7 @@
       "Id": 210,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402"
@@ -4685,7 +4685,7 @@
     },
     {
       "Id": 211,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -4710,7 +4710,7 @@
       "Id": 212,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2404"
@@ -4731,7 +4731,7 @@
     },
     {
       "Id": 213,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -4756,7 +4756,7 @@
       "Id": 214,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4779,7 +4779,7 @@
       "Id": 215,
       "Course": "RVA",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2402"
@@ -4800,7 +4800,7 @@
     },
     {
       "Id": 216,
-      "Course": "Matematica discret\u0103 (Logica)",
+      "Course": "Matematica discretă (Logica)",
       "Teachers": [
         "Cucu I."
       ],
@@ -4827,7 +4827,7 @@
       "Id": 217,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -4848,7 +4848,7 @@
     },
     {
       "Id": 218,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -4919,9 +4919,9 @@
     },
     {
       "Id": 221,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -4944,7 +4944,7 @@
       "Id": 222,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2402"
@@ -4965,7 +4965,7 @@
     },
     {
       "Id": 223,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -5012,7 +5012,7 @@
     },
     {
       "Id": 225,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -5037,7 +5037,7 @@
       "Id": 226,
       "Course": "RVA",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2401"
@@ -5060,7 +5060,7 @@
       "Id": 227,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -5083,7 +5083,7 @@
       "Id": 228,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2402"
@@ -5104,7 +5104,7 @@
     },
     {
       "Id": 229,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -5150,9 +5150,9 @@
     },
     {
       "Id": 231,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2404"
@@ -5175,7 +5175,7 @@
       "Id": 232,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -5198,7 +5198,7 @@
       "Id": 233,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -5221,7 +5221,7 @@
       "Id": 234,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -5242,7 +5242,7 @@
     },
     {
       "Id": 235,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -5267,7 +5267,7 @@
     },
     {
       "Id": 236,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -5292,7 +5292,7 @@
       "Id": 237,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -5315,7 +5315,7 @@
       "Id": 238,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -5338,7 +5338,7 @@
       "Id": 239,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2401"
@@ -5361,7 +5361,7 @@
       "Id": 240,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -5382,9 +5382,9 @@
     },
     {
       "Id": 241,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -5407,7 +5407,7 @@
       "Id": 242,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2401"
@@ -5453,7 +5453,7 @@
       "Id": 244,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -5474,9 +5474,9 @@
     },
     {
       "Id": 245,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -5499,7 +5499,7 @@
       "Id": 246,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -5520,9 +5520,9 @@
     },
     {
       "Id": 247,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -5545,7 +5545,7 @@
       "Id": 248,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -5566,9 +5566,9 @@
     },
     {
       "Id": 249,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -5591,7 +5591,7 @@
       "Id": 250,
       "Course": "Analiza compl.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2301"
@@ -5708,7 +5708,7 @@
       "Id": 255,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -5731,7 +5731,7 @@
       "Id": 256,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2302"
@@ -5754,7 +5754,7 @@
       "Id": 257,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "IA2302"
@@ -5775,7 +5775,7 @@
     },
     {
       "Id": 258,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -5869,7 +5869,7 @@
       "Id": 262,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -5892,7 +5892,7 @@
       "Id": 263,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -5915,7 +5915,7 @@
       "Id": 264,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "IA2302"
@@ -6008,7 +6008,7 @@
       "Id": 268,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -6031,7 +6031,7 @@
       "Id": 269,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -6077,7 +6077,7 @@
       "Id": 271,
       "Course": "Analiza compl.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2301"
@@ -6100,7 +6100,7 @@
       "Id": 272,
       "Course": "Proiectarea Sistemelor Informatice",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2301",
@@ -6125,7 +6125,7 @@
       "Id": 273,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -6148,7 +6148,7 @@
       "Id": 274,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "I2301"
@@ -6171,7 +6171,7 @@
       "Id": 275,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -6217,7 +6217,7 @@
       "Id": 277,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "I2301"
@@ -6238,7 +6238,7 @@
     },
     {
       "Id": 278,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -6286,7 +6286,7 @@
       "Id": 280,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -6333,7 +6333,7 @@
       "Id": 282,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -6354,7 +6354,7 @@
     },
     {
       "Id": 283,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -6379,7 +6379,7 @@
       "Id": 284,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -6402,7 +6402,7 @@
       "Id": 285,
       "Course": "Statist. matem.",
       "Teachers": [
-        "Po\u0219taru A."
+        "Poștaru A."
       ],
       "Groups": [
         "M2301"
@@ -6423,9 +6423,9 @@
     },
     {
       "Id": 286,
-      "Course": "Dezvoltare WEB avansat\u0103 cu PHP",
+      "Course": "Dezvoltare WEB avansată cu PHP",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2301",
@@ -6450,7 +6450,7 @@
       "Id": 287,
       "Course": "Statist. matem.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2301"
@@ -6473,7 +6473,7 @@
       "Id": 288,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "I2301"
@@ -6496,7 +6496,7 @@
       "Id": 289,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -6542,7 +6542,7 @@
       "Id": 291,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -6565,7 +6565,7 @@
       "Id": 292,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -6588,7 +6588,7 @@
       "Id": 293,
       "Course": "GAC",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "M2301"
@@ -6611,7 +6611,7 @@
       "Id": 294,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "I2301"
@@ -6634,7 +6634,7 @@
       "Id": 295,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "I2301"
@@ -6657,7 +6657,7 @@
       "Id": 296,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -6672,7 +6672,7 @@
         "DayOfWeek": "Wednesday",
         "Parity": "OddWeek"
       },
-      "Room": "7/2Anex\u0103",
+      "Room": "7/2Anexă",
       "Time": "11:30:00",
       "LessonType": "Lab"
     },
@@ -6680,7 +6680,7 @@
       "Id": 297,
       "Course": "GAC",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "M2301"
@@ -6703,7 +6703,7 @@
       "Id": 298,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2302"
@@ -6726,7 +6726,7 @@
       "Id": 299,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "I2301"
@@ -6817,7 +6817,7 @@
     },
     {
       "Id": 303,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -6865,7 +6865,7 @@
     },
     {
       "Id": 305,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2301"
@@ -6909,7 +6909,7 @@
     },
     {
       "Id": 307,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -6932,7 +6932,7 @@
     },
     {
       "Id": 308,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2302"
@@ -7002,7 +7002,7 @@
     },
     {
       "Id": 311,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "M2301",
@@ -7071,7 +7071,7 @@
     },
     {
       "Id": 314,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7117,7 +7117,7 @@
     },
     {
       "Id": 316,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7143,7 +7143,7 @@
       "Id": 317,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2301"
@@ -7164,7 +7164,7 @@
     },
     {
       "Id": 318,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -7210,7 +7210,7 @@
     },
     {
       "Id": 320,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7235,7 +7235,7 @@
       "Id": 321,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2301"
@@ -7256,7 +7256,7 @@
     },
     {
       "Id": 322,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -7302,7 +7302,7 @@
     },
     {
       "Id": 324,
-      "Course": "Calcul numeric \u0219i metode de optimizare",
+      "Course": "Calcul numeric și metode de optimizare",
       "Teachers": [
         "Capcelea T."
       ],
@@ -7329,7 +7329,7 @@
       "Id": 325,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -7375,7 +7375,7 @@
       "Id": 327,
       "Course": "Proiectarea Sistemelor Informatice",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2301"
@@ -7398,7 +7398,7 @@
       "Id": 328,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2302"
@@ -7442,7 +7442,7 @@
     },
     {
       "Id": 330,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7465,7 +7465,7 @@
     },
     {
       "Id": 331,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7489,7 +7489,7 @@
     },
     {
       "Id": 332,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Donu A."
       ],
@@ -7513,7 +7513,7 @@
     },
     {
       "Id": 333,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7537,7 +7537,7 @@
     },
     {
       "Id": 334,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7560,7 +7560,7 @@
     },
     {
       "Id": 335,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7583,7 +7583,7 @@
     },
     {
       "Id": 336,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -7607,7 +7607,7 @@
     },
     {
       "Id": 337,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Donu A."
       ],
@@ -7631,7 +7631,7 @@
     },
     {
       "Id": 338,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -7655,7 +7655,7 @@
     },
     {
       "Id": 339,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7678,7 +7678,7 @@
     },
     {
       "Id": 340,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7702,9 +7702,9 @@
     },
     {
       "Id": 341,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "IA2301",
@@ -7726,7 +7726,7 @@
     },
     {
       "Id": 342,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -7819,7 +7819,7 @@
     },
     {
       "Id": 346,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -7843,7 +7843,7 @@
     },
     {
       "Id": 347,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -8074,9 +8074,9 @@
     },
     {
       "Id": 357,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -8097,9 +8097,9 @@
     },
     {
       "Id": 358,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302"
@@ -8143,9 +8143,9 @@
     },
     {
       "Id": 360,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -8166,7 +8166,7 @@
     },
     {
       "Id": 361,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -8237,7 +8237,7 @@
       "Id": 364,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -8282,7 +8282,7 @@
     },
     {
       "Id": 366,
-      "Course": "Calcul numeric \u0219i metode de optimizare",
+      "Course": "Calcul numeric și metode de optimizare",
       "Teachers": [
         "Verlan I."
       ],
@@ -8332,7 +8332,7 @@
       "Id": 368,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2303"
@@ -8353,7 +8353,7 @@
     },
     {
       "Id": 369,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2302"
@@ -8420,7 +8420,7 @@
     },
     {
       "Id": 372,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -8443,7 +8443,7 @@
     },
     {
       "Id": 373,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -8467,7 +8467,7 @@
     },
     {
       "Id": 374,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -8493,7 +8493,7 @@
       "Id": 375,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -8514,9 +8514,9 @@
     },
     {
       "Id": 376,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302",
@@ -8584,7 +8584,7 @@
     },
     {
       "Id": 379,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -8607,7 +8607,7 @@
     },
     {
       "Id": 380,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -8631,7 +8631,7 @@
     },
     {
       "Id": 381,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -8655,7 +8655,7 @@
     },
     {
       "Id": 382,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -8678,9 +8678,9 @@
     },
     {
       "Id": 383,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2302"
@@ -8701,9 +8701,9 @@
     },
     {
       "Id": 384,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2303"
@@ -8816,9 +8816,9 @@
     },
     {
       "Id": 389,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -8839,7 +8839,7 @@
     },
     {
       "Id": 390,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -8932,9 +8932,9 @@
     },
     {
       "Id": 394,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -8978,9 +8978,9 @@
     },
     {
       "Id": 396,
-      "Course": "Fotogrametrie \u0219i Scanare 3D",
+      "Course": "Fotogrametrie și Scanare 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Spîncean V."
       ],
       "Groups": [
         "DJ2302",
@@ -9025,7 +9025,7 @@
     },
     {
       "Id": 398,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "I2302"
@@ -9046,9 +9046,9 @@
     },
     {
       "Id": 399,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302"
@@ -9092,7 +9092,7 @@
     },
     {
       "Id": 401,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2301"
@@ -9159,9 +9159,9 @@
     },
     {
       "Id": 404,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2303"
@@ -9205,7 +9205,7 @@
     },
     {
       "Id": 406,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2303"
@@ -9226,7 +9226,7 @@
     },
     {
       "Id": 407,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2303",
@@ -9271,7 +9271,7 @@
     },
     {
       "Id": 409,
-      "Course": "Dezvoltare WEB avansat\u0103 cu PHP",
+      "Course": "Dezvoltare WEB avansată cu PHP",
       "Teachers": [
         "Nartea N."
       ],
@@ -9296,9 +9296,9 @@
     },
     {
       "Id": 410,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2301"
@@ -9342,7 +9342,7 @@
     },
     {
       "Id": 412,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -9367,7 +9367,7 @@
       "Id": 413,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -9390,7 +9390,7 @@
       "Id": 414,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2302"
@@ -9461,7 +9461,7 @@
       "Id": 417,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -9484,7 +9484,7 @@
       "Id": 418,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -9528,7 +9528,7 @@
     },
     {
       "Id": 420,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -9574,7 +9574,7 @@
     },
     {
       "Id": 422,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -9598,7 +9598,7 @@
     },
     {
       "Id": 423,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -9622,7 +9622,7 @@
     },
     {
       "Id": 424,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -9645,7 +9645,7 @@
     },
     {
       "Id": 425,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -9668,7 +9668,7 @@
     },
     {
       "Id": 426,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -9692,7 +9692,7 @@
     },
     {
       "Id": 427,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -9718,7 +9718,7 @@
       "Id": 428,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -9810,7 +9810,7 @@
       "Id": 432,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2303"
@@ -9858,7 +9858,7 @@
       "Id": 434,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2302",
@@ -9880,7 +9880,7 @@
     },
     {
       "Id": 435,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -9903,7 +9903,7 @@
     },
     {
       "Id": 436,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -9951,7 +9951,7 @@
     },
     {
       "Id": 438,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -9976,7 +9976,7 @@
       "Id": 439,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2302"
@@ -10020,7 +10020,7 @@
     },
     {
       "Id": 441,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -10044,7 +10044,7 @@
     },
     {
       "Id": 442,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -10069,9 +10069,9 @@
     },
     {
       "Id": 443,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -10092,9 +10092,9 @@
     },
     {
       "Id": 444,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -10138,7 +10138,7 @@
     },
     {
       "Id": 446,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -10184,7 +10184,7 @@
     },
     {
       "Id": 448,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -10211,7 +10211,7 @@
     },
     {
       "Id": 449,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -10235,7 +10235,7 @@
     },
     {
       "Id": 450,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -10261,7 +10261,7 @@
       "Id": 451,
       "Course": "Baze de date",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "M2201"
@@ -10282,9 +10282,9 @@
     },
     {
       "Id": 452,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -10330,7 +10330,7 @@
       "Id": 454,
       "Course": "Baze de date",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "M2201"
@@ -10351,9 +10351,9 @@
     },
     {
       "Id": 455,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -10374,7 +10374,7 @@
     },
     {
       "Id": 456,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -10397,7 +10397,7 @@
     },
     {
       "Id": 457,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -10420,7 +10420,7 @@
     },
     {
       "Id": 458,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -10448,7 +10448,7 @@
       "Id": 459,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -10469,9 +10469,9 @@
     },
     {
       "Id": 460,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -10492,7 +10492,7 @@
     },
     {
       "Id": 461,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -10538,7 +10538,7 @@
     },
     {
       "Id": 463,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -10630,7 +10630,7 @@
     },
     {
       "Id": 467,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -10654,7 +10654,7 @@
     },
     {
       "Id": 468,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -10678,7 +10678,7 @@
     },
     {
       "Id": 469,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -10704,7 +10704,7 @@
       "Id": 470,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -10725,7 +10725,7 @@
     },
     {
       "Id": 471,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -10773,7 +10773,7 @@
       "Id": 473,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -10794,7 +10794,7 @@
     },
     {
       "Id": 474,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -10840,7 +10840,7 @@
     },
     {
       "Id": 476,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -10863,9 +10863,9 @@
     },
     {
       "Id": 477,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -10932,7 +10932,7 @@
     },
     {
       "Id": 480,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -10955,9 +10955,9 @@
     },
     {
       "Id": 481,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -11001,7 +11001,7 @@
     },
     {
       "Id": 483,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -11024,7 +11024,7 @@
     },
     {
       "Id": 484,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -11047,7 +11047,7 @@
     },
     {
       "Id": 485,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -11070,7 +11070,7 @@
     },
     {
       "Id": 486,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -11095,7 +11095,7 @@
       "Id": 487,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -11116,9 +11116,9 @@
     },
     {
       "Id": 488,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -11139,9 +11139,9 @@
     },
     {
       "Id": 489,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -11162,7 +11162,7 @@
     },
     {
       "Id": 490,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -11210,7 +11210,7 @@
       "Id": 492,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -11254,7 +11254,7 @@
     },
     {
       "Id": 494,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -11277,7 +11277,7 @@
     },
     {
       "Id": 495,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -11300,7 +11300,7 @@
     },
     {
       "Id": 496,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -11323,7 +11323,7 @@
     },
     {
       "Id": 497,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -11371,7 +11371,7 @@
       "Id": 499,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -11417,7 +11417,7 @@
       "Id": 501,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -11461,7 +11461,7 @@
     },
     {
       "Id": 503,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -11486,7 +11486,7 @@
       "Id": 504,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -11530,7 +11530,7 @@
     },
     {
       "Id": 506,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -11555,7 +11555,7 @@
       "Id": 507,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -11600,7 +11600,7 @@
     },
     {
       "Id": 509,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Cineva"
       ],
@@ -11624,7 +11624,7 @@
     },
     {
       "Id": 510,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Cineva"
       ],
@@ -11672,7 +11672,7 @@
     },
     {
       "Id": 512,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -11696,7 +11696,7 @@
     },
     {
       "Id": 513,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -11720,7 +11720,7 @@
     },
     {
       "Id": 514,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -11744,7 +11744,7 @@
     },
     {
       "Id": 515,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -11768,7 +11768,7 @@
     },
     {
       "Id": 516,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -11792,7 +11792,7 @@
     },
     {
       "Id": 517,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -11816,7 +11816,7 @@
     },
     {
       "Id": 518,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -11840,7 +11840,7 @@
     },
     {
       "Id": 519,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Grosu S."
       ],
@@ -11864,7 +11864,7 @@
     },
     {
       "Id": 520,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -11888,7 +11888,7 @@
     },
     {
       "Id": 521,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Grosu S."
       ],
@@ -11912,7 +11912,7 @@
     },
     {
       "Id": 522,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -11984,7 +11984,7 @@
     },
     {
       "Id": 525,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -12008,7 +12008,7 @@
     },
     {
       "Id": 526,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -12032,7 +12032,7 @@
     },
     {
       "Id": 527,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Cineva"
       ],
@@ -12056,7 +12056,7 @@
     },
     {
       "Id": 528,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -12080,7 +12080,7 @@
     },
     {
       "Id": 529,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -12104,7 +12104,7 @@
     },
     {
       "Id": 530,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Cineva"
       ],
@@ -12128,7 +12128,7 @@
     },
     {
       "Id": 531,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -12152,7 +12152,7 @@
     },
     {
       "Id": 532,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Cineva"
       ],
@@ -12224,7 +12224,7 @@
     },
     {
       "Id": 535,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -12276,7 +12276,7 @@
     },
     {
       "Id": 537,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -12301,9 +12301,9 @@
     },
     {
       "Id": 538,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -12324,9 +12324,9 @@
     },
     {
       "Id": 539,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -12393,9 +12393,9 @@
     },
     {
       "Id": 542,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -12462,9 +12462,9 @@
     },
     {
       "Id": 545,
-      "Course": "Matematica discret\u0103 (AG)",
+      "Course": "Matematica discretă (AG)",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2401",
@@ -12487,7 +12487,7 @@
     },
     {
       "Id": 546,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -12512,9 +12512,9 @@
     },
     {
       "Id": 547,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2401"
@@ -12558,7 +12558,7 @@
     },
     {
       "Id": 549,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -12581,7 +12581,7 @@
     },
     {
       "Id": 550,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -12629,9 +12629,9 @@
     },
     {
       "Id": 552,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -12652,9 +12652,9 @@
     },
     {
       "Id": 553,
-      "Course": "Analiz\u0103 matem.",
+      "Course": "Analiză matem.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2401"
@@ -12675,9 +12675,9 @@
     },
     {
       "Id": 554,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2401",
@@ -12726,7 +12726,7 @@
     },
     {
       "Id": 556,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "M2401",
@@ -12750,7 +12750,7 @@
       "Id": 557,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2401"
@@ -12771,7 +12771,7 @@
     },
     {
       "Id": 558,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2401"
@@ -12792,9 +12792,9 @@
     },
     {
       "Id": 559,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -12815,7 +12815,7 @@
     },
     {
       "Id": 560,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2402"
@@ -12866,7 +12866,7 @@
       "Id": 562,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "I2401"
@@ -12887,9 +12887,9 @@
     },
     {
       "Id": 563,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "IA2401"
@@ -12910,9 +12910,9 @@
     },
     {
       "Id": 564,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2401"
@@ -12935,7 +12935,7 @@
       "Id": 565,
       "Course": "Filozofie",
       "Teachers": [
-        "Lupu\u0219or A."
+        "Lupușor A."
       ],
       "Groups": [
         "IA2402"
@@ -12958,7 +12958,7 @@
       "Id": 566,
       "Course": "Filozofie",
       "Teachers": [
-        "Lupu\u0219or A."
+        "Lupușor A."
       ],
       "Groups": [
         "M2401",
@@ -12983,7 +12983,7 @@
       "Id": 567,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "IA2402"
@@ -13029,7 +13029,7 @@
       "Id": 569,
       "Course": "Teor. graf.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2401"
@@ -13050,7 +13050,7 @@
     },
     {
       "Id": 570,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea T."
       ],
@@ -13077,7 +13077,7 @@
       "Id": 571,
       "Course": "Teor. graf.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2401"
@@ -13098,7 +13098,7 @@
     },
     {
       "Id": 572,
-      "Course": "Matematica discret\u0103 (Logica)",
+      "Course": "Matematica discretă (Logica)",
       "Teachers": [
         "Cucu I."
       ],
@@ -13123,7 +13123,7 @@
     },
     {
       "Id": 573,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -13148,7 +13148,7 @@
     },
     {
       "Id": 574,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -13196,9 +13196,9 @@
     },
     {
       "Id": 576,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2401"
@@ -13219,7 +13219,7 @@
     },
     {
       "Id": 577,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13242,7 +13242,7 @@
     },
     {
       "Id": 578,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13265,7 +13265,7 @@
     },
     {
       "Id": 579,
-      "Course": "Op\u021B. psihol.",
+      "Course": "Opț. psihol.",
       "Teachers": [
         "Miron V."
       ],
@@ -13290,7 +13290,7 @@
     },
     {
       "Id": 580,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13336,9 +13336,9 @@
     },
     {
       "Id": 582,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -13361,7 +13361,7 @@
       "Id": 583,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "IA2402"
@@ -13384,7 +13384,7 @@
       "Id": 584,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -13428,7 +13428,7 @@
     },
     {
       "Id": 586,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13474,9 +13474,9 @@
     },
     {
       "Id": 588,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -13499,7 +13499,7 @@
       "Id": 589,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -13520,7 +13520,7 @@
     },
     {
       "Id": 590,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13543,7 +13543,7 @@
     },
     {
       "Id": 591,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13566,9 +13566,9 @@
     },
     {
       "Id": 592,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -13589,9 +13589,9 @@
     },
     {
       "Id": 593,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2402"
@@ -13612,7 +13612,7 @@
     },
     {
       "Id": 594,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -13635,7 +13635,7 @@
     },
     {
       "Id": 595,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13658,9 +13658,9 @@
     },
     {
       "Id": 596,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2402"
@@ -13681,9 +13681,9 @@
     },
     {
       "Id": 597,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2402"
@@ -13704,7 +13704,7 @@
     },
     {
       "Id": 598,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13727,7 +13727,7 @@
     },
     {
       "Id": 599,
-      "Course": "Topologie \u0219i TM",
+      "Course": "Topologie și TM",
       "Teachers": [
         "Efros P."
       ],
@@ -13750,9 +13750,9 @@
     },
     {
       "Id": 600,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "IA2401"
@@ -13773,7 +13773,7 @@
     },
     {
       "Id": 601,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13798,7 +13798,7 @@
       "Id": 602,
       "Course": "Softuri mat.",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2401"
@@ -13819,9 +13819,9 @@
     },
     {
       "Id": 603,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
-        "Cem\u00EErtan Cr."
+        "Cemîrtan Cr."
       ],
       "Groups": [
         "I2401"
@@ -13842,9 +13842,9 @@
     },
     {
       "Id": 604,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "IA2401"
@@ -13865,7 +13865,7 @@
     },
     {
       "Id": 605,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Capcelea M."
       ],
@@ -13890,7 +13890,7 @@
       "Id": 606,
       "Course": "Softuri mat.",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2401"
@@ -13911,7 +13911,7 @@
     },
     {
       "Id": 607,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Arnaut V."
       ],
@@ -13938,7 +13938,7 @@
       "Id": 608,
       "Course": "Struct. alg.",
       "Teachers": [
-        "S\u00E2rbu P."
+        "Sârbu P."
       ],
       "Groups": [
         "M2401"
@@ -13959,7 +13959,7 @@
     },
     {
       "Id": 609,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -14005,7 +14005,7 @@
     },
     {
       "Id": 611,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -14028,7 +14028,7 @@
     },
     {
       "Id": 612,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Grigorcea V."
       ],
@@ -14051,9 +14051,9 @@
     },
     {
       "Id": 613,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -14074,9 +14074,9 @@
     },
     {
       "Id": 614,
-      "Course": "Matematica discret\u0103 (AG)",
+      "Course": "Matematica discretă (AG)",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402",
@@ -14099,9 +14099,9 @@
     },
     {
       "Id": 615,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -14122,9 +14122,9 @@
     },
     {
       "Id": 616,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2402"
@@ -14168,7 +14168,7 @@
     },
     {
       "Id": 618,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -14191,7 +14191,7 @@
     },
     {
       "Id": 619,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -14214,7 +14214,7 @@
     },
     {
       "Id": 620,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Grigorcea V."
       ],
@@ -14260,7 +14260,7 @@
     },
     {
       "Id": 622,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Pavlenco A."
       ],
@@ -14283,9 +14283,9 @@
     },
     {
       "Id": 623,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "DJ2402"
@@ -14306,9 +14306,9 @@
     },
     {
       "Id": 624,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2402"
@@ -14329,7 +14329,7 @@
     },
     {
       "Id": 625,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -14352,7 +14352,7 @@
     },
     {
       "Id": 626,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -14375,9 +14375,9 @@
     },
     {
       "Id": 627,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402"
@@ -14398,7 +14398,7 @@
     },
     {
       "Id": 628,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Bragaru T."
       ],
@@ -14446,9 +14446,9 @@
     },
     {
       "Id": 630,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2404"
@@ -14469,9 +14469,9 @@
     },
     {
       "Id": 631,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -14492,7 +14492,7 @@
     },
     {
       "Id": 632,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "DJ2402"
@@ -14513,9 +14513,9 @@
     },
     {
       "Id": 633,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -14538,7 +14538,7 @@
       "Id": 634,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -14559,7 +14559,7 @@
     },
     {
       "Id": 635,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "I2402"
@@ -14580,7 +14580,7 @@
     },
     {
       "Id": 636,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -14605,7 +14605,7 @@
       "Id": 637,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2403"
@@ -14626,9 +14626,9 @@
     },
     {
       "Id": 638,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -14651,7 +14651,7 @@
       "Id": 639,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -14695,7 +14695,7 @@
     },
     {
       "Id": 641,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2404"
@@ -14716,7 +14716,7 @@
     },
     {
       "Id": 642,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -14739,9 +14739,9 @@
     },
     {
       "Id": 643,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "I2402"
@@ -14762,7 +14762,7 @@
     },
     {
       "Id": 644,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2403"
@@ -14785,7 +14785,7 @@
       "Id": 645,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2404"
@@ -14808,7 +14808,7 @@
       "Id": 646,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2404"
@@ -14829,7 +14829,7 @@
     },
     {
       "Id": 647,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -14854,7 +14854,7 @@
       "Id": 648,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -14875,9 +14875,9 @@
     },
     {
       "Id": 649,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -14948,7 +14948,7 @@
       "Id": 652,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -14971,7 +14971,7 @@
       "Id": 653,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -14992,7 +14992,7 @@
     },
     {
       "Id": 654,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "DJ2401"
@@ -15013,7 +15013,7 @@
     },
     {
       "Id": 655,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -15036,9 +15036,9 @@
     },
     {
       "Id": 656,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "I2402"
@@ -15082,7 +15082,7 @@
     },
     {
       "Id": 658,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15105,7 +15105,7 @@
     },
     {
       "Id": 659,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15128,9 +15128,9 @@
     },
     {
       "Id": 660,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2404"
@@ -15153,7 +15153,7 @@
       "Id": 661,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -15174,7 +15174,7 @@
     },
     {
       "Id": 662,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -15197,9 +15197,9 @@
     },
     {
       "Id": 663,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -15220,7 +15220,7 @@
     },
     {
       "Id": 664,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15243,9 +15243,9 @@
     },
     {
       "Id": 665,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "IA2404"
@@ -15268,7 +15268,7 @@
       "Id": 666,
       "Course": "MDAG",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "IA2404"
@@ -15291,7 +15291,7 @@
       "Id": 667,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -15314,7 +15314,7 @@
       "Id": 668,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -15337,7 +15337,7 @@
       "Id": 669,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402"
@@ -15358,7 +15358,7 @@
     },
     {
       "Id": 670,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15404,9 +15404,9 @@
     },
     {
       "Id": 672,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -15427,7 +15427,7 @@
     },
     {
       "Id": 673,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -15450,7 +15450,7 @@
     },
     {
       "Id": 674,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -15475,7 +15475,7 @@
       "Id": 675,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2402"
@@ -15496,9 +15496,9 @@
     },
     {
       "Id": 676,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402",
@@ -15546,7 +15546,7 @@
       "Id": 678,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -15567,7 +15567,7 @@
     },
     {
       "Id": 679,
-      "Course": "Cult. \u0219i civil. europ.",
+      "Course": "Cult. și civil. europ.",
       "Teachers": [
         "Xenofontov I."
       ],
@@ -15590,7 +15590,7 @@
     },
     {
       "Id": 680,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15613,7 +15613,7 @@
     },
     {
       "Id": 681,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15636,9 +15636,9 @@
     },
     {
       "Id": 682,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2403"
@@ -15659,7 +15659,7 @@
     },
     {
       "Id": 683,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -15682,9 +15682,9 @@
     },
     {
       "Id": 684,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -15707,7 +15707,7 @@
       "Id": 685,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -15730,7 +15730,7 @@
       "Id": 686,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -15753,7 +15753,7 @@
       "Id": 687,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -15774,9 +15774,9 @@
     },
     {
       "Id": 688,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2402"
@@ -15822,7 +15822,7 @@
       "Id": 690,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2403"
@@ -15843,7 +15843,7 @@
     },
     {
       "Id": 691,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -15868,7 +15868,7 @@
       "Id": 692,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -15891,7 +15891,7 @@
       "Id": 693,
       "Course": "HTML",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -15912,7 +15912,7 @@
     },
     {
       "Id": 694,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -15960,7 +15960,7 @@
       "Id": 696,
       "Course": "MDAG",
       "Teachers": [
-        "Niculi\u021B\u0103 A."
+        "Niculiță A."
       ],
       "Groups": [
         "I2402"
@@ -15981,7 +15981,7 @@
     },
     {
       "Id": 697,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16006,7 +16006,7 @@
       "Id": 698,
       "Course": "JavaScript",
       "Teachers": [
-        "Murine\u021B A."
+        "Murineț A."
       ],
       "Groups": [
         "IA2404"
@@ -16027,7 +16027,7 @@
     },
     {
       "Id": 699,
-      "Course": "Re\u021Bele de calculatoare",
+      "Course": "Rețele de calculatoare",
       "Teachers": [
         "Cuznetov E."
       ],
@@ -16052,7 +16052,7 @@
       "Id": 700,
       "Course": "DJ 2D pe Unity",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -16075,7 +16075,7 @@
       "Id": 701,
       "Course": "RVA",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2402"
@@ -16096,7 +16096,7 @@
     },
     {
       "Id": 702,
-      "Course": "Matematica discret\u0103 (Logica)",
+      "Course": "Matematica discretă (Logica)",
       "Teachers": [
         "Cucu I."
       ],
@@ -16123,7 +16123,7 @@
       "Id": 703,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -16144,7 +16144,7 @@
     },
     {
       "Id": 704,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16215,9 +16215,9 @@
     },
     {
       "Id": 707,
-      "Course": "Progr. \u00EEn C#",
+      "Course": "Progr. în C#",
       "Teachers": [
-        "St\u0103nescu G."
+        "Stănescu G."
       ],
       "Groups": [
         "DJ2401"
@@ -16240,7 +16240,7 @@
       "Id": 708,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2402"
@@ -16261,7 +16261,7 @@
     },
     {
       "Id": 709,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16308,7 +16308,7 @@
     },
     {
       "Id": 711,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16333,7 +16333,7 @@
       "Id": 712,
       "Course": "RVA",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2401"
@@ -16356,7 +16356,7 @@
       "Id": 713,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -16379,7 +16379,7 @@
       "Id": 714,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2402"
@@ -16400,7 +16400,7 @@
     },
     {
       "Id": 715,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16446,9 +16446,9 @@
     },
     {
       "Id": 717,
-      "Course": "Programare \u00EEn Python",
+      "Course": "Programare în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2404"
@@ -16471,7 +16471,7 @@
       "Id": 718,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -16494,7 +16494,7 @@
       "Id": 719,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -16517,7 +16517,7 @@
       "Id": 720,
       "Course": "Unity 2D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -16538,7 +16538,7 @@
     },
     {
       "Id": 721,
-      "Course": "Programare Orientat\u0103 Obiect",
+      "Course": "Programare Orientată Obiect",
       "Teachers": [
         "Latul Gh."
       ],
@@ -16563,7 +16563,7 @@
     },
     {
       "Id": 722,
-      "Course": "Limba rom\u00E2n\u0103",
+      "Course": "Limba română",
       "Teachers": [
         "Boicenco A."
       ],
@@ -16588,7 +16588,7 @@
       "Id": 723,
       "Course": "MTA 3D",
       "Teachers": [
-        "Ia\u021B\u00E2\u0219ina T."
+        "Iațîșina T."
       ],
       "Groups": [
         "DJ2402"
@@ -16611,7 +16611,7 @@
       "Id": 724,
       "Course": "MTA 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2401"
@@ -16634,7 +16634,7 @@
       "Id": 725,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2401"
@@ -16657,7 +16657,7 @@
       "Id": 726,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -16678,9 +16678,9 @@
     },
     {
       "Id": 727,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -16703,7 +16703,7 @@
       "Id": 728,
       "Course": "RVA",
       "Teachers": [
-        "M\u00EEndru E."
+        "Mîndru E."
       ],
       "Groups": [
         "DJ2401"
@@ -16749,7 +16749,7 @@
       "Id": 730,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -16770,9 +16770,9 @@
     },
     {
       "Id": 731,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2402"
@@ -16795,7 +16795,7 @@
       "Id": 732,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -16816,9 +16816,9 @@
     },
     {
       "Id": 733,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -16841,7 +16841,7 @@
       "Id": 734,
       "Course": "HTML",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -16862,9 +16862,9 @@
     },
     {
       "Id": 735,
-      "Course": "CSS \u0219i JavaScript",
+      "Course": "CSS și JavaScript",
       "Teachers": [
-        "Pa\u0219a T."
+        "Pașa T."
       ],
       "Groups": [
         "DJ2401"
@@ -16887,7 +16887,7 @@
       "Id": 736,
       "Course": "Analiza compl.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2301"
@@ -17004,7 +17004,7 @@
       "Id": 741,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -17027,7 +17027,7 @@
       "Id": 742,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2302"
@@ -17050,7 +17050,7 @@
       "Id": 743,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "IA2302"
@@ -17071,7 +17071,7 @@
     },
     {
       "Id": 744,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -17165,7 +17165,7 @@
       "Id": 748,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -17188,7 +17188,7 @@
       "Id": 749,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -17211,7 +17211,7 @@
       "Id": 750,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "IA2302"
@@ -17304,7 +17304,7 @@
       "Id": 754,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -17327,7 +17327,7 @@
       "Id": 755,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -17373,7 +17373,7 @@
       "Id": 757,
       "Course": "Analiza compl.",
       "Teachers": [
-        "Gu\u021Bu V."
+        "Guțu V."
       ],
       "Groups": [
         "M2301"
@@ -17396,7 +17396,7 @@
       "Id": 758,
       "Course": "Proiectarea Sistemelor Informatice",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2301",
@@ -17421,7 +17421,7 @@
       "Id": 759,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -17467,7 +17467,7 @@
       "Id": 761,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "I2301"
@@ -17488,7 +17488,7 @@
     },
     {
       "Id": 762,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -17536,7 +17536,7 @@
       "Id": 764,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -17583,7 +17583,7 @@
       "Id": 766,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -17604,7 +17604,7 @@
     },
     {
       "Id": 767,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -17629,7 +17629,7 @@
       "Id": 768,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2301"
@@ -17652,7 +17652,7 @@
       "Id": 769,
       "Course": "Statist. matem.",
       "Teachers": [
-        "Po\u0219taru A."
+        "Poștaru A."
       ],
       "Groups": [
         "M2301"
@@ -17673,9 +17673,9 @@
     },
     {
       "Id": 770,
-      "Course": "Dezvoltare WEB avansat\u0103 cu PHP",
+      "Course": "Dezvoltare WEB avansată cu PHP",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "I2301",
@@ -17700,7 +17700,7 @@
       "Id": 771,
       "Course": "Statist. matem.",
       "Teachers": [
-        "Be\u021B I."
+        "Băț I."
       ],
       "Groups": [
         "M2301"
@@ -17723,7 +17723,7 @@
       "Id": 772,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "I2301"
@@ -17746,7 +17746,7 @@
       "Id": 773,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -17792,7 +17792,7 @@
       "Id": 775,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2301"
@@ -17815,7 +17815,7 @@
       "Id": 776,
       "Course": "GAC",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "M2301"
@@ -17838,7 +17838,7 @@
       "Id": 777,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "I2301"
@@ -17861,7 +17861,7 @@
       "Id": 778,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii V."
+        "Vișnevschi V."
       ],
       "Groups": [
         "I2301"
@@ -17884,7 +17884,7 @@
       "Id": 779,
       "Course": "GAC",
       "Teachers": [
-        "\u021Aurcanu C."
+        "Țurcanu C."
       ],
       "Groups": [
         "M2301"
@@ -17907,7 +17907,7 @@
       "Id": 780,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "I2301"
@@ -17930,7 +17930,7 @@
       "Id": 781,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "IA2302"
@@ -17953,7 +17953,7 @@
       "Id": 782,
       "Course": "PHP",
       "Teachers": [
-        "Vi\u0219nevschii B."
+        "Vișnevschi B."
       ],
       "Groups": [
         "I2301"
@@ -18044,7 +18044,7 @@
     },
     {
       "Id": 786,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -18092,7 +18092,7 @@
     },
     {
       "Id": 788,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2301"
@@ -18136,7 +18136,7 @@
     },
     {
       "Id": 790,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Arseni E."
       ],
@@ -18159,7 +18159,7 @@
     },
     {
       "Id": 791,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "IA2302"
@@ -18229,7 +18229,7 @@
     },
     {
       "Id": 794,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "M2301",
@@ -18298,7 +18298,7 @@
     },
     {
       "Id": 797,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18344,7 +18344,7 @@
     },
     {
       "Id": 799,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18370,7 +18370,7 @@
       "Id": 800,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2301"
@@ -18391,7 +18391,7 @@
     },
     {
       "Id": 801,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -18437,7 +18437,7 @@
     },
     {
       "Id": 803,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18462,7 +18462,7 @@
       "Id": 804,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2301"
@@ -18485,7 +18485,7 @@
       "Id": 805,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -18506,7 +18506,7 @@
     },
     {
       "Id": 806,
-      "Course": "Geometrie afin\u0103",
+      "Course": "Geometrie afină",
       "Teachers": [
         "Solovei L."
       ],
@@ -18531,7 +18531,7 @@
       "Id": 807,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -18575,7 +18575,7 @@
     },
     {
       "Id": 809,
-      "Course": "Calcul numeric \u0219i metode de optimizare",
+      "Course": "Calcul numeric și metode de optimizare",
       "Teachers": [
         "Capcelea T."
       ],
@@ -18602,7 +18602,7 @@
       "Id": 810,
       "Course": "An. numer.",
       "Teachers": [
-        "Pa\u021Biuc V."
+        "Pațiuc V."
       ],
       "Groups": [
         "M2301"
@@ -18648,7 +18648,7 @@
       "Id": 812,
       "Course": "Proiectarea Sistemelor Informatice",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "IA2301"
@@ -18671,7 +18671,7 @@
       "Id": 813,
       "Course": "Sisteme de gestiune a bazelor de date",
       "Teachers": [
-        "Dumitra\u0219 M."
+        "Dumitraș M."
       ],
       "Groups": [
         "IA2302"
@@ -18694,7 +18694,7 @@
       "Id": 814,
       "Course": "CNMO",
       "Teachers": [
-        "Spr\u00EEncean G."
+        "Sprîncean G."
       ],
       "Groups": [
         "IA2302"
@@ -18738,7 +18738,7 @@
     },
     {
       "Id": 816,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -18761,7 +18761,7 @@
     },
     {
       "Id": 817,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18785,7 +18785,7 @@
     },
     {
       "Id": 818,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Donu A."
       ],
@@ -18809,7 +18809,7 @@
     },
     {
       "Id": 819,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -18833,7 +18833,7 @@
     },
     {
       "Id": 820,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18856,7 +18856,7 @@
     },
     {
       "Id": 821,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -18879,7 +18879,7 @@
     },
     {
       "Id": 822,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -18903,7 +18903,7 @@
     },
     {
       "Id": 823,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Donu A."
       ],
@@ -18927,7 +18927,7 @@
     },
     {
       "Id": 824,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -18951,7 +18951,7 @@
     },
     {
       "Id": 825,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -18974,7 +18974,7 @@
     },
     {
       "Id": 826,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -18998,9 +18998,9 @@
     },
     {
       "Id": 827,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "IA2301",
@@ -19022,7 +19022,7 @@
     },
     {
       "Id": 828,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Dodi M."
       ],
@@ -19115,7 +19115,7 @@
     },
     {
       "Id": 832,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19139,7 +19139,7 @@
     },
     {
       "Id": 833,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -19370,9 +19370,9 @@
     },
     {
       "Id": 843,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -19393,9 +19393,9 @@
     },
     {
       "Id": 844,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302"
@@ -19439,7 +19439,7 @@
     },
     {
       "Id": 846,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19510,7 +19510,7 @@
       "Id": 849,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -19555,7 +19555,7 @@
     },
     {
       "Id": 851,
-      "Course": "Calcul numeric \u0219i metode de optimizare",
+      "Course": "Calcul numeric și metode de optimizare",
       "Teachers": [
         "Verlan I."
       ],
@@ -19605,7 +19605,7 @@
       "Id": 853,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2303"
@@ -19626,7 +19626,7 @@
     },
     {
       "Id": 854,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2302"
@@ -19693,7 +19693,7 @@
     },
     {
       "Id": 857,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19716,7 +19716,7 @@
     },
     {
       "Id": 858,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19740,7 +19740,7 @@
     },
     {
       "Id": 859,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -19764,9 +19764,9 @@
     },
     {
       "Id": 860,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -19789,7 +19789,7 @@
       "Id": 861,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -19810,9 +19810,9 @@
     },
     {
       "Id": 862,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302",
@@ -19880,7 +19880,7 @@
     },
     {
       "Id": 865,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19903,7 +19903,7 @@
     },
     {
       "Id": 866,
-      "Course": "Dezvoltare de aplica\u021Bii cu Spring Framework",
+      "Course": "Dezvoltare de aplicații cu Spring Framework",
       "Teachers": [
         "Ciornei O."
       ],
@@ -19927,7 +19927,7 @@
     },
     {
       "Id": 867,
-      "Course": "Grafic\u0103 \u0219i anima\u021Bie 3D",
+      "Course": "Grafică și animație 3D",
       "Teachers": [
         "Pugaci D."
       ],
@@ -19951,7 +19951,7 @@
     },
     {
       "Id": 868,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -19974,9 +19974,9 @@
     },
     {
       "Id": 869,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2302"
@@ -19997,9 +19997,9 @@
     },
     {
       "Id": 870,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2303"
@@ -20112,9 +20112,9 @@
     },
     {
       "Id": 875,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -20135,7 +20135,7 @@
     },
     {
       "Id": 876,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -20228,9 +20228,9 @@
     },
     {
       "Id": 880,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Curmanschii A."
+        "Curmanschi A."
       ],
       "Groups": [
         "DJ2301"
@@ -20274,9 +20274,9 @@
     },
     {
       "Id": 882,
-      "Course": "Fotogrametrie \u0219i Scanare 3D",
+      "Course": "Fotogrametrie și Scanare 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Spîncean V."
       ],
       "Groups": [
         "DJ2302",
@@ -20321,7 +20321,7 @@
     },
     {
       "Id": 884,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "I2302"
@@ -20342,9 +20342,9 @@
     },
     {
       "Id": 885,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Trebi\u0219 A."
+        "Trebiș A."
       ],
       "Groups": [
         "DJ2302",
@@ -20366,7 +20366,7 @@
     },
     {
       "Id": 886,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2301"
@@ -20457,7 +20457,7 @@
     },
     {
       "Id": 890,
-      "Course": "Educa\u021Bie fizic\u0103",
+      "Course": "Educație fizică",
       "Teachers": [],
       "Groups": [
         "DJ2303"
@@ -20478,7 +20478,7 @@
     },
     {
       "Id": 891,
-      "Course": "Educa\u021Bia fizic\u0103",
+      "Course": "Educația fizică",
       "Teachers": [],
       "Groups": [
         "IA2303",
@@ -20523,7 +20523,7 @@
     },
     {
       "Id": 893,
-      "Course": "Dezvoltare WEB avansat\u0103 cu PHP",
+      "Course": "Dezvoltare WEB avansată cu PHP",
       "Teachers": [
         "Nartea N."
       ],
@@ -20548,9 +20548,9 @@
     },
     {
       "Id": 894,
-      "Course": "Progr. Jocurilor \u00EEn Python",
+      "Course": "Progr. Jocurilor în Python",
       "Teachers": [
-        "Ple\u0219ca N."
+        "Pleșca N."
       ],
       "Groups": [
         "DJ2301"
@@ -20594,7 +20594,7 @@
     },
     {
       "Id": 896,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -20619,7 +20619,7 @@
       "Id": 897,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -20642,7 +20642,7 @@
       "Id": 898,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2302"
@@ -20713,7 +20713,7 @@
       "Id": 901,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -20736,7 +20736,7 @@
       "Id": 902,
       "Course": "Fotogrametrie 3D",
       "Teachers": [
-        "Spr\u00EEncean V."
+        "Sprîncean V."
       ],
       "Groups": [
         "DJ2301"
@@ -20780,7 +20780,7 @@
     },
     {
       "Id": 904,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -20826,7 +20826,7 @@
     },
     {
       "Id": 906,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -20850,7 +20850,7 @@
     },
     {
       "Id": 907,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -20874,7 +20874,7 @@
     },
     {
       "Id": 908,
-      "Course": "Algoritmi \u0219i Struct. de Date",
+      "Course": "Algoritmi și Struct. de Date",
       "Teachers": [
         "Corlat S."
       ],
@@ -20897,7 +20897,7 @@
     },
     {
       "Id": 909,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -20920,7 +20920,7 @@
     },
     {
       "Id": 910,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -20944,7 +20944,7 @@
     },
     {
       "Id": 911,
-      "Course": "Dezvoltare de aplica\u021Bii WEB cu React",
+      "Course": "Dezvoltare de aplicații WEB cu React",
       "Teachers": [
         "Nartea N."
       ],
@@ -20970,7 +20970,7 @@
       "Id": 912,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2301"
@@ -21062,7 +21062,7 @@
       "Id": 916,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2303"
@@ -21110,7 +21110,7 @@
       "Id": 918,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2302",
@@ -21132,7 +21132,7 @@
     },
     {
       "Id": 919,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -21155,7 +21155,7 @@
     },
     {
       "Id": 920,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -21203,7 +21203,7 @@
     },
     {
       "Id": 922,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -21228,7 +21228,7 @@
       "Id": 923,
       "Course": "Programare GUI",
       "Teachers": [
-        "\u0218chiopu A."
+        "Șchiopu A."
       ],
       "Groups": [
         "DJ2302"
@@ -21272,7 +21272,7 @@
     },
     {
       "Id": 925,
-      "Course": "Containerizare \u0219i virtualizare",
+      "Course": "Containerizare și virtualizare",
       "Teachers": [
         "Croitor M."
       ],
@@ -21296,7 +21296,7 @@
     },
     {
       "Id": 926,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -21323,9 +21323,9 @@
     },
     {
       "Id": 927,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -21346,9 +21346,9 @@
     },
     {
       "Id": 928,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -21392,7 +21392,7 @@
     },
     {
       "Id": 930,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -21438,7 +21438,7 @@
     },
     {
       "Id": 932,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -21465,7 +21465,7 @@
     },
     {
       "Id": 933,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -21489,7 +21489,7 @@
     },
     {
       "Id": 934,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -21515,7 +21515,7 @@
       "Id": 935,
       "Course": "Baze de date",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "M2201"
@@ -21536,9 +21536,9 @@
     },
     {
       "Id": 936,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -21584,7 +21584,7 @@
       "Id": 938,
       "Course": "Baze de date",
       "Teachers": [
-        "Andrie\u0219 I."
+        "Andrieș I."
       ],
       "Groups": [
         "M2201"
@@ -21605,9 +21605,9 @@
     },
     {
       "Id": 939,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -21628,7 +21628,7 @@
     },
     {
       "Id": 940,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -21651,7 +21651,7 @@
     },
     {
       "Id": 941,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -21674,7 +21674,7 @@
     },
     {
       "Id": 942,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -21702,7 +21702,7 @@
       "Id": 943,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -21723,9 +21723,9 @@
     },
     {
       "Id": 944,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
-        "Anghelova I."
+        "Anghelov I."
       ],
       "Groups": [
         "I2202"
@@ -21746,7 +21746,7 @@
     },
     {
       "Id": 945,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -21792,7 +21792,7 @@
     },
     {
       "Id": 947,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -21884,7 +21884,7 @@
     },
     {
       "Id": 951,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -21908,7 +21908,7 @@
     },
     {
       "Id": 952,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -21932,7 +21932,7 @@
     },
     {
       "Id": 953,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -21958,7 +21958,7 @@
       "Id": 954,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -21979,7 +21979,7 @@
     },
     {
       "Id": 955,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22027,7 +22027,7 @@
       "Id": 957,
       "Course": "MNR EDP",
       "Teachers": [
-        "R\u00E2bacova G."
+        "Râbacova G."
       ],
       "Groups": [
         "M2201"
@@ -22048,7 +22048,7 @@
     },
     {
       "Id": 958,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -22094,7 +22094,7 @@
     },
     {
       "Id": 960,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22117,9 +22117,9 @@
     },
     {
       "Id": 961,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -22186,7 +22186,7 @@
     },
     {
       "Id": 964,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22209,9 +22209,9 @@
     },
     {
       "Id": 965,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -22255,7 +22255,7 @@
     },
     {
       "Id": 967,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22278,7 +22278,7 @@
     },
     {
       "Id": 968,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22301,7 +22301,7 @@
     },
     {
       "Id": 969,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Butnaru M."
       ],
@@ -22324,7 +22324,7 @@
     },
     {
       "Id": 970,
-      "Course": "Inele \u0219i module",
+      "Course": "Inele și module",
       "Teachers": [
         "Popa V."
       ],
@@ -22349,7 +22349,7 @@
       "Id": 971,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -22370,9 +22370,9 @@
     },
     {
       "Id": 972,
-      "Course": "Alg. \u0219i PP",
+      "Course": "Alg. și PP",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -22393,9 +22393,9 @@
     },
     {
       "Id": 973,
-      "Course": "JC \u0219i PN",
+      "Course": "JC și PN",
       "Teachers": [
-        "H\u00E2ncu B."
+        "Hâncu B."
       ],
       "Groups": [
         "M2201"
@@ -22416,7 +22416,7 @@
     },
     {
       "Id": 974,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -22464,7 +22464,7 @@
       "Id": 976,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -22508,7 +22508,7 @@
     },
     {
       "Id": 978,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -22531,7 +22531,7 @@
     },
     {
       "Id": 979,
-      "Course": "Limbaje formale \u0219i automate",
+      "Course": "Limbaje formale și automate",
       "Teachers": [
         "Sturza G."
       ],
@@ -22554,7 +22554,7 @@
     },
     {
       "Id": 980,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -22577,7 +22577,7 @@
     },
     {
       "Id": 981,
-      "Course": "Cript. \u0219i secur. inf.",
+      "Course": "Cript. și secur. inf.",
       "Teachers": [
         "Cerbu O."
       ],
@@ -22625,7 +22625,7 @@
       "Id": 983,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -22671,7 +22671,7 @@
       "Id": 985,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2201"
@@ -22715,7 +22715,7 @@
     },
     {
       "Id": 987,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -22740,7 +22740,7 @@
       "Id": 988,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -22784,7 +22784,7 @@
     },
     {
       "Id": 990,
-      "Course": "Aplica\u021Bii p/u DM",
+      "Course": "Aplicații p/u DM",
       "Teachers": [
         "Crudu Cr."
       ],
@@ -22809,7 +22809,7 @@
       "Id": 991,
       "Course": "Securit. BD",
       "Teachers": [
-        "Pa\u0219a O."
+        "Pașa O."
       ],
       "Groups": [
         "IA2202"
@@ -22832,7 +22832,7 @@
       "Id": 992,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -22854,7 +22854,7 @@
     },
     {
       "Id": 993,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -22881,7 +22881,7 @@
       "Id": 994,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -22903,7 +22903,7 @@
     },
     {
       "Id": 995,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -22928,7 +22928,7 @@
     },
     {
       "Id": 996,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -22952,7 +22952,7 @@
     },
     {
       "Id": 997,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -22976,7 +22976,7 @@
     },
     {
       "Id": 998,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23000,7 +23000,7 @@
     },
     {
       "Id": 999,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Ianachevici G.-M."
       ],
@@ -23025,7 +23025,7 @@
     },
     {
       "Id": 1000,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Ianachevici G.-M."
       ],
@@ -23050,7 +23050,7 @@
     },
     {
       "Id": 1001,
-      "Course": "Etica profesional\u0103",
+      "Course": "Etica profesională",
       "Teachers": [
         "Cristei M."
       ],
@@ -23074,7 +23074,7 @@
     },
     {
       "Id": 1002,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Grosu S."
       ],
@@ -23100,7 +23100,7 @@
       "Id": 1003,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -23122,7 +23122,7 @@
     },
     {
       "Id": 1004,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -23146,7 +23146,7 @@
     },
     {
       "Id": 1005,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Grosu S."
       ],
@@ -23170,7 +23170,7 @@
     },
     {
       "Id": 1006,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -23194,7 +23194,7 @@
     },
     {
       "Id": 1007,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23218,7 +23218,7 @@
     },
     {
       "Id": 1008,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23242,7 +23242,7 @@
     },
     {
       "Id": 1009,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Ianachevici G.-M."
       ],
@@ -23266,7 +23266,7 @@
     },
     {
       "Id": 1010,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23290,7 +23290,7 @@
     },
     {
       "Id": 1011,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23314,7 +23314,7 @@
     },
     {
       "Id": 1012,
-      "Course": "Montajul \u0219i imaginea video",
+      "Course": "Montajul și imaginea video",
       "Teachers": [
         "Ianachevici G.-M."
       ],
@@ -23338,7 +23338,7 @@
     },
     {
       "Id": 1013,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -23362,7 +23362,7 @@
     },
     {
       "Id": 1014,
-      "Course": "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real",
+      "Course": "Producție virtuală 3D pentru realizarea de filme în timp real",
       "Teachers": [
         "Pugaci D."
       ],
@@ -23386,7 +23386,7 @@
     },
     {
       "Id": 1015,
-      "Course": "Mijloace tehnice \u00EEn multimedia",
+      "Course": "Mijloace tehnice în multimedia",
       "Teachers": [
         "Pascaru S."
       ],
@@ -23412,7 +23412,7 @@
       "Id": 1016,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2201",
@@ -23436,7 +23436,7 @@
       "Id": 1017,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -23460,7 +23460,7 @@
       "Id": 1018,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2201",
@@ -23484,7 +23484,7 @@
       "Id": 1019,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2201",
@@ -23508,7 +23508,7 @@
       "Id": 1020,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -23532,7 +23532,7 @@
       "Id": 1021,
       "Course": "Managementul proiectelor",
       "Teachers": [
-        "Dr\u0103g\u0103lina Iu."
+        "Drăgălina Iu."
       ],
       "Groups": [
         "DJ2203",
@@ -23563,51 +23563,51 @@
     {
       "Id": 1,
       "Names": [
-        "Predarea probabilit\u0103\u0163ilor \u015Fi combinatoricii \u00EEn liceu",
-        "Pred. prob. \u015Fi comb. \u00EEn liceu"
+        "Predarea probabilităţilor şi combinatoricii în liceu",
+        "Pred. prob. şi comb. în liceu"
       ]
     },
     {
       "Id": 2,
       "Names": [
-        "Operatori liniari \u015Fi aplica\u0163ii"
+        "Operatori liniari şi aplicaţii"
       ]
     },
     {
       "Id": 3,
       "Names": [
-        "Sisteme de prelucrare a lucr\u0103rilor \u0219tiin\u021Bifice"
+        "Sisteme de prelucrare a lucrărilor științifice"
       ]
     },
     {
       "Id": 4,
       "Names": [
-        "Met. Cercet. Opera\u0163. \u00EEn fundam. deciziilor",
-        "Met. Cercet. Opera\u0163. \u00EEn fund. deciziilor"
+        "Met. Cercet. Operaţ. în fundam. deciziilor",
+        "Met. Cercet. Operaţ. în fund. deciziilor"
       ]
     },
     {
       "Id": 5,
       "Names": [
-        "Pedagogia \u015Fi psihologia \u015Fcolar\u0103"
+        "Pedagogia şi psihologia şcolară"
       ]
     },
     {
       "Id": 6,
       "Names": [
-        "Depozite de Date \u0219i Data Mining"
+        "Depozite de Date și Data Mining"
       ]
     },
     {
       "Id": 7,
       "Names": [
-        "Securitatea tranzac\u021Biilor electronice"
+        "Securitatea tranzacțiilor electronice"
       ]
     },
     {
       "Id": 8,
       "Names": [
-        "Proiect practic de \u0219tiin\u021Ba datelor"
+        "Proiect practic de știința datelor"
       ]
     },
     {
@@ -23619,14 +23619,14 @@
     {
       "Id": 10,
       "Names": [
-        "Etica \u0219i dreptul \u00EEn Inteligen\u021Ba Artificial\u0103",
-        "Etica \u0219i dreptul \u00EEn IA"
+        "Etica și dreptul în Inteligența Artificială",
+        "Etica și dreptul în IA"
       ]
     },
     {
       "Id": 11,
       "Names": [
-        "Metode varia\u0163ionale \u00EEn ecua\u0163ii diferen\u0163iale"
+        "Metode variaţionale în ecuaţii diferenţiale"
       ]
     },
     {
@@ -23638,7 +23638,7 @@
     {
       "Id": 13,
       "Names": [
-        "Metodica pred\u0103rii matematicii competitive"
+        "Metodica predării matematicii competitive"
       ]
     },
     {
@@ -23650,19 +23650,19 @@
     {
       "Id": 15,
       "Names": [
-        "Managementul securit\u0103\u021Bii informa\u021Biei"
+        "Managementul securității informației"
       ]
     },
     {
       "Id": 16,
       "Names": [
-        "Predarea calcului diferen\u0163ial \u015Fi integral \u00EEn liceu"
+        "Predarea calcului diferenţial şi integral în liceu"
       ]
     },
     {
       "Id": 17,
       "Names": [
-        "Cloud computing pentru \u0219tiin\u021Ba datelor"
+        "Cloud computing pentru știința datelor"
       ]
     },
     {
@@ -23674,7 +23674,7 @@
     {
       "Id": 19,
       "Names": [
-        "\u00CEnv\u0103\u021Bare profund\u0103."
+        "Învățare profundă."
       ]
     },
     {
@@ -23686,20 +23686,20 @@
     {
       "Id": 21,
       "Names": [
-        "Op\u021B. psihol.",
+        "Opț. psihol.",
         "Psihologie"
       ]
     },
     {
       "Id": 22,
       "Names": [
-        "Analiz\u0103 matem."
+        "Analiză matem."
       ]
     },
     {
       "Id": 23,
       "Names": [
-        "Programare \u00EEn Python",
+        "Programare în Python",
         "Python"
       ]
     },
@@ -23712,20 +23712,20 @@
     {
       "Id": 25,
       "Names": [
-        "Matematica discret\u0103 (AG)"
+        "Matematica discretă (AG)"
       ]
     },
     {
       "Id": 26,
       "Names": [
-        "Programare Orientat\u0103 Obiect",
+        "Programare Orientată Obiect",
         "POO"
       ]
     },
     {
       "Id": 27,
       "Names": [
-        "Topologie \u0219i TM"
+        "Topologie și TM"
       ]
     },
     {
@@ -23743,9 +23743,9 @@
     {
       "Id": 30,
       "Names": [
-        "Educa\u021Bie fizic\u0103",
-        "Educ. fizic\u0103",
-        "Ed. fizic\u0103"
+        "Educație fizică",
+        "Educ. fizică",
+        "Ed. fizică"
       ]
     },
     {
@@ -23769,7 +23769,7 @@
     {
       "Id": 34,
       "Names": [
-        "Re\u021Bele de calculatoare",
+        "Rețele de calculatoare",
         "Ret. calcul.",
         "Ret. calc.",
         "RC"
@@ -23778,7 +23778,7 @@
     {
       "Id": 35,
       "Names": [
-        "Matematica discret\u0103 (Logica)"
+        "Matematica discretă (Logica)"
       ]
     },
     {
@@ -23802,13 +23802,13 @@
     {
       "Id": 39,
       "Names": [
-        "Progr. \u00EEn C#"
+        "Progr. în C#"
       ]
     },
     {
       "Id": 40,
       "Names": [
-        "Educa\u021Bia fizic\u0103"
+        "Educația fizică"
       ]
     },
     {
@@ -23820,7 +23820,7 @@
     {
       "Id": 42,
       "Names": [
-        "Cult. \u0219i civil. europ."
+        "Cult. și civil. europ."
       ]
     },
     {
@@ -23838,7 +23838,7 @@
     {
       "Id": 45,
       "Names": [
-        "Limba rom\u00E2n\u0103"
+        "Limba română"
       ]
     },
     {
@@ -23856,7 +23856,7 @@
     {
       "Id": 48,
       "Names": [
-        "CSS \u0219i JavaScript"
+        "CSS și JavaScript"
       ]
     },
     {
@@ -23900,7 +23900,7 @@
     {
       "Id": 55,
       "Names": [
-        "Geometrie afin\u0103"
+        "Geometrie afină"
       ]
     },
     {
@@ -23925,9 +23925,9 @@
     {
       "Id": 59,
       "Names": [
-        "Grafic\u0103 \u0219i anima\u021Bie 3D",
-        "Grafic\u0103 \u0219i anuma\u021Bie 3D",
-        "Grafica \u0219i anima\u021Bie 3D",
+        "Grafică și animație 3D",
+        "Grafică și anumație 3D",
+        "Grafica și animație 3D",
         "GA 3D"
       ]
     },
@@ -23940,7 +23940,7 @@
     {
       "Id": 61,
       "Names": [
-        "Dezvoltare WEB avansat\u0103 cu PHP"
+        "Dezvoltare WEB avansată cu PHP"
       ]
     },
     {
@@ -23982,21 +23982,21 @@
     {
       "Id": 68,
       "Names": [
-        "Containerizare \u0219i virtualizare",
+        "Containerizare și virtualizare",
         "CV"
       ]
     },
     {
       "Id": 69,
       "Names": [
-        "Calcul numeric \u0219i metode de optimizare"
+        "Calcul numeric și metode de optimizare"
       ]
     },
     {
       "Id": 70,
       "Names": [
-        "Dezvoltare de aplica\u021Bii cu Spring Framework",
-        "Dezvolt. de aplica\u021Bii cu Spring Framework",
+        "Dezvoltare de aplicații cu Spring Framework",
+        "Dezvolt. de aplicații cu Spring Framework",
         "Dezvolt. de aplic. cu Spring Framewok",
         "Dezv. aplic. cu Spring Framework",
         "Dezv. aplic. cu Spring FR.",
@@ -24006,8 +24006,8 @@
     {
       "Id": 71,
       "Names": [
-        "Dezvoltare de aplica\u021Bii WEB cu React",
-        "Dezv. de aplica\u021Bii WEB cu React",
+        "Dezvoltare de aplicații WEB cu React",
+        "Dezv. de aplicații WEB cu React",
         "Dezv. de apl. WEB cu React."
       ]
     },
@@ -24029,8 +24029,8 @@
     {
       "Id": 74,
       "Names": [
-        "Progr. Jocurilor \u00EEn Python",
-        "PJ \u00EEn Python"
+        "Progr. Jocurilor în Python",
+        "PJ în Python"
       ]
     },
     {
@@ -24044,15 +24044,15 @@
     {
       "Id": 76,
       "Names": [
-        "Algoritmi \u0219i Struct. de Date",
-        "Algoritmi \u0219i SD",
+        "Algoritmi și Struct. de Date",
+        "Algoritmi și SD",
         "ASD"
       ]
     },
     {
       "Id": 77,
       "Names": [
-        "Fotogrametrie \u0219i Scanare 3D"
+        "Fotogrametrie și Scanare 3D"
       ]
     },
     {
@@ -24065,19 +24065,19 @@
     {
       "Id": 79,
       "Names": [
-        "Etica profesional\u0103"
+        "Etica profesională"
       ]
     },
     {
       "Id": 80,
       "Names": [
-        "Alg. \u0219i PP"
+        "Alg. și PP"
       ]
     },
     {
       "Id": 81,
       "Names": [
-        "JC \u0219i PN"
+        "JC și PN"
       ]
     },
     {
@@ -24090,14 +24090,14 @@
     {
       "Id": 83,
       "Names": [
-        "Cript. \u0219i secur. inf.",
-        "Cript \u0219i SI"
+        "Cript. și secur. inf.",
+        "Cript și SI"
       ]
     },
     {
       "Id": 84,
       "Names": [
-        "Limbaje formale \u0219i automate",
+        "Limbaje formale și automate",
         "LFA"
       ]
     },
@@ -24110,8 +24110,8 @@
     {
       "Id": 86,
       "Names": [
-        "Aplica\u021Bii p/u DM",
-        "Aplica\u021Bii DM"
+        "Aplicații p/u DM",
+        "Aplicații DM"
       ]
     },
     {
@@ -24123,8 +24123,8 @@
     {
       "Id": 88,
       "Names": [
-        "Inele \u0219i module",
-        "Inele \u0219i mod."
+        "Inele și module",
+        "Inele și mod."
       ]
     },
     {
@@ -24154,20 +24154,20 @@
     {
       "Id": 93,
       "Names": [
-        "Montajul \u0219i imaginea video"
+        "Montajul și imaginea video"
       ]
     },
     {
       "Id": 94,
       "Names": [
-        "Mijloace tehnice \u00EEn multimedia",
-        "Mijloace tehn. \u00EEn multimedia"
+        "Mijloace tehnice în multimedia",
+        "Mijloace tehn. în multimedia"
       ]
     },
     {
       "Id": 95,
       "Names": [
-        "Produc\u021Bie virtual\u0103 3D pentru realizarea de filme \u00EEn timp real"
+        "Producție virtuală 3D pentru realizarea de filme în timp real"
       ]
     }
   ],

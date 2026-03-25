@@ -89,8 +89,7 @@ public static class ScheduleSerializer
 
 public static class SerializationModels
 {
-    public abstract class LessonBaseModel
-    {
+    public abstract class LessonBaseModel {
         [JsonRequired]
         public ImmutableArray<GroupId> Groups { get; set; }
         [JsonRequired]

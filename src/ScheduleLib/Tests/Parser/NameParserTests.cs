@@ -55,7 +55,7 @@ public sealed class NameParserTests
     [Fact]
     public void FirstMustNotBeMissing()
     {
-        Assert.Throws<InvalidOperationException>(() => ParseName("Last"));
+        Assert.Throws<NameParsingException>(() => ParseName("Last"));
     }
 
     [Fact]

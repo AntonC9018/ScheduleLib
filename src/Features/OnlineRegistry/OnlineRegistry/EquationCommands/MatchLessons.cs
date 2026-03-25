@@ -80,17 +80,19 @@ internal static class MatchLessonHelper
                 continue;
             }
 
-            if (p.Filter.Groups.IsWildcard)
+            ref readonly var g = ref p.Filter.Groups;
+
+            if (g.IsWildcard)
             {
-                if (!p.Filter.Groups.Value.IsSubSetOf(lesson.Lesson.Groups))
+                if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
                 {
                     continue;
                 }
             }
             else
             {
-                Debug.Assert(p.Filter.Groups.Value.IsSingleGroup);
-                if (!lesson.Lesson.Groups.Contains(p.Filter.Groups.Value[0]))
+                Debug.Assert(g.Value.IsSingleGroup);
+                if (!lesson.Lesson.Groups.Contains(g.Value[0]))
                 {
                     continue;
                 }

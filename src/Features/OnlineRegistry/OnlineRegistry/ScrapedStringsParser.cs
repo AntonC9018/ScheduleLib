@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
@@ -35,9 +36,14 @@ public static partial class RegistryScraping
         var year = ParseYear(ref mainParser);
 
         bool isWildcard = false;
+        bool isDual = false;
         uint? groupNumber = null;
         var subGroup = ParseSubGroup(ref mainParser);
-        if (!subGroup.IsEmpty)
+        if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
+        {
+            isDual = true;
+        }
+        else if (!subGroup.IsEmpty)
         {
             isWildcard = true;
         }
@@ -79,6 +85,7 @@ public static partial class RegistryScraping
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
             Language = languageOrFR.Language,
+            IsDual = isDual,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
@@ -227,4 +234,5 @@ internal struct GroupForSearch
     public required Language? Language;
     public required bool IsRepeat;
     public required bool IsWildcard;
+    public required bool IsDual;
 }

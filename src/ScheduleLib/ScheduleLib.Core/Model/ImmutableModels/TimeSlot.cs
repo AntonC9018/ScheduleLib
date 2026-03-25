@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 public struct DefaultLessonTimeConfig(LessonTimeConfig b)
 {
     public readonly LessonTimeConfig Base = b;
@@ -14,8 +16,8 @@ public struct DefaultLessonTimeConfig(LessonTimeConfig b)
 
 public sealed class LessonTimeConfig
 {
-    public required TimeSpan LessonDuration;
-    public required TimeOnly[] TimeSlotStarts;
+    public required TimeSpan LessonDuration { get; init; }
+    public required TimeOnly[] TimeSlotStarts { get; init; }
 
     public int TimeSlotCount => TimeSlotStarts.Length;
 
@@ -27,6 +29,42 @@ public sealed class LessonTimeConfig
             TimeSlotStarts = CreateDefaultTimeSlots(),
         };
         return new(ret);
+    }
+
+    private sealed class IncludesComparer : IComparer<TimeOnly>
+    {
+        private readonly TimeSpan _duration;
+
+        public IncludesComparer(TimeSpan duration)
+        {
+            _duration = duration;
+        }
+
+        public int Compare(TimeOnly startTime, TimeOnly search)
+        {
+            if (search < startTime)
+            {
+                return 1;
+            }
+            var endTime = startTime.Add(_duration);
+            if (search > endTime)
+            {
+                return -1;
+            }
+            return 0;
+        }
+    }
+
+    private IncludesComparer? _includesComparer;
+    public TimeSlot? FindTimeSlotByIncludedTime(TimeOnly time)
+    {
+        _includesComparer ??= new(LessonDuration);
+        var i = Array.BinarySearch(TimeSlotStarts, time, _includesComparer);
+        if (i < 0)
+        {
+            return null;
+        }
+        return new(i);
     }
 
     public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)

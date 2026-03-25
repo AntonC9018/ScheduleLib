@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.WordDoc;
@@ -40,7 +41,22 @@ public readonly record struct FullyRenamedCourse(ParsedCourseName From, ParsedCo
 public sealed class CourseNameUnifierConfig
 {
     public required CourseNameParserConfig ParserConfig { get; init; }
-    public ImmutableArray<FullyRenamedCourse> FullyRemappedNames { get; init; } = [];
+    private ImmutableArray<FullyRenamedCourse> FullyRemappedNames { get; init; } = [];
+    private CourseNameUnifierConfig()
+    {
+    }
+
+    public ParsedCourseName TryRemap(ParsedCourseName original)
+    {
+        foreach (var remap in FullyRemappedNames)
+        {
+            if (original.IsEqual(remap.From))
+            {
+                return remap.To;
+            }
+        }
+        return original;
+    }
 
     public static CourseNameUnifierConfig Create(
         CourseNameParserConfig config,
@@ -93,14 +109,7 @@ public sealed class CourseNameUnifierModule
 
     private ParsedCourseName TryRemap(ParsedCourseName original)
     {
-        foreach (var remap in _config.FullyRemappedNames)
-        {
-            if (original.IsEqual(remap.From))
-            {
-                return remap.To;
-            }
-        }
-        return original;
+        return _config.TryRemap(original);
     }
 
     public void AddSlow(ReadOnlyMemory<char> courseName, CourseId id)

@@ -518,12 +518,20 @@ public static class LessonBuilderHelper
         {
             foreach (var teach1 in a.General.Teachers)
             {
-                foreach (var teach2 in b.General.Teachers)
+                if (!HasTeacher(b.General.Teachers))
                 {
-                    if (teach1 == teach2)
+                    return false;
+                }
+                bool HasTeacher(List<TeacherId> other)
+                {
+                    foreach (var teach2 in other)
                     {
-                        return false;
+                        if (teach1 == teach2)
+                        {
+                            return true;
+                        }
                     }
+                    return false;
                 }
             }
             return true;
@@ -565,12 +573,21 @@ public static class LessonBuilderHelper
         {
             foreach (var g in a.Group.Groups)
             {
-                foreach (var g1 in b.Group.Groups)
+                if (!HasGroup(b.Group.Groups))
                 {
-                    if (g == g1)
+                    return false;
+                }
+
+                bool HasGroup(in LessonGroups other)
+                {
+                    foreach (var g1 in other)
                     {
-                        return false;
+                        if (g == g1)
+                        {
+                            return true;
+                        }
                     }
+                    return false;
                 }
             }
             return true;
@@ -700,26 +717,11 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllGroups)
         {
-            if (AllGroupsNotEqual(a, b))
+            // note: the groups are ordered which is why this works.
+            if (a.Groups != b.Groups)
             {
                 ret.AllGroups = true;
             }
-        }
-        bool AllGroupsNotEqual(
-            in LessonData a,
-            in LessonData b)
-        {
-            foreach (var g in a.Groups)
-            {
-                foreach (var g1 in b.Groups)
-                {
-                    if (g == g1)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
         }
 
         if (whatToDiff.SubGroup)

@@ -44,12 +44,12 @@ public readonly ref struct LessonFilterContext
 {
     public readonly ref readonly LessonSearchFilter Filter;
     public readonly Schedule Schedule;
-    public readonly ReadOnlyMemory<AnyLessonId> Lessons;
+    public readonly List<AnyLessonId> Lessons;
 
     public LessonFilterContext(
         in LessonSearchFilter filter,
         Schedule schedule,
-        ReadOnlyMemory<AnyLessonId> lessons)
+        List<AnyLessonId> lessons)
     {
         Schedule = schedule;
         Lessons = lessons;

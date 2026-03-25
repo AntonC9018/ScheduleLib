@@ -18,6 +18,16 @@ public sealed class Schedule
     public required ImmutableArray<Teacher> Teachers { get; init; }
     public required ImmutableArray<Course> Courses { get; init; }
     public required ImmutableArray<Period> Periods { get; init; }
+
+    public static readonly Schedule Empty = new()
+    {
+        WeeklyLessons = [],
+        OneTimeLessons = [],
+        Groups = [],
+        Teachers = [],
+        Courses = [],
+        Periods = [],
+    };
 }
 
 public readonly struct Accessor<T, TId> : IAccessor<Accessor<T, TId>, T>
@@ -446,7 +456,12 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 
     public static bool operator==(in LessonGroups a, in LessonGroups b)
     {
-        for (int i = 0; i < a.Capacity; i++)
+        var count = a.Count;
+        if (count != b.Count)
+        {
+            return false;
+        }
+        for (int i = 0; i < count; i++)
         {
             if (a[i] != b[i])
             {
@@ -526,7 +541,6 @@ public record struct LessonData()
     public required LessonGroups Groups;
     public required CourseId Course;
 
-    // this is
     private readonly SequenceComparableImmutableArray<TeacherId> _teachers;
     public required ImmutableArray<TeacherId> Teachers
     {
@@ -733,6 +747,7 @@ public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
+    Dual,
     Count,
     Invalid = -1,
 }

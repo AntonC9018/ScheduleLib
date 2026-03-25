@@ -99,19 +99,47 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
     public LessonValidity Filter(LessonFilterContext c)
     {
         var teacherId = _currentTeacherIdProvider.Get();
-        foreach (var lid in c.Lessons.Span)
+        var s = c.Schedule;
+        if (c.Lessons.Count == 0)
         {
-            var lesson = c.Schedule.Get(lid);
-            if (!lesson.Lesson.Teachers.Contains(teacherId))
+            return LessonValidity.None;
+        }
+
+        if (AreAllForOtherTeachers(c))
+        {
+            var lessonId = c.Lessons[0];
+            ref readonly var lesson = ref c.Schedule.Get(lessonId).Lesson;
+            return LessonValidity.Error(new
             {
-                return LessonValidity.Error(new
+                Message = "Lesson belongs to another teacher",
+                Lesson = new
                 {
-                    Message = "Lesson belongs to another teacher",
-                    LessonId = lesson.Id,
-                });
-            }
+                    Id = c.Lessons[0],
+                    Course = c.Schedule.Get(lesson.Course).FullName,
+                    Teachers = string.Join(",", lesson.Teachers.Select(x => s.Get(x).PersonName.ToString())),
+                    Groups = string.Join(",", lesson.Groups.Select(x => s.Get(x).Name.ToString())),
+                    Type = lesson.Type,
+                },
+            });
+        }
+        {
+            // Remove lessons for other teachers.
+            c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers.Contains(teacherId));
         }
         return LessonValidity.None;
+
+        bool AreAllForOtherTeachers(LessonFilterContext c1)
+        {
+            foreach (var lid in c1.Lessons)
+            {
+                var lesson = c1.Schedule.Get(lid);
+                if (lesson.Lesson.Teachers.Contains(teacherId))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }
 
