@@ -1,17 +1,25 @@
+using System.Collections;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Anton.LayeredData;
-using Avalonia.Controls;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.MvvmEssentials;
 using Desktop.ViewModelData;
+using DynamicData;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
+using IDispatcher = Desktop.MvvmEssentials.IDispatcher;
 
 namespace Desktop.MainWindow;
 
@@ -22,31 +30,17 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     public partial string UserNameToAdd { get; set; } = "";
 
     private readonly TreeBuilder _tree;
+    private new readonly TreeEventDispatcher _dispatcher;
     private readonly UpdateTreeHelper _updateTreeHelper;
     private readonly EventSubscription _subTreeChanged;
     private readonly EventSubscription<LayerLevel> _layerChangedSub;
     private readonly LayerLevelSelectionViewModel _layerSelection;
     private readonly AllTeacherNamesProvider _teacherNamesProvider;
 
-    public bool AutoCompleteName(string? search, Name item)
-    {
-        if (search is null)
-        {
-            return false;
-        }
-
-        var parts = search.Split(" ");
-        var found = new EnumBitArray<NamePart>();
-        foreach (var p in parts)
-        {
-            if (item.FirstName.
-        }
-
-        IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(item.
-        if
-    }
-
-    public IEnumerable<Name> AvailableUserNames => _teacherNamesProvider.Names;
+    private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
+    public UpdateableObservableList<Name> FilteredUserNames { get; } = new();
+    private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
+    private readonly EventSubscription<ImmutableArray<Name>> _teacherNameSub;
 
     public AddUserViewModel(
         TreeContext t,
@@ -56,6 +50,11 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         AllTeacherNamesProvider teacherNamesProvider)
         : base(t.Dispatcher)
     {
+        _teacherNameSub = teacherNamesProvider.Names.Changed.Sub(names =>
+        {
+            _ = names;
+            OnUserNameToAddChanged();
+        });
         _teacherNamesProvider = teacherNamesProvider;
         _tree = t.Tree;
         _updateTreeHelper = updateTreeHelper;
@@ -68,6 +67,8 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         {
             _ = level;
         });
+        _dispatcher = t.Dispatcher;
+        OnUserNameToAddChanged();
     }
 
     public bool CanSelectUserToAdd => true;
@@ -120,76 +121,239 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         UserNameToAdd = "";
     }
 
+    private void OnUserNameToAddChanged()
+    {
+        using var x = _item.BorrowHelper();
+        var (nameParser, tempArr) = x.Value;
+        tempArr.Clear();
+
+        _dispatcher.StartQueueing();
+        try
+        {
+            Parse();
+            UpdateFilteredList();
+        }
+        finally
+        {
+            _dispatcher.EndQueueing();
+        }
+
+        return;
+
+        void UpdateFilteredList()
+        {
+            IEnumerable<Name> matches = AllUserNames;
+            if (tempArr.Count != 0)
+            {
+                matches = matches
+                    .Select(x => (Name: x, Score: GetMatchScore(x)))
+                    .Where(x => x.Score != 0)
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Name, NameAlphabeticComparer.CurrentCultureIgnoreCase)
+                    .Select(x => x.Name);
+            }
+            FilteredUserNames.Reset(matches);
+        }
+
+        void Parse()
+        {
+            nameParser.Load(UserNameToAdd.AsMemory());
+            var lexer = nameParser.Scope();
+            while (!lexer.IsEmpty)
+            {
+                var namePart = NameHelper.ParseNamePart(ref lexer, out bool isDoubleNameError);
+                _ = isDoubleNameError;
+
+                lexer.ConsumeAllConsecutiveThatAreNot(NameTokenType.Word);
+
+                if (namePart == default)
+                {
+                    continue;
+                }
+                tempArr.Add(namePart);
+            }
+        }
+
+        int GetMatchScore(Name name)
+        {
+            var nameFields = name.Fields;
+            var foundFields = new EnumBitArray<NameField>();
+
+            int Ret(bool hasExtra)
+            {
+                var matchedCount = foundFields.SetCount;
+                var allMatched = foundFields.AreAllSet;
+                var someUnmatched = hasExtra;
+
+                if (matchedCount == 0)
+                {
+                    return 0;
+                }
+
+                if (allMatched && someUnmatched)
+                {
+                    return 2;
+                }
+
+                if (someUnmatched)
+                {
+                    return 1;
+                }
+
+                return matchedCount + 2;
+            }
+
+            foreach (var namePart in tempArr)
+            {
+                // Everything matched, but found even more input.
+                if (foundFields.AreAllSet)
+                {
+                    return Ret(hasExtra: true);
+                }
+
+                foreach (var notFoundField in foundFields.Flipped)
+                {
+                    var field = NameHelper.Field(nameFields, notFoundField);
+
+                    bool matches = namePart.EachEquals(field, (parsed, existing) =>
+                    {
+                        if (parsed is null)
+                        {
+                            return true;
+                        }
+                        if (/*parsed is not null &&*/ existing is null)
+                        {
+                            return false;
+                        }
+                        if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(existing, parsed))
+                        {
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (matches)
+                    {
+                        foundFields.Set(notFoundField);
+                        break;
+                    }
+                }
+            }
+
+            // Something matching is considered a match?
+            return Ret(hasExtra: false);
+        }
+    }
+
+    partial void OnUserNameToAddChanged(string value)
+    {
+        _ = value;
+        Debug.Assert(value == UserNameToAdd);
+        OnUserNameToAddChanged();
+    }
+
     public void Dispose()
     {
         _subTreeChanged.Dispose();
         _layerChangedSub.Dispose();
+        _teacherNameSub.Dispose();
     }
 }
 
-public sealed partial class AllTeacherNamesProvider
+public sealed class ScheduleLoading
 {
-    public ImmutableArray<Name> Names { get; }
+    private ObservableValueSource<Schedule> _names;
+    public ObservableValue<Schedule> Names => _names.As();
 
-    public AllTeacherNamesProvider(ScheduleProvider scheduleProvider)
+    public ScheduleLoading(IDispatcher dispatcher)
     {
-        // Known currently ignored issues:
-        // 1. constructor may run slowly causing work
-        // 2. it assumes the schedule has been loaded already
-        // 3. it doesn't track changes to the schedule
-        // 4. it currently makes an extra copy of the schedule just to get the names
-        var schedule = scheduleProvider.Get();
-        Names = schedule
-            .EnumerateTeachers()
-            .Select(x =>
+        _names = dispatcher.CreateObservableValue(Schedule.Empty);
+    }
+
+    public async void StartLoading(
+        IServiceProvider sp,
+        CancellationToken cancellationToken)
+    {
+        // TODO: Do this better?
+        try
+        {
+            await Task.Run(async () =>
             {
-                var name = x.Item.PersonName.AsNameFields();
-                return new Name(name);
-            })
-            .ToImmutableArray();
+                await sp.InitializeSchedule(cancellationToken);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _names.Value = sp.GetRequiredService<ScheduleProvider>().Get();
+                });
+            },
+            cancellationToken);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
     }
 }
 
-public enum NamePart
+public sealed class AllTeacherNamesProvider : IDisposable
 {
-    First,
-    Last,
-    Count,
+    private ObservableValueSource<ImmutableArray<Name>> _names;
+    public ObservableValue<ImmutableArray<Name>> Names => _names.As();
+    private readonly EventSubscription<Schedule> _scheduleUpdatedSub;
+
+    public AllTeacherNamesProvider(
+        IDispatcher dispatcher,
+        Event<Schedule> scheduleLoaded)
+    {
+        _names = dispatcher.CreateObservableValue<ImmutableArray<Name>>([]);
+        _scheduleUpdatedSub = scheduleLoaded.Sub(s =>
+        {
+            var x = s
+                .EnumerateTeachers()
+                .Select(x =>
+                {
+                    var name = x.Item.PersonName.AsNameFields();
+                    return new Name(name);
+                });
+            _names.Value = [.. x];
+        });
+    }
+
+    public void Dispose()
+    {
+        _scheduleUpdatedSub.Dispose();
+    }
 }
 
-// file readonly ref struct SplitEnumerable
-// {
-//     private readonly ReadOnlySpan<char> _source;
-//     private readonly ReadOnlySpan<char> _splitChar;
-//
-//     public SplitEnumerable(
-//         ReadOnlySpan<char> source,
-//         ReadOnlySpan<char> splitChar)
-//     {
-//         _source = source;
-//         _splitChar = splitChar;
-//     }
-//
-//     public MemoryExtensions.SpanSplitEnumerator<char> GetEnumerator() => _source.Split(_splitChar);
-//
-//     public ref struct SplitEnumerator
-//     {
-//         private MemoryExtensions.SpanSplitEnumerator<char> _impl;
-//         public ReadOnlySpan<char>
-//         public SplitEnumerator(SplitEnumerable e) => _e = e;
-//     }
-//
-//     public int Count
-//     {
-//         get
-//         {
-//             using var e = GetEnumerator();
-//             int i = 0;
-//             while (e.MoveNext())
-//             {
-//                 if (e.Current
-//             }
-//         }
-//     }
-// }
-//
+public sealed class UpdateableObservableList<T> : ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged
+{
+    public event NotifyCollectionChangedEventHandler? CollectionChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private readonly List<T> _items = new();
+    // private readonly IDispatcher _dispatcher
+
+    public UpdateableObservableList(IDispatcher dispatcher)
+    {
+
+    }
+
+    public void Reset(IEnumerable<T> newItems)
+    {
+        _items.Clear();
+        _items.AddRange(newItems);
+
+        PropertyChanged?.Invoke(this, new(nameof(Count)));
+        PropertyChanged?.Invoke(this, new("Item[]"));
+        CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset));
+    }
+
+    public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public void Add(T item) => throw new NotSupportedException();
+    public void Clear() => throw new NotSupportedException();
+    public bool Contains(T item) => _items.Contains(item);
+    public void CopyTo(T[] array, int arrayIndex) => throw new NotSupportedException();
+    public bool Remove(T item) => throw new NotSupportedException();
+    public int Count => _items.Count;
+    public bool IsReadOnly => false;
+}

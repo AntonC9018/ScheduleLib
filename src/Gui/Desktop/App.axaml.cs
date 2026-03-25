@@ -11,6 +11,7 @@ using Desktop.NodeData.Features.Registry;
 using Desktop.ViewModelData;
 using Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Application.Core;
 
 namespace Desktop;
 
@@ -36,6 +37,18 @@ public sealed partial class App : Application
 
         NodeDataViewModelResolver.Register(services);
         RegistryConfigViewModel.Register(services);
+
+        services.AddSingleton<AllTeacherNamesProvider>(sp =>
+        {
+            var l = sp.GetRequiredService<ScheduleLoading>();
+            var dispatcher = sp.GetRequiredService<TreeEventDispatcher>();
+            return new(dispatcher, l.Names.Changed);
+        });
+        services.AddSingleton<ScheduleLoading>(sp =>
+        {
+            var dispatcher = sp.GetRequiredService<TreeEventDispatcher>();
+            return new(dispatcher);
+        });
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -46,6 +59,7 @@ public sealed partial class App : Application
         AppConfiguration.ConfigureServices(services);
 
         services.AddView<MainWindowView>();
+        services.AddTransient<AddUserView>();
 
         services.AddTransient<NodeDataEditorView>();
         services.AddTransient<NodeDataVmHostView>();
@@ -64,12 +78,20 @@ public sealed partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+#pragma warning disable CA2000
+            var cts = new CancellationTokenSource();
+#pragma warning restore CA2000
+
+            var loading = serviceProvider.GetRequiredService<ScheduleLoading>();
+            loading.StartLoading(serviceProvider, cts.Token);
+
             desktop.ShutdownRequested += (_, _) =>
             {
                 serviceProvider.Dispose();
+                cts.Dispose();
             };
-            var view = serviceProvider.GetRequiredView<MainWindowView>(setViewModel: true);
 
+            var view = serviceProvider.GetRequiredView<MainWindowView>(setViewModel: true);
             desktop.MainWindow = view;
         }
 

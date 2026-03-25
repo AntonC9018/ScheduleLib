@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Desktop.MainWindow;
 
-public sealed partial class MainWindowView : Window
+public sealed partial class AddUserView : UserControl
 {
-    public MainWindowView()
+    public AddUserView()
     {
         InitializeComponent();
     }

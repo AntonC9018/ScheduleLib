@@ -30,6 +30,7 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="DynamicData" Version="9.4.31" />
     </ItemGroup>
 
     <ItemGroup>
@@ -39,20 +40,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <AdditionalFiles Include="MainWindow\Selection\AddUserView.axaml" />
-      <AdditionalFiles Include="MainWindow\Views\MainWindowView.axaml" />
-      <AdditionalFiles Include="NodeData\Editor\NodeDataEditorView.axaml" />
-      <AdditionalFiles Include="NodeData\VmHost\ConfigNodeVmHostView.axaml" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="NodeData\Features\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="MainWindow\Selection\AddUserView.axaml.cs">
-        <DependentUpon>AddUserView.axaml</DependentUpon>
-        <SubType>Code</SubType>
-      </Compile>
+      <AdditionalFiles Include="**\*.axaml" />
     </ItemGroup>
 </Project>

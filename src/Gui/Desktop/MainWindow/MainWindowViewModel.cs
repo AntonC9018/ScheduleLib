@@ -33,6 +33,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _updateTreeHelper = new(_dataStore.SelectedNodePath, treeContext);
 
         // We own the instance, not the SP
+        // TODO: Think about the need to dispose this
         NodeDataEditor = ActivatorUtilities.CreateInstance<NodeDataEditorViewModel>(sp, [_dataStore]);
 
         NodeSelection = new(
@@ -46,7 +47,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             sp,
             treeContext,
             _updateTreeHelper,
-            _dataStore.TreeStructureChanged,
+            (Event) _dataStore.TreeStructureChanged,
             LayerLevelSelection);
 
         LayerLevelSelection.LayerLevelChanged.Sub(layer =>
