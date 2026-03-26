@@ -2,6 +2,7 @@ using System.Reflection;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using Anton.LayeredData.Retrieval;
+using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Theses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -98,6 +99,7 @@ public static class Registration
             AddTimeServices();
             AddOutputServices();
             AddOptions();
+            ItUsmWebsiteApi.Register(services);
             return;
 
             void AddScheduleGeneralServices()
@@ -186,6 +188,8 @@ public static class Registration
             void AddScheduleLifetimeServices()
             {
                 services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
+                services.AddTransient<EnrichWithTeacherFullNamesFromWebsite>();
+
                 services.AddOptions<ScheduleBuilderInitializerOptions>();
 
                 // These don't seem necessary?

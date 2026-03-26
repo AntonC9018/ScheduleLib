@@ -2,6 +2,7 @@
     <PropertyGroup>
         <IncludeHelpers>true</IncludeHelpers>
         <ImplicitUsings>true</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

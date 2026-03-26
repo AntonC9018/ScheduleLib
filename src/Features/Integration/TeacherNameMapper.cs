@@ -15,10 +15,10 @@ public sealed class TeacherNameMapper(ScheduleBuilder b) : INameRemapper
 
     public Name RemapName(Name name)
     {
-        var newLastName = b.RemapTeacherName(new(name.LastName));
-        return name with
-        {
-            LastName = newLastName,
-        };
+        var nameModel = name.ToNameModel();
+        // There should be an api for this that works with regular names.
+        _ = b.RemapTeacherName(ref nameModel);
+        var ret = nameModel.AsNameFields();
+        return new(ret);
     }
 }

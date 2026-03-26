@@ -766,7 +766,8 @@ public sealed class ThesisListParser
                     {
                         if (i == ru)
                         {
-                            throw new InvalidOperationException("Expected ro when specifying ru explicitly");
+                            return new(null, bparser1.SourceUntilEnd());
+                            // throw new InvalidOperationException("Expected ro when specifying ru explicitly");
                         }
                         else
                         {

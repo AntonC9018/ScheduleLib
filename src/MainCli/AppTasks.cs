@@ -1,6 +1,7 @@
 using System.Text;
 using Anton.LayeredData.Retrieval;
 using FmiWebsiteInterop.Schedule;
+using FmiWebsiteInterop.Teachers;
 using FmiWebsiteInterop.Theses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +38,9 @@ public static class AppTasks
 {
     public static async Task ExecuteMenu(AppTasksExecutionContext context)
     {
+        await context.RootServiceProvider
+            .GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
+            .Init(context.CancellationToken);
         await context.RootServiceProvider.InitializeSchedule(context.CancellationToken);
         context.OutputDirectory.Initialize(clear: true);
 
@@ -152,16 +156,20 @@ public static class AppTasks
                     .WithLatestPeriod(schedule);
                 var grouping = schedule.TeacherGrouping(baseFilter);
                 var outputDir = c.OutputDirectory.CreateSubDir("orar");
+                var slugLookup = await c.Services.GetRequiredService<ISlugProvider>().SlugMap(cancellationToken: c.CancellationToken);
                 foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
                 {
+                    var name = new Name(teacher.Item.PersonName.AsNameFields());
+                    if (!slugLookup.TryGetValue(name, out var slug))
+                    {
+                        Console.WriteLine($"No slug for '{name}'.");
+                        continue;
+                    }
+
                     var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
                         filteredSchedule,
                         services1);
-                    var name = teacher.Item.PersonName;
-                    var sb = new StringBuilder();
-                    TeacherNameHelper.AsFileName(sb, name);
-                    sb.Append(".json");
-                    var fileName = sb.ToString();
+                    var fileName = $"{slug}.json";
                     await using var outputFile = outputDir.OpenFile(fileName, FileMode.Create, FileAccess.Write);
                     await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
                 }

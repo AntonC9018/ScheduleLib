@@ -240,9 +240,24 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static LastName RemapTeacherName(this ScheduleBuilder s, LastName lastName)
+    public static TeacherNameRemapStatus RemapTeacherName(this ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
     {
-        return s.Remappings.TeacherLastNameRemappings.GetValueOrDefault(lastName, lastName);
+        var remapped = TeacherNameRemapStatus.None;
+        if (!name.LastName.IsNull
+            && s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+        {
+            name.LastName = t;
+            remapped = TeacherNameRemapStatus.LastName;
+        }
+        foreach (var x in s.Remappings.TeacherFullNameRemappings)
+        {
+            if (x(ref name))
+            {
+                remapped = TeacherNameRemapStatus.FullName;
+                break;
+            }
+        }
+        return remapped;
     }
 
     public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
@@ -269,3 +284,10 @@ public static partial class ScheduleBuilderHelper
 }
 
 public delegate void ConfigureRemappingsDelegate(Remappings remap);
+
+public enum TeacherNameRemapStatus
+{
+    None,
+    LastName,
+    FullName,
+}

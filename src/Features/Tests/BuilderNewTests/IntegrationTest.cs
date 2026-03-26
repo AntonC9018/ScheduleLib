@@ -97,6 +97,7 @@ public sealed class IntegrationTest
         using var cancellationTokenSource = IntegrationTestHelper.CreateCts();
         var cancellationToken = cancellationTokenSource.Token;
         var serviceProvider = scope.ServiceProvider;
+
         await serviceProvider.InitializeSchedule(cancellationToken);
 
         var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>().Get();

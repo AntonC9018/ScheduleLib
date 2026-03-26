@@ -84,6 +84,30 @@ public static class Config
         teach.Add("Anghelov", "Anghelova");
         teach.Add("Iațîșina", "Iațâșina");
 
+        remap.TeacherFullNameRemappings.Add((ref x) =>
+        {
+            bool EqualSingle(ref TeacherBuilderModel.NameModel x, string first, string last)
+            {
+                return (x.FirstName.Longer()[0] is { } l
+                    && new Word(l).Span.IsEitherShortForOther(new Word(first).Span.Shortened)
+                    && IgnoreDiacriticsAndCaseComparer.Instance.Equals(x.LastName[0], last));
+            }
+
+            if (EqualSingle(ref x, "Gabriel", "Stănescu"))
+            {
+                x.FirstName[0].Full = "Gabriel";
+                x.FirstName[1].Full = "Cătălin";
+                x.LastName[0] = "Stănescu";
+                return true;
+            }
+            if (EqualSingle(ref x, "Maria", "Cristei"))
+            {
+                x.LastName[0] = "Marin";
+                return true;
+            }
+            return false;
+        });
+
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("GR"), new("GA2D"));
         subgroup.Add(new("Node"), new("UI"));

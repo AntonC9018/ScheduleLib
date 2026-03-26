@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using AutoConstructor.Attributes;
+using FmiWebsiteInterop.Teachers;
 using ScheduleLib;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Parsing;
@@ -27,6 +28,7 @@ public sealed class Thesis
 
 public sealed class ThesisType
 {
+    public required int TypeId { get; init; }
     public required string Type { get; init; }
     public required string Label { get; init; }
 }
@@ -35,16 +37,19 @@ public static class ThesesJsonHelper
 {
     private static readonly ThesisType An = new()
     {
+        TypeId = 1,
         Type = "TEZA_DE_AN",
         Label = "Teză de an",
     };
     private static readonly ThesisType Licenta = new()
     {
+        TypeId = 2,
         Type = "TEZA_DE_LICENTA",
         Label = "Teză de licenta",
     };
     private static readonly ThesisType Master = new()
     {
+        TypeId = 3,
         Type = "TEZA_DE_MASTER",
         Label = "Teză de master",
     };
@@ -79,17 +84,20 @@ public static class ThesesJsonHelper
 public sealed partial class ThesesConversionTaskHandler
 {
     private readonly Parsing.ThesesListProvider _thesesListProvider;
+    private readonly ItUsmWebsiteTeacherDataProvider _teacherData;
 
     public async Task Handle(
         CancellationToken cancellationToken,
         OutputDirectory outputDirectory)
     {
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
+        var slugByName = await _teacherData.SlugMap(cancellationToken);
 
         var forSerialization = theses.SelectMany(x => x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i)))
-            .GroupBy(x => x.Item.TeacherName)
+            .Where(x => slugByName.ContainsKey(x.Item.TeacherName))
+            .GroupBy(x => x.Item.TeacherName, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
             .Select(x => (
-                Teacher: x.Key,
+                Teacher: (TeacherName: x.Key, Slug: slugByName[x.Key]),
                 Theses: x
                     .OrderBy(i => i.Type)
                     .ThenBy(i => i.Id)
@@ -97,34 +105,12 @@ public sealed partial class ThesesConversionTaskHandler
 
         foreach (var x in forSerialization)
         {
-            var sb = new StringBuilder();
-            AppendNameAsFileName(sb, x.Teacher);
-            sb.Append(".json");
-            await using var outputFile = outputDirectory.OpenFile(sb.ToString(), FileMode.Create, FileAccess.Write);
+            var fileName = $"{x.Teacher.Slug}.json";
+            await using var outputFile = outputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
             await System.Text.Json.JsonSerializer.SerializeAsync(outputFile, new RootObject
             {
                 Content = [.. x.Theses],
             }, cancellationToken: cancellationToken);
-        }
-    }
-
-    private static void AppendNameAsFileName(StringBuilder output, Name name)
-    {
-        var lb = new ListStringBuilder(output, "_");
-        AppendPart(name.FirstName);
-        lb.MaybeAppendSeparator();
-        AppendPart(name.LastName);
-
-        void AppendPart(NameParts<string?> x)
-        {
-            var nb = new ListStringBuilder(output, NameConstants.DoubleNameSeparator);
-            foreach (var n in x)
-            {
-                if (n != null)
-                {
-                    nb.Append(n);
-                }
-            }
         }
     }
 }

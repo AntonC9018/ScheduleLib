@@ -196,7 +196,7 @@ public sealed class DocParseContext
         };
 
         // Need to remap explicitly, because we do the check for diacritics later.
-        nameModel.LastName = Schedule.RemapTeacherName(nameModel.LastName);
+        _ = Schedule.RemapTeacherName(ref nameModel);
 
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;

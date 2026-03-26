@@ -2,7 +2,8 @@ namespace ScheduleLib.Builders;
 
 public sealed class Remappings()
 {
-    public readonly TeacherNameRemappings TeacherLastNameRemappings = new();
+    public readonly TeacherLastNameRemappings TeacherLastNameRemappings = new();
+    public readonly TeacherFullNameRemappings TeacherFullNameRemappings = new();
     public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
 }
 
@@ -29,9 +30,18 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
     }
 }
 
-public sealed class TeacherNameRemappings : Dictionary<NameParts<string?>, LastName>
+public delegate bool TryChange(ref TeacherBuilderModel.NameModel m);
+
+public sealed class TeacherFullNameRemappings : List<TryChange>
 {
-    public TeacherNameRemappings() : base(IgnoreDiacriticsAndCase_Name_Comparer.Instance)
+    public TeacherFullNameRemappings() : base()
+    {
+    }
+}
+
+public sealed class TeacherLastNameRemappings : Dictionary<NameParts<string?>, LastName>
+{
+    public TeacherLastNameRemappings() : base(IgnoreDiacriticsAndCase_Name_Comparer.Instance)
     {
     }
 

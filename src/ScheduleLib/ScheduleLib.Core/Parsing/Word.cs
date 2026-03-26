@@ -51,6 +51,7 @@ public readonly ref struct ShortenedWordSpan(ReadOnlySpan<char> v)
 
 public enum CompareShortenedWordsResult
 {
+    Equal_Exactly,
     Equal_FirstBetter,
     Equal_SecondBetter,
     NotEqual,
@@ -63,7 +64,8 @@ public static class WordHelper
     public static bool IsEqual(this CompareShortenedWordsResult r)
     {
         return r is CompareShortenedWordsResult.Equal_FirstBetter
-            or CompareShortenedWordsResult.Equal_SecondBetter;
+            or CompareShortenedWordsResult.Equal_SecondBetter
+            or CompareShortenedWordsResult.Equal_Exactly;
     }
 
     public static bool IsEqual(this WordSpan a, WordSpan b)
@@ -87,8 +89,13 @@ public static class WordHelper
         {
             return CompareShortenedWordsResult.NotEqual;
         }
+        int lenCompared = a.Value.Length - b.Value.Length;
+        if (lenCompared == 0)
+        {
+            return CompareShortenedWordsResult.Equal_Exactly;
+        }
 
-        bool a1longer = a.Value.Length > b.Value.Length;
+        bool a1longer = lenCompared > 0;
         if (a1longer)
         {
             return CompareShortenedWordsResult.Equal_FirstBetter;

@@ -1,4 +1,6 @@
 using AutoConstructor.Attributes;
+using FmiWebsiteInterop.Api;
+using FmiWebsiteInterop.Teachers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -52,10 +54,13 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 
         if (opts.EnrichWithFullNames)
         {
-            loader.Components.Add(new EnrichWithTeacherFullNamesScheduleLoaderComponent
-            {
-                FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
-            });
+            // loader.Components.Add(new EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent
+            // {
+            //     FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
+            // });
+
+            var websiteLoader = _sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();
+            loader.Components.Add(websiteLoader);
         }
 
         var context = ActivatorUtilities.CreateInstance<DocParseContext>(_sp, builder);
@@ -67,3 +72,4 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         _logger.LogInformation("Schedule built");
     }
 }
+

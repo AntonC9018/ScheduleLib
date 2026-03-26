@@ -288,6 +288,16 @@ public sealed class TeacherBuilderModel
         // Includes the . at the end
         public NameParts<OptionalNamePart> FirstName;
         public LastName LastName;
+
+        public NameFields AsNameFields()
+        {
+            var nameFields = new NameFields
+            {
+                FirstName = FirstName.Map(x => x.Longer),
+                LastName = LastName,
+            };
+            return nameFields;
+        }
     }
 }
 
@@ -295,10 +305,7 @@ public static class TeacherBuilderHelper
 {
     public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        if (!name.LastName.IsNull)
-        {
-            name.LastName = s.RemapTeacherName(name.LastName);
-        }
+        _ = s.RemapTeacherName(ref name);
 
         Debug.Assert(name.FirstName.All(x =>
         {
@@ -421,7 +428,7 @@ public readonly struct TeacherBuilder
         TeacherNameHelper.MaybeValidateInitialsCompatibility(newName);
         Model.Name.FirstName = newName;
 
-        LastName(name.LastName, updateLookup: updateLookup);
+        InternalLastName(name.LastName, updateLookup: updateLookup);
     }
 
     public void ShortFirstName(NameParts<Word> initials)
@@ -465,7 +472,14 @@ public readonly struct TeacherBuilder
 
     public void LastName(LastName lastName, bool updateLookup = true)
     {
-        lastName = Schedule.RemapTeacherName(lastName);
+        var prev = Model.Name;
+        prev.LastName = lastName;
+        FullName(prev, updateLookup);
+    }
+
+    private void InternalLastName(LastName lastName, bool updateLookup = true)
+    {
+        // lastName = Schedule.RemapTeacherName(lastName);
 
         var prevLastName = Model.Name.LastName;
         Model.Name.LastName = lastName;

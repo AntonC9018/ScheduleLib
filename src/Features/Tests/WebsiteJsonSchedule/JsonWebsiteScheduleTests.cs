@@ -1,5 +1,9 @@
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using FmiWebsiteInterop.Schedule;
+using FmiWebsiteInterop.Teachers;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing;
 using Tests.ScheduleCommon;
 
 namespace FmiWebsiteInterop.Tests;

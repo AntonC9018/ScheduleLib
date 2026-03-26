@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using FmiWebsiteInterop.Teachers;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.FR;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
@@ -107,7 +109,7 @@ public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
     }
 }
 
-public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : IScheduleLoaderComponent
+public sealed class EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent : IScheduleLoaderComponent
 {
     public required string FilePath
     {
@@ -117,7 +119,7 @@ public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : ISchedul
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
-        await hasher.AppendFileContents(
+        await hasher.TryAppendFileContents(
             absolutePath: FilePath,
             cancellationToken: cancellationToken);
     }
@@ -126,6 +128,119 @@ public sealed class EnrichWithTeacherFullNamesScheduleLoaderComponent : ISchedul
     {
         TasksHelper.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, FilePath);
         return ValueTask.CompletedTask;
+    }
+}
+
+public sealed class EnrichWithTeacherFullNamesFromWebsite(
+    ItUsmWebsiteTeacherDataProvider _provider,
+    ILogger<EnrichWithTeacherFullNamesFromWebsite> _logger) : IScheduleLoaderComponent
+{
+    public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
+    {
+        _ = hasher;
+        _ = cancellationToken;
+        // Can't determine this here.
+        // Might just do this once in like a week.
+        // But not from this method.
+        return ValueTask.CompletedTask;
+    }
+
+    private enum UpdateTeacherResult
+    {
+        AlreadyFullName,
+        Updated,
+        NotUpdated,
+    }
+
+    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    {
+        var teachers = await _provider.Get(cancellationToken);
+        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
+        var badTeachers = new List<(string First, string Last)>();
+        foreach (var t in teachers)
+        {
+            var first = t.FirstName;
+            var last = t.LastName;
+
+            var model = new TeacherBuilderModel.NameModel();
+            model.FirstName[0].Full = first;
+            model.LastName[0] = last;
+            var status = context.Schedule.RemapTeacherName(ref model);
+            // TODO: Think about maybe some status not needing the update
+            _ = status;
+
+            if (UpdateTeacherName() == UpdateTeacherResult.NotUpdated)
+            {
+                badTeachers.Add((first, last));
+            }
+            continue;
+
+            UpdateTeacherResult UpdateTeacherName()
+            {
+                var updateStatus = UpdateTeacherResult.NotUpdated;
+
+                var teachersWithThisLastName = lookup.Teachers(last);
+                foreach (var teacherId in teachersWithThisLastName)
+                {
+                    var name = context.Schedule.Teachers.Ref(teacherId.Id).Name;
+
+                    // Already has full name
+                    // if (name.FirstName[0] is { Full: { } expected })
+                    // {
+                    //     _ = expected;
+                    //     // Matched any check?
+                    //     // if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(expected, first))
+                    //     // {
+                    //     //     throw new InvalidOperationException($"Name '{first}' on the site is not the expected '{expected}'!");
+                    //     // }
+                    //     continue;
+                    // }
+
+                    if (name.FirstName[0].Longer is not { } s)
+                    {
+                        continue;
+                    }
+
+                    var match = new Word(first).Span.Shortened.Compare(new Word(s).Span.Shortened);
+                    if (match is CompareShortenedWordsResult.NotEqual
+                        or CompareShortenedWordsResult.Equal_SecondBetter)
+                    {
+                        continue;
+                    }
+
+                    if (updateStatus != UpdateTeacherResult.NotUpdated)
+                    {
+                        throw new InvalidOperationException($"Same teacher name {first} matched more than 1 teacher in the schedule!");
+                    }
+                    if (match == CompareShortenedWordsResult.Equal_Exactly)
+                    {
+                        updateStatus = UpdateTeacherResult.AlreadyFullName;
+                        continue;
+                    }
+
+                    Debug.Assert(match == CompareShortenedWordsResult.Equal_FirstBetter);
+                    updateStatus = UpdateTeacherResult.Updated;
+
+                    var builder = new TeacherBuilder
+                    {
+                        Id = teacherId,
+                        Schedule = context.Schedule,
+                    };
+                    var updatedName = name.FirstName;
+                    updatedName[0].Full = first;
+
+                    // Potentially might have to recache (later)
+                    builder.FirstName(updatedName);
+                }
+
+                return updateStatus;
+            }
+        }
+
+        foreach (var t in badTeachers)
+        {
+            _logger.LogWarning("Teacher '{FirstName} {LastName}'  on website but not in schedule", t.First, t.Last);
+        }
     }
 }
 
@@ -196,7 +311,7 @@ public static class HashHelper
                 }
                 if (hashContents)
                 {
-                    await hasher.AppendFileContents(filePath, cancellationToken);
+                    await hasher.TryAppendFileContents(filePath, cancellationToken);
                 }
             }
         }
@@ -211,18 +326,24 @@ public static class HashHelper
             hasher.AppendData(pathBuffer.Span[.. byteCount]);
         }
 
-        public async ValueTask AppendFileContents(
+        public async ValueTask TryAppendFileContents(
             string absolutePath,
             CancellationToken cancellationToken)
         {
             const int bufferSize = 8192;
             using var readBuffer = new RentedBuffer<byte>(bufferSize);
 
-            await using var fs = File.OpenRead(absolutePath);
-            int read;
-            while ((read = await fs.ReadAsync(readBuffer.Memory, cancellationToken)) > 0)
+            try
             {
-                hasher.AppendData(readBuffer.Span[.. read]);
+                await using var fs = File.OpenRead(absolutePath);
+                int read;
+                while ((read = await fs.ReadAsync(readBuffer.Memory, cancellationToken)) > 0)
+                {
+                    hasher.AppendData(readBuffer.Span[.. read]);
+                }
+            }
+            catch (FileNotFoundException)
+            {
             }
         }
     }

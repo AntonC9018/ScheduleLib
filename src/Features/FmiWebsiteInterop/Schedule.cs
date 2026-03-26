@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
+using FmiWebsiteInterop.Teachers;
 using ScheduleLib;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;

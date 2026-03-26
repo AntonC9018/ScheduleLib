@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -602,8 +603,6 @@ public sealed class Lexer : ILexer
         _hasOutputEndOfLine = true;
         return true;
     }
-
-
 }
 
 public static class LexerHelper
@@ -713,16 +712,32 @@ public static class LexerHelper
             else
             {
                 var t = lexer.Current;
-                var source = t.WholeLineMem;
-                if (!source.Equals(parser.Source))
+                var source = t.Value;
+                if (FindOffset(source.Span, parser.PeekSpanUntilEnd()) is not { } offset)
                 {
                     throw new InvalidOperationException("Cannot apply displacement to this parser, because the lexer is on a different line now");
                 }
 
-                parser.MoveTo(t.Span.ColStart);
+                parser.Move(offset);
             }
         }
     }
+
+    public static unsafe int? FindOffset<T>(ReadOnlySpan<T> a, ReadOnlySpan<T> b)
+    {
+        void* bStart = Unsafe.AsPointer(ref MemoryMarshal.GetReference(b));
+        void* aStart = Unsafe.AsPointer(ref MemoryMarshal.GetReference(a));
+        void* bEnd   = Unsafe.AsPointer(ref Unsafe.Add(ref MemoryMarshal.GetReference(b), b.Length));
+
+        if (aStart < bStart || aStart > bEnd)
+        {
+            return null;
+        }
+
+        int offset = (int)((byte*) aStart - (byte*) bStart) / Unsafe.SizeOf<T>();
+        return offset;
+    }
+
 }
 
 public readonly record struct TokenTypeLabels(
