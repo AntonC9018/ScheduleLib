@@ -1,3 +1,4 @@
+using Google;
 using Google.Apis.Drive.v3;
 using Google.Apis.Requests;
 
@@ -37,7 +38,6 @@ public static class DriveApiHelper
 
                 yield return () =>
                 {
-                    // Create a batch request
                     var batch = new BatchRequest(driveService);
                     var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
                         (content, error, index, message) =>
@@ -58,81 +58,160 @@ public static class DriveApiHelper
                         batch.Queue(deleteReq, callback);
                     }
 
-                    // Execute the batch
-                    return batch.ExecuteAsync(cancellationToken);
+                    return ExecuteWithRetryAsync(() => batch.ExecuteAsync(cancellationToken));
                 };
             }
         }
     }
 
-    public static async Task<List<BasicDriveFile>> GetFiles(
+    // Actually doesn't seem possible to implement without wrapping each call...
+    public static async Task ExecuteWithRetryAsync(Func<Task> action)
+    {
+        await ExecuteWithRetryAsync(async () =>
+        {
+            await action();
+            return true;
+        });
+    }
+
+    public static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action)
+    {
+        const int maxRetries = 5;
+        var random = new Random();
+
+        int attempt = 0;
+
+        while (true)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (GoogleApiException ex)
+            {
+                if (!IsRetryable(ex))
+                {
+                    throw;
+                }
+                if (attempt == maxRetries)
+                {
+                    throw;
+                }
+
+                // Exponential backoff with jitter
+                const double maxJitter = 1.0;
+                const double backoffScalar = 1.0;
+                double jitter = random.NextDouble() * maxJitter;
+                var backoff = Math.Pow(2, attempt) * backoffScalar;
+                var delay = TimeSpan.FromSeconds(jitter + backoff);
+                await Task.Delay(delay);
+
+                attempt++;
+            }
+        }
+
+        bool IsRetryable(GoogleApiException ex)
+        {
+            if (ex.Error?.Errors == null)
+            {
+                return false;
+            }
+
+            return ex.Error.Errors.Any(e =>
+                e.Reason == "rateLimitExceeded"
+                || e.Reason == "userRateLimitExceeded"
+                || e.Reason == "backendError");
+        }
+    }
+
+    public static Task<List<BasicDriveFile>> GetFiles(
         this DriveService driveService,
         FolderId folderId,
         CancellationToken cancellationToken)
     {
-        List<BasicDriveFile> result = new();
-        string? pageToken = null;
-        while (true)
+        return ExecuteWithRetryAsync(Impl);
+
+        async Task<List<BasicDriveFile>> Impl()
         {
-            var request = driveService.Files.List();
-            request.Q = $"'{folderId.Value}' in parents and trashed = false";
-            request.Fields = "nextPageToken, files(id, name)";
-            request.PageSize = MaxPageSize;
-            request.PageToken = pageToken;
-
-            var response = await request.ExecuteAsync(cancellationToken);
-            foreach (var f in response.Files)
+            List<BasicDriveFile> result = new();
+            string? pageToken = null;
+            while (true)
             {
-                var basic = new BasicDriveFile(f.Name, new(f.Id));
-                result.Add(basic);
-            }
+                var request = driveService.Files.List();
+                request.Q = $"'{folderId.Value}' in parents and trashed = false";
+                request.Fields = "nextPageToken, files(id, name)";
+                request.PageSize = MaxPageSize;
+                request.PageToken = pageToken;
 
-            pageToken = response.NextPageToken;
-            if (pageToken == null)
-            {
-                return result;
+                var response = await request.ExecuteAsync(cancellationToken);
+                foreach (var f in response.Files)
+                {
+                    var basic = new BasicDriveFile(f.Name, new(f.Id));
+                    result.Add(basic);
+                }
+
+                pageToken = response.NextPageToken;
+                if (pageToken == null)
+                {
+                    return result;
+                }
             }
         }
     }
 
-    public static async Task<FolderId> FindFolderId(
+    public static Task<FolderId> FindFolderId(
         this DriveService driveService,
         string name,
         CancellationToken cancellationToken)
     {
-        var request = driveService.Files.List();
-        request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{name}'";
-        request.Fields = "files(id)";
-        var response = await request.ExecuteAsync(cancellationToken);
-        return new(response.Files[0].Id);
+        return ExecuteWithRetryAsync(Impl);
+
+        async Task<FolderId> Impl()
+        {
+            var request = driveService.Files.List();
+            request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{name}'";
+            request.Fields = "files(id)";
+            var response = await request.ExecuteAsync(cancellationToken);
+            return new(response.Files[0].Id);
+        }
     }
 
-    public static async Task UploadFile(
+    public static Task UploadFile(
         this DriveService driveService,
         Stream inputFile,
         string outputFileName,
         FolderId folderId,
         CancellationToken cancellationToken)
     {
-        var fileMetadata = new File
-        {
-            Name = outputFileName,
-            Parents = [folderId.Value],
-        };
+        return ExecuteWithRetryAsync(Impl);
 
-        var request = driveService.Files.Create(fileMetadata, inputFile, "application/octet-stream");
-        request.Fields = "id";
-        await request.UploadAsync(cancellationToken);
+        async Task Impl()
+        {
+            var fileMetadata = new File
+            {
+                Name = outputFileName,
+                Parents = [folderId.Value],
+            };
+
+            var request = driveService.Files.Create(fileMetadata, inputFile, "application/octet-stream");
+            request.Fields = "id";
+            await request.UploadAsync(cancellationToken);
+        }
     }
 
-    public static async Task UpdateFile(
+    public static Task UpdateFile(
         this DriveService driveService,
         Stream inputFile,
         FileId fileId,
         CancellationToken cancellationToken)
     {
-        var request = driveService.Files.Update(null, fileId.Value, inputFile, "application/octet-stream");
-        await request.UploadAsync(cancellationToken);
+        return ExecuteWithRetryAsync(Impl);
+
+        async Task Impl()
+        {
+            var request = driveService.Files.Update(null, fileId.Value, inputFile, "application/octet-stream");
+            await request.UploadAsync(cancellationToken);
+        }
     }
 }
 

@@ -66,13 +66,7 @@ public sealed partial class LessonTextDisplayHandler
 
         string CourseName()
         {
-            // It's impossible to measure text in this library. Yikes.
             var course = p.Schedule.Get(p.Lesson.Lesson.Course);
-            if (p.ColumnWidth == 1)
-            {
-                return course.Names[^1];
-            }
-
             return course.Names[0];
         }
 

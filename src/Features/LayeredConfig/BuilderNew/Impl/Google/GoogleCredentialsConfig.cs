@@ -2,7 +2,9 @@ using System.Net;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using AutoConstructor.Attributes;
+using Google;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Core;
 using Google.Apis.Http;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
@@ -137,41 +139,15 @@ public sealed partial class GoogleCredentialResolver
 
 public sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
 {
-    private readonly IAsyncPolicy<HttpResponseMessage> _policy = CreatePolicy();
-
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<GoogleHttpClientProvider>();
     }
 
-    public static IAsyncPolicy<HttpResponseMessage> CreatePolicy()
-    {
-        // var bulkhead = Policy.BulkheadAsync<HttpResponseMessage>(maxParallelization: 20, maxQueuingActions: 20);
-        var retry = HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(ex => ex.StatusCode == HttpStatusCode.TooManyRequests
-                // Rate limited gets sent as a forbidden.
-                // TODO: Do this properly, this might retry for the wrong reason.
-                || ex.StatusCode == HttpStatusCode.Forbidden)
-            .WaitAndRetryAsync(
-                retryCount: 20,
-                sleepDurationProvider: retryAttempt =>
-                {
-                    var seconds = Math.Pow(2, retryAttempt);
-                    return TimeSpan.FromSeconds(seconds);
-                });
-        // var policy = Policy.WrapAsync(bulkhead, retry);
-        var policy = retry;
-        return policy;
-    }
-
     protected override HttpMessageHandler CreateHandler(CreateHttpClientArgs args)
     {
         var handler = base.CreateHandler(args);
-        return new PolicyHttpMessageHandler(_policy)
-        {
-            InnerHandler = handler,
-        };
+        return handler;
     }
 }
 

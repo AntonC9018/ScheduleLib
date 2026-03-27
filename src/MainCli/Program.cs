@@ -14,16 +14,16 @@ _ = cancellationToken;
 var appExecutionContext = new AppTasksExecutionContext
 {
     SelectedOptions = [
-        // AppTask.UploadDocsToDrive,
+        AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
         // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,
-        AppTask.JsonSchedulesForWebsite,
+        // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
         // AppTask.UpdateCalendar,
-        AppTask.ListOfThesesPerTeacherForWebsite,
+        // AppTask.ListOfThesesPerTeacherForWebsite,
         // AppTask.CreatePredzashitaExcels,
         // AppTask.Query,
     ],
@@ -32,7 +32,7 @@ var appExecutionContext = new AppTasksExecutionContext
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Plesca Natalia"),
+    TeacherName = NameHelper.Parse("Curmanschii Anton"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);
