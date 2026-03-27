@@ -159,19 +159,21 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
         var badTeachers = new List<(string First, string Last)>();
         foreach (var t in teachers)
         {
-            var first = t.FirstName;
-            var last = t.LastName;
-
-            var model = new TeacherBuilderModel.NameModel();
-            model.FirstName[0].Full = first;
-            model.LastName[0] = last;
-            var status = context.Schedule.RemapTeacherName(ref model);
-            // TODO: Think about maybe some status not needing the update
-            _ = status;
-
-            if (UpdateTeacherName() == UpdateTeacherResult.NotUpdated)
+            var addingName = new TeacherBuilderModel.NameModel();
             {
-                badTeachers.Add((first, last));
+                var first = t.FirstName;
+                var last = t.LastName;
+
+                addingName.FirstName[0].Full = first;
+                addingName.LastName[0] = last;
+                var status = context.Schedule.RemapTeacherName(ref addingName);
+                // TODO: Think about maybe some status not needing the update
+                _ = status;
+
+                if (UpdateTeacherName() == UpdateTeacherResult.NotUpdated)
+                {
+                    badTeachers.Add((first, last));
+                }
             }
             continue;
 
@@ -179,10 +181,10 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
             {
                 var updateStatus = UpdateTeacherResult.NotUpdated;
 
-                var teachersWithThisLastName = lookup.Teachers(last);
+                var teachersWithThisLastName = lookup.Teachers(addingName.LastName);
                 foreach (var teacherId in teachersWithThisLastName)
                 {
-                    var name = context.Schedule.Teachers.Ref(teacherId.Id).Name;
+                    var currentName = context.Schedule.Teachers.Ref(teacherId.Id).Name;
 
                     // Already has full name
                     // if (name.FirstName[0] is { Full: { } expected })
@@ -196,7 +198,11 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
                     //     continue;
                     // }
 
-                    if (name.FirstName[0].Longer is not { } s)
+                    if (currentName.FirstName[0].Longer is not { } s)
+                    {
+                        continue;
+                    }
+                    if (addingName.FirstName[0].Longer is not { } first)
                     {
                         continue;
                     }
@@ -226,7 +232,7 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
                         Id = teacherId,
                         Schedule = context.Schedule,
                     };
-                    var updatedName = name.FirstName;
+                    var updatedName = currentName.FirstName;
                     updatedName[0].Full = first;
 
                     // Potentially might have to recache (later)

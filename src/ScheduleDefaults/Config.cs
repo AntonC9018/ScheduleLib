@@ -86,23 +86,34 @@ public static class Config
 
         remap.TeacherFullNameRemappings.Add((ref x) =>
         {
-            bool EqualSingle(ref TeacherBuilderModel.NameModel x, string first, string last)
+            bool EqualFirstPart(ref TeacherBuilderModel.NameModel x, string first, string last)
             {
                 return (x.FirstName.Longer()[0] is { } l
                     && new Word(l).Span.IsEitherShortForOther(new Word(first).Span.Shortened)
                     && IgnoreDiacriticsAndCaseComparer.Instance.Equals(x.LastName[0], last));
             }
 
-            if (EqualSingle(ref x, "Gabriel", "Stănescu"))
+            if (EqualFirstPart(ref x, "Maria", "Cristei"))
+            {
+                x.FirstName[0].Full = "Maria";
+                x.LastName[0] = "Marin";
+                return true;
+            }
+            if (EqualFirstPart(ref x, "Gabriel", "Stănescu"))
             {
                 x.FirstName[0].Full = "Gabriel";
-                x.FirstName[1].Full = "Cătălin";
+                x.FirstName[0].Short = "G";
+                x.FirstName[1] = default;
+                // x.FirstName[1].Full = "Cătălin";
                 x.LastName[0] = "Stănescu";
                 return true;
             }
-            if (EqualSingle(ref x, "Maria", "Cristei"))
+            if (EqualFirstPart(ref x, "Eva", "Arseni"))
             {
-                x.LastName[0] = "Marin";
+                x.FirstName[0].Short = "M";
+                x.FirstName[0].Full = "Mădălina";
+                x.FirstName[1] = default;
+                x.LastName[0] = "Arseni";
                 return true;
             }
             return false;
