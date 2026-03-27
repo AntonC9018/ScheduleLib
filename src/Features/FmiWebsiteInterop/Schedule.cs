@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
+using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Teachers;
 using ScheduleLib;
 using ScheduleLib.Generation;
@@ -42,17 +43,12 @@ public static class WebsiteJsonScheduleHelper
         LessonType Type,
         RoomId Room);
 
-    private static readonly JsonSerializerOptions _jsonSettings = new()
-    {
-        WriteIndented = true,
-    };
-
     public static async Task Serialize(RootObject obj, Stream outputStream)
     {
         await JsonSerializer.SerializeAsync(
             outputStream,
             obj,
-            _jsonSettings);
+            options: ItUsmWebsiteApi.JsonOptions);
     }
 
     public static RootObject CreateSerializationModel(

@@ -1,5 +1,6 @@
 using System.Text;
 using Anton.LayeredData.Retrieval;
+using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Schedule;
 using FmiWebsiteInterop.Teachers;
 using FmiWebsiteInterop.Theses;
@@ -11,6 +12,7 @@ using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.Generation;
+using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 
@@ -169,11 +171,18 @@ public static class AppTasks
                     var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
                         filteredSchedule,
                         services1);
+                    if (model.ScheduleDaysDto.IsEmpty)
+                    {
+                        continue;
+                    }
                     var fileName = $"{slug}.json";
                     await using var outputFile = outputDir.OpenFile(fileName, FileMode.Create, FileAccess.Write);
                     await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
                 }
-                outputDir.TryOpenInExplorer();
+
+                var zipPath = await outputDir.Zip();
+                ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
+
                 break;
             }
 
@@ -229,7 +238,10 @@ public static class AppTasks
                 var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
                 var outputDir = c.OutputDirectory.CreateSubDir("theses");
                 await handler.Handle(c.CancellationToken, outputDir);
-                outputDir.TryOpenInExplorer();
+
+                var zipPath = await outputDir.Zip();
+                ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
+
                 break;
             }
 

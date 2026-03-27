@@ -1,8 +1,11 @@
 using System.Collections.Immutable;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 using AutoConstructor.Attributes;
+using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Teachers;
-using ScheduleLib;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Parsing;
 
@@ -107,10 +110,14 @@ public sealed partial class ThesesConversionTaskHandler
         {
             var fileName = $"{x.Teacher.Slug}.json";
             await using var outputFile = outputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
-            await System.Text.Json.JsonSerializer.SerializeAsync(outputFile, new RootObject
-            {
-                Content = [.. x.Theses],
-            }, cancellationToken: cancellationToken);
+            await JsonSerializer.SerializeAsync(
+                outputFile,
+                new RootObject
+                {
+                    Content = [.. x.Theses],
+                },
+                cancellationToken: cancellationToken,
+                options: ItUsmWebsiteApi.JsonOptions);
         }
     }
 }

@@ -83,6 +83,7 @@ public static class Config
         teach.Add("Spincean", "Sprîncean");
         teach.Add("Anghelov", "Anghelova");
         teach.Add("Iațîșina", "Iațâșina");
+        teach.Add("Jelihovskii", "Jelihovschii");
 
         remap.TeacherFullNameRemappings.Add((ref x) =>
         {
@@ -95,24 +96,25 @@ public static class Config
 
             if (EqualFirstPart(ref x, "Maria", "Cristei"))
             {
+                x = default;
                 x.FirstName[0].Full = "Maria";
                 x.LastName[0] = "Marin";
                 return true;
             }
             if (EqualFirstPart(ref x, "Gabriel", "Stănescu"))
             {
+                x = default;
                 x.FirstName[0].Full = "Gabriel";
-                x.FirstName[0].Short = "G";
-                x.FirstName[1] = default;
-                // x.FirstName[1].Full = "Cătălin";
+                x.FirstName[1].Full = "Cătălin";
                 x.LastName[0] = "Stănescu";
                 return true;
             }
-            if (EqualFirstPart(ref x, "Eva", "Arseni"))
+            if (EqualFirstPart(ref x, "Eva", "Arseni")
+                || EqualFirstPart(ref x, "Mădălina", "Arseni"))
             {
-                x.FirstName[0].Short = "M";
-                x.FirstName[0].Full = "Mădălina";
-                x.FirstName[1] = default;
+                x = default;
+                x.FirstName[0].Full = "Eva";
+                x.FirstName[1].Full = "Mădălina";
                 x.LastName[0] = "Arseni";
                 return true;
             }

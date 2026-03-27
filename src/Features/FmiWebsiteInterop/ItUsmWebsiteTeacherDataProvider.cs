@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
 using FmiWebsiteInterop.Api;
-using ScheduleLib;
+using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Parsing;
+using ScheduleLib.Theses.Parsing;
 
 namespace FmiWebsiteInterop.Teachers;
 
@@ -12,7 +13,9 @@ public interface ISlugProvider
 
 // TODO: Probably don't want to have the client be stored here.
 public sealed class ItUsmWebsiteTeacherDataProvider(
-    ItUsmWebsiteHttpClient _client)
+    ItUsmWebsiteHttpClient _client,
+    [FromKeyedServices(ThesisListParser.TeacherNameRemapperKey)] INameRemapper _remap)
+
     : ISlugProvider
 {
     private ItUsmTeacherModel[]? _data;
@@ -46,16 +49,13 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
     public async ValueTask<TeacherSlugMap> SlugMap(CancellationToken cancellationToken)
     {
         var data = await BeforeQuerying(cancellationToken);
-        var ret = new TeacherSlugMap();
-        var parser = new NameParser();
+        var ret = new TeacherSlugMap(data.Length);
         foreach (var remoteTeacher in data)
         {
             var slug = remoteTeacher.Slug;
-            var name = new Name(new()
-            {
-                FirstName = ParsePart(remoteTeacher.FirstName),
-                LastName = ParsePart(remoteTeacher.LastName),
-            });
+            var name = remoteTeacher.Name;
+            name = _remap.RemapName(name);
+
             ref var t = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, name, out bool exists);
             if (exists && t != slug)
             {
@@ -64,17 +64,6 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
 
             t = slug;
 
-            NameParts<string?> ParsePart(string s)
-            {
-                parser.Load(s.AsMemory());
-                var lexer = parser.Scope();
-                var ret1 = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
-                if (isIncompleteDoubleName)
-                {
-                    throw new InvalidOperationException($"Invalid double name on the website '{s}'");
-                }
-                return ret1;
-            }
         }
         return ret;
     }
@@ -82,7 +71,7 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
 
 public sealed class TeacherSlugMap : Dictionary<Name, string>
 {
-    public TeacherSlugMap() : base(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
+    public TeacherSlugMap(int capacity) : base(capacity, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
     {
     }
 }

@@ -119,8 +119,8 @@ public sealed partial class SyncDriveFolderTaskHandler
 
 public interface IFilesProvider
 {
-    public IEnumerable<FilePath> GetFilePaths();
-    public Stream OpenForReading(FilePath file);
+    public IEnumerable<RelativeFilePath> GetFilePaths();
+    public Stream OpenForReading(RelativeFilePath relativeFile);
 }
 
 public sealed class OutputDirectoryFilesProvider : IFilesProvider
@@ -132,7 +132,7 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
         _directory = directory;
     }
 
-    public IEnumerable<FilePath> GetFilePaths()
+    public IEnumerable<RelativeFilePath> GetFilePaths()
     {
         return _directory.FilePaths("*", new()
         {
@@ -140,8 +140,8 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
         });
     }
 
-    public Stream OpenForReading(FilePath file)
+    public Stream OpenForReading(RelativeFilePath relativeFile)
     {
-        return _directory.OpenFile(file.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        return _directory.OpenFile(relativeFile.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
     }
 }

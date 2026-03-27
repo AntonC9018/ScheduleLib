@@ -145,107 +145,23 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
         return ValueTask.CompletedTask;
     }
 
-    private enum UpdateTeacherResult
-    {
-        AlreadyFullName,
-        Updated,
-        NotUpdated,
-    }
-
     public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
     {
         var teachers = await _provider.Get(cancellationToken);
-        var lookup = context.Schedule.Lookup(context.CourseNameUnifierModule);
-        var badTeachers = new List<(string First, string Last)>();
         foreach (var t in teachers)
         {
-            var addingName = new TeacherBuilderModel.NameModel();
+            var addingName = t.Name.ToNameModel();
+
+            // Feels like a hack
+            int TeacherCount() => context.Schedule.Teachers.Count;
+            int prevCount = TeacherCount();
+
+            context.Schedule.Teacher(addingName);
+
+            if (prevCount != TeacherCount())
             {
-                var first = t.FirstName;
-                var last = t.LastName;
-
-                addingName.FirstName[0].Full = first;
-                addingName.LastName[0] = last;
-                var status = context.Schedule.RemapTeacherName(ref addingName);
-                // TODO: Think about maybe some status not needing the update
-                _ = status;
-
-                if (UpdateTeacherName() == UpdateTeacherResult.NotUpdated)
-                {
-                    badTeachers.Add((first, last));
-                }
+                _logger.LogWarning("Teacher {TeacherName} not in schedule but on website", t.Name);
             }
-            continue;
-
-            UpdateTeacherResult UpdateTeacherName()
-            {
-                var updateStatus = UpdateTeacherResult.NotUpdated;
-
-                var teachersWithThisLastName = lookup.Teachers(addingName.LastName);
-                foreach (var teacherId in teachersWithThisLastName)
-                {
-                    var currentName = context.Schedule.Teachers.Ref(teacherId.Id).Name;
-
-                    // Already has full name
-                    // if (name.FirstName[0] is { Full: { } expected })
-                    // {
-                    //     _ = expected;
-                    //     // Matched any check?
-                    //     // if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(expected, first))
-                    //     // {
-                    //     //     throw new InvalidOperationException($"Name '{first}' on the site is not the expected '{expected}'!");
-                    //     // }
-                    //     continue;
-                    // }
-
-                    if (currentName.FirstName[0].Longer is not { } s)
-                    {
-                        continue;
-                    }
-                    if (addingName.FirstName[0].Longer is not { } first)
-                    {
-                        continue;
-                    }
-
-                    var match = new Word(first).Span.Shortened.Compare(new Word(s).Span.Shortened);
-                    if (match is CompareShortenedWordsResult.NotEqual
-                        or CompareShortenedWordsResult.Equal_SecondBetter)
-                    {
-                        continue;
-                    }
-
-                    if (updateStatus != UpdateTeacherResult.NotUpdated)
-                    {
-                        throw new InvalidOperationException($"Same teacher name {first} matched more than 1 teacher in the schedule!");
-                    }
-                    if (match == CompareShortenedWordsResult.Equal_Exactly)
-                    {
-                        updateStatus = UpdateTeacherResult.AlreadyFullName;
-                        continue;
-                    }
-
-                    Debug.Assert(match == CompareShortenedWordsResult.Equal_FirstBetter);
-                    updateStatus = UpdateTeacherResult.Updated;
-
-                    var builder = new TeacherBuilder
-                    {
-                        Id = teacherId,
-                        Schedule = context.Schedule,
-                    };
-                    var updatedName = currentName.FirstName;
-                    updatedName[0].Full = first;
-
-                    // Potentially might have to recache (later)
-                    builder.FirstName(updatedName);
-                }
-
-                return updateStatus;
-            }
-        }
-
-        foreach (var t in badTeachers)
-        {
-            _logger.LogWarning("Teacher '{FirstName} {LastName}'  on website but not in schedule", t.First, t.Last);
         }
     }
 }

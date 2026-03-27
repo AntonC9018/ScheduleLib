@@ -1,12 +1,14 @@
+using System.IO.Compression;
 using ScheduleLib.Helper;
 
 namespace ScheduleLib.Application.Core.Helper;
 
-public readonly record struct FilePath(string Path);
+public readonly record struct RelativeFilePath(string Path);
 
 public readonly record struct FileInDirectory
 {
     public OutputDirectory Directory { get; }
+    // NOTE: not necessarily normalized
     public string Path { get; }
 
     public FileInDirectory(OutputDirectory directory, string path)
@@ -23,6 +25,9 @@ public readonly record struct FileInDirectory
     {
         return Directory.TryOpenFileInExplorer(Path);
     }
+
+    // NOTE: not necessarily normalized
+    public string RelativePath => Path;
 }
 
 
@@ -58,7 +63,7 @@ public sealed class OutputDirectory
             .Select(x => File(x.Path));
     }
 
-    public IEnumerable<FilePath> FilePaths(string pattern, EnumerationOptions options)
+    public IEnumerable<RelativeFilePath> FilePaths(string pattern, EnumerationOptions options)
     {
         var files = Directory.EnumerateFiles(
             _directory,
@@ -68,7 +73,7 @@ public sealed class OutputDirectory
         {
             var separatorLen = 1;
             var ret = x[(_directory.Length + separatorLen) ..];
-            return new FilePath(ret);
+            return new RelativeFilePath(ret);
         });
         return ret;
     }
@@ -133,5 +138,25 @@ public sealed class OutputDirectory
     {
         var path = NormalizePath(file);
         return ExplorerHelper.TryOpenExplorerAndSelectFile(path);
+    }
+
+    public async Task<string> Zip()
+    {
+        var path = Path.ChangeExtension(_directory, ".zip");
+        var outputFile = new FileStream(path, FileMode.Create, FileAccess.Write);
+        await using var zip = new ZipArchive(outputFile, ZipArchiveMode.Create);
+        foreach (var file in Files("*", new()
+                 {
+                     RecurseSubdirectories = false,
+                 }))
+        {
+            var relPath = file.RelativePath;
+            relPath = relPath.Replace('\\', '/');
+            var entry = zip.CreateEntry(relPath, CompressionLevel.Fastest);
+            await using var entryContent = await entry.OpenAsync();
+            await using var fileReader = file.Open(FileMode.Open, FileAccess.Read);
+            await fileReader.CopyToAsync(entryContent);
+        }
+        return path;
     }
 }

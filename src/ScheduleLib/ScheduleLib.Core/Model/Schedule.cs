@@ -825,10 +825,10 @@ public sealed class Group
 
 public sealed class Teacher
 {
+    // As an idea: save the origin of the value (stack trace + way to see it)
     public required PersonName PersonName;
     public required PersonContacts Contacts;
 }
-
 
 public struct PersonName
 {
