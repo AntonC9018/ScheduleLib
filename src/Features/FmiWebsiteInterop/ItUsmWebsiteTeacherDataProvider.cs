@@ -30,14 +30,14 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
         _data = await _client.GetAllTeachers(cancellationToken);
     }
 
-    public ValueTask<ItUsmTeacherModel[]> BeforeQuerying(CancellationToken cancellationToken)
+    public async ValueTask<ItUsmTeacherModel[]> BeforeQuerying(CancellationToken cancellationToken)
     {
         if (_data is null)
         {
-            throw new InvalidOperationException("Must initialize before querying!");
+            await Init(cancellationToken);
         }
         _ = cancellationToken;
-        return ValueTask.FromResult(_data);
+        return _data!;
     }
 
     public async ValueTask<ItUsmTeacherModel[]> Get(CancellationToken cancellationToken)

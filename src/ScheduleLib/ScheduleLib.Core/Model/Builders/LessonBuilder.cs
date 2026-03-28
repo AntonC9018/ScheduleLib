@@ -419,6 +419,34 @@ public static class LessonBuilderHelper
                         throw new InvalidOperationException("Invalid group id in lesson");
                     }
                 }
+
+                Group Group1(in LessonBuilderModelDataBase lesson, int i)
+                {
+                    return s.Groups.Ref(lesson.Group.Groups[i].Value);
+                }
+
+                var g0 = Group1(lesson, 0);
+                var allowedModes = EnumBitArray<AttendanceMode>.Empty;
+                if (g0.AttendanceMode is AttendanceMode.Dual or AttendanceMode.Zi)
+                {
+                    allowedModes.Set(AttendanceMode.Dual);
+                    allowedModes.Set(AttendanceMode.Zi);
+                }
+                else
+                {
+                    allowedModes.Set(g0.AttendanceMode);
+                }
+
+                for (int i = 1; i < lesson.Group.Groups.Count; i++)
+                {
+                    var gi = Group1(lesson, i);
+                    var ami = gi.AttendanceMode;
+                    if (!allowedModes.Contains(ami))
+                    {
+                        throw new InvalidOperationException(
+                            $"Mixed attendance modes for a lesson are not allowed, attendances '{g0.AttendanceMode}' and '{gi.AttendanceMode}', groups '{g0.Name}' and '{gi.Name}'!");
+                    }
+                }
             }
 
             if (lesson.General.Course == null)

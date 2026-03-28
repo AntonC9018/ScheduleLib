@@ -4,6 +4,8 @@ using Anton.LayeredData.Options;
 using AutoConstructor.Attributes;
 using Google;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Core;
 using Google.Apis.Http;
 using Google.Apis.Services;
@@ -121,18 +123,48 @@ public sealed partial class GoogleCredentialResolver
 
     public async Task<UserCredential> Resolve(
         BuiltGoogleCredentialsConfig config,
-        string[] scopes,
+        string[] requiredScopes,
         CancellationToken cancellationToken)
     {
         var clientSecrets = await config.ApiKeysSource.Get(_sp, cancellationToken);
+        var user = _userNameProvider.Get();
+
+        IDataStore? dataStore = config.CredentialsPath is { } credPath
+            ? new FileDataStore(credPath, fullPath: true)
+            : null;
+
         var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
             clientSecrets: clientSecrets,
-            scopes: scopes,
-            user: _userNameProvider.Get(),
-            taskCancellationToken: CancellationToken.None,
-            dataStore: config.CredentialsPath is { } credPath
-                ? new FileDataStore(credPath, fullPath: true)
-                : null);
+            scopes: requiredScopes,
+            user: user,
+            taskCancellationToken: cancellationToken,
+            dataStore: dataStore);
+
+        var grantedScopes = credential.Token.Scope?.Split(' ') ?? [];
+        var hasMissingScopes = requiredScopes.Except(grantedScopes).Any();
+        if (!hasMissingScopes)
+        {
+            return credential;
+        }
+
+        var mergedScopes = grantedScopes.Union(requiredScopes).ToArray();
+        if (dataStore != null)
+        {
+            await dataStore.DeleteAsync<TokenResponse>(user);
+        }
+
+        // Re-authorize with merged scopes and force consent
+        const string forceShowConsentScreen = "consent";
+        using var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = clientSecrets,
+            Scopes = mergedScopes,
+            Prompt = forceShowConsentScreen,
+        });
+
+        credential = await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver())
+            .AuthorizeAsync(user, cancellationToken);
+
         return credential;
     }
 }

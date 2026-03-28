@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib;
 
@@ -29,6 +30,7 @@ public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
     public GroupId[]? OneOfGroupIds = null;
+    public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.AllSet;
 }
 
 public record struct TeacherFilter()
@@ -95,6 +97,12 @@ public static class FilterHelper
                 UnspecifiedIsAll = true,
             },
         };
+    }
+
+    public static ScheduleFilter WithAttendanceMode(this ScheduleFilter b, params ReadOnlySpan<AttendanceMode> attendanceModes)
+    {
+        b.GroupFilter.AttendanceMode = EnumBitArray<AttendanceMode>.From(attendanceModes);
+        return b;
     }
 
     public static ScheduleFilter WithTeacher(this ScheduleFilter b, TeacherId teacher)
@@ -283,6 +291,18 @@ public static class FilterHelper
 
                 bool PassesGroupFilter()
                 {
+                    {
+                        var a = filter.GroupFilter.AttendanceMode;
+                        if (!a.IsEmpty)
+                        {
+                            var firstGroup = l.Lesson.Group;
+                            var attendanceOfFirstGroup = schedule.Get(firstGroup).AttendanceMode;
+                            if (!a.Contains(attendanceOfFirstGroup))
+                            {
+                                return false;
+                            }
+                        }
+                    }
                     if (filter.GroupFilter.OneOfGroupIds is not { } groupIds)
                     {
                         return true;

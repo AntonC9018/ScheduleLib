@@ -79,13 +79,20 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly bool AreSet(params ReadOnlySpan<T> index)
+    public static EnumBitArray<T> From(params ReadOnlySpan<T> values)
     {
         var mask = new EnumBitArray<T>();
-        foreach (var i in index)
+        foreach (var v in values)
         {
-            mask.Set(i);
+            mask.Set(v);
         }
+        return mask;
+    }
+
+    [Pure]
+    public readonly bool AreSet(params ReadOnlySpan<T> index)
+    {
+        var mask = From(index);
         return SizedImpl.IsSetArray(mask.SizedImpl);
     }
 

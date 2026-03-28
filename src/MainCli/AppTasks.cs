@@ -40,9 +40,6 @@ public static class AppTasks
 {
     public static async Task ExecuteMenu(AppTasksExecutionContext context)
     {
-        await context.RootServiceProvider
-            .GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
-            .Init(context.CancellationToken);
         await context.RootServiceProvider.InitializeSchedule(context.CancellationToken);
         context.OutputDirectory.Initialize(clear: true);
 

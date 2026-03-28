@@ -35,7 +35,7 @@ public struct WhiteSpaceContext
         StartPosition = lexer.Position;
     }
 
-    private LexerPosition EndPosition(bool skipLaterProcessing)
+    private readonly LexerPosition EndPosition(bool skipLaterProcessing)
     {
         if (skipLaterProcessing)
         {
@@ -45,22 +45,22 @@ public struct WhiteSpaceContext
     }
 
     // TODO: refine these
-    public WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
+    public readonly WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
         => WhiteSpaceResult.Create(WhiteSpaceAction.Default, StartPosition, EndPosition(skipLaterProcessing));
 
-    public WhiteSpaceResult DefaultAll()
+    public readonly WhiteSpaceResult DefaultAll()
         => WhiteSpaceResult.Create(WhiteSpaceAction.Default, Lexer.Position, Lexer.Position);
 
-    public WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
+    public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
         => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, StartPosition, EndPosition(skipLaterProcessing));
 
-    public WhiteSpaceResult InsertAll()
+    public readonly WhiteSpaceResult InsertAll()
         => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, Lexer.Position, Lexer.Position);
 
-    public WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
+    public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
         => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, StartPosition, EndPosition(skipLaterProcessing));
 
-    public WhiteSpaceResult DontInsertAll(bool inclusive = true)
+    public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
         => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, Lexer.Position, Lexer.Position, inclusive);
 }
 public readonly record struct WhiteSpaceResult(

@@ -1,17 +1,14 @@
 using System.Collections;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Anton.LayeredData;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.MvvmEssentials;
 using Desktop.ViewModelData;
-using DynamicData;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
@@ -38,7 +35,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     private readonly AllTeacherNamesProvider _teacherNamesProvider;
 
     private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
-    public UpdateableObservableList<Name> FilteredUserNames { get; } = new();
+    public UpdateableObservableList<Name> FilteredUserNames { get; }
     private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
     private readonly EventSubscription<ImmutableArray<Name>> _teacherNameSub;
 
@@ -50,6 +47,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         AllTeacherNamesProvider teacherNamesProvider)
         : base(t.Dispatcher)
     {
+        FilteredUserNames = new(t.Dispatcher);
         _teacherNameSub = teacherNamesProvider.Names.Changed.Sub(names =>
         {
             _ = names;

@@ -59,7 +59,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
             var studentName = t.StudentName;
             var teacherName = t.TeacherName;
 
-            var thesisName = t.ThesisNameRomanian ?? t.ThesisNameRussian ?? t.ThesisNameEnglish ?? "";
+            var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             list.Add(new(studentName, group, thesisName));
         }

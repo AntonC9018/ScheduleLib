@@ -8,7 +8,7 @@ public static class LanguageHelper
 
     private static string[] GetLanguageNames()
     {
-        var names = new string[(int) Language._Count];
+        var names = new string[(int) Language.Count];
         for (int i = 0; i < names.Length; i++)
         {
             var lang = (Language) i;

@@ -76,9 +76,9 @@ public static class ThesesJsonHelper
             StudentGroup = thesis.GroupName,
             StudentName = thesis.StudentName.ToString(),
             Teacher = thesis.TeacherName.ToString(),
-            ThesisNameEn = thesis.ThesisNameEnglish,
-            ThesisNameRo = thesis.ThesisNameRomanian,
-            ThesisNameRu = thesis.ThesisNameRussian,
+            ThesisNameRo = thesis.ThesisNames[Parsing.ThesisNameLanguage.Ro],
+            ThesisNameRu = thesis.ThesisNames[Parsing.ThesisNameLanguage.Ru],
+            ThesisNameEn = thesis.ThesisNames[Parsing.ThesisNameLanguage.En],
         };
     }
 }

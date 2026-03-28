@@ -209,6 +209,8 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
         }
         return defaultKey;
     }
+
+    public OneForEachEnumMemberArray<TEnum, TValue> Copy() => new(Storage.ToArray());
 }
 
 public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>

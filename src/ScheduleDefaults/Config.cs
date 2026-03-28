@@ -26,9 +26,9 @@ public static class Config
         (From: "HTML", To: "HTML și CSS"),
         (From: "Modele design soft", To: "Design Soft"),
         (From: "Python pentru aplicații", To: "Python"),
-        (From: "PHP", To: "Dezvoltare WEB avansată cu PHP"),
-        (From: "Dezvoltare WEB avansată", To: "Dezvoltare WEB avansată cu PHP"),
-        (From: "Dezvoltare WEB PHP", To: "Dezvoltare WEB avansată cu PHP"),
+        (From: "Dezvoltare WEB avansată cu PHP", To: "PHP"),
+        (From: "Dezvoltare WEB avansată", To: "PHP"),
+        (From: "Dezvoltare WEB PHP", To: "PHP"),
     };
 
     public static CourseNameUnifierConfig CourseNameUnifier =>

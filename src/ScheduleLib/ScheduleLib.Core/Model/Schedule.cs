@@ -732,7 +732,7 @@ public enum Language
     Ro,
     Ru,
     En,
-    _Count,
+    Count,
 }
 
 public readonly record struct Faculty(string Name);

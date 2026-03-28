@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Text;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Curriculum;
@@ -15,23 +13,28 @@ public sealed class ThesisList
 {
     public required ImmutableArray<Thesis> Items;
 }
+
+public enum ThesisNameLanguage
+{
+    Ro,
+    Ru,
+    En,
+}
+
 public sealed class Thesis
 {
     public required Name StudentName;
     public required Name TeacherName;
     public required string GroupName;
-    public required string? ThesisNameRomanian;
-    public required string? ThesisNameRussian; // \ / ignore any " \n  also (russian text) is allowed?
-    public required string? ThesisNameEnglish;
+    public required OneForEachEnumMemberArray<ThesisNameLanguage, string?> ThesisNames;
 }
+
 
 internal struct ThesisInParsing()
 {
     public List<Name>? TeacherName;
     public string? GroupName;
-    public string? ThesisNameRomanian;
-    public string? ThesisNameRussian;
-    public string? ThesisNameEnglish;
+    public OneForEachEnumMemberArray<ThesisNameLanguage, string?> ThesisNames = new();
 }
 
 public enum ThesisType
@@ -73,8 +76,9 @@ public sealed class ThesisListParser
         Group,
         StudentName,
         Mentor,
-        ThesisName,
-        ThesisNameEnglish,
+        ThesisNameRu,
+        ThesisNameRo,
+        ThesisNameEn,
         Count,
     }
 
@@ -126,7 +130,7 @@ public sealed class ThesisListParser
 
         var rows = sheet.Rows();
         var state = new State();
-        const int meaninglessRowCount = 3;
+        const int meaninglessRowCount = 1;
         state.Action = Action.MeaningfulHeaders;
         foreach (var row in rows.Skip(meaninglessRowCount))
         {
@@ -162,7 +166,7 @@ public sealed class ThesisListParser
                     var requiredColumns = EnumBitArray<Column>.AllSet;
                     if (targetThesisType == ThesisType.An)
                     {
-                        requiredColumns.Clear(Column.ThesisNameEnglish);
+                        requiredColumns.Clear(Column.ThesisNameEn);
                     }
 
                     var presentColumns = state.PresentColumns;
@@ -207,9 +211,7 @@ public sealed class ThesisListParser
                                 GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
                                 StudentName = studentName,
                                 TeacherName = mappedTeacherName,
-                                ThesisNameRomanian = thesis.ThesisNameRomanian,
-                                ThesisNameRussian = thesis.ThesisNameRussian,
-                                ThesisNameEnglish = thesis.ThesisNameEnglish,
+                                ThesisNames = thesis.ThesisNames,
                             });
                         }
                     }
@@ -299,71 +301,28 @@ public sealed class ThesisListParser
                 {
                     return false;
                 }
-
-                var parser = new Parser(text);
-                var sb = state.StringBuilder;
-                int parenDepth = 0;
-                while (true)
-                {
-                    if (parser.IsEmpty)
-                    {
-                        break;
-                    }
-                    switch (parser.Current)
-                    {
-                        case '(':
-                            parenDepth += 1;
-                            break;
-                        case ')':
-                            parenDepth -= 1;
-                            break;
-
-                        case '-':
-                            break;
-
-                        default:
-                        {
-                            if (char.IsWhiteSpace(parser.Current))
-                            {
-                                break;
-                            }
-                            if (parenDepth > 0)
-                            {
-                                break;
-                            }
-                            sb.Append(parser.Current);
-                            break;
-                        }
-                    }
-                    parser.Move();
-                }
-
-                var groupName = sb.ToStringAndClear();
-                thesis.GroupName = groupName;
+                thesis.GroupName = text.Trim();
                 break;
             }
-            case Column.ThesisName:
+            case Column.ThesisNameRu
+                or Column.ThesisNameRo
+                or Column.ThesisNameEn:
             {
+                var lang = column switch
+                {
+                    Column.ThesisNameRu => ThesisNameLanguage.Ru,
+                    Column.ThesisNameRo => ThesisNameLanguage.Ro,
+                    Column.ThesisNameEn => ThesisNameLanguage.En,
+                    _ => throw Unreachable(),
+                };
                 if (!cell.TryGetValue(out string text))
                 {
                     return false;
                 }
-                var ret = ParseThesisNames(text);
-                thesis.ThesisNameRomanian = ret.Ro.Length > 0 ? ret.Ro.ToString() : null;
-                thesis.ThesisNameRussian = ret.Ru.Length > 0 ? ret.Ru.ToString() : null;
-                break;
-            }
-            case Column.ThesisNameEnglish:
-            {
-                if (!cell.TryGetValue(out string text))
-                {
-                    return true;
-                }
-                thesis.ThesisNameEnglish = text;
+                thesis.ThesisNames[lang] = text;
                 break;
             }
         }
-
         return true;
     }
 
@@ -473,27 +432,31 @@ public sealed class ThesisListParser
         {
             b.Set(Column.Number, new()
             {
-                ExactString = "nr.",
+                OrderedKeywords = ["nr."],
             });
             b.Set(Column.Group, new()
             {
-                ExactString = "grupa",
+                OrderedKeywords = ["grupa"],
             });
             b.Set(Column.StudentName, new()
             {
-                ExactString = "numele studentului",
+                OrderedKeywords = ["student"],
             });
             b.Set(Column.Mentor, new()
             {
                 ExactString = "numele conducatorului stiintific",
             });
-            b.Set(Column.ThesisName, new()
+            b.Set(Column.ThesisNameRu, new()
             {
-                OrderedKeywords = ["denumirea", "romana"],
+                OrderedKeywords = ["rusa"],
             });
-            b.Set(Column.ThesisNameEnglish, new()
+            b.Set(Column.ThesisNameRo, new()
             {
-                OrderedKeywords = ["denumirea", "engleza"],
+                OrderedKeywords = ["romana"],
+            });
+            b.Set(Column.ThesisNameEn, new()
+            {
+                OrderedKeywords = ["engleza"],
             });
         });
 
@@ -509,7 +472,6 @@ public sealed class ThesisListParser
         public Action Action = Action.MeaninglessHeaders;
         public readonly SizedItemArray<Column> ColumnMappings = new();
         public EnumBitArray<Column> PresentColumns = default;
-        public StringBuilder StringBuilder = new();
         public ImmutableArray<Thesis>.Builder Result = ImmutableArray.CreateBuilder<Thesis>();
         public readonly List<Name> StudentNames = new();
     }
@@ -518,410 +480,6 @@ public sealed class ThesisListParser
     {
         public ImmutableArray<string> OrderedKeywords = default;
         public string? ExactString = null;
-    }
-
-    private static bool IsParen(char ch)
-    {
-        if (ch == ')')
-        {
-            return true;
-        }
-        if (ch == '(')
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private static bool IsSep(char ch)
-    {
-        if (ch == '.')
-        {
-            return true;
-        }
-        if (ch == '/')
-        {
-            return true;
-        }
-        if (ch == '\\')
-        {
-            return true;
-        }
-        if (ch == '\r')
-        {
-            return true;
-        }
-        if (ch == '\n')
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private static bool IsRussian(char ch)
-    {
-        if (ch >= 'А' && ch <= 'я')
-        {
-            return true;
-        }
-        if (ch == 'Ё' || ch == 'ё')
-        {
-            return true;
-        }
-        return false;
-    }
-
-    private readonly struct SearchSep() : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
-        {
-            if (IsSep(ch))
-            {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    private readonly struct SearchRussianOrSep(bool searchRussian, bool searchSeparators) : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
-        {
-            if (IsParen(ch))
-            {
-                return false;
-            }
-            if (searchSeparators && IsSep(ch))
-            {
-                return false;
-            }
-            if (searchRussian && IsRussian(ch))
-            {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    private struct ThesisParsingState()
-    {
-        public ParserPosition? RoEnd;
-        public ParserPosition? RoStart;
-        public ParserPosition? RuStart;
-        public ParserPosition? RuEnd;
-        public bool SawRussian = false;
-        public bool RussianSeenInParens = false;
-        public int ParenDepth = 0;
-
-        public readonly bool HasRu => RuStart is not null;
-
-        public readonly ThesisNames GetResult(Parser p)
-        {
-            return new(Ro(p), Ru(p));
-        }
-
-        private readonly ReadOnlyMemory<char> Trim(ReadOnlyMemory<char> s)
-        {
-            var span = s.Span;
-
-            // BUG: if it ends on a quoted word, the closing quote is still removed
-
-            int start = 0;
-            while (start < span.Length && Check(span[start]))
-            {
-                start += 1;
-            }
-
-            int end = span.Length - 1;
-            while (end >= start && Check(span[end]))
-            {
-                end -= 1;
-            }
-
-            return s[start .. (end + 1)];
-
-            bool Check(char ch)
-            {
-                if (char.IsWhiteSpace(ch))
-                {
-                    return true;
-                }
-                if ("\"«»„“”‟‹›❝❞❮❯".Contains(ch))
-                {
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        private readonly ReadOnlyMemory<char> Slice(Parser p, ParserPosition start, ParserPosition? end)
-        {
-            var t = p.BufferedView();
-            t.MoveTo(start);
-            var end1 = end ?? t.EndPosition;
-            var ret = t.SourceUntilExclusive(end1);
-            ret = Trim(ret);
-            return ret;
-        }
-
-        public readonly ReadOnlyMemory<char> Ro(Parser p)
-        {
-            if (RoStart is not { } start)
-            {
-                return null;
-            }
-            // Temp fix for bug where english letters are in russian?? idk
-            if (start.Index > RoEnd?.Index)
-            {
-                start = p.Position;
-            }
-            var ret = Slice(p, start, RoEnd);
-            return ret;
-        }
-
-        public readonly ReadOnlyMemory<char> Ru(Parser p)
-        {
-            if (RuStart is not { } start)
-            {
-                return null;
-            }
-            var ret = Slice(p, start, RuEnd);
-            return ret;
-        }
-    }
-
-    internal record struct ThesisNames(ReadOnlyMemory<char> Ro, ReadOnlyMemory<char> Ru);
-
-    internal static ThesisNames ParseThesisNames(string text)
-    {
-        // TODO: Bring this stupid ass table into an adequate format
-        text = text.Trim();
-        text = text.TrimEnd('/');
-        text = text.TrimEnd();
-
-        var initialParser = new Parser(text);
-        initialParser.SkipWhitespace();
-
-        var parser = initialParser.BufferedView();
-
-        // Explicit ru: ro: syntax
-        {
-            var bparser = parser.BufferedView();
-            string[] options = ["ro:", "ru:"];
-            const int ro = 0;
-            const int ru = 1;
-            for (int i = ro; i <= ru; i++)
-            {
-                ThesisNames ResultHelper(ReadOnlyMemory<char> a, ReadOnlyMemory<char> b)
-                {
-                    a = a.Trim();
-                    b = b.Trim();
-                    if (i == ru)
-                    {
-                        (a, b) = (b, a);
-                    }
-                    return new(a, b);
-                }
-
-                var opt = options[i];
-                var otherOpt = options[1 - i];
-                if (!bparser.ConsumeExactString(opt))
-                {
-                    continue;
-                }
-                bparser.SkipWhitespace();
-
-                {
-                    var bparserWorkingCopy = bparser.BufferedView();
-                    while (true)
-                    {
-                        var loopParser = bparserWorkingCopy.BufferedView();
-                        var res = loopParser.Skip(new SearchSep());
-                        if (!res.Satisfied)
-                        {
-                            break;
-                        }
-                        var potentialEndPos = loopParser.Position;
-
-                        loopParser.Move();
-                        loopParser.SkipWhitespace();
-                        bparserWorkingCopy.MoveTo(loopParser.Position);
-
-                        if (!loopParser.ConsumeExactString(otherOpt))
-                        {
-                            continue;
-                        }
-
-                        var str1 = bparser.SourceUntilExclusive(potentialEndPos);
-                        var str2 = loopParser.SourceUntilEnd();
-                        return ResultHelper(str1, str2);
-                    }
-                }
-
-                // No matching separator, just search for the other string.
-                {
-                    var bparser1 = bparser.BufferedView();
-                    var skipResult = bparser1.SkipUntilSequence([otherOpt]);
-                    if (!skipResult.Satisfied)
-                    {
-                        if (i == ru)
-                        {
-                            return new(null, bparser1.SourceUntilEnd());
-                            // throw new InvalidOperationException("Expected ro when specifying ru explicitly");
-                        }
-                        else
-                        {
-                            // this is fine
-                            return new(bparser1.SourceUntilEnd(), null);
-                        }
-                    }
-
-                    // Found the LANG: bit
-                    var potentialEndPos = bparser1.Position;
-
-                    bparser1.Move(otherOpt.Length);
-                    bparser1.SkipWhitespace();
-
-                    var str1 = bparser.SourceUntilExclusive(potentialEndPos);
-                    var str2 = bparser1.SourceUntilEnd();
-                    return ResultHelper(str1, str2);
-                }
-            }
-        }
-
-        ThesisParsingState state = new();
-        // separator-based syntax with russian letter checks (see the tests)
-        while (true)
-        {
-            var bparser = parser.BufferedView();
-            var skipResult = bparser.Skip(
-                new SearchRussianOrSep(
-                    searchRussian: !state.SawRussian,
-                    searchSeparators: state.ParenDepth == 0));
-            if (skipResult.EndOfInput)
-            {
-                if (state.ParenDepth != 0)
-                {
-                    throw new InvalidOperationException("Unclosed parentheses");
-                }
-                if (!state.SawRussian)
-                {
-                    state.RoStart = initialParser.Position;
-                    state.RoEnd = null;
-                    state.RuStart = null;
-                    state.RuEnd = null;
-                }
-                return state.GetResult(initialParser);
-            }
-
-            var x = bparser.Current;
-
-            if (!state.SawRussian && IsRussian(x))
-            {
-                if (state.RuStart is null)
-                {
-                    state.RuStart = initialParser.Position;
-                }
-                state.SawRussian = true;
-                state.RussianSeenInParens = state.ParenDepth > 0;
-            }
-            if (state.SawRussian)
-            {
-                Debug.Assert(state.HasRu);
-            }
-
-            void SkipForSep()
-            {
-                if (state.SawRussian)
-                {
-                    state.RuEnd = bparser.Position;
-                }
-                else
-                {
-                    state.RoStart = initialParser.Position;
-                    state.RoEnd = bparser.Position;
-                }
-                bparser.Move();
-                bparser.SkipWhitespace(); // repeated \r, \n and friends
-                if (state.SawRussian)
-                {
-                    state.RoStart = bparser.Position;
-                }
-                else
-                {
-                    state.RuStart = bparser.Position;
-                }
-            }
-
-            if (IsParen(x))
-            {
-                switch (x)
-                {
-                    case '(':
-                    {
-                        if (state.ParenDepth == 0 && !state.SawRussian)
-                        {
-                            state.RoStart = initialParser.Position;
-                            state.RoEnd = bparser.Position;
-                            bparser.Move();
-                            bparser.SkipWhitespace(); // repeated \r, \n and friends
-                            state.RuStart = bparser.Position;
-                        }
-                        else
-                        {
-                            bparser.Move();
-                        }
-                        state.ParenDepth += 1;
-                        break;
-                    }
-                    case ')':
-                    {
-                        if (state.ParenDepth == 0)
-                        {
-                            throw new InvalidOperationException("Closing paren without opening paren");
-                        }
-                        state.ParenDepth -= 1;
-                        if (state.ParenDepth == 0 && !state.SawRussian)
-                        {
-                            state.RuStart = null;
-                            state.RoEnd = null;
-                        }
-                        else if (state.ParenDepth == 0 && state.RussianSeenInParens)
-                        {
-                            state.RuEnd = bparser.Position;
-                        }
-                        bparser.Move();
-                        break;
-                    }
-                }
-            }
-            else if (x == '.')
-            {
-                // Check for whitespace after dot.
-                var copy = bparser.BufferedView();
-                copy.Move();
-                var whitespaceRes = copy.SkipWhitespace();
-                if (!whitespaceRes.SkippedAny)
-                {
-                    // It's just part of a word like ASP.NET
-                    bparser.Move();
-                }
-                else
-                {
-                    SkipForSep();
-                }
-            }
-            else if (IsSep(x))
-            {
-                SkipForSep();
-            }
-            else
-            {
-                bparser.Move();
-            }
-
-            parser.MoveTo(bparser.Position);
-        }
     }
 }
 

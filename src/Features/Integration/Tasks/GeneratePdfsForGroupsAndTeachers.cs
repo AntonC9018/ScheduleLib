@@ -111,7 +111,9 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
             in ScheduleFilter filter)
         {
             var filteredSchedule = _schedule.Filter(
-                filter.WithLatestPeriod(_schedule));
+                filter
+                    .WithLatestPeriod(_schedule)
+                    .WithAttendanceMode(AttendanceMode.Zi, AttendanceMode.Dual));
             if (filteredSchedule.IsEmpty)
             {
                 return;

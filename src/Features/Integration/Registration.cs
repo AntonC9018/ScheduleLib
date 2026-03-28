@@ -254,6 +254,8 @@ public static class Registration
                 services.AddScoped<ThesesConversionTaskHandler>();
                 services.AddScoped<ListsForPredzashitaTaskHandler>();
                 ThesesListProvider.Register(services);
+                LocalThesesFileProvider.Register(services);
+                // OnlineThesesFileProvider.Register(services);
                 TeacherNameMapper.Register(services);
             }
             {
