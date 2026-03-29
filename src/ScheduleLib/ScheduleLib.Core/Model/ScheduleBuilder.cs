@@ -242,22 +242,43 @@ public static partial class ScheduleBuilderHelper
 
     public static TeacherNameRemapStatus RemapTeacherName(this ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
     {
-        var remapped = TeacherNameRemapStatus.None;
-        if (!name.LastName.IsNull
-            && s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+        var status = Impl(s, ref name);
+        if (status != TeacherNameRemapStatus.None)
         {
-            name.LastName = t;
-            remapped = TeacherNameRemapStatus.LastName;
-        }
-        foreach (var x in s.Remappings.TeacherFullNameRemappings)
-        {
-            if (x(ref name))
+            var status1 = Impl(s, ref name);
+            if (status1 != TeacherNameRemapStatus.None)
             {
-                remapped = TeacherNameRemapStatus.FullName;
-                break;
+                // Maybe allow 1 recursion level?
+                throw new InvalidOperationException(
+                    "Recursive teacher name remaps are not supported to prevent errors. Ensure the remap maps to the final version.");
             }
         }
-        return remapped;
+        return status;
+
+        static TeacherNameRemapStatus Impl(ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
+        {
+            var status = TeacherNameRemapStatus.None;
+            if (!name.LastName.IsNull
+                && s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+            {
+                name.LastName = t;
+                status = TeacherNameRemapStatus.LastName;
+            }
+
+            var copy = name;
+            foreach (var x in s.Remappings.TeacherFullNameRemappings)
+            {
+                if (x(ref name))
+                {
+                    if (copy != name)
+                    {
+                        status = TeacherNameRemapStatus.FullName;
+                    }
+                    break;
+                }
+            }
+            return status;
+        }
     }
 
     public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)

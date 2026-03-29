@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Helper;

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using Anton.LayeredData.Retrieval;
@@ -8,7 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
@@ -38,6 +38,8 @@ public static class Registration
             services.AddOnlineRegistry();
             services.AddTaskHandlers();
             services.AddGlobalConfiguration();
+
+            Console.OutputEncoding = new UTF8Encoding();
             services.AddLogging(logging =>
             {
                 logging.ClearProviders();
@@ -54,6 +56,9 @@ public static class Registration
 
                 logging.AddSerilog(builder.CreateLogger());
             });
+
+            services.AddHelperServices();
+            services.AddItUsmIntegration();
         }
 
         public void AddConfigsServices()
@@ -99,7 +104,6 @@ public static class Registration
             AddTimeServices();
             AddOutputServices();
             AddOptions();
-            ItUsmWebsiteApi.Register(services);
             return;
 
             void AddScheduleGeneralServices()
@@ -225,6 +229,18 @@ public static class Registration
             }
         }
 
+        public void AddItUsmIntegration()
+        {
+            ItUsmWebsiteApi.Register(services);
+        }
+
+        public void AddHelperServices()
+        {
+            GoogleApiHelper.Register(services);
+            DriveFileLoader.Register(services);
+            TeacherNameMapper.Register(services);
+        }
+
         public void AddTaskHandlers()
         {
             {
@@ -248,7 +264,6 @@ public static class Registration
             {
                 services.AddScoped<SyncDriveFolderTaskHandler>();
                 services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
-                GoogleApiHelper.Register(services);
             }
             {
                 services.AddScoped<ThesesConversionTaskHandler>();
@@ -256,7 +271,6 @@ public static class Registration
                 ThesesListProvider.Register(services);
                 LocalThesesFileProvider.Register(services);
                 // OnlineThesesFileProvider.Register(services);
-                TeacherNameMapper.Register(services);
             }
             {
                 StudentAttendanceLoader.Register(services);

@@ -6,6 +6,8 @@ using System.Text.Unicode;
 using AutoConstructor.Attributes;
 using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Teachers;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Parsing;
 
@@ -83,11 +85,13 @@ public static class ThesesJsonHelper
     }
 }
 
-[AutoConstructor]
-public sealed partial class ThesesConversionTaskHandler
+public sealed class ThesesConversionTaskHandler(
+    Parsing.ThesesListProvider _thesesListProvider,
+    ItUsmWebsiteTeacherDataProvider _teacherData,
+    [param: FromKeyedServices(Parsing.ThesisListParser.TeacherNameRemapperKey)]
+    Parsing.INameRemapper _nameRemapper,
+    ILogger<ThesesConversionTaskHandler> _logger)
 {
-    private readonly Parsing.ThesesListProvider _thesesListProvider;
-    private readonly ItUsmWebsiteTeacherDataProvider _teacherData;
 
     public async Task Handle(
         CancellationToken cancellationToken,
@@ -97,10 +101,9 @@ public sealed partial class ThesesConversionTaskHandler
         var slugByName = await _teacherData.SlugMap(cancellationToken);
 
         var forSerialization = theses.SelectMany(x => x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i)))
-            .Where(x => slugByName.ContainsKey(x.Item.TeacherName))
             .GroupBy(x => x.Item.TeacherName, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
             .Select(x => (
-                Teacher: (TeacherName: x.Key, Slug: slugByName[x.Key]),
+                Teacher: x.Key,
                 Theses: x
                     .OrderBy(i => i.Type)
                     .ThenBy(i => i.Id)
@@ -108,7 +111,13 @@ public sealed partial class ThesesConversionTaskHandler
 
         foreach (var x in forSerialization)
         {
-            var fileName = $"{x.Teacher.Slug}.json";
+            var name = _nameRemapper.RemapName(x.Teacher);
+            if (!slugByName.TryGetValue(name, out var slug))
+            {
+                _logger.LogWarning("Not found mapping teacher '{TeacherName}' from theses list to the website", name);
+                continue;
+            }
+            var fileName = $"{slug}.json";
             await using var outputFile = outputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
             await JsonSerializer.SerializeAsync(
                 outputFile,

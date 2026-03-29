@@ -12,14 +12,14 @@
     <ItemGroup>
         <ProjectReference Include="$(RootPath)src\ScheduleDefaults\ScheduleDefaults.csproj" />
 
-        <ProjectReference Include="$(RootPath)src\Features\FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\OnlineRegistry\OnlineRegistry.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\CurriculumDownload\CurriculumDownload.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\CurriculumShared\CurriculumShared.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\MoodleInterop\MoodleInterop.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\LayeredData\Anton.LayeredData.csproj" />
-        <ProjectReference Include="$(RootPath)src\Features\LayeredConfig\LayeredConfig.csproj" />
+        <ProjectReference Include="$(FeaturesPath)FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
+        <ProjectReference Include="$(FeaturesPath)OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="$(FeaturesPath)CurriculumDownload\CurriculumDownload.csproj" />
+        <ProjectReference Include="$(FeaturesPath)CurriculumShared\CurriculumShared.csproj" />
+        <ProjectReference Include="$(FeaturesPath)ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
+        <ProjectReference Include="$(FeaturesPath)MoodleInterop\MoodleInterop.csproj" />
+        <ProjectReference Include="$(FeaturesPath)LayeredData\Anton.LayeredData.csproj" />
+        <ProjectReference Include="$(FeaturesPath)LayeredConfig\LayeredConfig.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,7 +46,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4045" />
         <PackageReference Include="Google.Apis.Calendar.v3" Version="1.73.0.3993" />
     </ItemGroup>
 

@@ -6,23 +6,17 @@
     <ItemGroup>
         <ProjectReference Include="$(FeaturesPath)OnlineRegistry\OnlineRegistry.csproj" />
         <ProjectReference Include="$(FeaturesPath)LayeredData\Anton.LayeredData.csproj" />
+        <ProjectReference Include="$(FeaturesPath)LayeredConfig\LayeredConfig.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="$(MicrosoftPackagesVersion)" />
-        <PackageReference Include="Polly.Core" Version="8.6.5" />
-        <PackageReference Include="Polly.Extensions" Version="8.6.5" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="$(MicrosoftPackagesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="CsvHelper" Version="33.1.0" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4045" />
     </ItemGroup>
 </Project>

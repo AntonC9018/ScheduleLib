@@ -1,6 +1,4 @@
 using System.Text;
-using Anton.LayeredData.Retrieval;
-using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Schedule;
 using FmiWebsiteInterop.Teachers;
 using FmiWebsiteInterop.Theses;
@@ -8,8 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
-using ScheduleLib.Application.Core.Topics;
-using ScheduleLib.Builders;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
