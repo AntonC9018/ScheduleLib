@@ -135,7 +135,10 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                     ColorId = color.AsString(),
                 };
 
-                await service.Events.Insert(ev, calendarId).ExecuteAsync(cancellationToken);
+                await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+                {
+                    await service.Events.Insert(ev, calendarId).ExecuteAsync(cancellationToken);
+                });
             });
         }
         await runner.WhenDone();
@@ -204,16 +207,19 @@ internal static class GoogleCalendarServiceExtensions
         string calendarName,
         CancellationToken cancellationToken)
     {
-        try
+        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
         {
-            var response = await service.CalendarList.Get(calendarName).ExecuteAsync(cancellationToken);
-            _ = response;
-            return true;
-        }
-        catch (GoogleApiException)
-        {
-            return false;
-        }
+            try
+            {
+                var response = await service.CalendarList.Get(calendarName).ExecuteAsync(cancellationToken);
+                _ = response;
+                return true;
+            }
+            catch (GoogleApiException)
+            {
+                return false;
+            }
+        });
     }
 
     public static async Task<string> MakeSureCleanCalendarWithSummary(
@@ -221,13 +227,22 @@ internal static class GoogleCalendarServiceExtensions
         Calendar calendar,
         CancellationToken cancellationToken)
     {
-        var calendars = await service.CalendarList.List().ExecuteAsync(cancellationToken);
-
+        var calendars = await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        {
+            var calendars = await service.CalendarList.List().ExecuteAsync(cancellationToken);
+            return calendars;
+        });
         if (calendars.Items.FirstOrDefault(x => x.Summary == calendar.Summary) is { } c)
         {
-            await service.Calendars.Delete(c.Id).ExecuteAsync(cancellationToken);
+            await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+            {
+                await service.Calendars.Delete(c.Id).ExecuteAsync(cancellationToken);
+            });
         }
-        var result = await service.Calendars.Insert(calendar).ExecuteAsync(cancellationToken);
-        return result.Id;
+        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        {
+            var result = await service.Calendars.Insert(calendar).ExecuteAsync(cancellationToken);
+            return result.Id;
+        });
     }
 }

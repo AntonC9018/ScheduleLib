@@ -406,6 +406,14 @@ public static class LessonBuilderHelper
 
         void ValidateBase(in LessonBuilderModelDataBase lesson)
         {
+            if (lesson.General.Type == LessonType.Consultation)
+            {
+                if (lesson.Group.Groups.Count != 0)
+                {
+                    throw new InvalidOperationException("Consultation lessons must have no groups attached");
+                }
+            }
+            else
             {
                 if (lesson.Group.Groups.Group0 == GroupId.Invalid)
                 {

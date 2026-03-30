@@ -113,7 +113,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
             var filteredSchedule = _schedule.Filter(
                 filter
                     .WithLatestPeriod(_schedule)
-                    .WithAttendanceMode(AttendanceMode.Zi, AttendanceMode.Dual));
+                    .WithLessonRegularity(LessonRegularity.Weekly));
             if (filteredSchedule.IsEmpty)
             {
                 return;

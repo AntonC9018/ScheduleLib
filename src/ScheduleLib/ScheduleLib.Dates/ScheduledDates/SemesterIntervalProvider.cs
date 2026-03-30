@@ -278,6 +278,16 @@ internal readonly struct YearDateRanges
     {
         return _values[key];
     }
+
+    // TODO: Do this better
+    public SemesterDateRange Longest(Semester semester)
+    {
+        return _values
+            .Where(x => x.Key.Semester == semester)
+            .OrderByDescending(x => x.Value.EndInclusive)
+            .Select(x => x.Value)
+            .First();
+    }
 }
 
 public sealed class CurrentYearSemesterIntervalProvider
@@ -291,15 +301,21 @@ public sealed class CurrentYearSemesterIntervalProvider
 
     public SemesterDateRange GetSemesterInterval(GetSemesterIntervalParams p)
     {
+        if (p.GroupId.IsInvalid)
+        {
+            return Ranges.Longest(p.Semester);
+        }
+
         var group = p.Schedule.Get(p.GroupId);
         var grade = group.Grade;
+        var attendanceMode = group.AttendanceMode;
+        var qualificationType = group.QualificationType;
         var semester = p.Semester;
         var key = new DateRangeKey(
             grade,
             semester,
-            group.AttendanceMode,
-            group.QualificationType);
-
+            attendanceMode,
+            qualificationType);
         var ret = Ranges.Get(key);
         return ret;
     }

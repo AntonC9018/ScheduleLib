@@ -7,6 +7,7 @@ namespace ScheduleLib;
 // TODO: Separate the filters out (array of filters)
 public struct ScheduleFilter()
 {
+    public EnumBitArray<LessonRegularity> IncludeRegularity = EnumBitArray<LessonRegularity>.Empty;
     public QualificationType? QualificationType;
     public Grade? Grade;
     public TeacherFilter TeacherFilter = new();
@@ -30,7 +31,7 @@ public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
     public GroupId[]? OneOfGroupIds = null;
-    public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.AllSet;
+    public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.Empty;
 }
 
 public record struct TeacherFilter()
@@ -102,6 +103,13 @@ public static class FilterHelper
     public static ScheduleFilter WithAttendanceMode(this ScheduleFilter b, params ReadOnlySpan<AttendanceMode> attendanceModes)
     {
         b.GroupFilter.AttendanceMode = EnumBitArray<AttendanceMode>.From(attendanceModes);
+        return b;
+    }
+    public static ScheduleFilter WithLessonRegularity(
+        this ScheduleFilter b,
+        params ReadOnlySpan<LessonRegularity> regularity)
+    {
+        b.IncludeRegularity = EnumBitArray<LessonRegularity>.From(regularity);
         return b;
     }
 
@@ -205,6 +213,12 @@ public static class FilterHelper
         {
             foreach (var l in schedule.EnumerateAllLessons())
             {
+                // TODO: Can be optimized because these are in different arrays
+                if (!PassesRegularityTest())
+                {
+                    continue;
+                }
+
                 if (!PassesGradeTest())
                 {
                     continue;
@@ -236,9 +250,22 @@ public static class FilterHelper
                 yield return l.Id;
                 continue;
 
+                bool PassesRegularityTest()
+                {
+                    if (!filter.IncludeRegularity.IsEmpty)
+                    {
+                        return filter.IncludeRegularity.Contains(l.Regularity);
+                    }
+                    return true;
+                }
+
                 bool PassesGradeTest()
                 {
                     var groupId = l.Lesson.Group;
+                    if (groupId.IsInvalid)
+                    {
+                        return true;
+                    }
                     var g = schedule.Get(groupId);
                     if (filter.QualificationType is { } q)
                     {
@@ -296,6 +323,10 @@ public static class FilterHelper
                         if (!a.IsEmpty)
                         {
                             var firstGroup = l.Lesson.Group;
+                            if (firstGroup.IsInvalid)
+                            {
+                                return false;
+                            }
                             var attendanceOfFirstGroup = schedule.Get(firstGroup).AttendanceMode;
                             if (!a.Contains(attendanceOfFirstGroup))
                             {

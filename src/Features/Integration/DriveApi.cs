@@ -10,60 +10,8 @@ public record struct BasicDriveFile(string Name, FileId Id);
 public record struct FileId(string Value);
 public record struct FolderId(string Value);
 
-public static class DriveApiHelper
+public static class GoogleApiHelper1
 {
-    private const int MaxBatchSize = 100; // Drive limitation per batch
-    private const int MaxPageSize = 1000;
-
-    public record struct BatchDeleteOperation(IEnumerable<Func<Task>> Tasks, int BatchCount);
-
-    private static int CeilDiv(int x, int y) => (x + y - 1) / y;
-
-    public static BatchDeleteOperation ExecuteBatchDeleteAsync(
-        DriveService driveService,
-        List<BasicDriveFile> fileIdsToDelete,
-        CancellationToken cancellationToken)
-    {
-        var batchCount = CeilDiv(fileIdsToDelete.Count, MaxBatchSize);
-        return new(Tasks(), batchCount);
-
-        IEnumerable<Func<Task>> Tasks()
-        {
-            for (int i = 0; i < fileIdsToDelete.Count; i += MaxBatchSize)
-            {
-                var chunk = fileIdsToDelete
-                    .Skip(i)
-                    .Take(MaxBatchSize)
-                    .ToList();
-
-                yield return () =>
-                {
-                    var batch = new BatchRequest(driveService);
-                    var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
-                        (content, error, index, message) =>
-                        {
-                            _ = content;
-                            _ = error;
-                            _ = index;
-                            _ = message;
-                            if (error != null)
-                            {
-                                Console.WriteLine($"Delete failed for file {chunk[index]}");
-                            }
-                        });
-
-                    foreach (var f in chunk)
-                    {
-                        var deleteReq = driveService.Files.Delete(f.Id.Value);
-                        batch.Queue(deleteReq, callback);
-                    }
-
-                    return ExecuteWithRetryAsync(() => batch.ExecuteAsync(cancellationToken));
-                };
-            }
-        }
-    }
-
     // Actually doesn't seem possible to implement without wrapping each call...
     public static async Task ExecuteWithRetryAsync(Func<Task> action)
     {
@@ -124,12 +72,68 @@ public static class DriveApiHelper
         }
     }
 
+}
+
+public static class DriveApiHelper
+{
+    private const int MaxBatchSize = 100; // Drive limitation per batch
+    private const int MaxPageSize = 1000;
+
+    public record struct BatchDeleteOperation(IEnumerable<Func<Task>> Tasks, int BatchCount);
+
+    private static int CeilDiv(int x, int y) => (x + y - 1) / y;
+
+    public static BatchDeleteOperation ExecuteBatchDeleteAsync(
+        DriveService driveService,
+        List<BasicDriveFile> fileIdsToDelete,
+        CancellationToken cancellationToken)
+    {
+        var batchCount = CeilDiv(fileIdsToDelete.Count, MaxBatchSize);
+        return new(Tasks(), batchCount);
+
+        IEnumerable<Func<Task>> Tasks()
+        {
+            for (int i = 0; i < fileIdsToDelete.Count; i += MaxBatchSize)
+            {
+                var chunk = fileIdsToDelete
+                    .Skip(i)
+                    .Take(MaxBatchSize)
+                    .ToList();
+
+                yield return () =>
+                {
+                    var batch = new BatchRequest(driveService);
+                    var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
+                        (content, error, index, message) =>
+                        {
+                            _ = content;
+                            _ = error;
+                            _ = index;
+                            _ = message;
+                            if (error != null)
+                            {
+                                Console.WriteLine($"Delete failed for file {chunk[index]}");
+                            }
+                        });
+
+                    foreach (var f in chunk)
+                    {
+                        var deleteReq = driveService.Files.Delete(f.Id.Value);
+                        batch.Queue(deleteReq, callback);
+                    }
+
+                    return GoogleApiHelper1.ExecuteWithRetryAsync(() => batch.ExecuteAsync(cancellationToken));
+                };
+            }
+        }
+    }
+
     public static Task<List<BasicDriveFile>> GetFiles(
         this DriveService driveService,
         FolderId folderId,
         CancellationToken cancellationToken)
     {
-        return ExecuteWithRetryAsync(Impl);
+        return GoogleApiHelper1.ExecuteWithRetryAsync(Impl);
 
         async Task<List<BasicDriveFile>> Impl()
         {
@@ -164,7 +168,7 @@ public static class DriveApiHelper
         string name,
         CancellationToken cancellationToken)
     {
-        return ExecuteWithRetryAsync(Impl);
+        return GoogleApiHelper1.ExecuteWithRetryAsync(Impl);
 
         async Task<FolderId> Impl()
         {
@@ -183,7 +187,7 @@ public static class DriveApiHelper
         FolderId folderId,
         CancellationToken cancellationToken)
     {
-        return ExecuteWithRetryAsync(Impl);
+        return GoogleApiHelper1.ExecuteWithRetryAsync(Impl);
 
         async Task Impl()
         {
@@ -205,7 +209,7 @@ public static class DriveApiHelper
         FileId fileId,
         CancellationToken cancellationToken)
     {
-        return ExecuteWithRetryAsync(Impl);
+        return GoogleApiHelper1.ExecuteWithRetryAsync(Impl);
 
         async Task Impl()
         {

@@ -46,16 +46,39 @@ public sealed class DriveFileLoader : IDisposable
         CancellationToken cancellationToken)
     {
         const string xlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        var fileTypeString = fileType switch
+        var uploadedFileTypeString = fileType switch
         {
             DriveFileType.Excel => xlsxMimeType,
             _ => throw Unreachable(),
         };
-        var request = _driveService.Files.Export(
-            fileId: fileId,
-            mimeType: fileTypeString);
-        var progress = await request.DownloadAsync(outputStream, cancellationToken);
-        return progress;
+        var nativeGoogleSheetTypeString = fileType switch
+        {
+            DriveFileType.Excel => "application/vnd.google-apps.spreadsheet",
+            _ => throw Unreachable(),
+        };
+
+        var metaRequest = _driveService.Files.Get(fileId);
+        metaRequest.Fields = "mimeType";
+        var meta = await metaRequest.ExecuteAsync(cancellationToken);
+
+        if (meta.MimeType == nativeGoogleSheetTypeString)
+        {
+            // do conversion
+            var exportRequest = _driveService.Files.Export(fileId, uploadedFileTypeString);
+            var progress = await exportRequest.DownloadAsync(outputStream, cancellationToken);
+            return progress;
+        }
+        else if (meta.MimeType == uploadedFileTypeString)
+        {
+            // don't do conversion
+            var downloadRequest = _driveService.Files.Get(fileId);
+            var progress = await downloadRequest.DownloadAsync(outputStream, cancellationToken);
+            return progress;
+        }
+        else
+        {
+            throw new InvalidOperationException($"The file is not in the expected format '{uploadedFileTypeString}' ({fileType}). The actual mime type is '{meta.MimeType}'");
+        }
     }
 
     public void Dispose()

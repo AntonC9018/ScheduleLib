@@ -351,11 +351,13 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         }
     }
 
-    public GroupId Group0 => this[0];
+    public readonly GroupId Group0 => this[0];
 
     public readonly int Capacity => LessonGroupsImpl._Capacity;
 
     public readonly bool IsSingleGroup => this[1] == GroupId.Invalid;
+
+    public readonly bool IsEmpty => Group0.IsInvalid;
 
     public readonly int Count
     {
@@ -649,6 +651,7 @@ public enum LessonType
     Curs,
     Prelegere,
     Exam,
+    Consultation,
     Custom,
     Unspecified,
     Count,

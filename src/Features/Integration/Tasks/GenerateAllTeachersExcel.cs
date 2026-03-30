@@ -592,6 +592,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 {
                     return;
                 }
+                if (groups.IsEmpty)
+                {
+                    return;
+                }
 
                 // b.MaybeAppendSeparator();
 

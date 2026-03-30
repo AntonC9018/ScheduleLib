@@ -193,6 +193,7 @@ public static class Registration
             {
                 services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
                 services.AddTransient<EnrichWithTeacherFullNamesFromWebsite>();
+                services.AddTransient<ConsultationsLoaderComponent>();
 
                 services.AddOptions<ScheduleBuilderInitializerOptions>();
 

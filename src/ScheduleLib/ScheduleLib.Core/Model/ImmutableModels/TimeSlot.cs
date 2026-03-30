@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using ScheduleLib;
+using ScheduleLib.Parsing;
 
 public struct DefaultLessonTimeConfig(LessonTimeConfig b)
 {
@@ -65,6 +67,55 @@ public sealed class LessonTimeConfig
             return null;
         }
         return new(i);
+    }
+
+    public TimeSlot FindClosestTimeSlot(TimeOnly time)
+    {
+        if (FindTimeSlotByIncludedTime(time) is { } x)
+        {
+            return x;
+        }
+        var i = TimeSlotStarts
+            .WithIndex()
+            .MinBy(t =>
+            {
+                double Diff(TimeSpan offset)
+                {
+                    var t1 = (t.Item.Add(offset) - time).TotalMinutes;
+                    return Math.Abs(t1);
+                }
+                var a = Diff(TimeSpan.Zero);
+                var b = Diff(LessonDuration);
+                return Math.Min(a, b);
+            })
+            .Index;
+        return new(i);
+    }
+
+    public void GetTimeSlotsThatInclude(TimeInterval interval, List<TimeSlot> output)
+    {
+        if (FindTimeSlotByIncludedTime(interval.Start) is not { } startSlot)
+        {
+            return;
+        }
+        output.Add(startSlot);
+
+        int currentIndex = startSlot.Index + 1;
+        while (true)
+        {
+            if (currentIndex >= TimeSlotCount)
+            {
+                break;
+            }
+            var timeSlot = new TimeSlot(currentIndex);
+            var currentInterval = GetTimeSlotInterval(timeSlot);
+            if (currentInterval.Start >= interval.End)
+            {
+                break;
+            }
+            output.Add(new(currentIndex));
+            currentIndex++;
+        }
     }
 
     public TimeSlot? FindTimeSlotByStartTime(TimeOnly startTime)

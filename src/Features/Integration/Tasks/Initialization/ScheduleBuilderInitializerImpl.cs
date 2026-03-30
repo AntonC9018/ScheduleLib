@@ -1,6 +1,4 @@
 using AutoConstructor.Attributes;
-using FmiWebsiteInterop.Api;
-using FmiWebsiteInterop.Teachers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,12 +13,13 @@ public sealed class ScheduleBuilderInitializerOptions
     public bool BypassCache { get; set; } = false;
     public bool UseCache { get; set; } = true;
     public bool EnrichWithFullNames { get; set; } = true;
+    public bool LoadConsultations { get; set; } = true;
 }
 
 [AutoConstructor]
 public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 {
-    private readonly IServiceProvider _sp;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ILogger _logger;
     private readonly ConfigureRemappingsDelegate _configureRemappings;
@@ -30,6 +29,9 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         ScheduleBuilder builder,
         CancellationToken cancellationToken)
     {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var sp = scope.ServiceProvider;
+
         builder.ConfigureRemappings(_configureRemappings);
         builder.EnableLookupModule();
 
@@ -59,11 +61,17 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             //     FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
             // });
 
-            var websiteLoader = _sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();
+            var websiteLoader = sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();
             loader.Components.Add(websiteLoader);
         }
 
-        var context = ActivatorUtilities.CreateInstance<DocParseContext>(_sp, builder);
+        if (opts.LoadConsultations)
+        {
+            var l = sp.GetRequiredService<ConsultationsLoaderComponent>();
+            loader.Components.Add(l);
+        }
+
+        var context = ActivatorUtilities.CreateInstance<DocParseContext>(sp, builder);
         await loader.Load(
             context,
             cancellationToken,

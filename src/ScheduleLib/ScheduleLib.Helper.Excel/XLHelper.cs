@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib.Excel.Helper;
 
@@ -52,6 +53,12 @@ public static class ExcelLibExtensions
             yield return cell;
         }
     }
+
+}
+
+public interface ICellProcessor<TColumn>
+{
+    public bool Process(TColumn column, IXLCell value);
 }
 
 public sealed class ExcelSheetException : NotSupportedException

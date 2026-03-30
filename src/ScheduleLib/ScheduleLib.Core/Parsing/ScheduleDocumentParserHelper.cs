@@ -54,7 +54,7 @@ public static class ScheduleDocumentParserHelper
             }
         }
 
-        public TimeInterval ParseTimeInterval()
+        public TimeInterval ParseTimeInterval(bool allowOpenInterval = false)
         {
             // HH:MM-HH:MM
             parser.SkipWhitespace();
@@ -64,6 +64,10 @@ public static class ScheduleDocumentParserHelper
             }
             if (parser.IsEmpty || parser.Current != '-')
             {
+                if (allowOpenInterval)
+                {
+                    return TimeInterval.CreateOpenInterval(startTime);
+                }
                 throw new NotSupportedException("Expected '-' after start time");
             }
             parser.Move();
@@ -141,4 +145,12 @@ public static class ScheduleDocumentParserHelper
     }
 }
 
-public readonly record struct TimeInterval(TimeOnly Start, TimeOnly End);
+public readonly record struct TimeInterval(TimeOnly Start, TimeOnly End)
+{
+    public static TimeInterval CreateOpenInterval(TimeOnly start)
+    {
+        return new(start, default);
+    }
+
+    public bool IsOpenInterval => End == default;
+}

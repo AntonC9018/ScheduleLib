@@ -9,11 +9,11 @@ using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.NodeData.Features.Registry;
 
-[AutoConstructor]
-public sealed partial class RegistryConfigViewModel : NodeDataViewModelBase<RegistryConfig>
-{
-    private readonly NodeDataAccessor<RegistryConfig> _helper;
+public sealed class RegistryConfigViewModel(
+    NodeDataAccessor<RegistryConfig> _helper)
 
+    : NodeDataViewModelBase<RegistryConfig>
+{
     public static void Register(IServiceCollection services)
     {
         services.AddVmFactory(
