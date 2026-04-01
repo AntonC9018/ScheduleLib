@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing.GroupParser;
@@ -5,22 +6,33 @@ namespace ScheduleLib.Parsing.GroupParser;
 public sealed class GroupParseContext
 {
     // Must be modulo 100
-    public int CurrentStudyYear { get; }
+    public int CurrentStudyYear { get; init; }
+    public ReadOnlySet<string> GroupLabelsThatAreMaster { get; }
 
-    private GroupParseContext(int currentStudyYear)
+    private GroupParseContext(
+        int currentStudyYear,
+        ReadOnlySet<string> groupLabelsThatAreMaster)
     {
         CurrentStudyYear = currentStudyYear;
+        GroupLabelsThatAreMaster = groupLabelsThatAreMaster;
     }
 
     public struct Params
     {
         public required int CurrentStudyYear;
+        public ReadOnlySet<string>? GroupLabelsThatAreMaster;
+    }
+
+    public bool IsGroupMaster(ReadOnlyMemory<char> label)
+    {
+        // TODO: Figure out why this doesn't have alternate lookup.
+        return GroupLabelsThatAreMaster.Contains(label.ToString());
     }
 
     public static GroupParseContext Create(Params p)
     {
         int year = p.CurrentStudyYear % 100;
-        return new(year);
+        return new(year, p.GroupLabelsThatAreMaster ?? ReadOnlySet<string>.Empty);
     }
 
     public Grade DetermineGrade(int year)
@@ -63,6 +75,11 @@ public static class GroupHelper
         bool isDual = parser.ConsumeExactString("DU-");
 
         var (label, isFr, isMaster) = ParseLabel(ref parser);
+        if (context.IsGroupMaster(label.AsMemory()))
+        {
+            isMaster = true;
+        }
+
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
 
         if (isFr && isDual)

@@ -130,6 +130,7 @@ public static class Registration
                     var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
                     return GroupParseContext.Create(new()
                     {
+                        GroupLabelsThatAreMaster = ScheduleDefaults.Config.GroupLabelsThatAreMaster,
                         CurrentStudyYear = options.StudyYear,
                     });
                 });

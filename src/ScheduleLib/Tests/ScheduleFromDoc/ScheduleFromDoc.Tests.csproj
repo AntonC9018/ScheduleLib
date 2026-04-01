@@ -4,6 +4,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\..\MainCli\MainCli.csproj" />
+        <ProjectReference Include="..\ScheduleCommon\ScheduleCommon.csproj" />
     </ItemGroup>
     <ItemGroup>
       <None Include="*.verified.*" CopyToOutputDirectory="Always" />

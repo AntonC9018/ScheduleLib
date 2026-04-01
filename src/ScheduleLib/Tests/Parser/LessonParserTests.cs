@@ -953,7 +953,6 @@ public sealed class LessonParserTests
         Gh. Latul, 216a/4a
         """;
 
-
         var lessons = ParseLessons([str], Config.WhiteSpaceActionCourseName);
         Assert.Collection(lessons,
             l1 =>
@@ -1003,5 +1002,90 @@ public sealed class LessonParserTests
         Assert.Equal(Parity.OddWeek, lesson.Parity);
         Assert.Equal("IA2303", lesson.GroupName.Span);
 
+    }
+
+    [Fact]
+    public void DotInTimeAllowed()
+    {
+        var lessons = ParseLessons(["17.30 Sisteme operare (exam)", "M. Butnaru, 218/4a"]);
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Sisteme operare", lesson.LessonName.Span);
+        Assert.Equal(new TimeOnly(hour: 17, minute: 30), lesson.StartTime);
+        Assert.Equal(LessonType.Exam, lesson.LessonType);
+        Assert.Equal("218/4a", lesson.RoomName.Span);
+        AssertEqualName("M. Butnaru", Assert.Single(lesson.TeacherNames));
+    }
+
+    [Fact(Skip = "Not implemented, this is hard to implement, maybe do later, maybe delete all this code")]
+    public void LessonTypeAsModifierKeyAllowed()
+    {
+        var lessons = ParseLessons(
+        [
+            "Matem.discr.(Logica)",
+            "I.Cucu (curs) 239/4,",
+            "N.Cuciuc (lab) 239/4",
+        ]);
+
+        void Common(in ParsedLesson l)
+        {
+            Assert.Equal("Matem. discr.", l.LessonName.Span);
+            Assert.Equal("Logica", l.GroupName.Span);
+            Assert.Equal("239/4", l.RoomName.Span);
+        }
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Common(l1);
+                Assert.Equal(LessonType.Curs, l1.LessonType);
+                AssertEqualName("I. Cucu", Assert.Single(l1.TeacherNames));
+            },
+            l2 =>
+            {
+                Common(l2);
+                Assert.Equal(LessonType.Curs, l2.LessonType);
+                AssertEqualName("N. Cuciuc", Assert.Single(l2.TeacherNames));
+            });
+    }
+
+    [Fact]
+    public void sb1_ShortModifierForm_WithModifierValue_Passes()
+    {
+        var lessons = ParseLessons(["Etica și dreptul în Inteligența Artificială (lab, sb1 par, sb 2 imp), A. Poiată, 145/4"]);
+
+        void Common(in ParsedLesson l)
+        {
+            Assert.Equal("Etica și dreptul în Inteligența Artificială", l.LessonName.Span);
+            Assert.Equal(LessonType.Lab, l.LessonType);
+            Assert.Equal("145/4", l.RoomName.Span);
+            AssertEqualName("A. Poiată", Assert.Single(l.TeacherNames));
+        }
+
+        Assert.Collection(lessons,
+            l1 =>
+            {
+                Common(l1);
+                Assert.Equal(SubGroup.CreateNumeric(1), l1.SubGroup);
+                Assert.Equal(Parity.EvenWeek, l1.Parity);
+            },
+            l2 =>
+            {
+                Common(l2);
+                Assert.Equal(SubGroup.CreateNumeric(2), l2.SubGroup);
+                Assert.Equal(Parity.OddWeek, l2.Parity);
+            });
+    }
+
+    [Fact]
+    public void sb1_ShortModifierForm_WithoutModifierValue_ForSettingSubGroup()
+    {
+        var lessons = ParseLessons(["Proiect practic de știința datelor (lab, sb.1), V. Ursachi, 219/4a"]);
+
+        var l1 = Assert.Single(lessons);
+        Assert.Equal("Proiect practic de știința datelor", l1.LessonName.Span);
+        AssertEqualName("V. Ursachi", Assert.Single(l1.TeacherNames));
+        Assert.Equal(LessonType.Lab, l1.LessonType);
+        Assert.Equal(SubGroup.CreateNumeric(1), l1.SubGroup);
+        Assert.Equal("219/4a", l1.RoomName.Span);
     }
 }

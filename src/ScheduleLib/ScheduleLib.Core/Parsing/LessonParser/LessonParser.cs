@@ -479,28 +479,106 @@ public static class LessonParsingHelper
                     break;
                 }
 
+                var unparsedModifiers = new List<(LimitedLexerScope Lexer, SubGroup SubGroup)>();
                 foreach (var l in c.Lexer.List())
                 {
                     var lexer = l;
-
                     if (lexer.IsEmpty)
                     {
                         WrongFormatException.EmptyListItem();
                     }
                     lexer.TryConsume(TokenType.Whitespace);
+                    unparsedModifiers.Add((lexer, default));
+                }
+
+                var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
+                    unparsedModifiers,
+                    c);
+                if (defaultSubGroup != default)
+                {
+                    c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(defaultSubGroup);
+                }
+
+                static SubGroup DetermineDefaultSubGroupByParsingSbShortForm(
+                    List<(LimitedLexerScope Lexer, SubGroup SubGroup)> unparsedModifiers,
+                    ParsingContext c)
+                {
+                    SubGroup defaultSubGroup = default;
+                    int i = 0;
+                    while (true)
+                    {
+                        if (i >= unparsedModifiers.Count)
+                        {
+                            break;
+                        }
+
+                        ref var l = ref CollectionsMarshal.AsSpan(unparsedModifiers)[i];
+                        var subGroup = ShortSbModifierForm(ref l.Lexer);
+                        if (subGroup == default)
+                        {
+                            i++;
+                            continue;
+                        }
+
+                        l.SubGroup = subGroup;
+                        l.Lexer.TryConsume(TokenType.Whitespace);
+
+                        if (!l.Lexer.IsEmpty)
+                        {
+                            i++;
+                            continue;
+                        }
+                        // if (l.Lexer.IsEmpty
+                        //     && subGroup != default)
+                        // {
+                        // }
+                        if (IsParsingInsideSubgroupAlready(c))
+                        {
+                            throw new WrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
+                        }
+                        if (defaultSubGroup != default)
+                        {
+                            throw new WrongFormatException("Cannot specify the subgrou inside the modifier list twice");
+                        }
+                        defaultSubGroup = subGroup;
+
+                        // Don't increment!
+                        unparsedModifiers.RemoveAt(i);
+                    }
+                    return defaultSubGroup;
+                }
+
+                foreach (var t in unparsedModifiers)
+                {
+                    var lexer = t.Lexer;
 
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
                     // OR
                     // sb NUMBER modifier
-                    var key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
+                    SubLessonModifiersKey key;
+                    if (t.SubGroup != default)
+                    {
+                        key = new()
+                        {
+                            SubGroup = t.SubGroup,
+                        };
+                    }
+                    else
+                    {
+                        key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
+                    }
+
                     ref var modifiers = ref GetCurrentModifiers(c, key);
+                    lexer.TryConsume(TokenType.Whitespace);
+                    // The sb1 form without a modifier has been handled already.
                     var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
                     bool somethingSet = modifiers.Set(modifierValue);
                     if (!somethingSet)
                     {
                         throw new WrongFormatException("Modifier group that did nothing");
                     }
+
                     lexer.TryConsume(TokenType.Whitespace);
                     if (!lexer.IsEmpty)
                     {
@@ -558,66 +636,12 @@ public static class LessonParsingHelper
                     {
                         return new();
                     }
+                    if (RegularModifierForm(ref lexer) is { } regRet)
                     {
-                        if (ShortSbModifierForm(ref lexer) is { } sbRet)
-                        {
-                            return sbRet;
-                        }
-                        if (RegularModifierForm(ref lexer) is { } regRet)
-                        {
-                            return regRet;
-                        }
+                        return regRet;
                     }
                     return new();
 
-
-                    // sb.1 MODIFIER form
-                    SubLessonModifiersKey? ShortSbModifierForm(ref LimitedLexerScope lexer)
-                    {
-                        var sbToken = lexer.Current;
-                        if (!sbToken.IsAnyWord())
-                        {
-                            return null;
-                        }
-                        var word = new WordSpan(sbToken.Value.Span);
-                        bool wordIsSb = word.Shortened.Value.Equals("sb", StringComparison.Ordinal);
-                        if (!wordIsSb)
-                        {
-                            return null;
-                        }
-
-                        bool hadDot = sbToken.Type == LessonTokenType.ShortWord;
-                        lexer.Move();
-
-                        lexer.TryConsume(TokenType.Whitespace);
-
-                        if (!hadDot)
-                        {
-                            lexer.TryConsume('.');
-                        }
-
-                        lexer.TryConsume(TokenType.Whitespace);
-                        if (lexer.IsEmpty)
-                        {
-                            WrongFormatException.ExpectedArabSubGroup();
-                        }
-
-                        var tokNum = lexer.Current;
-                        if (tokNum.Type != LessonTokenType.Number)
-                        {
-                            WrongFormatException.ExpectedArabSubGroup();
-                        }
-                        if (tokNum.Value.Length != 1)
-                        {
-                            WrongFormatException.ExpectedSubGroupNumberToBeOneDigit();
-                        }
-                        var number = tokNum.Value.Span[0] - '0';
-                        var subGroup = SubGroup.CreateNumeric(number);
-                        return new()
-                        {
-                            SubGroup = subGroup,
-                        };
-                    }
 
                     SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                     {
@@ -651,10 +675,60 @@ public static class LessonParsingHelper
                     }
                 }
 
+                // sb.1 MODIFIER form
+                static SubGroup ShortSbModifierForm(ref LimitedLexerScope lexer)
+                {
+                    var sbToken = lexer.Current;
+                    if (!sbToken.IsAnyWord())
+                    {
+                        return default;
+                    }
+                    var word = new WordSpan(sbToken.Value.Span);
+                    bool wordIsSb = word.Shortened.Value.Equals("sb", StringComparison.Ordinal);
+                    if (!wordIsSb)
+                    {
+                        return default;
+                    }
+
+                    bool hadDot = sbToken.Type == LessonTokenType.ShortWord;
+                    lexer.Move();
+
+                    lexer.TryConsume(TokenType.Whitespace);
+
+                    if (!hadDot)
+                    {
+                        lexer.TryConsume('.');
+                        lexer.TryConsume(TokenType.Whitespace);
+                    }
+
+                    if (lexer.IsEmpty)
+                    {
+                        WrongFormatException.ExpectedArabSubGroup();
+                    }
+
+                    var tokNum = lexer.Current;
+                    if (tokNum.Type != LessonTokenType.Number)
+                    {
+                        WrongFormatException.ExpectedArabSubGroup();
+                    }
+                    if (tokNum.Value.Length != 1)
+                    {
+                        WrongFormatException.ExpectedSubGroupNumberToBeOneDigit();
+                    }
+                    lexer.Move();
+                    var number = tokNum.Value.Span[0] - '0';
+                    var subGroup = SubGroup.CreateNumeric(number);
+                    return subGroup;
+                }
+
+                static bool IsParsingInsideSubgroupAlready(ParsingContext c)
+                {
+                    return c.State.Step == ParsingStep.OptionalParensBeforeRoom;
+                }
+
                 static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubLessonModifiersKey key)
                 {
-                    bool isParsingInsideSubgroupAlready = c.State.Step == ParsingStep.OptionalParensBeforeRoom;
-                    if (!isParsingInsideSubgroupAlready)
+                    if (!IsParsingInsideSubgroupAlready(c))
                     {
                         ref var modifiers = ref c.State.CurrentSubLesson.Modifiers.Ref(key).General;
                         return ref modifiers;
@@ -678,7 +752,7 @@ public static class LessonParsingHelper
                         WrongFormatException.LexerEmpty();
                     }
                     var t = lexer.Current;
-                    if (t.Type != LessonTokenType.Word)
+                    if (t.Type is not LessonTokenType.Word)
                     {
                         WrongFormatException.InvalidToken(t);
                     }
@@ -1410,7 +1484,7 @@ public static class LessonParsingHelper
         {
             return null;
         }
-        if (!copy.TryConsume(':'))
+        if (!copy.TryConsumeAny(":."))
         {
             return null;
         }
@@ -1852,7 +1926,7 @@ internal struct SubLessonModifiersList() : IBasic<SubLessonModifiersList>
 
     public ref SubLessonModifiers Ref(SubLessonModifiersKey key)
     {
-        if (key == default)
+        if (key == SubLessonModifiersKey.Default)
         {
             key = new();
         }

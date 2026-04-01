@@ -4,6 +4,7 @@ using System.Text;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Teachers;
 using Microsoft.Extensions.Logging;
+using OpenXmlPowerTools;
 using ScheduleLib.Application.Core.FR;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -192,12 +193,19 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite);
-            await ExcelScheduleParser.ParseIntoSchedule(Config, new()
+            try
             {
-                Context = context,
-                InputFile = inputFile,
-                StringBuilder = new(),
-            });
+                await ExcelScheduleParser.ParseIntoSchedule(Config, new()
+                {
+                    Context = context,
+                    InputFile = inputFile,
+                    StringBuilder = new(),
+                });
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error while reading {filePath}", e);
+            }
         }
     }
 }

@@ -32,6 +32,7 @@ public static class ExcelScheduleParser
         AllowedQualificationTypes = new(QualificationType.Licenta),
         AddLessonHandler = FrScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeekAndDate,
+        ExpectBullshitRow = true,
     };
     public static Config MasterConfig => new()
     {
@@ -39,6 +40,7 @@ public static class ExcelScheduleParser
         AllowedQualificationTypes = new(QualificationType.Master),
         AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeek,
+        ExpectBullshitRow = false,
     };
 
     public static ValueTask ParseFrIntoSchedule(Params p)
@@ -57,6 +59,7 @@ public static class ExcelScheduleParser
         public required EnumBitArray<AttendanceMode> AllowedAttendanceModes { get; init; }
         public required EnumBitArray<QualificationType> AllowedQualificationTypes { get; init; }
         public required IScheduleAddLessonHandler AddLessonHandler { get; init; }
+        public required bool ExpectBullshitRow { get; init; }
     }
 
     public static ValueTask ParseIntoSchedule(
@@ -156,7 +159,7 @@ public static class ExcelScheduleParser
             offset,
             config);
 
-        if (isFirstTime)
+        if (isFirstTime && config.ExpectBullshitRow)
         {
             if (!rowE.MoveNext())
             {
@@ -189,7 +192,7 @@ public static class ExcelScheduleParser
             Debug.Assert(action == RowIterationContext.UpdateAction.Process);
             currentResult = ParsingIterResult.ProcessedNormally;
 
-            var cellIterationContext = new CellIterationContext(cellE);
+            var cellIterationContext = new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
 
             while (true)
             {
@@ -268,13 +271,15 @@ public static class ExcelScheduleParser
         DayParseMode dayParseMode)
     {
         private Day _day = default;
-        private int _currentRowSpan = 0;
+        private int _currentDayRowSpan = 0;
         private int _rowNumber = startRowNumber;
         private int _rowsSinceLastDate = 0;
         private IXLRange? _lastDateRange = null;
 
         // the first expected number is I so it works out well.
         const int NoTimeSlotRoman = 0;
+        private int _currentTimeSlotRowSpan = 0;
+        private int _rowsSinceLastTimeSlot = 0;
         private int _previousTimeSlotRoman = NoTimeSlotRoman;
         private TimeSlot? _timeSlot = null;
 
@@ -295,6 +300,8 @@ public static class ExcelScheduleParser
                 return _timeSlot!.Value;
             }
         }
+
+        public int LessonsEndRowNumberForLesson => _rowNumber + _currentTimeSlotRowSpan;
 
         public enum UpdateAction
         {
@@ -320,46 +327,9 @@ public static class ExcelScheduleParser
 
             {
                 var cell = cellE.Current;
-                var range = cell.ActualRange();
-
-                if (_rowsSinceLastDate == _currentRowSpan)
+                if (!ProcessDay(cell))
                 {
-                    if (range.Equals(_lastDateRange))
-                    {
-                        throw cell.Exception("Incorrectly computed range length?");
-                    }
-
-                    var value = cell.Value;
-                    if (value.IsBlank)
-                    {
-                        return UpdateAction.Done;
-                    }
-                    var text = value.GetText();
-                    if (text == "")
-                    {
-                        return UpdateAction.Done;
-                    }
-
-                    _currentRowSpan = range.RowCount();
-                    _rowsSinceLastDate = 0;
-                    var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
-                    _lastDateRange = range;
-                    _previousTimeSlotRoman = NoTimeSlotRoman;
-                    _timeSlot = null;
-                    _day = newDay;
-
-                    if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
-                    {
-                        throw cell.Exception("Wrong day of week specified in excel.");
-                    }
-                }
-                else
-                {
-                    Debug.Assert(_lastDateRange != null);
-                    if (!_lastDateRange.Equals(range))
-                    {
-                        throw cell.Exception("Expected ranges to have matched.");
-                    }
+                    return UpdateAction.Done;
                 }
             }
 
@@ -373,63 +343,141 @@ public static class ExcelScheduleParser
 
             {
                 var cell = cellE.Current;
-                if (cell.IsMerged())
-                {
-                    throw cell.Exception("Time slot cell must not be merged!");
-                }
+                ProcessTimeSlot(cell);
+            }
+            return UpdateAction.Process;
+        }
 
-                var parser = new Parser(cell.GetString());
-                parser.SkipWhitespace();
-                var romanReadResult = parser.ReadRoman();
-                if (romanReadResult.Status != ReadRomanStatus.Ok)
+        private bool ProcessDay(IXLCell cell)
+        {
+            var range = cell.ActualRange();
+            if (_rowsSinceLastDate != _currentDayRowSpan)
+            {
+                Debug.Assert(_lastDateRange != null);
+                if (!_lastDateRange.Equals(range))
                 {
-                    if (_previousTimeSlotRoman != 0)
-                    {
-                        throw cell.Exception("Expected a roman numeral for the time slot.");
-                    }
+                    throw cell.Exception("Expected ranges to have matched.");
                 }
-                else
+                return true;
+            }
+
+            if (range.Equals(_lastDateRange))
+            {
+                throw cell.Exception("Incorrectly computed range length?");
+            }
+            if (_rowsSinceLastTimeSlot != _currentTimeSlotRowSpan)
+            {
+                throw cell.Exception("Time slot went past day row span");
+            }
+
+            var value = cell.Value;
+            if (value.IsBlank)
+            {
+                return false;
+            }
+            var text = value.GetText();
+            if (text == "")
+            {
+                return false;
+            }
+
+            _currentDayRowSpan = range.RowCount();
+            _rowsSinceLastDate = 0;
+            var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
+            _lastDateRange = range;
+            _previousTimeSlotRoman = NoTimeSlotRoman;
+            _rowsSinceLastTimeSlot = 0;
+            _currentTimeSlotRowSpan = 0;
+            _timeSlot = null;
+            _day = newDay;
+
+            if (dayParseMode == DayParseMode.DayOfWeekAndDate)
+            {
+                if (newDay.Date.DayOfWeek != newDay.DayOfWeek)
+                {
+                    throw cell.Exception("Wrong day of week specified for this date.");
+                }
+            }
+            return true;
+        }
+
+        private void ProcessTimeSlot(IXLCell cell)
+        {
+            var timeSlotRange = cell.ActualRange();
+            if (_rowsSinceLastTimeSlot == _currentTimeSlotRowSpan)
+            {
+                _rowsSinceLastTimeSlot = 0;
+                _currentTimeSlotRowSpan = timeSlotRange.RowCount();
+                ParseNewTimeSlot(cell);
+            }
+            else
+            {
+                if (timeSlotRange.RowCount() != _currentTimeSlotRowSpan)
+                {
+                    throw cell.Exception("Unexpected time slot merged row count");
+                }
+            }
+            _rowsSinceLastTimeSlot++;
+        }
+
+        private void ParseNewTimeSlot(IXLCell cell)
+        {
+            var parser = new Parser(cell.GetString());
+            parser.SkipWhitespace();
+            var romanReadResult = parser.ReadRoman();
+            if (romanReadResult.Status != ReadRomanStatus.Ok)
+            {
+                if (_previousTimeSlotRoman != 0)
+                {
+                    throw cell.Exception("Expected a roman numeral for the time slot.");
+                }
+            }
+            else
+            {
+                if (_previousTimeSlotRoman != NoTimeSlotRoman)
                 {
                     if (romanReadResult.Number - _previousTimeSlotRoman != 1)
                     {
                         throw cell.Exception("Expected time slot roman numerals to be consecutive.");
                     }
-                    _previousTimeSlotRoman = romanReadResult.Number;
-
-                    if (!parser.SkipWhitespace().SkippedAny)
-                    {
-                        throw cell.Exception("Expected whitespace between roman time slot and ");
-                    }
                 }
 
-                var timeInterval = parser.ParseTimeInterval();
+                _previousTimeSlotRoman = romanReadResult.Number;
 
-                if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
+                if (!parser.SkipWhitespace().SkippedAny)
                 {
-                    throw cell.Exception($"Not found time slot with start time `{timeInterval.Start}`");
+                    throw cell.Exception("Expected whitespace between roman time slot and ");
                 }
-
-                var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
-                if (newTimeSlotTime.End != timeInterval.End)
-                {
-                    throw cell.Exception($"The end time of interval `{timeInterval.End}` doesn't match.");
-                }
-
-                if (_timeSlot is { } timeSlot)
-                {
-                    int expectedNext = timeSlot.Index + 1;
-                    if (expectedNext != timeSlotFound.Index)
-                    {
-                        throw cell.Exception("Time slot times must be consecutive.");
-                    }
-                }
-                _timeSlot = timeSlotFound;
             }
-            return UpdateAction.Process;
+
+            var timeInterval = parser.ParseTimeInterval();
+
+            if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
+            {
+                throw cell.Exception($"Not found time slot with start time `{timeInterval.Start}`");
+            }
+
+            var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
+            if (newTimeSlotTime.End != timeInterval.End)
+            {
+                throw cell.Exception($"The end time of interval `{timeInterval.End}` doesn't match.");
+            }
+
+            if (_timeSlot is { } timeSlot)
+            {
+                int expectedNext = timeSlot.Index + 1;
+                if (expectedNext != timeSlotFound.Index)
+                {
+                    throw cell.Exception("Time slot times must be consecutive.");
+                }
+            }
+            _timeSlot = timeSlotFound;
         }
     }
 
-    private struct CellIterationContext(IEnumerator<IXLCell> cellE)
+    private struct CellIterationContext(
+        IEnumerator<IXLCell> cellE,
+        int lessonsEndRowNumber)
     {
         public const int ColSpanHardLimit = 64;
         private IEnumerator<IXLCell> _cellE = cellE;
@@ -472,9 +520,9 @@ public static class ExcelScheduleParser
             }
             var cell = _cellE.Current;
             var range = cell.ActualRange();
-            if (range.RowCount() != 1)
+            if (range.LastRow().RowNumber() >= lessonsEndRowNumber)
             {
-                throw cell.Exception("Cells spanning only a single row are allowed.");
+                throw cell.Exception("Lesson's span exits the current time slot span");
             }
 
             var newColNumber = range.FirstColumn().ColumnNumber();
@@ -585,7 +633,7 @@ public static class ExcelScheduleParser
             }
 
             var parser = new Parser(str);
-            if (!parser.ConsumeExactString("Anul"))
+            if (!parser.ConsumeExactString("Anul", StringComparison.OrdinalIgnoreCase))
             {
                 if (startOffset != null)
                 {
@@ -847,6 +895,7 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
     {
         var allowedTypes = EnumBitArray<LessonType>.From(
             LessonType.Lab,
+            LessonType.Seminar,
             LessonType.Prelegere,
             LessonType.Curs);
 

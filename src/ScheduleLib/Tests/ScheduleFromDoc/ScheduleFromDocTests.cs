@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper;
+using Tests.ScheduleCommon;
 
 namespace ScheduleFromDoc.Tests;
 

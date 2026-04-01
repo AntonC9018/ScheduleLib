@@ -33,6 +33,12 @@ public static partial class RegistryScraping
         }
 
         var label = ParseLabel(ref mainParser);
+        bool isMaster = false;
+        if (context.IsGroupMaster(label))
+        {
+            isMaster = true;
+        }
+
         var year = ParseYear(ref mainParser);
 
         bool isWildcard = false;
@@ -79,7 +85,7 @@ public static partial class RegistryScraping
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
             // Don't have precedents for master yet.
-            QualificationType = QualificationType.Licenta,
+            QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
             AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
             SubGroupName = subGroup,
             IsRepeat = isRepeat,

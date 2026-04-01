@@ -6,6 +6,7 @@ using AngleSharp.Text;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Parsing.GroupParser;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 

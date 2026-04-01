@@ -1,10 +1,28 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.GroupParser;
 
 namespace Tests.ScheduleCommon;
 
 public static class ScheduleTestHelper
 {
+    public static int StudyYear(this ScheduleBuilder s)
+    {
+        return s.GroupParseContext!.CurrentStudyYear;
+    }
+
+    public static void SetStudyYear(this ScheduleBuilder s, int year)
+    {
+        if (s.Groups.Count != 0)
+        {
+            throw new InvalidOperationException("The year must be initialized prior to creating groups.");
+        }
+        s.GroupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = year,
+        });
+    }
+
     public const string TestSchedulePath = "data/schedule_2025_1.json";
     public static async Task<ScheduleBuilder> CreateTestSchedule()
     {

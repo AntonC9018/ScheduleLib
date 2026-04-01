@@ -19,23 +19,6 @@ public struct GroupBuilder
 
 public static class GroupBuilderHelper
 {
-    public static int StudyYear(this ScheduleBuilder s)
-    {
-        return s.GroupParseContext!.CurrentStudyYear;
-    }
-
-    public static void SetStudyYear(this ScheduleBuilder s, int year)
-    {
-        if (s.Groups.Count != 0)
-        {
-            throw new InvalidOperationException("The year must be initialized prior to creating groups.");
-        }
-        s.GroupParseContext = GroupParseContext.Create(new()
-        {
-            CurrentStudyYear = year,
-        });
-    }
-
     private static int DetermineStudyYear()
     {
         var now = DateTime.Now;

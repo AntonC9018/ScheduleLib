@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
@@ -33,6 +34,8 @@ public static class Config
 
     public static CourseNameUnifierConfig CourseNameUnifier =>
         CourseNameUnifierConfig.Create(CourseNameParser, CourseNameUnificationConfig);
+
+    public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
 
     public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)
     {
