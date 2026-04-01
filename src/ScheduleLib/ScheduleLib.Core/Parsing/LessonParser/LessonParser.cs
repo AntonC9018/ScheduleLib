@@ -491,6 +491,8 @@ public static class LessonParsingHelper
 
                     // Check if it's the subgroup form.
                     // ROMAN-modifier
+                    // OR
+                    // sb NUMBER modifier
                     var key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
                     ref var modifiers = ref GetCurrentModifiers(c, key);
                     var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
@@ -556,33 +558,97 @@ public static class LessonParsingHelper
                     {
                         return new();
                     }
-
-                    var second = lexer.Peek(2);
-                    if (!second.Is('-'))
                     {
-                        return new();
+                        if (ShortSbModifierForm(ref lexer) is { } sbRet)
+                        {
+                            return sbRet;
+                        }
+                        if (RegularModifierForm(ref lexer) is { } regRet)
+                        {
+                            return regRet;
+                        }
                     }
+                    return new();
 
-                    var t = lexer.Peek(1);
-                    if (t.Type != LessonTokenType.Word)
-                    {
-                        WrongFormatException.ExpectedWordToken();
-                    }
 
-                    lexer.Move(2);
-                    if (lessonTypeParser.Parse(t.Value.Span) is { } lessonType)
+                    // sb.1 MODIFIER form
+                    SubLessonModifiersKey? ShortSbModifierForm(ref LimitedLexerScope lexer)
                     {
+                        var sbToken = lexer.Current;
+                        if (!sbToken.IsAnyWord())
+                        {
+                            return null;
+                        }
+                        var word = new WordSpan(sbToken.Value.Span);
+                        bool wordIsSb = word.Shortened.Value.Equals("sb", StringComparison.Ordinal);
+                        if (!wordIsSb)
+                        {
+                            return null;
+                        }
+
+                        bool hadDot = sbToken.Type == LessonTokenType.ShortWord;
+                        lexer.Move();
+
+                        lexer.TryConsume(TokenType.Whitespace);
+
+                        if (!hadDot)
+                        {
+                            lexer.TryConsume('.');
+                        }
+
+                        lexer.TryConsume(TokenType.Whitespace);
+                        if (lexer.IsEmpty)
+                        {
+                            WrongFormatException.ExpectedArabSubGroup();
+                        }
+
+                        var tokNum = lexer.Current;
+                        if (tokNum.Type != LessonTokenType.Number)
+                        {
+                            WrongFormatException.ExpectedArabSubGroup();
+                        }
+                        if (tokNum.Value.Length != 1)
+                        {
+                            WrongFormatException.ExpectedSubGroupNumberToBeOneDigit();
+                        }
+                        var number = tokNum.Value.Span[0] - '0';
+                        var subGroup = SubGroup.CreateNumeric(number);
                         return new()
                         {
-                            LessonType = lessonType,
+                            SubGroup = subGroup,
                         };
                     }
 
-                    var subGroup = new SubGroup(t.Value.Span.ToString());
-                    return new()
+                    SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                     {
-                        SubGroup = subGroup,
-                    };
+                        if (!lexer.Peek(2).Is('-'))
+                        {
+                            return null;
+                        }
+
+                        var token = lexer.Peek(1);
+                        if (token.Type != LessonTokenType.Word)
+                        {
+                            WrongFormatException.ExpectedWordToken();
+                        }
+
+                        // Skip both the word and the -
+                        lexer.Move(2);
+
+                        if (lessonTypeParser.Parse(token.Value.Span) is { } lessonType)
+                        {
+                            return new()
+                            {
+                                LessonType = lessonType,
+                            };
+                        }
+
+                        var subGroup = new SubGroup(token.Value.Span.ToString());
+                        return new()
+                        {
+                            SubGroup = subGroup,
+                        };
+                    }
                 }
 
                 static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubLessonModifiersKey key)
@@ -637,7 +703,7 @@ public static class LessonParsingHelper
                     var groupName = lexer.ConcatWithSpaceReplacement(new()
                     {
                         StringBuilder = sb,
-                        ConcattedType = LessonTokenType.Word,
+                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.Number],
                         WhitespaceReplacer = " ",
                     });
                     Debug.Assert(!groupName.IsEmpty);
@@ -677,9 +743,9 @@ public static class LessonParsingHelper
                     }
                 }
 
-                var subgroupToken = c.Lexer.Current;
+                var subgroupStartLexer = c.Lexer;
                 var lexer = c.Lexer;
-                if (!SkipSubGroup(ref lexer))
+                if (SkipSubGroup(ref lexer) is not { } subGroupEndPos)
                 {
                     SetNoSubgroup(c);
                     break;
@@ -690,7 +756,12 @@ public static class LessonParsingHelper
                     c.State.SubGroupAppliedBeforeLessonName = true;
                 }
 
-                var subgroup = new SubGroup(subgroupToken.Value.Span.ToString());
+                var sb = c.Params.StringBuilder;
+                sb.Clear();
+                var subGroupStr = subgroupStartLexer
+                    .Until(subGroupEndPos)
+                    .Concat(sb);
+                var subgroup = new SubGroup(subGroupStr.ToString());
                 c.State.SetDefaultModifier(subgroup);
 
                 c.Lexer.MoveTo(lexer.Position);
@@ -705,67 +776,77 @@ public static class LessonParsingHelper
                 };
                 break;
 
-                static bool SkipSubGroup(ref LexerScope lexer)
+                static LexerPosition? SkipSubGroup(ref LexerScope lexer)
                 {
                     var t = lexer.Current;
                     if (t.Type != LessonTokenType.Word)
                     {
-                        return false;
+                        return null;
                     }
-                    var sp = t.Value.Span;
-                    if (char.IsNumber(sp[0]))
+                    if (ConsumeS(ref lexer) is { } spos)
                     {
-                        return false;
+                        return spos;
                     }
+                    if (VerifyColonOrDot(ref lexer) is { } cpos)
+                    {
+                        return cpos;
+                    }
+                    return null;
 
                     // Format S{Number}{OptionalNumber}
-                    bool MatchS(ReadOnlyMemory<char> p)
+                    LexerPosition? ConsumeS(ref LexerScope lexer)
                     {
-                        var parser = new Parser(p);
-                        Debug.Assert(!parser.IsEmpty);
-                        if (!parser.ConsumeExactChar('S'))
+                        var lexerCopy = lexer;
+                        if (!lexerCopy.ConsumeExactWord("S"))
                         {
-                            return false;
+                            return null;
                         }
-                        if (parser.ConsumePositiveIntWithMaxLength(maxLength: 2) == null)
+                        if (lexerCopy.IsEmpty)
                         {
-                            return false;
+                            return null;
                         }
-                        if (!parser.IsEmpty)
-                        {
-                            return false;
-                        }
-                        return true;
-                    }
-                    if (MatchS(lexer.Current.Value))
-                    {
-                        lexer.Move();
-                        return true;
-                    }
 
-                    if (VerifyColonOrDot(ref lexer))
-                    {
-                        return true;
+                        var t = lexerCopy.Current;
+                        if (t.Type != LessonTokenType.Number)
+                        {
+                            return null;
+                        }
+                        if (t.Value.Length > 2)
+                        {
+                            return null;
+                        }
+                        lexerCopy.Move();
+
+                        lexer.MoveTo(lexerCopy.Position);
+                        return lexer.Position;
                     }
-                    return false;
                 }
 
-                static bool VerifyColonOrDot(ref LexerScope lexer)
+                static LexerPosition? VerifyColonOrDot(ref LexerScope lexer)
                 {
                     lexer.Move();
+
+                    // TODO:
+                    // This feels kinda dirty, but it would work because of the fact
+                    // that spaces or separator would separate normally.
+                    while (lexer.TryConsumeAny([LessonTokenType.Number, LessonTokenType.Word]))
+                    {
+                    }
+
                     if (lexer.IsEmpty)
                     {
-                        return false;
+                        return null;
                     }
+                    var endPos = lexer.Position;
                     if (!lexer.TryConsumeAny(":."))
                     {
-                        return false;
+                        return null;
                     }
                     if (!lexer.TryConsume(TokenType.Whitespace))
                     {
-                        return false;
+                        return null;
                     }
-                    return true;
+                    return endPos;
                 }
 
                 static void SetNoSubgroup(ParsingContext c)
@@ -1074,7 +1155,7 @@ public static class LessonParsingHelper
                     WrongFormatException.InvalidToken(t);
                     return false;
                 }
-                if (t.IsAnyWord())
+                if (t.IsAnyWord() || t.Type == LessonTokenType.Number)
                 {
                     AppendCurrentWord();
                     if (t.Type == LessonTokenType.ShortWord)
@@ -1096,6 +1177,11 @@ public static class LessonParsingHelper
                     return true;
                 }
                 if (t.Is('-'))
+                {
+                    AppendCurrentWord();
+                    return true;
+                }
+                if (t.Is('/'))
                 {
                     AppendCurrentWord();
                     return true;
@@ -1177,14 +1263,11 @@ public static class LessonParsingHelper
                 {
                     break;
                 }
-                if (t.Type == LessonTokenType.Word
+                if (t.Type == LessonTokenType.Number
                     && t.Value.Length >= 2
                     && !isInsideParen)
                 {
-                    if (ParserHelper.All(t.Value.Span[.. 2], char.IsNumber))
-                    {
-                        break;
-                    }
+                    break;
                 }
                 else if (t.Is(',') && !isInsideParen)
                 {
@@ -1285,7 +1368,19 @@ public static class LessonParsingHelper
             }
 
             var roomName = CleanName(
-                c => c.DefaultAll(),
+                c =>
+                {
+                    var t = c.Lexer.Current;
+                    if (t.Type == LessonTokenType.Number)
+                    {
+                        return c.DontInsertAll();
+                    }
+                    if (t.Is('/'))
+                    {
+                        return c.DontInsertAll();
+                    }
+                    return c.DefaultAll();
+                },
                 c.Lexer.Until(lexer.Position),
                 c.Params.StringBuilder);
             c.Lexer.MoveTo(lexer.Position);
@@ -1331,7 +1426,7 @@ public static class LessonParsingHelper
         static uint? TimePart(ref LexerScope lexer)
         {
             var t = lexer.Current;
-            if (t.Type != LessonTokenType.Word)
+            if (t.Type != LessonTokenType.Number)
             {
                 return null;
             }
@@ -1419,15 +1514,15 @@ public sealed class RoomParser
 
     public bool MightBeStart(Token token)
     {
+        if (token.Type == LessonTokenType.Number)
+        {
+            return true;
+        }
         if (token.Type != LessonTokenType.Word)
         {
             return false;
         }
         var ch = token.Value.Span[0];
-        if (char.IsNumber(ch))
-        {
-            return true;
-        }
         if (ch == '_')
         {
             return true;
@@ -1483,13 +1578,22 @@ public sealed class RoomParser
         }
         else
         {
+            if (lexer.Current.Type == LessonTokenType.Word)
             {
-                var t = lexer.Current;
-                if (t.Type != LessonTokenType.Word)
+                return TryAllUnderscore(ref lexer);
+            }
+            {
+                bool x = NumberAndOptionalLetter(ref lexer);
+                Debug.Assert(x);
+            }
+            lexer.TryConsume(TokenType.Whitespace);
+            if (lexer.TryConsume('/'))
+            {
+                lexer.TryConsume(TokenType.Whitespace);
+                if (!OptionalNumberOrCode(ref lexer))
                 {
                     return false;
                 }
-                lexer.Move();
             }
             {
                 if (lexer.IsEmpty)
@@ -1497,6 +1601,7 @@ public sealed class RoomParser
                     return true;
                 }
                 var t = lexer.Current;
+                // Move this out of here?
                 if (t.Is(',')
                     || t.Type == TokenType.Whitespace
                     || t.Type == TokenType.EndOfLine)
@@ -1505,6 +1610,70 @@ public sealed class RoomParser
                 }
             }
             return false;
+
+            bool TryAllUnderscore(ref LexerScope lexer)
+            {
+                var t = lexer.Current;
+                bool AllUnderscore()
+                {
+                    foreach (var x in t.Value.Span)
+                    {
+                        if (x != '_')
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                if (AllUnderscore())
+                {
+                    lexer.Move();
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool OptionalNumberOrCode(ref LexerScope lexer)
+            {
+                bool consumedAnything = false;
+                if (lexer.TryConsume(LessonTokenType.Number))
+                {
+                    consumedAnything = true;
+                }
+                if (lexer.TryConsume(LessonTokenType.Word))
+                {
+                    consumedAnything = true;
+                }
+                return consumedAnything;
+            }
+
+            bool NumberAndOptionalLetter(ref LexerScope lexer)
+            {
+                if (!lexer.TryConsume(LessonTokenType.Number))
+                {
+                    return false;
+                }
+                TryConsumeSingleLetter(ref lexer);
+                return true;
+            }
+
+            bool TryConsumeSingleLetter(ref LexerScope lexer)
+            {
+                if (lexer.IsEmpty)
+                {
+                    return false;
+                }
+                var t = lexer.Current;
+                if (t.Type == LessonTokenType.Word
+                    && t.Value.Length == 1
+                    && char.IsLetter(t.Value.Span[0]))
+                {
+                    lexer.Move();
+                    return true;
+                }
+                return false;
+            }
         }
     }
 
@@ -2131,6 +2300,12 @@ public class WrongFormatException : Exception
 
     [DoesNotReturn]
     internal static void InvalidLastName() => throw new WrongFormatException($"Last name must not be short");
+
+    [DoesNotReturn]
+    internal static void ExpectedArabSubGroup() => throw new WrongFormatException("Expected subgroup number as a arab numeral");
+
+    [DoesNotReturn]
+    internal static void ExpectedSubGroupNumberToBeOneDigit() => throw new WrongFormatException("Expected a one-digit number for the group");
 }
 
 internal ref struct ParsingContext

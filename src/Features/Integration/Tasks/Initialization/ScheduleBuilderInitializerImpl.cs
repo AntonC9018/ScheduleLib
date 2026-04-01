@@ -50,7 +50,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                 .ThenBy(x => x.Semester)
                 .ThenBy(x => x.AttendanceMode);
             var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear);
-            var loaders = matchingDirs.Select(x => x.GetLoader());
+            var loaders = matchingDirs.SelectMany(x => x.GetLoaders());
             loader.Components.AddRange(loaders);
         }
 

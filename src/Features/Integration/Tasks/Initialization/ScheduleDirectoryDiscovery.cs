@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ScheduleLib.Application.Core.FR;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper.Parsing;
 using TruePath;
@@ -138,23 +139,31 @@ public sealed class ScheduleDirectoryDescriptor
         Semester = semester;
     }
 
-    public IScheduleLoaderComponent GetLoader()
+    public IEnumerable<IScheduleLoaderComponent> GetLoaders()
     {
         switch (AttendanceMode)
         {
             case AttendanceMode.FrecventaRedusa:
             {
-                return new FRScheduleDirectoryLoaderComponent
+                yield return new ScheduleDirectoryExcelLoaderComponent
                 {
+                    Config = ExcelScheduleParser.FrConfig,
                     DirectoryPath = Path,
                 };
+                break;
             }
             case AttendanceMode.Zi:
             {
-                return new DirectoryScheduleLoaderComponent
+                yield return new DirectoryScheduleLoaderComponent
                 {
                     DirectoryPath = Path,
                 };
+                yield return new ScheduleDirectoryExcelLoaderComponent
+                {
+                    Config = ExcelScheduleParser.MasterConfig,
+                    DirectoryPath = Path,
+                };
+                break;
             }
             default:
             {

@@ -757,21 +757,32 @@ public static class WordScheduleParser
                             return;
                         }
 
-                        using var lines = Lines().GetEnumerator();
-
-                        // TODO: can reuse this.
-                        var lessonParser = p.Context.ParserFactory.Create();
-                        lessonParser.Lexer.Reset(lines);
-                        var lessons = lessonParser.ParseLessons(new StringBuilder());
-
-                        foreach (var lesson in lessons)
+                        var l = Lines();
+                        try
                         {
-                            c.AddOrMergeLesson(
-                                in state,
-                                in lesson,
-                                columnIndex: cell.ColumnSizeCounter,
-                                colSpan: colSpan1);
+                            // ReSharper disable once PossibleMultipleEnumeration
+                            using var lines = l.GetEnumerator();
+
+                            // TODO: can reuse this.
+                            var lessonParser = p.Context.ParserFactory.Create();
+                            lessonParser.Lexer.Reset(lines);
+                            var lessons = lessonParser.ParseLessons(new StringBuilder());
+
+                            foreach (var lesson in lessons)
+                            {
+                                c.AddOrMergeLesson(
+                                    in state,
+                                    in lesson,
+                                    columnIndex: cell.ColumnSizeCounter,
+                                    colSpan: colSpan1);
+                            }
                         }
+                        catch (WrongFormatException e)
+                        {
+                            // ReSharper disable once PossibleMultipleEnumeration
+                            throw new NotSupportedException($"Unsupported syntax when parsing {string.Join('\n', l)}", e);
+                        }
+
                         return;
 
                         bool ShouldAdd()

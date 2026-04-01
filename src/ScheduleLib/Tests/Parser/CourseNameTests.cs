@@ -94,4 +94,14 @@ public sealed class CourseNameTests
         var remapped2 = parserConfig.TryRemap(course2);
         Assert.Equal(remapped1, remapped2);
     }
+
+    [Fact]
+    public void InitialsMustMatchFullyIfUsed()
+    {
+        var parserConfig = Config.CourseNameUnifier;
+
+        var course1 = Parse(parserConfig.ParserConfig, "Psihologie");
+        var course2 = Parse(parserConfig.ParserConfig, "PSI");
+        Assert.NotEqual(course1, course2);
+    }
 }

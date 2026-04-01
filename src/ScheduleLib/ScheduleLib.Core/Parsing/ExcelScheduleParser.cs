@@ -11,7 +11,7 @@ using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Application.Core.FR;
 
-public static class FrExcelParser
+public static class ExcelScheduleParser
 {
     public readonly struct Params
     {
@@ -26,43 +26,45 @@ public static class FrExcelParser
         }
     }
 
-    private readonly record struct NumberedWorksheet(IXLWorksheet Worksheet, int Semester);
+    public static Config FrConfig => new()
+    {
+        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa),
+        AllowedQualificationTypes = new(QualificationType.Licenta),
+        AddLessonHandler = FrScheduleAddLessonHandler.Instance,
+        DayParseMode = DayParseMode.DayOfWeekAndDate,
+    };
+    public static Config MasterConfig => new()
+    {
+        AllowedAttendanceModes = new(AttendanceMode.Zi),
+        AllowedQualificationTypes = new(QualificationType.Master),
+        AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
+        DayParseMode = DayParseMode.DayOfWeek,
+    };
 
-    public static ValueTask ParseIntoSchedule(Params p)
+    public static ValueTask ParseFrIntoSchedule(Params p)
+    {
+        return ParseIntoSchedule(FrConfig, p);
+    }
+
+    public static ValueTask ParseMasterIntoSchedule(Params p)
+    {
+        return ParseIntoSchedule(MasterConfig, p);
+    }
+
+    public sealed class Config
+    {
+        public required DayParseMode DayParseMode { get; init; }
+        public required EnumBitArray<AttendanceMode> AllowedAttendanceModes { get; init; }
+        public required EnumBitArray<QualificationType> AllowedQualificationTypes { get; init; }
+        public required IScheduleAddLessonHandler AddLessonHandler { get; init; }
+    }
+
+    public static ValueTask ParseIntoSchedule(
+        Config config,
+        in Params p)
     {
         using var xl = new XLWorkbook(p.InputFile);
-        IXLWorksheet ws;
-        if (xl.Worksheets.Count == 1)
-        {
-            ws = xl.Worksheets.First();
-        }
-        else
-        {
-            ws = xl.Worksheets
-                .Select(x =>
-                {
-                    var parser = new Parser(x.Name);
-                    if (!parser.ConsumeExactString("sem"))
-                    {
-                        return default;
-                    }
-                    if (!parser.SkipWhitespace().SkippedAny)
-                    {
-                        return default;
-                    }
-                    var roman = parser.ReadRoman();
-                    if (roman.Status != ReadRomanStatus.Ok)
-                    {
-                        return default;
-                    }
-
-                    return new NumberedWorksheet(x, roman.Number);
-                })
-                // TODO: add validation for sem number?
-                .WhereNotDefault()
-                .Single()
-                .Worksheet;
-        }
+        var ws = xl.FindRelevantWorksheet();
 
         using var rowE = ws.Worksheet.Rows().GetEnumerator();
         if (!rowE.MoveNext())
@@ -74,7 +76,7 @@ public static class FrExcelParser
         bool isFirstIter = true;
         while (true)
         {
-            var result = DoParsingIter(rowE, p, isFirstIter);
+            var result = DoParsingIter(rowE, p, config, isFirstIter);
             if (result == ParsingIterResult.EndOfFile)
             {
                 break;
@@ -92,6 +94,42 @@ public static class FrExcelParser
         return ValueTask.CompletedTask;
     }
 
+    private readonly record struct NumberedWorksheet(IXLWorksheet Worksheet, int Semester);
+
+    private static IXLWorksheet FindRelevantWorksheet(this XLWorkbook xl)
+    {
+        var worksheets = xl.Worksheets;
+        if (worksheets.Count == 1)
+        {
+            return worksheets.First();
+        }
+        var ret = xl.Worksheets
+            .Select(x =>
+            {
+                var parser = new Parser(x.Name);
+                if (!parser.ConsumeExactString("sem"))
+                {
+                    return default;
+                }
+                if (!parser.SkipWhitespace().SkippedAny)
+                {
+                    return default;
+                }
+                var roman = parser.ReadRoman();
+                if (roman.Status != ReadRomanStatus.Ok)
+                {
+                    return default;
+                }
+
+                return new NumberedWorksheet(x, roman.Number);
+            })
+            // TODO: add validation for sem number?
+            .WhereNotDefault()
+            .Single()
+            .Worksheet;
+        return ret;
+    }
+
     private enum ParsingIterResult
     {
         None,
@@ -103,6 +141,7 @@ public static class FrExcelParser
     private static ParsingIterResult DoParsingIter(
         IEnumerator<IXLRow> rowE,
         in Params p,
+        Config config,
         bool isFirstTime)
     {
         Span<GroupId> lessonGroupsMem = stackalloc GroupId[CellIterationContext.ColSpanHardLimit];
@@ -110,7 +149,12 @@ public static class FrExcelParser
         {
             return ParsingIterResult.EndOfFile;
         }
-        using var groups = ParseGroups(rowE, p.Context.Schedule, years, offset);
+        using var groups = ParseGroups(
+            rowE,
+            p.Context.Schedule,
+            years,
+            offset,
+            config);
 
         if (isFirstTime)
         {
@@ -123,7 +167,8 @@ public static class FrExcelParser
         var rowIterationContext = new RowIterationContext(
             startRowNumber: rowE.Current.RowNumber(),
             dayNameParser: p.Context.DayNameParser,
-            timeConfig: p.Context.TimeConfig);
+            timeConfig: p.Context.TimeConfig,
+            dayParseMode: config.DayParseMode);
         var lessonParser = p.Context.ParserFactory.Create();
         var stringBuilder = p.GetCleanStringBuilder();
         var currentResult = ParsingIterResult.NothingAdded;
@@ -200,34 +245,16 @@ public static class FrExcelParser
                     }
 
                     var parsedLesson = parsedLessonE.Current;
-                    // We don't record these in the schedule.
-                    if (parsedLesson.LessonType == LessonType.Exam)
+                    var err = config.AddLessonHandler.AddLesson(new(
+                        context: p.Context,
+                        parsedLesson: parsedLesson,
+                        groups: lessonGroups,
+                        timeSlot: rowIterationContext.TimeSlot,
+                        day: rowIterationContext.Day));
+                    if (err.ErrorString is { } errString)
                     {
-                        continue;
+                        throw cell.Exception(errString);
                     }
-                    if (parsedLesson.Parity != Parity.EveryWeek)
-                    {
-                        throw cell.Exception("Parity not supported for FR.");
-                    }
-                    if (parsedLesson.StartTime != null)
-                    {
-                        throw cell.Exception("Different start time not supported for FR.");
-                    }
-
-                    var builder = p.Context.Schedule.OneTimeLesson();
-
-                    var subGroupStatus = p.Context.SetCommonProps(builder, parsedLesson);
-                    if (subGroupStatus != SubGroupStatus.GroupNameIsSubGroup)
-                    {
-                        if (!parsedLesson.GroupName.IsEmpty)
-                        {
-                            throw cell.Exception("A different group name in FR is not allowed.");
-                        }
-                    }
-
-                    builder.Groups(lessonGroups);
-                    builder.TimeSlot(rowIterationContext.TimeSlot);
-                    builder.Date(rowIterationContext.Day.Date);
                 }
             }
         }
@@ -237,7 +264,8 @@ public static class FrExcelParser
     private struct RowIterationContext(
         int startRowNumber,
         DayNameParser dayNameParser,
-        LessonTimeConfig timeConfig)
+        LessonTimeConfig timeConfig,
+        DayParseMode dayParseMode)
     {
         private Day _day = default;
         private int _currentRowSpan = 0;
@@ -314,7 +342,7 @@ public static class FrExcelParser
 
                     _currentRowSpan = range.RowCount();
                     _rowsSinceLastDate = 0;
-                    var newDay = ParseDay(cell, text, dayNameParser);
+                    var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
                     _lastDateRange = range;
                     _previousTimeSlotRoman = NoTimeSlotRoman;
                     _timeSlot = null;
@@ -471,15 +499,28 @@ public static class FrExcelParser
         }
     }
 
-    private static Day ParseDay(IXLCell context, string text, DayNameParser dayNameParser)
+    private static Day ParseDay(
+        IXLCell context,
+        string text,
+        DayNameParser dayNameParser,
+        DayParseMode parseMode)
     {
         var parser = new Parser(text);
         // DayOfWeek, dd.MM.yyyy
         if (parser.IsEmpty)
         {
-            throw context.Exception("Expected cell to have the date");
+            throw context.Exception("Expected cell to have the day");
         }
         var day = parser.ParseDayOfWeek(dayNameParser);
+        if (parseMode == DayParseMode.DayOfWeek)
+        {
+            if (!parser.IsEmpty)
+            {
+                throw context.Exception("Expected the cell content to end after the day of week");
+            }
+            return new Day(day, default);
+        }
+        Debug.Assert(parseMode == DayParseMode.DayOfWeekAndDate);
         if (!parser.ConsumeExactChar(','))
         {
             throw context.Exception("Expected ',' after the day name");
@@ -494,8 +535,6 @@ public static class FrExcelParser
         return new(day, date);
     }
 
-
-    private readonly record struct Day(DayOfWeek DayOfWeek, DateOnly Date);
     private readonly record struct Grades
     {
         private readonly SizedItemArray<Grade> _array;
@@ -614,7 +653,8 @@ public static class FrExcelParser
         IEnumerator<IXLRow> rowE,
         ScheduleBuilder builder,
         Grades grades,
-        ColumnOffset offset)
+        ColumnOffset offset,
+        Config config)
     {
         if (!rowE.MoveNext())
         {
@@ -677,9 +717,13 @@ public static class FrExcelParser
                 }
 
                 var group = builder.Group(str);
-                if (group.Ref.AttendanceMode != AttendanceMode.FrecventaRedusa)
+                if (!config.AllowedAttendanceModes.Contains(group.Ref.AttendanceMode))
                 {
-                    throw cell.Exception("Expected only FR groups in the FR excel");
+                    throw cell.Exception($"Expected only {config.AllowedAttendanceModes} groups in the excel");
+                }
+                if (!config.AllowedQualificationTypes.Contains(group.Ref.QualificationType))
+                {
+                    throw cell.Exception($"Expected only {config.AllowedQualificationTypes} groups in the excel");
                 }
 
                 var grade = grades.Get(colIndex);
@@ -711,3 +755,118 @@ public static class FrExcelParser
         return new(groups);
     }
 }
+
+public enum DayParseMode
+{
+    DayOfWeek,
+    DayOfWeekAndDate,
+}
+
+public readonly record struct Day(
+    DayOfWeek DayOfWeek,
+    DateOnly Date);
+
+public readonly record struct AddLessonResult(string? ErrorString)
+{
+    public static AddLessonResult Ok => new(null);
+    public static AddLessonResult Error(string err) => new(err);
+}
+
+public readonly ref struct AddLessonParams
+{
+    public readonly DocParseContext Context;
+    public readonly ref readonly ParsedLesson ParsedLesson;
+    public readonly ReadOnlySpan<GroupId> Groups;
+    public readonly TimeSlot TimeSlot;
+    public readonly Day Day;
+
+    public AddLessonParams(
+        DocParseContext context,
+        in ParsedLesson parsedLesson,
+        ReadOnlySpan<GroupId> groups,
+        TimeSlot timeSlot,
+        Day day)
+    {
+        Context = context;
+        Groups = groups;
+        TimeSlot = timeSlot;
+        Day = day;
+        ParsedLesson = ref parsedLesson;
+    }
+}
+
+public interface IScheduleAddLessonHandler
+{
+    public AddLessonResult AddLesson(AddLessonParams p);
+}
+
+public sealed class FrScheduleAddLessonHandler : IScheduleAddLessonHandler
+{
+    public static readonly FrScheduleAddLessonHandler Instance = new();
+
+    public AddLessonResult AddLesson(AddLessonParams p)
+    {
+        // We don't record these in the schedule.
+        if (p.ParsedLesson.LessonType == LessonType.Exam)
+        {
+            return AddLessonResult.Ok;
+        }
+
+        if (p.ParsedLesson.Parity != Parity.EveryWeek)
+        {
+            return AddLessonResult.Error("Parity not supported for FR.");
+        }
+        if (p.ParsedLesson.StartTime != null)
+        {
+            return AddLessonResult.Error("Different start time not supported for FR.");
+        }
+
+        var builder = p.Context.Schedule.OneTimeLesson();
+
+        var subGroupStatus = p.Context.SetCommonProps(builder, p.ParsedLesson);
+        if (subGroupStatus != SubGroupStatus.GroupNameIsSubGroup)
+        {
+            if (!p.ParsedLesson.GroupName.IsEmpty)
+            {
+                return AddLessonResult.Error("A different group name in FR is not allowed.");
+            }
+        }
+
+        builder.Groups(p.Groups);
+        builder.TimeSlot(p.TimeSlot);
+        builder.Date(p.Day.Date);
+        return AddLessonResult.Ok;
+    }
+}
+
+public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
+{
+    public static readonly RegularScheduleAddLessonHandler Instance = new();
+
+    public AddLessonResult AddLesson(AddLessonParams p)
+    {
+        var allowedTypes = EnumBitArray<LessonType>.From(
+            LessonType.Lab,
+            LessonType.Prelegere,
+            LessonType.Curs);
+
+        if (!allowedTypes.Contains(p.ParsedLesson.LessonType))
+        {
+            return AddLessonResult.Error($"Only {allowedTypes} lesson types are supported");
+        }
+
+        if (p.ParsedLesson.StartTime != null)
+        {
+            return AddLessonResult.Error("Different start time not supported.");
+        }
+
+        var builder = p.Context.Schedule.RegularLesson();
+        _ = p.Context.SetCommonProps(builder, p.ParsedLesson);
+        builder.Groups(p.Groups);
+        builder.TimeSlot(p.TimeSlot);
+        builder.Parity(p.ParsedLesson.Parity);
+        builder.DayOfWeek(p.Day.DayOfWeek);
+        return AddLessonResult.Ok;
+    }
+}
+

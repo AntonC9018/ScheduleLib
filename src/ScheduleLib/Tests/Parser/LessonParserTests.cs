@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using Argon;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper.Parsing;
@@ -14,17 +16,23 @@ public sealed class LessonParserTests
         Assert.True(CheckEqualName(expected, actual));
     }
 
+    private IEnumerator<ReadOnlyMemory<char>> TokenInput(params string[] values)
+    {
+        foreach (var x in values)
+        {
+            yield return x.AsMemory();
+        }
+    }
+
     [Fact]
     public async Task LexerTest()
     {
-        var strings = new List<ReadOnlyMemory<char>>
-        {
-            "15:00 Opț.psihol. (curs,imp),".AsMemory(),
-            "Psihologie (sem,par)".AsMemory(),
-            "V.Miron  433/3".AsMemory(),
-        };
+        var strings = TokenInput(
+            "15:00 Opț.psihol. (curs,imp),",
+            "Psihologie (sem,par)",
+            "V.Miron  433/3");
         var lexer = LessonParsingHelper.CreateLexer();
-        lexer.Reset(strings.GetEnumerator());
+        lexer.Reset(strings);
         List<Token> result = new();
         while (!lexer.IsEmpty)
         {
@@ -44,6 +52,40 @@ public sealed class LessonParserTests
         await Verify(verifyModels)
             .UseStrictJson()
             .AddExtraSettings(x => x.DefaultValueHandling = DefaultValueHandling.Include);
+    }
+
+    [Theory]
+    [InlineData(new[]{"START A AB 12 STOP /"}, " A AB 12 ")]
+    [InlineData(new[]{"START A", "B", "C STOP 123"}, " A\nB\nC ")]
+    public void LexerConcatTest(string[] input, string output)
+    {
+        var str = TokenInput(input);
+        var lexer = LessonParsingHelper.CreateLexer();
+        lexer.Reset(str);
+
+        var startLexer = lexer.Scope();
+        while (!startLexer.ConsumeExactWord("START"))
+        {
+            startLexer.Move();
+            Assert.False(startLexer.IsEmpty);
+        }
+
+        var endLexer = startLexer;
+        while (true)
+        {
+            var t = endLexer.Current;
+            if (t.Value.Span.SequenceEqual("STOP"))
+            {
+                break;
+            }
+            endLexer.Move();
+            Assert.False(endLexer.IsEmpty);
+        }
+
+        var part = startLexer.Until(endLexer.Position);
+        var sb = new StringBuilder();
+        var ret = part.Concat(sb).Span;
+        Assert.Equal(output, ret);
     }
 
     private ParsedLesson[] ParseLessons(
@@ -564,13 +606,13 @@ public sealed class LessonParserTests
     {
         var lessons = ParseLessons([
             "Lesson",
-            "Teacher, 123Room",
+            "Teacher, 123R",
         ]);
 
         var lesson1 = Assert.Single(lessons);
         Assert.Equal("Lesson", lesson1.LessonName.Span);
         AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
-        Assert.Equal("123Room", lesson1.RoomName.Span);
+        Assert.Equal("123R", lesson1.RoomName.Span);
     }
 
     [Fact]
@@ -580,7 +622,7 @@ public sealed class LessonParserTests
         {
             var lessons = ParseLessons([
                 "Lesson",
-                "Teacher, 123Room, 124Room",
+                "Teacher, 123R, 124R",
             ]);
             _ = lessons;
         });
@@ -629,7 +671,7 @@ public sealed class LessonParserTests
     {
         var lessons = ParseLessons([
             "Lesson One",
-            "15:00 Lesson Two 123Room",
+            "15:00 Lesson Two 123R",
         ]);
 
         Assert.Collection(lessons,
@@ -641,7 +683,7 @@ public sealed class LessonParserTests
             lesson2 =>
             {
                 Assert.Equal("Lesson Two", lesson2.LessonName.Span);
-                Assert.Equal("123Room", lesson2.RoomName.Span);
+                Assert.Equal("123R", lesson2.RoomName.Span);
 
                 var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(15));
                 Assert.Equal(time, lesson2.StartTime);
@@ -947,5 +989,19 @@ public sealed class LessonParserTests
         Assert.Equal(LessonType.Prelegere, lesson.LessonType);
         AssertEqualName("G.-C. Stănescu", Assert.Single(lesson.TeacherNames));
         Assert.Equal("404/4", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void GroupNameAsModifier()
+    {
+        var lessons = ParseLessons([
+            "Test (lab,imp,IA2303)",
+        ]);
+        var lesson = Assert.Single(lessons);
+        Assert.Equal("Test", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Lab, lesson.LessonType);
+        Assert.Equal(Parity.OddWeek, lesson.Parity);
+        Assert.Equal("IA2303", lesson.GroupName.Span);
+
     }
 }

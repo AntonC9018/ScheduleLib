@@ -1,6 +1,6 @@
 ﻿[
   {
-    "Type": "Word",
+    "Type": "Number",
     "Value": "15",
     "Row": 1,
     "ColStart": 0,
@@ -14,7 +14,7 @@
     "ColEnd": 3
   },
   {
-    "Type": "Word",
+    "Type": "Number",
     "Value": "00",
     "Row": 1,
     "ColStart": 3,
@@ -175,10 +175,24 @@
     "ColEnd": 9
   },
   {
-    "Type": "Word",
-    "Value": "433/3",
+    "Type": "Number",
+    "Value": "433",
     "Row": 3,
     "ColStart": 9,
+    "ColEnd": 12
+  },
+  {
+    "Type": "Separator",
+    "Value": "/",
+    "Row": 3,
+    "ColStart": 12,
+    "ColEnd": 13
+  },
+  {
+    "Type": "Number",
+    "Value": "3",
+    "Row": 3,
+    "ColStart": 13,
     "ColEnd": 14
   },
   {

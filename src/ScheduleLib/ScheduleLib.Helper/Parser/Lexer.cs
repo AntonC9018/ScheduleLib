@@ -12,6 +12,8 @@ public struct TokenSpan
     public required int Row;
     public required ParserPosition ColStart;
     public required ParserPosition ColEnd;
+
+    public readonly bool IsEmpty => ColStart == ColEnd;
 }
 
 public record struct Token
@@ -30,6 +32,8 @@ public record struct Token
         }
         return false;
     }
+
+    public override string ToString() => Value.ToString();
 }
 
 public readonly record struct LexerPosition(int Value)
@@ -165,13 +169,13 @@ public static class StructLexerExtensions
             {
                 return ReadOnlyMemory<char>.Empty;
             }
-            var first = lexer.Peek(1);
-            if (first.Type != p.ConcattedType)
+            var first = lexer.Current;
+            if (!p.ConcattedTypes.Contains(first.Type))
             {
                 return ReadOnlyMemory<char>.Empty;
             }
             lexer.Move();
-            if (!CanAppendOneMore(ref lexer))
+            if (!CanAppendOneMore(ref lexer, p.ConcattedTypes))
             {
                 return first.Value;
             }
@@ -179,31 +183,39 @@ public static class StructLexerExtensions
 
             while (true)
             {
-                p.StringBuilder.Append(p.WhitespaceReplacer);
-                p.StringBuilder.Append(lexer.Peek(2).Value.Span);
-                lexer.Move(2);
-
-                if (!CanAppendOneMore(ref lexer))
+                if (lexer.Current.Type == TokenType.Whitespace)
                 {
-                    return p.StringBuilder.ToStringAndClear().AsMemory();
+                    p.StringBuilder.Append(p.WhitespaceReplacer);
+                    lexer.Move();
+                }
+                p.StringBuilder.Append(lexer.Current.Value);
+                lexer.Move();
+
+                if (!CanAppendOneMore(ref lexer, p.ConcattedTypes))
+                {
+                    var ret = p.StringBuilder.ToStringAndClear().AsMemory();
+                    return ret;
                 }
             }
 
-            bool CanAppendOneMore(ref T lexer)
+            bool CanAppendOneMore(ref T lexer, ReadOnlySpan<TokenType> types)
             {
-                if (!lexer.CanPeek(2))
+                if (lexer.IsEmpty)
                 {
                     return false;
                 }
-                if (lexer.Peek(1).Type != TokenType.Whitespace)
+                if (types.Contains(lexer.Current.Type))
                 {
-                    return false;
+                    return true;
                 }
-                if (lexer.Peek(2).Type != p.ConcattedType)
+                if (lexer.Current.Type == TokenType.Whitespace)
                 {
-                    return false;
+                    if (types.Contains(lexer.Peek(2).Type))
+                    {
+                        return true;
+                    }
                 }
-                return true;
+                return false;
             }
         }
 
@@ -211,10 +223,15 @@ public static class StructLexerExtensions
 
     extension (LimitedLexerScope lexer)
     {
-        // Currently not possible to do, because the source string is getting lost
-        // when it's used to make the token.
-        public ReadOnlyMemory<char> Concat(StringBuilder? maybeUsedStringBuilder = null)
+        public ReadOnlyMemory<char> Concat(
+            StringBuilder? maybeUsedStringBuilder = null,
+            string defaultNewLine = "\n")
         {
+            if (maybeUsedStringBuilder != null)
+            {
+                Debug.Assert(maybeUsedStringBuilder.Length == 0);
+            }
+
             if (lexer.IsEmpty)
             {
                 return ReadOnlyMemory<char>.Empty;
@@ -222,6 +239,12 @@ public static class StructLexerExtensions
 
             var startTok = lexer.Current;
             var prevTok = lexer.Current;
+
+            lexer.Move();
+            if (lexer.IsEmpty)
+            {
+                return startTok.Value;
+            }
 
             ReadOnlyMemory<char> MemUntilNow()
             {
@@ -232,13 +255,13 @@ public static class StructLexerExtensions
                 return untilNowStr;
             }
 
-            bool writtenToSb = false;
+            bool isUsingStringBuilder = false;
 
             while (true)
             {
                 if (!lexer.CanPeek())
                 {
-                    if (writtenToSb)
+                    if (isUsingStringBuilder)
                     {
                         return maybeUsedStringBuilder!.ToStringAndClear().AsMemory();
                     }
@@ -249,39 +272,71 @@ public static class StructLexerExtensions
                 }
 
                 var currentTok = lexer.Current;
-                if (currentTok.WholeLineMem.Equals(prevTok.WholeLineMem)
-                        || currentTok.Span.ColStart != prevTok.Span.ColEnd)
+
+                bool MustInitializeStringBuilder()
                 {
-                    writtenToSb = true;
-                    if (maybeUsedStringBuilder is null)
+                    if (isUsingStringBuilder)
                     {
-                        maybeUsedStringBuilder = new();
+                        return false;
+                    }
+                    if (!currentTok.WholeLineMem.Equals(prevTok.WholeLineMem))
+                    {
+                        return true;
+                    }
+                    if (currentTok.Span.ColStart != prevTok.Span.ColEnd)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+                if (MustInitializeStringBuilder())
+                {
+                    isUsingStringBuilder = true;
+                    maybeUsedStringBuilder ??= new();
+                    maybeUsedStringBuilder.Append(MemUntilNow());
+                    if (prevTok.Span.IsEmpty)
+                    {
+                        AppendEmptyTokenAtEndOfBufferToStringBuilder(prevTok);
+                    }
+                }
+
+                if (isUsingStringBuilder)
+                {
+                    if (currentTok.Value.Length != 0)
+                    {
+                        maybeUsedStringBuilder!.Append(currentTok.Value);
                     }
                     else
                     {
-                        maybeUsedStringBuilder.Clear();
+                        AppendEmptyTokenAtEndOfBufferToStringBuilder(currentTok);
                     }
-
-                    maybeUsedStringBuilder.Append(MemUntilNow());
-                }
-
-                if (writtenToSb)
-                {
-                    maybeUsedStringBuilder!.Append(currentTok.Value);
                 }
 
                 prevTok = currentTok;
                 lexer.Move();
+
+                void AppendEmptyTokenAtEndOfBufferToStringBuilder(Token tok)
+                {
+                    if (tok.Type == TokenType.EndOfLine)
+                    {
+                        maybeUsedStringBuilder!.Append(defaultNewLine);
+                    }
+                    else
+                    {
+                        // empty token
+                    }
+                }
             }
         }
     }
 }
 
-public readonly record struct ConcatParams()
+public readonly ref struct ConcatParams()
 {
     public string WhitespaceReplacer { get; init; } = " ";
     public required StringBuilder StringBuilder { get; init; }
-    public required TokenType ConcattedType { get; init; }
+    public required ReadOnlySpan<TokenType> ConcattedTypes { get; init; }
 }
 
 public readonly struct LexerStructWrapper : ILexer

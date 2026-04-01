@@ -11,6 +11,7 @@ public static class LessonTokenType
     public const TokenType ShortWord = Word + 1;
     public const TokenType Separator = (TokenType) ',';
     public const TokenType Star = (TokenType) '*';
+    public const TokenType Number = Star + 1;
 }
 
 public sealed class LessonTokenReader : ITokenReader
@@ -32,6 +33,11 @@ public sealed class LessonTokenReader : ITokenReader
             return type;
         }
 
+        if (parser.SkipNumbers().SkippedAny)
+        {
+            return LessonTokenType.Number;
+        }
+
         char ch = parser.Current;
         parser.Move();
 
@@ -43,7 +49,7 @@ public sealed class LessonTokenReader : ITokenReader
             {
                 return (TokenType) ch;
             }
-            case ',' or '-' or ';' or ':':
+            case ',' or '-' or ';' or ':' or '/':
             {
                 return LessonTokenType.Separator;
             }
@@ -87,10 +93,10 @@ public sealed class LessonTokenReader : ITokenReader
         }
     }
 
-    private static readonly SearchValues<char> _regularChars = SearchValues.Create(@"/\_+#@&");
+    private static readonly SearchValues<char> _regularChars = SearchValues.Create(@"\_+#@&");
     public static bool IsRegular(char ch)
     {
-        if (char.IsLetterOrDigit(ch))
+        if (char.IsLetter(ch))
         {
             return true;
         }

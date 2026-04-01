@@ -659,6 +659,7 @@ public enum LessonType
 
 public readonly record struct SubGroup
 {
+    public static SubGroup CreateNumeric(int i) => new(NumberHelper.ToRoman(i));
     public readonly string? Value { get; }
 
     public SubGroup(string? value)

@@ -18,7 +18,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
 
     private UnsizedBitArray32 _impl;
 
-    public EnumBitArray() : this(default)
+    public EnumBitArray() : this(impl: default)
     {
     }
 
@@ -26,6 +26,11 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     {
         Debug.Assert(impl.WithShrunkLen(_Length).AsUnsized() == impl);
         _impl = impl;
+    }
+
+    public EnumBitArray(params ReadOnlySpan<T> values)
+    {
+        this = From(values);
     }
 
     public readonly UnsizedBitArray32 AsUnsized() => _impl;

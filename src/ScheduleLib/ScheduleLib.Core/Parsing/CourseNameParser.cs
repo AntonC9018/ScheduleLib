@@ -324,7 +324,17 @@ public static class CourseNameParsing
         {
             foreach (var wb in b.GetPossibleWords())
             {
-                if (!wa.Word.IsEqual(wb.Word))
+                var equal = wa.Word.Shortened.Compare(wb.Word.Shortened);
+                if (wa.Type == WordType.Plain
+                    && wb.Type == WordType.Plain
+                    && (a.MightBeInitials || b.MightBeInitials))
+                {
+                    if (equal != CompareShortenedWordsResult.Equal_Exactly)
+                    {
+                        continue;
+                    }
+                }
+                else if (!equal.IsEqual())
                 {
                     continue;
                 }
@@ -359,6 +369,7 @@ public static class CourseNameParsing
         public bool IsDone => Index >= _courseName.Segments.Count;
         private CourseNameSegment CurrentSegment => _courseName.Segments[Index];
         public bool CanIgnoreCurrent => CurrentSegment.Flags.CanBeIgnored;
+        public bool MightBeInitials => CurrentSegment.Flags.IsInitials;
 
         public WordSpan GetCurrentWord(WordType wordType)
         {

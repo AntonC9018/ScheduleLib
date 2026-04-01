@@ -63,6 +63,7 @@ public sealed class IntegrationTestHelper : IDisposable
         {
             opts.UseCache = false;
             opts.EnrichWithFullNames = false;
+            opts.LoadConsultations = false;
         });
 
         services.RemoveAll<ConfigureRemappingsDelegate>();

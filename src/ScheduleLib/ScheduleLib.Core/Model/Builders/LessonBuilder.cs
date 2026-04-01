@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 using ScheduleLib.Helper;
@@ -280,6 +281,10 @@ public static class LessonBuilderHelper
     {
         public void Date(DateOnly date)
         {
+            // if (date == default)
+            // {
+            //     throw new ArgumentException("Date must not be default", nameof(date));
+            // }
             b.Model.Date.Date = date;
         }
 

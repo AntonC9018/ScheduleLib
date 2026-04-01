@@ -173,13 +173,10 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
 }
 
 // ReSharper disable once InconsistentNaming
-public sealed class FRScheduleDirectoryLoaderComponent : IScheduleLoaderComponent
+public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderComponent
 {
-    public required AbsolutePath DirectoryPath
-    {
-        get;
-        init;
-    }
+    public required ExcelScheduleParser.Config Config { get; init; }
+    public required AbsolutePath DirectoryPath { get; init; }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
@@ -188,10 +185,14 @@ public sealed class FRScheduleDirectoryLoaderComponent : IScheduleLoaderComponen
 
     public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*.xlsx", SearchOption.AllDirectories))
         {
-            await using var inputFile = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            await FrExcelParser.ParseIntoSchedule(new()
+            await using var inputFile = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
+            await ExcelScheduleParser.ParseIntoSchedule(Config, new()
             {
                 Context = context,
                 InputFile = inputFile,
