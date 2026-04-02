@@ -241,6 +241,17 @@ public sealed class ConsultationsLoaderComponent(
         hasher.AppendMemoryStream(file);
     }
 
+    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    {
+        var file = await LazyFile(cancellationToken);
+        ProcessExcel(context, file);
+    }
+
+    public void Dispose()
+    {
+        _docStream?.Dispose();
+    }
+
     private enum Column
     {
         Name,
@@ -353,17 +364,6 @@ public sealed class ConsultationsLoaderComponent(
                 }
             }
         }
-    }
-
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
-    {
-        var file = await LazyFile(cancellationToken);
-        ProcessExcel(context, file);
-    }
-
-    public void Dispose()
-    {
-        _docStream?.Dispose();
     }
 
     private static void ProcessExcel(DocParseContext context, MemoryStream file)

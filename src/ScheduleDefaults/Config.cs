@@ -87,6 +87,7 @@ public static class Config
         teach.Add("Anghelov", "Anghelova");
         teach.Add("Iațîșina", "Iațâșina");
         teach.Add("Jelihovskii", "Jelihovschii");
+        teach.Add("Jelihovschi", "Jelihovschii");
         teach.Add("Vișnevshi", "Vișnevschii");
 
         remap.TeacherFullNameRemappings.Add((ref x) =>

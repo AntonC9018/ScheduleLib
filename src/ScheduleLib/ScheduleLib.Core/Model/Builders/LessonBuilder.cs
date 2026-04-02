@@ -379,33 +379,43 @@ public static class LessonBuilderHelper
 
     public static void ValidateLessons(ScheduleBuilder s)
     {
-        foreach (var lesson in CollectionsMarshal.AsSpan(s.WeeklyLessons.List))
+        var groupIdValidationSet = new HashSet<GroupId>();
+
         {
-            ValidateBase(lesson.Base);
-
-            if (lesson.Date.TimeSlot is null)
+            var span = CollectionsMarshal.AsSpan(s.WeeklyLessons.List);
+            for (int index = 0; index < span.Length; index++)
             {
-                throw new InvalidOperationException("The lesson date must be initialized.");
-            }
+                var lesson = span[index];
+                ValidateBase(lesson.Base);
 
-            if (lesson.Date.DayOfWeek is null)
-            {
-                throw new InvalidOperationException("The lesson date must be initialized.");
+                if (lesson.Date.TimeSlot is null)
+                {
+                    throw new InvalidOperationException("The lesson date must be initialized.");
+                }
+
+                if (lesson.Date.DayOfWeek is null)
+                {
+                    throw new InvalidOperationException("The lesson date must be initialized.");
+                }
             }
         }
 
-        foreach (var lesson in CollectionsMarshal.AsSpan(s.OneTimeLessons.List))
         {
-            ValidateBase(lesson.Base);
-
-            if (lesson.Date.TimeSlot is null)
+            var span = CollectionsMarshal.AsSpan(s.OneTimeLessons.List);
+            for (int index = 0; index < span.Length; index++)
             {
-                throw new InvalidOperationException("The lesson date must be initialized.");
-            }
+                var lesson = span[index];
+                ValidateBase(lesson.Base);
 
-            if (lesson.Date.Date is null)
-            {
-                throw new InvalidOperationException("The lesson date must be initialized.");
+                if (lesson.Date.TimeSlot is null)
+                {
+                    throw new InvalidOperationException("The lesson date must be initialized.");
+                }
+
+                if (lesson.Date.Date is null)
+                {
+                    throw new InvalidOperationException("The lesson date must be initialized.");
+                }
             }
         }
 
@@ -423,6 +433,18 @@ public static class LessonBuilderHelper
                 if (lesson.Group.Groups.Group0 == GroupId.Invalid)
                 {
                     throw new InvalidOperationException("The lesson group must be initialized.");
+                }
+
+                var hs = groupIdValidationSet;
+                hs.Clear();
+                foreach (var g in lesson.Group.Groups)
+                {
+                    if (!hs.Add(g))
+                    {
+                        var course = s.Courses.Ref(lesson.General.Course!.Value.Id);
+                        _ = course;
+                        throw new InvalidOperationException("Duplicate group in the same lesson");
+                    }
                 }
 
                 foreach (var groupId in lesson.Group.Groups)

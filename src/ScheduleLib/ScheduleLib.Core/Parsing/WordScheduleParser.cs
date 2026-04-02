@@ -339,10 +339,10 @@ internal struct TableParsingState()
     public SizedItemArray<GroupId> CurrentGroups = new();
     public int? Format = null;
 
-    public readonly GroupId GroupId(int colIndex)
+    public readonly SizedItem<GroupId> GroupId(int colIndex)
     {
         int i = colIndex - ColumnCounts!.Value.SkippedSize;
-        return CurrentGroups.Find(i);
+        return CurrentGroups.FindBucket(i);
     }
 }
 
@@ -859,10 +859,13 @@ public static class WordScheduleParser
         if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
         {
             var groups = new LessonGroups();
-            for (int i = 0; i < colSpan; i++)
+            int i = 0;
+            while (i < colSpan)
             {
-                var groupId = state.GroupId(i + columnIndex);
-                groups.Add(groupId);
+                var groupBucket = state.GroupId(i + columnIndex);
+                i += groupBucket.Size;
+                Debug.Assert(groupBucket.Size >= 1);
+                groups.Add(groupBucket.Item);
             }
             builder.Groups([.. groups]);
         }

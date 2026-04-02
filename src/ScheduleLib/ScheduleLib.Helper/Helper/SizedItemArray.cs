@@ -69,6 +69,16 @@ public readonly struct SizedItemArray<T>
         return null;
     }
 
+    public SizedItem<T> FindBucket(int colIndex)
+    {
+        if (FindPosition(colIndex) is not { } t)
+        {
+            throw new ArgumentOutOfRangeException(nameof(colIndex));
+        }
+        var bucket = _items[t.Index];
+        return bucket;
+    }
+
     public T Find(int colIndex)
     {
         if (TryFind(colIndex, out var item))
