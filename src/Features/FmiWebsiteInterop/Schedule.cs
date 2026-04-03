@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using FmiWebsiteInterop.Api;
-using FmiWebsiteInterop.Teachers;
 using ScheduleLib;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
@@ -84,23 +83,32 @@ public static class WebsiteJsonScheduleHelper
                     })
                     .ToList();
 
+                // Build per-lesson-group DTOs first, then merge those sharing (PairTime, WeekType)
+                // so that two different courses in the same room/slot produce one concatenated entry.
+                var slotDtos = new List<SchedulePairsDto>();
                 foreach (var lessonGroup in lessonGroups)
                 {
                     var lessons = lessonGroup.ToList();
-
-                    // Determine the overall week type for this group
                     var weekType = DetermineWeekType(lessons);
-
                     var pairInfo = BuildPairInfo(schedule.Source, lessons, services);
 
-                    var pairDto = new SchedulePairsDto
+                    slotDtos.Add(new SchedulePairsDto
                     {
                         PairInfo = pairInfo,
                         PairTime = romanTimeSlot,
                         WeekType = weekType,
-                    };
+                    });
+                }
 
-                    daysBuilder.Add(pairDto);
+                // Merge entries that share the same time slot and week type
+                foreach (var mergeGroup in slotDtos.GroupBy(d => (d.PairTime, d.WeekType)))
+                {
+                    daysBuilder.Add(new SchedulePairsDto
+                    {
+                        PairInfo = string.Join("\n", mergeGroup.Select(d => d.PairInfo)),
+                        PairTime = mergeGroup.Key.PairTime,
+                        WeekType = mergeGroup.Key.WeekType,
+                    });
                 }
             }
 
