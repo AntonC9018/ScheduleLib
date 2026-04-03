@@ -203,6 +203,8 @@ public sealed class NameTokenReader : ITokenReader
     {
         if (parser.SkipLetters().SkippedAny)
         {
+            // That's how we do short name support.
+            parser.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
             return NameTokenType.Word;
         }
         if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))

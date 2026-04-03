@@ -23,16 +23,18 @@ namespace Desktop.MainWindow;
 public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
 {
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
     public partial string UserNameToAdd { get; set; } = "";
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
+    public partial Name? SelectedUserName { get; set; } = null;
+
     private readonly TreeBuilder _tree;
-    private new readonly TreeEventDispatcher _dispatcher;
     private readonly UpdateTreeHelper _updateTreeHelper;
     private readonly EventSubscription _subTreeChanged;
     private readonly EventSubscription<LayerLevel> _layerChangedSub;
     private readonly LayerLevelSelectionViewModel _layerSelection;
-    private readonly AllTeacherNamesProvider _teacherNamesProvider;
+    private readonly IAllTeacherNamesProvider _teacherNamesProvider;
 
     private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
     public UpdateableObservableList<Name> FilteredUserNames { get; }
@@ -44,7 +46,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         UpdateTreeHelper updateTreeHelper,
         Event treeStructureChanged,
         LayerLevelSelectionViewModel layerSelection,
-        AllTeacherNamesProvider teacherNamesProvider)
+        IAllTeacherNamesProvider teacherNamesProvider)
         : base(t.Dispatcher)
     {
         FilteredUserNames = new(t.Dispatcher);
@@ -65,24 +67,16 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         {
             _ = level;
         });
-        _dispatcher = t.Dispatcher;
         OnUserNameToAddChanged();
     }
 
     public bool CanSelectUserToAdd => true;
 
-    private Name? ParseUserNameToAdd()
-    {
-        var parser = new Parser(UserNameToAdd);
-        Name? name = NameHelper.TryParseName(ref parser);
-        return name;
-    }
-
     public bool CanAddUser
     {
         get
         {
-            if (ParseUserNameToAdd() is not { } name)
+            if (SelectedUserName is not { } name)
             {
                 return false;
             }
@@ -97,10 +91,10 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanAddUser))]
     public void AddUserWithTypedName()
     {
-        var name = ParseUserNameToAdd();
+        var name = SelectedUserName;
         if (name is null)
         {
-            Debug.Fail("Parsed name was null");
+            Debug.Fail("Selected name was null");
             return;
         }
         AddUser(name);
@@ -125,17 +119,8 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         var (nameParser, tempArr) = x.Value;
         tempArr.Clear();
 
-        _dispatcher.StartQueueing();
-        try
-        {
-            Parse();
-            UpdateFilteredList();
-        }
-        finally
-        {
-            _dispatcher.EndQueueing();
-        }
-
+        Parse();
+        UpdateFilteredList();
         return;
 
         void UpdateFilteredList()
@@ -291,7 +276,12 @@ public sealed class ScheduleLoading
     }
 }
 
-public sealed class AllTeacherNamesProvider : IDisposable
+public interface IAllTeacherNamesProvider
+{
+    public ObservableValue<ImmutableArray<Name>> Names { get; }
+}
+
+public sealed class AllTeacherNamesProvider : IAllTeacherNamesProvider, IDisposable
 {
     private ObservableValueSource<ImmutableArray<Name>> _names;
     public ObservableValue<ImmutableArray<Name>> Names => _names.As();
@@ -327,21 +317,30 @@ public sealed class UpdateableObservableList<T> : ICollection<T>, INotifyCollect
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private readonly List<T> _items = new();
-    // private readonly IDispatcher _dispatcher
+    private readonly IDispatcher _dispatcher;
 
     public UpdateableObservableList(IDispatcher dispatcher)
     {
-
+        _dispatcher = dispatcher;
     }
 
     public void Reset(IEnumerable<T> newItems)
     {
+        _ = PropertyChanged;
+
         _items.Clear();
         _items.AddRange(newItems);
 
-        PropertyChanged?.Invoke(this, new(nameof(Count)));
-        PropertyChanged?.Invoke(this, new("Item[]"));
-        CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset));
+        var callerId = new CallerIdentity(this);
+
+        _dispatcher.Post<PropertyChangedEventArgs>(new(
+            callerId,
+            x => PropertyChanged?.Invoke(this, x),
+            new(nameof(Count))));
+        _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
+            callerId,
+            x => CollectionChanged?.Invoke(this, x),
+            new(NotifyCollectionChangedAction.Reset)));
     }
 
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();

@@ -38,11 +38,11 @@ public sealed partial class App : Application
         NodeDataViewModelResolver.Register(services);
         RegistryConfigViewModel.Register(services);
 
-        services.AddSingleton<AllTeacherNamesProvider>(sp =>
+        services.AddSingleton<IAllTeacherNamesProvider>(sp =>
         {
             var l = sp.GetRequiredService<ScheduleLoading>();
             var dispatcher = sp.GetRequiredService<TreeEventDispatcher>();
-            return new(dispatcher, l.Names.Changed);
+            return new AllTeacherNamesProvider(dispatcher, l.Names.Changed);
         });
         services.AddSingleton<ScheduleLoading>(sp =>
         {

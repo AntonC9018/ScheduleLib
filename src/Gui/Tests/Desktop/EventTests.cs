@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using Anton.LayeredData;
 using Desktop.MainWindow;
+using Desktop.MvvmEssentials;
 using Desktop.ViewModelData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -148,19 +150,22 @@ public sealed class Context : IAsyncDisposable
     public AllRecorders Tags { get; }
     public DataStore Data => Main._dataStore;
     public MockUiTreeOutputProvider SerializerTreeOutputProvider { get; }
+    public MockTeacherNamesProvider TeacherNamesProvider { get; }
 
     public Context(
         ServiceProvider serviceProvider,
         EventRecorderSource recorderSource,
         MainWindowViewModel main,
         AllRecorders tags,
-        MockUiTreeOutputProvider serializerTreeOutputProvider)
+        MockUiTreeOutputProvider serializerTreeOutputProvider,
+        MockTeacherNamesProvider teacherNamesProvider)
     {
         ServiceProvider = serviceProvider;
         RecorderSource = recorderSource;
         Main = main;
         Tags = tags;
         SerializerTreeOutputProvider = serializerTreeOutputProvider;
+        TeacherNamesProvider = teacherNamesProvider;
     }
 
     public async ValueTask DisposeAsync()
@@ -178,6 +183,9 @@ public sealed class Context : IAsyncDisposable
         services.RemoveAll<IUiTreeOutputProvider>();
         services.AddSingleton<IUiTreeOutputProvider, MockUiTreeOutputProvider>();
 
+        services.RemoveAll<IAllTeacherNamesProvider>();
+        services.AddSingleton<IAllTeacherNamesProvider, MockTeacherNamesProvider>();
+
         var sp = AppConfiguration.BuildServiceProvider(services);
 
         try
@@ -191,14 +199,16 @@ public sealed class Context : IAsyncDisposable
             _ = tags;
     #pragma warning restore CA2000
 
-            var t = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
+            var treeOutputProvider = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
+            var teacherNamesProvider = (MockTeacherNamesProvider) sp.GetRequiredService<IAllTeacherNamesProvider>();
 
             return new(
                 sp,
                 recorderSource,
                 main,
                 tags,
-                t);
+                treeOutputProvider,
+                teacherNamesProvider);
         }
         catch
         {
@@ -208,3 +218,9 @@ public sealed class Context : IAsyncDisposable
     }
 }
 
+
+public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
+{
+    public ObservableValueSource<ImmutableArray<Name>> NamesSource;
+    public ObservableValue<ImmutableArray<Name>> Names => NamesSource.As();
+}

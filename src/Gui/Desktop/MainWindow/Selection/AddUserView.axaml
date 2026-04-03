@@ -10,7 +10,8 @@
     <StackPanel>
       <TextBlock Text="User Name To Add:" />
       <AutoCompleteBox
-        Text="{Binding UserNameToAdd, Mode=TwoWay}"
+        SearchText="{Binding UserNameToAdd, Mode=TwoWay}"
+        SelectedItem="{Binding SelectedUserName, Mode=OneWayToSource}"
         ItemsSource="{Binding FilteredUserNames}"
         IsEnabled="{Binding CanSelectUserToAdd}"
         MinimumPrefixLength="0"
