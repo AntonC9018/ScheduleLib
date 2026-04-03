@@ -27,7 +27,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
-    public partial Name? SelectedUserName { get; set; } = null;
+    public partial NameAndScore? SelectedUserName { get; set; } = null;
 
     private readonly TreeBuilder _tree;
     private readonly UpdateTreeHelper _updateTreeHelper;
@@ -37,9 +37,12 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     private readonly IAllTeacherNamesProvider _teacherNamesProvider;
 
     private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
-    public UpdateableObservableList<Name> FilteredUserNames { get; }
+    public UpdateableObservableList<NameAndScore> FilteredUserNames { get; }
     private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
     private readonly EventSubscription<ImmutableArray<Name>> _teacherNameSub;
+
+    private readonly EventSource<Nothing> _userAddedEventSource;
+    public Event UserAdded => _userAddedEventSource;
 
     public AddUserViewModel(
         TreeContext t,
@@ -49,6 +52,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         IAllTeacherNamesProvider teacherNamesProvider)
         : base(t.Dispatcher)
     {
+        _userAddedEventSource = t.Dispatcher.CreateEvent();
         FilteredUserNames = new(t.Dispatcher);
         _teacherNameSub = teacherNamesProvider.Names.Changed.Sub(names =>
         {
@@ -76,11 +80,11 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     {
         get
         {
-            if (SelectedUserName is not { } name)
+            if (SelectedUserName is not { } it)
             {
                 return false;
             }
-            if (_tree.GetAllMarkers().Any(x => x.TeacherName == name))
+            if (_tree.GetAllMarkers().Any(x => x.TeacherName == it.Name))
             {
                 return false;
             }
@@ -91,13 +95,13 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanAddUser))]
     public void AddUserWithTypedName()
     {
-        var name = SelectedUserName;
-        if (name is null)
+        var it = SelectedUserName;
+        if (it is null)
         {
             Debug.Fail("Selected name was null");
             return;
         }
-        AddUser(name);
+        AddUser(it.Name);
     }
 
     private void AddUser(Name name)
@@ -110,7 +114,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             return new([_tree.BaseNode, layer.Node]);
         });
         _layerSelection.LayerLevel = LayerLevel.UiUser;
-        UserNameToAdd = "";
+        _userAddedEventSource.Invoke();
     }
 
     private void OnUserNameToAddChanged()
@@ -126,16 +130,25 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         void UpdateFilteredList()
         {
             IEnumerable<Name> matches = AllUserNames;
+            FilteredUserNames.Clear();
             if (tempArr.Count != 0)
             {
-                matches = matches
+                var matchesWithScores = matches
                     .Select(x => (Name: x, Score: GetMatchScore(x)))
                     .Where(x => x.Score != 0)
                     .OrderByDescending(x => x.Score)
-                    .ThenBy(x => x.Name, NameAlphabeticComparer.CurrentCultureIgnoreCase)
-                    .Select(x => x.Name);
+                    .ThenBy(x => x.Name, NameAlphabeticComparer.CurrentCultureIgnoreCase);
+                foreach (var m in matchesWithScores)
+                {
+                    // TODO: Try reusing the objects.
+                    FilteredUserNames.Add(new()
+                    {
+                        Name = m.Name,
+                        Score = m.Score,
+                    });
+                }
             }
-            FilteredUserNames.Reset(matches);
+            FilteredUserNames.TriggerChanged();
         }
 
         void Parse()
@@ -324,19 +337,15 @@ public sealed class UpdateableObservableList<T> : ICollection<T>, INotifyCollect
         _dispatcher = dispatcher;
     }
 
-    public void Reset(IEnumerable<T> newItems)
+    public void TriggerChanged()
     {
         _ = PropertyChanged;
-
-        _items.Clear();
-        _items.AddRange(newItems);
-
         var callerId = new CallerIdentity(this);
 
-        _dispatcher.Post<PropertyChangedEventArgs>(new(
-            callerId,
-            x => PropertyChanged?.Invoke(this, x),
-            new(nameof(Count))));
+        // _dispatcher.Post<PropertyChangedEventArgs>(new(
+        //     callerId,
+        //     x => PropertyChanged?.Invoke(this, x),
+        //     new(nameof(Count))));
         _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
             callerId,
             x => CollectionChanged?.Invoke(this, x),
@@ -346,11 +355,18 @@ public sealed class UpdateableObservableList<T> : ICollection<T>, INotifyCollect
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public void Add(T item) => throw new NotSupportedException();
-    public void Clear() => throw new NotSupportedException();
+    public void Add(T item) => _items.Add(item);
+    public void Clear() => _items.Clear();
     public bool Contains(T item) => _items.Contains(item);
     public void CopyTo(T[] array, int arrayIndex) => throw new NotSupportedException();
     public bool Remove(T item) => throw new NotSupportedException();
     public int Count => _items.Count;
     public bool IsReadOnly => false;
+}
+
+public sealed record class NameAndScore
+{
+    public required Name Name { get; init; }
+    public required int Score { get; init; }
+    public override string ToString() => Name.ToString();
 }

@@ -14,6 +14,7 @@ public readonly struct EventSubscription<T> : IDisposable
         _action = action;
     }
 
+    public bool IsNull => _action == null;
     public void Dispose() => _ev.Unsub(_action);
 }
 
@@ -21,6 +22,7 @@ public readonly struct EventSubscription(EventSubscription<Nothing> impl) : IDis
 {
     private readonly EventSubscription<Nothing> _impl = impl;
     public void Dispose() => _impl.Dispose();
+    public bool IsNull => _impl.IsNull;
     public static implicit operator EventSubscription<Nothing>(EventSubscription s) => s._impl;
     public static implicit operator EventSubscription(EventSubscription<Nothing> s) => new(s);
 }
