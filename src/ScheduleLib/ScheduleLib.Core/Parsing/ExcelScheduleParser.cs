@@ -4,12 +4,11 @@ using ClosedXML.Excel;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 
-namespace ScheduleLib.Application.Core.FR;
+namespace ScheduleLib.Parsing.Excel;
 
 public static class ExcelScheduleParser
 {

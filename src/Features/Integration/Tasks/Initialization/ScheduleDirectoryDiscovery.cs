@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using ScheduleLib.Application.Core.FR;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper.Parsing;
+using ScheduleLib.Parsing.Excel;
 using TruePath;
 
 namespace ScheduleLib.Application.Core;
