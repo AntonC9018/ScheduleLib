@@ -22,22 +22,22 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
     public partial NameAndScore? SelectedUserName { get; set; } = null;
 
+    public ObservableCollection<NameAndScore> FilteredUserNames { get; }
+    public Event UserAdded => _userAddedEventSource;
+
     private readonly TreeBuilder _tree;
     private readonly UpdateTreeHelper _updateTreeHelper;
-    private readonly EventSubscription _subTreeChanged;
-    private readonly EventSubscription<LayerLevel> _layerChangedSub;
     private readonly LayerLevelSelectionViewModel _layerSelection;
     private readonly IAllTeacherNamesProvider _teacherNamesProvider;
 
-    private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
-
-    public ObservableCollection<NameAndScore> FilteredUserNames { get; }
-
-    private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
+    private readonly EventSubscription _subTreeChanged;
+    private readonly EventSubscription<LayerLevel> _layerChangedSub;
     private readonly EventSubscription<ImmutableArray<Name>> _teacherNameSub;
 
+    private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
     private readonly EventSource<Nothing> _userAddedEventSource;
-    public Event UserAdded => _userAddedEventSource;
+
+    private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
 
     public AddUserViewModel(
         TreeContext t,
