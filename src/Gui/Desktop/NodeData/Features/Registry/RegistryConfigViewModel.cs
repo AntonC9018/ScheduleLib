@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Desktop.NodeData.Common;
@@ -30,11 +29,13 @@ public sealed class ThingReadOnlyRegistry<T>(IOptions<ThingRegistryOptions<T>> o
         {
             return null;
         }
+
         var x = _values.FirstOrDefault(x => _comparer.Equals(x.Value, value));
         if (x is null)
         {
             throw new NotImplementedException("Implement the proper registry system!");
         }
+
         return x;
     }
 
@@ -60,6 +61,7 @@ public static class ThingRegistryHelper
             {
                 ret.Configure(configure);
             }
+
             return ret;
         }
 
@@ -88,10 +90,14 @@ public sealed class TypeComparer<T> : IEqualityComparer<T>
 {
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsDefault(x, y, out bool areBothNull))
+        if (ComparisonHelper.AtLeastOneIsDefault(
+                x,
+                y,
+                out bool areBothNull))
         {
             return areBothNull;
         }
+
         return x.GetType() == y.GetType();
     }
 
@@ -166,20 +172,24 @@ public sealed class SelectionHelperClass<TParent, TProperty> : SelectionHelper<T
     {
         var getter = expression.CompileFast();
 
-        var memberExpr = (MemberExpression)expression.Body;
+        var memberExpr = (MemberExpression) expression.Body;
         var param = Expression.Parameter(typeof(TParent));
         var valueParam = Expression.Parameter(typeof(TProperty));
 
         var memberAccess = Expression.MakeMemberAccess(param, memberExpr.Member);
         var setter = Expression.Lambda<Action<TParent, TProperty>>(
             Expression.Assign(memberAccess, valueParam),
-            param, valueParam).CompileFast();
+            param,
+            valueParam).CompileFast();
 
         var setterToNull = Expression.Lambda<Action<TParent>>(
             Expression.Assign(memberAccess, Expression.Constant(null, typeof(TProperty))),
             param).CompileFast();
 
-        return new(getter, setter, setterToNull);
+        return new(
+            getter,
+            setter,
+            setterToNull);
     }
 
     private readonly record struct PropertyAccess(
@@ -247,7 +257,7 @@ public sealed class SelectionHelperNullableStruct<TParent, TProperty> : Selectio
     {
         var getter = expression.CompileFast();
 
-        var memberExpr = (MemberExpression)expression.Body;
+        var memberExpr = (MemberExpression) expression.Body;
         var param = Expression.Parameter(typeof(TParent));
         var valueParam = Expression.Parameter(typeof(TProperty));
 
@@ -256,14 +266,18 @@ public sealed class SelectionHelperNullableStruct<TParent, TProperty> : Selectio
         // Widen TProperty -> TProperty? (Nullable<TProperty>) for the assign
         var setter = Expression.Lambda<Action<TParent, TProperty>>(
             Expression.Assign(memberAccess, Expression.Convert(valueParam, typeof(TProperty?))),
-            param, valueParam).CompileFast();
+            param,
+            valueParam).CompileFast();
 
         // default(TProperty?) is null for Nullable<T>
         var setterToNull = Expression.Lambda<Action<TParent>>(
             Expression.Assign(memberAccess, Expression.Default(typeof(TProperty?))),
             param).CompileFast();
 
-        return new(getter, setter, setterToNull);
+        return new(
+            getter,
+            setter,
+            setterToNull);
     }
 
     private readonly record struct PropertyAccess(
@@ -280,7 +294,10 @@ public static class SelectionHelper
         Expression<Func<TParent, TProperty?>> selector)
         where TParent : class
         where TProperty : class
-        => new(registry, selector, accessor);
+        => new(
+            registry,
+            selector,
+            accessor);
 
     public static SelectionHelperNullableStruct<TParent, TProperty> Create<TParent, TProperty>(
         ThingReadOnlyRegistry<TProperty> registry,
@@ -288,15 +305,16 @@ public static class SelectionHelper
         Expression<Func<TParent, TProperty?>> selector)
         where TParent : class
         where TProperty : struct
-        => new(registry, selector, accessor);
+        => new(
+            registry,
+            selector,
+            accessor);
 }
-
 
 public sealed class RegistryConfigViewModel(
     NodeDataAccessor<RegistryConfig> _helper,
     ThingReadOnlyRegistry<IEquationCommandsDerivation> _derivations,
     ThingReadOnlyRegistry<ExtraLessonInstanceAction> _extraLessons)
-
     : NodeDataViewModelBase<RegistryConfig>
 {
     public static void Register(IServiceCollection services)
@@ -329,10 +347,16 @@ public sealed class RegistryConfigViewModel(
 
     // How to do this better?
     public SelectionHelper<ExtraLessonInstanceAction> ExtraLesson { get; } =
-        SelectionHelper.Create(_extraLessons, _helper, c => c.ExtraLessonInstanceAction);
+        SelectionHelper.Create(
+            _extraLessons,
+            _helper,
+            c => c.ExtraLessonInstanceAction);
 
     public SelectionHelper<IEquationCommandsDerivation> Derivation { get; } =
-        SelectionHelper.Create(_derivations, _helper, c => c.EquationCommandsDerivation);
+        SelectionHelper.Create(
+            _derivations,
+            _helper,
+            c => c.EquationCommandsDerivation);
 
     public bool? DryRun
     {
@@ -342,10 +366,12 @@ public sealed class RegistryConfigViewModel(
             {
                 return null;
             }
+
             if (c.HasAnyDryRun(LessonEquationCommandTypes.All))
             {
                 return true;
             }
+
             return false;
         }
         set
@@ -355,6 +381,7 @@ public sealed class RegistryConfigViewModel(
             {
                 throw new InvalidOperationException("Cannot set DryRun when no node selected");
             }
+
             CommandProcessingConfigBuilder b;
             if (v.CommandProcessingConfig is { } c)
             {
@@ -366,9 +393,9 @@ public sealed class RegistryConfigViewModel(
                 b.Log().SetAll();
                 b.Process().SetAll();
             }
+
             b.DryRun().SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
         }
     }
-
 }
