@@ -16,5 +16,17 @@
     <TextBox Text="{Binding Credentials.Login}"></TextBox>
     <TextBlock Text="Password"/>
     <TextBox Text="{Binding Credentials.Password}"></TextBox>
+
+    <TextBox Text="What to do with lessons that need to be deleted"/>
+    <ComboBox
+      ItemsSource="{Binding ExtraLesson.Values, Mode=OneTime}"
+      SelectedItem="{Binding ExtraLesson.Value}"
+      />
+
+    <TextBox Text="How to compare the lessons?"/>
+    <ComboBox
+      ItemsSource="{Binding Derivation.Values, Mode=OneTime}"
+      SelectedItem="{Binding Derivation.Value}"
+      />
   </StackPanel>
 </UserControl>

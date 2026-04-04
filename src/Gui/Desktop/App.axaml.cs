@@ -31,6 +31,7 @@ public sealed partial class App : Application
         {
             x.OpenAfterSave = true;
         });
+        services.AddSingleton<ConfigTypesProvider>();
 
         services.AddTransient<MainWindowViewModel>();
 

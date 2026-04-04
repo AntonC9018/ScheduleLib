@@ -5,31 +5,17 @@ using Desktop.ViewModelData;
 
 namespace Desktop.NodeData.Editor;
 
-public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
+public sealed partial class NodeDataEditorViewModel(
+        DataStore _dataStore,
+        NodeDataViewModelResolver _modelResolver,
+        ConfigTypesProvider _configTypesProvider)
+    : ViewModelBase(_dataStore.TreeContext.Dispatcher), IDisposable
 {
-    private readonly DataStore _user;
-    private readonly NodeDataViewModelResolver _modelResolver;
-
-    public static ConfigType[] CachedConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
-        x => new ConfigType
-        {
-            Key = x.Key,
-            Type = x.Value,
-        }).ToArray();
-
-    public NodeDataEditorViewModel(
-        DataStore dataStore,
-        NodeDataViewModelResolver modelResolver)
-        : base(dataStore.TreeContext.Dispatcher)
-    {
-        _user = dataStore;
-        _modelResolver = modelResolver;
-        ConfigTypes = CachedConfigTypes.Where(x => modelResolver.Supported.Contains(x.Key)).ToArray();
-    }
-
     private NullableOwnedViewModel _selectedViewModel;
     public ObservableObject? SelectedNodeEditorViewModel => _selectedViewModel.Value;
-    public IReadOnlyList<ConfigType> ConfigTypes { get; }
+    public IReadOnlyList<ConfigType> ConfigTypes => field ??= _configTypesProvider
+        .ConfigTypes
+        .Where(x => _modelResolver.Supported.Contains(x.Key)).ToArray();
 
     [ObservableProperty]
     public partial ConfigType? CurrentConfigType { get; set; }
@@ -43,7 +29,7 @@ public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
         }
         else
         {
-            _selectedViewModel = _modelResolver.Resolve(value.Key, _user);
+            _selectedViewModel = _modelResolver.Resolve(value.Key, _dataStore);
         }
 
         try
@@ -62,9 +48,22 @@ public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
 public sealed class ConfigType
 {
     public required NodeDataKey Key { get; init; }
+    public required string DisplayName { get; init; }
     public required Type Type { get; init; }
 
     public override string ToString() => Key.Value.ToString();
+}
+
+public sealed class ConfigTypesProvider
+{
+    public ConfigType[] ConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
+        x => new ConfigType
+        {
+            // TODO: Add a custom name here, will do when doing localizations.
+            Key = x.Key,
+            Type = x.Value,
+            DisplayName = x.Key.Value,
+        }).ToArray();
 }
 
 public readonly struct NullableOwnedViewModel : IDisposable
