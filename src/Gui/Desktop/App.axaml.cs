@@ -11,7 +11,6 @@ using Desktop.NodeData.Features.Registry;
 using Desktop.ViewModelData;
 using Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Application.Core;
 
 namespace Desktop;
 
