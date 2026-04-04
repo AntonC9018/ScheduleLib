@@ -42,4 +42,11 @@
     <ItemGroup>
       <AdditionalFiles Include="**\*.axaml" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="MainWindow\AddUser\AddUserView.axaml.cs">
+        <DependentUpon>AddUserView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+    </ItemGroup>
 </Project>
