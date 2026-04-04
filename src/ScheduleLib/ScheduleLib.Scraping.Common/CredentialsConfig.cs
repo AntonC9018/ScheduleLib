@@ -63,17 +63,17 @@ public static class CredentialsBuilderExtensions
         public ValueCredentialsSource Value(
             Action<ValueCredentialsSource>? configure = null)
         {
-            var ret = builder.Value(overwriteIfAnother: true)!;
+            var ret = builder.Value(overwriteIfOther: true)!;
             configure?.Invoke(ret);
             return ret;
         }
 
-        public ValueCredentialsSource? Value(bool overwriteIfAnother)
+        public ValueCredentialsSource? Value(bool overwriteIfOther)
         {
             var s = builder._storage;
             if (s.Credentials is not ValueCredentialsSource ret)
             {
-                if (!overwriteIfAnother)
+                if (!overwriteIfOther)
                 {
                     return null;
                 }
