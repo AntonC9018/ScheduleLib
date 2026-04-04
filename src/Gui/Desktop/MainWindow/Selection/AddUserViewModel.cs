@@ -1,22 +1,15 @@
-using System.Collections;
 using System.Collections.Immutable;
-using System.Collections.Specialized;
-using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Anton.LayeredData;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.MvvmEssentials;
 using Desktop.ViewModelData;
-using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Application.Core;
-using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
-using IDispatcher = Desktop.MvvmEssentials.IDispatcher;
 
 namespace Desktop.MainWindow;
 
@@ -37,7 +30,9 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     private readonly IAllTeacherNamesProvider _teacherNamesProvider;
 
     private ItemOwner<(NameParser, List<NameParts<string?>>)> _item = new((new(), new()));
-    public UpdateableObservableList<NameAndScore> FilteredUserNames { get; }
+
+    public ObservableCollection<NameAndScore> FilteredUserNames { get; }
+
     private ImmutableArray<Name> AllUserNames => _teacherNamesProvider.Names.Get();
     private readonly EventSubscription<ImmutableArray<Name>> _teacherNameSub;
 
@@ -53,7 +48,7 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         : base(t.Dispatcher)
     {
         _userAddedEventSource = t.Dispatcher.CreateEvent();
-        FilteredUserNames = new(t.Dispatcher);
+        FilteredUserNames = new();
         _teacherNameSub = teacherNamesProvider.Names.Changed.Sub(names =>
         {
             _ = names;
@@ -121,9 +116,10 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
     {
         using var x = _item.BorrowHelper();
         var (nameParser, tempArr) = x.Value;
+        nameParser.Load(UserNameToAdd.AsMemory());
         tempArr.Clear();
 
-        Parse();
+        Parse(nameParser, tempArr);
         UpdateFilteredList();
         return;
 
@@ -134,9 +130,14 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             if (tempArr.Count != 0)
             {
                 var matchesWithScores = matches
-                    .Select(x => (Name: x, Score: GetMatchScore(x)))
-                    .Where(x => x.Score != 0)
-                    .OrderByDescending(x => x.Score)
+                    .Select(x =>
+                    {
+                        var scoreData = MatchScore.Create(x, tempArr);
+                        var scoreInt = scoreData.AsInt();
+                        return (Name: x, Score: scoreData, ScoreInt: scoreInt);
+                    })
+                    .Where(x => x.ScoreInt > 0)
+                    .OrderByDescending(x => x.ScoreInt)
                     .ThenBy(x => x.Name, NameAlphabeticComparer.CurrentCultureIgnoreCase);
                 foreach (var m in matchesWithScores)
                 {
@@ -145,98 +146,10 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
                     {
                         Name = m.Name,
                         Score = m.Score,
+                        ScoreString = m.ScoreInt.ToString(),
                     });
                 }
             }
-            FilteredUserNames.TriggerChanged();
-        }
-
-        void Parse()
-        {
-            nameParser.Load(UserNameToAdd.AsMemory());
-            var lexer = nameParser.Scope();
-            while (!lexer.IsEmpty)
-            {
-                var namePart = NameHelper.ParseNamePart(ref lexer, out bool isDoubleNameError);
-                _ = isDoubleNameError;
-
-                lexer.ConsumeAllConsecutiveThatAreNot(NameTokenType.Word);
-
-                if (namePart == default)
-                {
-                    continue;
-                }
-                tempArr.Add(namePart);
-            }
-        }
-
-        int GetMatchScore(Name name)
-        {
-            var nameFields = name.Fields;
-            var foundFields = new EnumBitArray<NameField>();
-
-            int Ret(bool hasExtra)
-            {
-                var matchedCount = foundFields.SetCount;
-                var allMatched = foundFields.AreAllSet;
-                var someUnmatched = hasExtra;
-
-                if (matchedCount == 0)
-                {
-                    return 0;
-                }
-
-                if (allMatched && someUnmatched)
-                {
-                    return 2;
-                }
-
-                if (someUnmatched)
-                {
-                    return 1;
-                }
-
-                return matchedCount + 2;
-            }
-
-            foreach (var namePart in tempArr)
-            {
-                // Everything matched, but found even more input.
-                if (foundFields.AreAllSet)
-                {
-                    return Ret(hasExtra: true);
-                }
-
-                foreach (var notFoundField in foundFields.Flipped)
-                {
-                    var field = NameHelper.Field(nameFields, notFoundField);
-
-                    bool matches = namePart.EachEquals(field, (parsed, existing) =>
-                    {
-                        if (parsed is null)
-                        {
-                            return true;
-                        }
-                        if (/*parsed is not null &&*/ existing is null)
-                        {
-                            return false;
-                        }
-                        if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(existing, parsed))
-                        {
-                            return true;
-                        }
-                        return false;
-                    });
-                    if (matches)
-                    {
-                        foundFields.Set(notFoundField);
-                        break;
-                    }
-                }
-            }
-
-            // Something matching is considered a match?
-            return Ret(hasExtra: false);
         }
     }
 
@@ -253,120 +166,32 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         _layerChangedSub.Dispose();
         _teacherNameSub.Dispose();
     }
-}
 
-public sealed class ScheduleLoading
-{
-    private ObservableValueSource<Schedule> _names;
-    public ObservableValue<Schedule> Names => _names.As();
-
-    public ScheduleLoading(IDispatcher dispatcher)
+    internal static void Parse(
+        NameParser nameParser,
+        List<NameParts<string?>> output)
     {
-        _names = dispatcher.CreateObservableValue(Schedule.Empty);
-    }
-
-    public async void StartLoading(
-        IServiceProvider sp,
-        CancellationToken cancellationToken)
-    {
-        // TODO: Do this better?
-        try
+        var lexer = nameParser.Scope();
+        while (!lexer.IsEmpty)
         {
-            await Task.Run(async () =>
+            var namePart = NameHelper.ParseNamePart(ref lexer, out bool isDoubleNameError);
+            _ = isDoubleNameError;
+
+            lexer.ConsumeAllConsecutiveThatAreNot(NameTokenType.Word);
+
+            if (namePart == default)
             {
-                await sp.InitializeSchedule(cancellationToken);
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _names.Value = sp.GetRequiredService<ScheduleProvider>().Get();
-                });
-            },
-            cancellationToken);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
+                continue;
+            }
+            output.Add(namePart);
         }
     }
-}
-
-public interface IAllTeacherNamesProvider
-{
-    public ObservableValue<ImmutableArray<Name>> Names { get; }
-}
-
-public sealed class AllTeacherNamesProvider : IAllTeacherNamesProvider, IDisposable
-{
-    private ObservableValueSource<ImmutableArray<Name>> _names;
-    public ObservableValue<ImmutableArray<Name>> Names => _names.As();
-    private readonly EventSubscription<Schedule> _scheduleUpdatedSub;
-
-    public AllTeacherNamesProvider(
-        IDispatcher dispatcher,
-        Event<Schedule> scheduleLoaded)
-    {
-        _names = dispatcher.CreateObservableValue<ImmutableArray<Name>>([]);
-        _scheduleUpdatedSub = scheduleLoaded.Sub(s =>
-        {
-            var x = s
-                .EnumerateTeachers()
-                .Select(x =>
-                {
-                    var name = x.Item.PersonName.AsNameFields();
-                    return new Name(name);
-                });
-            _names.Value = [.. x];
-        });
-    }
-
-    public void Dispose()
-    {
-        _scheduleUpdatedSub.Dispose();
-    }
-}
-
-public sealed class UpdateableObservableList<T> : ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged
-{
-    public event NotifyCollectionChangedEventHandler? CollectionChanged;
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private readonly List<T> _items = new();
-    private readonly IDispatcher _dispatcher;
-
-    public UpdateableObservableList(IDispatcher dispatcher)
-    {
-        _dispatcher = dispatcher;
-    }
-
-    public void TriggerChanged()
-    {
-        _ = PropertyChanged;
-        var callerId = new CallerIdentity(this);
-
-        // _dispatcher.Post<PropertyChangedEventArgs>(new(
-        //     callerId,
-        //     x => PropertyChanged?.Invoke(this, x),
-        //     new(nameof(Count))));
-        _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
-            callerId,
-            x => CollectionChanged?.Invoke(this, x),
-            new(NotifyCollectionChangedAction.Reset)));
-    }
-
-    public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public void Add(T item) => _items.Add(item);
-    public void Clear() => _items.Clear();
-    public bool Contains(T item) => _items.Contains(item);
-    public void CopyTo(T[] array, int arrayIndex) => throw new NotSupportedException();
-    public bool Remove(T item) => throw new NotSupportedException();
-    public int Count => _items.Count;
-    public bool IsReadOnly => false;
 }
 
 public sealed record class NameAndScore
 {
     public required Name Name { get; init; }
-    public required int Score { get; init; }
+    public required MatchScore Score { get; init; }
+    public required string ScoreString { get; init; }
     public override string ToString() => Name.ToString();
 }

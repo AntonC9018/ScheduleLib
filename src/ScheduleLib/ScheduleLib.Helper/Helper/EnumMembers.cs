@@ -68,11 +68,13 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
         Debug.Assert(Count == length, "Values are not consecutive");
     }
 
+    [DebuggerStepThrough]
     public static int EnumAsInt(T e)
     {
         return (int) (object) e;
     }
 
+    [DebuggerStepThrough]
     public static T IntAsEnum(int e)
     {
         return (T) (object) e;

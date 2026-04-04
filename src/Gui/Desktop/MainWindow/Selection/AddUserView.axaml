@@ -13,7 +13,8 @@
         x:Name="AutoCompleteBox"
         SearchText="{Binding UserNameToAdd, Mode=OneWayToSource}"
         SelectedItem="{Binding SelectedUserName, Mode=OneWayToSource}"
-        ItemsSource="{Binding FilteredUserNames}"
+        ItemsSource="{Binding FilteredUserNames, Mode=OneTime}"
+        FilterMode="None"
         IsEnabled="{Binding CanSelectUserToAdd}"
         MinimumPrefixLength="0"
         IsTextCompletionEnabled="False"
@@ -23,7 +24,7 @@
               <StackPanel Orientation="Horizontal" >
                 <TextBlock Text="{Binding Name}" />
                 <TextBlock
-                  Text="{Binding Score}"
+                  Text="{Binding ScoreString}"
                   FontSize="8"
                   Foreground="DeepSkyBlue"
                   VerticalAlignment="Center"

@@ -19,7 +19,7 @@ public static class RegistrationHelper
         services.AddSingleton<TreeSerializer>();
         services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey).Configure(opts =>
         {
-            opts.DefaultIgnoreCondition = JsonIgnoreCondition.Always;
+            opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
         });
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }

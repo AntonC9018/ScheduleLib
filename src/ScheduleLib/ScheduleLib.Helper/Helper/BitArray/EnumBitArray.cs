@@ -11,6 +11,7 @@ namespace ScheduleLib.Helper;
 public record struct EnumBitArray<T> : IEnumerable<T>
     where T : struct, Enum
 {
+    [DebuggerStepThrough]
     static EnumBitArray()
     {
         UnsizedBitArray32.ValidateLen(_Length);
@@ -18,16 +19,19 @@ public record struct EnumBitArray<T> : IEnumerable<T>
 
     private UnsizedBitArray32 _impl;
 
+    [DebuggerStepThrough]
     public EnumBitArray() : this(impl: default)
     {
     }
 
+    [DebuggerStepThrough]
     public EnumBitArray(UnsizedBitArray32 impl)
     {
         Debug.Assert(impl.WithShrunkLen(_Length).AsUnsized() == impl);
         _impl = impl;
     }
 
+    [DebuggerStepThrough]
     public EnumBitArray(params ReadOnlySpan<T> values)
     {
         this = From(values);

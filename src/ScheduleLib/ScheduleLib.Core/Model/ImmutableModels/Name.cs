@@ -327,12 +327,24 @@ public static class NamePartHelper
 
     public static bool EachEquals<T, U>(this NameParts<T> a, NameParts<U> b, Func<T, U, bool> pred)
     {
+        // Pass the predicate itself as state.
+        return EachEquals(a, b, pred, static (pred, a, b) => pred(a, b));
+    }
+
+    public static bool EachEquals<T, U, TState>(
+        this NameParts<T> a,
+        NameParts<U> b,
+        TState state,
+        Func<TState, T, U, bool> pred)
+
+        where TState : allows ref struct
+    {
         var i = new EnumeratorState();
         while (i.MoveNext())
         {
             var fa = i.GetRef(ref a);
             var fb = i.GetRef(ref b);
-            if (!pred(fa, fb))
+            if (!pred(state, fa, fb))
             {
                 return false;
             }
