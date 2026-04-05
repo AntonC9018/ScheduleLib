@@ -30,7 +30,7 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="DynamicData" Version="9.4.31" />
+<!--        <PackageReference Include="DynamicData" Version="9.4.31" />-->
         <PackageReference Include="FastExpressionCompiler" Version="5.4.0" />
     </ItemGroup>
 
