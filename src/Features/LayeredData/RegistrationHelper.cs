@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,7 +18,8 @@ public static class RegistrationHelper
         services.AddSingleton<TreeSerializer>();
         services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey).Configure(opts =>
         {
-            opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
+            _ = opts;
+            // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
         });
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }

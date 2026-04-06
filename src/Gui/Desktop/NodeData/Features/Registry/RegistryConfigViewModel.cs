@@ -19,14 +19,14 @@ public sealed class RegistryConfigViewModel(
             RegistryConfig.Key,
             b => b.VM<RegistryConfigViewModel>().UseUpdateOnDataChange());
 
-        services.AddRegistry<IEquationCommandsDerivation?>(opts =>
+        services.AddRegistry<IEquationCommandsDerivation>(opts =>
         {
             opts.UseTypeComparer();
             opts.Add("Compare lessons from any day", new AnyDayDerivation());
             opts.Add("Only compare lessons in the same day", new SameDayDerivation());
         });
 
-        services.AddRegistry<ExtraLessonInstanceAction?>(opts =>
+        services.AddRegistry<ExtraLessonInstanceAction>(opts =>
         {
             opts.Add("Delete", ExtraLessonInstanceAction.Delete);
             opts.Add("Leave as is", ExtraLessonInstanceAction.LeaveAlone);
@@ -43,11 +43,11 @@ public sealed class RegistryConfigViewModel(
 
     public ObservableCredentials<RegistryConfig> Credentials { get; } = new();
 
-    public SelectionHelper<ExtraLessonInstanceAction> ExtraLesson { get; } =
-        _helper.SelectionHelper(_extraLessons, c => c.ExtraLessonInstanceAction);
+    public SelectionHelper<RegistryConfig, ExtraLessonInstanceAction> ExtraLesson { get; } =
+        _helper.SelectionHelper(_extraLessons, c => c.ExtraLessonInstanceAction, allowNull: true);
 
-    public SelectionHelper<IEquationCommandsDerivation> Derivation { get; } =
-        _helper.SelectionHelper(_derivations, c => c.EquationCommandsDerivation);
+    public SelectionHelper<RegistryConfig, IEquationCommandsDerivation> Derivation { get; } =
+        _helper.SelectionHelper(_derivations, c => c.EquationCommandsDerivation, allowNull: true);
 
     public bool? DryRun
     {

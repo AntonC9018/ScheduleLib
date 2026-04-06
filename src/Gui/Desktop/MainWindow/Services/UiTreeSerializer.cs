@@ -28,7 +28,7 @@ public sealed class UiTreeOutputProvider : IUiTreeOutputProvider
 
     public Stream GetWrite(TreeBuilder tree)
     {
-        var output = new FileStream(_settings.DatabaseFilePath, FileMode.Open, FileAccess.Write);
+        var output = new FileStream(_settings.DatabaseFilePath, FileMode.Create, FileAccess.Write);
         return output;
     }
 

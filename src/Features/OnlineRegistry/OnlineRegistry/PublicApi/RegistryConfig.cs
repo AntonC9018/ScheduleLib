@@ -2,6 +2,8 @@ using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
+using OnlineRegistry.OnlineRegistry.Impl;
+using ScheduleLib.OnlineRegistry.Impl;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.OnlineRegistry;
@@ -58,6 +60,11 @@ public static class ConfigExtensions
         {
             RegistryConfig.Register(services);
 
+            {
+                var h = services.AddOpenHierarchy<IEquationCommandsDerivation>();
+                h.AddDerived<AnyDayDerivation>().SetImmutable();
+                h.AddDerived<SameDayDerivation>().SetImmutable();
+            }
             // TODO: This should function as a provider then? doing work in DI is not good.
             services.AddScoped<IRegistryErrorHandler>(sp =>
             {
