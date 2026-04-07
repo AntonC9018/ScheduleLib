@@ -1,6 +1,8 @@
+using System.Reflection;
 using Anton.LayeredData;
 using Anton.LayeredData.TreeEnumeration;
 using Desktop.MvvmEssentials;
+using Desktop.NodeData.Features.Registry;
 using Desktop.ViewModelData;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -145,4 +147,19 @@ public readonly record struct ConditionallyEditableData<T>(
     bool IsEditable,
     T? Value)
 {
+}
+
+public readonly record struct ModelPropertyAccess<TProperty>(
+    Action<AnyNullable<TProperty>> Setter,
+    Func<AnyNullable<TProperty>> Getter)
+{
+}
+
+public readonly record struct ConditionallyEditableProperty<TProperty>(
+    bool IsEditable,
+    MemberInfo PropertyName,
+    ModelPropertyAccess<TProperty> Access)
+{
+    public AnyNullable<TProperty> Get() => Access.Getter();
+    public void Set(AnyNullable<TProperty> value) => Access.Setter(value);
 }

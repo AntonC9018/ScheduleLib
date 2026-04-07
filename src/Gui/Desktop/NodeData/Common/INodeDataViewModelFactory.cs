@@ -1,12 +1,11 @@
-using Anton.LayeredData;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Desktop.ViewModelData;
 
 namespace Desktop.NodeData.Common;
 
-public interface INodeDataViewModelFactory
+public interface IPropertySetViewModelFactory
 {
-    NodeDataKey Key { get; }
+    PropertySetId Key { get; }
     NodeDataViewModelResult Create(NodeDataVMCreateParams p);
 }
 

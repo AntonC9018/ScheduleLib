@@ -1,6 +1,7 @@
 using Anton.LayeredData;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Desktop.MvvmEssentials;
+using Desktop.NodeData.Common;
 using Desktop.ViewModelData;
 
 namespace Desktop.NodeData.Editor;
@@ -47,23 +48,28 @@ public sealed partial class NodeDataEditorViewModel(
 
 public sealed class ConfigType
 {
-    public required NodeDataKey Key { get; init; }
+    public required PropertySetId Key { get; init; }
     public required string DisplayName { get; init; }
-    public required Type Type { get; init; }
+    // public required Type Type { get; init; }
 
-    public override string ToString() => Key.Value.ToString();
+    public override string ToString() => DisplayName;
 }
 
 public sealed class ConfigTypesProvider
 {
-    public ConfigType[] ConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
-        x => new ConfigType
-        {
-            // TODO: Add a custom name here, will do when doing localizations.
-            Key = x.Key,
-            Type = x.Value,
-            DisplayName = x.Key.Value,
-        }).ToArray();
+    // public ConfigType[] ConfigTypes => field ??= NodeDataKey.Registry.KeyTypeMappings.Select(
+    //     x => new ConfigType
+    //     {
+    //         // TODO: Add a custom name here, will do when doing localizations.
+    //         Key = x.Key,
+    //         Type = x.Value,
+    //         DisplayName = x.Key.Value,
+    //     }).ToArray();
+    public ConfigType[] ConfigTypes = [new()
+    {
+        DisplayName = "Registry",
+        Key = new("Registry"),
+    }];
 }
 
 public readonly struct NullableOwnedViewModel : IDisposable

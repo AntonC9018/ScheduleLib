@@ -31,12 +31,12 @@ public readonly struct OwnedViewModel : IDisposable
 
 public sealed class NodeDataViewModelResolver
 {
-    public FrozenSet<NodeDataKey> Supported { get; }
-    private readonly FrozenDictionary<NodeDataKey, INodeDataViewModelFactory> _factories;
+    public FrozenSet<PropertySetId> Supported { get; }
+    private readonly FrozenDictionary<PropertySetId, IPropertySetViewModelFactory> _factories;
     private readonly IServiceProvider _sp;
 
     public NodeDataViewModelResolver(
-        IEnumerable<INodeDataViewModelFactory> factories,
+        IEnumerable<IPropertySetViewModelFactory> factories,
         IServiceProvider sp)
     {
         _sp = sp;
@@ -50,7 +50,7 @@ public sealed class NodeDataViewModelResolver
     }
 
     public OwnedViewModel Resolve(
-        NodeDataKey key,
+        PropertySetId key,
         DataStore dataStore)
     {
         if (!_factories.TryGetValue(key, out var factory))

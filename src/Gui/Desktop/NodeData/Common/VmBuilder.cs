@@ -222,38 +222,3 @@ public static class VmBuilderExtensions
 #endif
 }
 
-public sealed class VmFactoryService<T> : INodeDataViewModelFactory
-    where T : class
-{
-    private readonly VmFactory<T> _vmFactory;
-    public NodeDataKey<T> Key { get; }
-
-    public VmFactoryService(NodeDataKey<T> key, VmFactory<T> vmFactory)
-    {
-        Key = key;
-        _vmFactory = vmFactory;
-    }
-
-    NodeDataKey INodeDataViewModelFactory.Key => Key.Value;
-
-    public NodeDataViewModelResult Create(NodeDataVMCreateParams p)
-    {
-        var ret = p.BuildVm(Key, _vmFactory);
-        return ret;
-    }
-}
-
-public static class VmFactoryRegistration
-{
-    public static void AddVmFactory<T>(
-        this IServiceCollection services,
-        NodeDataKey<T> key,
-        Action<VmFactoryBuilder<T>> configure) where T : class
-    {
-        var builder = new VmFactoryBuilder<T>();
-        configure(builder);
-        var factory = builder.CreateFactory();
-        var instance = new VmFactoryService<T>(key, factory);
-        services.AddSingleton<INodeDataViewModelFactory>(instance);
-    }
-}
