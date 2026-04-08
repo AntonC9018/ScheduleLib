@@ -95,10 +95,15 @@ public sealed class XXXPropertyConfig
 
 public readonly record struct Application();
 
-public sealed class PropertyConfig
+public abstract class CommonPropertyConfig
+{
+    public List<Application> Applications { get; } = new();
+    public OptionalViewId ViewId { get; set; }
+}
+
+public sealed class PropertyConfig : CommonPropertyConfig
 {
     public PropertyId Id { get; }
-    public List<Application> Applications { get; } = new();
 
     public PropertyConfig(PropertyId id)
     {
@@ -106,11 +111,10 @@ public sealed class PropertyConfig
     }
 }
 
-public sealed class XXXPropertySetModel
+public sealed class XXXPropertySetModel : CommonPropertyConfig
 {
     public bool IncludesAll { get; set; } = false;
     public List<PropertyConfig> Properties { get; } = new();
-    public List<Application> ApplicationsToEach { get; } = new();
     public List<XXXPropertySetModel> ChildModels { get; } = new();
 }
 
@@ -129,10 +133,7 @@ public sealed class XXXPropertySetBuilder<T>
         Model = model;
     }
 
-    public void ApplyConfig(Application application)
-    {
-        Model.ApplicationsToEach.Add(application);
-    }
+    public CommonPropertyConfig CommonConfig => Model;
 }
 
 public sealed class XXXPropertySetIncludeBuilder<T>
@@ -147,10 +148,7 @@ public sealed class XXXPropertySetIncludeBuilder<T>
         Model = model;
     }
 
-    public void ApplyConfig(Application application)
-    {
-        Model.ApplicationsToEach.Add(application);
-    }
+    public CommonPropertyConfig CommonConfig => Model;
 }
 
 public sealed class XXXPropertyBuilder<T>
@@ -158,18 +156,13 @@ public sealed class XXXPropertyBuilder<T>
     where T : class
 {
     public PropertyConfig Config { get; }
-    public XXXPropertySetIncludeBuilder<T> Parent { get; }
 
-    public XXXPropertyBuilder(PropertyConfig config, XXXPropertySetIncludeBuilder<T> parent)
+    public XXXPropertyBuilder(PropertyConfig config)
     {
         Config = config;
-        Parent = parent;
     }
 
-    public void ApplyConfig(Application application)
-    {
-        Config.Applications.Add(application);
-    }
+    public CommonPropertyConfig CommonConfig => Config;
 }
 
 public static class PropertySet
@@ -191,17 +184,17 @@ public static class PropertySet
             return builder;
         }
 
-        public XXXPropertySetBuilder<T> IncludeProperty<TProperty>(Expression<Func<T, TProperty?>> access)
+        public XXXPropertyBuilder<T> IncludeProperty<TProperty>(Expression<Func<T, TProperty?>> access)
         {
             var id = GetPropertyId(access);
-            builder.Model.AddProperty(id);
-            return builder;
+            var ret = builder.Model.AddProperty(id);
+            return new(ret);
         }
 
-        public XXXPropertySetBuilder<T> IncludeProperty(string name)
+        public XXXPropertyBuilder<T> IncludeProperty(string name)
         {
-            builder.Model.AddProperty(new(name));
-            return builder;
+            var ret = builder.Model.AddProperty(new(name));
+            return new(ret);
         }
 
         public XXXPropertySetBuilder<T> IncludeAll()
@@ -258,25 +251,25 @@ public static class PropertySet
         {
             var id = GetPropertyId(access);
             var ret = builder.Model.AddProperty(id);
-            return new(ret, builder);
+            return new(ret);
         }
 
         public XXXPropertyBuilder<T> Property(string name)
         {
             var id = new PropertyId(name);
             var ret = builder.Model.AddProperty(id);
-            return new(ret, builder);
+            return new(ret);
         }
     }
 
-    // extension<T>(T builder) where T : IXXXPropertyConfigBuilder
-    // {
-    //     public T UseUpdateOnDataChange()
-    //     {
-    //         builder.ApplyConfig(new Application());
-    //         return builder;
-    //     }
-    // }
+    extension<TBuilder>(TBuilder builder) where TBuilder : IXXXPropertyConfigBuilder
+    {
+        public TBuilder UseView(ViewId id)
+        {
+            builder.CommonConfig.ViewId = id;
+            return builder;
+        }
+    }
 
     extension(RootXXXPropertySetBuilder builder)
     {
@@ -324,5 +317,5 @@ public static class PropertySet
 
 public interface IXXXPropertyConfigBuilder
 {
-    public void ApplyConfig(Application application);
+    public CommonPropertyConfig CommonConfig { get; }
 }

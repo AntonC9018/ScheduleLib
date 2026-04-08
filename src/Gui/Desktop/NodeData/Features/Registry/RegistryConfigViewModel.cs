@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Desktop.NodeData.Common;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.OnlineRegistry.Impl;
@@ -18,15 +19,23 @@ public sealed class RegistryConfigViewModel(
     {
         services.AddPropertySetDisplayFactory(
             new("Online Registry"),
-            b => b.SourceFrom(RegistryConfig.Key));
+            b => b.SourceFrom(RegistryConfig.Key)
+            // b => b.SourceFrom(RegistryConfig.Key, c =>
+            // {
+            //     c.IncludeAll();
+            //
+            //     var viewId = new ViewId(typeof(UserControl));
+            //     c.IncludeProperty(x => x.CommandProcessingConfig).UseView(viewId);
+            // })
+            );
 
         services.ConfigurePropertySet(RegistryConfig.Key, b =>
         {
             // Can easily do a loop over each type.
-            b.Property<bool?>("DryRun")
+            b.Property<bool>("DryRun")
                 .Uses(x => x.CommandProcessingConfig)
                 // .GetUnwrap(c => c.HasAnyDryRun(LessonEquationCommandTypes.All))
-                .Get(c => c?.HasAnyDryRun(LessonEquationCommandTypes.All) ?? null)
+                .Get(c => c?.HasAnyDryRun(LessonEquationCommandTypes.All) ?? false)
                 .Set((commandProcessingConfigValue, value) =>
                 {
                     CommandProcessingConfigBuilder b1;
@@ -41,7 +50,7 @@ public sealed class RegistryConfigViewModel(
                         b1.Process().SetAll();
                     }
 
-                    b1.DryRun().SetAll(value ?? false);
+                    b1.DryRun().SetAll(value);
                     return b1.Build();
                 });
 
