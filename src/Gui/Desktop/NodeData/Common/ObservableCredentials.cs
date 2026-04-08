@@ -5,6 +5,11 @@ using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.NodeData.Features.Registry;
 
+public static class ObservableCredentials
+{
+    public static ViewModelId Id;
+}
+
 public sealed class ObservableCredentials<T> : ObservableObject
     where T : class, ICredentialsHolder
 {

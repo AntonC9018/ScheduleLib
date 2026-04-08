@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.OnlineRegistry.Impl;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace Desktop.NodeData.Features.Registry;
 
@@ -17,34 +18,7 @@ public sealed class RegistryConfigViewModel(
     {
         services.AddPropertySetDisplayFactory(
             new("Online Registry"),
-            b =>
-            {
-                b.Source(x =>
-                {
-                    var p = PropertySet.From(RegistryConfig.Key)
-                        .IncludeAll()
-                        .UseUpdateOnDataChange();
-                    x.Add(p);
-
-                    x.From(RegistryConfig.Key)
-                        .IncludeAll()
-                        // applies to all properties from this set.
-                        .UseUpdateOnDataChange();
-
-                    x.From(RegistryConfig.Key).Include(i =>
-                    {
-                        i.Property(c => c.EquationCommandsDerivation).UseUpdateOnDataChange();
-                        i.Property("DryRun").UseUpdateOnDataChange();
-                    });
-
-                    x.From(RegistryConfig.Key)
-                        .IncludeProperty(c => c.EquationCommandsDerivation)
-                        .IncludeProperty("DryRun")
-                        .UseUpdateOnDataChange()
-                        ;
-                });
-                b.UseUpdateOnDataChange();
-            });
+            b => b.SourceFrom(RegistryConfig.Key));
 
         services.ConfigurePropertySet(RegistryConfig.Key, b =>
         {
@@ -68,15 +42,12 @@ public sealed class RegistryConfigViewModel(
                     }
 
                     b1.DryRun().SetAll(value ?? false);
+                    return b1.Build();
                 });
 
             b.Property(x => x.ExtraLessonInstanceAction)
                 .Rename("ExtraLesson")
-                .UseRegistry(r =>
-                {
-                    r.Add("Delete", ExtraLessonInstanceAction.Delete);
-                    r.Add("Leave as is", ExtraLessonInstanceAction.LeaveAlone);
-                });
+                .UseDefaultRegistry();
 
             b.Property(x => x.EquationCommandsDerivation)
                 .Rename("Derivation")
@@ -85,13 +56,8 @@ public sealed class RegistryConfigViewModel(
 
         services.ConfigurePropertySetDefaults(b =>
         {
-            // TODO:
-            // ObservableCredentials should work for any property.
-            // For that, need to modify the builder to work with a property path.
-
-            // b.PropertyWithType<CredentialsSource>().UseVm<ObservableCredentials>();
-            // b.IfImplements<ICredentialsHolder>().Property(x => x.Credentials).UseVm(typeof(ObservableCredentials<>));
-            // b.IfImpl<ICredentialsHolder>().UseVm(typeof(ObservableCredentials<>));
+            b.PropertiesWithType<CredentialsSource>(p => p.UseVm(ObservableCredentials.Id));
+            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials).UseVm(ObservableCredentials.Id));
         });
 
         services.AddRegistry<IEquationCommandsDerivation>(opts =>

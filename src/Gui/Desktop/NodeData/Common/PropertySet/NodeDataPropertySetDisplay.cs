@@ -1,9 +1,7 @@
 using System.Linq.Expressions;
 using Anton.LayeredData;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Helper.Expressions;
-using ScheduleLib.OnlineRegistry;
 
 namespace Desktop.NodeData.Common;
 
@@ -17,13 +15,12 @@ public sealed class VmDisplayFactoryBuilder<T>
 
 public sealed class RootXXXPropertySetBuilder
 {
-    public XXXPropertySetModel RootModel = new();
+    public readonly XXXPropertySetModel RootModel = new();
 }
 
 public sealed class PropertySetDisplayFactoryBuilder
 {
-    private IServiceProvider _sp;
-
+    private readonly IServiceProvider _sp;
     public PropertySetDisplayFactoryBuilder(IServiceProvider sp)
     {
         _sp = sp;
@@ -89,21 +86,21 @@ public static class PropertySetRegistration
     }
 }
 
-public readonly record struct XXXPropertyId(string Name);
+public readonly record struct PropertyId(string Name);
 
 public sealed class XXXPropertyConfig
 {
-    public required XXXPropertyId Id { get; init; }
+    public required PropertyId Id { get; init; }
 }
 
 public readonly record struct Application();
 
 public sealed class PropertyConfig
 {
-    public XXXPropertyId Id { get; }
+    public PropertyId Id { get; }
     public List<Application> Applications { get; } = new();
 
-    public PropertyConfig(XXXPropertyId id)
+    public PropertyConfig(PropertyId id)
     {
         Id = id;
     }
@@ -217,14 +214,14 @@ public static class PropertySet
 
     extension (XXXPropertySetModel model)
     {
-        private PropertyConfig AddProperty(XXXPropertyId id)
+        private PropertyConfig AddProperty(PropertyId id)
         {
             var config = new PropertyConfig(id);
             model.Properties.Add(config);
             return config;
         }
 
-        public PropertyConfig? FindProperty(XXXPropertyId id)
+        public PropertyConfig? FindProperty(PropertyId id)
         {
             foreach (var x in model.Properties)
             {
@@ -236,7 +233,7 @@ public static class PropertySet
             return null;
         }
 
-        public PropertyConfig AddOrFindProperty(XXXPropertyId id)
+        public PropertyConfig AddOrFindProperty(PropertyId id)
         {
             if (model.FindProperty(id) is { } ret)
             {
@@ -247,7 +244,8 @@ public static class PropertySet
         }
     }
 
-    private static XXXPropertyId GetPropertyId<T, TProperty>(Expression<Func<T, TProperty?>> access)
+    internal static PropertyId GetPropertyId<T, TProperty>(
+        Expression<Func<T, TProperty>> access)
     {
         var member = access.ExtractMemberInfo();
         var memberName = member.Name;
@@ -265,20 +263,20 @@ public static class PropertySet
 
         public XXXPropertyBuilder<T> Property(string name)
         {
-            var id = new XXXPropertyId(name);
+            var id = new PropertyId(name);
             var ret = builder.Model.AddProperty(id);
             return new(ret, builder);
         }
     }
 
-    extension<T>(T builder) where T : IXXXPropertyConfigBuilder
-    {
-        public T UseUpdateOnDataChange()
-        {
-            builder.ApplyConfig(new Application());
-            return builder;
-        }
-    }
+    // extension<T>(T builder) where T : IXXXPropertyConfigBuilder
+    // {
+    //     public T UseUpdateOnDataChange()
+    //     {
+    //         builder.ApplyConfig(new Application());
+    //         return builder;
+    //     }
+    // }
 
     extension(RootXXXPropertySetBuilder builder)
     {
@@ -297,6 +295,29 @@ public static class PropertySet
             var ret = PropertySet.From(key);
             builder.Add(ret);
             return ret;
+        }
+    }
+
+    extension(PropertySetDisplayFactoryBuilder builder)
+    {
+        public void SourceFrom<T>(
+            NodeDataKey<T> key,
+            Action<XXXPropertySetBuilder<T>>? configure = null)
+
+            where T : class
+        {
+            builder.Source(x =>
+            {
+                var b = x.From(key);
+                if (configure is null)
+                {
+                    b.IncludeAll();
+                }
+                else
+                {
+                    configure(b);
+                }
+            });
         }
     }
 }
