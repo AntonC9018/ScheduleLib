@@ -1,7 +1,6 @@
-using AutoConstructor.Attributes;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
-using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
 using ScheduleLib.Theses.Parsing;
 using SpreadCheetah;
@@ -29,13 +28,16 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
     private readonly ThesesListProvider _thesesListProvider;
     private readonly ILogger _logger;
+    private readonly INameRemapper _nameRemapper;
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
-        ILogger<ListsForPredzashitaTaskHandler> logger)
+        ILogger<ListsForPredzashitaTaskHandler> logger,
+        [FromKeyedServices(ThesisListParser.TeacherNameRemapperKey)] INameRemapper nameRemapper)
     {
         _thesesListProvider = thesesListProvider;
         _logger = logger;
+        _nameRemapper = nameRemapper;
     }
 
     public async Task Handle(
@@ -71,6 +73,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 Members = x.Members.Select(y =>
                 {
                     var name = NameHelper.Parse(y.Name);
+                    name = _nameRemapper.RemapName(name);
                     return name;
                 }).ToArray(),
                 Number = x.Number,

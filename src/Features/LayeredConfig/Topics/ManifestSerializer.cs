@@ -117,6 +117,7 @@ public sealed class Document
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Faculty>? Faculty { get; set; }
     public LessonType? LessonType { get; set; }
+    public Language? Language { get; set; }
     public string? Delimiter { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Grade>? Grade { get; set; }

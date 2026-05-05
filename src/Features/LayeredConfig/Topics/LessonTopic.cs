@@ -16,12 +16,14 @@ public sealed class LessonTopic
 {
     public required string Name { get; set; }
     public LessonType LessonType { get; set; }
+    public Language Language { get; set; }
 }
 
 public sealed class LessonTopicDefaults
 {
     public LessonType? LessonType { get; set; }
     public string? CourseName { get; set; }
+    public Language? Language { get; set; }
 }
 
 public static class LessonTopicCsvSerializer
@@ -54,6 +56,10 @@ public static class LessonTopicCsvSerializer
             {
                 x.LessonType = lessonType;
             }
+            if (defaults.Language is { } lang)
+            {
+                x.Language = lang;
+            }
             yield return x;
         }
     }
@@ -65,11 +71,26 @@ public sealed class LessonTopicMap : ClassMap<LessonTopic>
     public LessonTopicMap(LessonTopicDefaults defaults)
     {
         Map(m => m.Name).Name("name");
-        var lessonTypeMap = Map(m => m.LessonType).Name("lessonType");
 
+        var lessonTypeMap = Map(m => m.LessonType).Name("lessonType");
+        lessonTypeMap.EnumConverter(opts =>
+        {
+            opts.Include(LessonType.Curs);
+            opts.Include(LessonType.Seminar);
+            opts.Include(LessonType.Lab);
+            opts.Include(LessonType.Prelegere);
+        });
         if (defaults.LessonType is { })
         {
             lessonTypeMap.Ignore();
+        }
+
+        var languageMap = Map(m => m.Language).Name("language");
+        languageMap.EnumConverter();
+        languageMap.Default(Language.None);
+        if (defaults.Language is { })
+        {
+            languageMap.Ignore();
         }
     }
 }
@@ -298,6 +319,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             var defaults = new LessonTopicDefaults
             {
                 LessonType = document.LessonType,
+                Language = document.Language,
             };
 
             if (lookup.Course(document.Course.AsMemory()) is not { } courseId)
@@ -354,6 +376,10 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             {
                 continue;
             }
+            if (!IsLanguageMatch())
+            {
+                continue;
+            }
             ret.Add(groupId);
             continue;
 
@@ -387,6 +413,19 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     }
                 }
                 return false;
+            }
+
+            bool IsLanguageMatch()
+            {
+                if (document.Language is not { } lang)
+                {
+                    return true;
+                }
+                if (group.Language != lang)
+                {
+                    return false;
+                }
+                return true;
             }
         }
         return ret;

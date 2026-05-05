@@ -20,6 +20,13 @@
             "course": "FP",
             "grade": 1,
             "faculty": "DJ",
+        },
+        {
+            "path": "collisions.csv",
+            "lessonType": "Lab",
+            "course": "MJ&DC",
+            "grade": 2,
+            "faculty": "DJ",
         }
     ]
 }

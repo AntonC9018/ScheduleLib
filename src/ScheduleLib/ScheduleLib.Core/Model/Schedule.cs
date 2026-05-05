@@ -733,6 +733,7 @@ public enum QualificationType
 
 public enum Language
 {
+    None = -1,
     Ro,
     Ru,
     En,
