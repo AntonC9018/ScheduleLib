@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Anton.LayeredData.Retrieval;

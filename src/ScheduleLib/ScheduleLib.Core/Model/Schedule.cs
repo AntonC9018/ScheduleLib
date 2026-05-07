@@ -520,6 +520,7 @@ public static class LessonGroupsHelper
         }
         return true;
     }
+
 }
 
 public readonly record struct CourseId(int Id)

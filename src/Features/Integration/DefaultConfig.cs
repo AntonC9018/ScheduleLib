@@ -114,7 +114,7 @@ public static class DefaultConfig
             t.Moodle().Remove();
             t.LessonTopics().Configure(x =>
             {
-                x.FallbackProvider<LabAutoNumberingNameProvider>(LessonType.Lab);
+                x.FallbackProvider<LabAutoNumberingNameProviderFactory>(LessonType.Lab);
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
                 x.FallbackProvider<NoNameProvider>(LessonType.Curs);
             });

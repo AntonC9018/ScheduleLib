@@ -7,12 +7,14 @@
             "course": "modele de design software",
             "faculty": ["I", "IA"],
             "grade": 3,
+            "language": "ru"
         },
         {
             "path": "c++.csv",
             "course": "C++",
             "grade": 2,
             "faculty": "DJ",
+            "language": "ru"
         },
         {
             "path": "fp.csv",
@@ -20,6 +22,7 @@
             "course": "FP",
             "grade": 1,
             "faculty": "DJ",
+            "language": "ru"
         },
         {
             "path": "collisions.csv",

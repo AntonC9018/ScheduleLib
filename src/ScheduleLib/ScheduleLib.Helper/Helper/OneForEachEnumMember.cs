@@ -181,6 +181,33 @@ public readonly struct RentedOneForEachEnumMemberArray<TEnum, TValue> : IDisposa
     public void Clear() => _items.Span.Fill(default!);
 }
 
+public readonly struct OneForEachEnumMemberArrayBuilder<TEnum, TValue>()
+    where TEnum : struct, Enum
+{
+    private readonly OneForEachEnumMemberArray<TEnum, TValue> _arr = new();
+    public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Set(TEnum e, TValue value)
+    {
+        _arr[e] = value;
+        return this;
+    }
+    public OneForEachEnumMemberArray<TEnum, TValue> Build()
+    {
+        var notSet = new EnumBitArray<TEnum>();
+        foreach (var x in _arr)
+        {
+            if (EqualityComparer<TValue>.Default.Equals(x.Value, default))
+            {
+                notSet.Set(x.Key);
+            }
+        }
+        if (!notSet.IsEmpty)
+        {
+            throw new InvalidOperationException($"Some members not set: {notSet}");
+        }
+        return _arr;
+    }
+}
+
 public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<MemoryItem<TEnum, TValue>>
     where TEnum : struct, Enum
 {
@@ -260,6 +287,9 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
         get => _items[key];
         set => _items[key] = value;
     }
+
+    public bool IsEmpty => Storage.Count == 0;
+    public int Count => Storage.Count;
 }
 
 public static class OneForEach
@@ -282,6 +312,8 @@ public static class OneForEach
         {
             return new(count);
         }
+
+        public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Builder<TValue>() => new();
     }
     public static Helper<TEnum> Enum<TEnum>() where TEnum : struct, Enum
     {

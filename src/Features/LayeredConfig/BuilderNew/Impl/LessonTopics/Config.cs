@@ -44,7 +44,7 @@ public sealed class LessonTopicsConfig : INodeData<LessonTopicsConfig>
 public sealed class LessonNameProviderConfig
 {
     public required LessonType LessonType { get; set; }
-    public ILessonNameProvider Provider { get; set; } = null!;
+    public ILessonNameProviderFactory Provider { get; set; } = null!;
 }
 
 public interface ILessonTopicSource

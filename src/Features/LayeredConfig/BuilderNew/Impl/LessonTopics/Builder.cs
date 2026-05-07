@@ -19,8 +19,9 @@ public partial class Extensions
             sources.Add(source);
         }
 
-        public void FallbackProvider<T>(LessonType lessonType)
-            where T : ILessonNameProvider
+        public void FallbackProvider(
+            LessonType lessonType,
+            ILessonNameProviderFactory provider)
         {
             var sources = builder.Value().FallbackProviders;
             var x = sources.Find(x => x.LessonType == lessonType);
@@ -32,9 +33,36 @@ public partial class Extensions
                 };
                 sources.Add(x);
             }
-            x.Provider = ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
+            x.Provider = provider;
+        }
+
+        public void FallbackProvider(
+            LessonType lessonType,
+            ILessonNameProvider provider)
+        {
+            var p = new NonLocalizedLessonNameProvider(provider);
+            builder.FallbackProvider(lessonType, p);
+        }
+
+        public void FallbackProvider<T>(
+            LessonType lessonType)
+
+            where T : ILessonNameProviderBase
+        {
+            if (typeof(T).IsAssignableTo(typeof(ILessonNameProvider)))
+            {
+                var ret = (ILessonNameProvider) ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
+                builder.FallbackProvider(lessonType, ret);
+            }
+            else if (typeof(T).IsAssignableTo(typeof(ILessonNameProviderFactory)))
+            {
+                var ret = (ILessonNameProviderFactory) ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
+                builder.FallbackProvider(lessonType, ret);
+            }
+            else
+            {
+                throw new NotImplementedException($"Don't inherit {nameof(ILessonNameProviderBase)} directly!");
+            }
         }
     }
-
-
 }
