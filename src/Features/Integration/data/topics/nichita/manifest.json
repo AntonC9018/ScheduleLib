@@ -5,7 +5,8 @@
         {
             "path": "cloud.csv",
             "course": "Cloud Computing",
-            "faculty": ["I", "IA"]
+            "faculty": ["I", "IA"],
+            "language": "ru"
         }
     ]
 }

@@ -6,18 +6,28 @@
             "path": "ДЖ.csv",
             "course": "GA 2D",
             "faculty": "DJ",
-            "lessonType": "Curs"
+            "lessonType": "Curs",
+            "language": "ru"
         },
         {
             "path": "Информатики.csv",
             "course": "GA 2D",
             "faculty": ["IA", "I"],
-            "lessonType": "Curs"
+            "lessonType": "Curs",
+            "language": "ru"
         },
         {
             "path": "HTML.csv",
             "course": "HTML",
-            "lessonType": "Lab"
-        }
+            "lessonType": "Lab",
+            "language": "ru"
+        },
+        {
+            "path": "3D.csv",
+            "course": "GA 3D",
+            "faculty": ["IA", "I", "DJ"],
+            "lessonType": "Curs",
+            "language": "ru"
+        },
     ]
 }

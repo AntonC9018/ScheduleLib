@@ -26,7 +26,6 @@
         },
         {
             "path": "collisions.csv",
-            "lessonType": "Lab",
             "course": "MJ&DC",
             "grade": 2,
             "faculty": "DJ",

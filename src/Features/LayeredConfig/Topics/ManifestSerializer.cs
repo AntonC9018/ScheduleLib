@@ -20,6 +20,7 @@ public static class ManifestSerializer
         options.Converters.Add(new SingleValueWrapperConverterFactory());
         options.Converters.Add(new NameJsonConverter());
         options.Converters.Add(new JsonStringEnumConverter<LessonType>());
+        options.Converters.Add(new JsonStringEnumConverter<Language>());
         options.AllowTrailingCommas = true;
 
         var textEncoder = new TextEncoderSettings();

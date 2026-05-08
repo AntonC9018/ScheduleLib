@@ -176,12 +176,16 @@ public static class Config
                 x.Semester(Semester.Sem2);
 
                 x.LessonsStart(month: 2, day: 2);
-                x.LessonsEndInclusive(month: 5, day: 10);
-                for (int i = 1; i <= 2; i++)
+                x.Range(r =>
                 {
-                    var r = x.Range();
-                    r.Grade(new(i));
-                }
+                    r.LessonsEndInclusive(month: 5, day: 10);
+                    r.Grade(new(2));
+                });
+                x.Range(r =>
+                {
+                    r.LessonsEndInclusive(month: 5, day: 24);
+                    r.Grade(new(1));
+                });
 
                 x.Range(r =>
                 {

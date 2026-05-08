@@ -492,7 +492,11 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             }
 
             var language = group.Language;
-            ref var groups = ref ret.GetOrAdd(language);
+            ref var groups = ref ret.GetOrAdd(language, out bool existed);
+            if (!existed)
+            {
+                groups = new LessonGroups();
+            }
             groups.Add(groupId);
             continue;
 
@@ -581,7 +585,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
     {
         foreach (var lessonType in typesToProcess.SetValues())
         {
-            if (providers[lessonType] != null)
+            if (providers.TryGet(lessonType, out _))
             {
                 continue;
             }

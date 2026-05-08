@@ -1,0 +1,42 @@
+name,lessonType,language
+"Vectori. Operațiuni de adunare și scădere. Puncte în spațiu. Interpolarea lineară",curs,ro
+"Rezolvarea exemplelor la vectori",lab,ro
+
+"Produsul scalar. Exemple de folosire a produsului scalar. Unghi între vectori",curs,ro
+"Rezolvarea exemplelor la produsul scalar între vectori",lab,ro
+"Învățarea exemplelor practice la vectori",lab,ro
+
+"Reamintirea conceptelor din Unity: scene, obiecte, prefab, script-uri. Reamintirea conceptelor de programare: clase, funcții, bucle",curs,ro
+"Setarea proiectului în Unity pentru realizarea primului laborator",lab,ro
+
+"Spații de coordonate: grid space, world space și screen space. Transformări între sistemele de coordonate",curs,ro
+"Generarea grilei dinamică. Integrarea unor butoane în editor. Adăugarea texturilor aleatorie, folosind Perlin Noise. Evidențierea poziției sub mouse. Poziționarea camerei în mijlocul grilei.",lab,ro
+"Adăugarea jucătorului. Citirea input-ului utilizatorului. Răspunsul la input. Animarea mișcării.",lab,ro
+
+"Parcurgerea grilei 2D în direcții ortogonale și diagonale. Raycast în 2D băzat pe grilă.",curs,ro
+"Generarea mișcărilor valide ale jucătorului. Verificările dacă mișcarea este validă. Evidențierea mișcărilor valide.",lab,ro
+
+"Limitarea distanței a raycast-ului. Obstacole. Metoda de optimizare Uniform Grid și conceptul de Spatial Hash. Complexitatea derivării mișcărilor valide cu și fără optimizări.",curs,ro
+"Realizarea sistemului centralizat de acces la evidențiere.",lab,ro
+"Implementarea obstacolelor.",lab,ro
+
+"Simulații discrete în spații contigui. Coordonatele pereților. Coliziuni și răspunsul la coliziuni. Algoritmul de verificare dacă un punct depășește o dreaptă",curs,ro
+"Realizarea simulației vizuale cu două bile fără coliziuni. Alegerea culorii și a poziției în baza funcției sin. Reprezentarea datelor și aplicarea lor la obiecte din cod.",lab,ro
+
+"Derivarea formulei de coliziune între bile cu mase identice. Derivarea formulei de coliziune între bile cu mase diferite",curs,ro
+"Detectarea coliziunile între bile și pereți. Răspuns la coliziuni cu pereți. Generalizarea abordării la orice perete folosind un punct pe dreapta și vectorul normal. Rezolvarea problemei de blocare și jitter în perete.",lab,ro
+"Adăugarea mai multor bile. Coliziunile între bile cu aceleași mase. Rezolvarea problemei de blocare și jitter între bile.",lab,ro
+
+"Optimizarea Uniform Grid. Spatial Hash. Algoritmul sweep-and-prune. Quadtree, k-d arbore",curs,ro
+"Realizarea Uniform Grid",lab,ro
+
+"Gravitația. Metode de integrare Verlet și Euler. Substepping",curs,ro
+"Realizarea sweep-and-prune",lab,ro
+"Adăugarea gravitației. Realizarea pierderii de viteză la coliziuni",lab,ro
+
+"Coliziuni între obiecte diferite decât bile: dreptunghi, drepte, poligoane. AABB. Separating Axis Theorem.",curs,ro
+"Adăugarea obiectelor diferite decât bile. Realizarea funcțiilor de detectare a coliziunilor",lab,ro
+
+"Obiecte convexe și concave. Coliziuni în 3D. Algoritmul Gilbert Johnson Keerthi.",curs,ro
+"Folosirea Physics2D în Unity. Collider. Rigidbody.",lab,ro
+"Implementarea algoritmului Gilbert Johnson Keerthi",lab,ro
