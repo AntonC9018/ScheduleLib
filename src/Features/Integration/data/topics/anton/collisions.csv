@@ -1,42 +1,77 @@
 name,lessonType,language
 "Vectori. Operațiuni de adunare și scădere. Puncte în spațiu. Interpolarea lineară",curs,ro
+"Векторы. Операции сложения и вычитания. Точки в пространстве. Линейная интерполяция",curs,ru
 "Rezolvarea exemplelor la vectori",lab,ro
+"Решение примеров по векторам",lab,ru
 
 "Produsul scalar. Exemple de folosire a produsului scalar. Unghi între vectori",curs,ro
+"Скалярное произведение. Примеры использования скалярного произведения. Угол между векторами",curs,ru
 "Rezolvarea exemplelor la produsul scalar între vectori",lab,ro
+"Решение примеров на скалярное произведение векторов",lab,ru
 "Învățarea exemplelor practice la vectori",lab,ro
+"Изучение практических примеров по векторам",lab,ru
 
 "Reamintirea conceptelor din Unity: scene, obiecte, prefab, script-uri. Reamintirea conceptelor de programare: clase, funcții, bucle",curs,ro
+"Повторение концепций Unity: сцены, объекты, prefab, скрипты. Повторение концепций программирования: классы, функции, циклы",curs,ru
 "Setarea proiectului în Unity pentru realizarea primului laborator",lab,ro
+"Настройка проекта в Unity для выполнения первой лабораторной работы",lab,ru
 
 "Spații de coordonate: grid space, world space și screen space. Transformări între sistemele de coordonate",curs,ro
+"Пространства координат: grid space, world space и screen space. Преобразования между системами координат",curs,ru
 "Generarea grilei dinamică. Integrarea unor butoane în editor. Adăugarea texturilor aleatorie, folosind Perlin Noise. Evidențierea poziției sub mouse. Poziționarea camerei în mijlocul grilei.",lab,ro
+"Динамическая генерация сетки. Интеграция кнопок в редактор. Добавление случайных текстур с использованием Perlin Noise. Подсветка позиции под курсором мыши. Размещение камеры в центре сетки.",lab,ru
 "Adăugarea jucătorului. Citirea input-ului utilizatorului. Răspunsul la input. Animarea mișcării.",lab,ro
+"Добавление игрока. Чтение пользовательского ввода. Реакция на ввод. Анимация движения.",lab,ru
 
 "Parcurgerea grilei 2D în direcții ortogonale și diagonale. Raycast în 2D băzat pe grilă.",curs,ro
+"Обход 2D-сетки в ортогональных и диагональных направлениях. Raycast в 2D на основе сетки.",curs,ru
 "Generarea mișcărilor valide ale jucătorului. Verificările dacă mișcarea este validă. Evidențierea mișcărilor valide.",lab,ro
+"Генерация допустимых движений игрока. Проверка допустимости движения. Подсветка допустимых движений.",lab,ru
 
 "Limitarea distanței a raycast-ului. Obstacole. Metoda de optimizare Uniform Grid și conceptul de Spatial Hash. Complexitatea derivării mișcărilor valide cu și fără optimizări.",curs,ro
+"Ограничение дистанции raycast-а. Препятствия. Метод оптимизации Uniform Grid и концепция Spatial Hash. Сложность вычисления допустимых движений с оптимизациями и без них.",curs,ru
 "Realizarea sistemului centralizat de acces la evidențiere.",lab,ro
+"Реализация централизованной системы доступа к подсветке.",lab,ru
 "Implementarea obstacolelor.",lab,ro
+"Реализация препятствий.",lab,ru
 
 "Simulații discrete în spații contigui. Coordonatele pereților. Coliziuni și răspunsul la coliziuni. Algoritmul de verificare dacă un punct depășește o dreaptă",curs,ro
+"Дискретные симуляции в непрерывных пространствах. Координаты стен. Столкновения и реакция на столкновения. Алгоритм проверки пересечения точки с прямой",curs,ru
 "Realizarea simulației vizuale cu două bile fără coliziuni. Alegerea culorii și a poziției în baza funcției sin. Reprezentarea datelor și aplicarea lor la obiecte din cod.",lab,ro
+"Реализация визуальной симуляции двух шаров без столкновений. Выбор цвета и позиции на основе функции sin. Представление данных и применение их к объектам в коде.",lab,ru
 
 "Derivarea formulei de coliziune între bile cu mase identice. Derivarea formulei de coliziune între bile cu mase diferite",curs,ro
+"Вывод формулы столкновения шаров одинаковой массы. Вывод формулы столкновения шаров разной массы",curs,ru
 "Detectarea coliziunile între bile și pereți. Răspuns la coliziuni cu pereți. Generalizarea abordării la orice perete folosind un punct pe dreapta și vectorul normal. Rezolvarea problemei de blocare și jitter în perete.",lab,ro
+"Обнаружение столкновений между шарами и стенами. Реакция на столкновения со стенами. Обобщение подхода для любой стены с использованием точки на прямой и нормального вектора. Решение проблемы застревания и jitter в стене.",lab,ru
 "Adăugarea mai multor bile. Coliziunile între bile cu aceleași mase. Rezolvarea problemei de blocare și jitter între bile.",lab,ro
+"Добавление нескольких шаров. Столкновения между шарами одинаковой массы. Решение проблемы застревания и jitter между шарами.",lab,ru
 
 "Optimizarea Uniform Grid. Spatial Hash. Algoritmul sweep-and-prune. Quadtree, k-d arbore",curs,ro
+"Оптимизация Uniform Grid. Spatial Hash. Алгоритм sweep-and-prune. Quadtree, k-d дерево",curs,ru
 "Realizarea Uniform Grid",lab,ro
+"Реализация Uniform Grid",lab,ru
 
 "Gravitația. Metode de integrare Verlet și Euler. Substepping",curs,ro
+"Гравитация. Методы интеграции Verlet и Euler. Substepping",curs,ru
 "Realizarea sweep-and-prune",lab,ro
+"Реализация sweep-and-prune",lab,ru
 "Adăugarea gravitației. Realizarea pierderii de viteză la coliziuni",lab,ro
+"Добавление гравитации. Реализация потери скорости при столкновениях",lab,ru
 
 "Coliziuni între obiecte diferite decât bile: dreptunghi, drepte, poligoane. AABB. Separating Axis Theorem.",curs,ro
+"Столкновения между объектами, отличными от шаров: прямоугольники, прямые, полигоны. AABB. Теорема разделяющей оси.",curs,ru
 "Adăugarea obiectelor diferite decât bile. Realizarea funcțiilor de detectare a coliziunilor",lab,ro
+"Добавление объектов, отличных от шаров. Реализация функций обнаружения столкновений",lab,ru
 
-"Obiecte convexe și concave. Coliziuni în 3D. Algoritmul Gilbert Johnson Keerthi.",curs,ro
+"Obiecte convexe și concave. Coliziuni în 3D. Algoritmul Gilbert-Johnson-Keerthi.",curs,ro
+"Выпуклые и вогнутые объекты. Столкновения в 3D. Алгоритм Gilbert-Johnson-Keerthi.",curs,ru
 "Folosirea Physics2D în Unity. Collider. Rigidbody.",lab,ro
-"Implementarea algoritmului Gilbert Johnson Keerthi",lab,ro
+"Использование Physics2D в Unity. Collider. Rigidbody.",lab,ru
+"Implementarea algoritmului Gilbert-Johnson-Keerthi",lab,ro
+"Реализация алгоритма Gilbert-Johnson-Keerthi",lab,ru
+
+"Analiza lucrărilor de laborator",lab,ro
+"Analiza lucrărilor de laborator",lab,ro
+"Анализ лабораторных работ",lab,ru
+"Анализ лабораторных работ",lab,ru

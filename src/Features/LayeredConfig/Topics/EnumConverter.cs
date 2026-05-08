@@ -67,7 +67,7 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
 
         _allowedNames = final
             .Select(v => v.ToString())
-            .ToHashSet(StringComparer.Ordinal);
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     public override object ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
@@ -92,7 +92,7 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
                 $"Allowed values: {string.Join(", ", _allowedNames)}");
         }
 
-        return Parse(typeof(T), text, ignoreCase: false);
+        return Parse(typeof(T), text, ignoreCase: true);
     }
 }
 
