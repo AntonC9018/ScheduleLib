@@ -1,0 +1,12 @@
+{
+    "teacher": "Curmanschii Anton",
+    "documents":
+    [
+        {
+            "path": "c++.csv",
+            "course": "C++",
+            "grade": 2,
+            "faculty": "DJ"
+        }
+    ]
+}

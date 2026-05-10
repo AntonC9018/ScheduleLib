@@ -13,6 +13,17 @@ public sealed class Test
     [Fact]
     public async Task TestStuff()
     {
+        await TestLab("topics/1_ok/manifest.json");
+    }
+
+    [Fact]
+    public async Task FallbackAll()
+    {
+        await TestLab("topics/2_default_all/manifest.json");
+    }
+
+    private async Task TestLab(string path)
+    {
         using var helper = await IntegrationTestHelper.CreateNew();
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
@@ -28,7 +39,7 @@ public sealed class Test
         var teacherName = schedule.Get(teacherId).PersonName.AsNameFields();
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
             helper.ServiceProvider,
-            "data/manifest.json",
+            path,
             new Name(teacherName));
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);

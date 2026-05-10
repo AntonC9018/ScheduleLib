@@ -261,7 +261,7 @@ public static partial class RegistryScraping
 
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
     {
-        b.Delay(TimeSpan.FromSeconds(0.5));
+        b.Delay(TimeSpan.FromSeconds(1.0));
         b.AddConfig(DefaultTokensStorageConfig);
         b.AddConfig(DefaultPasswordLoginFieldNames);
         b.AddConfig(DefaultTokenNames);
