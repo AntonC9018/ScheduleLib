@@ -1,0 +1,34 @@
+name,lessonType
+"Subject I: Fundamentals of Web Development: Internet, Web, and the HTTP Protocol",Curs
+"Subject II: Introduction to PHP: History, Installation, Basic Concepts",Curs
+"Subject III: Data Types and Control Structures",Curs
+"Subject IV: Arrays and Functions",Curs
+"Subject V: Object-Oriented Programming in PHP. Part I",Curs
+"Subject VI: Object-Oriented Programming in PHP. Part II",Curs
+"Subject VII: Superglobals and Form Data Processing",Curs
+"Subject VIII: Composer, Package Installation, and Introduction to Autoloading in PHP",Curs
+"Subject IX: Templates and Templating in PHP",Curs
+"Subject X: Working with Databases in PHP",Curs
+"Subject XI: Authorization and Authentication",Curs
+"Subject XII: Introduction to the Concept of APIs. REST API. Part I",Curs
+"Subject XIII: Introduction to the Concept of APIs. REST API. Part II",Curs
+"L1. Fundamentals of Web Development: Internet, Web, and the HTTP Protocol",Lab
+"L2. Introduction to PHP: History, Installation, Basic Concepts",Lab
+"L3. Data Types and Control Structures",Lab
+"L4. Data Types and Control Structures",Lab
+"L5. Arrays and Functions",Lab
+"L6. Arrays and Functions",Lab
+"L7. Object-Oriented Programming in PHP. Part I",Lab
+"L8. Object-Oriented Programming in PHP. Part II",Lab
+"L9. Superglobals and Form Data Processing",Lab
+"L10. Superglobals and Form Data Processing",Lab
+"L11. Composer, Package Installation, and Introduction to Autoloading in PHP",Lab
+"L12. Templates and Templating in PHP",Lab
+"L13. Templates and Templating in PHP",Lab
+"L14. Working with Databases in PHP",Lab
+"L15. Working with Databases in PHP",Lab
+"L16. Authorization and Authentication",Lab
+"L17. Authorization and Authentication",Lab
+"L18. Introduction to the Concept of APIs. REST API. Part I",Lab
+"L19. Introduction to the Concept of APIs. REST API. Part I",Lab
+"L20. Introduction to the Concept of APIs. REST API. Part II",Lab

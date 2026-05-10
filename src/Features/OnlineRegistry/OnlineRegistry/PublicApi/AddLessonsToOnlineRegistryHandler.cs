@@ -253,10 +253,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     if (config.CommandProcessingConfig.HasProcess(command.Type))
                     {
-                        await HandleCommand(
-                            command,
-                            addLessonUri,
-                            expectedStudents: scanResult.Students);
+                        try
+                        {
+                            await HandleCommand(
+                                command,
+                                addLessonUri,
+                                expectedStudents: scanResult.Students);
+                        }
+                        catch (InvalidOperationException e)
+                        {
+                            _logger.LogError(e, "Error while handling command");
+                        }
                         continue;
                     }
 

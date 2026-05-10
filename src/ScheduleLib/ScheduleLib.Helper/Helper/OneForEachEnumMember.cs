@@ -290,6 +290,7 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
 
     public bool IsEmpty => Storage.Count == 0;
     public int Count => Storage.Count;
+    public void Clear() => Storage.Clear();
 }
 
 public static class OneForEach

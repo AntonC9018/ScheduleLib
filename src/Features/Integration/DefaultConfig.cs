@@ -128,6 +128,7 @@ public static class DefaultConfig
         {
             t.Moodle().Remove();
             t.GoogleDrive().Remove();
+            t.Registry().ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
 
             t.LessonTopics().Configure(x =>
             {

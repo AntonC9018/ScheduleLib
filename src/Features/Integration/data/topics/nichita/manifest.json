@@ -6,7 +6,12 @@
             "path": "cloud.csv",
             "course": "Cloud Computing",
             "faculty": ["I", "IA"],
-            "language": "ru"
+            "attendance": ["zi"]
+        },
+        {
+            "path": "php.csv",
+            "course": "PHP",
+            "faculty": ["I", "IA"]
         }
     ]
 }

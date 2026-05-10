@@ -2,6 +2,8 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+using ScheduleLib.Helper;
+using ScheduleLib.Helper.Helper;
 using ScheduleLib.Helper.JsonConverters;
 using ScheduleLib.JsonConverters;
 using ScheduleLib.Parsing;
@@ -21,6 +23,9 @@ public static class ManifestSerializer
         options.Converters.Add(new NameJsonConverter());
         options.Converters.Add(new JsonStringEnumConverter<LessonType>());
         options.Converters.Add(new JsonStringEnumConverter<Language>());
+        options.Converters.Add(new JsonStringEnumConverter<AttendanceMode>());
+        options.Converters.Add(EnumBitArrayJsonHelper.ConverterFactory);
+
         options.AllowTrailingCommas = true;
 
         var textEncoder = new TextEncoderSettings();
@@ -52,6 +57,13 @@ public static class ManifestSerializer
         if (manifest is null)
         {
             throw new InvalidDataException("Could not deserialize manifest");
+        }
+        foreach (var d in manifest.Documents)
+        {
+            if (d.Course.IsEmpty)
+            {
+                throw new InvalidDataException("Expecting the courses to not be empty");
+            }
         }
         return manifest;
     }
@@ -114,9 +126,11 @@ public sealed class Manifest
 public sealed class Document
 {
     public required string Path { get; set; }
-    public required string Course { get; set; }
+    [JsonConverter(typeof(SingleValueOrArrayConverter))]
+    public required List<string> Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Faculty>? Faculty { get; set; }
+    public EnumBitArray<AttendanceMode> Attendance { get; set; }
     public LessonType? LessonType { get; set; }
     public Language? Language { get; set; }
     public string? Delimiter { get; set; }

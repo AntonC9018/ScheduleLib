@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
@@ -92,6 +92,7 @@ public sealed class LessonTopicMap : ClassMap<LessonTopic>
         var languageMap = Map(m => m.Language).Name("language");
         languageMap.EnumConverter();
         languageMap.Default(Language.None);
+        languageMap.Optional();
         if (defaults.Language is { })
         {
             languageMap.Ignore();
@@ -183,13 +184,13 @@ public sealed class LabAutoNumberingNameProvider : ILessonNameProvider
 public readonly record struct ClassifiedTopicsKey
 {
     public readonly TopicsGroupsKey GroupsKey;
-    public readonly CourseId CourseId;
+    public readonly CourseKey CourseKey;
 
     public ClassifiedTopicsKey(
         TopicsGroupsKey groupsKey,
-        CourseId courseId)
+        CourseKey courseId)
     {
-        CourseId = courseId;
+        CourseKey = courseId;
         GroupsKey = groupsKey;
     }
 }
@@ -218,7 +219,7 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
             {
                 continue;
             }
-            if (it.Key.CourseId != key.CourseId)
+            if (!it.Key.CourseKey.MatchesCourse(key.CourseId))
             {
                 continue;
             }
@@ -278,21 +279,65 @@ public readonly record struct TopicsGroupsKey
     }
 }
 
+// Abstraction to be able to store 1-2 courses inline later.
+public struct CourseKeyBuilder
+{
+    private ImmutableArray<CourseId>.Builder _builder;
+    public CourseKeyBuilder(int capacity)
+    {
+        _builder = ImmutableArray.CreateBuilder<CourseId>();
+    }
+    public bool Add(CourseId courseId)
+    {
+        foreach (var x in _builder)
+        {
+            if (x == courseId)
+            {
+                return false;
+            }
+        }
+
+        _builder.Add(courseId);
+        return true;
+    }
+
+    public CourseKey Build() => new(new(_builder.ToImmutable()));
+}
+
+public readonly record struct CourseKey(
+    SequenceComparableImmutableArray<CourseId> Ids)
+{
+    public bool MatchesCourse(
+        CourseId courseId)
+    {
+        foreach (var id in Ids.Array)
+        {
+            if (id == courseId)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ImmutableArray<CourseId> EnumerateIds() => Ids.Array;
+}
+
 public readonly record struct TopicsBuilderKey
 {
     // Needed for instantiating the fallback providers.
     public Language Language { get; init; }
 
-    public readonly CourseId CourseId;
+    public readonly CourseKey CourseKey;
     public readonly TopicsGroupsKey GroupsKey;
 
     public TopicsBuilderKey(
-        CourseId courseId,
+        CourseKey courseKey,
         TopicsGroupsKey groupsKey,
         Language language = Language.None)
     {
         Language = language;
-        CourseId = courseId;
+        CourseKey = courseKey;
         GroupsKey = groupsKey;
     }
 
@@ -385,10 +430,10 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             SetProviderFallbacks(
                 providers,
                 ltypes.Required,
-                it.Key.CourseId,
+                it.Key.CourseKey,
                 it.Key.Language);
 
-            var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseId);
+            var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
             b.Add(new(builtKey, providers));
         }
         return new LessonTopicsFromDatabase(b.MoveToImmutable());
@@ -410,6 +455,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         LookupFacade lookup,
         CancellationToken cancellationToken)
     {
+        // Should come from a pool
+        var arr = OneForEach.Enum<Language>().CreateSparseArray<LessonTopicsBuilder>();
+
         foreach (var document in m.Manifest.Documents)
         {
             var documentFilePath = Path.Combine(m.DirectoryPath ?? "", document.Path);
@@ -425,10 +473,15 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 Language = document.Language,
             };
 
-            if (lookup.Course(document.Course.AsMemory()) is not { } courseId)
+            var courseKeyBuilder = new CourseKeyBuilder(document.Course.Count);
+            foreach (var course in document.Course)
             {
-                LogCourseCourseNotFoundInLookup(document.Course);
-                continue;
+                if (lookup.Course(course.AsMemory()) is not { } courseId)
+                {
+                    LogCourseCourseNotFoundInLookup(course);
+                    continue;
+                }
+                courseKeyBuilder.Add(courseId);
             }
 
             var lessonGroups = FindMatchingGroups(_schedule, document);
@@ -452,19 +505,31 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     return c;
                 });
 
-            var arr = OneForEach.Enum<Language>().CreateSparseArray<LessonTopicsBuilder>(count: lessonGroups.Count);
+            arr.Clear();
+
+            LessonTopicsBuilder? defaultBuilder = null;
             foreach (var (lang, groups) in lessonGroups)
             {
                 var topics = Topics(new(
-                    courseId: courseId,
+                    courseKey: courseKeyBuilder.Build(),
                     groupsKey: new(groups, null),
                     language: lang));
                 arr[lang] = topics;
+                defaultBuilder = topics;
             }
 
+            // TODO: add without language separately to a fallback
             await foreach (var lessonTopic in e)
             {
-                var builder = arr[lessonTopic.Language];
+                LessonTopicsBuilder builder;
+                if (lessonTopic.Language == Language.None)
+                {
+                    builder = defaultBuilder!;
+                }
+                else
+                {
+                    builder = arr[lessonTopic.Language];
+                }
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
         }
@@ -490,6 +555,10 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             {
                 continue;
             }
+            if (!IsAttendanceMatch())
+            {
+                continue;
+            }
 
             var language = group.Language;
             ref var groups = ref ret.GetOrAdd(language, out bool existed);
@@ -512,6 +581,19 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     {
                         return true;
                     }
+                }
+                return false;
+            }
+
+            bool IsAttendanceMatch()
+            {
+                if (document.Attendance == default)
+                {
+                    return true;
+                }
+                if (document.Attendance.Contains(group.AttendanceMode))
+                {
+                    return true;
                 }
                 return false;
             }
@@ -564,7 +646,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             {
                 continue;
             }
-            if (it.Key.CourseId != l.Course)
+            if (!it.Key.CourseKey.MatchesCourse(l.Course))
             {
                 continue;
             }
@@ -580,7 +662,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
     private void SetProviderFallbacks(
         SparseArray<LessonType, ILessonNameProvider> providers,
         EnumBitArray<LessonType> typesToProcess,
-        CourseId courseId,
+        CourseKey courseKey,
         Language language)
     {
         foreach (var lessonType in typesToProcess.SetValues())
@@ -596,8 +678,16 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 continue;
             }
 
-            throw new InvalidOperationException(
-                $"No provider for lesson type {lessonType} for course {courseId}.");
+            {
+                var sb = new StringBuilder();
+                var list = new ListStringBuilder(sb, ", ");
+                foreach (var courseId in courseKey.EnumerateIds())
+                {
+                    list.Append(_schedule.Source.Get(courseId).FullName);
+                }
+                throw new InvalidOperationException(
+                    $"No provider for lesson type {lessonType} for courses {sb}.");
+            }
         }
     }
 

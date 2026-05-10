@@ -24,7 +24,7 @@
         },
         {
             "path": "3D.csv",
-            "course": "GA 3D",
+            "course": ["GA 3D", "MTA 3D jocuri"],
             "faculty": ["IA", "I", "DJ"],
             "lessonType": "Curs",
             "language": "ru"
