@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
 using ScheduleLib.Theses.Parsing;
 using SpreadCheetah;
@@ -33,7 +34,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
         ILogger<ListsForPredzashitaTaskHandler> logger,
-        [FromKeyedServices(ThesisListParser.TeacherNameRemapperKey)] INameRemapper nameRemapper)
+        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper)
     {
         _thesesListProvider = thesesListProvider;
         _logger = logger;

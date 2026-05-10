@@ -52,8 +52,4 @@
     <ItemGroup>
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="FRParser\" />
-    </ItemGroup>
 </Project>

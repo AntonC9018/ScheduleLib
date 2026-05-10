@@ -9,6 +9,7 @@ using FmiWebsiteInterop.Teachers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
 
 using Parsing = ScheduleLib.Theses.Parsing;
@@ -88,7 +89,7 @@ public static class ThesesJsonHelper
 public sealed class ThesesConversionTaskHandler(
     Parsing.ThesesListProvider _thesesListProvider,
     ItUsmWebsiteTeacherDataProvider _teacherData,
-    [param: FromKeyedServices(Parsing.ThesisListParser.TeacherNameRemapperKey)]
+    [param: FromKeyedServices(NameMappingKeys.Teacher)]
     Parsing.INameRemapper _nameRemapper,
     ILogger<ThesesConversionTaskHandler> _logger)
 {

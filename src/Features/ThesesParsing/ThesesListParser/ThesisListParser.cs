@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Curriculum;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
@@ -53,13 +54,11 @@ public sealed class ThesisListParser
 {
     private readonly INameRemapper _teacherNameRemapper;
 
-    public const string TeacherNameRemapperKey = "Teacher";
-
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<ThesisListParser>(sp =>
         {
-            var mapper = sp.GetRequiredKeyedService<INameRemapper>(TeacherNameRemapperKey);
+            var mapper = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
             return new(mapper);
         });
     }

@@ -6,11 +6,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Curriculum.Download;
 using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
+using ScheduleLib.Theses.Parsing;
 
 namespace ScheduleLib.Application.Core;
 
@@ -41,9 +43,10 @@ public static class AppTasks
 
         foreach (var option in context.SelectedOptions)
         {
+            var remapper = context.RootServiceProvider.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
             await using var scope = context.RootServiceProvider.CreateMarkerScope(x =>
             {
-                x.TeacherName = context.TeacherName;
+                x.TeacherName = remapper.RemapName(context.TeacherName);
             });
             await ExecuteTask(new()
             {

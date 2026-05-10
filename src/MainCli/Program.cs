@@ -18,11 +18,11 @@ var appExecutionContext = new AppTasksExecutionContext
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
-        AppTask.CreateLessonsInRegistry,
+        // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
-        // AppTask.UpdateCalendar,
+        AppTask.UpdateCalendar,
         // AppTask.ListOfThesesPerTeacherForWebsite,
         // AppTask.CreatePredzashitaExcels,
         // AppTask.Query,
@@ -32,7 +32,7 @@ var appExecutionContext = new AppTasksExecutionContext
     AllTeachersOutputFileName = "all_teachers_orar.xlsx",
     CancellationToken = cancellationToken,
     RootServiceProvider = serviceProvider,
-    TeacherName = NameHelper.Parse("Nartea Nichita"),
+    TeacherName = NameHelper.Parse("Iatasina Tamara"),
     MoodleQuizId = "317382",
 };
 await AppTasks.ExecuteMenu(appExecutionContext);

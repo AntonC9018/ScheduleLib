@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using FmiWebsiteInterop.Api;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
 using ScheduleLib.Theses.Parsing;
 
@@ -14,7 +15,7 @@ public interface ISlugProvider
 // TODO: Probably don't want to have the client be stored here.
 public sealed class ItUsmWebsiteTeacherDataProvider(
     ItUsmWebsiteHttpClient _client,
-    [FromKeyedServices(ThesisListParser.TeacherNameRemapperKey)] INameRemapper _remap)
+    [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper _remap)
 
     : ISlugProvider
 {

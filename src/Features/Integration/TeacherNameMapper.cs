@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
 using ScheduleLib.Theses.Parsing;
 
@@ -10,7 +11,7 @@ public sealed class TeacherNameMapper(ScheduleBuilder b) : INameRemapper
 {
     public static void Register(IServiceCollection services)
     {
-        services.AddKeyedSingleton<INameRemapper, TeacherNameMapper>(ThesisListParser.TeacherNameRemapperKey);
+        services.AddKeyedSingleton<INameRemapper, TeacherNameMapper>(NameMappingKeys.Teacher);
     }
 
     public Name RemapName(Name name)
