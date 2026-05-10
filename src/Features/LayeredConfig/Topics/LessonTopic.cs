@@ -393,6 +393,8 @@ public sealed class LessonTopicsBuilder
     internal readonly TopicsBuilderKey Key;
     internal readonly Dictionary<LessonType, List<string>> _lists = new();
 
+    public bool IsFallbackBuilder => Key.Language == Language.None;
+
     public LessonTopicsBuilder(TopicsBuilderKey key)
     {
         Key = key;
@@ -439,7 +441,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         var fallbacks = new FallbackProvidersDS();
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
-            if (it.Key.Language != Language.None)
+            if (!it.IsFallbackBuilder)
             {
                 continue;
             }
@@ -449,10 +451,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         }
 
         var b = ImmutableArray.CreateBuilder<ClassifiedTopicsProviders>(_items.Count - fallbacks.Count);
-
         foreach (ref readonly var it in CollectionsMarshal.AsSpan(_items))
         {
-            if (it.Key.Language == Language.None)
+            if (it.IsFallbackBuilder)
             {
                 continue;
             }
@@ -483,14 +484,12 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         return item;
     }
 
-
     public async Task AddFromManifest(
         ManifestAtLocation m,
         LookupFacade lookup,
         CancellationToken cancellationToken)
     {
-        // Should come from a pool
-        var arr = OneForEach.Enum<Language>().CreateSparseArray<LessonTopicsBuilder>();
+        var bylang = new TopicsByLanguage();
 
         foreach (var document in m.Manifest.Documents)
         {
@@ -518,6 +517,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 courseKeyBuilder.Add(courseId);
             }
             var courseKey = courseKeyBuilder.Build();
+            bylang.Begin(courseKey);
 
             var lessonGroups = FindMatchingGroups(_schedule, document);
             if (lessonGroups.IsEmpty)
@@ -540,50 +540,23 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     return c;
                 });
 
-            arr.Clear();
             foreach (var (lang, groups) in lessonGroups)
             {
-                var topics = Topics(new(
-                    courseKey: courseKey,
-                    groupsKey: new(groups, null),
-                    language: lang));
-                arr[lang] = topics;
+                bylang.SetupBuilder(this, lang, groups);
             }
 
-            LessonTopicsBuilder? fallbackBuilder = null;
             await foreach (var lessonTopic in e)
             {
-                var builder = GetBuilder(lessonTopic.Language);
+                if (lessonTopic.Language == Language.None)
+                {
+                    // Must have been checked earlier at CSV binding.
+                    Debug.Assert(defaults.Language == null);
+                }
+
+                var builder = bylang.GetBuilder(this, lessonTopic.Language);
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
 
-            LessonTopicsBuilder GetBuilder(Language language)
-            {
-                if (language != Language.None)
-                {
-                    return arr[language];
-                }
-                // Must have been checked earlier at CSV binding.
-                Debug.Assert(defaults.Language == null);
-
-                if (fallbackBuilder is null)
-                {
-                    var allGroups = new LessonGroups();
-                    foreach (var groups in lessonGroups)
-                    {
-                        foreach (var group in groups.Value)
-                        {
-                            allGroups.Add(group);
-                        }
-                    }
-
-                    fallbackBuilder = Topics(new(
-                        courseKey: courseKey,
-                        groupsKey: new(allGroups, null),
-                        language: Language.None));
-                }
-                return fallbackBuilder;
-            }
         }
     }
 
@@ -844,6 +817,62 @@ file sealed class FallbackProvidersDS : List<BuiltFallbackProvider>
             return t;
         }
         return default;
+    }
+}
+
+file struct TopicsByLanguage()
+{
+    private CourseKey _courseKey;
+    private readonly SparseArray<Language, LessonTopicsBuilder> _arr = new();
+    private readonly HashSet<GroupId> _set = new();
+    private LessonTopicsBuilder? _fallback;
+
+    public void Begin(CourseKey courseKey)
+    {
+        _courseKey = courseKey;
+        _set.Clear();
+        _arr.Clear();
+        _fallback = null;
+    }
+
+    public void SetupBuilder(
+        AllLessonTopicsDatabaseBuilder self,
+        Language language,
+        in LessonGroups groups)
+    {
+        var topics = self.Topics(new(
+            courseKey: _courseKey,
+            groupsKey: new(groups, null),
+            language: language));
+        _arr[language] = topics;
+    }
+
+    public LessonTopicsBuilder GetBuilder(
+        AllLessonTopicsDatabaseBuilder self,
+        Language language)
+    {
+        if (language != Language.None)
+        {
+            return _arr[language];
+        }
+
+        if (_fallback is null)
+        {
+            var allGroups = new LessonGroups();
+            foreach (var (_, builder) in _arr)
+            {
+                foreach (var g in builder.Key.GroupsKey.Groups)
+                {
+                    _set.Add(g);
+                }
+            }
+
+            _fallback = self.Topics(new(
+                courseKey: _courseKey,
+                groupsKey: new(allGroups, null),
+                language: Language.None));
+        }
+        return _fallback;
     }
 }
 
