@@ -141,8 +141,8 @@ public sealed partial class GoogleCredentialResolver
             dataStore: dataStore);
 
         var grantedScopes = credential.Token.Scope?.Split(' ') ?? [];
-        var hasMissingScopes = requiredScopes.Except(grantedScopes).Any();
-        if (!hasMissingScopes)
+        var noMissingScopes = requiredScopes.Except(grantedScopes).None();
+        if (noMissingScopes)
         {
             return credential;
         }
@@ -160,6 +160,7 @@ public sealed partial class GoogleCredentialResolver
             ClientSecrets = clientSecrets,
             Scopes = mergedScopes,
             Prompt = forceShowConsentScreen,
+            DataStore = dataStore,
         });
 
         credential = await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver())
