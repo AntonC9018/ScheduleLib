@@ -13,21 +13,27 @@ public sealed class Test
     [Fact]
     public async Task TestStuff()
     {
-        await TestLab("topics/1_ok/manifest.json");
+        await TestLab(
+            path: "topics/1_ok/manifest.json",
+            courseName: "Programare în C++");
     }
 
     [Fact]
     public async Task FallbackAll()
     {
-        await TestLab("topics/2_default_all/manifest.json");
+        // Topics with no language work as fallback
+        // when no specific language was specified.
+        await TestLab(
+            path: "topics/2_default_all/manifest.json",
+            courseName: "Programare în C++");
     }
 
-    private async Task TestLab(string path)
+    private async Task TestLab(string path, string courseName)
     {
         using var helper = await IntegrationTestHelper.CreateNew();
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
-        var courseId = lookup.Course("Programare în C++".AsMemory())!.Value;
+        var courseId = lookup.Course(courseName.AsMemory())!.Value;
 
         var teachers = schedule.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Course == courseId)
