@@ -7,7 +7,15 @@
             "course": "modele de design software",
             "faculty": ["I", "IA"],
             "grade": 3,
-            "language": "ru"
+            "language": "ru",
+            "attendance": ["zi"]
+        },
+        {
+            "path": "design_fr.csv",
+            "course": "modele de design software",
+            "grade": 3,
+            "language": "ru",
+            "attendance": ["frecventaRedusa"]
         },
         {
             "path": "c++.csv",

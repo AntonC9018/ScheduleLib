@@ -36,6 +36,10 @@
             Include="data\topics\**\*"
             CopyToOutputDirectory="Always"
             CopyToPublishDirectory="Always" />
+        <None Update="data\topics\anton\design_fr.csv">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

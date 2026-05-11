@@ -1,0 +1,9 @@
+name;lessonType
+Field Mask. Pipeline. Контекст. Адаптер;prelegere
+Реализация программы с сериализацией на основе Field Mask. Создание программы на основе pipeline.;lab
+Builder. Fluent Builder. Динамические свойства. Типизированный ключ. Реестр ключей;prelegere
+Реализация программы с использованием Builder. Реализация программы с использованием динамического контекста или динамических сущностей.;lab
+Зависимости. Инкапсуляция зависимостей. Сервисы. Dependency Injection и Inversion of Control;prelegere
+"Реализация системы сообщений, используя Dependency Injection";lab
+Dependency Inversion. Принцип Single Responsibility. Усложненный пример с зависимостями. Unit testing. Использование DI контейнера. Пробная имплементация DI контейнера;prelegere
+"Использование DI контейнера для предыдущего примера, следование SRP";lab
