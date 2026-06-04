@@ -8,9 +8,9 @@ namespace ScheduleLib.OnlineRegistry;
 
 public readonly record struct CommandProcessingConfig : IEquatable<CommandProcessingConfig>
 {
-    internal readonly UnsizedBitArray32 _impl;
+    internal readonly UnsizedBitArray64 _impl;
 
-    public CommandProcessingConfig(UnsizedBitArray32 impl)
+    public CommandProcessingConfig(UnsizedBitArray64 impl)
     {
         _impl = impl;
     }
@@ -117,7 +117,7 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
 
 public struct CommandProcessingConfigBuilder
 {
-    internal UnsizedBitArray32 _impl;
+    internal UnsizedBitArray64 _impl;
 
     public CommandProcessingConfigBuilder()
     {
@@ -172,7 +172,7 @@ public static class CommandProcessingConfigBuilderExtensions
     {
         public EnumBitArray<LessonEquationCommandType> AsBitArray()
         {
-            var t = new UnsizedBitArray32((uint) mask);
+            var t = new UnsizedBitArray64((uint) mask);
             return new(t);
         }
     }

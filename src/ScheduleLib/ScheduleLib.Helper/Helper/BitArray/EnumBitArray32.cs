@@ -8,59 +8,59 @@ using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
-public record struct EnumBitArray<T> : IEnumerable<T>
+public record struct EnumBitArray32<T> : IEnumerable<T>
     where T : struct, Enum
 {
     [DebuggerStepThrough]
-    static EnumBitArray()
+    static EnumBitArray32()
     {
-        UnsizedBitArray64.ValidateLen(_Length);
+        UnsizedBitArray32.ValidateLen(_Length);
     }
 
-    private UnsizedBitArray64 _impl;
+    private UnsizedBitArray32 _impl;
 
     [DebuggerStepThrough]
-    public EnumBitArray() : this(impl: default)
+    public EnumBitArray32() : this(impl: default)
     {
     }
 
     [DebuggerStepThrough]
-    public EnumBitArray(UnsizedBitArray64 impl)
+    public EnumBitArray32(UnsizedBitArray32 impl)
     {
         Debug.Assert(impl.WithShrunkLen(_Length).AsUnsized() == impl);
         _impl = impl;
     }
 
     [DebuggerStepThrough]
-    public EnumBitArray(params ReadOnlySpan<T> values)
+    public EnumBitArray32(params ReadOnlySpan<T> values)
     {
         this = From(values);
     }
 
-    public readonly UnsizedBitArray64 AsUnsized() => _impl;
+    public readonly UnsizedBitArray32 AsUnsized() => _impl;
 
-    public static EnumBitArray<T> Create(BitArray64 impl)
+    public static EnumBitArray32<T> Create(BitArray32 impl)
     {
         Debug.Assert(impl.Len == _Length);
         return new(impl.AsUnsized());
     }
 
-    public static EnumBitArray<T> Empty => new();
+    public static EnumBitArray32<T> Empty => new();
 
-    public static EnumBitArray<T> AllSet
+    public static EnumBitArray32<T> AllSet
     {
         get
         {
-            var t = UnsizedBitArray64.AllSet(EnumMembers<T>.Count);
+            var t = UnsizedBitArray32.AllSet(EnumMembers<T>.Count);
             return new(t);
         }
     }
 
     private static int _Length => EnumMembers<T>.Count;
     [UnscopedRef]
-    private SizedBitArray64Ref SizedImplMut => _impl.AsFixedSizeRef(_Length);
+    private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(_Length);
     [Pure]
-    private readonly BitArray64 SizedImpl => _impl.WithFixedSize(_Length);
+    private readonly BitArray32 SizedImpl => _impl.WithFixedSize(_Length);
 
     public void Set(T index, bool value)
     {
@@ -88,9 +88,9 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public static EnumBitArray<T> From(params ReadOnlySpan<T> values)
+    public static EnumBitArray32<T> From(params ReadOnlySpan<T> values)
     {
-        var mask = new EnumBitArray<T>();
+        var mask = new EnumBitArray32<T>();
         foreach (var v in values)
         {
             mask.Set(v);
@@ -106,7 +106,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> WithSet(T index)
+    public readonly EnumBitArray32<T> WithSet(T index)
     {
         var offset = EnumMembers<T>.GetOffset(index);
         var result = SizedImpl.WithSet(offset);
@@ -114,7 +114,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> WithClear(T index)
+    public readonly EnumBitArray32<T> WithClear(T index)
     {
         var offset = EnumMembers<T>.GetOffset(index);
         var result = SizedImpl.WithClear(offset);
@@ -122,7 +122,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> Flipped
+    public readonly EnumBitArray32<T> Flipped
     {
         get
         {
@@ -132,19 +132,21 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> Intersect(EnumBitArray<T> other)
+    public readonly EnumBitArray32<T> Intersect(EnumBitArray32<T> other)
     {
         var result = SizedImpl.Intersect(other.SizedImpl);
         return new(result.AsUnsized());
     }
+
     [Pure]
-    public readonly EnumBitArray<T> Remove(EnumBitArray<T> other)
+    public readonly EnumBitArray32<T> Remove(EnumBitArray32<T> other)
     {
         var result = SizedImpl.Remove(other.SizedImpl);
         return new(result.AsUnsized());
     }
+
     [Pure]
-    public readonly bool Contains(EnumBitArray<T> arr)
+    public readonly bool Contains(EnumBitArray32<T> arr)
     {
         return Intersect(arr) == arr;
     }
@@ -178,7 +180,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     public readonly SetEnumValuesEnumerable SetValues() => new(_impl.Bits);
 
     [Pure]
-    public readonly ulong Bits => _impl.Bits;
+    public readonly uint Bits => _impl.Bits;
     [Pure]
     public readonly bool IsEmpty => _impl.IsEmpty;
 
@@ -187,9 +189,9 @@ public record struct EnumBitArray<T> : IEnumerable<T>
 
     public readonly struct SetEnumValuesEnumerable : IEnumerable<T>
     {
-        private readonly SetBitIndicesEnumerable64 _e;
+        private readonly SetBitIndicesEnumerable _e;
 
-        public SetEnumValuesEnumerable(ulong bits) => _e = new(bits);
+        public SetEnumValuesEnumerable(uint bits) => _e = new(bits);
         public SetEnumValuesEnumerator GetEnumerator() => new(_e.GetEnumerator());
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -199,9 +201,9 @@ public record struct EnumBitArray<T> : IEnumerable<T>
 
     public struct SetEnumValuesEnumerator : IEnumerator<T>
     {
-        private SetBitIndicesEnumerator64 _inner;
+        private SetBitIndicesEnumerator _inner;
 
-        public SetEnumValuesEnumerator(SetBitIndicesEnumerator64 x) => _inner = x;
+        public SetEnumValuesEnumerator(SetBitIndicesEnumerator x) => _inner = x;
         public bool MoveNext() => _inner.MoveNext();
         [Pure]
         public readonly T Current => EnumMembers<T>.EnumFromOffset(_inner.Current);
@@ -217,7 +219,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> Union(EnumBitArray<T> other)
+    public readonly EnumBitArray32<T> Union(EnumBitArray32<T> other)
     {
         var sizedSelf = SizedImpl;
         var sizedOther = other.SizedImpl;
@@ -246,17 +248,17 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 }
 
-public static class EnumBitArrayJsonHelper
+public static class EnumBitArray32JsonHelper
 {
     public static SameGenericArgsConverterFactory ConverterFactory { get; } = new(
-        objectType: typeof(EnumBitArray<>),
-        converterType: typeof(EnumBitArrayJsonConverter<>));
+        objectType: typeof(EnumBitArray32<>),
+        converterType: typeof(EnumBitArray32JsonConverter<>));
 }
 
-public sealed class EnumBitArrayJsonConverter<T> : JsonConverter<EnumBitArray<T>>
+public sealed class EnumBitArray32JsonConverter<T> : JsonConverter<EnumBitArray32<T>>
     where T : struct, Enum
 {
-    public override EnumBitArray<T> Read(
+    public override EnumBitArray32<T> Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
@@ -266,7 +268,7 @@ public sealed class EnumBitArrayJsonConverter<T> : JsonConverter<EnumBitArray<T>
             throw new JsonException("Expected an array");
         }
 
-        var ret = new EnumBitArray<T>();
+        var ret = new EnumBitArray32<T>();
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndArray)
@@ -283,7 +285,7 @@ public sealed class EnumBitArrayJsonConverter<T> : JsonConverter<EnumBitArray<T>
 
     public override void Write(
         Utf8JsonWriter writer,
-        EnumBitArray<T> value,
+        EnumBitArray32<T> value,
         JsonSerializerOptions options)
     {
         writer.WriteStartArray();

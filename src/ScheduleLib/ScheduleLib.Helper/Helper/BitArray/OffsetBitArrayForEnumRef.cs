@@ -8,13 +8,13 @@ public ref struct OffsetBitArrayForEnumRef<T>
 {
     static OffsetBitArrayForEnumRef()
     {
-        UnsizedBitArray32.ValidateLen(_Length);
+        UnsizedBitArray64.ValidateLen(_Length);
     }
 
-    private ref UnsizedBitArray32 _impl;
+    private ref UnsizedBitArray64 _impl;
     private readonly int _offset;
 
-    public OffsetBitArrayForEnumRef(ref UnsizedBitArray32 array, int offset)
+    public OffsetBitArrayForEnumRef(ref UnsizedBitArray64 array, int offset)
     {
         Debug.Assert(offset >= 0);
 
@@ -23,7 +23,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
     }
 
     public static OffsetBitArrayForEnumRef<T> Create(
-        ref BitArray32 array,
+        ref BitArray64 array,
         int offset)
     {
         Debug.Assert(offset + _Length <= array.Len);
@@ -44,7 +44,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
         return i + _offset;
     }
 
-    private readonly EnumBitArray<T> RestoreSlice(UnsizedBitArray32 array)
+    private readonly EnumBitArray<T> RestoreSlice(UnsizedBitArray64 array)
     {
         var ret = array.ShiftedRightWithDataLoss(_offset).WithShrunkLen(_Length);
         return new(ret.AsUnsized());
@@ -52,7 +52,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public void ResetArray(EnumBitArray<T> array)
     {
-        _impl.ClearArray(UnsizedBitArray32.GetMask(array.Length).ShiftedLeft(_offset));
+        _impl.ClearArray(UnsizedBitArray64.GetMask(array.Length).ShiftedLeft(_offset));
         _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
     }
 
@@ -123,7 +123,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public void ClearAll()
     {
-        var shiftedMask = UnsizedBitArray32.GetOffsetMask(_offset, Length);
+        var shiftedMask = UnsizedBitArray64.GetOffsetMask(_offset, Length);
         _impl.ClearArray(shiftedMask);
     }
 
@@ -138,7 +138,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 public static partial class BitArrayExtensions
 {
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
-        this ref UnsizedBitArray32 array,
+        this ref UnsizedBitArray64 array,
         int offset)
 
         where T : struct, Enum
@@ -147,7 +147,7 @@ public static partial class BitArrayExtensions
     }
 
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
-        this ref BitArray32 array,
+        this ref BitArray64 array,
         int offset)
 
         where T : struct, Enum

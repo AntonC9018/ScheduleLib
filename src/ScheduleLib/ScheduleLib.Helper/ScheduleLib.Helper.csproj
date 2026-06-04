@@ -15,5 +15,6 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Expressions\" />
+      <Folder Include="Helper\BitArray\" />
     </ItemGroup>
 </Project>

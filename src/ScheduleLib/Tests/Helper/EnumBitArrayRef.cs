@@ -10,7 +10,7 @@ public sealed class EnumBitArrayRef
     {
         Assert.ThrowsAny<Exception>(() =>
         {
-            var bitArray = BitArray32.Empty(10);
+            var bitArray = BitArray64.Empty(10);
             var arrRef = bitArray.EnumPortionRef<TestDay>(offset: 5);
             _ = arrRef;
         });
@@ -21,7 +21,7 @@ public sealed class EnumBitArrayRef
     {
         Assert.ThrowsAny<Exception>(() =>
         {
-            var bitArray = BitArray32.Empty(5);
+            var bitArray = BitArray64.Empty(5);
             var arrRef = bitArray.EnumPortionRef<TestDay>(offset: 0);
             _ = arrRef;
         });
@@ -31,7 +31,7 @@ public sealed class EnumBitArrayRef
     [Fact]
     public void SetIndex()
     {
-        var bitArray = BitArray32.Empty(10);
+        var bitArray = BitArray64.Empty(10);
         var arrRef = bitArray.EnumPortionRef<TestDay>(offset: 2);
         arrRef.Set(TestDay.Friday);
         Assert.True(bitArray.IsSet(2 + (int) TestDay.Friday));
@@ -40,7 +40,7 @@ public sealed class EnumBitArrayRef
     [Fact]
     public void SetArray()
     {
-        var bitArray = BitArray32.Empty(10);
+        var bitArray = BitArray64.Empty(10);
         var arrRef = bitArray.EnumPortionRef<TestDay>(offset: 2);
         var mask = new EnumBitArray<TestDay>();
         mask.Set(TestDay.Friday);
