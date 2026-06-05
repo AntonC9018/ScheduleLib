@@ -82,6 +82,10 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
     public void Clear() => Storage.Clear();
 
     public EnumMembers<TEnum> Keys => new();
+    public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
+    {
+        Storage.CopyTo(other.Storage);
+    }
 }
 
 public readonly struct MemoryItem<TEnum, TValue>
@@ -222,6 +226,10 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
+    public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
+    {
+        Storage.CopyTo(other.Storage);
+    }
 
     [Pure]
     public TEnum FindKeyOrDefault(TValue value, TEnum defaultKey, IEqualityComparer<TValue>? comparer = null)
