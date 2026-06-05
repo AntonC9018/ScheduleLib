@@ -127,11 +127,9 @@ public sealed class ThesisListParser
             throw new InvalidOperationException("Sheet not found");
         }
 
-        var rows = sheet.Rows();
         var state = new State();
-        const int meaninglessRowCount = 1;
         state.Action = Action.MeaningfulHeaders;
-        foreach (var row in rows.Skip(meaninglessRowCount))
+        foreach (var row in sheet.Rows())
         {
             switch (state.Action)
             {
@@ -141,39 +139,12 @@ public sealed class ThesisListParser
                 }
                 case Action.MeaningfulHeaders:
                 {
-                    foreach (var cell in row.CellsWithMergedAppearingOnce())
+                    if (!TryReadHeaderRow(
+                            row: row,
+                            targetThesisType: targetThesisType,
+                            state: ref state))
                     {
-                        if (!cell.TryGetValue(out string text))
-                        {
-                            break;
-                        }
-                        var column = MatchColumn(text);
-                        var range = cell.ActualRange();
-                        if (range.RowCount() != 1)
-                        {
-                            throw cell.Exception("Row count > 1");
-                        }
-                        state.ColumnMappings.AddAt(
-                            range.FirstColumn().ColumnNumber(),
-                            new(column, range.ColumnCount()));
-                        if (column != Column.Unknown)
-                        {
-                            state.PresentColumns.Set(column);
-                        }
-                    }
-
-                    var requiredColumns = EnumBitArray<Column>.AllSet;
-                    if (targetThesisType == ThesisType.An)
-                    {
-                        requiredColumns.Clear(Column.ThesisNameEn);
-                    }
-
-                    var presentColumns = state.PresentColumns;
-                    var missingColumns = presentColumns.Flipped;
-                    var missingRequiredColumns = missingColumns.Intersect(requiredColumns);
-                    if (missingRequiredColumns.AreAnySet)
-                    {
-                        throw new InvalidOperationException($"There are missing required columns: {missingRequiredColumns}");
+                        break;
                     }
 
                     state.Action = Action.Data;
@@ -219,10 +190,71 @@ public sealed class ThesisListParser
                 }
             }
         }
+        if (state.Action != Action.Data)
+        {
+            throw new InvalidOperationException("Header row not found");
+        }
         return new ThesisList
         {
             Items = state.Result.DrainToImmutable(),
         };
+    }
+
+    private static bool TryReadHeaderRow(
+        IXLRow row,
+        ThesisType targetThesisType,
+        ref State state)
+    {
+        var columnMappings = new SizedItemArray<Column>();
+        var presentColumns = new EnumBitArray<Column>();
+        foreach (var cell in row.CellsWithMergedAppearingOnce())
+        {
+            if (!cell.TryGetValue(out string text))
+            {
+                continue;
+            }
+
+            var column = MatchColumn(text);
+            var range = cell.ActualRange();
+            if (range.RowCount() != 1)
+            {
+                throw cell.Exception("Row count > 1");
+            }
+            columnMappings.AddAt(
+                range.FirstColumn().ColumnNumber(),
+                new(column, range.ColumnCount()));
+            if (column != Column.Unknown)
+            {
+                presentColumns.Set(column);
+            }
+        }
+
+        var missingRequiredColumns = presentColumns
+            .Flipped
+            .Intersect(GetRequiredHeaderColumns(targetThesisType));
+        if (missingRequiredColumns.AreAnySet)
+        {
+            return false;
+        }
+
+        state.ColumnMappings.Clear();
+        foreach (var columnMapping in columnMappings)
+        {
+            state.ColumnMappings.Add(columnMapping);
+        }
+        state.PresentColumns = presentColumns;
+        return true;
+    }
+
+    private static EnumBitArray<Column> GetRequiredHeaderColumns(ThesisType targetThesisType)
+    {
+        var requiredColumns = EnumBitArray<Column>.AllSet;
+        if (targetThesisType == ThesisType.An)
+        {
+            requiredColumns.Clear(Column.ThesisNameEn);
+        }
+
+        return requiredColumns;
     }
 
     private static bool ParseColumn(
