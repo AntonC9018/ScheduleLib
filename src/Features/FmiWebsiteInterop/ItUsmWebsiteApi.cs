@@ -79,6 +79,8 @@ public static class ItUsmWebsiteApi
                     Name = name,
                     Slug = remoteTeacher.Slug,
                     UserId = remoteTeacher.UserId,
+                    DidacticTitle = remoteTeacher.DidacticTitle,
+                    ScientificGrade = remoteTeacher.ScientificGrade,
                 };
                 continue;
 
@@ -161,6 +163,8 @@ public sealed class ItUsmTeacherModel
     public required int UserId { get; set; }
     public required string Slug { get; set; }
     public required Name Name { get; set; }
+    public string? DidacticTitle { get; set; }
+    public string? ScientificGrade { get; set; }
 }
 
 public sealed class Pageable
