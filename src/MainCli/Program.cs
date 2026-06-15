@@ -16,9 +16,9 @@ var appExecutionContext = new AppTasksExecutionContext
     SelectedOptions = [
         // AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
-        // AppTask.PerGroupAndPerTeacherPdfs,
+        AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
-        AppTask.CreateLessonsInRegistry,
+        // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,
         // AppTask.JsonSchedulesForWebsite,
         // AppTask.CopyGradesFromMoodleToRegistry,
@@ -35,5 +35,9 @@ var appExecutionContext = new AppTasksExecutionContext
     TeacherName = NameHelper.Parse("Curmanschii Anton"),
     MoodleQuizId = "317382",
 };
+
+// For now just do this, we're only executing it locally currently.
+Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
 await AppTasks.ExecuteMenu(appExecutionContext);
 return;
