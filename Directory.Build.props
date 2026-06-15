@@ -11,9 +11,15 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <ProjectPathRelative>$([System.IO.Path]::GetRelativePath('$(RootPath)', '$(MSBuildProjectDirectory)'))</ProjectPathRelative>
-        <ProjectPathRelativeNorm>$([System.String]::Copy('$(ProjectPathRelative)').Replace('\','/'))</ProjectPathRelativeNorm>
-        <IsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(ProjectPathRelativeNorm)', '(^|/)Tests(/|$)'))</IsTestProject>
+        <ProjectPathRelative>$([MSBuild]::MakeRelative('$(RootPath)', '$(MSBuildProjectDirectory)'))</ProjectPathRelative>
+        <ProjectPathRelativeNorm>$(ProjectPathRelative.Replace('\', '/'))</ProjectPathRelativeNorm>
+        <IsTestProject>false</IsTestProject>
+        <IsTestProject Condition="
+            $(ProjectPathRelativeNorm.StartsWith('Tests/')) Or
+            $(ProjectPathRelativeNorm.Contains('/Tests/')) Or
+            $(ProjectPathRelativeNorm.EndsWith('/Tests')) Or
+            '$(ProjectPathRelativeNorm)' == 'Tests'
+        ">true</IsTestProject>
     </PropertyGroup>
 
     <PropertyGroup>
