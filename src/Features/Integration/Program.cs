@@ -29,6 +29,7 @@ public static class AppConfiguration
         {
             x.BypassCache = false;
             x.EnrichWithFullNames = true;
+            x.LoadConsultations = false;
         });
         services.ConfigureNodeDataJsonSerialization(x =>
         {
