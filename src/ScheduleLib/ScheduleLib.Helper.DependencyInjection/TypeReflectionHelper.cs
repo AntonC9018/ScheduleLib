@@ -1,4 +1,4 @@
-namespace Anton.LayeredData;
+namespace ScheduleLib.DependencyInjection;
 
 public static class TypeReflectionHelper
 {

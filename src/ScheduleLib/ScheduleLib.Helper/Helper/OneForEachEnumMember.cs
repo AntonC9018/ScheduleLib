@@ -290,7 +290,12 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
         return ret;
     }
 
-    public TValue this[TKey key]
+    public void Set(TKey key, TValue value)
+    {
+        this[key] = value;
+    }
+
+    public readonly TValue this[TKey key]
     {
         get => _items[key];
         set => _items[key] = value;

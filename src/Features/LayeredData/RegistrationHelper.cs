@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text.Json;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.DependencyInjection;
 
 namespace Anton.LayeredData;
 

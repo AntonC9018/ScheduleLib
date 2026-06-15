@@ -16,4 +16,8 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftPackagesVersion)" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="$(MicrosoftPackagesVersion)" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib\ScheduleLib.Helper.DependencyInjection\ScheduleLib.Helper.DependencyInjection.csproj" />
+    </ItemGroup>
 </Project>
