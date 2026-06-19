@@ -261,7 +261,7 @@ public sealed class ThesisListParser(
         return requiredColumns;
     }
 
-    private static bool ParseColumn(
+    private bool ParseColumn(
         IXLCell cell,
         ref State state,
         ref ThesisInParsing thesis)
@@ -305,7 +305,7 @@ public sealed class ThesisListParser(
                     }
 
                     var studentName = NameHelper.Parse(ref parser);
-                    studetName = _studentNameRemapper.RemapName(studentName);
+                    studentName = _studentNameRemapper.RemapName(studentName);
                     state.StudentNames.Add(studentName);
                     if (!parser.SkipWhitespace().SkippedAny)
                     {
