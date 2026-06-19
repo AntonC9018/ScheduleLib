@@ -241,6 +241,7 @@ public static class Registration
             GoogleApiHelper.Register(services);
             DriveFileLoader.Register(services);
             TeacherNameMapper.Register(services);
+            services.AddKeyedSingleton<INameRemapper, DoNothingNameRemapper>(NameMappingKeys.Student);
         }
 
         public void AddTaskHandlers()

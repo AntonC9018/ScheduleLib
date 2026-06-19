@@ -23,3 +23,4 @@ public sealed class TeacherNameMapper(ScheduleBuilder b) : INameRemapper
         return new(ret);
     }
 }
+

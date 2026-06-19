@@ -90,27 +90,6 @@ public static class ServiceRegistrationHelper
         return services;
     }
 
-    private static IEnumerable<Type> GetImplementationsOfGenericType(
-        this Type implementingType,
-        Type genericInterface)
-    {
-        IEnumerable<Type> BaseTypes()
-        {
-            var baseType = implementingType.BaseType;
-            while (baseType is not null)
-            {
-                yield return baseType;
-                baseType = baseType.BaseType;
-            }
-        }
-
-        return implementingType
-            .GetInterfaces()
-            .Concat(BaseTypes())
-            .Where(t => t.IsGenericType
-                && t.GetGenericTypeDefinition() == genericInterface);
-    }
-
     public static ImplContext<TImpl> Register<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
 

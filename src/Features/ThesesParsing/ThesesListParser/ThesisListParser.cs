@@ -50,22 +50,26 @@ public interface INameRemapper
     public Name RemapName(Name name);
 }
 
-public sealed class ThesisListParser
+public sealed class DoNothingNameRemapper : INameRemapper
 {
-    private readonly INameRemapper _teacherNameRemapper;
+    public Name RemapName(Name name)
+    {
+        return name;
+    }
+}
 
+public sealed class ThesisListParser(
+    INameRemapper _teacherNameRemapper,
+    INameRemapper _studentNameRemapper)
+{
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<ThesisListParser>(sp =>
         {
-            var mapper = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
-            return new(mapper);
+            var mapperTeacher = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
+            var mapperStudent = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Student);
+            return new(mapperTeacher, mapperStudent);
         });
-    }
-
-    public ThesisListParser(INameRemapper teacherNameRemapper)
-    {
-        _teacherNameRemapper = teacherNameRemapper;
     }
 
     private enum Column
@@ -301,6 +305,7 @@ public sealed class ThesisListParser
                     }
 
                     var studentName = NameHelper.Parse(ref parser);
+                    studetName = _studentNameRemapper.RemapName(studentName);
                     state.StudentNames.Add(studentName);
                     if (!parser.SkipWhitespace().SkippedAny)
                     {
