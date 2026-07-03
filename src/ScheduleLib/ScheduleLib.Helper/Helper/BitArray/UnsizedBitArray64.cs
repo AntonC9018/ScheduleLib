@@ -268,7 +268,7 @@ public record struct UnsizedBitArray64
     }
 
     [Pure]
-    public readonly UnsizedBitArray64 Union(UnsizedBitArray64 otherArray)
+    public readonly UnsizedBitArray64 UnionWith(UnsizedBitArray64 otherArray)
     {
         return new(otherArray.Bits | Bits);
     }

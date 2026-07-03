@@ -190,7 +190,7 @@ public record struct BitArray64
     public readonly BitArray64 Union(BitArray64 other)
     {
         Debug.Assert(other.Len == Len);
-        var ret = _array.Union(other._array);
+        var ret = _array.UnionWith(other._array);
         return this with
         {
             _array = ret,

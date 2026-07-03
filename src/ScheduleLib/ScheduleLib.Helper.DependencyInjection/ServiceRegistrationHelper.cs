@@ -94,11 +94,21 @@ public static class ServiceRegistrationHelper
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
 
         this IServiceCollection services,
-        ServiceLifetime lifetime)
+        ServiceLifetime lifetime,
+        Func<IServiceProvider, TImpl>? factory = null)
 
         where TImpl : class
     {
-        services.Add(new(typeof(TImpl), typeof(TImpl), lifetime));
+        ServiceDescriptor d;
+        if (factory is null)
+        {
+            d = new(typeof(TImpl), typeof(TImpl), lifetime);
+        }
+        else
+        {
+            d = new(typeof(TImpl), factory, lifetime);
+        }
+        services.Add(d);
         var builder = new ImplContext<TImpl>(services, lifetime);
         return builder;
     }

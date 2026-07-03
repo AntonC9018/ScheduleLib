@@ -2,12 +2,14 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
+[CollectionBuilder(typeof(EnumBitArrayBuilder), nameof(EnumBitArrayBuilder.Create))]
 public record struct EnumBitArray<T> : IEnumerable<T>
     where T : struct, Enum
 {
@@ -217,7 +219,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 
     [Pure]
-    public readonly EnumBitArray<T> Union(EnumBitArray<T> other)
+    public readonly EnumBitArray<T> UnionWith(EnumBitArray<T> other)
     {
         var sizedSelf = SizedImpl;
         var sizedOther = other.SizedImpl;
@@ -243,6 +245,15 @@ public record struct EnumBitArray<T> : IEnumerable<T>
         var sb = new StringBuilder();
         ToString(sb);
         return sb.ToString();
+    }
+}
+
+public static class EnumBitArrayBuilder
+{
+    public static EnumBitArray<T> Create<T>(ReadOnlySpan<T> items)
+        where T : struct, Enum
+    {
+        return EnumBitArray<T>.From(items);
     }
 }
 

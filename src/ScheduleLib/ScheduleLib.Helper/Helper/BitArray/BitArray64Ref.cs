@@ -23,7 +23,7 @@ public ref struct SizedBitArray64Ref
         Debug.Assert(index >= 0 && index < _length);
     }
 
-    public readonly int Length => _length;
+    public readonly int Len => _length;
 
     public readonly int SetCount => _array.SetCount;
 
@@ -85,6 +85,12 @@ public ref struct SizedBitArray64Ref
         Debug.Assert(CanSlice(offset, length));
         var ret = _array.Slice(offset, length);
         return ret;
+    }
+
+    public void Union(BitArray64 other)
+    {
+        Debug.Assert(Len == other.Len);
+        _array = _array.UnionWith(other.AsUnsized());
     }
 
     public readonly bool AreAllSet => _array.AreAllSet(_length);

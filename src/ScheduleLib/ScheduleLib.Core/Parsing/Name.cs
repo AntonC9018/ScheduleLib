@@ -184,6 +184,11 @@ public sealed record Name
     {
         return _fields.ToString();
     }
+
+    public string AsFormattable()
+    {
+        return ToString();
+    }
 }
 
 public static class NameTokenType

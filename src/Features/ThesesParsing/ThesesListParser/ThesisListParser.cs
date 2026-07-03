@@ -164,9 +164,16 @@ public sealed class ThesisListParser(
                     }
                     foreach (var cell in cells)
                     {
-                        if (!ParseColumn(cell, ref state, ref thesis))
+                        try
                         {
-                            break;
+                            if (!ParseColumn(cell, ref state, ref thesis))
+                            {
+                                break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw cell.Exception("Error while parsing thesis list cell", ex);
                         }
                     }
                     // Won't fail if no students parsed, which is fine.
@@ -253,10 +260,7 @@ public sealed class ThesisListParser(
     private static EnumBitArray<Column> GetRequiredHeaderColumns(ThesisType targetThesisType)
     {
         var requiredColumns = EnumBitArray<Column>.AllSet;
-        if (targetThesisType == ThesisType.An)
-        {
-            requiredColumns.Clear(Column.ThesisNameEn);
-        }
+        requiredColumns.Clear(Column.ThesisNameEn);
 
         return requiredColumns;
     }
@@ -296,21 +300,32 @@ public sealed class ThesisListParser(
                     return false;
                 }
                 var parser = new Parser(text);
-                while (true)
+                try
                 {
-                    parser.SkipWhitespace();
-                    if (parser.IsEmpty)
+                    while (true)
                     {
-                        break;
-                    }
+                        parser.SkipWhitespace();
+                        while (TrySkipParenthesizedText(ref parser))
+                        {
+                            parser.SkipWhitespace();
+                        }
+                        if (parser.IsEmpty)
+                        {
+                            break;
+                        }
 
-                    var studentName = NameHelper.Parse(ref parser);
-                    studentName = _studentNameRemapper.RemapName(studentName);
-                    state.StudentNames.Add(studentName);
-                    if (!parser.SkipWhitespace().SkippedAny)
-                    {
-                        break;
+                        var studentName = NameHelper.Parse(ref parser);
+                        studentName = _studentNameRemapper.RemapName(studentName);
+                        state.StudentNames.Add(studentName);
+                        if (!parser.SkipWhitespace().SkippedAny)
+                        {
+                            break;
+                        }
                     }
+                }
+                catch (NameParsingException) when (state.StudentNames.Count == 0)
+                {
+                    return false;
                 }
                 if (!parser.IsEmpty)
                 {
@@ -325,6 +340,10 @@ public sealed class ThesisListParser(
             case Column.Mentor:
             {
                 if (GetStringForName() is not { } text)
+                {
+                    return false;
+                }
+                if (string.IsNullOrWhiteSpace(text))
                 {
                     return false;
                 }
@@ -359,6 +378,23 @@ public sealed class ThesisListParser(
                 break;
             }
         }
+        return true;
+    }
+
+    private static bool TrySkipParenthesizedText(ref Parser parser)
+    {
+        if (parser.IsEmpty || parser.Current != '(')
+        {
+            return false;
+        }
+
+        var bparser = parser.BufferedView();
+        if (!bparser.SkipUntilAny(")").Satisfied)
+        {
+            return false;
+        }
+
+        parser.MovePast(bparser.Position);
         return true;
     }
 
@@ -442,9 +478,13 @@ public sealed class ThesisListParser(
                 while (true)
                 {
                     parser.SkipWhitespace();
+                    if (parser.IsEmpty)
+                    {
+                        return false;
+                    }
 
                     var bparser = parser.BufferedView();
-                    if (!bparser.SkipUntilAny(" ").SkippedAny)
+                    if (!bparser.SkipNotWhitespace().SkippedAny)
                     {
                         return false;
                     }
@@ -480,7 +520,7 @@ public sealed class ThesisListParser(
             });
             b.Set(Column.Mentor, new()
             {
-                ExactString = "numele conducatorului stiintific",
+                OrderedKeywords = ["conducatorului", "stiintific"],
             });
             b.Set(Column.ThesisNameRu, new()
             {

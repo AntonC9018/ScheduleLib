@@ -129,7 +129,7 @@ public record struct LessonModelDiffMask()
     {
         return new()
         {
-            Impl = Impl.Union(mask.Impl),
+            Impl = Impl.UnionWith(mask.Impl),
         };
     }
 

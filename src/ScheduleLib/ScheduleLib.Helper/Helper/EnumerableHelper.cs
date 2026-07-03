@@ -278,6 +278,92 @@ public static class EnumerableExtensions
             i++;
         }
     }
+
+    public static IEnumerable<T> MergeSorted<T>(
+        this IEnumerable<T> a,
+        IEnumerable<T> b,
+        MergeDuplicateBehavior duplicateBehavior)
+
+        where T : IComparable<T>
+    {
+        using var e1 = a.GetEnumerator().RememberIsDone();
+        using var e2 = b.GetEnumerator().RememberIsDone();
+        while (true)
+        {
+            if (e1.IsDone || e2.IsDone)
+            {
+                break;
+            }
+            var c1 = e1.Current;
+            var c2 = e2.Current;
+            int comparisonResult = c1.CompareTo(c2);
+            if (comparisonResult < 0)
+            {
+                yield return c1;
+                e1.MoveNext();
+            }
+            else if (comparisonResult > 0)
+            {
+                yield return c2;
+                e2.MoveNext();
+            }
+            else
+            {
+                switch (duplicateBehavior)
+                {
+                    case MergeDuplicateBehavior.KeepBoth:
+                    {
+                        yield return c1;
+                        e1.MoveNext();
+                        yield return c2;
+                        e2.MoveNext();
+                        continue;
+                    }
+                    case MergeDuplicateBehavior.KeepFirst:
+                    {
+                        yield return c1;
+                        e1.MoveNext();
+                        e2.MoveNext();
+                        continue;
+                    }
+                    case MergeDuplicateBehavior.KeepSecond:
+                    {
+                        yield return c2;
+                        e1.MoveNext();
+                        e2.MoveNext();
+                        continue;
+                    }
+                    case MergeDuplicateBehavior.Fail:
+                    {
+                        throw new InvalidOperationException(
+                            "Merging two sequences with duplicates not allowed");
+                    }
+                    default:
+                    {
+                        throw Unreachable();
+                    }
+                }
+            }
+        }
+        while (!e1.IsDone)
+        {
+            yield return e1.Current;
+            e1.MoveNext();
+        }
+        while (!e2.IsDone)
+        {
+            yield return e2.Current;
+            e2.MoveNext();
+        }
+    }
+}
+
+public enum MergeDuplicateBehavior
+{
+    Fail,
+    KeepBoth,
+    KeepFirst,
+    KeepSecond,
 }
 
 public sealed class ClassEnumeratorWrapper<T, TEnumerator> : IEnumerator<T>
