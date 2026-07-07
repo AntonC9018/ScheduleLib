@@ -13,6 +13,7 @@ using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Theses.Parsing;
+using ThesisType = ScheduleLib.Theses.Parsing.ThesisType;
 
 namespace ScheduleLib.Application.Core;
 
@@ -244,7 +245,10 @@ public static class AppTasks
             case AppTask.CreatePredzashitaExcels:
             {
                 var handler = c.Services.GetRequiredService<ListsForPredzashitaTaskHandler>();
-                await handler.Handle(c.OutputDirectory, c.CancellationToken);
+                await handler.Handle(
+                    ThesisType.An,
+                    c.OutputDirectory,
+                    c.CancellationToken);
                 c.OutputDirectory.TryOpenInExplorer();
                 break;
             }

@@ -42,6 +42,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
     }
 
     public async Task Handle(
+        ThesisType thesisType,
         OutputDirectory outputDirectory,
         CancellationToken cancellationToken)
     {
@@ -56,7 +57,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
         var studentByTeacher = new Dictionary<Name, List<ThesisRecord>>(nameComparer);
-        foreach (var t in theses[ThesisType.Licenta].Items)
+        foreach (var t in theses[thesisType].Items)
         {
             var group = t.GroupName;
             var studentName = t.StudentName;

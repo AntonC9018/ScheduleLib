@@ -21,6 +21,7 @@ public sealed class Commission
 }
 
 public static class CommissionParser
+
 {
     public static CommissionSchedule ParseCommissions(string filePath)
     {
