@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
@@ -7,7 +7,8 @@ public sealed class ReplaceVariableExpressionVisitor : ExpressionVisitor
     private static ThreadLocal<ReplaceVariableExpressionVisitor?> _ThreadInstance = new();
 
     public static ReplaceVariableExpressionVisitor GetInstance(
-        Expression replacement, ParameterExpression parameter)
+        Expression replacement,
+        ParameterExpression parameter)
     {
         var visitor = _ThreadInstance.Value;
         if (visitor is null)

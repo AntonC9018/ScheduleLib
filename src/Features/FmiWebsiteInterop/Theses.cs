@@ -1,9 +1,5 @@
 using System.Collections.Immutable;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Unicode;
-using AutoConstructor.Attributes;
 using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Teachers;
 using Microsoft.Extensions.DependencyInjection;

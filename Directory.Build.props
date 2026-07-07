@@ -1,13 +1,13 @@
 <Project>
     <PropertyGroup>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootPath>$(MSBuildThisFileDirectory)</RootPath>
         <FeaturesPath>$(RootPath)src\Features\</FeaturesPath>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-        <WindowsTarget>net10.0-windows</WindowsTarget>
+        <WindowsTarget>$(TargetFramework)-windows</WindowsTarget>
     </PropertyGroup>
 
     <PropertyGroup>

@@ -4,8 +4,8 @@ namespace ScheduleLib.Helper.Expressions;
 
 public static class ExpressionHelper
 {
-    public static Expression<Func<T, bool>> CurrySecondParameter<T, TValue>(
-        this Expression<Func<T, TValue, bool>> originalPredicate,
+    public static Expression<Func<T, TReturn>> CurrySecondParameter<T, TValue, TReturn>(
+        this Expression<Func<T, TValue, TReturn>> originalPredicate,
         Expression value)
     {
         var queryParameter = originalPredicate.Parameters[0];
@@ -13,13 +13,13 @@ public static class ExpressionHelper
         var body = originalPredicate.Body;
 
         // x + u  -->   x + box.value
-        var lambda = CurryParameter<T, bool>(body, queryParameter, contextParameter, value);
+        var lambda = CurryParameter<T, TReturn>(body, queryParameter, contextParameter, value);
 
         return lambda;
     }
 
-    public static Expression<Func<T, bool>> CurrySecondParameter<T, TValue>(
-        this Expression<Func<T, TValue, bool>> originalPredicate,
+    public static Expression<Func<T, TReturn>> CurrySecondParameter<T, TValue, TReturn>(
+        this Expression<Func<T, TValue, TReturn>> originalPredicate,
         Box<TValue> box)
     {
         var boxAccessExpression = box.MakeExpressions().Member;

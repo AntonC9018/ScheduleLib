@@ -282,9 +282,8 @@ public static class EnumerableExtensions
     public static IEnumerable<T> MergeSorted<T>(
         this IEnumerable<T> a,
         IEnumerable<T> b,
+        IComparer<T> comparer,
         MergeDuplicateBehavior duplicateBehavior)
-
-        where T : IComparable<T>
     {
         using var e1 = a.GetEnumerator().RememberIsDone();
         using var e2 = b.GetEnumerator().RememberIsDone();
@@ -296,7 +295,7 @@ public static class EnumerableExtensions
             }
             var c1 = e1.Current;
             var c2 = e2.Current;
-            int comparisonResult = c1.CompareTo(c2);
+            int comparisonResult = comparer.Compare(c1, c2);
             if (comparisonResult < 0)
             {
                 yield return c1;
@@ -355,6 +354,20 @@ public static class EnumerableExtensions
             yield return e2.Current;
             e2.MoveNext();
         }
+    }
+
+    public static IEnumerable<T> MergeSorted<T>(
+        this IEnumerable<T> a,
+        IEnumerable<T> b,
+        MergeDuplicateBehavior duplicateBehavior)
+
+        where T : IComparable<T>
+    {
+        return MergeSorted(
+            a,
+            b,
+            Comparer<T>.Default,
+            duplicateBehavior);
     }
 }
 
