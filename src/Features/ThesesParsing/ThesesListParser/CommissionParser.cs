@@ -78,7 +78,7 @@ public static class CommissionParser
                         {
                             var excelEpoch = new DateOnly(1899, 12, 30);
 
-                            var parser = new Parser(s);
+                            var parser = new SequenceReader(s);
                             var bparser = parser.BufferedView();
                             bparser.SkipNumbers();
                             var span = parser.PeekSpanUntilPosition(bparser.Position);
@@ -111,7 +111,7 @@ public static class CommissionParser
                             continue;
                         }
 
-                        var parser = new Parser(text);
+                        var parser = new SequenceReader(text);
                         if (!parser.ConsumeExactString("Comisia"))
                         {
                             throw new InvalidOperationException("Expected text 'Comisia'");
@@ -191,7 +191,7 @@ public static class CommissionParser
                             continue;
                         }
 
-                        var parser = new Parser(text);
+                        var parser = new SequenceReader(text);
                         parser.SkipWhitespace();
                         parser.SkipNumbers();
                         parser.ConsumeExactString(".");

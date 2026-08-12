@@ -2,13 +2,13 @@ using System.Diagnostics;
 
 namespace ScheduleLib.Helper.Parsing;
 
-public record struct Parser
+public record struct SequenceReader
 {
     private readonly ReadOnlyMemory<char> _input;
     private int _index;
 
-    public Parser(string input) => _input = input.AsMemory();
-    public Parser(ReadOnlyMemory<char> input) => _input = input;
+    public SequenceReader(string input) => _input = input.AsMemory();
+    public SequenceReader(ReadOnlyMemory<char> input) => _input = input;
 
     public readonly ReadOnlyMemory<char> Source => _input;
     public readonly ReadOnlySpan<char> WholeSpan => _input.Span;
@@ -29,7 +29,7 @@ public record struct Parser
         return WholeSpan[_index .. s];
     }
 
-    public readonly ReadOnlySpan<char> PeekSpanUntilPosition(ParserPosition positionExclusive)
+    public readonly ReadOnlySpan<char> PeekSpanUntilPosition(SequencePosition positionExclusive)
     {
         int start = _index;
         int end = positionExclusive.Index;
@@ -39,33 +39,33 @@ public record struct Parser
     public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => WholeSpan[_index ..];
     public readonly char Current => WholeSpan[_index];
     public void Move(int x = 1) => _index += x;
-    public void MoveTo(ParserPosition position)
+    public void MoveTo(SequencePosition position)
     {
         Debug.Assert(_index <= position.Index);
         _index = position.Index;
     }
-    public void MovePast(ParserPosition position)
+    public void MovePast(SequencePosition position)
     {
         _index = Math.Min(_input.Length, position.Index + 1);
     }
 
     // Abstraction for the sake of type safety.
     // Specifically, to prevent `PeekSpanUntilPosition(other.Current)` from compiling.
-    public readonly ParserPosition Position => new(_index);
-    public readonly ParserPosition EndPosition => new(_input.Length);
+    public readonly SequencePosition Position => new(_index);
+    public readonly SequencePosition EndPosition => new(_input.Length);
 
     // Conceptually doesn't consume when moving, it just moves the window.
     // Currently just return a copy, because we only have a string impl and
     // I don't want it to get more abstract at this point.
-    public readonly Parser BufferedView() => this;
+    public readonly SequenceReader BufferedView() => this;
     public readonly override string ToString() => WholeSpan[_index ..].ToString();
 }
 
-public readonly record struct ParserPosition(int Index);
+public readonly record struct SequencePosition(int Index);
 
-public readonly record struct ParserSegment(
-    Parser Start,
-    ParserPosition EndExclusive) : ISpanFormattable
+public readonly record struct SequenceSegment(
+    SequenceReader Start,
+    SequencePosition EndExclusive) : ISpanFormattable
 {
     public string ToString(string? format, IFormatProvider? formatProvider) => $"{this}";
     public override string ToString() => $"{this}";
@@ -111,9 +111,9 @@ public static class ParserHelper
         return ch >= 'a' && ch <= 'z';
     }
 
-    public static ParserSegment Segment(this Parser parser, ParserPosition until)
+    public static SequenceSegment Segment(this SequenceReader reader, SequencePosition until)
     {
-        return new(parser, until);
+        return new(reader, until);
     }
 
     public readonly struct SkipSequenceResult
@@ -148,7 +148,7 @@ public static class ParserHelper
     }
 
     public static SkipResult SkipWindow<T>(
-        this ref Parser parser,
+        this ref SequenceReader reader,
         ref T impl,
         int minWindowSize,
         int maxWindowSize)
@@ -158,21 +158,21 @@ public static class ParserHelper
         var ret = new SkipResult();
         while (true)
         {
-            int peekCount = parser.GetPeekCount(maxWindowSize);
+            int peekCount = reader.GetPeekCount(maxWindowSize);
             if (peekCount < minWindowSize)
             {
                 ret.EndOfInput = true;
                 return ret;
             }
 
-            var window = parser.PeekSpan(peekCount);
+            var window = reader.PeekSpan(peekCount);
             if (!impl.ShouldSkip(window))
             {
                 break;
             }
 
             ret.SkippedAny = true;
-            parser.Move();
+            reader.Move();
         }
         return ret;
     }
@@ -207,7 +207,7 @@ public static class ParserHelper
             return true;
         }
     }
-    public static SkipSequenceResult SkipUntilSequence(this ref Parser parser, ReadOnlySpan<string> strings)
+    public static SkipSequenceResult SkipUntilSequence(this ref SequenceReader reader, ReadOnlySpan<string> strings)
     {
         Debug.Assert(!strings.IsEmpty);
         Debug.Assert(All(strings, x => x.Length != 0));
@@ -215,7 +215,7 @@ public static class ParserHelper
         int min = MinSize(strings);
         int max = MaxSize(strings);
         var algorithm = new SkipWindowUntilStringImpl(strings);
-        var result = parser.SkipWindow(
+        var result = reader.SkipWindow(
             ref algorithm,
             minWindowSize: min,
             maxWindowSize: max);
@@ -256,25 +256,25 @@ public static class ParserHelper
         return true;
     }
 
-    public static SkipResult Skip<T>(this ref Parser parser, T impl)
+    public static SkipResult Skip<T>(this ref SequenceReader reader, T impl)
         where T : struct, IShouldSkip, allows ref struct
     {
         var ret = new SkipResult();
         while (true)
         {
-            if (parser.IsEmpty)
+            if (reader.IsEmpty)
             {
                 ret.EndOfInput = true;
                 break;
             }
 
-            if (!impl.ShouldSkip(parser.Current))
+            if (!impl.ShouldSkip(reader.Current))
             {
                 break;
             }
 
             ret.SkippedAny = true;
-            parser.Move();
+            reader.Move();
         }
         return ret;
     }
@@ -283,18 +283,18 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsWhiteSpace(ch);
     }
-    public static SkipResult SkipWhitespace(this ref Parser parser)
+    public static SkipResult SkipWhitespace(this ref SequenceReader reader)
     {
-        return parser.Skip(new WhitespaceSkip());
+        return reader.Skip(new WhitespaceSkip());
     }
 
     private struct NotWhitespaceSkip : IShouldSkip
     {
         public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch);
     }
-    public static SkipResult SkipNotWhitespace(this ref Parser parser)
+    public static SkipResult SkipNotWhitespace(this ref SequenceReader reader)
     {
-        return parser.Skip(new NotWhitespaceSkip());
+        return reader.Skip(new NotWhitespaceSkip());
     }
 
     private ref struct SkipUntilImpl : IShouldSkip
@@ -304,10 +304,10 @@ public static class ParserHelper
         public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
     public static SkipResult SkipUntilAny(
-        this ref Parser parser,
+        this ref SequenceReader reader,
         ReadOnlySpan<char> chars)
     {
-        return parser.Skip(new SkipUntilImpl(chars));
+        return reader.Skip(new SkipUntilImpl(chars));
     }
 
     private ref struct SkipUntilNotImpl : IShouldSkip
@@ -317,43 +317,43 @@ public static class ParserHelper
         public bool ShouldSkip(char ch) => _chars.Contains(ch);
     }
     public static SkipResult SkipUntilNotAny(
-        this ref Parser parser,
+        this ref SequenceReader reader,
         ReadOnlySpan<char> chars)
     {
-        return parser.Skip(new SkipUntilNotImpl(chars));
+        return reader.Skip(new SkipUntilNotImpl(chars));
     }
 
     private ref struct SkipLettersImpl : IShouldSkip
     {
         public bool ShouldSkip(char ch) => char.IsLetter(ch);
     }
-    public static SkipResult SkipLetters(this ref Parser parser)
+    public static SkipResult SkipLetters(this ref SequenceReader reader)
     {
-        return parser.Skip(new SkipLettersImpl());
+        return reader.Skip(new SkipLettersImpl());
     }
 
-    public static ConsumeIntResult ConsumePositiveInt(this ref Parser parser, int length)
+    public static ConsumeIntResult ConsumePositiveInt(this ref SequenceReader reader, int length)
     {
-        if (!parser.CanPeekCount(length))
+        if (!reader.CanPeekCount(length))
         {
             return ConsumeIntResult.Error(ConsumeIntStatus.InputTooShort);
         }
 
-        var numChars = parser.PeekSpan(length);
+        var numChars = reader.PeekSpan(length);
         if (!uint.TryParse(numChars, out uint ret))
         {
             return ConsumeIntResult.Error(ConsumeIntStatus.NotAnInteger);
         }
 
-        parser.Move(length);
+        reader.Move(length);
         return ConsumeIntResult.Ok(ret);
     }
 
     public static uint? ConsumePositiveIntWithMaxLength(
-        this ref Parser parser,
+        this ref SequenceReader reader,
         int maxLength)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         for (int i = 0; i < maxLength; i++)
         {
             if (bparser.IsEmpty)
@@ -367,7 +367,7 @@ public static class ParserHelper
             bparser.Move();
         }
 
-        var span = parser.PeekSpanUntilPosition(bparser.Position);
+        var span = reader.PeekSpanUntilPosition(bparser.Position);
         if (span.Length == 0)
         {
             return null;
@@ -377,7 +377,7 @@ public static class ParserHelper
             return null;
         }
 
-        parser.MoveTo(bparser.Position);
+        reader.MoveTo(bparser.Position);
         return ret;
     }
 
@@ -385,14 +385,14 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsNumber(ch);
     }
-    public static SkipResult SkipNumbers(this ref Parser parser)
+    public static SkipResult SkipNumbers(this ref SequenceReader reader)
     {
-        return parser.Skip(new NumberSkip());
+        return reader.Skip(new NumberSkip());
     }
 
-    public static TimeOnly? ParseTime(ref Parser parser)
+    public static TimeOnly? ParseTime(ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         if (!bparser.SkipNumbers().SkippedAny)
         {
             return null;
@@ -400,26 +400,26 @@ public static class ParserHelper
 
         uint hours;
         {
-            var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var numberSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (!uint.TryParse(numberSpan, out hours))
             {
                 return null;
             }
 
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
         }
 
         {
-            if (parser.Current != ':')
+            if (reader.Current != ':')
             {
                 return null;
             }
-            parser.Move();
+            reader.Move();
         }
 
         uint minutes;
         {
-            var result = parser.ConsumePositiveInt(length: 2);
+            var result = reader.ConsumePositiveInt(length: 2);
             if (result.Status != ConsumeIntStatus.Ok)
             {
                 return null;
@@ -438,19 +438,19 @@ public static class ParserHelper
         }
     }
 
-    public static ReadOnlyMemory<char> SourceUntilEnd(this Parser p)
+    public static ReadOnlyMemory<char> SourceUntilEnd(this SequenceReader p)
     {
         var ret = p.Source[p.Position.Index ..];
         return ret;
     }
 
-    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, ParserPosition end)
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this SequenceReader a, SequencePosition end)
     {
         var start = a.Position;
         return a.Source[start.Index .. end.Index];
     }
 
-    public static ReadOnlyMemory<char> SourceUntilExclusive(this Parser a, Parser b)
+    public static ReadOnlyMemory<char> SourceUntilExclusive(this SequenceReader a, SequenceReader b)
     {
         Debug.Assert(a.Source.Equals(b.Source));
 
@@ -458,7 +458,7 @@ public static class ParserHelper
         return a.SourceUntilExclusive(end);
     }
 
-    public static ReadOnlyMemory<char> PeekSource(this Parser a, int count)
+    public static ReadOnlyMemory<char> PeekSource(this SequenceReader a, int count)
     {
         Debug.Assert(a.CanPeekCount(count));
         var end = a.Position.Index + count;
@@ -467,51 +467,51 @@ public static class ParserHelper
     }
 
     public static bool ConsumeExactChar(
-        ref this Parser parser,
+        ref this SequenceReader reader,
         char expectedChar)
     {
-        if (parser.IsEmpty)
+        if (reader.IsEmpty)
         {
             return false;
         }
-        if (parser.Current == expectedChar)
+        if (reader.Current == expectedChar)
         {
-            parser.Move();
+            reader.Move();
             return true;
         }
         return false;
     }
 
     public static bool ConsumeExactString(
-        ref this Parser parser,
+        ref this SequenceReader reader,
         ReadOnlySpan<char> expectedString)
     {
-        return ConsumeExactString(ref parser, expectedString, StringComparison.Ordinal);
+        return ConsumeExactString(ref reader, expectedString, StringComparison.Ordinal);
     }
 
     public static bool ConsumeExactString(
-        ref this Parser parser,
+        ref this SequenceReader reader,
         ReadOnlySpan<char> expectedString,
         StringComparison stringComparison)
     {
-        if (!parser.CanPeekCount(expectedString.Length))
+        if (!reader.CanPeekCount(expectedString.Length))
         {
             return false;
         }
 
-        var peek = parser.PeekSpan(expectedString.Length);
+        var peek = reader.PeekSpan(expectedString.Length);
         if (!peek.Equals(expectedString, stringComparison))
         {
             return false;
         }
 
-        parser.Move(expectedString.Length);
+        reader.Move(expectedString.Length);
         return true;
     }
 
-    public static ReadRomanResult ReadRoman(this ref Parser parser)
+    public static ReadRomanResult ReadRoman(this ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         {
             var result = bparser.SkipUntilNotAny("IVX");
             if (!result.SkippedAny)
@@ -520,13 +520,13 @@ public static class ParserHelper
             }
         }
         {
-            var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var numberSpan = reader.PeekSpanUntilPosition(bparser.Position);
             var number = NumberHelper.FromRoman(numberSpan);
             if (number is not { } n)
             {
                 return ReadRomanResult.CreateError(ReadRomanStatus.NotRoman);
             }
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return ReadRomanResult.CreateOk(n);
         }
     }

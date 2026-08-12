@@ -10,6 +10,7 @@ using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.WordDoc;
+using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace ScheduleLib.Curriculum;
 using NameModel = TeacherBuilderModel.NameModel;
@@ -238,18 +239,18 @@ public enum StartOrEnd
 
 public static class CurriculumNameParser
 {
-    public static CurriculumGroupKey ParseGroupKey(ref Parser parser)
+    public static CurriculumGroupKey ParseGroupKey(ref SequenceReader reader)
     {
-        var qual = Qualification(ref parser);
-        parser.SkipWhitespace();
-        var code = ParseProgramCode(ref parser);
-        parser.SkipWhitespace();
+        var qual = Qualification(ref reader);
+        reader.SkipWhitespace();
+        var code = ParseProgramCode(ref reader);
+        reader.SkipWhitespace();
 
-        ParserPosition lastSegmentPos = default;
-        ParserPosition spacePos = default;
+        SequencePosition lastSegmentPos = default;
+        SequencePosition spacePos = default;
         bool hadSpaces = false;
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             while (true)
             {
                 var r = bparser.SkipNotWhitespace();
@@ -269,7 +270,7 @@ public static class CurriculumNameParser
         // process last segment
         if (hadSpaces)
         {
-            var lastSegmentParser = parser.BufferedView();
+            var lastSegmentParser = reader.BufferedView();
             lastSegmentParser.MoveTo(lastSegmentPos);
             var lastSegment = lastSegmentParser.SourceUntilEnd();
             attendanceModes = AttendanceModes(lastSegment.Span);
@@ -277,7 +278,7 @@ public static class CurriculumNameParser
 
         ReadOnlyMemory<char> nameSegment;
         {
-            var nameParser = parser.BufferedView();
+            var nameParser = reader.BufferedView();
             if (attendanceModes == AttendanceModeFlags.None)
             {
                 nameSegment = nameParser.SourceUntilEnd();
@@ -354,16 +355,16 @@ public static class CurriculumNameParser
         }
 
 
-        static QualificationType Qualification(ref Parser parser)
+        static QualificationType Qualification(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             if (!bparser.SkipLetters().SkippedAny)
             {
                 return QualificationType.Licenta;
             }
 
-            var s = parser.PeekSpanUntilPosition(bparser.Position);
-            parser.MoveTo(bparser.Position);
+            var s = reader.PeekSpanUntilPosition(bparser.Position);
+            reader.MoveTo(bparser.Position);
 
             if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(s, "master"))
             {
@@ -374,9 +375,9 @@ public static class CurriculumNameParser
         }
     }
 
-    public static ReadOnlyMemory<char> ParseProgramCode(ref Parser parser)
+    public static ReadOnlyMemory<char> ParseProgramCode(ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
 
         var skipResult = bparser.SkipNumbers();
         if (!skipResult.SkippedAny)
@@ -398,22 +399,22 @@ public static class CurriculumNameParser
             }
         }
 
-        var ret = parser.SourceUntilExclusive(bparser);
-        parser.MoveTo(bparser.Position);
+        var ret = reader.SourceUntilExclusive(bparser);
+        reader.MoveTo(bparser.Position);
         return ret;
     }
 
-    public static ParsedCurriculumKey1? TryParseCurriculumKey(ref Parser parser)
+    public static ParsedCurriculumKey1? TryParseCurriculumKey(ref SequenceReader reader)
     {
-        if (Number(ref parser) is not { } num)
+        if (Number(ref reader) is not { } num)
         {
             return null;
         }
-        var specialty = Specialty(ref parser);
-        var grade = Grade(ref parser);
-        var course = Course(ref parser);
-        var teachers = Teachers(ref parser);
-        int year = Year(ref parser);
+        var specialty = Specialty(ref reader);
+        var grade = Grade(ref reader);
+        var course = Course(ref reader);
+        var teachers = Teachers(ref reader);
+        int year = Year(ref reader);
 
         return new()
         {
@@ -425,61 +426,61 @@ public static class CurriculumNameParser
             Year = year,
         };
 
-        static ReadOnlyMemory<char> Course(ref Parser parser)
+        static ReadOnlyMemory<char> Course(ref SequenceReader reader)
         {
             var error = "There must be the short course name following the year";
-            var ret = NextSegmentUntilSep(ref parser, error);
-            if (!parser.ConsumeExactString("_"))
+            var ret = NextSegmentUntilSep(ref reader, error);
+            if (!reader.ConsumeExactString("_"))
             {
                 throw new NotSupportedException("Expected _ after the course name.");
             }
             return ret;
         }
 
-        static int Grade(ref Parser parser)
+        static int Grade(ref SequenceReader reader)
         {
-            if (!parser.ConsumeExactString("an"))
+            if (!reader.ConsumeExactString("an"))
             {
                 throw new NotSupportedException("Expected 'anX' where X is the year after the specialty");
             }
-            if (parser.IsEmpty || !char.IsDigit(parser.Current))
+            if (reader.IsEmpty || !char.IsDigit(reader.Current))
             {
                 throw new NotSupportedException("A number must follow 'an'");
             }
-            var grade = parser.Current - '0';
-            parser.Move();
+            var grade = reader.Current - '0';
+            reader.Move();
 
-            if (!parser.ConsumeExactString("_"))
+            if (!reader.ConsumeExactString("_"))
             {
                 throw new NotSupportedException("Expected _ after the grade.");
             }
             return grade;
         }
 
-        static List<ReadOnlyMemory<char>> Teachers(ref Parser parser)
+        static List<ReadOnlyMemory<char>> Teachers(ref SequenceReader reader)
         {
             var teachers = new List<ReadOnlyMemory<char>>();
             while (true)
             {
-                var bparser = parser.BufferedView();
+                var bparser = reader.BufferedView();
                 var skipResult = bparser.SkipUntilAny(['_']);
                 if (skipResult.EndOfInput)
                 {
                     break;
                 }
 
-                var name = parser.SourceUntilExclusive(bparser.Position);
+                var name = reader.SourceUntilExclusive(bparser.Position);
                 teachers.Add(name);
 
                 bparser.Move();
-                parser.MoveTo(bparser.Position);
+                reader.MoveTo(bparser.Position);
             }
             return teachers;
         }
 
-        static int Year(ref Parser parser)
+        static int Year(ref SequenceReader reader)
         {
-            var consumeIntResult = parser.ConsumePositiveInt(length: 4);
+            var consumeIntResult = reader.ConsumePositiveInt(length: 4);
             if (consumeIntResult.Status != ConsumeIntStatus.Ok)
             {
                 throw new NotSupportedException("Expecting year at the end.");
@@ -487,23 +488,23 @@ public static class CurriculumNameParser
             return (int) consumeIntResult.Value;
         }
 
-        static int? Number(ref Parser parser)
+        static int? Number(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var numSkipResult = bparser.SkipNumbers();
             if (!numSkipResult.SkippedAny)
             {
                 return null;
             }
 
-            var nums = parser.PeekSpanUntilPosition(bparser.Position);
+            var nums = reader.PeekSpanUntilPosition(bparser.Position);
             if (!int.TryParse(nums, out int ret))
             {
                 throw new NotSupportedException("Number in front too large");
             }
 
-            parser.MoveTo(bparser.Position);
-            if (!parser.ConsumeExactString("_"))
+            reader.MoveTo(bparser.Position);
+            if (!reader.ConsumeExactString("_"))
             {
                 return null;
             }
@@ -511,28 +512,28 @@ public static class CurriculumNameParser
             return ret;
         }
 
-        static ReadOnlyMemory<char> Specialty(ref Parser parser)
+        static ReadOnlyMemory<char> Specialty(ref SequenceReader reader)
         {
             var error = "There must be the short specialty name following the initial numbers";
-            var ret = NextSegmentUntilSep(ref parser, error);
-            if (!parser.ConsumeExactString("_"))
+            var ret = NextSegmentUntilSep(ref reader, error);
+            if (!reader.ConsumeExactString("_"))
             {
                 throw new NotSupportedException("Expected _ after the specialty.");
             }
             return ret;
         }
 
-        static ReadOnlyMemory<char> NextSegmentUntilSep(ref Parser parser, string error)
+        static ReadOnlyMemory<char> NextSegmentUntilSep(ref SequenceReader reader, string error)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var result = bparser.SkipUntilAny(['_']);
             if (!result.SkippedAny)
             {
                 throw new NotSupportedException(error);
             }
 
-            var ret = parser.SourceUntilExclusive(bparser.Position);
-            parser.MoveTo(bparser.Position);
+            var ret = reader.SourceUntilExclusive(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return ret;
         }
     }
@@ -574,7 +575,7 @@ public static class CurriculumDirectoryHelper
         foreach (var dirFullPath in dirs)
         {
             var lastSegmentStart = dirFullPath.IndexOf(Path.DirectorySeparatorChar) + 1;
-            var parser = new Parser(dirFullPath);
+            var parser = new SequenceReader(dirFullPath);
             parser.Move(lastSegmentStart);
             var groupKey = CurriculumNameParser.ParseGroupKey(ref parser);
             if (!parser.IsEmpty)
@@ -593,7 +594,7 @@ public static class CurriculumDirectoryHelper
     {
         Debug.Assert(filePath.EndsWith(CurriculumDocumentExtension));
         var lastSegmentStart = filePath.IndexOf(Path.DirectorySeparatorChar) + 1;
-        var parser = new Parser(filePath);
+        var parser = new SequenceReader(filePath);
         parser.Move(lastSegmentStart);
         var key = CurriculumNameParser.TryParseCurriculumKey(ref parser);
         if (key is null)
@@ -962,7 +963,7 @@ internal static class ThesisName
     {
         private bool _skipRoman = false;
 
-        public void Preprocess(ref Parser parser)
+        public void Preprocess(ref SequenceReader reader)
         {
             if (_skipRoman)
             {
@@ -971,11 +972,11 @@ internal static class ThesisName
 
             _skipRoman = true;
             // Some of them might have a roman numeral in front. Skip it.
-            if (parser.ReadRoman().Status == ReadRomanStatus.Ok)
+            if (reader.ReadRoman().Status == ReadRomanStatus.Ok)
             {
                 // The dot is optional.
-                parser.ConsumeExactString(".");
-                parser.SkipWhitespace();
+                reader.ConsumeExactString(".");
+                reader.SkipWhitespace();
             }
         }
     }
@@ -1140,7 +1141,7 @@ internal static class ThesisName
         while (true)
         {
             var t = paragraphs.Current.InnerText;
-            var parser = new Parser(t);
+            var parser = new SequenceReader(t);
             if (parser.ConsumeExactString("autor:", StringComparison.OrdinalIgnoreCase))
             {
                 break;
@@ -1198,7 +1199,7 @@ internal static class ThesisName
         uint year;
         {
             var t = lastParagraph.InnerText;
-            var parser = new Parser(t);
+            var parser = new SequenceReader(t);
             // TODO: Support ignore diacritics (annoying)
             if (!parser.ConsumeExactString("Chișinău", StringComparison.CurrentCultureIgnoreCase))
             {
@@ -1230,7 +1231,7 @@ internal static class ThesisName
 
         static List<Program> ParseProgram(string t)
         {
-            var parser = new Parser(t);
+            var parser = new SequenceReader(t);
             {
                 const string programPrefix = "Program / Specialitatea:";
                 if (!parser.ConsumeExactString(programPrefix, StringComparison.OrdinalIgnoreCase))
@@ -1287,7 +1288,7 @@ internal static class ThesisName
 
         static YearAndQualificationType ParseYearAndQualificationType(string t)
         {
-            var parser = new Parser(t);
+            var parser = new SequenceReader(t);
             int year = ParseYear(ref parser);
 
             if (!parser.ConsumeExactString(","))
@@ -1304,22 +1305,22 @@ internal static class ThesisName
             return new(year, qualificationType);
         }
 
-        static int ParseYear(ref Parser parser)
+        static int ParseYear(ref SequenceReader reader)
         {
             const string ciclul = "Ciclul";
             {
-                if (!parser.ConsumeExactString(ciclul, StringComparison.OrdinalIgnoreCase))
+                if (!reader.ConsumeExactString(ciclul, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException($"Expected the year string to start with '{ciclul}'");
                 }
             }
-            if (!parser.SkipWhitespace().SkippedAny)
+            if (!reader.SkipWhitespace().SkippedAny)
             {
                 throw new InvalidOperationException($"Did not expect the string to end after '{ciclul}'");
             }
 
             {
-                var romanReadStatus = parser.ReadRoman();
+                var romanReadStatus = reader.ReadRoman();
                 if (romanReadStatus.Status != ReadRomanStatus.Ok)
                 {
                     throw new InvalidOperationException($"Roman number must follow after '{ciclul}'");
@@ -1329,16 +1330,16 @@ internal static class ThesisName
             }
         }
 
-        static QualificationType ParseQualificationType(ref Parser parser)
+        static QualificationType ParseQualificationType(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var r = bparser.SkipNotWhitespace();
             if (!r.EndOfInput)
             {
                 throw new InvalidOperationException("Expected only one qualification type");
             }
 
-            var name = parser.PeekSpanUntilPosition(bparser.Position);
+            var name = reader.PeekSpanUntilPosition(bparser.Position);
             var qualificationType = GetQualificationType(name);
             return qualificationType;
 
@@ -1781,7 +1782,7 @@ internal static class PreliminarySectionProcessing
 
 internal struct PreprocessDoNothing() : IPreprocess
 {
-    public void Preprocess(ref Parser parser)
+    public void Preprocess(ref SequenceReader reader)
     {
     }
 }

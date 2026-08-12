@@ -426,7 +426,7 @@ internal static class HtmlSearch
         private static string ExtractTopic(IHtmlTableCellElement cell)
         {
             var topicRaw = cell.TextContent;
-            var parser = new Parser(topicRaw);
+            var parser = new SequenceReader(topicRaw);
 
             // Number in front.
             parser.SkipWhitespace();
@@ -509,7 +509,7 @@ internal static class HtmlSearch
             var headerRow = _table!.Rows[0];
             var cell = headerRow.Cells[attendanceStartColIndex + index];
 
-            var parser = new Parser(cell.TextContent);
+            var parser = new SequenceReader(cell.TextContent);
             parser.SkipWhitespace();
 
             DateTime dateTime;
@@ -684,7 +684,7 @@ internal static class HtmlSearch
                     {
                         Name? ParseStudent(HtmlStudent s)
                         {
-                            var studentParser = new Parser(s.Name);
+                            var studentParser = new SequenceReader(s.Name);
                             var parsedStudent = NameHelper.TryParseName(ref studentParser);
                             return parsedStudent;
                         }
@@ -776,7 +776,7 @@ internal static class HtmlSearch
         string s,
         IRegistryLessonParserErrorHandler errorHandler)
     {
-        var parser = new Parser(s);
+        var parser = new SequenceReader(s);
         parser.SkipWhitespace();
         if (parser.IsEmpty)
         {

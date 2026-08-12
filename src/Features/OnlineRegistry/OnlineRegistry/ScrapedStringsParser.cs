@@ -18,7 +18,7 @@ public static partial class RegistryScraping
         GroupParseContext context,
         string s)
     {
-        var mainParser = new Parser(s);
+        var mainParser = new SequenceReader(s);
         mainParser.SkipWhitespace();
 
         bool isRepeat = mainParser.ConsumeExactString("Repetare");
@@ -94,22 +94,22 @@ public static partial class RegistryScraping
             IsDual = isDual,
         };
 
-        static ReadOnlyMemory<char> ParseLabel(ref Parser parser)
+        static ReadOnlyMemory<char> ParseLabel(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             bparser.SkipLetters();
-            var ret = parser.SourceUntilExclusive(bparser.Position);
+            var ret = reader.SourceUntilExclusive(bparser.Position);
             if (ret.Length == 0)
             {
                 JustThrow("no label");
             }
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return ret;
         }
 
-        static uint ParseYear(ref Parser parser)
+        static uint ParseYear(ref SequenceReader reader)
         {
-            var yearResult = parser.ConsumePositiveInt(GroupHelper.YearLen);
+            var yearResult = reader.ConsumePositiveInt(GroupHelper.YearLen);
             if (yearResult.Status != ConsumeIntStatus.Ok)
             {
                 JustThrow("year");
@@ -117,10 +117,10 @@ public static partial class RegistryScraping
             return yearResult.Value;
         }
 
-        static uint ParseGroupNumber(ref Parser parser)
+        static uint ParseGroupNumber(ref SequenceReader reader)
         {
             // sometimes they don't denote this completely
-            var numberResult = parser.ConsumePositiveIntWithMaxLength(GroupHelper.GroupNumberLen);
+            var numberResult = reader.ConsumePositiveIntWithMaxLength(GroupHelper.GroupNumberLen);
             if (numberResult is not { } num)
             {
                 JustThrow("group number");
@@ -129,30 +129,30 @@ public static partial class RegistryScraping
         }
 
         // ReSharper disable once InconsistentNaming
-        static LanguageOrFR ParseLanguageOrFR(ref Parser parser)
+        static LanguageOrFR ParseLanguageOrFR(ref SequenceReader reader)
         {
             var ret = new LanguageOrFR();
-            if (ParseFR(ref parser))
+            if (ParseFR(ref reader))
             {
                 ret.FR = true;
             }
-            if (parser.ConsumeExactString("SE"))
+            if (reader.ConsumeExactString("SE"))
             {
                 // ignore this
             }
 
-            if (LanguageHelper.ParseName(ref parser) is { } language)
+            if (LanguageHelper.ParseName(ref reader) is { } language)
             {
                 ret.Language = language;
             }
-            else if (parser.ConsumeExactString("R"))
+            else if (reader.ConsumeExactString("R"))
             {
                 ret.Language = Language.Ru;
             }
 
             if (!ret.FR && ret.IsLanguage)
             {
-                if (ParseFR(ref parser))
+                if (ParseFR(ref reader))
                 {
                     ret.FR = true;
                 }
@@ -161,7 +161,7 @@ public static partial class RegistryScraping
         }
 
         // ReSharper disable once InconsistentNaming
-        static bool ParseFR(ref Parser p)
+        static bool ParseFR(ref SequenceReader p)
         {
             const string fr = "fr";
             if (!p.CanPeekCount(fr.Length))
@@ -177,29 +177,29 @@ public static partial class RegistryScraping
             return false;
         }
 
-        static ReadOnlyMemory<char> ParseSubGroup(ref Parser parser)
+        static ReadOnlyMemory<char> ParseSubGroup(ref SequenceReader reader)
         {
-            if (parser.IsEmpty)
+            if (reader.IsEmpty)
             {
                 return ReadOnlyMemory<char>.Empty;
             }
 
             // Possible if we're at a whitespace.
-            if (parser.Current != '(')
+            if (reader.Current != '(')
             {
                 return ReadOnlyMemory<char>.Empty;
             }
 
-            parser.Move();
-            var bparser = parser.BufferedView();
+            reader.Move();
+            var bparser = reader.BufferedView();
             var skipResult = bparser.SkipUntilAny([')']);
             if (skipResult.EndOfInput)
             {
                 JustThrow("subgroup number");
             }
 
-            var ret = parser.SourceUntilExclusive(bparser);
-            parser.MovePast(bparser.Position);
+            var ret = reader.SourceUntilExclusive(bparser);
+            reader.MovePast(bparser.Position);
 
             return ret;
         }

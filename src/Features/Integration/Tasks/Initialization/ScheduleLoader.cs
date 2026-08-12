@@ -308,7 +308,7 @@ public sealed class ConsultationsLoaderComponent(
             {
                 case Column.Name:
                 {
-                    var parser = new Parser(t);
+                    var parser = new SequenceReader(t);
                     var name = NameHelper.TryParseName(ref parser);
                     if (!parser.IsEmpty || name is null)
                     {
@@ -328,7 +328,7 @@ public sealed class ConsultationsLoaderComponent(
                     }
                     else
                     {
-                        var parser = new Parser(t);
+                        var parser = new SequenceReader(t);
                         interval = parser.ParseTimeInterval(allowOpenInterval: true);
                         if (!parser.IsEmpty)
                         {

@@ -299,7 +299,7 @@ public sealed class ThesisListParser(
                 {
                     return false;
                 }
-                var parser = new Parser(text);
+                var parser = new SequenceReader(text);
                 try
                 {
                     while (true)
@@ -381,26 +381,26 @@ public sealed class ThesisListParser(
         return true;
     }
 
-    private static bool TrySkipParenthesizedText(ref Parser parser)
+    private static bool TrySkipParenthesizedText(ref SequenceReader reader)
     {
-        if (parser.IsEmpty || parser.Current != '(')
+        if (reader.IsEmpty || reader.Current != '(')
         {
             return false;
         }
 
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         if (!bparser.SkipUntilAny(")").Satisfied)
         {
             return false;
         }
 
-        parser.MovePast(bparser.Position);
+        reader.MovePast(bparser.Position);
         return true;
     }
 
     private static List<Name> ParseNames(string text)
     {
-        var parser = new Parser(text);
+        var parser = new SequenceReader(text);
         while (true)
         {
             var ret = new List<Name>();
@@ -456,7 +456,7 @@ public sealed class ThesisListParser(
     private static bool CheckKeywords(string text, SearchFilter key)
     {
         int keywordIndex = 0;
-        var parser = new Parser(text);
+        var parser = new SequenceReader(text);
 
         while (true)
         {

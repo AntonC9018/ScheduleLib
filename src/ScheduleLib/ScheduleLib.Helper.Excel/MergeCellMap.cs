@@ -30,7 +30,7 @@ public sealed class MergeCellMap
                 continue;
             }
 
-            var parser = new Parser(val);
+            var parser = new SequenceReader(val);
             var start = parser.ParseCellPosition();
             if (!parser.ConsumeExactString(":"))
             {

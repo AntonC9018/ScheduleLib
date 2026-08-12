@@ -523,7 +523,7 @@ public static class TeacherNameHelper
 {
     public static TeacherBuilderModel.NameModel ParseName(string fullName)
     {
-        var parser = new Parser(fullName);
+        var parser = new SequenceReader(fullName);
         var name = ParseName(ref parser);
         if (!parser.IsEmpty)
         {
@@ -550,7 +550,7 @@ public static class TeacherNameHelper
     /// F.-N. Last-Name
     /// etc.
     /// </summary>
-    public static TeacherBuilderModel.NameModel ParseName(ref Parser parser)
+    public static TeacherBuilderModel.NameModel ParseName(ref SequenceReader reader)
     {
         static ReadOnlySpan<char> Separators() => [
             WordHelper.ShortenedWordCharacter,
@@ -558,7 +558,7 @@ public static class TeacherNameHelper
             NameConstants.DoubleNameSeparatorChar];
 
         var ret = new TeacherBuilderModel.NameModel();
-        var nameA = ReadName(ref parser);
+        var nameA = ReadName(ref reader);
         // ( is for the maiden name syntax.
         // Not mentioned or used, but it is allowed.
         if (nameA.All(x => x.IsNull))
@@ -566,7 +566,7 @@ public static class TeacherNameHelper
             return ret;
         }
         // If only a single name has been given, it's the last name.
-        if (parser.IsEmpty)
+        if (reader.IsEmpty)
         {
             ret.LastName = new(MakeSureWithoutShortName(nameA));
             return ret;
@@ -574,19 +574,19 @@ public static class TeacherNameHelper
 
         ret.FirstName = nameA;
 
-        RequireSpaceAfterFirstName(ref parser);
-        if (parser.Current == ' ')
+        RequireSpaceAfterFirstName(ref reader);
+        if (reader.Current == ' ')
         {
-            parser.Move();
+            reader.Move();
         }
-        RequireSpaceAfterFirstName(ref parser);
+        RequireSpaceAfterFirstName(ref reader);
 
-        if (parser.Current == ' ')
+        if (reader.Current == ' ')
         {
             throw new ArgumentException("Only a single space in between first and last name allowed.");
         }
 
-        var nameB = ReadName(ref parser);
+        var nameB = ReadName(ref reader);
         if (nameB == default)
         {
             throw new ArgumentException("The last name must be provided.");
@@ -608,25 +608,25 @@ public static class TeacherNameHelper
             return x.Map(a => a.Full);
         }
 
-        static void IncompleteDoubleName(ref Parser parser)
+        static void IncompleteDoubleName(ref SequenceReader reader)
         {
-            if (parser.IsEmpty)
+            if (reader.IsEmpty)
             {
                 throw new ArgumentException("The first name is required after the dash.");
             }
         }
 
-        static void RequireSpaceAfterFirstName(ref Parser parser)
+        static void RequireSpaceAfterFirstName(ref SequenceReader reader)
         {
-            if (parser.IsEmpty)
+            if (reader.IsEmpty)
             {
                 throw new ArgumentException("The last name is required after the first name.");
             }
         }
 
-        static NameParts<OptionalNamePart> ReadName(ref Parser parser)
+        static NameParts<OptionalNamePart> ReadName(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var result = bparser.SkipUntilAny(Separators());
             if (!result.SkippedAny)
             {
@@ -649,7 +649,7 @@ public static class TeacherNameHelper
                     isShort = true;
                 }
 
-                var nameSpan = parser.PeekSpanUntilPosition(bparser.Position);
+                var nameSpan = reader.PeekSpanUntilPosition(bparser.Position);
                 var namePartString = nameSpan.ToString();
 
                 ref var currentOutput = ref retPartE.Current;
@@ -678,7 +678,7 @@ public static class TeacherNameHelper
                 bparser.SkipWhitespace();
                 IncompleteDoubleName(ref bparser);
 
-                parser.MoveTo(bparser.Position);
+                reader.MoveTo(bparser.Position);
 
                 var skipResult = bparser.SkipUntilAny(Separators());
                 if (!skipResult.SkippedAny)
@@ -686,7 +686,7 @@ public static class TeacherNameHelper
                     return ret;
                 }
             }
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return ret;
         }
     }

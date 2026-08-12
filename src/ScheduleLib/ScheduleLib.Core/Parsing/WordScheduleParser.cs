@@ -691,7 +691,7 @@ public static class WordScheduleParser
                         }
 
                         var timeSlotCellText = cell.Cell.InnerText;
-                        var parser = new Parser(timeSlotCellText);
+                        var parser = new SequenceReader(timeSlotCellText);
 
                         int newTimeSlotOrdinal;
                         {
@@ -1090,7 +1090,7 @@ public static class WordScheduleParser
             }
 
             {
-                var parser = new Parser(paragraphs.Current.InnerText);
+                var parser = new SequenceReader(paragraphs.Current.InnerText);
                 var interval = parser.ParseDateInterval("dd.MM.yy");
 
                 // Ignored for now.
@@ -1105,7 +1105,7 @@ public static class WordScheduleParser
             int? ParseSem()
             {
                 var semPara = paragraphs.Current.InnerText;
-                var parser = new Parser(semPara);
+                var parser = new SequenceReader(semPara);
                 parser.SkipWhitespace();
                 if (!parser.ConsumeExactString("Sem."))
                 {

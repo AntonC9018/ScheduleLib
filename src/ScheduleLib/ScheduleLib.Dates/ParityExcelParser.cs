@@ -77,7 +77,7 @@ public static class ParityExcelParser
             WeekInterval Week()
             {
                 var weekText = cells.Week.InnerText;
-                var parser = new Parser(weekText);
+                var parser = new SequenceReader(weekText);
                 var ret = ParseWeekInterval(ref parser);
                 parser.SkipWhitespace();
                 if (!parser.IsEmpty)
@@ -113,7 +113,7 @@ public static class ParityExcelParser
             bool IsOdd()
             {
                 var parityText = cells.Parity.InnerText;
-                var parser = new Parser(parityText);
+                var parser = new SequenceReader(parityText);
                 var ret = ParseIsOdd(ref parser);
                 parser.SkipWhitespace();
                 if (!parser.IsEmpty)
@@ -288,21 +288,21 @@ public static class ParityExcelParser
         }
     }
 
-    private static WeekInterval ParseWeekInterval(ref Parser parser)
+    private static WeekInterval ParseWeekInterval(ref SequenceReader reader)
     {
-        parser.SkipWhitespace();
+        reader.SkipWhitespace();
 
-        var dayStart = ParseDayNumber(ref parser);
-        parser.SkipWhitespace();
-        var monthStart = ParseMonth1(ref parser);
-        parser.Skip(new SkipPunctuationOrWhite());
+        var dayStart = ParseDayNumber(ref reader);
+        reader.SkipWhitespace();
+        var monthStart = ParseMonth1(ref reader);
+        reader.Skip(new SkipPunctuationOrWhite());
 
-        var dayEnd = ParseDayNumber(ref parser);
-        parser.SkipWhitespace();
-        var monthEnd = ParseMonth1(ref parser);
-        parser.SkipWhitespace();
+        var dayEnd = ParseDayNumber(ref reader);
+        reader.SkipWhitespace();
+        var monthEnd = ParseMonth1(ref reader);
+        reader.SkipWhitespace();
 
-        var year = ParseYear(ref parser);
+        var year = ParseYear(ref reader);
         var startDate = CreateDate(dayStart, monthStart);
         var endDate = CreateDate(dayEnd, monthEnd);
         return new()
@@ -319,15 +319,15 @@ public static class ParityExcelParser
                 day: (int) day);
         }
 
-        uint ParseDayNumber(ref Parser parser)
+        uint ParseDayNumber(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var skipResult = bparser.SkipNumbers();
             if (!skipResult.SkippedAny)
             {
                 throw new NotSupportedException("Day number expected");
             }
-            var daySpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var daySpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (daySpan.Length > 2)
             {
                 throw new NotSupportedException("Day number too long (max 2 numbers)");
@@ -337,30 +337,30 @@ public static class ParityExcelParser
                 Debug.Fail("This should never happen?");
                 day = 0;
             }
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return day;
         }
 
-        Month ParseMonth1(ref Parser parser)
+        Month ParseMonth1(ref SequenceReader reader)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
                 throw new NotSupportedException("Month name expected");
             }
-            var monthSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var monthSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (ParseMonth(monthSpan) is not { } month)
             {
                 throw new NotSupportedException("Month name not recognized");
             }
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return month;
         }
 
-        int ParseYear(ref Parser parser)
+        int ParseYear(ref SequenceReader reader)
         {
-            var yearResult = parser.ConsumePositiveInt(4);
+            var yearResult = reader.ConsumePositiveInt(4);
             if (yearResult.Status != ConsumeIntStatus.Ok)
             {
                 throw new NotSupportedException("Year not parsed");
@@ -369,11 +369,11 @@ public static class ParityExcelParser
         }
     }
 
-    private static bool ParseIsOdd(ref Parser parser)
+    private static bool ParseIsOdd(ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         bparser.SkipNotWhitespace();
-        var span = parser.PeekSpanUntilPosition(bparser.Position);
+        var span = reader.PeekSpanUntilPosition(bparser.Position);
 
         static bool Equals1(ReadOnlySpan<char> span, string literal)
         {
@@ -382,12 +382,12 @@ public static class ParityExcelParser
 
         if (Equals1(span, "Pară"))
         {
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return false;
         }
         if (Equals1(span, "Impară"))
         {
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return true;
         }
         throw new NotSupportedException("Parity not recognized");

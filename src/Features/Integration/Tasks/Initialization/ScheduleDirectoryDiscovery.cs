@@ -3,6 +3,7 @@ using ScheduleLib.Dates;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Excel;
 using TruePath;
+using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace ScheduleLib.Application.Core;
 
@@ -61,8 +62,8 @@ public static class ScheduleDirectoryDiscovery
 
     private static (int StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
     {
-        var baseParser = new Parser(path);
-        InvalidScheduleDirectoryFormat Error(ParserPosition position, string reason)
+        var baseParser = new SequenceReader(path);
+        InvalidScheduleDirectoryFormat Error(SequencePosition position, string reason)
         {
             var segment = baseParser.Segment(position);
             return new(segment, reason);
@@ -175,11 +176,11 @@ public sealed class ScheduleDirectoryDescriptor
 
 public sealed class InvalidScheduleDirectoryFormat : NotSupportedException
 {
-    public InvalidScheduleDirectoryFormat(ParserSegment segment, string expected)
+    public InvalidScheduleDirectoryFormat(SequenceSegment segment, string expected)
         : base($"Invalid directory name format at `{segment}`. {expected}")
     {
         Segment = segment;
     }
 
-    public ParserSegment Segment { get; }
+    public SequenceSegment Segment { get; }
 }

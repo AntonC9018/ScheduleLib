@@ -7,25 +7,25 @@ namespace ScheduleLib.Parsing;
 
 public static class ScheduleDocumentParserHelper
 {
-    extension(ref Parser parser)
+    extension(ref SequenceReader reader)
     {
         public (DateTime Start, DateTime End) ParseDateInterval(string format)
         {
-            parser.SkipWhitespace();
-            var bparser = parser.BufferedView();
+            reader.SkipWhitespace();
+            var bparser = reader.BufferedView();
             var skipped = bparser.SkipUntilAny(['–', '-', '—']);
             if (skipped.EndOfInput)
             {
                 throw new NotSupportedException("Expected interval separator");
             }
 
-            var startSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var startSpan = reader.PeekSpanUntilPosition(bparser.Position);
             var startDate = ParseDateTime(startSpan, "Invalid start date");
 
             bparser.Move();
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
 
-            var endSpan = parser.PeekSpanUntilEnd();
+            var endSpan = reader.PeekSpanUntilEnd();
             var endDate = ParseDateTime(endSpan, "Invalid end date");
 
             if (startDate >= endDate)
@@ -57,12 +57,12 @@ public static class ScheduleDocumentParserHelper
         public TimeInterval ParseTimeInterval(bool allowOpenInterval = false)
         {
             // HH:MM-HH:MM
-            parser.SkipWhitespace();
-            if (ParserHelper.ParseTime(ref parser) is not { } startTime)
+            reader.SkipWhitespace();
+            if (ParserHelper.ParseTime(ref reader) is not { } startTime)
             {
                 throw new NotSupportedException("Expected time range start");
             }
-            if (parser.IsEmpty || parser.Current != '-')
+            if (reader.IsEmpty || reader.Current != '-')
             {
                 if (allowOpenInterval)
                 {
@@ -70,16 +70,16 @@ public static class ScheduleDocumentParserHelper
                 }
                 throw new NotSupportedException("Expected '-' after start time");
             }
-            parser.Move();
+            reader.Move();
 
-            if (ParserHelper.ParseTime(ref parser) is not { } endTime)
+            if (ParserHelper.ParseTime(ref reader) is not { } endTime)
             {
                 throw new NotSupportedException("Expected time range end");
             }
 
-            parser.SkipWhitespace();
+            reader.SkipWhitespace();
 
-            if (!parser.IsEmpty)
+            if (!reader.IsEmpty)
             {
                 throw new NotSupportedException("Time range not consumed fully");
             }
@@ -89,40 +89,40 @@ public static class ScheduleDocumentParserHelper
 
         public DayOfWeek ParseDayOfWeek(DayNameParser dayNameParser)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
                 throw new InvalidOperationException("Expected the day name");
             }
 
-            var dayOfWeekSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var dayOfWeekSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (dayNameParser.Map(dayOfWeekSpan) is not { } day1)
             {
                 throw new InvalidOperationException($"Unknown day name: `{dayOfWeekSpan}`");
             }
 
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return day1;
         }
 
         public DateOnly ParseDate(ReadOnlySpan<char> format)
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             var result = bparser.Skip(new SkipDate());
             if (!result.SkippedAny)
             {
-                throw new InvalidOperationException($"Could not parse the date in string `{parser}`");
+                throw new InvalidOperationException($"Could not parse the date in string `{reader}`");
             }
 
-            var dateSpan = parser.PeekSpanUntilPosition(bparser.Position);
+            var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
             bool parsed = DateOnly.TryParseExact(dateSpan, format, out var date);
             if (!parsed)
             {
                 throw new InvalidOperationException("Date not parsed according to the format.");
             }
 
-            parser.MoveTo(bparser.Position);
+            reader.MoveTo(bparser.Position);
             return date;
         }
 

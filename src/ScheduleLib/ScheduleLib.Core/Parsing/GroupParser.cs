@@ -69,7 +69,7 @@ public static class GroupHelper
             throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
         }
 
-        var baseParser = new Parser(name);
+        var baseParser = new SequenceReader(name);
         var parser = baseParser.BufferedView();
 
         bool isDual = parser.ConsumeExactString("DU-");
@@ -195,9 +195,9 @@ public static class GroupHelper
         }
     }
 
-    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref Parser parser)
+    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         if (!ParserHelper.IsUpperAscii(bparser.Current))
         {
             throw new InvalidOperationException("Must be prefixed with at least one letter indicating the group.");
@@ -253,14 +253,14 @@ public static class GroupHelper
             label = "M";
         }
 
-        parser.MoveTo(bparser.Position);
+        reader.MoveTo(bparser.Position);
         return (label.ToString(), isFr, isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
-    private static int ParseGroup(ref Parser parser)
+    private static int ParseGroup(ref SequenceReader reader)
     {
-        var result = parser.ConsumePositiveIntWithMaxLength(GroupNumberLen);
+        var result = reader.ConsumePositiveIntWithMaxLength(GroupNumberLen);
         if (result is { } num)
         {
             return (int) num;
@@ -269,9 +269,9 @@ public static class GroupHelper
     }
 
     public const int YearLen = 2;
-    private static int ParseYear(ref Parser parser)
+    private static int ParseYear(ref SequenceReader reader)
     {
-        var result = parser.ConsumePositiveInt(YearLen);
+        var result = reader.ConsumePositiveInt(YearLen);
         switch (result.Status)
         {
             case ConsumeIntStatus.Ok:

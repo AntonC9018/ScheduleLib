@@ -182,7 +182,7 @@ public static class ExcelTeacherListParser
     {
         var ret = new TeacherNameFromExcel();
 
-        var parser = new Parser(s);
+        var parser = new SequenceReader(s);
         var bparser = parser.BufferedView();
         {
             var r = bparser.SkipUntilAny([' ']);
@@ -229,20 +229,20 @@ public static class ExcelTeacherListParser
         return ret;
     }
 
-    private static ReadOnlyMemory<char> MaybeParseMaidenName(ref Parser parser)
+    private static ReadOnlyMemory<char> MaybeParseMaidenName(ref SequenceReader reader)
     {
-        if (parser.IsEmpty)
+        if (reader.IsEmpty)
         {
             return ReadOnlyMemory<char>.Empty;
         }
-        if (parser.Current != '(')
+        if (reader.Current != '(')
         {
             return ReadOnlyMemory<char>.Empty;
         }
 
-        parser.Move();
+        reader.Move();
 
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
 
         var parenSkipResult = bparser.SkipUntilAny([')']);
         if (parenSkipResult.EndOfInput)
@@ -254,8 +254,8 @@ public static class ExcelTeacherListParser
             throw new ArgumentException("The opening parenthesis must be followed by a name.");
         }
 
-        var lastName = parser.SourceUntilExclusive(bparser);
-        parser.MovePast(bparser.Position);
+        var lastName = reader.SourceUntilExclusive(bparser);
+        reader.MovePast(bparser.Position);
         return lastName;
     }
 }

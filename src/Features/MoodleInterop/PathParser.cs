@@ -34,48 +34,48 @@ public sealed class MoodlePathTokenReader : ITokenReader
     public static readonly MoodlePathTokenReader Instance = new();
     public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(MoodlePathTokenType));
 
-    public TokenType Read(ref Parser parser)
+    public TokenType Read(ref SequenceReader reader)
     {
         // Skip whitespace
-        if (parser.SkipWhitespace().SkippedAny)
+        if (reader.SkipWhitespace().SkippedAny)
         {
             return TokenType.Whitespace;
         }
 
         // Check for keywords
-        if (parser.ConsumeExactString("Ciclul", StringComparison.OrdinalIgnoreCase))
+        if (reader.ConsumeExactString("Ciclul", StringComparison.OrdinalIgnoreCase))
         {
             return MoodlePathTokenType.Ciclul;
         }
 
-        if (parser.ConsumeExactString("Anul", StringComparison.OrdinalIgnoreCase))
+        if (reader.ConsumeExactString("Anul", StringComparison.OrdinalIgnoreCase))
         {
             return MoodlePathTokenType.Anul;
         }
 
-        if (parser.ConsumeExactString("Atestare", StringComparison.OrdinalIgnoreCase))
+        if (reader.ConsumeExactString("Atestare", StringComparison.OrdinalIgnoreCase))
         {
             return MoodlePathTokenType.Atestare;
         }
 
         // Check for numbers (Arabic numerals)
-        var numResult = parser.ConsumePositiveIntWithMaxLength(3);
+        var numResult = reader.ConsumePositiveIntWithMaxLength(3);
         if (numResult.HasValue)
         {
             return MoodlePathTokenType.Number;
         }
 
         // Check for Roman numerals
-        var romanResult = parser.ReadRoman();
+        var romanResult = reader.ReadRoman();
         if (romanResult.Status == ReadRomanStatus.Ok)
         {
             return MoodlePathTokenType.RomanNumeral;
         }
 
         // Read any other text (words, special characters, etc.)
-        if (!parser.IsEmpty)
+        if (!reader.IsEmpty)
         {
-            parser.Skip(new SkipTextImpl());
+            reader.Skip(new SkipTextImpl());
             return MoodlePathTokenType.Text;
         }
 

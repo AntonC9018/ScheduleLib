@@ -12,6 +12,7 @@ using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using Group = ScheduleLib.Group;
+using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace OnlineRegistry.AttendanceExcel;
 
@@ -158,21 +159,21 @@ public sealed partial class AttendanceListsExcelParser
 
         public static readonly NameTokenReader Instance = new();
 
-        public TokenType Read(ref Parser parser)
+        public TokenType Read(ref SequenceReader reader)
         {
-            if (parser.SkipWhitespace().SkippedAny)
+            if (reader.SkipWhitespace().SkippedAny)
             {
                 return TokenType.Whitespace;
             }
-            if (parser.ConsumeExactChar('('))
+            if (reader.ConsumeExactChar('('))
             {
                 return (TokenType) '(';
             }
-            if (parser.ConsumeExactChar(')'))
+            if (reader.ConsumeExactChar(')'))
             {
                 return (TokenType) ')';
             }
-            parser.Skip(new SkipNotWhitespaceOrSep());
+            reader.Skip(new SkipNotWhitespaceOrSep());
             return NameTokenType.NamePart;
         }
 
@@ -203,7 +204,7 @@ public sealed partial class AttendanceListsExcelParser
 
     private struct ParsedName
     {
-        public required (ParserPosition Start, ParserPosition End)? NameRange;
+        public required (SequencePosition Start, SequencePosition End)? NameRange;
         public required LessonType LessonType;
         public required SubGroup SubGroup;
         public required Group? Group;
@@ -213,8 +214,8 @@ public sealed partial class AttendanceListsExcelParser
         Lexer lexer,
         GroupParseContext groupParser)
     {
-        ParserPosition? nameStart = null;
-        ParserPosition? nameEnd = null;
+        SequencePosition? nameStart = null;
+        SequencePosition? nameEnd = null;
         bool isInParens = false;
         var lessonType = LessonType.None;
         var subGroup = SubGroup.All;
@@ -738,7 +739,7 @@ public sealed partial class AttendanceListsExcelParser
                 break;
             }
 
-            var parser = new Parser(value);
+            var parser = new SequenceReader(value);
             if (NameHelper.TryParseName(ref parser) is not { } name)
             {
                 break;

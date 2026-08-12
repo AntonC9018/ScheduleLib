@@ -7,7 +7,7 @@ public sealed class NameParserTests
 {
     private Name ParseName(string s)
     {
-        var p = new Parser(s);
+        var p = new SequenceReader(s);
         var r = NameHelper.Parse(ref p);
         Assert.True(p.IsEmpty);
         return r;
@@ -61,7 +61,7 @@ public sealed class NameParserTests
     [Fact]
     public void StuffAfterIgnored()
     {
-        var p = new Helper.Parsing.Parser("Last First Patro (ABC) Extra Stuff");
+        var p = new Helper.Parsing.SequenceReader("Last First Patro (ABC) Extra Stuff");
         var s = NameHelper.Parse(ref p);
         _ = s;
         Assert.True(p.ConsumeExactString(" (ABC) Extra Stuff"));

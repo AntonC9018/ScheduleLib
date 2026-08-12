@@ -41,7 +41,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         Dictionary<Name, float> gradeByName = new(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var q in quiz.Attempts)
         {
-            var parser = new Parser(q.UserName);
+            var parser = new SequenceReader(q.UserName);
             var name = NameHelper.TryParseName(ref parser);
             if (name is null)
             {
@@ -112,7 +112,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     var tables = evaluareDoc.QuerySelectorAll<IHtmlAnchorElement>("table a");
                     var matching = tables.Where(x =>
                     {
-                        var parser = new Parser(x.TextContent);
+                        var parser = new SequenceReader(x.TextContent);
                         parser.SkipWhitespace();
                         if (!parser.ConsumeExactString("Testarea"))
                         {
@@ -155,7 +155,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                     Name name;
                     {
-                        var nameParser = new Parser(nameCell.TextContent);
+                        var nameParser = new SequenceReader(nameCell.TextContent);
                         nameParser.SkipWhitespace();
                         name = NameHelper.Parse(ref nameParser);
                         nameParser.SkipWhitespace();

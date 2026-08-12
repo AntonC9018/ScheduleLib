@@ -10,8 +10,8 @@ namespace ScheduleLib.Helper.Parsing;
 public struct TokenSpan
 {
     public required int Row;
-    public required ParserPosition ColStart;
-    public required ParserPosition ColEnd;
+    public required SequencePosition ColStart;
+    public required SequencePosition ColEnd;
 
     public readonly bool IsEmpty => ColStart == ColEnd;
 }
@@ -437,7 +437,7 @@ public enum TokenType
 
 public interface ITokenReader
 {
-    public TokenType Read(ref Parser parser);
+    public TokenType Read(ref SequenceReader reader);
     public TokenTypeLabels Labels { get; }
 }
 
@@ -450,7 +450,7 @@ public sealed class Lexer : ILexer
     // Just removing from start, since not much is queued usually
     // It's better to use a ring queue
     internal readonly List<Token> _queue;
-    private Parser _parser;
+    private SequenceReader _sequenceReader;
     private bool _hasOutputEndOfLine;
     private bool _hasOutputEndOfStream;
     private int _rowIndex;
@@ -464,11 +464,11 @@ public sealed class Lexer : ILexer
         _readImpl = readImpl;
     }
 
-    public (int Row, ParserPosition Position) Position
+    public (int Row, SequencePosition Position) Position
     {
         get
         {
-            return (_rowIndex, _parser.Position);
+            return (_rowIndex, _sequenceReader.Position);
         }
     }
 
@@ -476,7 +476,7 @@ public sealed class Lexer : ILexer
     {
         _lines = lines;
         _queue.Clear();
-        _parser = new("");
+        _sequenceReader = new("");
         _rowIndex = 0;
         _hasOutputEndOfLine = true;
         _hasOutputEndOfStream = false;
@@ -542,20 +542,20 @@ public sealed class Lexer : ILexer
         return ToStringImpl();
     }
 
-    private TokenSpan SpanUntil(ParserPosition end)
+    private TokenSpan SpanUntil(SequencePosition end)
     {
         return new()
         {
             Row = _rowIndex,
-            ColStart = _parser.Position,
+            ColStart = _sequenceReader.Position,
             ColEnd = end,
         };
     }
 
-    private void AddCurrentToken(ParserPosition end, TokenType type = default)
+    private void AddCurrentToken(SequencePosition end, TokenType type = default)
     {
         var span = SpanUntil(end);
-        var value = _parser.SourceUntilExclusive(end);
+        var value = _sequenceReader.SourceUntilExclusive(end);
         if (type == default)
         {
             Debug.Assert(value.Length == 1);
@@ -563,14 +563,14 @@ public sealed class Lexer : ILexer
         }
         var token = new Token
         {
-            WholeLineMem = _parser.Source,
+            WholeLineMem = _sequenceReader.Source,
             Type = type,
             Span = span,
         };
         Debug.Assert(value.Equals(token.Value));
 
         _queue.Add(token);
-        _parser.MoveTo(end);
+        _sequenceReader.MoveTo(end);
     }
 
     private bool TryReadNextLine()
@@ -587,7 +587,7 @@ public sealed class Lexer : ILexer
             return false;
         }
         _rowIndex += 1;
-        _parser = new(_lines.Current);
+        _sequenceReader = new(_lines.Current);
         _hasOutputEndOfLine = false;
         return true;
     }
@@ -605,13 +605,13 @@ public sealed class Lexer : ILexer
                 return false;
             }
 
-            if (_parser.IsEmpty)
+            if (_sequenceReader.IsEmpty)
             {
                 TryAddEndOfLine();
                 TryReadNextLine();
                 continue;
             }
-            var bparser = _parser.BufferedView();
+            var bparser = _sequenceReader.BufferedView();
             var tokenType = _readImpl.Read(ref bparser);
             AddCurrentToken(bparser.Position, tokenType);
         }
@@ -624,13 +624,13 @@ public sealed class Lexer : ILexer
         Debug.Assert(!HasEndOfStream);
         _queue.Add(new Token
         {
-            WholeLineMem = _parser.Source,
+            WholeLineMem = _sequenceReader.Source,
             Span = new()
             {
                 Row = _rowIndex,
                 // Gives 0 when reading from default.
-                ColStart = _parser.Position,
-                ColEnd = _parser.Position,
+                ColStart = _sequenceReader.Position,
+                ColEnd = _sequenceReader.Position,
             },
             Type = TokenType.EndOfStream,
         });
@@ -646,12 +646,12 @@ public sealed class Lexer : ILexer
         }
         _queue.Add(new Token
         {
-            WholeLineMem = _parser.Source,
+            WholeLineMem = _sequenceReader.Source,
             Span = new()
             {
                 Row = _rowIndex,
-                ColStart = _parser.EndPosition,
-                ColEnd = _parser.EndPosition,
+                ColStart = _sequenceReader.EndPosition,
+                ColEnd = _sequenceReader.EndPosition,
             },
             Type = TokenType.EndOfLine,
         });
@@ -758,22 +758,22 @@ public static class LexerHelper
 
     extension (LexerScope lexer)
     {
-        public void Apply(ref Parser parser)
+        public void Apply(ref SequenceReader reader)
         {
             if (lexer.IsEmpty)
             {
-                parser.MoveTo(parser.EndPosition);
+                reader.MoveTo(reader.EndPosition);
             }
             else
             {
                 var t = lexer.Current;
                 var source = t.Value;
-                if (FindOffset(source.Span, parser.PeekSpanUntilEnd()) is not { } offset)
+                if (FindOffset(source.Span, reader.PeekSpanUntilEnd()) is not { } offset)
                 {
                     throw new InvalidOperationException("Cannot apply displacement to this parser, because the lexer is on a different line now");
                 }
 
-                parser.Move(offset);
+                reader.Move(offset);
             }
         }
     }
