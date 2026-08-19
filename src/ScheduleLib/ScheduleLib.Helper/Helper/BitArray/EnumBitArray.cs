@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper;
 
-[CollectionBuilder(typeof(EnumBitArrayBuilder), nameof(EnumBitArrayBuilder.Create))]
+[CollectionBuilder(typeof(EnumBitArray), nameof(EnumBitArray.Create))]
 public record struct EnumBitArray<T> : IEnumerable<T>
     where T : struct, Enum
 {
@@ -248,7 +248,7 @@ public record struct EnumBitArray<T> : IEnumerable<T>
     }
 }
 
-public static class EnumBitArrayBuilder
+public static class EnumBitArray
 {
     public static EnumBitArray<T> Create<T>(ReadOnlySpan<T> items)
         where T : struct, Enum
