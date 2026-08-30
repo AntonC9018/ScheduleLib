@@ -752,7 +752,7 @@ public static class LessonParsingHelper
                         WrongFormatException.LexerEmpty();
                     }
                     var t = lexer.Current;
-                    if (t.Type is not LessonTokenType.Word)
+                    if (!t.IsAnyWord())
                     {
                         WrongFormatException.InvalidToken(t);
                     }
@@ -777,7 +777,7 @@ public static class LessonParsingHelper
                     var groupName = lexer.ConcatWithSpaceReplacement(new()
                     {
                         StringBuilder = sb,
-                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.Number],
+                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.ShortWord, LessonTokenType.Number],
                         WhitespaceReplacer = " ",
                     });
                     Debug.Assert(!groupName.IsEmpty);
@@ -912,7 +912,12 @@ public static class LessonParsingHelper
                         return null;
                     }
                     var endPos = lexer.Position;
-                    if (!lexer.TryConsumeAny(":."))
+                    if (lexer.TryConsume(':'))
+                    {
+                        lexer.TryConsume(TokenType.Whitespace);
+                        return endPos;
+                    }
+                    if (!lexer.TryConsume('.'))
                     {
                         return null;
                     }

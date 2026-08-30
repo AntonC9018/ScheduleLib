@@ -128,13 +128,8 @@ public sealed class DocParseContext
             {
                 return false;
             }
-            var specialGroups = SpecialSubGroups.AllSpecial;
-            foreach (var group in specialGroups)
+            if (SpecialSubGroups.TryFromNamePrefix(lesson.GroupName.Span, out var group))
             {
-                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group.Value!, lesson.GroupName.Span))
-                {
-                    continue;
-                }
                 if (lesson.SubGroup.Value is not null)
                 {
                     throw new NotImplementedException("Multiple subgroups as a single group");

@@ -694,6 +694,28 @@ public static class SpecialSubGroups
     public static SubGroup AG => new("AG");
     public static SubGroup Logica => new("Logica");
     public static SubGroup AlgoGraf => new("Algoritmica Grafurilor");
+
+    public static bool TryFromNamePrefix(ReadOnlySpan<char> value, out SubGroup subGroup)
+    {
+        value = value.Trim();
+        if (value.EndsWith('.'))
+        {
+            value = value[..^1];
+        }
+
+        foreach (var candidate in AllSpecial)
+        {
+            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(candidate.Value!, value))
+            {
+                subGroup = candidate;
+                return true;
+            }
+        }
+
+        subGroup = default;
+        return false;
+    }
+
     public static SubGroup FromLanguage(Language lang)
     {
         return lang switch

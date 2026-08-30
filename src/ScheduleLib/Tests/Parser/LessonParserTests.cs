@@ -252,6 +252,34 @@ public sealed class LessonParserTests
             });
     }
 
+    [Fact]
+    public void SubGroupListWithoutWhitespaceAfterColon()
+    {
+        var lessons = ParseLessons([
+            "HTML(lab)",
+            "I:B.Vișnevschi  218/4a",
+            "II:V.Vișnevschi  219/4a",
+        ]);
+
+        Assert.Collection(lessons,
+            first =>
+            {
+                Assert.Equal("HTML", first.LessonName.Span);
+                Assert.Equal(LessonType.Lab, first.LessonType);
+                Assert.Equal("I", first.SubGroup.Value);
+                AssertEqualName("B. Vișnevschi", Assert.Single(first.TeacherNames));
+                Assert.Equal("218/4a", first.RoomName.Span);
+            },
+            second =>
+            {
+                Assert.Equal("HTML", second.LessonName.Span);
+                Assert.Equal(LessonType.Lab, second.LessonType);
+                Assert.Equal("II", second.SubGroup.Value);
+                AssertEqualName("V. Vișnevschi", Assert.Single(second.TeacherNames));
+                Assert.Equal("219/4a", second.RoomName.Span);
+            });
+    }
+
     [Fact()]
     public void NoLessonModifiers_MultipleDefaultModifiers()
     {
@@ -1002,6 +1030,34 @@ public sealed class LessonParserTests
         Assert.Equal(Parity.OddWeek, lesson.Parity);
         Assert.Equal("IA2303", lesson.GroupName.Span);
 
+    }
+
+    [Fact]
+    public void ShortenedGroupNameAsModifier()
+    {
+        var lessons = ParseLessons([
+            "8:00  L. str. (încep.)",
+            "G.Ciudin   222/4",
+            "15:00 Limba straina",
+            "O.Bașirov   419/4",
+        ]);
+
+        Assert.Collection(lessons,
+            first =>
+            {
+                Assert.Equal(new TimeOnly(8, 0), first.StartTime);
+                Assert.Equal("încep.", first.GroupName.Span);
+                Assert.True(SpecialSubGroups.TryFromNamePrefix(first.GroupName.Span, out var subGroup));
+                Assert.Equal(SpecialSubGroups.Beginners, subGroup);
+                AssertEqualName("G. Ciudin", Assert.Single(first.TeacherNames));
+                Assert.Equal("222/4", first.RoomName.Span);
+            },
+            second =>
+            {
+                Assert.Equal(new TimeOnly(15, 0), second.StartTime);
+                AssertEqualName("O. Bașirov", Assert.Single(second.TeacherNames));
+                Assert.Equal("419/4", second.RoomName.Span);
+            });
     }
 
     [Fact]
