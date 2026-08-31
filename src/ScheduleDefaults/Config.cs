@@ -153,7 +153,7 @@ public static class Config
         }
     }
 
-    // TODO: read from image??
+    // Source: https://usm.md/?page_id=731
     public static CurrentYearSemesterIntervalProvider SemesterIntervalProvider()
     {
         var s = new CurrentYearSemesterIntervalBuilder();
@@ -163,10 +163,10 @@ public static class Config
             x.QualificationType(QualificationType.Licenta);
 
             {
-                x.Year(2025);
+                x.Year(2026);
                 x.Semester(Semester.Sem1);
                 x.LessonsStart(month: 9, day: 1);
-                x.LessonsEndInclusive(month: 12, day: 14);
+                x.LessonsEndInclusive(month: 12, day: 13);
                 for (int i = 1; i <= 3; i++)
                 {
                     var r = x.Range();
@@ -174,25 +174,25 @@ public static class Config
                 }
             }
             {
-                x.Year(2026);
+                x.Year(2027);
                 x.Semester(Semester.Sem2);
 
-                x.LessonsStart(month: 2, day: 2);
+                x.LessonsStart(month: 2, day: 1);
                 x.Range(r =>
                 {
-                    r.LessonsEndInclusive(month: 5, day: 10);
+                    r.LessonsEndInclusive(month: 5, day: 1);
                     r.Grade(new(2));
                 });
                 x.Range(r =>
                 {
-                    r.LessonsEndInclusive(month: 5, day: 24);
+                    r.LessonsEndInclusive(month: 5, day: 1);
                     r.Grade(new(1));
                 });
 
                 x.Range(r =>
                 {
                     r.Grade(new(3));
-                    r.LessonsStart(month: 2, day: 23);
+                    r.LessonsStart(month: 2, day: 22);
                     r.LessonsEndInclusive(month: 4, day: 11);
                 });
             }
@@ -203,9 +203,10 @@ public static class Config
             x.AttendanceMode(AttendanceMode.FrecventaRedusa);
             x.QualificationType(QualificationType.Licenta);
 
-            // TODO: The semester data on the site is a lie. It doesn't follow this model at all.
-            x.LessonsStart(new DateOnly(year: 2025, month: 9, day: 1));
-            x.LessonsEndInclusive(new DateOnly(year: 2026, month: 8, day: 31));
+            // Reduced-attendance calendars have several short teaching blocks and do not fit
+            // this single-range model. Keep the academic-year envelope until the model supports them.
+            x.LessonsStart(new DateOnly(year: 2026, month: 9, day: 1));
+            x.LessonsEndInclusive(new DateOnly(year: 2027, month: 8, day: 31));
 
             foreach (var sem in new EnumMembers<Semester>())
             {
@@ -224,30 +225,17 @@ public static class Config
     {
         get
         {
-            static StudyWeek Week(int month, int day, bool isOddWeek) =>
-                new(monday: new(2026, month, day), isOddWeek: isOddWeek);
+            static IEnumerable<StudyWeek> Weeks(DateOnly firstMonday, int count, bool firstIsOdd) =>
+                Enumerable.Range(0, count)
+                    .Select(i => new StudyWeek(
+                        monday: firstMonday.AddDays(i * 7),
+                        isOddWeek: i % 2 == 0 ? firstIsOdd : !firstIsOdd));
 
-            StudyWeek[] studyWeeks =
+            return
             [
-                Week(month: 2, day: 2,  isOddWeek: false),
-                Week(month: 2, day: 9,  isOddWeek: true),
-                Week(month: 2, day: 16, isOddWeek: false),
-                Week(month: 2, day: 23, isOddWeek: true),
-                Week(month: 3, day: 2,  isOddWeek: false),
-                Week(month: 3, day: 9,  isOddWeek: true),
-                Week(month: 3, day: 16, isOddWeek: false),
-                Week(month: 3, day: 23, isOddWeek: true),
-                Week(month: 3, day: 30, isOddWeek: false),
-                Week(month: 4, day: 6,  isOddWeek: true),
-                Week(month: 4, day: 13, isOddWeek: false),
-                Week(month: 4, day: 20, isOddWeek: true),
-                Week(month: 4, day: 27, isOddWeek: false),
-                Week(month: 5, day: 4,  isOddWeek: true),
-                Week(month: 5, day: 11, isOddWeek: false),
-                Week(month: 5, day: 18, isOddWeek: true),
+                .. Weeks(new(2026, 8, 31), count: 15, firstIsOdd: true),
+                .. Weeks(new(2027, 2, 1), count: 13, firstIsOdd: false),
             ];
-
-            return studyWeeks;
         }
     }
 
@@ -256,13 +244,11 @@ public static class Config
         get
         {
             HolidayPeriod[] holidayPeriods;
-            // TODO: Get this from "calendar academic"
             holidayPeriods = [
-                new(new(2025, month: 10, day: 14)),
-                new(new(2026, month: 1, day: 1), new(2026, month: 1, day: 26)),
-                new(new(2026, month: 4, day: 12), new(2026, month: 4, day: 21)),
-                new(new(2026, month: 5, day: 1)),
-                new(new(2026, month: 5, day: 9)),
+                new(new(2026, month: 10, day: 14)),
+                new(new(2027, month: 1, day: 1), new(2027, month: 1, day: 25)),
+                new(new(2027, month: 5, day: 1)),
+                new(new(2027, month: 5, day: 2), new(2027, month: 5, day: 11)),
             ];
             return holidayPeriods;
         }
