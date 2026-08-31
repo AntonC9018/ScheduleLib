@@ -16,7 +16,7 @@ var appExecutionContext = new AppTasksExecutionContext
     SelectedOptions = [
         AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
-        AppTask.PerGroupAndPerTeacherPdfs,
+        // AppTask.PerGroupAndPerTeacherPdfs,
         // AppTask.FreeRooms,
         // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,

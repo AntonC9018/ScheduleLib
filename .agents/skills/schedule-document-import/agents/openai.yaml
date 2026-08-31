@@ -1,0 +1,4 @@
+interface:
+  display_name: "Schedule document import"
+  short_description: "Import, repair, generate, check, and upload schedules"
+  default_prompt: "Use $schedule-document-import to import and publish new schedule documents."

@@ -81,6 +81,8 @@ public static class Config
     {
         var teach = remap.TeacherLastNameRemappings;
         teach.Add("Curmanschi", "Curmanschii");
+        teach.Add("Curmanscii", "Curmanschii");
+        teach.Add("Curmansci", "Curmanschii");
         teach.Add("Vișnevschi", "Vișnevschii");
         teach.Add("Băț", "Beț");
         teach.Add("Spincean", "Sprîncean");
