@@ -4,7 +4,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="1.2.0" />
+        <PackageReference Include="AngleSharp" Version="1.7.2" />
         <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
 
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftPackagesVersion)" />
