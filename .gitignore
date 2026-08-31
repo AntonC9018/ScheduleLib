@@ -1,6 +1,7 @@
 *.user*
 bin
 obj
+/tmp/
 *.received*
 ~$*
 .idea/*/.idea/copilot.*
