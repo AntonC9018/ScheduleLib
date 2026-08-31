@@ -1060,6 +1060,37 @@ public sealed class LessonParserTests
             });
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    [InlineData("r")]
+    [InlineData("r.")]
+    [InlineData("a")]
+    [InlineData("a.")]
+    public void SpecialSubGroupPrefixRequiresAtLeastTwoCharacters(string value)
+    {
+        Assert.False(SpecialSubGroups.TryFromNamePrefix(value, out _));
+    }
+
+    [Fact]
+    public void SpecialSubGroupPrefixAcceptsTwoCharactersAndLongerAbbreviations()
+    {
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ro", out var ro));
+        Assert.Equal(SpecialSubGroups.Ro, ro);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ru", out var ru));
+        Assert.Equal(SpecialSubGroups.Ru, ru);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("AG", out var ag));
+        Assert.Equal(SpecialSubGroups.AG, ag);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("în", out var beginners));
+        Assert.Equal(SpecialSubGroups.Beginners, beginners);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("încep.", out beginners));
+        Assert.Equal(SpecialSubGroups.Beginners, beginners);
+    }
+
     [Fact]
     public void DotInTimeAllowed()
     {

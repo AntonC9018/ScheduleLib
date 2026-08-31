@@ -703,6 +703,13 @@ public static class SpecialSubGroups
             value = value[..^1];
         }
 
+        const int minimumPrefixLength = 2;
+        if (value.Length < minimumPrefixLength)
+        {
+            subGroup = default;
+            return false;
+        }
+
         foreach (var candidate in AllSpecial)
         {
             if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(candidate.Value!, value))
