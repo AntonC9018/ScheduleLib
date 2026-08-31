@@ -233,8 +233,8 @@ public static class Config
 
             return
             [
-                .. Weeks(new(2026, 8, 31), count: 15, firstIsOdd: true),
-                .. Weeks(new(2027, 2, 1), count: 13, firstIsOdd: false),
+                .. Weeks(new(2026, 8, 31), count: 15, firstIsOdd: false),
+                .. Weeks(new(2027, 2, 1), count: 13, firstIsOdd: true),
             ];
         }
     }
