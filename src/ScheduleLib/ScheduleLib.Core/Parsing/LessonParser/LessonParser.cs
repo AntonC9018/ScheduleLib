@@ -615,7 +615,9 @@ public static class LessonParsingHelper
                     {
                         c.StateStack.Push();
                         if (TryParsingUntilOutputOrTerminalState(c)
-                            && !c.State.LastModifiers.Specific.LastTeacher.IsNull)
+                            && (!c.State.LastModifiers.Specific.RoomName.IsEmpty
+                                || (c.State.LastModifiers.Specific.TeacherNames.Count != 0
+                                    && !c.State.LastModifiers.Specific.LastTeacher.IsNull)))
                         {
                             c.StateStack.Pop(apply: true);
                             return true;
@@ -1260,7 +1262,7 @@ public static class LessonParsingHelper
                     AppendCurrentWord();
                     return true;
                 }
-                if (t.Is('/'))
+                if (t.Is('/') || t.Is(':'))
                 {
                     AppendCurrentWord();
                     return true;
