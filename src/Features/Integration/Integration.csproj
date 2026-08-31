@@ -43,7 +43,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="2.0.0" />
         <PackageReference Include="OpenXmlPowerTools.Core" Version="1.0.0" />
         <PackageReference Include="System.Linq.Async" Version="6.0.1" />
         <PackageReference Include="SpreadCheetah" Version="1.22.0" />
