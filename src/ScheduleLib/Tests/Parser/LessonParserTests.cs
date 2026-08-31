@@ -183,6 +183,32 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public void ColonAllowedInCourseName()
+    {
+        var lesson = Assert.Single(ParseLessons([
+            "Disciplină umanistică opțională: Antreprenoriat inovativ (curs), I. Dobrovolschi 528/3",
+        ]));
+
+        Assert.Equal("Disciplină umanistică opțională: Antreprenoriat inovativ", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Curs, lesson.LessonType);
+        AssertEqualName("I. Dobrovolschi", Assert.Single(lesson.TeacherNames));
+        Assert.Equal("528/3", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void CourseWithRoomButNoTeacherDoesNotReadLastTeacher()
+    {
+        var lesson = Assert.Single(ParseLessons([
+            "Disciplină umanistică opțională: Psihologie (curs), 113/4",
+        ]));
+
+        Assert.Equal("Disciplină umanistică opțională: Psihologie", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Curs, lesson.LessonType);
+        Assert.Empty(lesson.TeacherNames);
+        Assert.Equal("113/4", lesson.RoomName.Span);
+    }
+
+    [Fact]
     public void TimeSlotThatLooksLikeGroupIsParseProperly()
     {
         var lessons = ParseLessons([
