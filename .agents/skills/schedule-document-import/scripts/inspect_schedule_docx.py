@@ -19,6 +19,10 @@ CHECKS = (
     ("repeated room suffix", re.compile(r"\b\d+[A-Za-z]?/\d+(?:/\d+)+\b")),
     ("underscore placeholder", re.compile(r"_{3,}")),
     (
+        "group-shaped subgroup label",
+        re.compile(r"\b[A-ZĂÂÎȘȚ]+(?:-[A-ZĂÂÎȘȚ]+)?\d{4}\s*:", re.UNICODE),
+    ),
+    (
         "compact compound modifiers",
         re.compile(r"\((?:lab|curs|sem),\S[^,()]*-[^,()]+,\S[^,()]*-[^,()]+\)", re.IGNORECASE),
     ),

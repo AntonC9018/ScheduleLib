@@ -40,7 +40,7 @@ python .agents/skills/schedule-document-import/scripts/inspect_schedule_docx.py 
   "src/Features/Integration/data/<year>_sem<semester>/zi/<dd.MM.yy>/<file>.docx"
 ```
 
-Add `--dump` to print all table-cell text. The script flags letter-spaced titles, duplicate closing parentheses, repeated room suffixes, underscore placeholders, and compact compound modifiers.
+Add `--dump` to print all table-cell text. The script flags letter-spaced titles, duplicate closing parentheses, repeated room suffixes, underscore placeholders, group-shaped subgroup labels, and compact compound modifiers.
 
 Apply obvious repairs with a task-specific script under `tmp/`. Use exact source strings and assert expected occurrence counts before saving. Prefer a narrow paragraph or run edit over a global replacement. Preserve formatting and unrelated cells. Run the inspector again afterward.
 
