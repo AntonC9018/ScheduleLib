@@ -604,9 +604,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 b.Append(group.Name);
 
                 if (appendSubgroup
-                    && lesson.Lesson.SubGroup != SubGroup.All)
+                    && lesson.Lesson.GroupSplitKey.ToDisplayString("-") is { } splitDisplay)
                 {
-                    b.StringBuilder.Append($"-{lesson.Lesson.SubGroup.Value}");
+                    b.StringBuilder.Append('-');
+                    b.StringBuilder.Append(splitDisplay);
                 }
             }
             string GetParityName(WeeklyLessonRef l)

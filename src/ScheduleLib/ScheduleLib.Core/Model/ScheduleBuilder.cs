@@ -108,6 +108,9 @@ public static partial class ScheduleBuilderHelper
             ValidateSubGroup(lesson.Base.Group.SubGroup);
         }
 
+        s.CheckNumericSubGroupsAreContiguous();
+        s.CheckLanguageSubGroupCount();
+
         static void ValidateSubGroup(SubGroup subGroup)
         {
             if (subGroup == SubGroup.All

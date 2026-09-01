@@ -48,11 +48,11 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             var lessonsBySubgroup = schedule
                 .EnumerateLessons()
                 .Where(x => x.Lesson.Group == group)
-                .GroupBy(x => (x.Lesson.SubGroup, x.Lesson.Course))
+                .GroupBy(x => (x.Lesson.GroupSplitKey, x.Lesson.Course))
                 .ToArray();
 
             if (lessonsBySubgroup.Length > 1
-                && lessonsBySubgroup.Any(x => x.Key.SubGroup == SubGroup.All))
+                && lessonsBySubgroup.Any(x => x.Key.Item1 == GroupSplitKey.All))
             {
                 throw new NotImplementedException("Shared labs not implemented");
             }
@@ -102,9 +102,9 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                         var shortName = s.Get(key.Course).Names[^1];
                         var groupName = s.Get(group).Name;
                         sb.Append($"{shortName} - {groupName}");
-                        if (key.SubGroup != SubGroup.All)
+                        if (key.Item1.ToDisplayString() is { } splitDisplay)
                         {
-                            sb.Append($"({key.SubGroup.Value})");
+                            sb.Append($"({splitDisplay})");
                         }
                         if (option != default)
                         {

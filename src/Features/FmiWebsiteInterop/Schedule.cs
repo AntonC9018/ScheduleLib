@@ -246,15 +246,11 @@ public static class WebsiteJsonScheduleHelper
             listBuilder.Append(groupSb.ToString());
         }
 
-        // Subgroup - only if all lessons share the same subgroup
-        var distinctSubGroups = lessons.Select(l => l.Lesson.SubGroup).Distinct().ToList();
-        if (distinctSubGroups.Count == 1 && distinctSubGroups[0] != SubGroup.All)
+        // Split - only if all lessons share the same subgroup and specialization
+        var distinctSplits = lessons.Select(l => l.Lesson.GroupSplitKey).Distinct().ToList();
+        if (distinctSplits.Count == 1 && distinctSplits[0].ToDisplayString() is { } splitDisplay)
         {
-            var subGroupNumber = services.SubGroupNumberDisplay.Get(distinctSubGroups[0]);
-            if (subGroupNumber != null)
-            {
-                listBuilder.Append($"s.{subGroupNumber}");
-            }
+            listBuilder.Append($"s.{splitDisplay}");
         }
 
         // Room

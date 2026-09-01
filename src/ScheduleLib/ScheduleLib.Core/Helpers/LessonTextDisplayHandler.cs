@@ -73,10 +73,25 @@ public sealed partial class LessonTextDisplayHandler
         var sb = p.CleanStringBuilder;
         if (_config.PrintsSubGroup)
         {
-            var subGroupNumber = _services.SubGroupNumberDisplay.Get(p.Lesson.Lesson.SubGroup);
-            if (subGroupNumber is { } s1)
+            // Specialization first, then the subgroup: "GA2D, I: ".
+            var lesson = p.Lesson.Lesson;
+            var specialization = lesson.Specialization.Value;
+            var subGroupNumber = _services.SubGroupNumberDisplay.Get(lesson.SubGroup);
+            if (specialization is { } s1)
             {
                 sb.Append(s1);
+            }
+            if (subGroupNumber is { } s2)
+            {
+                if (specialization is not null)
+                {
+                    sb.Append(", ");
+                }
+                sb.Append(s2);
+            }
+            if (specialization is not null
+                || subGroupNumber is not null)
+            {
                 sb.Append(": ");
             }
         }

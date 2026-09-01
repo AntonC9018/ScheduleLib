@@ -16,6 +16,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
     private readonly LessonTimeConfig _lessonTimeConfig;
     private readonly TimeSlotDisplayHandler _timeSlotDisplay;
     private readonly DayNameProvider _dayNameProvider;
+    private readonly SpecializationRegistry _specializationRegistry;
     private readonly Schedule _schedule;
 
     public readonly struct RunParams
@@ -36,40 +37,55 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 {
                 });
 
-            var subGroupsMap = _schedule.SubGroupsByGroup();
+            var splitInfoByGroup = _schedule.GetGroupSplitInfo(_specializationRegistry);
 
             foreach (var g in _schedule.EnumerateGroups())
             {
-                foreach (var subgroup in subGroupsMap[g.Id])
+                var groupFilter = new GroupFilter
                 {
-                    var t = Task.Run(() =>
+                    OneOfGroupIds = [g.Id],
+                };
+                GenerateGroupPdf(g, $"{g.Item.Name}.pdf", groupFilter);
+
+                foreach (var combination in splitInfoByGroup[g.Id].Combinations)
+                {
+                    var sb = new StringBuilder();
+                    sb.Append(g.Item.Name);
+                    sb.Append('_');
+                    combination.AppendFileNamePart(new ListStringBuilder(sb, "-"));
+                    sb.Append(".pdf");
+                    var fileName = sb.ToStringAndClear();
+
+                    var selectedSubGroups = new List<SubGroup>
                     {
-                        var groupName = g.Item.Name;
-                        var sb = new StringBuilder();
-                        sb.Append(groupName);
-                        if (subgroup != SubGroup.All)
-                        {
-                            sb.Append($"_{subgroup.Value}");
-                        }
-                        sb.Append(".pdf");
-                        var fileName = sb.ToString();
+                        SubGroup.All,
+                    };
+                    selectedSubGroups.AddRange(combination.SelectedSubGroups());
 
-                        var groupFilter = new GroupFilter
-                        {
-                            OneOfGroupIds = [g.Id],
-                        };
-                        if (subgroup != SubGroup.All)
-                        {
-                            groupFilter.SubGroups = [subgroup, SubGroup.All];
-                        }
-
-                        GenerateWithFilter(fileName, textDisplayHandler, new()
-                        {
-                            GroupFilter = groupFilter,
-                        });
-                    });
-                    tasks.Add(t);
+                    var combinationFilter = new GroupFilter
+                    {
+                        OneOfGroupIds = [g.Id],
+                        SubGroups = [.. selectedSubGroups],
+                        Specializations = combination.Specialization is { } spec
+                            ? [spec]
+                            : [],
+                    };
+                    GenerateGroupPdf(g, fileName, combinationFilter);
                 }
+            }
+
+            void GenerateGroupPdf(
+                Accessor<Group, GroupId> g,
+                string fileName,
+                GroupFilter groupFilter)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    GenerateWithFilter(fileName, textDisplayHandler, new()
+                    {
+                        GroupFilter = groupFilter,
+                    });
+                }));
             }
         }
 

@@ -105,41 +105,67 @@ public sealed class DocParseContext
         builder.Type(parsedLesson.LessonType);
         builder.Period(CurrentPeriodId);
 
-        if (HandleSpecialSubGroup(parsedLesson, builder))
-        {
-            if (parsedLesson.SubGroup != SubGroup.All)
-            {
-                throw new InvalidOperationException("SubGroup specified twice?");
-            }
-            return SubGroupStatus.GroupNameIsSubGroup;
-        }
-        else
-        {
-            builder.SubGroup(parsedLesson.SubGroup);
-            return SubGroupStatus.SetFromSubGroup;
-        }
+        // Classify the raw labels now that the lesson's groups are known.
+        // At most one subgroup and one specialization may be assigned to a lesson.
+        SubGroup? subGroup = null;
+        Specialization? specialization = null;
+        bool groupNameIsLabel = false;
 
-        // Check for special case when it's a subgroup.
-        static bool HandleSpecialSubGroup(
-            in ParsedLesson lesson,
-            ILessonBuilder<ILessonBuilderModel> builder)
+        if (!parsedLesson.GroupName.IsEmpty)
         {
-            if (lesson.GroupName.IsEmpty)
+            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.GroupName.Span);
+            if (SpecialSubGroups.TryFromNamePrefix(parsedLesson.GroupName.Span, out var group))
             {
-                return false;
-            }
-            if (SpecialSubGroups.TryFromNamePrefix(lesson.GroupName.Span, out var group))
-            {
-                if (lesson.SubGroup.Value is not null)
+                groupNameIsLabel = true;
+                var remapped = Schedule.RemapSubGroup(group);
+                if (Specializations.TryFromValue(remapped.Value, out var spec))
                 {
-                    throw new NotImplementedException("Multiple subgroups as a single group");
+                    specialization = spec;
                 }
-                builder.SubGroup(group);
-                return true;
+                else
+                {
+                    subGroup = group;
+                }
             }
-            return false;
         }
 
+        if (!parsedLesson.SubGroup.IsEmpty)
+        {
+            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.SubGroup.Span);
+            var remapped = Schedule.RemapSubGroup(new(parsedLesson.SubGroup.ToString()));
+            if (Specializations.TryFromValue(remapped.Value, out var spec))
+            {
+                if (specialization is { } prevSpec)
+                {
+                    throw new InvalidOperationException(
+                        $"A lesson may not have two specializations: '{prevSpec.Value}' and '{spec.Value}'.");
+                }
+                specialization = spec;
+            }
+            else
+            {
+                var label = new SubGroup(parsedLesson.SubGroup.ToString());
+                if (subGroup is { } prevSub)
+                {
+                    throw new InvalidOperationException(
+                        $"A lesson may not have two subgroups: '{prevSub.Value}' and '{label.Value}'.");
+                }
+                subGroup = label;
+            }
+        }
+
+        if (subGroup is { } s)
+        {
+            builder.SubGroup(s);
+        }
+        if (specialization is { } sp)
+        {
+            builder.Specialization(sp);
+        }
+
+        return groupNameIsLabel
+            ? SubGroupStatus.GroupNameIsSubGroup
+            : SubGroupStatus.SetFromSubGroup;
     }
 
     public CourseId GetOrAddCourse(ReadOnlyMemory<char> name)
