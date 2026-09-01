@@ -49,6 +49,8 @@ public static partial class ScheduleBuilderHelper
     {
         s.Validate();
         s.Preprocess();
+        s.ClassifySubGroups();
+        s.NormalizeLanguageProficiency();
         s.SanityChecks();
         var ret = builder(s);
         return ret;
@@ -130,6 +132,7 @@ public static partial class ScheduleBuilderHelper
                 {
                     Groups = x.Group.Groups.Ordered(),
                     SubGroup = x.Group.SubGroup,
+                    Specialization = x.Group.Specialization,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
                     Teachers = [.. x.General.Teachers],

@@ -17,7 +17,7 @@ public class VerifyScheduleTestsCollection : ICollectionFixture<object>;
 [Collection("common1")]
 public sealed class ScheduleFromDocTestExclusive1
 {
-    [Theory(Skip = "Fix configure remappings")]
+    [Theory]
     [EnumMembersData<TestOption>]
     public async Task IntegrationTestWord(TestOption option)
     {
@@ -29,7 +29,7 @@ public sealed class ScheduleFromDocTestExclusive1
             .UseFileName(VerifyScheduleSnapshotName(option));
     }
 
-    [Theory(Skip = "Fix configure remappings")]
+    [Theory]
     [EnumMembersData<TestOption>]
     public async Task JsonAndWordModelsAreEquivalent(TestOption option)
     {
@@ -41,6 +41,20 @@ public sealed class ScheduleFromDocTestExclusive1
         await verify
             .DisableRequireUniquePrefix()
             .UseFileName(VerifyScheduleSnapshotName(option));
+    }
+
+    // Utility for regenerating the committed schedule json caches. Remove the Skip, run,
+    // then restore the Skip and commit the updated files.
+    [Theory(Skip = "Regenerates the committed schedule json caches on run")]
+    [EnumMembersData<TestOption>]
+    public async Task RegenerateScheduleJsonCache(TestOption option)
+    {
+        using var helper = await Create(option);
+        var schedule = helper.GetScheduleFromSourceOfTruth();
+        await using var outputFile = new FileStream(
+            ScheduleSnapshotJsonPath(option),
+            FileMode.Create);
+        await ScheduleSerializer.Serialize(schedule, outputFile, "", helper.CancellationToken);
     }
 }
 
