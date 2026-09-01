@@ -30,6 +30,7 @@ public struct PeriodFilter()
 public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
+    public Specialization[]? Specializations = null;
     public GroupId[]? OneOfGroupIds = null;
     public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.Empty;
 }
@@ -211,6 +212,10 @@ public static class FilterHelper
 
         IEnumerable<AnyLessonId> GetRegularLessons(ScheduleFilter filter)
         {
+            // Observed specializations per group, computed lazily: the singleton rule
+            // needs them to decide whether a lesson's specialization behaves as shared.
+            Dictionary<GroupId, int>? specializationCounts = null;
+
             foreach (var l in schedule.EnumerateAllLessons())
             {
                 // TODO: Can be optimized because these are in different arrays
@@ -228,6 +233,10 @@ public static class FilterHelper
                     continue;
                 }
                 if (!PassesSubGroupFilter())
+                {
+                    continue;
+                }
+                if (!PassesSpecializationFilter())
                 {
                     continue;
                 }
@@ -314,6 +323,74 @@ public static class FilterHelper
                         }
                     }
                     return false;
+                }
+
+                bool PassesSpecializationFilter()
+                {
+                    if (filter.GroupFilter.Specializations is not { } specializations)
+                    {
+                        return true;
+                    }
+                    if (l.Lesson.Specialization == Specialization.All)
+                    {
+                        return true;
+                    }
+
+                    // The effective specialization depends on the group being filtered:
+                    // a group with fewer than two observed specializations treats every
+                    // specialization annotation as shared.
+                    var groupId = GoverningGroup();
+                    if (groupId.IsInvalid)
+                    {
+                        return true;
+                    }
+                    specializationCounts ??= CountObservedSpecializations(schedule);
+                    if (!specializationCounts.TryGetValue(groupId, out var count)
+                        || count < 2)
+                    {
+                        return true;
+                    }
+                    foreach (var specialization in specializations)
+                    {
+                        if (specialization == l.Lesson.Specialization)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+
+                    GroupId GoverningGroup()
+                    {
+                        if (filter.GroupFilter.OneOfGroupIds is { } groupIds
+                            && groupIds.Length == 1)
+                        {
+                            return groupIds[0];
+                        }
+                        return l.Lesson.Group;
+                    }
+                }
+
+                static Dictionary<GroupId, int> CountObservedSpecializations(Schedule schedule)
+                {
+                    var sets = new Dictionary<GroupId, HashSet<Specialization>>();
+                    foreach (var l1 in schedule.EnumerateAllLessons())
+                    {
+                        ref readonly var lesson = ref l1.Lesson;
+                        if (lesson.Specialization == Specialization.All)
+                        {
+                            continue;
+                        }
+                        foreach (var groupId in lesson.Groups)
+                        {
+                            if (!sets.TryGetValue(groupId, out var set))
+                            {
+                                set = [];
+                                sets[groupId] = set;
+                            }
+                            set.Add(lesson.Specialization);
+                        }
+                    }
+                    return sets.ToDictionary(x => x.Key, x => x.Value.Count);
                 }
 
                 bool PassesGroupFilter()

@@ -149,15 +149,15 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 file sealed class LessonToColorConverter()
 {
     private GoogleCalendarColorId _nextColor;
-    private Dictionary<(LessonGroups, SubGroup, CourseId), GoogleCalendarColorId> lessonToColorMap = new();
+    private Dictionary<(LessonGroups, GroupSplitKey, CourseId), GoogleCalendarColorId> lessonToColorMap = new();
 
     public GoogleCalendarColorId GetColorId(AnyLessonAccessor lesson)
     {
         ref readonly var l = ref lesson.Lesson;
         var course = l.Course;
         var groups = l.Groups;
-        var subGroup = l.SubGroup;
-        var key = (groups, subGroup, course);
+        var splitKey = l.GroupSplitKey;
+        var key = (groups, splitKey, course);
 
         lock (this)
         {

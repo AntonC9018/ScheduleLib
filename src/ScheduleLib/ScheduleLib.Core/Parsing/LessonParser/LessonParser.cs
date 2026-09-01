@@ -120,7 +120,13 @@ public struct ParsedLesson()
     public TimeOnly? StartTime = null;
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
-    public SubGroup SubGroup = SubGroup.All;
+
+    /// <summary>
+    /// The raw, unclassified subgroup-like label from the source.
+    /// Empty means no label. The schedule-aware parser classifies it
+    /// into a subgroup or a specialization once the groups are known.
+    /// </summary>
+    public ReadOnlyMemory<char> SubGroup;
 }
 
 internal struct ParsingStateStack
@@ -165,6 +171,49 @@ internal struct ParsingStateStack
 public static class LessonParsingHelper
 {
     public static Lexer CreateLexer() => new(LessonTokenReader.Instance);
+
+    /// <summary>
+    /// The derived non-beginner value only exists in normalized model data.
+    /// A source document may not write it.
+    /// </summary>
+    public static void RejectExplicitNonBeginners(ReadOnlySpan<char> label)
+    {
+        if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
+                label,
+                SpecialSubGroups.NonBeginners.Value.AsSpan()))
+        {
+            throw new WrongFormatException(
+                "The non-beginner subgroup is derived during schedule normalization and may not be written in the source.");
+        }
+    }
+
+    /// <summary>
+    /// Narrow exact support for the legacy dashed labels, whose hyphen the normal
+    /// modifier syntax would treat as a separator. See <see cref="SpecialSubGroups.Legacy"/>.
+    /// </summary>
+    public static bool TryGetExactDashedLegacySubGroup(
+        ReadOnlySpan<char> word,
+        ReadOnlySpan<char> number,
+        out SubGroup subGroup)
+    {
+        foreach (var candidate in SpecialSubGroups.Legacy)
+        {
+            var value = candidate.Value!;
+            int dash = value.IndexOf('-');
+            if (dash == -1)
+            {
+                continue;
+            }
+            if (word.Equals(value.AsSpan(..dash), StringComparison.Ordinal)
+                && number.Equals(value.AsSpan((dash + 1)..), StringComparison.Ordinal))
+            {
+                subGroup = candidate;
+                return true;
+            }
+        }
+        subGroup = default;
+        return false;
+    }
 
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
@@ -347,7 +396,7 @@ public static class LessonParsingHelper
                     StartTime = state.CommonLesson.StartTime,
                     LessonType = v.General.LessonType,
                     Parity = v.General.Parity,
-                    SubGroup = subGroup,
+                    SubGroup = subGroup.Value.AsMemory(),
                     GroupName = v.General.GroupName,
                     TeacherNames = l,
                     RoomName = v.Specific.RoomName,
@@ -669,7 +718,22 @@ public static class LessonParsingHelper
                             };
                         }
 
+                        // Narrow exact support for legacy dashed labels, which the
+                        // word-number split would otherwise leave partially unconsumed.
+                        if (!lexer.IsEmpty
+                            && lexer.Current.Type == LessonTokenType.Number
+                            && LessonParsingHelper.TryGetExactDashedLegacySubGroup(
+                                token.Value.Span, lexer.Current.Value.Span, out var dashed))
+                        {
+                            lexer.Move();
+                            return new()
+                            {
+                                SubGroup = dashed,
+                            };
+                        }
+
                         var subGroup = new SubGroup(token.Value.Span.ToString());
+                        LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
                         return new()
                         {
                             SubGroup = subGroup,
@@ -837,6 +901,7 @@ public static class LessonParsingHelper
                 var subGroupStr = subgroupStartLexer
                     .Until(subGroupEndPos)
                     .Concat(sb);
+                LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
                 var subgroup = new SubGroup(subGroupStr.ToString());
                 c.State.SetDefaultModifier(subgroup);
 
@@ -859,6 +924,10 @@ public static class LessonParsingHelper
                     {
                         return null;
                     }
+                    if (ConsumeDashedLegacy(ref lexer) is { } dpos)
+                    {
+                        return dpos;
+                    }
                     if (ConsumeS(ref lexer) is { } spos)
                     {
                         return spos;
@@ -868,6 +937,36 @@ public static class LessonParsingHelper
                         return cpos;
                     }
                     return null;
+
+                    // Format UI-1, UI-2: the narrow configured dashed legacy labels,
+                    // whose hyphen is otherwise treated as a separator.
+                    static LexerPosition? ConsumeDashedLegacy(ref LexerScope lexer)
+                    {
+                        var word = lexer.Current.Value;
+                        var lexerCopy = lexer;
+                        lexerCopy.Move();
+                        if (lexerCopy.IsEmpty
+                            || !lexerCopy.Current.Is('-'))
+                        {
+                            return null;
+                        }
+                        lexerCopy.Move();
+                        if (lexerCopy.IsEmpty
+                            || lexerCopy.Current.Type != LessonTokenType.Number)
+                        {
+                            return null;
+                        }
+                        if (!LessonParsingHelper.TryGetExactDashedLegacySubGroup(
+                                word.Span,
+                                lexerCopy.Current.Value.Span,
+                                out _))
+                        {
+                            return null;
+                        }
+                        lexerCopy.Move();
+                        lexer.MoveTo(lexerCopy.Position);
+                        return lexer.Position;
+                    }
 
                     // Format S{Number}{OptionalNumber}
                     LexerPosition? ConsumeS(ref LexerScope lexer)

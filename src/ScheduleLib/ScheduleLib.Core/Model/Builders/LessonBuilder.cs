@@ -301,6 +301,10 @@ public static class LessonBuilderHelper
         {
             b.Model.Base.Group.SubGroup = subGroup;
         }
+        public void Specialization(Specialization specialization)
+        {
+            b.Model.Base.Group.Specialization = specialization;
+        }
         public void Group(GroupId group, SubGroup? subGroup = null)
         {
             b.Model.Base.Group.Groups = [group];
@@ -659,7 +663,8 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.Group.SubGroup != b.Group.SubGroup)
+            if (a.Group.SubGroup != b.Group.SubGroup
+                || a.Group.Specialization != b.Group.Specialization)
             {
                 ret.SubGroup = true;
             }

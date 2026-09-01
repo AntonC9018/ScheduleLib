@@ -1,3 +1,5 @@
+using ScheduleLib.Helper;
+
 namespace ScheduleLib.Builders;
 
 public static partial class ScheduleBuilderHelper
@@ -155,6 +157,87 @@ public static partial class ScheduleBuilderHelper
         foreach (var g in lesson.Base.Group.Groups)
         {
             splits.Add((g, course));
+        }
+    }
+
+    /// <summary>
+    /// Groups the subgroup values observed per participating group.
+    /// The <c>opțional</c> marker and <see cref="SubGroup.All"/> are ignored.
+    /// </summary>
+    private static void CollectObservedSubGroups(
+        ScheduleBuilder s,
+        Dictionary<GroupId, HashSet<SubGroup>> observed)
+    {
+        foreach (var lesson in Lessons(s))
+        {
+            var subGroup = lesson.Base.Group.SubGroup;
+            if (subGroup == SubGroup.All
+                || subGroup == SpecialSubGroups.Optional)
+            {
+                continue;
+            }
+            foreach (var g in lesson.Base.Group.Groups)
+            {
+                if (!observed.TryGetValue(g, out var set))
+                {
+                    set = [];
+                    observed[g] = set;
+                }
+                set.Add(subGroup);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Observed numeric subgroups must form a contiguous prefix starting at I:
+    /// if X occurs, every value from I through X must occur somewhere for the group.
+    /// </summary>
+    public static void CheckNumericSubGroupsAreContiguous(this ScheduleBuilder s)
+    {
+        var observed = new Dictionary<GroupId, HashSet<SubGroup>>();
+        CollectObservedSubGroups(s, observed);
+        foreach (var (groupId, values) in observed)
+        {
+            var numbers = values
+                .Select(x => NumberHelper.FromRoman(x.Value))
+                .Where(x => x is not null)
+                .Select(x => x!.Value)
+                .OrderBy(x => x)
+                .ToArray();
+            if (numbers.Length == 0)
+            {
+                continue;
+            }
+            for (int expected = 1; expected <= numbers[^1]; expected++)
+            {
+                if (!numbers.Contains(expected))
+                {
+                    throw new InvalidOperationException(
+                        $"The numeric subgroups of group '{GroupName(s, groupId)}' must form a contiguous prefix starting at I. "
+                        + $"Missing '{NumberHelper.ToRoman(expected)}' while '{NumberHelper.ToRoman(numbers[^1])}' occurs.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A group has either zero observed language subgroup values or at least two.
+    /// </summary>
+    public static void CheckLanguageSubGroupCount(this ScheduleBuilder s)
+    {
+        var observed = new Dictionary<GroupId, HashSet<SubGroup>>();
+        CollectObservedSubGroups(s, observed);
+        foreach (var (groupId, values) in observed)
+        {
+            int languageCount = values.Count(x => x == SpecialSubGroups.Ro
+                || x == SpecialSubGroups.Ru
+                || x == SpecialSubGroups.Eng);
+            if (languageCount == 1)
+            {
+                throw new InvalidOperationException(
+                    $"The group '{GroupName(s, groupId)}' has a single language subgroup, but a group "
+                    + "must have either zero observed language subgroups or at least two.");
+            }
         }
     }
 

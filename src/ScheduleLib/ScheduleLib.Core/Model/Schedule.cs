@@ -559,6 +559,43 @@ public record struct LessonData()
     public readonly GroupId Group => Groups.Group0;
 }
 
+/// <summary>
+/// Combines the subgroup and specialization values a lesson targets into one identity.
+/// Used wherever equality or grouping must consider both fields. Not serialized.
+/// </summary>
+public readonly record struct GroupSplitKey(SubGroup SubGroup, Specialization Specialization)
+{
+    public static GroupSplitKey All => new(SubGroup.All, Specialization.All);
+}
+
+public static class LessonDataExtensions
+{
+    extension(in LessonData lesson)
+    {
+        public GroupSplitKey GroupSplitKey => new(lesson.SubGroup, lesson.Specialization);
+    }
+
+    extension(in GroupSplitKey key)
+    {
+        /// <summary>
+        /// Specialization first, then the subgroup. Null when the key targets everything.
+        /// </summary>
+        public string? ToDisplayString(string separator = ", ")
+        {
+            var parts = new List<string>(2);
+            if (key.Specialization.Value is { } s)
+            {
+                parts.Add(s);
+            }
+            if (key.SubGroup.Value is { } subGroup)
+            {
+                parts.Add(subGroup);
+            }
+            return parts.Count == 0 ? null : string.Join(separator, parts);
+        }
+    }
+}
+
 public enum LessonRegularity
 {
     Weekly,
