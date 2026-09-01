@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Builders;
@@ -91,8 +92,32 @@ public static partial class ScheduleBuilderHelper
 
     public static void SanityChecks(this ScheduleBuilder s)
     {
-        // TODO
-        _ = s;
+        if (s.ValidationSettings.SubGroup == SubGroupValidationMode.None)
+        {
+            return;
+        }
+
+        foreach (var lesson in s.WeeklyLessons.List)
+        {
+            ValidateSubGroup(lesson.Base.Group.SubGroup);
+        }
+        foreach (var lesson in s.OneTimeLessons.List)
+        {
+            ValidateSubGroup(lesson.Base.Group.SubGroup);
+        }
+
+        static void ValidateSubGroup(SubGroup subGroup)
+        {
+            if (subGroup == SubGroup.All
+                || SpecialSubGroups.AllSpecial.Contains(subGroup)
+                || NumberHelper.FromRoman(subGroup.Value) is not null)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"Invalid subgroup '{subGroup.Value}'. A subgroup must be numeric or one of the configured special subgroups.");
+        }
     }
 
     public static Schedule CreateDefaultModel(ScheduleBuilder s)

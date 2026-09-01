@@ -682,9 +682,12 @@ public static class SpecialSubGroups
         Eng,
         // TODO: configure these better
         AG,
+        GA2D,
+        UI,
         Logica,
         AlgoGraf,
     ];
+    // Legacy marker for an unspecified specialization subgroup. New schedules should name the specialization.
     public static SubGroup Optional => new("opțional");
     public static SubGroup Beginners => new("începători");
     public static SubGroup Ru => new("ru");
@@ -692,6 +695,8 @@ public static class SpecialSubGroups
     public static SubGroup Eng => new("eng");
     // ReSharper disable once InconsistentNaming
     public static SubGroup AG => new("AG");
+    public static SubGroup GA2D => new("GA2D");
+    public static SubGroup UI => new("UI");
     public static SubGroup Logica => new("Logica");
     public static SubGroup AlgoGraf => new("Algoritmica Grafurilor");
 

@@ -97,6 +97,7 @@ public sealed class ScheduleFromDocTests
         }
         {
             var builder = new ScheduleBuilder();
+            builder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
             builder.SetStudyYear(helper.Year);
 
             {

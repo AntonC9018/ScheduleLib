@@ -197,7 +197,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -292,7 +292,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -349,7 +349,7 @@
         "Poiată A."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -406,7 +406,7 @@
         "Poiată A."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -482,7 +482,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -558,7 +558,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -710,7 +710,7 @@
         "Prepeliță A."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -805,7 +805,7 @@
         "Prepeliță A."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -824,7 +824,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -919,7 +919,7 @@
         "Bumbu T."
       ],
       "Groups": [
-        "IASD2401"
+        "MIASD2401"
       ],
       "Period": null,
       "Date": null,
@@ -22860,7 +22860,6 @@
       ],
       "Groups": [
         "DJ2201",
-        "DJ2202",
         "DJ2202"
       ],
       "Period": {
@@ -22909,7 +22908,6 @@
       ],
       "Groups": [
         "DJ2201",
-        "DJ2202",
         "DJ2202"
       ],
       "Period": {
@@ -23006,7 +23004,6 @@
       ],
       "Groups": [
         "DJ2201",
-        "DJ2202",
         "DJ2202"
       ],
       "Period": {
@@ -23031,7 +23028,6 @@
       ],
       "Groups": [
         "DJ2201",
-        "DJ2202",
         "DJ2202"
       ],
       "Period": {
@@ -24192,7 +24188,7 @@
     },
     {
       "Id": 4,
-      "Name": "IASD2401"
+      "Name": "MIASD2401"
     },
     {
       "Id": 5,

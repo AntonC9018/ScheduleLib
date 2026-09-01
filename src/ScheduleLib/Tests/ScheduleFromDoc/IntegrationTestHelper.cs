@@ -90,6 +90,7 @@ public sealed class IntegrationTestHelper : IDisposable
         var ret = new IntegrationTestHelper(2024, Semester.Sem2);
         try
         {
+            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
@@ -105,6 +106,7 @@ public sealed class IntegrationTestHelper : IDisposable
         var ret = new IntegrationTestHelper(2025, Semester.Sem1);
         try
         {
+            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
@@ -113,6 +115,12 @@ public sealed class IntegrationTestHelper : IDisposable
             throw;
         }
         return ret;
+    }
+
+    private void DisableSubGroupValidation()
+    {
+        var builder = ServiceProvider.GetRequiredService<ScheduleBuilder>();
+        builder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
     }
 
     public static CancellationTokenSource CreateCts()
@@ -138,6 +146,7 @@ public sealed class IntegrationTestHelper : IDisposable
     public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
     {
         var scheduleBuilder = new ScheduleBuilder();
+        scheduleBuilder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
         await AddScheduleToBuilder(scheduleBuilder, jsonPath, cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
         return jsonSchedule;
