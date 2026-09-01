@@ -168,6 +168,7 @@ public struct LessonBuilderGroupData()
 {
     public LessonGroups Groups = new();
     public SubGroup SubGroup = SubGroup.All;
+    public Specialization Specialization = Specialization.All;
 }
 public struct LessonBuilderGeneralData()
 {

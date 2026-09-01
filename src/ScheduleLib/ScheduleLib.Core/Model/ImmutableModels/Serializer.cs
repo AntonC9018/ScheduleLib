@@ -102,6 +102,8 @@ public static class SerializationModels
         public LessonType Type { get; set; }
         [JsonRequired]
         public SubGroup SubGroup { get; set; }
+        [JsonRequired]
+        public Specialization Specialization { get; set; }
 
         public void SetCommon(in LessonData common)
         {
@@ -111,6 +113,7 @@ public static class SerializationModels
             Room = common.Room;
             Type = common.Type;
             SubGroup = common.SubGroup;
+            Specialization = common.Specialization;
         }
     }
     public sealed class OneTimeLessonModel : LessonBaseModel
@@ -307,6 +310,7 @@ public static class SerializationModels
 
             ref var group = ref b.Group;
             group.SubGroup = model.SubGroup;
+            group.Specialization = model.Specialization;
             group.Groups = [.. model.Groups];
         }
     }

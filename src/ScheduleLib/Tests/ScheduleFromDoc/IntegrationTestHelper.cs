@@ -5,7 +5,6 @@ using System.Text.Unicode;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Config;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.WebEncoders.Testing;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -65,9 +64,6 @@ public sealed class IntegrationTestHelper : IDisposable
             opts.EnrichWithFullNames = false;
             opts.LoadConsultations = false;
         });
-
-        services.RemoveAll<ConfigureRemappingsDelegate>();
-        services.AddSingleton(new ConfigureRemappingsDelegate(x => { _ = x; }));
 
         _rootServiceProvider = services.BuildServiceProvider();
         _scope = _rootServiceProvider.CreateScope();
@@ -196,6 +192,8 @@ public sealed class IntegrationTestHelper : IDisposable
                         Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName.ToString()).ToArray(),
                         Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
                         LessonType = lesson.Type,
+                        SubGroup = lesson.SubGroup.Value,
+                        Specialization = lesson.Specialization.Value,
                     };
                 }).ToArray(),
             Groups = schedule.EnumerateGroups().Select(g =>
@@ -274,6 +272,8 @@ public sealed class ReadableLessonModel
     public required string? Room { get; set; }
     public required TimeOnly Time { get; set; }
     public required LessonType LessonType { get; set; }
+    public required string? SubGroup { get; set; }
+    public required string? Specialization { get; set; }
 }
 
 public sealed class ReadableCourseModel

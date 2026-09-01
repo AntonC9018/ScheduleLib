@@ -1108,7 +1108,10 @@ public sealed class LessonParserTests
         Assert.Equal(SpecialSubGroups.Ru, ru);
 
         Assert.True(SpecialSubGroups.TryFromNamePrefix("AG", out var ag));
-        Assert.Equal(SpecialSubGroups.AG, ag);
+        Assert.Equal(new SubGroup(Specializations.AG.Value!), ag);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ui", out var ui));
+        Assert.Equal(new SubGroup(Specializations.UI.Value!), ui);
 
         Assert.True(SpecialSubGroups.TryFromNamePrefix("în", out var beginners));
         Assert.Equal(SpecialSubGroups.Beginners, beginners);

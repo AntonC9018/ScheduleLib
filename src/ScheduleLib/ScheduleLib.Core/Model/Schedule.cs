@@ -555,6 +555,7 @@ public record struct LessonData()
     public required LessonType Type;
 
     public SubGroup SubGroup = SubGroup.All;
+    public Specialization Specialization = Specialization.All;
     public readonly GroupId Group => Groups.Group0;
 }
 
@@ -672,33 +673,133 @@ public readonly record struct SubGroup
     public static SubGroup All => new(null!);
 }
 
+/// <summary>
+/// A restriction of a lesson to one specialization of study.
+/// <see cref="All"/> means the lesson carries no specialization restriction.
+/// Backed by a string, because schedule sources may add new names over time.
+/// </summary>
+public readonly record struct Specialization
+{
+    public readonly string? Value { get; }
+
+    public Specialization(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static Specialization All => new(null!);
+}
+
+public static class Specializations
+{
+    public static readonly ImmutableArray<Specialization> AllKnown = [
+        AG,
+        AlgoritmicaGrafurilor,
+        CV,
+        DJ,
+        GA2D,
+        GA3D,
+        Logica,
+        React,
+        Spring,
+        SSI,
+        UI,
+    ];
+
+    // ReSharper disable once InconsistentNaming
+    public static Specialization AG => new("AG");
+    public static Specialization AlgoritmicaGrafurilor => new("Algoritmica Grafurilor");
+    public static Specialization CV => new("CV");
+    public static Specialization DJ => new("DJ");
+    public static Specialization GA2D => new("GA2D");
+    public static Specialization GA3D => new("GA3D");
+    public static Specialization Logica => new("Logica");
+    public static Specialization React => new("React");
+    public static Specialization Spring => new("Spring");
+    public static Specialization SSI => new("SSI");
+    public static Specialization UI => new("UI");
+
+    public static bool TryFromValue(string? value, out Specialization specialization)
+    {
+        if (value is null)
+        {
+            specialization = default;
+            return false;
+        }
+        foreach (var candidate in AllKnown)
+        {
+            if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+            {
+                specialization = candidate;
+                return true;
+            }
+        }
+        specialization = default;
+        return false;
+    }
+}
+
 public static class SpecialSubGroups
 {
+    // The meaning of these historical labels is unresolved.
+    // They stay ordinary subgroup values: don't split their digits and don't treat them as specializations.
+    public static readonly ImmutableArray<SubGroup> Legacy = [
+        new("S1"),
+        new("S11"),
+        new("S12"),
+        new("S21"),
+        new("S22"),
+        new("S23"),
+        new("GA"),
+        new("GA1"),
+        new("GA2"),
+        new("WR"),
+        new("WR1"),
+        new("WR2"),
+        new("SF"),
+        new("UI-1"),
+        new("UI-2"),
+    ];
+
     public static readonly ImmutableArray<SubGroup> AllSpecial = [
         Optional,
         Beginners,
+        NonBeginners,
         Ru,
         Ro,
         Eng,
-        // TODO: configure these better
-        AG,
-        GA2D,
-        UI,
-        Logica,
-        AlgoGraf,
+        ..Legacy,
     ];
     // Legacy marker for an unspecified specialization subgroup. New schedules should name the specialization.
     public static SubGroup Optional => new("opțional");
     public static SubGroup Beginners => new("începători");
+    public static SubGroup NonBeginners => new("nuîncepători");
     public static SubGroup Ru => new("ru");
     public static SubGroup Ro => new("ro");
     public static SubGroup Eng => new("eng");
-    // ReSharper disable once InconsistentNaming
-    public static SubGroup AG => new("AG");
-    public static SubGroup GA2D => new("GA2D");
-    public static SubGroup UI => new("UI");
-    public static SubGroup Logica => new("Logica");
-    public static SubGroup AlgoGraf => new("Algoritmica Grafurilor");
+
+    // Group headers may name any known label. Specialization values are transported as subgroups
+    // here and get classified into Specialization during builder processing.
+    // Specializations must come before the legacy values, so that prefixes like "ui" keep matching
+    // the specialization instead of "UI-1".
+    private static readonly ImmutableArray<SubGroup> PrefixCandidates = CreatePrefixCandidates();
+    private static ImmutableArray<SubGroup> CreatePrefixCandidates()
+    {
+        var builder = ImmutableArray.CreateBuilder<SubGroup>();
+        builder.Add(Optional);
+        builder.Add(Beginners);
+        builder.Add(NonBeginners);
+        builder.Add(Ru);
+        builder.Add(Ro);
+        builder.Add(Eng);
+        foreach (var specialization in Specializations.AllKnown)
+        {
+            builder.Add(new(specialization.Value!));
+        }
+        builder.AddRange(Legacy);
+        return builder.MoveToImmutable();
+    }
 
     public static bool TryFromNamePrefix(ReadOnlySpan<char> value, out SubGroup subGroup)
     {
@@ -715,7 +816,7 @@ public static class SpecialSubGroups
             return false;
         }
 
-        foreach (var candidate in AllSpecial)
+        foreach (var candidate in PrefixCandidates)
         {
             if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(candidate.Value!, value))
             {
