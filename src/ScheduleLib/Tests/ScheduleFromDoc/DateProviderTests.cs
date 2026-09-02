@@ -20,10 +20,10 @@ public sealed class DateProviderTests
         var weeks = ScheduleLib.ScheduleDefaults.Config.StudyWeeks;
         Assert.Equal(28, weeks.Length);
         Assert.Equal(new DateOnly(2026, 8, 31), weeks[0].MondayDate);
-        Assert.True(weeks[0].IsOddWeek);
+        Assert.False(weeks[0].IsOddWeek);
         Assert.Equal(new DateOnly(2026, 12, 7), weeks[14].MondayDate);
         Assert.Equal(new DateOnly(2027, 2, 1), weeks[15].MondayDate);
-        Assert.False(weeks[15].IsOddWeek);
+        Assert.True(weeks[15].IsOddWeek);
         Assert.Equal(new DateOnly(2027, 4, 26), weeks[^1].MondayDate);
 
         for (int i = 1; i < weeks.Length; i++)
