@@ -28,6 +28,7 @@ public sealed class ValidationSettings()
 public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();
+    public SpecializationRegistry? SpecializationRegistry;
     public ListBuilder<OneTimeLessonBuilderModel> OneTimeLessons = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
@@ -101,17 +102,17 @@ public static partial class ScheduleBuilderHelper
 
         foreach (var lesson in s.WeeklyLessons.List)
         {
-            ValidateSubGroup(lesson.Base.Group.SubGroup);
+            ValidateSubGroup(lesson.Base.Group.SubGroup, lesson.Base.Group.Groups);
         }
         foreach (var lesson in s.OneTimeLessons.List)
         {
-            ValidateSubGroup(lesson.Base.Group.SubGroup);
+            ValidateSubGroup(lesson.Base.Group.SubGroup, lesson.Base.Group.Groups);
         }
 
         s.CheckNumericSubGroupsAreContiguous();
         s.CheckLanguageSubGroupCount();
 
-        static void ValidateSubGroup(SubGroup subGroup)
+        void ValidateSubGroup(SubGroup subGroup, in LessonGroups groups)
         {
             if (subGroup == SubGroup.All
                 || SpecialSubGroups.AllSpecial.Contains(subGroup)
@@ -120,8 +121,38 @@ public static partial class ScheduleBuilderHelper
                 return;
             }
 
+            var groupContext = groups.Count == 0
+                ? "no group"
+                : string.Join("; ", groups.Select(DescribeGroup));
             throw new InvalidOperationException(
-                $"Invalid subgroup '{subGroup.Value}'. A subgroup must be numeric or one of the configured special subgroups.");
+                $"Invalid subgroup '{subGroup.Value}' for group '{groupContext}'. "
+                + "Specialization registry context: "
+                + (s.SpecializationRegistry is { } registry
+                    ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
+                    : "no specialization registry configured")
+                + ". "
+                + "The configured subgroup selector accepts numeric values and configured special subgroups.");
+        }
+
+        string DescribeGroup(GroupId id)
+        {
+            if (id.Value < 0 || id.Value >= s.Groups.List.Count)
+            {
+                return id.Value.ToString();
+            }
+            var group = s.Groups.List[id.Value];
+            return $"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "
+                + $"attendance {group.AttendanceMode}, qualification {group.QualificationType})";
+        }
+
+        string DescribeRegistryContext(SpecializationRegistry registry, GroupId id)
+        {
+            if (id.Value < 0 || id.Value >= s.Groups.List.Count)
+            {
+                return $"{id.Value} => unavailable group";
+            }
+            var group = s.Groups.List[id.Value];
+            return $"{group.Name} => {registry.DescribeMatches(in group)}";
         }
     }
 

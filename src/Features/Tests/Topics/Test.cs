@@ -70,7 +70,7 @@ public sealed class Test
             var topic = result.Get(new(
                 courseId: courseId,
                 groups: groups,
-                subGroup: SubGroup.All,
+                groupSplit: GroupSplitKey.All,
                 lessonType: LessonType.Lab,
                 dayIndex: dayIndex,
                 dateTime: default));

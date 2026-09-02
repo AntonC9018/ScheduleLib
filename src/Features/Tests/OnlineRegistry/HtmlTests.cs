@@ -73,6 +73,7 @@ public sealed class HtmlTests
         {
             Document = doc,
             GroupParseContext = groupParseContext,
+            SpecializationRegistry = SpecializationRegistry.Empty,
             SearchGroupId = (ref g) =>
             {
                 groups.Add(g);
@@ -89,6 +90,41 @@ public sealed class HtmlTests
             FacultyName = b.FacultyName.ToString(),
         });
         await Verify(mapped);
+    }
+
+    [Fact]
+    public void GroupLinkSplitClassifiesSpecializationsSeparately()
+    {
+        var specialization = HtmlSearch.GroupSplitFromString(GroupForSearch("Spring"));
+        var numeric = HtmlSearch.GroupSplitFromString(GroupForSearch("I"));
+        var registryBuilder = new SpecializationRegistryBuilder();
+        var futureSpecialization = new Specialization("Future track");
+        registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
+        var future = HtmlSearch.GroupSplitFromString(
+            GroupForSearch(futureSpecialization.Value!),
+            registryBuilder.Build());
+
+        Assert.Equal(new GroupSplitKey(SubGroup.All, Specializations.Spring), specialization);
+        Assert.Equal(new GroupSplitKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
+        Assert.Equal(new GroupSplitKey(SubGroup.All, futureSpecialization), future);
+
+        static GroupForSearch GroupForSearch(string subGroup)
+        {
+            return new()
+            {
+                UnparsedName = "I2401",
+                AttendanceMode = AttendanceMode.Zi,
+                Grade = new(2),
+                GroupNumber = 1,
+                FacultyName = "I".AsMemory(),
+                QualificationType = QualificationType.Licenta,
+                SubGroupName = subGroup.AsMemory(),
+                Language = null,
+                IsRepeat = false,
+                IsWildcard = false,
+                IsDual = false,
+            };
+        }
     }
 
     private sealed class ScanLessonVerifyModel

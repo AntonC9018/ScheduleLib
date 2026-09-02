@@ -315,6 +315,10 @@ public static class FilterHelper
                     {
                         return true;
                     }
+                    if (l.Lesson.SubGroup == SubGroup.All)
+                    {
+                        return true;
+                    }
                     foreach (var subGroup in subGroups)
                     {
                         if (subGroup == l.Lesson.SubGroup)
@@ -335,38 +339,44 @@ public static class FilterHelper
                     {
                         return true;
                     }
+                    if (l.Lesson.Groups.IsEmpty)
+                    {
+                        return true;
+                    }
 
-                    // The effective specialization depends on the group being filtered:
-                    // a group with fewer than two observed specializations treats every
-                    // specialization annotation as shared.
-                    var groupId = GoverningGroup();
-                    if (groupId.IsInvalid)
-                    {
-                        return true;
-                    }
                     specializationCounts ??= CountObservedSpecializations(schedule);
-                    if (!specializationCounts.TryGetValue(groupId, out var count)
-                        || count < 2)
+                    foreach (var groupId in RelevantGroups())
                     {
-                        return true;
-                    }
-                    foreach (var specialization in specializations)
-                    {
-                        if (specialization == l.Lesson.Specialization)
+                        // The effective specialization depends on the group being
+                        // filtered: a group with fewer than two observed values treats
+                        // every specialization annotation as shared. A filter spanning
+                        // several groups includes the lesson when it matches at least
+                        // one of those group contexts.
+                        if (!specializationCounts.TryGetValue(groupId, out var count)
+                            || count < 2)
                         {
                             return true;
+                        }
+                        foreach (var specialization in specializations)
+                        {
+                            if (specialization == l.Lesson.Specialization)
+                            {
+                                return true;
+                            }
                         }
                     }
                     return false;
 
-                    GroupId GoverningGroup()
+                    IEnumerable<GroupId> RelevantGroups()
                     {
-                        if (filter.GroupFilter.OneOfGroupIds is { } groupIds
-                            && groupIds.Length == 1)
+                        foreach (var lessonGroup in l.Lesson.Groups)
                         {
-                            return groupIds[0];
+                            if (filter.GroupFilter.OneOfGroupIds is not { } groupIds
+                                || groupIds.Contains(lessonGroup))
+                            {
+                                yield return lessonGroup;
+                            }
                         }
-                        return l.Lesson.Group;
                     }
                 }
 

@@ -7,7 +7,8 @@
         "Sources": [
           {
             "FilePath": "{UserProfile}\\Desktop\\lipse.xlsx",
-            "RepeatedCourseBehavior": "Error"
+            "RepeatedCourseBehavior": "Error",
+            "CellValueFormat": null
           }
         ],
         "MissingDaysFiller": null
@@ -28,7 +29,7 @@
           {
             "LessonType": "Lab",
             "Provider": {
-              "$type": "NoNameProvider"
+              "$type": "NonLocalizedLessonNameProvider"
             }
           }
         ]
@@ -36,13 +37,13 @@
       {
         "$type": "MoodleConfig",
         "Credentials": {
-          "IsRequired": true
+          "$type": "AppConfigCredentialsSource"
         }
       },
       {
         "$type": "RegistryConfig",
         "Credentials": {
-          "IsRequired": false
+          "$type": "AppConfigCredentialsSource"
         },
         "ExtraLessonInstanceAction": "LeaveAlone",
         "EquationCommandsDerivation": {
@@ -58,7 +59,7 @@
       {
         "$type": "RegistryConfig",
         "Credentials": {
-          "IsRequired": false
+          "$type": "AppConfigCredentialsSource"
         },
         "ExtraLessonInstanceAction": "LeaveAlone",
         "EquationCommandsDerivation": {

@@ -14,7 +14,7 @@
       {
         "LessonType": "Lab",
         "Provider": {
-          "$type": "NoNameProvider"
+          "$type": "NonLocalizedLessonNameProvider"
         }
       }
     ]

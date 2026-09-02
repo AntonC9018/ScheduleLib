@@ -19,18 +19,18 @@ public readonly record struct CourseLink(
 public readonly record struct GroupLink
 {
     public readonly FoundGroups Groups;
-    public readonly SubGroup SubGroup;
+    public readonly GroupSplitKey GroupSplit;
     public readonly Uri Uri;
     public readonly Uri EvaluationUri;
 
     public GroupLink(
         in FoundGroups groups,
-        SubGroup subGroup,
+        GroupSplitKey groupSplit,
         Uri uri,
         Uri evaluationUri)
     {
         Groups = groups;
-        SubGroup = subGroup;
+        GroupSplit = groupSplit;
         Uri = uri;
         EvaluationUri = evaluationUri;
     }
@@ -57,6 +57,7 @@ internal readonly struct ScanGroupsParams
 {
     public required IDocument Document { get; init; }
     public required GroupParseContext GroupParseContext { get; init; }
+    public required SpecializationRegistry SpecializationRegistry { get; init; }
     public required SearchGroupId SearchGroupId { get; init; }
     public required ParseErrorHandler ParseErrorHandler { get; init; }
 }
@@ -132,7 +133,7 @@ internal static class HtmlSearch
             }
 
             Uri groupUri;
-            SubGroup subGroup;
+            GroupSplitKey groupSplit;
             FoundGroups foundGroups;
             {
                 var anchor = urls[0];
@@ -163,7 +164,7 @@ internal static class HtmlSearch
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
-                subGroup = SubGroupFromString(groupForSearch);
+                groupSplit = GroupSplitFromString(groupForSearch, p.SpecializationRegistry);
                 groupUri = new Uri(url);
                 foundGroups = new()
                 {
@@ -184,19 +185,26 @@ internal static class HtmlSearch
                 uri: groupUri,
                 evaluationUri: evaluationUri,
                 groups: foundGroups,
-                subGroup: subGroup);
+                groupSplit: groupSplit);
         }
     }
 
-    internal static SubGroup SubGroupFromString(in GroupForSearch groupForSearch)
+    internal static GroupSplitKey GroupSplitFromString(
+        in GroupForSearch groupForSearch,
+        SpecializationRegistry? specializationRegistry = null)
     {
-        string? subgroupName = null;
-        if (!groupForSearch.SubGroupName.IsEmpty)
+        if (groupForSearch.SubGroupName.IsEmpty)
         {
-            subgroupName = groupForSearch.SubGroupName.ToString();
+            return GroupSplitKey.All;
         }
-        var subgroup = new SubGroup(subgroupName);
-        return subgroup;
+        var subGroup = new SubGroup(groupForSearch.SubGroupName.ToString());
+        if (Specializations.TryFromValue(subGroup.Value, out var specialization)
+            || (specializationRegistry is not null
+                && specializationRegistry.TryFromValue(subGroup.Value, out specialization)))
+        {
+            return new(SubGroup.All, specialization);
+        }
+        return new(subGroup, Specialization.All);
     }
 
     internal static Uri ScanForLessonAddLink(IDocument doc)

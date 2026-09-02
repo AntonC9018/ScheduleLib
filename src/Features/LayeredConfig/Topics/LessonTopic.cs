@@ -224,7 +224,7 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
             {
                 continue;
             }
-            if (!it.Key.GroupsKey.IsSubGroupMatch(key.SubGroup))
+            if (!it.Key.GroupsKey.IsGroupSplitMatch(key.GroupSplit))
             {
                 continue;
             }
@@ -243,14 +243,14 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
 public readonly record struct TopicsGroupsKey
 {
     public readonly LessonGroups Groups;
-    public readonly SubGroup? SubGroup;
+    public readonly GroupSplitKey? GroupSplit;
 
     public TopicsGroupsKey(
         in LessonGroups groups,
-        SubGroup? subGroup)
+        GroupSplitKey? groupSplit)
     {
         Groups = groups;
-        SubGroup = subGroup;
+        GroupSplit = groupSplit;
     }
 
     public readonly bool IsForAllGroups => Groups.Count == 0;
@@ -269,12 +269,12 @@ public readonly record struct TopicsGroupsKey
         return false;
     }
 
-    public readonly bool IsSubGroupMatch(
-        SubGroup subGroup)
+    public readonly bool IsGroupSplitMatch(
+        GroupSplitKey groupSplit)
     {
-        if (SubGroup is { } sg)
+        if (GroupSplit is { } split)
         {
-            return sg == subGroup;
+            return split == groupSplit;
         }
         return true;
     }
@@ -667,7 +667,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             {
                 continue;
             }
-            if (!it.Key.GroupsKey.IsSubGroupMatch(l.SubGroup))
+            if (!it.Key.GroupsKey.IsGroupSplitMatch(l.GroupSplitKey))
             {
                 continue;
             }
@@ -809,8 +809,8 @@ file sealed class FallbackProvidersDS : List<BuiltFallbackProvider>
             {
                 continue;
             }
-            if (t.OriginalBuilder.Key.GroupsKey.SubGroup is { } subGroup
-                && mainBuilderKey.GroupsKey.SubGroup != subGroup)
+            if (t.OriginalBuilder.Key.GroupsKey.GroupSplit is { } groupSplit
+                && mainBuilderKey.GroupsKey.GroupSplit != groupSplit)
             {
                 continue;
             }

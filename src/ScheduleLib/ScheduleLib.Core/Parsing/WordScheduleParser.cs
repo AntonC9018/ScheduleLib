@@ -34,13 +34,15 @@ public sealed class DocParseContext
         DayNameParser dayNameParser,
         LessonParserFactory parserFactory,
         ScheduleBuilder schedule,
-        LessonTimeConfig timeConfig)
+        LessonTimeConfig timeConfig,
+        SpecializationRegistry specializationRegistry)
     {
         CourseNameUnifierModule = courseNameUnifierModule;
         DayNameParser = dayNameParser;
         ParserFactory = parserFactory;
         Schedule = schedule;
         TimeConfig = timeConfig;
+        Schedule.SpecializationRegistry = specializationRegistry;
     }
 
 
@@ -61,6 +63,7 @@ public sealed class DocParseContext
         public required DayNameProvider DayNameProvider;
         public required CourseNameUnifierConfig CourseNameUnifierConfig;
         public required LessonParserFactory ParserFactory;
+        public SpecializationRegistry? SpecializationRegistry;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -80,7 +83,8 @@ public sealed class DocParseContext
             timeConfig: timeConfig,
             courseNameUnifierModule: new(p.CourseNameUnifierConfig),
             dayNameParser: new DayNameParser(p.DayNameProvider),
-            parserFactory: p.ParserFactory);
+            parserFactory: p.ParserFactory,
+            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty);
     }
 
     public SubGroupStatus SetCommonProps(
@@ -118,13 +122,24 @@ public sealed class DocParseContext
             {
                 groupNameIsLabel = true;
                 var remapped = Schedule.RemapSubGroup(group);
-                if (Specializations.TryFromValue(remapped.Value, out var spec))
+                if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     specialization = spec;
                 }
                 else
                 {
-                    subGroup = group;
+                    subGroup = remapped;
+                }
+            }
+            else
+            {
+                // Future specialization labels are registered by their complete
+                // name, not by the built-in abbreviation table.
+                var remapped = Schedule.RemapSubGroup(new(parsedLesson.GroupName.ToString()));
+                if (Schedule.TryGetSpecialization(remapped, out var spec))
+                {
+                    groupNameIsLabel = true;
+                    specialization = spec;
                 }
             }
         }
@@ -133,7 +148,7 @@ public sealed class DocParseContext
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.SubGroup.Span);
             var remapped = Schedule.RemapSubGroup(new(parsedLesson.SubGroup.ToString()));
-            if (Specializations.TryFromValue(remapped.Value, out var spec))
+            if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)
                 {
@@ -144,7 +159,7 @@ public sealed class DocParseContext
             }
             else
             {
-                var label = new SubGroup(parsedLesson.SubGroup.ToString());
+                var label = remapped;
                 if (subGroup is { } prevSub)
                 {
                     throw new InvalidOperationException(

@@ -85,7 +85,77 @@ public sealed class SpecializationRegistry
                 }
             }
         }
-        return builder.MoveToImmutable();
+        return builder.ToImmutable();
+    }
+
+    /// <summary>
+    /// Finds a value registered by any selector. Parsing uses this to distinguish
+    /// configured future specializations from ordinary subgroup labels; per-group
+    /// allowlisting still happens during combination generation.
+    /// </summary>
+    public bool TryFromValue(string? value, out Specialization specialization)
+    {
+        if (value is not null)
+        {
+            foreach (var (_, values) in _entries)
+            {
+                foreach (var candidate in values)
+                {
+                    if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+                    {
+                        specialization = candidate;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        specialization = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Describes the selectors that apply to a group. This is intended for source
+    /// validation errors, where seeing the exact registry context is more useful
+    /// than a bare "unknown subgroup" message.
+    /// </summary>
+    public string DescribeMatches(in Group group)
+    {
+        var matches = new List<string>();
+        foreach (var (selector, values) in _entries)
+        {
+            if (!selector.Matches(in group))
+            {
+                continue;
+            }
+
+            var constraints = new List<string>(4);
+            if (selector.Grade is { } grade)
+            {
+                constraints.Add($"grade {grade.Value}");
+            }
+            if (selector.Faculty is { } faculty)
+            {
+                constraints.Add($"faculty {faculty.Name}");
+            }
+            if (selector.AttendanceMode is { } attendance)
+            {
+                constraints.Add($"attendance {attendance}");
+            }
+            if (selector.Qualification is { } qualification)
+            {
+                constraints.Add($"qualification {qualification}");
+            }
+
+            var selectorText = constraints.Count == 0
+                ? "any group"
+                : string.Join(", ", constraints);
+            matches.Add($"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]");
+        }
+
+        return matches.Count == 0
+            ? "no matching selector"
+            : string.Join("; ", matches);
     }
 }
 
@@ -178,7 +248,7 @@ public static partial class SpecializationRegistryHelper
             {
                 x.Grade = new(1);
                 x.Faculty = new("IA");
-                x.AttendanceMode = AttendanceMode.FrecventaRedusa;
+                x.AttendanceMode = AttendanceMode.Dual;
                 x.Qualification = QualificationType.Licenta;
             });
         b.Set([Specializations.Spring])

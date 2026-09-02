@@ -795,7 +795,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.SubGroup != b.SubGroup)
+            if (a.GroupSplitKey != b.GroupSplitKey)
             {
                 ret.SubGroup = true;
             }

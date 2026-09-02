@@ -209,7 +209,7 @@ public static class WebsiteJsonScheduleHelper
         listBuilder.MaybeAppendSeparator();
 
         // Groups - handle merged groups with parity suffixes
-        var groupsWithParity = new Dictionary<GroupId, List<(Parity parity, SubGroup subGroup)>>();
+        var groupsWithParity = new Dictionary<GroupId, List<Parity>>();
         foreach (var lesson in lessons)
         {
             foreach (var groupId in lesson.Lesson.Groups)
@@ -218,7 +218,7 @@ public static class WebsiteJsonScheduleHelper
                 {
                     groupsWithParity[groupId] = new();
                 }
-                groupsWithParity[groupId].Add((lesson.Date.Parity, lesson.Lesson.SubGroup));
+                groupsWithParity[groupId].Add(lesson.Date.Parity);
             }
         }
 
@@ -231,7 +231,7 @@ public static class WebsiteJsonScheduleHelper
             // Add parity suffix if this is a merged lesson with different parities
             if (hasMixedParity)
             {
-                var distinctParities = parityList.Select(p => p.parity).Distinct().ToList();
+                var distinctParities = parityList.Distinct().ToList();
                 if (distinctParities.Count == 1 && distinctParities[0] != Parity.EveryWeek)
                 {
                     var paritySuffix = services.ParityDisplay.Get(distinctParities[0]);

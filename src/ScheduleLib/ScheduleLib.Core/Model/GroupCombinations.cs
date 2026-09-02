@@ -120,10 +120,11 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
     public static GroupSplitInfoByGroup Build(
         Schedule schedule,
         SpecializationRegistry? registry)
-    {        var ret = new GroupSplitInfoByGroup();
+    {
+        var ret = new GroupSplitInfoByGroup();
 
         var numeric = new Dictionary<GroupId, SortedSet<int>>();
-        var languages = new Dictionary<GroupId, SortedSet<SubGroup>>();
+        var languages = new Dictionary<GroupId, HashSet<SubGroup>>();
         var hasBeginners = new HashSet<GroupId>();
         var specializations = new Dictionary<GroupId, HashSet<Specialization>>();
         var groupModels = new Dictionary<GroupId, Group>();
@@ -174,9 +175,15 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
                 var allowed = r.PermittedFor(in group);
                 permitted = [.. observedSpecs.Where(allowed.Contains)];
             }
-            var specValues = permitted
-                .OrderBy(x => x.Value, StringComparer.Ordinal)
-                .ToArray();
+            // A singleton specialization is stored on the lesson but is shared for
+            // this group. It must not create a filename dimension or a student
+            // combination. If several values were observed, keep the registry-
+            // permitted values as the active specialization choices.
+            var specValues = observedSpecs.Count < 2
+                ? []
+                : permitted
+                    .OrderBy(x => x.Value, StringComparer.Ordinal)
+                    .ToArray();
 
             var langs = languages[groupId]
                 .OrderBy(x => x.Value, StringComparer.Ordinal)
@@ -192,11 +199,11 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
             var combinations = ImmutableArray.CreateBuilder<GroupCombination>();
             foreach (var spec in OneOrNone(specValues))
             {
-                foreach (var proficiency in OneOrNone(profValues))
+                foreach (var num in OneOrNone(nums))
                 {
-                    foreach (var language in OneOrNone(langs))
+                    foreach (var proficiency in OneOrNone(profValues))
                     {
-                        foreach (var num in OneOrNone(nums))
+                        foreach (var language in OneOrNone(langs))
                         {
                             combinations.Add(new(spec, proficiency, language, num));
                         }
@@ -213,8 +220,8 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
 
             ret[groupId] = new()
             {
-                ObservedSpecializations = [.. observedSpecs],
-                Combinations = combinations.MoveToImmutable(),
+                ObservedSpecializations = [.. observedSpecs.OrderBy(x => x.Value, StringComparer.Ordinal)],
+                Combinations = combinations.ToImmutable(),
             };
         }
 
