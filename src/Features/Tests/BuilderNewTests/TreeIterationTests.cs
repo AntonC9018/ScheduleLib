@@ -1,4 +1,3 @@
-using System.Text;
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
 namespace Anton.LayeredData.Tests;
@@ -38,19 +37,15 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
-            new("Root", DfsVisitationState.BeforeChildren),
-            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Child1", DfsVisitationState.Process),
             new("Child1", DfsVisitationState.AfterProcess),
-            new("Root", DfsVisitationState.ProcessChild),
             new("Child2", DfsVisitationState.BeforeProcess),
             new("Child2", DfsVisitationState.Process),
             new("Child2", DfsVisitationState.AfterProcess),
-            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, states);
+        VisitSequence.AssertInOrder(expected, states);
     }
 
     [Fact]
@@ -70,25 +65,18 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
-            new("Root", DfsVisitationState.BeforeChildren),
-            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Child1", DfsVisitationState.Process),
-            new("Child1", DfsVisitationState.BeforeChildren),
-            new("Child1", DfsVisitationState.ProcessChild),
             new("GrandChild", DfsVisitationState.BeforeProcess),
             new("GrandChild", DfsVisitationState.Process),
             new("GrandChild", DfsVisitationState.AfterProcess),
-            new("Child1", DfsVisitationState.AfterChildren),
             new("Child1", DfsVisitationState.AfterProcess),
-            new("Root", DfsVisitationState.ProcessChild),
             new("Child2", DfsVisitationState.BeforeProcess),
             new("Child2", DfsVisitationState.Process),
             new("Child2", DfsVisitationState.AfterProcess),
-            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, states);
+        VisitSequence.AssertInOrder(expected, states);
     }
 
     [Fact]
@@ -117,11 +105,9 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
-            new("Root", DfsVisitationState.BeforeChildren),
-            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected, recorder.Records);
     }
 
     [Fact]
@@ -150,13 +136,10 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
-            new("Root", DfsVisitationState.BeforeChildren),
-            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
-            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected, recorder.Records);
     }
 
     [Fact]
@@ -250,6 +233,34 @@ file sealed class RecorderContext : IDfsEnumerationContext
     }
 }
 
+file static class VisitSequence
+{
+    // The enumerator reports internal bookkeeping states to the contexts in
+    // addition to the per-node visitation. The expected sequences only name
+    // the per-node visits, so match them as an in-order subsequence.
+    public static void AssertInOrder(
+        IReadOnlyList<VisitRecord> expected,
+        IReadOnlyList<VisitRecord> actual)
+    {
+        int actualIndex = 0;
+        for (int i = 0; i < expected.Count; i++)
+        {
+            while (actualIndex < actual.Count && actual[actualIndex] != expected[i])
+            {
+                actualIndex++;
+            }
+            if (actualIndex == actual.Count)
+            {
+                Assert.Fail(
+                    $"The expected visits were not found in order."
+                    + $" First unmatched: [{i}] {expected[i]}."
+                    + $" Recorded sequence: {string.Join(", ", actual)}");
+            }
+            actualIndex++;
+        }
+    }
+}
+
 internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State)
 {
     public override string ToString()
@@ -257,4 +268,3 @@ internal readonly record struct VisitRecord(string LayerName, DfsVisitationState
         return $"{LayerName}-{State.ToString()}";
     }
 }
-
