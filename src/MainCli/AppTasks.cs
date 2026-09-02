@@ -30,7 +30,7 @@ public enum AppTask
     JsonSchedulesForWebsite,
     CopyGradesFromMoodleToRegistry,
     UpdateCalendar,
-    IcsCalendarsForAllTeachers,
+    // IcsCalendarsForAllTeachers,
     ListOfThesesPerTeacherForWebsite,
     CreatePredzashitaExcels,
     Query,
@@ -228,22 +228,6 @@ public static class AppTasks
             {
                 var handler = c.Services.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>();
                 await handler.Update(c.CancellationToken);
-                break;
-            }
-
-            case AppTask.IcsCalendarsForAllTeachers:
-            {
-                var handler = c.Services.GetRequiredService<GenerateIcsCalendarsTaskHandler>();
-                var outputDir = c.OutputDirectory.CreateSubDir("calendars");
-                await handler.Run(new()
-                {
-                    CancellationToken = c.CancellationToken,
-                    OutputDirectory = outputDir,
-                });
-
-                var zipPath = await outputDir.Zip();
-                ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
-
                 break;
             }
 
