@@ -38,12 +38,16 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
+            new("Root", DfsVisitationState.BeforeChildren),
+            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Child1", DfsVisitationState.Process),
             new("Child1", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.ProcessChild),
             new("Child2", DfsVisitationState.BeforeProcess),
             new("Child2", DfsVisitationState.Process),
             new("Child2", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, states);
@@ -66,15 +70,22 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
+            new("Root", DfsVisitationState.BeforeChildren),
+            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Child1", DfsVisitationState.Process),
+            new("Child1", DfsVisitationState.BeforeChildren),
+            new("Child1", DfsVisitationState.ProcessChild),
             new("GrandChild", DfsVisitationState.BeforeProcess),
             new("GrandChild", DfsVisitationState.Process),
             new("GrandChild", DfsVisitationState.AfterProcess),
+            new("Child1", DfsVisitationState.AfterChildren),
             new("Child1", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.ProcessChild),
             new("Child2", DfsVisitationState.BeforeProcess),
             new("Child2", DfsVisitationState.Process),
             new("Child2", DfsVisitationState.AfterProcess),
+            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, states);
@@ -106,6 +117,8 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
+            new("Root", DfsVisitationState.BeforeChildren),
+            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, recorder.Records);
