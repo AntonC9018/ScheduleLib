@@ -1,3 +1,4 @@
+using System.Text;
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 
 namespace Anton.LayeredData.Tests;
@@ -136,7 +137,10 @@ public sealed class TreeIterationTests
         {
             new("Root", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.Process),
+            new("Root", DfsVisitationState.BeforeChildren),
+            new("Root", DfsVisitationState.ProcessChild),
             new("Child1", DfsVisitationState.BeforeProcess),
+            new("Root", DfsVisitationState.AfterChildren),
             new("Root", DfsVisitationState.AfterProcess),
         };
         Assert.Equal(expected, recorder.Records);
@@ -233,5 +237,11 @@ file sealed class RecorderContext : IDfsEnumerationContext
     }
 }
 
-internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State);
+internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State)
+{
+    public override string ToString()
+    {
+        return $"{LayerName}-{State.ToString()}";
+    }
+}
 
