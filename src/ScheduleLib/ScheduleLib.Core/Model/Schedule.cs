@@ -556,33 +556,40 @@ public record struct LessonData()
 
     public SubGroup SubGroup = SubGroup.All;
     public Specialization Specialization = Specialization.All;
+    public Alternative Alternative = Alternative.All;
     public readonly GroupId Group => Groups.Group0;
 }
 
 /// <summary>
-/// Combines the subgroup and specialization values a lesson targets into one identity.
-/// Used wherever equality or grouping must consider both fields. Not serialized.
+/// Combines the subgroup, specialization and alternative values a lesson targets
+/// into one identity. Used wherever equality or grouping must consider all fields.
+/// Not serialized.
 /// </summary>
-public readonly record struct GroupSplitKey(SubGroup SubGroup, Specialization Specialization)
+public readonly record struct GroupSplitKey(SubGroup SubGroup, Specialization Specialization, Alternative Alternative = default)
 {
-    public static GroupSplitKey All => new(SubGroup.All, Specialization.All);
+    public static GroupSplitKey All => new(SubGroup.All, Specialization.All, Alternative.All);
 }
 
 public static class LessonDataExtensions
 {
     extension(in LessonData lesson)
     {
-        public GroupSplitKey GroupSplitKey => new(lesson.SubGroup, lesson.Specialization);
+        public GroupSplitKey GroupSplitKey => new(lesson.SubGroup, lesson.Specialization, lesson.Alternative);
     }
 
     extension(in GroupSplitKey key)
     {
         /// <summary>
-        /// Specialization first, then the subgroup. Null when the key targets everything.
+        /// Alternative first, then the specialization, then the subgroup.
+        /// Null when the key targets everything.
         /// </summary>
         public string? ToDisplayString(string separator = ", ")
         {
-            var parts = new List<string>(2);
+            var parts = new List<string>(3);
+            if (key.Alternative.Value is { } a)
+            {
+                parts.Add(a);
+            }
             if (key.Specialization.Value is { } s)
             {
                 parts.Add(s);
@@ -739,6 +746,25 @@ public readonly record struct Specialization
     public static Specialization Spring => Specializations.Spring;
     public static Specialization SSI => Specializations.SSI;
     public static Specialization UI => Specializations.UI;
+}
+
+/// <summary>
+/// A restriction of a lesson to one alternative of a student choice dimension,
+/// such as elective courses between which students pick one.
+/// <see cref="All"/> means the lesson carries no alternative restriction.
+/// Backed by a string, because the choices are configured per schedule.
+/// </summary>
+public readonly record struct Alternative
+{
+    public readonly string? Value { get; }
+
+    public Alternative(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static Alternative All => new(null!);
 }
 
 public static class Specializations

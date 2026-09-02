@@ -31,6 +31,7 @@ public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
     public Specialization[]? Specializations = null;
+    public Alternative[]? Alternatives = null;
     public GroupId[]? OneOfGroupIds = null;
     public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.Empty;
 }
@@ -212,9 +213,11 @@ public static class FilterHelper
 
         IEnumerable<AnyLessonId> GetRegularLessons(ScheduleFilter filter)
         {
-            // Observed specializations per group, computed lazily: the singleton rule
-            // needs them to decide whether a lesson's specialization behaves as shared.
+            // Observed specializations/alternatives per group, computed lazily: the
+            // singleton rule needs them to decide whether a lesson's annotation
+            // behaves as shared.
             Dictionary<GroupId, int>? specializationCounts = null;
+            Dictionary<GroupId, int>? alternativeCounts = null;
 
             foreach (var l in schedule.EnumerateAllLessons())
             {
@@ -237,6 +240,10 @@ public static class FilterHelper
                     continue;
                 }
                 if (!PassesSpecializationFilter())
+                {
+                    continue;
+                }
+                if (!PassesAlternativeFilter())
                 {
                     continue;
                 }
@@ -398,6 +405,78 @@ public static class FilterHelper
                                 sets[groupId] = set;
                             }
                             set.Add(lesson.Specialization);
+                        }
+                    }
+                    return sets.ToDictionary(x => x.Key, x => x.Value.Count);
+                }
+
+                bool PassesAlternativeFilter()
+                {
+                    if (filter.GroupFilter.Alternatives is not { } alternatives)
+                    {
+                        return true;
+                    }
+                    if (l.Lesson.Alternative == Alternative.All)
+                    {
+                        return true;
+                    }
+                    if (l.Lesson.Groups.IsEmpty)
+                    {
+                        return true;
+                    }
+
+                    alternativeCounts ??= CountObservedAlternatives(schedule);
+                    foreach (var groupId in RelevantAlternativeGroups())
+                    {
+                        // Same group-relative singleton rule as for specializations:
+                        // a group with fewer than two observed alternatives treats
+                        // every alternative annotation as shared.
+                        if (!alternativeCounts.TryGetValue(groupId, out var count)
+                            || count < 2)
+                        {
+                            return true;
+                        }
+                        foreach (var alternative in alternatives)
+                        {
+                            if (alternative == l.Lesson.Alternative)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+
+                    IEnumerable<GroupId> RelevantAlternativeGroups()
+                    {
+                        foreach (var lessonGroup in l.Lesson.Groups)
+                        {
+                            if (filter.GroupFilter.OneOfGroupIds is not { } groupIds
+                                || groupIds.Contains(lessonGroup))
+                            {
+                                yield return lessonGroup;
+                            }
+                        }
+                    }
+                }
+
+                static Dictionary<GroupId, int> CountObservedAlternatives(Schedule schedule)
+                {
+                    var sets = new Dictionary<GroupId, HashSet<Alternative>>();
+                    foreach (var l1 in schedule.EnumerateAllLessons())
+                    {
+                        ref readonly var lesson = ref l1.Lesson;
+                        if (lesson.Alternative == Alternative.All)
+                        {
+                            continue;
+                        }
+                        foreach (var groupId in lesson.Groups)
+                        {
+                            if (!sets.TryGetValue(groupId, out var set))
+                            {
+                                set = [];
+                                sets[groupId] = set;
+                            }
+                            set.Add(lesson.Alternative);
                         }
                     }
                     return sets.ToDictionary(x => x.Key, x => x.Value.Count);

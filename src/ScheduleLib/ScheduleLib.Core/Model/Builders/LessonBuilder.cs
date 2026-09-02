@@ -169,6 +169,7 @@ public struct LessonBuilderGroupData()
     public LessonGroups Groups = new();
     public SubGroup SubGroup = SubGroup.All;
     public Specialization Specialization = Specialization.All;
+    public Alternative Alternative = Alternative.All;
 }
 public struct LessonBuilderGeneralData()
 {
@@ -304,6 +305,10 @@ public static class LessonBuilderHelper
         public void Specialization(Specialization specialization)
         {
             b.Model.Base.Group.Specialization = specialization;
+        }
+        public void Alternative(Alternative alternative)
+        {
+            b.Model.Base.Group.Alternative = alternative;
         }
         public void Group(GroupId group, SubGroup? subGroup = null)
         {
@@ -664,7 +669,8 @@ public static class LessonBuilderHelper
         if (whatToDiff.SubGroup)
         {
             if (a.Group.SubGroup != b.Group.SubGroup
-                || a.Group.Specialization != b.Group.Specialization)
+                || a.Group.Specialization != b.Group.Specialization
+                || a.Group.Alternative != b.Group.Alternative)
             {
                 ret.SubGroup = true;
             }

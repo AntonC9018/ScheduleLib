@@ -8,10 +8,11 @@ namespace ScheduleLib;
 /// A null partition is inactive for the group and is omitted from names.
 /// </summary>
 public readonly record struct GroupCombination(
-    Specialization? Specialization,
-    SubGroup? Proficiency,
-    SubGroup? Language,
-    SubGroup? Numeric)
+    Specialization? Specialization = null,
+    SubGroup? Proficiency = null,
+    SubGroup? Language = null,
+    SubGroup? Numeric = null,
+    Alternative? Alternative = null)
 {
     /// <summary>
     /// The subgroup values the combination selects. A lesson's subgroup must be
@@ -35,10 +36,14 @@ public readonly record struct GroupCombination(
 
     /// <summary>
     /// Appends the selected values in the canonical name order:
-    /// specialization-proficiency-language-numeric.
+    /// alternative-specialization-proficiency-language-numeric.
     /// </summary>
     public void AppendFileNamePart(ListStringBuilder lb)
     {
+        if (Alternative is { } a)
+        {
+            lb.Append(a.Value!);
+        }
         if (Specialization is { } s)
         {
             lb.Append(s.Value!);
@@ -68,15 +73,37 @@ public sealed class GroupSplitInfo
     // Two or more observed specializations activate the specialization partition.
     public required ImmutableArray<Specialization> ObservedSpecializations { get; init; }
     public bool SpecializationActive => ObservedSpecializations.Length >= 2;
+    // Same activation rule for the alternative partition.
+    public required ImmutableArray<Alternative> ObservedAlternatives { get; init; }
+    public bool AlternativeActive => ObservedAlternatives.Length >= 2;
     public required ImmutableArray<GroupCombination> Combinations { get; init; }
 
     public bool IncludesLesson(in GroupCombination combination, in LessonData lesson)
     {
+        if (!IncludesAlternative(in combination, in lesson))
+        {
+            return false;
+        }
         if (!IncludesSpecialization(in combination, in lesson))
         {
             return false;
         }
         return IncludesSubGroup(in combination, in lesson);
+    }
+
+    private bool IncludesAlternative(in GroupCombination combination, in LessonData lesson)
+    {
+        if (lesson.Alternative == Alternative.All)
+        {
+            return true;
+        }
+        if (!AlternativeActive)
+        {
+            // Inactive: the annotation behaves as shared for this group.
+            return true;
+        }
+        return combination.Alternative is { } selected
+            && selected == lesson.Alternative;
     }
 
     private bool IncludesSpecialization(in GroupCombination combination, in LessonData lesson)
@@ -127,6 +154,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
         var languages = new Dictionary<GroupId, HashSet<SubGroup>>();
         var hasBeginners = new HashSet<GroupId>();
         var specializations = new Dictionary<GroupId, HashSet<Specialization>>();
+        var alternatives = new Dictionary<GroupId, HashSet<Alternative>>();
         var groupModels = new Dictionary<GroupId, Group>();
 
         foreach (var g in schedule.EnumerateGroups())
@@ -135,6 +163,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
             numeric[g.Id] = [];
             languages[g.Id] = [];
             specializations[g.Id] = [];
+            alternatives[g.Id] = [];
         }
 
         foreach (var l in schedule.EnumerateAllLessons())
@@ -162,6 +191,10 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
                 {
                     specializations[groupId].Add(splitKey.Specialization);
                 }
+                if (splitKey.Alternative != Alternative.All)
+                {
+                    alternatives[groupId].Add(splitKey.Alternative);
+                }
             }
         }
 
@@ -185,6 +218,15 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
                     .OrderBy(x => x.Value, StringComparer.Ordinal)
                     .ToArray();
 
+            var observedAlts = alternatives[groupId];
+            // The alternative partition follows the same activation rule: a single
+            // observed alternative behaves as shared and creates no combinations.
+            var altValues = observedAlts.Count < 2
+                ? []
+                : observedAlts
+                    .OrderBy(x => x.Value, StringComparer.Ordinal)
+                    .ToArray();
+
             var langs = languages[groupId]
                 .OrderBy(x => x.Value, StringComparer.Ordinal)
                 .ToArray();
@@ -197,15 +239,18 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
                 : [];
 
             var combinations = ImmutableArray.CreateBuilder<GroupCombination>();
-            foreach (var spec in OneOrNone(specValues))
+            foreach (var alt in OneOrNone(altValues))
             {
-                foreach (var num in OneOrNone(nums))
+                foreach (var spec in OneOrNone(specValues))
                 {
-                    foreach (var proficiency in OneOrNone(profValues))
+                    foreach (var num in OneOrNone(nums))
                     {
-                        foreach (var language in OneOrNone(langs))
+                        foreach (var proficiency in OneOrNone(profValues))
                         {
-                            combinations.Add(new(spec, proficiency, language, num));
+                            foreach (var language in OneOrNone(langs))
+                            {
+                                combinations.Add(new(spec, proficiency, language, num, alt));
+                            }
                         }
                     }
                 }
@@ -221,6 +266,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
             ret[groupId] = new()
             {
                 ObservedSpecializations = [.. observedSpecs.OrderBy(x => x.Value, StringComparer.Ordinal)],
+                ObservedAlternatives = [.. observedAlts.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 Combinations = combinations.ToImmutable(),
             };
         }

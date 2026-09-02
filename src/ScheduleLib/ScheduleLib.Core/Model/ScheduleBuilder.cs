@@ -167,6 +167,7 @@ public static partial class ScheduleBuilderHelper
                     Groups = x.Group.Groups.Ordered(),
                     SubGroup = x.Group.SubGroup,
                     Specialization = x.Group.Specialization,
+                    Alternative = x.Group.Alternative,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
                     Teachers = [.. x.General.Teachers],
