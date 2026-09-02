@@ -69,6 +69,9 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                         Specializations = combination.Specialization is { } spec
                             ? [spec]
                             : [],
+                        Alternatives = combination.Alternative is { } alternative
+                            ? [alternative]
+                            : [],
                     };
                     GenerateGroupPdf(g, fileName, combinationFilter);
                 }

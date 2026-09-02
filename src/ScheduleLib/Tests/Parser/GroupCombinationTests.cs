@@ -33,6 +33,7 @@ public sealed class GroupCombinationTests
         string groupName,
         string? subGroup = null,
         string? specialization = null,
+        string? alternative = null,
         string courseName = "Course")
     {
         var lesson = s.RegularLesson();
@@ -47,6 +48,10 @@ public sealed class GroupCombinationTests
         if (specialization is { } spec)
         {
             lesson.Specialization(new(spec));
+        }
+        if (alternative is { } alt)
+        {
+            lesson.Alternative(new(alt));
         }
     }
 
@@ -234,6 +239,117 @@ public sealed class GroupCombinationTests
         // The numeric lesson matches both combinations.
         var numericLesson = GetLessonBySubGroup(schedule, "I");
         Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, numericLesson.Lesson)));
+    }
+
+    [Fact]
+    public void AlternativesJoinTheCartesianProductWhenSeveralAreObserved()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I", alternative: "A1", courseName: "C1");
+            AddLesson(s, "IA2401", subGroup: "II", alternative: "A2", courseName: "C2");
+        });
+
+        var info = schedule.GetGroupSplitInfo().Single().Value;
+
+        Assert.True(info.AlternativeActive);
+        Assert.Equal(["A1-I", "A1-II", "A2-I", "A2-II"], info.Combinations.Select(NameOf));
+    }
+
+    [Fact]
+    public void SingletonAlternativeIsSharedForItsGroup()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I");
+            AddLesson(s, "IA2401", subGroup: "II");
+            AddLesson(s, "IA2401", alternative: "Psihologie", courseName: "Elective");
+        });
+
+        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var elective = schedule.EnumerateAllLessons()
+            .Single(x => x.Lesson.Alternative == new Alternative("Psihologie"));
+
+        Assert.False(info.AlternativeActive);
+        Assert.Equal(["I", "II"], info.Combinations.Select(NameOf));
+        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, elective.Lesson)));
+    }
+
+    [Fact]
+    public void ActiveAlternativeExcludesOtherAlternativesLessons()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric");
+            AddLesson(s, "IA2401", alternative: "A1", courseName: "Elective A1");
+            AddLesson(s, "IA2401", alternative: "A2", courseName: "Elective A2");
+        });
+
+        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var a1Lesson = schedule.EnumerateAllLessons()
+            .Single(x => x.Lesson.Alternative == new Alternative("A1"));
+        var a2Lesson = schedule.EnumerateAllLessons()
+            .Single(x => x.Lesson.Alternative == new Alternative("A2"));
+        var numericLesson = GetLessonBySubGroup(schedule, "I");
+
+        Assert.Equal(["A1-I", "A2-I"], info.Combinations.Select(NameOf));
+
+        var a1Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A1"));
+        var a2Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A2"));
+        Assert.True(info.IncludesLesson(a1Combination, a1Lesson.Lesson));
+        Assert.False(info.IncludesLesson(a2Combination, a1Lesson.Lesson));
+        Assert.True(info.IncludesLesson(a2Combination, a2Lesson.Lesson));
+
+        // The numeric lesson matches both combinations.
+        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, numericLesson.Lesson)));
+    }
+
+    [Fact]
+    public void AlternativeFilterSelectsOnlyMatchingLessons()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", courseName: "Shared");
+            AddLesson(s, "IA2401", alternative: "A1", courseName: "Elective A1");
+            AddLesson(s, "IA2401", alternative: "A2", courseName: "Elective A2");
+        });
+        var group = AddAndReturnGroup(schedule, "IA2401");
+
+        var filtered = schedule.Filter(new()
+        {
+            GroupFilter = new()
+            {
+                OneOfGroupIds = [group.Id],
+                Alternatives = [new Alternative("A1")],
+            },
+        });
+
+        var courseNames = filtered.EnumerateLessons()
+            .Select(x => schedule.Get(x.Lesson.Course).FullName)
+            .OrderBy(x => x)
+            .ToArray();
+        Assert.True(new[] { "Elective A1", "Shared" }.SequenceEqual(courseNames));
+    }
+
+    [Fact]
+    public async Task SerializationRoundTripsTheAlternative()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", alternative: "Psihologie", courseName: "Elective");
+        });
+
+        using var stream = new MemoryStream();
+        await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+        stream.Position = 0;
+        var model = await ScheduleSerializer.Deserialize(stream, CancellationToken.None);
+
+        var builder = CreateBuilder();
+        ScheduleSerializer.AddToBuilder(builder, model);
+        var rebuilt = builder.Build();
+
+        var lesson = Assert.Single(rebuilt.EnumerateAllLessons());
+        Assert.Equal(new Alternative("Psihologie"), lesson.Lesson.Alternative);
     }
 
     [Fact]
