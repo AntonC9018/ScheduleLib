@@ -5,7 +5,7 @@ namespace ScheduleLib.Builders;
 public static partial class ScheduleBuilderHelper
 {
     /// <summary>
-    /// Moves known specialization labels out of the subgroup field into the specialization field.
+    /// Moves registered specialization labels out of the subgroup field into the specialization field.
     /// Raw sources and remapped aliases both store their label in the subgroup field during parsing;
     /// only here, once the lesson groups are known, does the value get classified.
     /// </summary>
@@ -29,8 +29,10 @@ public static partial class ScheduleBuilderHelper
                 return;
             }
             var remapped = remappings.Remap(group.SubGroup);
-            if (!Specializations.TryFromValue(remapped.Value, out var specialization))
+            if (!s.TryGetSpecialization(remapped, out var specialization))
             {
+                group.SubGroup = remapped;
+                lesson.Base.Group = group;
                 return;
             }
             if (group.Specialization != Specialization.All
@@ -43,6 +45,28 @@ public static partial class ScheduleBuilderHelper
             group.SubGroup = SubGroup.All;
             lesson.Base.Group = group;
         }
+    }
+
+    /// <summary>
+    /// Resolves a raw label using the built-in values and the configured registry.
+    /// The registry supports future values without making them enum members.
+    /// </summary>
+    public static bool TryGetSpecialization(
+        this ScheduleBuilder s,
+        SubGroup label,
+        out Specialization specialization)
+    {
+        if (Specializations.TryFromValue(label.Value, out specialization))
+        {
+            return true;
+        }
+        if (s.SpecializationRegistry is { } registry
+            && registry.TryFromValue(label.Value, out specialization))
+        {
+            return true;
+        }
+        specialization = default;
+        return false;
     }
 
     /// <summary>
@@ -104,19 +128,11 @@ public static partial class ScheduleBuilderHelper
                     + "One stored subgroup value could not represent both meanings.");
             }
 
-            bool alreadyNormalized = false;
             foreach (var g in lesson.Base.Group.Groups)
             {
                 coveredSplits.Add((g, course));
-                if (normalizedSplits.Contains((g, course)))
-                {
-                    alreadyNormalized = true;
-                }
             }
-            if (!alreadyNormalized)
-            {
-                counterparts.Add(lesson);
-            }
+            counterparts.Add(lesson);
         }
 
         foreach (var (group, course) in beginnerSplits)

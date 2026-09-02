@@ -70,20 +70,21 @@ public sealed class GroupsNavigator
     private readonly OnlineRegistryNavigator _navigator;
     private readonly Schedule _schedule;
     private readonly GroupParseContext _groupParseContext;
-    private readonly SubGroupsByGroup _subGroupsMap;
     private readonly SubGroupNameRemapper _remapper;
+    private readonly SpecializationRegistry _specializationRegistry;
 
     public GroupsNavigator(
         OnlineRegistryNavigator navigator,
         Schedule schedule,
         GroupParseContext groupParseContext,
-        SubGroupNameRemapper remapper)
+        SubGroupNameRemapper remapper,
+        SpecializationRegistry specializationRegistry)
     {
         _navigator = navigator;
         _schedule = schedule;
         _groupParseContext = groupParseContext;
         _remapper = remapper;
-        _subGroupsMap = _schedule.SubGroupsByGroup();
+        _specializationRegistry = specializationRegistry;
     }
 
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
@@ -93,10 +94,11 @@ public sealed class GroupsNavigator
         {
             Document = doc,
             GroupParseContext = _groupParseContext,
+            SpecializationRegistry = _specializationRegistry,
             SearchGroupId = (ref GroupForSearch group) =>
             {
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
-                var ids = FindGroupMatch(_schedule, _subGroupsMap, group);
+                var ids = FindGroupMatch(_schedule, group);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
@@ -112,7 +114,6 @@ public sealed class GroupsNavigator
 
     internal static LessonGroups FindGroupMatch(
         Schedule schedule,
-        SubGroupsByGroup subGroupsMap,
         in GroupForSearch g)
     {
         var ret = new LessonGroups();
@@ -120,13 +121,6 @@ public sealed class GroupsNavigator
         // var subGroup = HtmlSearch.SubGroupFromString(g);
         foreach (var g1 in schedule.EnumerateGroups())
         {
-            // if (subGroup != SubGroup.All)
-            // {
-            //     if (!subGroupsMap[g1.Id].Contains(subGroup))
-            //     {
-            //         continue;
-            //     }
-            // }
             if (IsMatch(g1.Item, g))
             {
                 ret.Add(g1.Id);
@@ -289,18 +283,18 @@ public static partial class RegistryScraping
 public record struct StudentsLookupKey
 {
     public LessonGroups Groups;
-    public SubGroup SubGroup;
+    public GroupSplitKey GroupSplit;
     public CourseId CourseId;
     public LessonType LessonType;
 
     public StudentsLookupKey(
         in LessonGroups groups,
-        SubGroup subGroup,
+        GroupSplitKey groupSplit,
         CourseId courseId,
         LessonType lessonType)
     {
         Groups = groups;
-        SubGroup = subGroup;
+        GroupSplit = groupSplit;
         CourseId = courseId;
         LessonType = lessonType;
     }
@@ -317,7 +311,7 @@ public record struct StudentsLookupKey
 public readonly record struct AttendanceLookupKey
 {
     public readonly FoundGroups Groups;
-    public readonly SubGroup SubGroup;
+    public readonly GroupSplitKey GroupSplit;
     public readonly CourseId CourseId;
     public LessonType LessonType { get; init; }
 
@@ -327,14 +321,14 @@ public readonly record struct AttendanceLookupKey
 
     public AttendanceLookupKey(
         in FoundGroups groups,
-        SubGroup subGroup,
+        GroupSplitKey groupSplit,
         CourseId courseId,
         LessonType lessonType,
         int dayIndex,
         DateTime dateTime)
     {
         Groups = groups;
-        SubGroup = subGroup;
+        GroupSplit = groupSplit;
         CourseId = courseId;
         LessonType = lessonType;
         DayIndex = dayIndex;

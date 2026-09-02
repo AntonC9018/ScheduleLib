@@ -268,7 +268,7 @@ public static class LessonParsingHelper
         IEnumerable<ParsedLesson> DoOutput()
         {
             ref var state = ref stateStack.First();
-            var allDefaultIndex = state.DefaultModifiers.FindIndex(SubGroup.All);
+            var allDefaultIndex = state.DefaultModifiers.FindIndex(default);
             DefaultModifiersValue allDefaults;
             if (allDefaultIndex != -1)
             {
@@ -340,8 +340,9 @@ public static class LessonParsingHelper
                 foreach (var defaultMod in state2.DefaultModifiers)
                 {
                     ref var lesson1 = ref lessonsE.Current;
-                    if (defaultMod.SubGroup == SubGroup.All
-                        && !lesson1.Modifiers.IsEmpty)
+                    if (defaultMod.SubGroup.IsEmpty
+                        && (defaultHasOtherThanAllSubGroup
+                            || !lesson1.Modifiers.IsEmpty))
                     {
                         continue;
                     }
@@ -372,7 +373,7 @@ public static class LessonParsingHelper
                         && state3.DefaultModifiers.IsEmpty)
                     {
                         yield return Output(
-                            SubGroup.All,
+                            default,
                             allFallback,
                             lesson1.LessonName);
                     }
@@ -380,7 +381,7 @@ public static class LessonParsingHelper
             }
 
             ParsedLesson Output(
-                SubGroup subGroup,
+                ReadOnlyMemory<char> subGroup,
                 in DefaultModifiersValue v,
                 ReadOnlyMemory<char> lessonName)
             {
@@ -396,7 +397,7 @@ public static class LessonParsingHelper
                     StartTime = state.CommonLesson.StartTime,
                     LessonType = v.General.LessonType,
                     Parity = v.General.Parity,
-                    SubGroup = subGroup.Value.AsMemory(),
+                    SubGroup = subGroup,
                     GroupName = v.General.GroupName,
                     TeacherNames = l,
                     RoomName = v.Specific.RoomName,
@@ -528,7 +529,7 @@ public static class LessonParsingHelper
                     break;
                 }
 
-                var unparsedModifiers = new List<(LimitedLexerScope Lexer, SubGroup SubGroup)>();
+                var unparsedModifiers = new List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)>();
                 foreach (var l in c.Lexer.List())
                 {
                     var lexer = l;
@@ -543,16 +544,16 @@ public static class LessonParsingHelper
                 var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
                     unparsedModifiers,
                     c);
-                if (defaultSubGroup != default)
+                if (!defaultSubGroup.IsEmpty)
                 {
                     c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(defaultSubGroup);
                 }
 
-                static SubGroup DetermineDefaultSubGroupByParsingSbShortForm(
-                    List<(LimitedLexerScope Lexer, SubGroup SubGroup)> unparsedModifiers,
+                static ReadOnlyMemory<char> DetermineDefaultSubGroupByParsingSbShortForm(
+                    List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)> unparsedModifiers,
                     ParsingContext c)
                 {
-                    SubGroup defaultSubGroup = default;
+                    ReadOnlyMemory<char> defaultSubGroup = default;
                     int i = 0;
                     while (true)
                     {
@@ -562,8 +563,8 @@ public static class LessonParsingHelper
                         }
 
                         ref var l = ref CollectionsMarshal.AsSpan(unparsedModifiers)[i];
-                        var subGroup = ShortSbModifierForm(ref l.Lexer);
-                        if (subGroup == default)
+                        var subGroup = DefaultSubGroupForm(ref l.Lexer);
+                        if (subGroup.IsEmpty)
                         {
                             i++;
                             continue;
@@ -585,7 +586,7 @@ public static class LessonParsingHelper
                         {
                             throw new WrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
                         }
-                        if (defaultSubGroup != default)
+                        if (!defaultSubGroup.IsEmpty)
                         {
                             throw new WrongFormatException("Cannot specify the subgrou inside the modifier list twice");
                         }
@@ -606,7 +607,7 @@ public static class LessonParsingHelper
                     // OR
                     // sb NUMBER modifier
                     SubLessonModifiersKey key;
-                    if (t.SubGroup != default)
+                    if (!t.SubGroup.IsEmpty)
                     {
                         key = new()
                         {
@@ -728,22 +729,46 @@ public static class LessonParsingHelper
                             lexer.Move();
                             return new()
                             {
-                                SubGroup = dashed,
+                                SubGroup = dashed.Value.AsMemory(),
                             };
                         }
 
-                        var subGroup = new SubGroup(token.Value.Span.ToString());
                         LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
                         return new()
                         {
-                            SubGroup = subGroup,
+                            SubGroup = token.Value,
                         };
                     }
                 }
 
-                // sb.1 MODIFIER form
-                static SubGroup ShortSbModifierForm(ref LimitedLexerScope lexer)
+                // A standalone subgroup label in a modifier list. The sb.1 form
+                // is normalized to Roman numerals, while UI-1 and UI-2 retain
+                // their exact configured legacy spelling.
+                static ReadOnlyMemory<char> DefaultSubGroupForm(ref LimitedLexerScope lexer)
                 {
+                    var dashed = lexer;
+                    if (dashed.Current.Type == LessonTokenType.Word)
+                    {
+                        var dashedWord = dashed.Current.Value;
+                        dashed.Move();
+                        if (!dashed.IsEmpty
+                            && dashed.Current.Is('-'))
+                        {
+                            dashed.Move();
+                            if (!dashed.IsEmpty
+                                && dashed.Current.Type == LessonTokenType.Number
+                                && LessonParsingHelper.TryGetExactDashedLegacySubGroup(
+                                    dashedWord.Span,
+                                    dashed.Current.Value.Span,
+                                    out var dashedSubGroup))
+                            {
+                                dashed.Move();
+                                lexer = dashed;
+                                return dashedSubGroup.Value.AsMemory();
+                            }
+                        }
+                    }
+
                     var sbToken = lexer.Current;
                     if (!sbToken.IsAnyWord())
                     {
@@ -783,8 +808,7 @@ public static class LessonParsingHelper
                     }
                     lexer.Move();
                     var number = tokNum.Value.Span[0] - '0';
-                    var subGroup = SubGroup.CreateNumeric(number);
-                    return subGroup;
+                    return SubGroup.CreateNumeric(number).Value.AsMemory();
                 }
 
                 static bool IsParsingInsideSubgroupAlready(ParsingContext c)
@@ -822,6 +846,7 @@ public static class LessonParsingHelper
                     {
                         WrongFormatException.InvalidToken(t);
                     }
+                    LessonParsingHelper.RejectExplicitNonBeginners(t.Value.Span);
 
                     if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
                     {
@@ -902,8 +927,7 @@ public static class LessonParsingHelper
                     .Until(subGroupEndPos)
                     .Concat(sb);
                 LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
-                var subgroup = new SubGroup(subGroupStr.ToString());
-                c.State.SetDefaultModifier(subgroup);
+                c.State.SetDefaultModifier(subGroupStr);
 
                 c.Lexer.MoveTo(lexer.Position);
 
@@ -1043,7 +1067,7 @@ public static class LessonParsingHelper
                     }
                     // Maybe should check how it was added and give an error if it was
                     // added through "subgroup:" rather than "subgroup-modifier" syntax.
-                    c.State.SetDefaultModifier(SubGroup.All);
+                    c.State.SetDefaultModifier(default);
                     c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                 }
             }
@@ -1144,7 +1168,7 @@ public static class LessonParsingHelper
 
                     if (c.State.LastModiferIndex == -1)
                     {
-                        c.State.SetDefaultModifier(SubGroup.All);
+                        c.State.SetDefaultModifier(default);
                     }
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
                     teacher = result;
@@ -1942,16 +1966,16 @@ internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
         {
             return true;
         }
-        return Ref(0).SubGroup != SubGroup.All;
+        return !Ref(0).SubGroup.IsEmpty;
     }
 
-    public int FindIndex(SubGroup subGroup)
+    public int FindIndex(ReadOnlyMemory<char> subGroup)
     {
         var mods = _list.Items;
         for (int i = 0; i < mods.Length; i++)
         {
             ref var it = ref mods[i];
-            if (it.SubGroup == subGroup)
+            if (it.SubGroup.Span.SequenceEqual(subGroup.Span))
             {
                 return i;
             }
@@ -1959,7 +1983,7 @@ internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
         return -1;
     }
 
-    public int FindOrAdd(SubGroup subGroup)
+    public int FindOrAdd(ReadOnlyMemory<char> subGroup)
     {
         int index = FindIndex(subGroup);
         if (index != -1)
@@ -2193,7 +2217,7 @@ internal struct DefaultModifiersValue() : IBasic<DefaultModifiersValue>
 internal struct DefaultModifiers() : IBasic<DefaultModifiers>
 {
     public DefaultModifiersValue Value = new();
-    public SubGroup SubGroup { get; set; }
+    public ReadOnlyMemory<char> SubGroup { get; set; }
 
     [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
     [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
@@ -2207,15 +2231,53 @@ internal struct DefaultModifiers() : IBasic<DefaultModifiers>
     public void Clear()
     {
         Value.Clear();
-        SubGroup = SubGroup.All;
+        SubGroup = default;
     }
 }
 
-internal readonly record struct SubLessonModifiersKey()
+internal readonly struct SubLessonModifiersKey : IEquatable<SubLessonModifiersKey>
 {
     public static SubLessonModifiersKey Default => new();
-    public SubGroup SubGroup { get; init; } = SubGroup.All;
-    public LessonType LessonType { get; init; } = LessonType.Unspecified;
+    public ReadOnlyMemory<char> SubGroup { get; init; }
+    public LessonType LessonType { get; init; }
+
+    public SubLessonModifiersKey()
+    {
+        SubGroup = default;
+        LessonType = LessonType.Unspecified;
+    }
+
+    public bool Equals(SubLessonModifiersKey other)
+    {
+        return LessonType == other.LessonType
+            && SubGroup.Span.SequenceEqual(other.SubGroup.Span);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is SubLessonModifiersKey other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add((int) LessonType);
+        foreach (var ch in SubGroup.Span)
+        {
+            hash.Add(ch);
+        }
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(SubLessonModifiersKey left, SubLessonModifiersKey right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(SubLessonModifiersKey left, SubLessonModifiersKey right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 internal struct SubLessonModifiers() : IBasic<SubLessonModifiers>
@@ -2425,7 +2487,7 @@ internal struct ParsingState() : IBasic<ParsingState>
         }
     }
 
-    public void SetDefaultModifier(SubGroup subGroup)
+    public void SetDefaultModifier(ReadOnlyMemory<char> subGroup)
     {
         LastModiferIndex = DefaultModifiers.FindOrAdd(subGroup);
     }

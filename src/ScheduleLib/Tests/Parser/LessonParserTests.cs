@@ -844,12 +844,12 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("NameOne", l1.LessonName.Span);
-                Assert.Equal(new SubGroup("S21"), l1.SubGroup);
+                Assert.Equal("S21", l1.SubGroup.Span);
             },
             l2 =>
             {
                 Assert.Equal("NameTwo", l2.LessonName.Span);
-                Assert.Equal(new SubGroup("S1"), l2.SubGroup);
+                Assert.Equal("S1", l2.SubGroup.Span);
             });
     }
 
@@ -1058,16 +1058,18 @@ public sealed class LessonParserTests
 
     }
 
-    [Fact]
-    public void DashedLegacySubGroupsParseAsRawLabels()
+    [Theory]
+    [InlineData("UI-1")]
+    [InlineData("UI-2")]
+    public void DashedLegacySubGroupsParseAsRawLabels(string subGroup)
     {
         var lessons = ParseLessons([
-            "8:00 Limba engleza (UI-1)",
+            $"8:00 Limba engleza ({subGroup})",
             "T. Teacher 214/4",
         ]);
 
         var lesson = Assert.Single(lessons);
-        Assert.Equal("UI-1", lesson.SubGroup.Span.ToString());
+        Assert.Equal(subGroup, lesson.SubGroup.Span.ToString());
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using System.Text;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;
 
@@ -9,13 +10,15 @@ public sealed class GroupCombinationTests
 {
     private static ScheduleBuilder CreateBuilder()
     {
-        return new ScheduleBuilder
+        var builder = new ScheduleBuilder
         {
             GroupParseContext = GroupParseContext.Create(new()
             {
                 CurrentStudyYear = 2025,
             }),
         };
+        builder.EnableLookupModule();
+        return builder;
     }
 
     private static Schedule Build(Action<ScheduleBuilder> configure)
@@ -132,6 +135,78 @@ public sealed class GroupCombinationTests
         Assert.False(info.SpecializationActive);
         Assert.Equal(["I", "II"], info.Combinations.Select(NameOf));
         Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, springLesson.Lesson)));
+    }
+
+    [Fact]
+    public void SharedSpringIsSharedForFacultyIAndRestrictedForFacultyIA()
+    {
+        var builder = CreateBuilder();
+        var iGroup = builder.Group("I2401").Id;
+        var iaGroup = builder.Group("IA2401").Id;
+
+        AddLesson(builder, "I2401", subGroup: "I");
+        AddLesson(builder, "I2401", subGroup: "II");
+        AddLesson(builder, "IA2401", subGroup: "I");
+        AddLesson(builder, "IA2401", subGroup: "II");
+        AddLesson(builder, "IA2401", specialization: "React");
+        AddLesson(builder, "IA2401", specialization: "GA3D");
+        AddLesson(builder, "IA2401", specialization: "DJ");
+
+        var sharedCourse = builder.Course("Development of Enterprise Applications");
+        var sharedSpring = builder.RegularLesson();
+        sharedSpring.Course(sharedCourse);
+        sharedSpring.Groups([iGroup, iaGroup]);
+        sharedSpring.TimeSlot(new(0));
+        sharedSpring.DayOfWeek(DayOfWeek.Monday);
+        sharedSpring.Specialization(Specializations.Spring);
+
+        var schedule = builder.Build();
+        var iInfo = schedule.GetGroupSplitInfo()[iGroup];
+        var iaInfo = schedule.GetGroupSplitInfo()[iaGroup];
+        var sharedLesson = schedule.EnumerateAllLessons()
+            .Single(x => x.Lesson.Course == sharedCourse);
+
+        Assert.False(iInfo.SpecializationActive);
+        Assert.All(iInfo.Combinations, c => Assert.True(iInfo.IncludesLesson(c, sharedLesson.Lesson)));
+
+        var spring = iaInfo.Combinations.Single(c => c.Specialization == Specializations.Spring
+            && c.Numeric == SubGroup.CreateNumeric(1));
+        var react = iaInfo.Combinations.Single(c => c.Specialization == Specializations.React
+            && c.Numeric == SubGroup.CreateNumeric(1));
+        Assert.True(iaInfo.IncludesLesson(spring, sharedLesson.Lesson));
+        Assert.False(iaInfo.IncludesLesson(react, sharedLesson.Lesson));
+
+        var iFiltered = schedule.Filter(new()
+        {
+            GroupFilter = new()
+            {
+                OneOfGroupIds = [iGroup],
+                SubGroups = [SubGroup.CreateNumeric(1)],
+                Specializations = [],
+            },
+        });
+        var iaFiltered = schedule.Filter(new()
+        {
+            GroupFilter = new()
+            {
+                OneOfGroupIds = [iaGroup],
+                SubGroups = [SubGroup.CreateNumeric(1)],
+                Specializations = [Specializations.React],
+            },
+        });
+        Assert.Contains(sharedLesson.Id, iFiltered.Lessons);
+        Assert.DoesNotContain(sharedLesson.Id, iaFiltered.Lessons);
+
+        var multiGroupFiltered = schedule.Filter(new()
+        {
+            GroupFilter = new()
+            {
+                OneOfGroupIds = [iGroup, iaGroup],
+                SubGroups = [SubGroup.CreateNumeric(1)],
+                Specializations = [Specializations.React],
+            },
+        });
+        Assert.Contains(sharedLesson.Id, multiGroupFiltered.Lessons);
     }
 
     [Fact]
@@ -274,9 +349,128 @@ public sealed class GroupCombinationTests
             Language = Language.Ro,
         };
 
-        Assert.Equal([Specializations.CV, Specializations.DJ], registry.PermittedFor(in both));
-        Assert.Equal([Specializations.CV], registry.PermittedFor(in otherFaculty));
-        Assert.Empty(registry.PermittedFor(in otherGrade));
+        Assert.True(new[] { Specializations.CV, Specializations.DJ }
+            .SequenceEqual(registry.PermittedFor(in both)));
+        Assert.True(new[] { Specializations.CV }
+            .SequenceEqual(registry.PermittedFor(in otherFaculty)));
+        Assert.True(new[] { Specializations.DJ }
+            .SequenceEqual(registry.PermittedFor(in otherGrade)));
+    }
+
+    [Fact]
+    public void DefaultRegistryUsesTheIAFirstYearDualSelector()
+    {
+        var dual = new Group
+        {
+            Name = "IA2501 Dual",
+            Grade = new(1),
+            GroupNumber = 1,
+            QualificationType = QualificationType.Licenta,
+            Faculty = new("IA"),
+            AttendanceMode = AttendanceMode.Dual,
+            Language = Language.Ro,
+        };
+
+        var permitted = SpecializationRegistryHelper.CreateDefault().PermittedFor(in dual);
+
+        Assert.True(new[] { Specializations.AlgoritmicaGrafurilor, Specializations.Logica }
+            .SequenceEqual(permitted));
+    }
+
+    [Fact]
+    public void RemappingsRunBeforeSpecializationCombinationDiscovery()
+    {
+        var builder = CreateBuilder();
+        Config.ConfigureRemappings(builder.Remappings);
+        AddLesson(builder, "IA2401", subGroup: "AG");
+        AddLesson(builder, "IA2401", subGroup: "GR");
+        AddLesson(builder, "IA2401", subGroup: "Node");
+
+        var schedule = builder.Build();
+        var info = schedule.GetGroupSplitInfo().Single().Value;
+
+        Assert.True(info.SpecializationActive);
+        Assert.Equal(
+            ["Algoritmica Grafurilor", "GA2D", "UI"],
+            info.ObservedSpecializations
+                .Select(x => x.Value)
+                .OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(
+            ["Algoritmica Grafurilor", "GA2D", "UI"],
+            info.Combinations
+                .Select(NameOf));
+    }
+
+    [Fact]
+    public void FilterCombinesSharedNumericAndSpecializationLessons()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", courseName: "Shared");
+            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric I");
+            AddLesson(s, "IA2401", subGroup: "II", courseName: "Numeric II");
+            AddLesson(s, "IA2401", specialization: "CV", courseName: "CV");
+            AddLesson(s, "IA2401", specialization: "DJ", courseName: "DJ");
+        });
+        var group = AddAndReturnGroup(schedule, "IA2401");
+
+        var filtered = schedule.Filter(new()
+        {
+            GroupFilter = new()
+            {
+                OneOfGroupIds = [group.Id],
+                SubGroups = [SubGroup.CreateNumeric(1)],
+                Specializations = [Specializations.CV],
+            },
+        });
+
+        var courseNames = filtered.EnumerateLessons()
+            .Select(x => schedule.Get(x.Lesson.Course).FullName)
+            .OrderBy(x => x)
+            .ToArray();
+        Assert.True(new[] { "CV", "Numeric I", "Shared" }.SequenceEqual(courseNames));
+    }
+
+    [Fact]
+    public void CombinationIncludesItsSelectedDimensionsAndExcludesConflicts()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", courseName: "Shared");
+            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric I");
+            AddLesson(s, "IA2401", subGroup: "II", courseName: "Numeric II");
+            AddLesson(s, "IA2401", subGroup: "ro", courseName: "Romanian");
+            AddLesson(s, "IA2401", subGroup: "ru", courseName: "Russian");
+            AddLesson(s, "IA2401", subGroup: "începători", courseName: "Language");
+            AddLesson(s, "IA2401", courseName: "Language");
+            AddLesson(s, "IA2401", specialization: "CV", courseName: "CV");
+            AddLesson(s, "IA2401", specialization: "DJ", courseName: "DJ");
+        });
+
+        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var combination = info.Combinations.Single(c => c.Specialization == Specializations.CV
+            && c.Proficiency == SpecialSubGroups.Beginners
+            && c.Language == SpecialSubGroups.Ro
+            && c.Numeric == SubGroup.CreateNumeric(1));
+
+        Assert.True(info.IncludesLesson(combination, Lesson("Shared")));
+        Assert.True(info.IncludesLesson(combination, Lesson("Numeric I")));
+        Assert.True(info.IncludesLesson(combination, Lesson("Romanian")));
+        Assert.True(info.IncludesLesson(combination, Lesson("Language", SpecialSubGroups.Beginners)));
+        Assert.True(info.IncludesLesson(combination, Lesson("CV")));
+
+        Assert.False(info.IncludesLesson(combination, Lesson("Numeric II")));
+        Assert.False(info.IncludesLesson(combination, Lesson("Russian")));
+        Assert.False(info.IncludesLesson(combination, Lesson("Language", SpecialSubGroups.NonBeginners)));
+        Assert.False(info.IncludesLesson(combination, Lesson("DJ")));
+
+        LessonData Lesson(string courseName, SubGroup? subGroup = null)
+        {
+            return schedule.EnumerateAllLessons()
+                .Single(x => schedule.Get(x.Lesson.Course).FullName == courseName
+                    && (subGroup is null || x.Lesson.SubGroup == subGroup))
+                .Lesson;
+        }
     }
 
     [Fact]

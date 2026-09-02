@@ -7,16 +7,16 @@ public readonly record struct LessonSearchFilter
 {
     public readonly CourseId CourseId;
     public readonly FoundGroups Groups;
-    public SubGroup SubGroup { get; init; }
+    public GroupSplitKey GroupSplit { get; init; }
 
     public LessonSearchFilter(
         CourseId courseId,
         FoundGroups groups,
-        SubGroup subGroup)
+        GroupSplitKey groupSplit)
     {
         CourseId = courseId;
         Groups = groups;
-        SubGroup = subGroup;
+        GroupSplit = groupSplit;
     }
 }
 
@@ -43,7 +43,7 @@ internal static class MatchLessonHelper
     {
         {
             bool yielded = false;
-            foreach (var x in MatchLessonsImpl(p, p.Filter.SubGroup))
+            foreach (var x in MatchLessonsImpl(p, p.Filter.GroupSplit))
             {
                 yield return x;
                 yielded = true;
@@ -55,12 +55,12 @@ internal static class MatchLessonHelper
         }
 
         {
-            var subGroup = p.Filter.SubGroup;
-            if (p.Filter.SubGroup != SubGroup.All)
+            var groupSplit = p.Filter.GroupSplit;
+            if (groupSplit != GroupSplitKey.All)
             {
-                subGroup = SpecialSubGroups.Optional;
+                groupSplit = new(SpecialSubGroups.Optional, Specialization.All);
             }
-            foreach (var x in MatchLessonsImpl(p, subGroup))
+            foreach (var x in MatchLessonsImpl(p, groupSplit))
             {
                 yield return x;
             }
@@ -69,13 +69,13 @@ internal static class MatchLessonHelper
 
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
         LessonMatchParams p,
-        SubGroup subGroup)
+        GroupSplitKey groupSplit)
     {
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
-            if (lesson.Lesson.SubGroup != subGroup)
+            if (lesson.Lesson.GroupSplitKey != groupSplit)
             {
                 continue;
             }

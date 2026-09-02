@@ -726,6 +726,19 @@ public readonly record struct Specialization
     }
 
     public static Specialization All => new(null!);
+    // Keep the known values available on the value type as well as through
+    // Specializations for call sites that want the domain name.
+    public static Specialization AG => Specializations.AG;
+    public static Specialization AlgoritmicaGrafurilor => Specializations.AlgoritmicaGrafurilor;
+    public static Specialization CV => Specializations.CV;
+    public static Specialization DJ => Specializations.DJ;
+    public static Specialization GA2D => Specializations.GA2D;
+    public static Specialization GA3D => Specializations.GA3D;
+    public static Specialization Logica => Specializations.Logica;
+    public static Specialization React => Specializations.React;
+    public static Specialization Spring => Specializations.Spring;
+    public static Specialization SSI => Specializations.SSI;
+    public static Specialization UI => Specializations.UI;
 }
 
 public static class Specializations
