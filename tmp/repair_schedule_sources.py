@@ -77,6 +77,36 @@ def repair_year_two() -> None:
     document.save(path)
 
 
+def repair_year_two_ui_ux_typo() -> None:
+    path = DATA / "Orar_An_II Lic.docx"
+    document = Document(path)
+    typo = "Designul UI/U X(curs)"
+    replacement = "Designul UI/UX (curs)"
+    found = 0
+    for paragraph in all_paragraphs(document):
+        if paragraph.text == typo:
+            replace_whole_paragraph(paragraph, replacement)
+            found += 1
+    canonical_count = sum(
+        paragraph.text == replacement
+        for paragraph in all_paragraphs(document)
+    )
+    if found == 1:
+        if canonical_count != 3:
+            raise RuntimeError(
+                f"Unexpected canonical UI/UX count after repair: {canonical_count}"
+            )
+        document.save(path)
+    elif found == 0:
+        if canonical_count != 3:
+            raise RuntimeError(
+                f"Typo not present, but canonical UI/UX count is {canonical_count} instead of 3"
+            )
+    else:
+        raise RuntimeError(f"Unexpected UI/UX typo occurrence count: {found}")
+
+
 if __name__ == "__main__":
     repair_year_one()
     repair_year_two()
+    repair_year_two_ui_ux_typo()
