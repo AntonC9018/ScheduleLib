@@ -739,6 +739,7 @@ public readonly record struct Specialization
     public static Specialization AlgoritmicaGrafurilor => Specializations.AlgoritmicaGrafurilor;
     public static Specialization CV => Specializations.CV;
     public static Specialization DJ => Specializations.DJ;
+    public static Specialization DezvoltareaAplicatiilor => Specializations.DezvoltareaAplicatiilor;
     public static Specialization GA2D => Specializations.GA2D;
     public static Specialization GA3D => Specializations.GA3D;
     public static Specialization Logica => Specializations.Logica;
@@ -773,6 +774,7 @@ public static class Specializations
         AG,
         AlgoritmicaGrafurilor,
         CV,
+        DezvoltareaAplicatiilor,
         DJ,
         GA2D,
         GA3D,
@@ -787,6 +789,7 @@ public static class Specializations
     public static Specialization AG => new("AG");
     public static Specialization AlgoritmicaGrafurilor => new("Algoritmica Grafurilor");
     public static Specialization CV => new("CV");
+    public static Specialization DezvoltareaAplicatiilor => new("DezvoltareaAplicatiilor");
     public static Specialization DJ => new("DJ");
     public static Specialization GA2D => new("GA2D");
     public static Specialization GA3D => new("GA3D");
@@ -874,7 +877,9 @@ public static class SpecialSubGroups
             builder.Add(new(specialization.Value!));
         }
         builder.AddRange(Legacy);
-        return builder.MoveToImmutable();
+        // MoveToImmutable would only work while the item count happens to equal the
+        // builder capacity, so copy instead.
+        return builder.ToImmutable();
     }
 
     public static bool TryFromNamePrefix(ReadOnlySpan<char> value, out SubGroup subGroup)
