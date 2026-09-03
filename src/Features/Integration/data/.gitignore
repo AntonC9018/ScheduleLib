@@ -9,3 +9,7 @@ schedule_*.json
 # Not sure if this doc is supposed to be public
 teze.xlsx
 theses.xlsx
+
+# Schedule source documents are machine-local imports, not repo content.
+*.docx
+*.xlsx
