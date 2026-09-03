@@ -17,7 +17,7 @@ public static class AppConfiguration
         });
         services.Configure<StudyYearOptions>(x =>
         {
-            x.StudyYear = 2026;
+            x.StudyYear = new(2026);
             x.Semester = Semester.Sem1;
         });
         services.Configure<RegularSeminarDateConfig>(x =>

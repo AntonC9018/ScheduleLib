@@ -133,7 +133,7 @@ public static class Registration
                     return GroupParseContext.Create(new()
                     {
                         GroupLabelsThatAreMaster = ScheduleDefaults.Config.GroupLabelsThatAreMaster,
-                        CurrentStudyYear = options.StudyYear,
+                        CurrentStudyYear = options.StudyYear!.Value,
                     });
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);

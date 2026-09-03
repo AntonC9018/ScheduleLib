@@ -81,7 +81,7 @@ public sealed class IntegrationTest
 
         services.Configure<StudyYearOptions>(x =>
         {
-            x.StudyYear = 2025;
+            x.StudyYear = new(2025);
             x.Semester = Semester.Sem2;
         });
         services.Configure<RegularSeminarDateConfig>(x =>

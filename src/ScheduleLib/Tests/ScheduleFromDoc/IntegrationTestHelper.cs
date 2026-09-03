@@ -55,7 +55,7 @@ public sealed class IntegrationTestHelper : IDisposable
         services.AddLogging();
         services.Configure<StudyYearOptions>(opts =>
         {
-            opts.StudyYear = year;
+            opts.StudyYear = new(year);
             opts.Semester = sem;
         });
         services.Configure<ScheduleBuilderInitializerOptions>(opts =>
