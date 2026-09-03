@@ -65,7 +65,7 @@ public sealed class HtmlTests
         var doc = Load(GroupsHtmlPath);
         var groupParseContext = GroupParseContext.Create(new()
         {
-            CurrentStudyYear = 2025,
+            CurrentStudyYear = new(2025),
         });
 
         List<GroupForSearch> groups = new();
@@ -185,7 +185,7 @@ public sealed class HtmlTests
 
         var schedule = ScheduleBuilder.Create(b =>
         {
-            b.SetStudyYear(25);
+            b.SetStudyYear(2025);
             var courseId = b.Course("My Course");
             var groupId = b.Group("I2501");
             b.RegularLesson(x =>

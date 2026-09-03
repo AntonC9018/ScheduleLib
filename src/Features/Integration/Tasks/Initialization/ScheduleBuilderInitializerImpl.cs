@@ -41,7 +41,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         var opts = _opts.Value;
         if (opts.UseCache)
         {
-            loader.CachedPath = @$"data\schedule_{studyYear.StudyYear}_{studyYear.Semester.AsOrdinal()}.json";
+            loader.CachedPath = @$"data\schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
         }
 
         {

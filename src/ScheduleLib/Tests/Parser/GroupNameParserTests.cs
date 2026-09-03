@@ -6,7 +6,7 @@ public sealed class GroupNameParserTests
 {
     private readonly GroupParseContext _context = GroupParseContext.Create(new()
     {
-        CurrentStudyYear = 2024,
+        CurrentStudyYear = new(2024),
     });
 
     private Group Parse(string s) => _context.Parse(s.AsMemory());

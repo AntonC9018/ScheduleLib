@@ -385,7 +385,7 @@ file sealed class TestContext
         {
             builder.GroupParseContext = GroupParseContext.Create(new()
             {
-                CurrentStudyYear = Year,
+                CurrentStudyYear = new(Year),
             });
             var group = builder.Group("I2401(ru)");
             var course = builder.Course("Test course");

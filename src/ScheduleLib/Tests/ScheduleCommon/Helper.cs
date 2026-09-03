@@ -6,7 +6,7 @@ namespace Tests.ScheduleCommon;
 
 public static class ScheduleTestHelper
 {
-    public static int StudyYear(this ScheduleBuilder s)
+    public static StudyYear StudyYear(this ScheduleBuilder s)
     {
         return s.GroupParseContext!.CurrentStudyYear;
     }
@@ -19,7 +19,7 @@ public static class ScheduleTestHelper
         }
         s.GroupParseContext = GroupParseContext.Create(new()
         {
-            CurrentStudyYear = year,
+            CurrentStudyYear = new(year),
         });
     }
 

@@ -19,14 +19,14 @@ public struct GroupBuilder
 
 public static class GroupBuilderHelper
 {
-    private static int DetermineStudyYear()
+    private static StudyYear DetermineStudyYear()
     {
         var now = DateTime.Now;
         if (now.Month >= 8 && now.Month <= 12)
         {
-            return now.Year;
+            return new(now.Year);
         }
-        return now.Year - 1;
+        return new(now.Year - 1);
     }
 
     public static Group ParseGroup(this ScheduleBuilder s, string fullName)

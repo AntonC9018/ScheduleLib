@@ -60,7 +60,7 @@ public static class ScheduleDirectoryDiscovery
         }
     }
 
-    private static (int StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
+    private static (StudyYear StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
     {
         var baseParser = new SequenceReader(path);
         InvalidScheduleDirectoryFormat Error(SequencePosition position, string reason)
@@ -84,7 +84,7 @@ public static class ScheduleDirectoryDiscovery
             return (studyYear, sem);
         }
 
-        int? StudyYear()
+        StudyYear? StudyYear()
         {
             var bparser = parser.BufferedView();
             var result = bparser.SkipUntilAny("_");
@@ -98,7 +98,7 @@ public static class ScheduleDirectoryDiscovery
                 return null;
             }
             parser.MoveTo(bparser.Position);
-            return ret;
+            return new StudyYear(ret);
         }
 
         Semester Sem()
@@ -124,14 +124,14 @@ public static class ScheduleDirectoryDiscovery
 public sealed class ScheduleDirectoryDescriptor
 {
     public AttendanceMode AttendanceMode { get; }
-    public int StudyYear { get; }
+    public StudyYear StudyYear { get; }
     public Semester Semester { get; }
     public AbsolutePath Path { get; }
 
     public ScheduleDirectoryDescriptor(
         AttendanceMode attendanceMode,
         AbsolutePath path,
-        int studyYear,
+        StudyYear studyYear,
         Semester semester)
     {
         AttendanceMode = attendanceMode;

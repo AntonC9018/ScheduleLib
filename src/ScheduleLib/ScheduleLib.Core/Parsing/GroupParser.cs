@@ -5,12 +5,11 @@ namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
 {
-    // Must be modulo 100
-    public int CurrentStudyYear { get; init; }
+    public StudyYear CurrentStudyYear { get; }
     public ReadOnlySet<string> GroupLabelsThatAreMaster { get; }
 
     private GroupParseContext(
-        int currentStudyYear,
+        StudyYear currentStudyYear,
         ReadOnlySet<string> groupLabelsThatAreMaster)
     {
         CurrentStudyYear = currentStudyYear;
@@ -19,7 +18,7 @@ public sealed class GroupParseContext
 
     public struct Params
     {
-        public required int CurrentStudyYear;
+        public required StudyYear CurrentStudyYear;
         public ReadOnlySet<string>? GroupLabelsThatAreMaster;
     }
 
@@ -31,13 +30,12 @@ public sealed class GroupParseContext
 
     public static GroupParseContext Create(Params p)
     {
-        int year = p.CurrentStudyYear % 100;
-        return new(year, p.GroupLabelsThatAreMaster ?? ReadOnlySet<string>.Empty);
+        return new(p.CurrentStudyYear, p.GroupLabelsThatAreMaster ?? ReadOnlySet<string>.Empty);
     }
 
     public Grade DetermineGrade(int year)
     {
-        var ret = CurrentStudyYear - year + 1;
+        var ret = CurrentStudyYear.Mod100 - year + 1;
         return new(ret);
     }
 }

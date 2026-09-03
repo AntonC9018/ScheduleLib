@@ -14,7 +14,7 @@ public sealed class GroupCombinationTests
         {
             GroupParseContext = GroupParseContext.Create(new()
             {
-                CurrentStudyYear = 2025,
+                CurrentStudyYear = new(2025),
             }),
         };
         builder.EnableLookupModule();
