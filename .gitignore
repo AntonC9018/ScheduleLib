@@ -1,7 +1,8 @@
 *.user*
 bin
 obj
-/tmp/
+/tmp/*
+!/tmp/*.py
 *.received*
 ~$*
 .idea/*/.idea/copilot.*
