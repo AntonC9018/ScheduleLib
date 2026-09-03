@@ -30,6 +30,8 @@ public static class Config
         (From: "Dezvoltare WEB avansată cu PHP", To: "PHP"),
         (From: "Dezvoltare WEB avansată", To: "PHP"),
         (From: "Dezvoltare WEB PHP", To: "PHP"),
+        (From: "DA S-S", To: "Server-side"),
+        (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
     };
 
     public static CourseNameUnifierConfig CourseNameUnifier =>

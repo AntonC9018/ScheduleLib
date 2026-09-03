@@ -37,6 +37,12 @@ public sealed class ScheduleLoader
                 {
                     await loader.Hash(hasher, cancellationToken);
                 }
+                // The implicit split configuration participates in the hash: editing it
+                // invalidates the cache instead of silently reusing one built without
+                // the assignments.
+                hasher.AppendData(
+                    Encoding.UTF8.GetBytes(
+                        context.Schedule.ImplicitSplitConfig?.DescribeForCacheHash() ?? ""));
                 hashHex = hasher.ToHexString();
             }
         }

@@ -118,6 +118,7 @@ public static class Registration
                 {
                     var builder = new ScheduleBuilder();
                     builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
+                    builder.ImplicitSplitConfig = ScheduleDefaults.Config.ImplicitSplitConfig;
                     builder.EnableLookupModule();
                     return builder;
                 });

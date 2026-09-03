@@ -29,6 +29,7 @@ public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();
     public SpecializationRegistry? SpecializationRegistry;
+    public ImplicitSplitConfig? ImplicitSplitConfig;
     public ListBuilder<OneTimeLessonBuilderModel> OneTimeLessons = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
@@ -51,6 +52,7 @@ public static partial class ScheduleBuilderHelper
         s.Validate();
         s.Preprocess();
         s.ClassifySubGroups();
+        s.AssignImplicitSplits();
         s.NormalizeLanguageProficiency();
         s.SanityChecks();
         var ret = builder(s);
