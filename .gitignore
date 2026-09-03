@@ -6,3 +6,6 @@ obj
 *.received*
 ~$*
 .idea/*/.idea/copilot.*
+/output/*
+# Local credentials
+/secrets.json
