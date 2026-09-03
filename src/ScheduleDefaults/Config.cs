@@ -32,10 +32,55 @@ public static class Config
         (From: "Dezvoltare WEB PHP", To: "PHP"),
         (From: "DA S-S", To: "Server-side"),
         (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
+        // "UI/UX" is mis-tokenized into "U X" by one of the docs.
+        (From: "Designul UI/U X", To: "Designul UI/UX"),
     };
 
     public static CourseNameUnifierConfig CourseNameUnifier =>
         CourseNameUnifierConfig.Create(CourseNameParser, CourseNameUnificationConfig);
+
+    /// <summary>
+    /// The courses whose lessons belong to a specialization even though the imported docs
+    /// stopped carrying the labels. Scopes carry the study year, so rebuilding an older
+    /// semester applies only that year's entries.
+    /// </summary>
+    public static ImplicitSplitConfig ImplicitSplitConfig { get; } = new()
+    {
+        Scopes =
+        [
+            new ImplicitSplitScope
+            {
+                StudyYear = new(2026),
+                Grade = new(3),
+                Faculty = new("IA"),
+                AttendanceMode = AttendanceMode.Zi,
+                Qualification = QualificationType.Licenta,
+                SpecializationCourses =
+                {
+                    ["Realitate virtuală și augmentată"] = Specializations.DJ,
+                    ["Design audio și efecte vizuale"] = Specializations.DJ,
+                    ["Fotogrametrie și scanare 3D"] = Specializations.DJ,
+                    ["Server-side"] = Specializations.DezvoltareaAplicatiilor,
+                    ["Dezvoltarea aplicațiilor mobile"] = Specializations.DezvoltareaAplicatiilor,
+                    ["Securitatea aplicațiilor enterprise"] = Specializations.DezvoltareaAplicatiilor,
+                    ["Securitatea aplicațiilor web și mobile"] = Specializations.DezvoltareaAplicatiilor,
+                },
+            },
+            new ImplicitSplitScope
+            {
+                StudyYear = new(2026),
+                Grade = new(2),
+                Faculty = new("IA"),
+                AttendanceMode = AttendanceMode.Zi,
+                Qualification = QualificationType.Licenta,
+                SpecializationCourses =
+                {
+                    ["Grafică și animație 2D"] = Specializations.GA2D,
+                    ["Designul UI/UX"] = Specializations.UI,
+                },
+            },
+        ],
+    };
 
     public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
 

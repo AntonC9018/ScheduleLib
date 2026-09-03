@@ -21,20 +21,30 @@ public sealed class ImplicitSplitConfig
     public string DescribeForCacheHash()
     {
         var sb = new StringBuilder();
+        // Scope order carries no meaning, so it is normalized: the same configuration
+        // must produce the same hash regardless of how it was written down.
+        var lines = new List<string>(Scopes.Count);
         foreach (var scope in Scopes)
         {
-            sb.Append(scope.StudyYear?.ToString() ?? "*").Append('|')
+            var line = new StringBuilder();
+            line.Append(scope.StudyYear?.ToString() ?? "*").Append('|')
                 .Append(scope.Grade?.Value.ToString() ?? "*").Append('|')
                 .Append(scope.Faculty?.Name ?? "*").Append('|')
                 .Append(scope.AttendanceMode?.ToString() ?? "*").Append('|')
                 .Append(scope.Qualification?.ToString() ?? "*");
-            AppendCourses(sb, scope.SpecializationCourses, x => x.Value);
-            AppendCourses(sb, scope.AlternativeCourses, x => x.Value);
+            AppendCourses(line, scope.SpecializationCourses, x => x.Value);
+            AppendCourses(line, scope.AlternativeCourses, x => x.Value);
+            lines.Add(line.ToString());
+        }
+        lines.Sort(StringComparer.Ordinal);
+        sb.AppendJoin('\n', lines);
+        if (lines.Count > 0)
+        {
             sb.Append('\n');
         }
         return sb.ToString();
 
-        static void AppendCourses(StringBuilder sb, Dictionary<string, T> courses, Func<T, string?> value)
+        static void AppendCourses<T>(StringBuilder sb, Dictionary<string, T> courses, Func<T, string?> value)
             where T : struct
         {
             foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
@@ -47,7 +57,7 @@ public sealed class ImplicitSplitConfig
 
 public sealed class ImplicitSplitScope
 {
-    public int? StudyYear { get; init; }
+    public StudyYear? StudyYear { get; init; }
     public Grade? Grade { get; init; }
     public Faculty? Faculty { get; init; }
     public AttendanceMode? AttendanceMode { get; init; }
@@ -66,7 +76,7 @@ public sealed class ImplicitSplitScope
     public Dictionary<string, Alternative> AlternativeCourses { get; init; } = new(StringComparer.Ordinal);
 
     public bool Matches(
-        int? currentStudyYear,
+        StudyYear? currentStudyYear,
         Grade grade,
         Faculty faculty,
         AttendanceMode attendanceMode,

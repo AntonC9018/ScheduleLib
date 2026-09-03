@@ -17,7 +17,7 @@ public static partial class ScheduleBuilderHelper
         {
             return;
         }
-        int? studyYear = s.GroupParseContext?.CurrentStudyYear;
+        StudyYear? studyYear = s.GroupParseContext?.CurrentStudyYear;
 
         foreach (var lesson in s.WeeklyLessons.List)
         {

@@ -276,6 +276,14 @@ public static partial class SpecializationRegistryHelper
                 x.AttendanceMode = AttendanceMode.Zi;
                 x.Qualification = QualificationType.Licenta;
             });
+        b.Set([Specializations.DJ, Specializations.DezvoltareaAplicatiilor])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(3);
+                x.Faculty = new("IA");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
         return b.Build();
     }
 }
