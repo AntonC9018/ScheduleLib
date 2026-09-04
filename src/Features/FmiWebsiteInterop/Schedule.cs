@@ -231,10 +231,10 @@ public static class WebsiteJsonScheduleHelper
             // Add parity suffix if this is a merged lesson with different parities
             if (hasMixedParity)
             {
-                var distinctParities = parityList.Distinct().ToList();
-                if (distinctParities.Count == 1 && distinctParities[0] != Parity.EveryWeek)
+                var firstParity = parityList[0];
+                if (parityList.All(p => p == firstParity) && firstParity != Parity.EveryWeek)
                 {
-                    var paritySuffix = services.ParityDisplay.Get(distinctParities[0]);
+                    var paritySuffix = services.ParityDisplay.Get(firstParity);
                     if (paritySuffix != null)
                     {
                         groupSb.Append('-');
@@ -246,9 +246,12 @@ public static class WebsiteJsonScheduleHelper
             listBuilder.Append(groupSb.ToString());
         }
 
-        // Split - only if all lessons share the same subgroup and specialization
-        var distinctPartitions = lessons.Select(l => l.Lesson.GroupPartitionKey).Distinct().ToList();
-        if (distinctPartitions.Count == 1 && distinctPartitions[0].ToDisplayString() is { } partitionDisplay)
+        // Split - only if all lessons share the same subgroup and specialization.
+        // Lessons are grouped by course/type/room, so mixed partitions are possible;
+        // then no single suffix applies and none is shown.
+        var firstPartition = lessons[0].Lesson.GroupPartitionKey;
+        if (lessons.All(l => l.Lesson.GroupPartitionKey.Equals(firstPartition))
+            && firstPartition.ToDisplayString() is { } partitionDisplay)
         {
             listBuilder.Append($"s.{partitionDisplay}");
         }
