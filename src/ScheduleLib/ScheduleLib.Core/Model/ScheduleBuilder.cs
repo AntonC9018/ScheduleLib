@@ -153,14 +153,10 @@ public static partial class ScheduleBuilderHelper
             var groupContext = groups.Count == 0
                 ? "no group"
                 : string.Join("; ", groups.Select(DescribeGroup));
-            throw new UnknownSubGroupException(
-                $"Invalid subgroup '{subGroup.Value}' for group '{groupContext}'. "
-                + "Specialization registry context: "
-                + (s.SpecializationRegistry is { } registry
-                    ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
-                    : "no specialization registry configured")
-                + ". "
-                + "The configured subgroup selector accepts numeric values and configured special subgroups.");
+            var registryContext = s.SpecializationRegistry is { } registry
+                ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
+                : "no specialization registry configured";
+            throw UnknownSubGroupException.ForInvalid(subGroup.Value, groupContext, registryContext);
         }
 
         string DescribeGroup(GroupId id)
@@ -341,8 +337,7 @@ public static partial class ScheduleBuilderHelper
             if (status1 != TeacherNameRemapStatus.None)
             {
                 // Maybe allow 1 recursion level?
-                throw new ConflictingTeacherNameRemapException(
-                    "Recursive teacher name remaps are not supported to prevent errors. Ensure the remap maps to the final version.");
+                throw ConflictingTeacherNameRemapException.ForRecursive();
             }
         }
         return status;

@@ -201,39 +201,39 @@ public sealed class CurrentYearSemesterIntervalBuilder
         {
             if (model.Semester == Semester.Invalid)
             {
-                throw new IncompleteSemesterDateRangeException("Semester not specified");
+                throw IncompleteSemesterDateRangeException.ForSemesterNotSpecified();
             }
             if (model.AttendanceMode == AttendanceMode.Invalid)
             {
-                throw new IncompleteSemesterDateRangeException("AttendanceMode not specified");
+                throw IncompleteSemesterDateRangeException.ForAttendanceModeNotSpecified();
             }
             if (model.QualificationType == QualificationType.Invalid)
             {
-                throw new IncompleteSemesterDateRangeException("QualificationType not specified");
+                throw IncompleteSemesterDateRangeException.ForQualificationTypeNotSpecified();
             }
             ref var d = ref model.LessonDateRange;
             if (d.Start == DateOnly.MinValue)
             {
-                throw new IncompleteSemesterDateRangeException("Start date not specified");
+                throw IncompleteSemesterDateRangeException.ForStartDateNotSpecified();
             }
             if (d.EndInclusive == DateOnly.MaxValue)
             {
-                throw new IncompleteSemesterDateRangeException("End date not specified");
+                throw IncompleteSemesterDateRangeException.ForEndDateNotSpecified();
             }
             if (model.Year <= 0)
             {
                 if (d.Start.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
-                    throw new IncompleteSemesterDateRangeException("Year not specified");
+                    throw IncompleteSemesterDateRangeException.ForYearNotSpecified();
                 }
                 if (d.EndInclusive.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
-                    throw new IncompleteSemesterDateRangeException("Year not specified");
+                    throw IncompleteSemesterDateRangeException.ForYearNotSpecified();
                 }
             }
             if (d.Start > d.EndInclusive)
             {
-                throw new InvalidSemesterDateRangeException("Start date is after end date");
+                throw InvalidSemesterDateRangeException.ForStartAfterEnd();
             }
         }
 
@@ -250,7 +250,7 @@ public sealed class CurrentYearSemesterIntervalBuilder
                 continue;
             }
 
-            throw new DuplicateSemesterDateRangeException($"Two range configurations found for the same key: {key}");
+            throw DuplicateSemesterDateRangeException.ForDuplicate(key.ToString());
         }
 
         var ranges = new YearDateRanges(map);

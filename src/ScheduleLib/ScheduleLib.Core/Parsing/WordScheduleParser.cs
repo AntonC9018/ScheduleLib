@@ -152,8 +152,7 @@ public sealed class DocParseContext
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw new ConflictingSpecializationException(
-                        $"A lesson may not have two specializations: '{prevSpec.Value}' and '{spec.Value}'.");
+                    throw ConflictingSpecializationException.ForConflictingValues(prevSpec.Value, spec.Value);
                 }
                 specialization = spec;
             }
@@ -162,8 +161,7 @@ public sealed class DocParseContext
                 var label = remapped;
                 if (subGroup is { } prevSub)
                 {
-                    throw new ConflictingSubGroupException(
-                        $"A lesson may not have two subgroups: '{prevSub.Value}' and '{label.Value}'.");
+                    throw ConflictingSubGroupException.ForConflictingValues(prevSub.Value, label.Value);
                 }
                 subGroup = label;
             }
@@ -748,7 +746,7 @@ public static class WordScheduleParser
 
                         if (parser.SkipWhitespace().EndOfInput)
                         {
-                            throw new InvalidScheduleDocumentException("Expected time after the time slot");
+                            throw InvalidScheduleDocumentException.ForMissingTimeAfterSlot();
                         }
 
                         var parsedTime = parser.ParseTimeInterval();
@@ -1152,12 +1150,12 @@ public static class WordScheduleParser
                 var res = parser.ReadRoman();
                 if (res.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidScheduleDocumentException("Sem must be followed by a roman numeral");
+                    throw InvalidScheduleDocumentException.ForSemesterWithoutRoman();
                 }
 
                 if (!parser.IsEmpty)
                 {
-                    throw new InvalidScheduleDocumentException("Roman numeral after sem must be the last thing");
+                    throw InvalidScheduleDocumentException.ForTrailingAfterSemesterRoman();
                 }
 
                 return res.Number;

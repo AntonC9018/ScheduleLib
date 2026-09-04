@@ -28,9 +28,7 @@ public static partial class ScheduleBuilderHelper
         var errors = CollectOverlapErrors(s, lessons, config);
         if (errors.Count > 0)
         {
-            throw new OverlappingLessonsException(
-                $"The schedule has {errors.Count} overlapping lesson pairs:\n"
-                + string.Join("\n", errors));
+            throw OverlappingLessonsException.ForOverlaps(errors);
         }
     }
 

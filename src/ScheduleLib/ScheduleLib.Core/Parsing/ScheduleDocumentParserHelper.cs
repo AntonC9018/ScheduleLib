@@ -94,13 +94,13 @@ public static class ScheduleDocumentParserHelper
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
-                throw new InvalidScheduleDocumentException("Expected the day name");
+                throw InvalidScheduleDocumentException.ForMissingDayName();
             }
 
             var dayOfWeekSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (dayNameParser.Map(dayOfWeekSpan) is not { } day1)
             {
-                throw new InvalidScheduleDocumentException($"Unknown day name: `{dayOfWeekSpan}`");
+                throw InvalidScheduleDocumentException.ForUnknownDayName(dayOfWeekSpan);
             }
 
             reader.MoveTo(bparser.Position);
@@ -113,14 +113,14 @@ public static class ScheduleDocumentParserHelper
             var result = bparser.Skip(new SkipDate());
             if (!result.SkippedAny)
             {
-                throw new InvalidScheduleDocumentException($"Could not parse the date in string `{reader}`");
+                throw InvalidScheduleDocumentException.ForCouldNotParseDate(reader);
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
             bool parsed = DateOnly.TryParseExact(dateSpan, format, out var date);
             if (!parsed)
             {
-                throw new InvalidScheduleDocumentException("Date not parsed according to the format.");
+                throw InvalidScheduleDocumentException.ForDateNotMatchingFormat();
             }
 
             reader.MoveTo(bparser.Position);

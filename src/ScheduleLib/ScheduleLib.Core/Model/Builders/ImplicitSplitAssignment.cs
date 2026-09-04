@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib.Builders;
 
@@ -37,22 +36,14 @@ public static partial class ScheduleBuilderHelper
         StudyYear? studyYear = s.GroupParseContext?.CurrentStudyYear;
         if (studyYear is null && config.Scopes.Any(static scope => scope.StudyYear is not null))
         {
-            throw new MissingImplicitSplitStudyYearException(
-                "The implicit split configuration pins scopes to a study year, but the "
-                + "schedule builder has no group parse context. A null study year matches "
-                + "no year-pinned scope, so building would silently skip those assignments; "
-                + "set ScheduleBuilder.GroupParseContext or remove the StudyYear pins.");
+            throw MissingImplicitSplitStudyYearException.ForNoGroupParseContext();
         }
         if (studyYear is { } currentYear
             && !s.GroupParseContextIsExplicit
             && config.Scopes.Any(static scope => scope.StudyYear is not null)
             && !config.Scopes.Any(scope => scope.StudyYear == currentYear))
         {
-            throw new MissingImplicitSplitStudyYearException(
-                "The implicit split configuration pins scopes to a study year, but no scope "
-                + $"matches the wall-clock-derived study year {currentYear}. The assignments "
-                + "would be silently skipped; set ScheduleBuilder.GroupParseContext explicitly "
-                + "(before adding groups) to pin the study year, or remove the StudyYear pins.");
+            throw MissingImplicitSplitStudyYearException.ForNoMatchingWallClockYear(currentYear);
         }
         // A null study year matches only year-less scopes (see ImplicitSplitScope.Matches).
 
@@ -238,7 +229,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    ImplicitSplitErrors.ThrowConflictingAssignment("specialization", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, value.Value, courseName);
                 }
                 assigned = value;
             }
@@ -258,7 +249,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    ImplicitSplitErrors.ThrowConflictingAssignment("alternative", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, value.Value, courseName);
                 }
                 assigned = value;
             }
@@ -274,10 +265,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Specialization != Specialization.All
                     && group.Specialization != spec)
                 {
-                    throw new ConflictingImplicitAssignmentException(
-                        $"The lesson for course '{courseName}' has the explicit specialization "
-                        + $"'{group.Specialization.Value}', but the implicit split configuration "
-                        + $"assigns '{spec.Value}'.");
+                    throw ConflictingImplicitAssignmentException.ForExplicitSpecializationConflict(courseName, group.Specialization.Value, spec.Value);
                 }
                 group.Specialization = spec;
             }
@@ -286,10 +274,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Alternative != Alternative.All
                     && group.Alternative != alt)
                 {
-                    throw new ConflictingImplicitAssignmentException(
-                        $"The lesson for course '{courseName}' has the explicit alternative "
-                        + $"'{group.Alternative.Value}', but the implicit split configuration "
-                        + $"assigns '{alt.Value}'.");
+                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(courseName, group.Alternative.Value, alt.Value);
                 }
                 group.Alternative = alt;
             }
@@ -306,26 +291,6 @@ public static partial class ScheduleBuilderHelper
             Stamp(ref copy.Group, part, courseName);
             return copy;
         }
-    }
-}
-
-/// <summary>
-/// Builds the shared "conflicting assignment" error for the implicit split pass.
-/// One helper keeps the four resolution sites (per-group and per-name, for both
-/// dimensions) worded identically.
-/// </summary>
-file static class ImplicitSplitErrors
-{
-    [DoesNotReturn]
-    public static void ThrowConflictingAssignment(
-        string dimension,
-        string? prev,
-        string? next,
-        string courseName)
-    {
-        throw new ConflictingImplicitAssignmentException(
-            $"The implicit split configuration assigns conflicting {dimension}s "
-            + $"'{prev}' and '{next}' to course '{courseName}'.");
     }
 }
 
@@ -351,7 +316,7 @@ file sealed class SplitAccumulator
     {
         if (SeenSpec is { } prev && prev != spec)
         {
-            ImplicitSplitErrors.ThrowConflictingAssignment("specialization", prev.Value, spec.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, spec.Value, courseName);
         }
         SeenSpec ??= spec;
     }
@@ -360,7 +325,7 @@ file sealed class SplitAccumulator
     {
         if (SeenAlt is { } prev && prev != alt)
         {
-            ImplicitSplitErrors.ThrowConflictingAssignment("alternative", prev.Value, alt.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, alt.Value, courseName);
         }
         SeenAlt ??= alt;
     }

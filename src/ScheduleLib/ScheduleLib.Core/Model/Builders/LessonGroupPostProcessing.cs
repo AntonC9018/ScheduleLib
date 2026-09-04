@@ -38,8 +38,7 @@ public static partial class ScheduleBuilderHelper
             if (group.Specialization != Specialization.All
                 && group.Specialization != specialization)
             {
-                throw new ConflictingSpecializationException(
-                    $"A lesson may not have two specializations: '{group.Specialization.Value}' and '{specialization.Value}'.");
+                throw ConflictingSpecializationException.ForConflictingValues(group.Specialization.Value, specialization.Value);
             }
             group.Specialization = specialization;
             group.SubGroup = SubGroup.All;
@@ -113,10 +112,7 @@ public static partial class ScheduleBuilderHelper
             }
             if (splitGroups != lesson.Base.Group.Groups.Count)
             {
-                throw new InconsistentLanguageSplitException(
-                    $"The lesson for groups '{GroupNames(s, lesson.Base.Group.Groups)}' and course '{CourseName(s, course)}' "
-                    + "mixes groups with and without the language proficiency split for that course. "
-                    + "One stored subgroup value could not represent both meanings.");
+                throw InconsistentLanguageSplitException.ForMixedSplit(GroupNames(s, lesson.Base.Group.Groups), CourseName(s, course));
             }
 
             foreach (var g in lesson.Base.Group.Groups)
@@ -131,9 +127,7 @@ public static partial class ScheduleBuilderHelper
             if (!coveredSplits.Contains((group, course))
                 && !normalizedSplits.Contains((group, course)))
             {
-                throw new InconsistentLanguageSplitException(
-                    $"The beginner subgroup lesson for group '{GroupName(s, group)}' and course '{CourseName(s, course)}' "
-                    + "has no unannotated counterpart lesson for the same group and course.");
+                throw InconsistentLanguageSplitException.ForMissingCounterpart(GroupName(s, group), CourseName(s, course));
             }
         }
 
@@ -219,9 +213,7 @@ public static partial class ScheduleBuilderHelper
             {
                 if (!numbers.Contains(expected))
                 {
-                    throw new InvalidSubGroupPartitionException(
-                        $"The numeric subgroups of group '{GroupName(s, groupId)}' must form a contiguous prefix starting at I. "
-                        + $"Missing '{NumberHelper.ToRoman(expected)}' while '{NumberHelper.ToRoman(numbers[^1])}' occurs.");
+                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(GroupName(s, groupId), expected, numbers[^1]);
                 }
             }
         }
@@ -239,9 +231,7 @@ public static partial class ScheduleBuilderHelper
             int languageCount = values.Count(SpecialSubGroups.IsLanguageSubGroup);
             if (languageCount == 1)
             {
-                throw new InvalidSubGroupPartitionException(
-                    $"The group '{GroupName(s, groupId)}' has a single language subgroup, but a group "
-                    + "must have either zero observed language subgroups or at least two.");
+                throw InvalidSubGroupPartitionException.ForSingleLanguageSubgroup(GroupName(s, groupId));
             }
         }
     }

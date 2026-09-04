@@ -400,12 +400,12 @@ public static class LessonBuilderHelper
 
                 if (lesson.Date.TimeSlot is null)
                 {
-                    throw new UninitializedScheduleModelException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
 
                 if (lesson.Date.DayOfWeek is null)
                 {
-                    throw new UninitializedScheduleModelException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
             }
         }
@@ -419,12 +419,12 @@ public static class LessonBuilderHelper
 
                 if (lesson.Date.TimeSlot is null)
                 {
-                    throw new UninitializedScheduleModelException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
 
                 if (lesson.Date.Date is null)
                 {
-                    throw new UninitializedScheduleModelException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
             }
         }
@@ -435,14 +435,14 @@ public static class LessonBuilderHelper
             {
                 if (lesson.Group.Groups.Count != 0)
                 {
-                    throw new InvalidLessonGroupsException("Consultation lessons must have no groups attached");
+                    throw InvalidLessonGroupsException.ForConsultationHasGroups();
                 }
             }
             else
             {
                 if (lesson.Group.Groups.Group0 == GroupId.Invalid)
                 {
-                    throw new UninitializedScheduleModelException("The lesson group must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonGroupNotInitialized();
                 }
 
                 var hs = groupIdValidationSet;
@@ -453,7 +453,7 @@ public static class LessonBuilderHelper
                     {
                         var course = s.Courses.Ref(lesson.General.Course!.Value.Id);
                         _ = course;
-                        throw new InvalidLessonGroupsException("Duplicate group in the same lesson");
+                        throw InvalidLessonGroupsException.ForDuplicateGroup();
                     }
                 }
 
@@ -461,7 +461,7 @@ public static class LessonBuilderHelper
                 {
                     if (groupId.Value >= s.Groups.Count || groupId.Value < 0)
                     {
-                        throw new InvalidLessonGroupsException("Invalid group id in lesson");
+                        throw InvalidLessonGroupsException.ForInvalidGroupId();
                     }
                 }
 
@@ -488,25 +488,24 @@ public static class LessonBuilderHelper
                     var ami = gi.AttendanceMode;
                     if (!allowedModes.Contains(ami))
                     {
-                        throw new InvalidLessonGroupsException(
-                            $"Mixed attendance modes for a lesson are not allowed, attendances '{g0.AttendanceMode}' and '{gi.AttendanceMode}', groups '{g0.Name}' and '{gi.Name}'!");
+                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(g0.AttendanceMode, gi.AttendanceMode, g0.Name, gi.Name);
                     }
                 }
             }
 
             if (lesson.General.Course is not { } courseId)
             {
-                throw new UninitializedScheduleModelException("The lesson course must be initialized.");
+                throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
             }
             if (courseId.IsInvalid || courseId.Id < 0 || courseId.Id >= s.Courses.Count)
             {
-                throw new UninitializedScheduleModelException("The lesson course must refer to a known course.");
+                throw UninitializedScheduleModelException.ForLessonCourseUnknown();
             }
             // Invariant for AssignImplicitSplits: every referenced course carries at
             // least one name, so the split pass can index Names[0] for diagnostics.
             if (s.Courses.Ref(courseId.Id).Names.Length == 0)
             {
-                throw new UninitializedScheduleModelException("The lesson course must have at least one name.");
+                throw UninitializedScheduleModelException.ForLessonCourseWithoutNames();
             }
         }
     }

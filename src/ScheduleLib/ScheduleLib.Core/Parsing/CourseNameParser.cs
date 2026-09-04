@@ -76,7 +76,7 @@ public sealed class CourseNameParserConfig
             var w = p.IgnoredShortenedWords[i];
             if (w[^1] == '.')
             {
-                throw new InvalidCourseNameConfigException("Just provide the words without the dot.");
+                throw InvalidCourseNameConfigException.ForIgnoredShortenedWordWithDot();
             }
         }
 

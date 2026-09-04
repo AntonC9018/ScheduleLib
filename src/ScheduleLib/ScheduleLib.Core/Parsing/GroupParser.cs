@@ -83,7 +83,7 @@ public static class GroupHelper
 
         if (isFr && isDual)
         {
-            throw new InvalidGroupNameException("Both FR and DUAL parsed, not allowed.");
+            throw InvalidGroupNameException.ForFrenchAndDual();
         }
 
         parser.SkipWhitespace();
@@ -145,7 +145,7 @@ public static class GroupHelper
                 {
                     if (ch != 'R')
                     {
-                        throw new InvalidGroupNameException($"Unrecognized language: {ch}");
+                        throw InvalidGroupNameException.ForUnrecognizedLanguage(ch);
                     }
                     parser.Move();
                     return Language.Ru;
@@ -168,7 +168,7 @@ public static class GroupHelper
                 {
                     if (isParen)
                     {
-                        throw new InvalidGroupNameException("Unclosed parenthesis in the language.");
+                        throw InvalidGroupNameException.ForUnclosedLanguageParenthesis();
                     }
 
                     break;
@@ -188,7 +188,7 @@ public static class GroupHelper
 
             var langSpan = parser.PeekSpan(languageLen);
             var ret = LanguageHelper.ParseName(langSpan)
-                ?? throw new InvalidGroupNameException($"Unrecognized language string");
+                ?? throw InvalidGroupNameException.ForUnrecognizedLanguageString();
             parser.MoveTo(bparser.Position);
             return ret;
         }
@@ -199,7 +199,7 @@ public static class GroupHelper
         var bparser = reader.BufferedView();
         if (!ParserHelper.IsUpperAscii(bparser.Current))
         {
-            throw new InvalidGroupNameException("Must be prefixed with at least one letter indicating the group.");
+            throw InvalidGroupNameException.ForMissingLabel();
         }
 
         bool isMaybeMaster = false;
@@ -243,7 +243,7 @@ public static class GroupHelper
         if (bparser.IsEmpty
             || IsLabelChar(bparser.Current))
         {
-            throw new InvalidGroupNameException("After the label, it must include a number!");
+            throw InvalidGroupNameException.ForMissingNumberAfterLabel();
         }
 
         bool isCertainlyMaster = isMaybeMaster && !label.IsEmpty;
@@ -264,7 +264,7 @@ public static class GroupHelper
         {
             return (int) num;
         }
-        throw new InvalidGroupNameException($"String must include {GroupNumberLen} letters of the group after the year.");
+        throw InvalidGroupNameException.ForInvalidGroupNumberLength(GroupNumberLen);
     }
 
     public const int YearLen = 2;
@@ -279,11 +279,11 @@ public static class GroupHelper
             }
             case ConsumeIntStatus.InputTooShort:
             {
-                throw new InvalidGroupNameException("String must include 2 letters of the year after the label.");
+                throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
             }
             case ConsumeIntStatus.NotAnInteger:
             {
-                throw new InvalidGroupNameException("Must be a valid year that has 2 letters.");
+                throw InvalidGroupNameException.ForInvalidYear();
             }
             default:
             {

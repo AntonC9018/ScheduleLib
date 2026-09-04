@@ -45,7 +45,7 @@ public static class PeriodBuilderHelper
             }
             if (period.EndExclusive < period.Start)
             {
-                throw new InvalidPeriodException("End date is before start date.");
+                throw InvalidPeriodException.ForEndBeforeStart();
             }
         }
     }

@@ -50,11 +50,11 @@ public static class ParityExcelParser
     {
         if (word.MainDocumentPart?.Document is not { } document)
         {
-            throw new InvalidParityDocumentException("No document found.");
+            throw InvalidParityDocumentException.ForNoDocument();
         }
         if (document.Body is not { } body)
         {
-            throw new InvalidParityDocumentException("No body found.");
+            throw InvalidParityDocumentException.ForNoBody();
         }
 
         var table = body.Descendants<Table>().First();
