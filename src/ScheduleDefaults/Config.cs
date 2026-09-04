@@ -349,6 +349,12 @@ public static class Config
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("AG"), Specialization.AlgoritmicaGrafurilor);
         subgroup.Add(new("GR"), Specialization.GA2D);
+        // "Node" is a grade-2 subgroup label aliasing the UI specialization
+        // (see docs/subgroup-model-update-spec.md and docs/domain-model.md).
+        // It is unrelated to the grade-3 "Node.js" course ("Dezv. apl.
+        // server-side cu Node.js"), whose server-side track maps to
+        // Specialization.DezvoltareaAplicatiilor via the ImplicitSplitConfig
+        // "Server-side" entry above.
         subgroup.Add(new("Node"), Specialization.UI);
 
         for (int i = 1; i <= 10; i++)
