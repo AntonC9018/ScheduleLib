@@ -4,6 +4,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib;
+using System.Text;
 
 public sealed class GroupPdfTests
 {
@@ -86,6 +87,59 @@ public sealed class GroupPdfTests
             {
                 lesson.Alternative(alternativeValue);
             }
+        }
+    }
+    [Fact]
+    public void LessonPrefixIncludesAlternativeFirst()
+    {
+        var schedule = BuildWithAlternative();
+
+        var services = new LessonTextDisplayHandler.Services(
+            new SubGroupNumberDisplayHandler(),
+            new ParityDisplayHandler(),
+            new LessonTypeDisplayHandler());
+        var handler = new LessonTextDisplayHandler(services, new());
+
+        var seenAlternative = false;
+        foreach (var lesson in schedule.EnumerateAllLessons())
+        {
+            if (lesson.Lesson.Alternative.Value is not { } alternative)
+            {
+                continue;
+            }
+            seenAlternative = true;
+
+            var text = new RecordingRichText();
+            handler.Handle(new()
+            {
+                TextDescriptor = text,
+                Schedule = schedule,
+                LessonTimeConfig = LessonTimeConfig.CreateDefault(),
+                Lesson = lesson,
+                ColumnWidth = 100,
+                StringBuilder = new StringBuilder(),
+            });
+
+            Assert.True(
+                text.BoldPrefix.StartsWith(alternative + ":", StringComparison.Ordinal)
+                    || text.BoldPrefix.StartsWith(alternative + ",", StringComparison.Ordinal),
+                $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'");
+        }
+        Assert.True(seenAlternative);
+    }
+
+    private sealed class RecordingRichText : IRichText
+    {
+        public string BoldPrefix = "";
+        public void Span(string str, bool isBold = false)
+        {
+            if (isBold && BoldPrefix == "")
+            {
+                BoldPrefix = str;
+            }
+        }
+        public void Line(string str)
+        {
         }
     }
     [Fact]
