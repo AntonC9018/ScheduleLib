@@ -26,7 +26,7 @@ public record struct SequenceReader
     public readonly ReadOnlySpan<char> PeekSpanMaxSize(int size)
     {
         int s = Math.Min(AvailableCount, size);
-        return WholeSpan[_index .. s];
+        return WholeSpan[_index .. (_index + s)];
     }
 
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(SequencePosition positionExclusive)
