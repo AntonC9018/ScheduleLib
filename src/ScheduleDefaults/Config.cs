@@ -79,6 +79,27 @@ public static class Config
                     ["Designul UI/UX"] = Specializations.UI,
                 },
             },
+            // Elective stacks students choose between. One scope covers every
+            // faculty and attendance mode of the year because the joint elective
+            // lessons span I, M, IA and DJ groups, including Dual ones. Both
+            // cache variants of the same human course (the long "Disciplină
+            // umanistică opțională: ..." form and the short form) point at the
+            // same alternative.
+            new ImplicitSplitScope
+            {
+                StudyYear = new(2026),
+                Grade = new(2),
+                Qualification = QualificationType.Licenta,
+                AlternativeCourses =
+                {
+                    ["Disciplină umanistică opțională: Antreprenoriat inovativ"] = new("Antreprenoriat inovativ"),
+                    ["Antreprenoriat inovativ"] = new("Antreprenoriat inovativ"),
+                    ["Disciplină umanistică opțională: Psihologie"] = new("Psihologie"),
+                    ["Psihologie"] = new("Psihologie"),
+                    ["Opț. ped."] = new("Opț. ped."),
+                    ["Cult. comun."] = new("Cult. comun."),
+                },
+            },
         ],
     };
 
@@ -93,44 +114,46 @@ public static class Config
         Allowlist =
         [
             // Elective courses students choose between: parallel alternatives sharing
-            // slots by design. To be replaced by Alternative assignments.
+            // slots by design. Separated by the grade-2 Alternative assignments
+            // above; the entries stay as a safety net for lessons whose groups
+            // fall outside every scope.
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Disciplină umanistică opțională: Antreprenoriat inovativ",
                 CourseB = "Disciplină umanistică opțională: Psihologie",
-                Reason = "Elective alternatives (Antreprenoriat vs Psihologie), pending Alternative maps.",
+                Reason = "Elective alternatives (Antreprenoriat vs Psihologie), separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Opț. ped.",
                 CourseB = "Disciplină umanistică opțională: Antreprenoriat inovativ",
-                Reason = "Elective alternatives, pending Alternative maps.",
+                Reason = "Elective alternatives, separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Opț. ped.",
                 CourseB = "Disciplină umanistică opțională: Psihologie",
-                Reason = "Elective alternatives, pending Alternative maps.",
+                Reason = "Elective alternatives, separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Opț. ped.",
                 CourseB = "Antreprenoriat inovativ",
                 GroupName = "I2502",
-                Reason = "Elective alternatives, pending Alternative maps.",
+                Reason = "Elective alternatives, separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Opț. ped.",
                 CourseB = "Psihologie",
                 GroupName = "I2502",
-                Reason = "Elective alternatives, pending Alternative maps.",
+                Reason = "Elective alternatives, separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
                 CourseA = "Cult. comun.",
                 CourseB = "Psihologie",
-                Reason = "DJ-group elective alternatives, pending Alternative maps.",
+                Reason = "DJ-group elective alternatives, separated by Alternative assignments.",
             },
             new LessonOverlapAllowlistEntry
             {
