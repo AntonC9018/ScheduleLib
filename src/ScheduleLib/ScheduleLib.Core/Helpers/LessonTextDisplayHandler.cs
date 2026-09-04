@@ -75,33 +75,23 @@ public sealed partial class LessonTextDisplayHandler
         {
             // Alternative first, then specialization, then the subgroup: "A1, GA2D, I: ".
             var lesson = p.Lesson.Lesson;
-            var alternative = lesson.Alternative.Value;
-            var specialization = lesson.Specialization.Value;
-            var subGroupNumber = _services.SubGroupNumberDisplay.Get(lesson.SubGroup);
-            if (alternative is { } s0)
+            string? PartitionDimension(int index) => index switch
             {
-                sb.Append(s0);
-            }
-            if (specialization is { } s1)
+                0 => lesson.Alternative.Value,
+                1 => lesson.Specialization.Value,
+                2 => _services.SubGroupNumberDisplay.Get(lesson.SubGroup),
+                _ => null,
+            };
+            int prefixStart = sb.Length;
+            var list = new ListStringBuilder(sb, ", ");
+            for (int i = 0; i < 3; i++)
             {
-                if (alternative is not null)
+                if (PartitionDimension(i) is { } dimension)
                 {
-                    sb.Append(", ");
+                    list.Append(dimension);
                 }
-                sb.Append(s1);
             }
-            if (subGroupNumber is { } s2)
-            {
-                if (alternative is not null
-                    || specialization is not null)
-                {
-                    sb.Append(", ");
-                }
-                sb.Append(s2);
-            }
-            if (alternative is not null
-                || specialization is not null
-                || subGroupNumber is not null)
+            if (sb.Length > prefixStart)
             {
                 sb.Append(": ");
             }
