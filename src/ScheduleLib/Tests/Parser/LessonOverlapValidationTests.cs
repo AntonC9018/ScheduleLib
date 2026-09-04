@@ -63,7 +63,7 @@ public sealed class LessonOverlapValidationTests
         AddWeeklyLesson(builder, "M2401", courseName: "P", day: DayOfWeek.Tuesday, timeSlot: 1);
         AddWeeklyLesson(builder, "M2401", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
 
-        var error = Assert.Throws<InvalidOperationException>(() => builder.Build());
+        var error = Assert.Throws<OverlappingLessonsException>(() => builder.Build());
         Assert.Contains("'X'", error.Message);
         Assert.Contains("'Y'", error.Message);
         Assert.Contains("'P'", error.Message);
@@ -88,7 +88,7 @@ public sealed class LessonOverlapValidationTests
         AddWeeklyLesson(builder, "IA2401", courseName: "X", parity: Parity.EveryWeek);
         AddWeeklyLesson(builder, "IA2401", courseName: "Y", parity: Parity.OddWeek);
 
-        Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class LessonOverlapValidationTests
         AddWeeklyLesson(builder, "IA2403", courseName: "X");
         AddWeeklyLesson(builder, "IA2403", courseName: "Y", subGroup: "I");
 
-        Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public sealed class LessonOverlapValidationTests
         AddWeeklyLesson(builder, "IA2401", courseName: "X");
         AddWeeklyLesson(builder, "IA2401", courseName: "Y");
 
-        Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
 
     [Fact]

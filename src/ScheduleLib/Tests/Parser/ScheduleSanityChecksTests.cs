@@ -193,7 +193,7 @@ public sealed class ScheduleSanityChecksTests
         sharedCounterpart.Course(course);
         sharedCounterpart.Groups([firstGroup, secondGroup]);
 
-        var error = Assert.Throws<InvalidOperationException>(
+        var error = Assert.Throws<InconsistentLanguageSplitException>(
             () => schedule.NormalizeLanguageProficiency());
 
         Assert.Contains("mixes groups", error.Message);
@@ -210,7 +210,7 @@ public sealed class ScheduleSanityChecksTests
         beginner.Group(groupId);
         beginner.SubGroup(SpecialSubGroups.Beginners);
 
-        var error = Assert.Throws<InvalidOperationException>(
+        var error = Assert.Throws<InconsistentLanguageSplitException>(
             () => schedule.NormalizeLanguageProficiency());
 
         Assert.Contains("counterpart", error.Message);

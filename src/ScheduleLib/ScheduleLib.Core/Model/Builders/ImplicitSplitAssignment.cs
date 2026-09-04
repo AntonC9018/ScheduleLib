@@ -253,7 +253,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Specialization != Specialization.All
                     && group.Specialization != spec)
                 {
-                    throw new InvalidOperationException(
+                    throw new ConflictingImplicitAssignmentException(
                         $"The lesson for course '{courseName}' has the explicit specialization "
                         + $"'{group.Specialization.Value}', but the implicit split configuration "
                         + $"assigns '{spec.Value}'.");
@@ -265,7 +265,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Alternative != Alternative.All
                     && group.Alternative != alt)
                 {
-                    throw new InvalidOperationException(
+                    throw new ConflictingImplicitAssignmentException(
                         $"The lesson for course '{courseName}' has the explicit alternative "
                         + $"'{group.Alternative.Value}', but the implicit split configuration "
                         + $"assigns '{alt.Value}'.");
@@ -302,7 +302,7 @@ file static class ImplicitSplitErrors
         string? next,
         string courseName)
     {
-        throw new InvalidOperationException(
+        throw new ConflictingImplicitAssignmentException(
             $"The implicit split configuration assigns conflicting {dimension}s "
             + $"'{prev}' and '{next}' to course '{courseName}'.");
     }

@@ -763,7 +763,7 @@ public sealed class GroupCombinationTests
         AddLesson(s, "IA2401", subGroup: "I");
         AddLesson(s, "IA2401", subGroup: "III");
 
-        var error = Assert.Throws<InvalidOperationException>(() => s.Build());
+        var error = Assert.Throws<InvalidSubGroupPartitionException>(() => s.Build());
 
         Assert.Contains("contiguous", error.Message);
         Assert.Contains("II", error.Message);
@@ -775,7 +775,7 @@ public sealed class GroupCombinationTests
         var s = CreateBuilder();
         AddLesson(s, "IA2401", subGroup: "ru");
 
-        var error = Assert.Throws<InvalidOperationException>(() => s.Build());
+        var error = Assert.Throws<InvalidSubGroupPartitionException>(() => s.Build());
 
         Assert.Contains("language subgroup", error.Message);
     }

@@ -229,7 +229,7 @@ public sealed class ImplicitSplitAssignmentTests
             courseName: "RVA",
             specialization: "CV");
 
-        Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Throws<ConflictingImplicitAssignmentException>(() => builder.Build());
     }
 
     [Fact]
