@@ -7,6 +7,15 @@ namespace ScheduleLib;
 /// One generated student selection: at most one value per active partition of a group.
 /// A null partition is inactive for the group and is omitted from names.
 /// </summary>
+/// <remarks>
+/// The proficiency, language and numeric selections stay <see cref="SubGroup"/> (rather
+/// than a dedicated language/number type) because lessons store the whole subgroup
+/// partition as one <see cref="SubGroup"/> value (<see cref="LessonData.SubGroup"/>),
+/// and <see cref="GroupFilter.SubGroups"/> matches on that same type. The
+/// <see cref="Language"/> enum is unrelated: it is the group's teaching language,
+/// not a subgroup partition value. There is no number value type; numerics are
+/// <see cref="SubGroup"/> values built with <see cref="SubGroup.CreateNumeric(int)"/>.
+/// </remarks>
 public readonly record struct GroupCombination(
     Specialization? Specialization = null,
     SubGroup? Proficiency = null,
@@ -35,8 +44,8 @@ public readonly record struct GroupCombination(
     }
 
     /// <summary>
-    /// Builds the <see cref="GroupFilter"/> the combination PDFs use for this
-    /// combination. A null selection means the partition is inactive for the
+    /// Builds the <see cref="GroupFilter"/> selecting exactly this combination's
+    /// lessons. A null selection means the partition is inactive for the
     /// group, so no restriction is applied: this keeps the filter consistent
     /// with <see cref="GroupPartitionInfo.IncludesLesson"/>, where an inactive
     /// partition (including a registry-deactivated one) behaves as shared.
