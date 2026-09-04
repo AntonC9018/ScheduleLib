@@ -89,6 +89,7 @@ public sealed class GroupPdfTests
             }
         }
     }
+
     [Fact]
     public void LessonPrefixIncludesAlternativeFirst()
     {

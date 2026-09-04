@@ -180,13 +180,19 @@ Keep them as configured `SubGroup` values. Do not add constants or infer a speci
 Generated names use this dimension order:
 
 ```text
-specialization-proficiency-language-numeric
+alternative-specialization-proficiency-language-numeric
 ```
 
 Example:
 
 ```text
 IA2403_GA2D-începători-ru-I.pdf
+```
+
+With an active alternative, it comes first:
+
+```text
+IA2401_A1-CV-I.pdf
 ```
 
 The actual values use Romanian spelling and diacritics. A Group with no active split has only its unsuffixed whole-Group PDF.

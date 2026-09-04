@@ -205,13 +205,19 @@ Keep the unsuffixed whole-Group PDF and include every lesson for that Group. If 
 Use `ListStringBuilder` and this fixed dimension order:
 
 ```text
-specialization-proficiency-language-numeric
+alternative-specialization-proficiency-language-numeric
 ```
 
 Separate the Group name from the combination with `_`, and dimensions with `-`:
 
 ```text
 IA2403_GA2D-începători-ru-I.pdf
+```
+
+With an active alternative, it comes first:
+
+```text
+IA2401_A1-CV-I.pdf
 ```
 
 Omit inactive dimensions. Use Romanian values, including `nuîncepători`. Do not normalize away distinct combinations based on file contents.
@@ -309,6 +315,7 @@ Assume no external caches need migration.
 - Retain the unknown `IA2504` subgroup rejection test.
 - Keep `Sxx` and numbered legacy parsing tests. Their semantics remain unresolved.
 - Regenerate JSON and Verify snapshots after the model migration.
+- The `IntegrationTest.AllThingsWork` Verify snapshot was intentionally removed (machine-specific path baked into the expectation made it brittle).
 - The existing unrelated parser skips remain out of scope.
 
 ## Current preparation already completed
