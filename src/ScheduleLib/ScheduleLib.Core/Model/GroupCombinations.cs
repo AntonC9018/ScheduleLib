@@ -214,27 +214,49 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             var partitionKey = lesson.GroupPartitionKey;
             foreach (var groupId in lesson.Groups)
             {
-                if (NumberHelper.FromRoman(partitionKey.SubGroup.Value) is { } number)
+                // One loop over every partition dimension with a single shared
+                // "All means shared" check: a null value contributes no
+                // observation. The typed stores stay per dimension; only the
+                // iteration is dimension-agnostic.
+                foreach (var dimension in PartitionDimensions.All)
                 {
-                    numeric[groupId].Add(number);
+                    if (partitionKey.GetPartitionDimension(dimension).Value is null)
+                    {
+                        continue;
+                    }
+                    switch (dimension)
+                    {
+                        case PartitionDimension.SubGroup:
+                            ObserveSubGroup(partitionKey.SubGroup, groupId);
+                            break;
+                        case PartitionDimension.Specialization:
+                            specializations[groupId].Add(partitionKey.Specialization);
+                            break;
+                        case PartitionDimension.Alternative:
+                            alternatives[groupId].Add(partitionKey.Alternative);
+                            break;
+                        default:
+                            throw Unreachable();
+                    }
                 }
-                else if (SpecialSubGroups.IsLanguageSubGroup(partitionKey.SubGroup))
-                {
-                    languages[groupId].Add(partitionKey.SubGroup);
-                }
-                else if (partitionKey.SubGroup == SpecialSubGroups.Beginners)
-                {
-                    hasBeginners.Add(groupId);
-                }
+            }
+        }
 
-                if (partitionKey.Specialization != Specialization.All)
-                {
-                    specializations[groupId].Add(partitionKey.Specialization);
-                }
-                if (partitionKey.Alternative != Alternative.All)
-                {
-                    alternatives[groupId].Add(partitionKey.Alternative);
-                }
+        // The subgroup dimension fans out into its numeric, language and
+        // proficiency splits instead of one observed set.
+        void ObserveSubGroup(SubGroup subGroup, GroupId groupId)
+        {
+            if (NumberHelper.FromRoman(subGroup.Value) is { } number)
+            {
+                numeric[groupId].Add(number);
+            }
+            else if (SpecialSubGroups.IsLanguageSubGroup(subGroup))
+            {
+                languages[groupId].Add(subGroup);
+            }
+            else if (subGroup == SpecialSubGroups.Beginners)
+            {
+                hasBeginners.Add(groupId);
             }
         }
 
@@ -254,20 +276,12 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             // filtering leaves fewer than two permitted values, the partition is
             // inactive and the filtered-out values behave as shared instead of
             // vanishing from every combination.
-            var specValues = permitted.Length < 2
-                ? []
-                : permitted
-                    .OrderBy(x => x.Value, StringComparer.Ordinal)
-                    .ToArray();
+            var specValues = ActiveValues(permitted, x => x.Value);
 
             var observedAlts = alternatives[groupId];
             // The alternative partition follows the same activation rule: a single
             // observed alternative behaves as shared and creates no combinations.
-            var altValues = observedAlts.Count < 2
-                ? []
-                : observedAlts
-                    .OrderBy(x => x.Value, StringComparer.Ordinal)
-                    .ToArray();
+            var altValues = ActiveValues(observedAlts, x => x.Value);
 
             var langs = languages[groupId]
                 .OrderBy(x => x.Value, StringComparer.Ordinal)
@@ -280,23 +294,17 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
                 ? [SpecialSubGroups.Beginners, SpecialSubGroups.NonBeginners]
                 : [];
 
-            var combinations = ImmutableArray.CreateBuilder<GroupCombination>();
-            foreach (var alt in OneOrNone(altValues))
-            {
-                foreach (var spec in OneOrNone(specValues))
-                {
-                    foreach (var num in OneOrNone(nums))
-                    {
-                        foreach (var proficiency in OneOrNone(profValues))
-                        {
-                            foreach (var language in OneOrNone(langs))
-                            {
-                                combinations.Add(new(spec, proficiency, language, num, alt));
-                            }
-                        }
-                    }
-                }
-            }
+            // Cartesian product of the active axes, outermost first. The expansion
+            // order preserves the previous nested-loop order (alternative,
+            // specialization, numeric, proficiency, language). The subgroup
+            // dimension fans out into three combination axes; the other two
+            // dimensions map one-to-one onto PartitionDimension.
+            var combinations = new List<GroupCombination> { default };
+            combinations = Expand(combinations, altValues, (c, v) => c with { Alternative = v });
+            combinations = Expand(combinations, specValues, (c, v) => c with { Specialization = v });
+            combinations = Expand(combinations, nums, (c, v) => c with { Numeric = v });
+            combinations = Expand(combinations, profValues, (c, v) => c with { Proficiency = v });
+            combinations = Expand(combinations, langs, (c, v) => c with { Language = v });
 
             // A group with no active partition has no suffixed combinations at all;
             // it only gets its whole-group schedule.
@@ -309,24 +317,41 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 PermittedSpecializations = [.. permitted.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 ObservedAlternatives = [.. observedAlts.OrderBy(x => x.Value, StringComparer.Ordinal)],
-                Combinations = combinations.ToImmutable(),
+                Combinations = [.. combinations],
             };
         }
 
         return ret;
 
-        static IEnumerable<T?> OneOrNone<T>(T[] values)
+        // A partition with fewer than two values behaves as shared for the group
+        // and creates no combination axis. Shared by the specialization and
+        // alternative dimensions.
+        static T[] ActiveValues<T>(IReadOnlyCollection<T> observed, Func<T, string?> name)
+        {
+            return observed.Count < 2
+                ? []
+                : observed.OrderBy(name, StringComparer.Ordinal).ToArray();
+        }
+
+        static List<GroupCombination> Expand<T>(
+            List<GroupCombination> seeds,
+            T[] values,
+            Func<GroupCombination, T?, GroupCombination> apply)
             where T : struct
         {
             if (values.Length == 0)
             {
-                yield return null;
-                yield break;
+                return seeds;
             }
-            foreach (var v in values)
+            var next = new List<GroupCombination>(seeds.Count * values.Length);
+            foreach (var seed in seeds)
             {
-                yield return v;
+                foreach (var value in values)
+                {
+                    next.Add(apply(seed, value));
+                }
             }
+            return next;
         }
     }
 }
