@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A `Group` contains every student registered under one university group identity. Students inside it may be partitioned independently by numeric subgroup, language subgroup, language proficiency, and specialization. A generated student schedule represents one combination of the active partitions.
+A `Group` contains every student registered under one university group identity. Students inside it may be partitioned independently by numeric subgroup, language subgroup, language proficiency, specialization, and alternative. A generated student schedule represents one combination of the active partitions.
 
 `Group.Language` is separate metadata. It does not represent a language subgroup.
 
@@ -14,33 +14,37 @@ Group
     GroupPartitionKey
       SubGroup
       Specialization
+      Alternative
   active partitions
     numeric subgroup
     language subgroup
     language proficiency
     specialization
+    alternative
   generated schedules
     Cartesian product of active partition values
 ```
 
 ### Lesson targeting
 
-A lesson has at most one `SubGroup` and one `Specialization`. These values form its Group partition.
+A lesson has at most one `SubGroup`, one `Specialization`, and one `Alternative`. These values form its Group partition.
 
 Examples:
 
-| SubGroup | Specialization | Meaning |
-|---|---|---|
-| All | All | Shared by the whole Group |
-| I | All | Numeric subgroup I |
-| eng | All | English language subgroup |
-| începători | All | Beginner language-proficiency subgroup |
-| All | GA2D | GA2D specialization |
-| I | GA2D | Numeric subgroup I within GA2D |
+| SubGroup | Specialization | Alternative | Meaning |
+|---|---|---|---|
+| All | All | All | Shared by the whole Group |
+| I | All | All | Numeric subgroup I |
+| eng | All | All | English language subgroup |
+| începători | All | All | Beginner language-proficiency subgroup |
+| All | GA2D | All | GA2D specialization |
+| I | GA2D | All | Numeric subgroup I within GA2D |
+| All | All | A1 | Elective alternative A1 |
+| I | CV | A1 | Numeric subgroup I within CV taking alternative A1 |
 
 Two subgroup annotations on one lesson are invalid. For example, `începători-I` is invalid because both values occupy the subgroup part of the lesson split. A generated student schedule may still select both `începători` and `I`; it combines the separate lessons for those values.
 
-Two specialization annotations on one lesson are also invalid.
+Two specialization annotations on one lesson are also invalid. Two alternative annotations on one lesson are likewise invalid.
 
 ### Specialization
 
@@ -64,6 +68,14 @@ UI
 
 These are specializations, not special subgroups.
 
+### Alternative
+
+`Alternative` is a readonly, null-backed string value. `All` means that the lesson has no alternative restriction. It is not an enum because the choices (elective tracks students pick one of, such as `A1`) are configured per schedule.
+
+It mirrors `Specialization`: at most one value per lesson; unset means `All`; a single observed value for a Group behaves as shared; two or more observed values activate the alternative partition and join the combination product. Student populations intersect on every split dimension: `All` intersects everything, two differing concrete values do not.
+
+The serialized cache field is non-required: caches written before alternatives existed still load, with a missing value deserializing as `All`.
+
 ## Discovering active partitions
 
 Only values observed on a Group's lessons count as existing for that Group. Values merely permitted by configuration do not produce schedules.
@@ -76,6 +88,7 @@ The active partitions follow these rules:
 - No observed specializations means that specialization is inactive.
 - Exactly one observed specialization is also inactive. The annotation behaves as shared for that Group.
 - Two or more observed specializations activate the specialization partition.
+- The alternative partition follows the same rule: no observed alternatives, or exactly one observed alternative, leaves it inactive with the annotation behaving as shared; two or more observed alternatives activate it.
 
 The canonical Romanian values are `începători` and `nuîncepători`.
 
@@ -129,6 +142,7 @@ For each Group, generate the full Cartesian product of every active partition. D
 A combination includes a lesson when:
 
 - the lesson's effective specialization for the Group is `All` or equals the selected specialization; and
+- the lesson's alternative is `All` or equals the selected alternative (when the alternative partition is inactive, a singleton alternative behaves as shared and every combination includes it); and
 - the lesson's subgroup is `All` or equals one of the subgroup values selected by the combination.
 
 For example, `GA2D-începători-ru-I` includes shared lessons and lessons restricted to `GA2D`, `începători`, `ru`, or `I`. It excludes `II` and other specializations.
