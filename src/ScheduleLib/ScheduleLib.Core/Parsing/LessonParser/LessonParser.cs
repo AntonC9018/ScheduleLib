@@ -210,6 +210,46 @@ public static class LessonParsingHelper
         return false;
     }
 
+    /// <summary>
+    /// Consumes a `Word '-' Number` triple when it exactly matches a configured
+    /// dashed legacy label (e.g. UI-1), whose hyphen the normal modifier syntax
+    /// would otherwise treat as a separator. See <see cref="SpecialSubGroups.Legacy"/>.
+    /// Returns false without consuming anything otherwise.
+    /// </summary>
+    public static bool TryConsumeDashedLegacySubGroup<T>(ref T lexer, out SubGroup subGroup)
+        where T : struct, ILexer
+    {
+        subGroup = default;
+        if (lexer.IsEmpty)
+        {
+            return false;
+        }
+        var word = lexer.Current;
+        if (word.Type != LessonTokenType.Word)
+        {
+            return false;
+        }
+        if (!lexer.CanPeek(2) || !lexer.Peek(2).Is('-'))
+        {
+            return false;
+        }
+        if (!lexer.CanPeek(3))
+        {
+            return false;
+        }
+        var number = lexer.Peek(3);
+        if (number.Type != LessonTokenType.Number)
+        {
+            return false;
+        }
+        if (!TryGetExactDashedLegacySubGroup(word.Value.Span, number.Value.Span, out subGroup))
+        {
+            return false;
+        }
+        lexer.Move(3);
+        return true;
+    }
+
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
         ParsingStateStack stateStack = new();
@@ -703,11 +743,10 @@ public static class LessonParsingHelper
                             WrongFormatException.ExpectedWordToken();
                         }
 
-                        // Skip both the word and the -
-                        lexer.Move(2);
-
                         if (lessonTypeParser.Parse(token.Value.Span) is { } lessonType)
                         {
+                            // Skip both the word and the -
+                            lexer.Move(2);
                             return new()
                             {
                                 LessonType = lessonType,
@@ -716,18 +755,16 @@ public static class LessonParsingHelper
 
                         // Narrow exact support for legacy dashed labels, which the
                         // word-number split would otherwise leave partially unconsumed.
-                        if (!lexer.IsEmpty
-                            && lexer.Current.Type == LessonTokenType.Number
-                            && LessonParsingHelper.TryGetExactDashedLegacySubGroup(
-                                token.Value.Span, lexer.Current.Value.Span, out var dashed))
+                        if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashed))
                         {
-                            lexer.Move();
                             return new()
                             {
                                 SubGroup = dashed.Value.AsMemory(),
                             };
                         }
 
+                        // Skip both the word and the -
+                        lexer.Move(2);
                         LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
                         return new()
                         {
@@ -741,27 +778,9 @@ public static class LessonParsingHelper
                 // their exact configured legacy spelling.
                 static ReadOnlyMemory<char> DefaultSubGroupForm(ref LimitedLexerScope lexer)
                 {
-                    var dashed = lexer;
-                    if (dashed.Current.Type == LessonTokenType.Word)
+                    if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashedSubGroup))
                     {
-                        var dashedWord = dashed.Current.Value;
-                        dashed.Move();
-                        if (!dashed.IsEmpty
-                            && dashed.Current.Is('-'))
-                        {
-                            dashed.Move();
-                            if (!dashed.IsEmpty
-                                && dashed.Current.Type == LessonTokenType.Number
-                                && LessonParsingHelper.TryGetExactDashedLegacySubGroup(
-                                    dashedWord.Span,
-                                    dashed.Current.Value.Span,
-                                    out var dashedSubGroup))
-                            {
-                                dashed.Move();
-                                lexer = dashed;
-                                return dashedSubGroup.Value.AsMemory();
-                            }
-                        }
+                        return dashedSubGroup.Value.AsMemory();
                     }
 
                     var sbToken = lexer.Current;
@@ -961,29 +980,10 @@ public static class LessonParsingHelper
                     // whose hyphen is otherwise treated as a separator.
                     static LexerPosition? ConsumeDashedLegacy(ref LexerScope lexer)
                     {
-                        var word = lexer.Current.Value;
-                        var lexerCopy = lexer;
-                        lexerCopy.Move();
-                        if (lexerCopy.IsEmpty
-                            || !lexerCopy.Current.Is('-'))
+                        if (!TryConsumeDashedLegacySubGroup(ref lexer, out _))
                         {
                             return null;
                         }
-                        lexerCopy.Move();
-                        if (lexerCopy.IsEmpty
-                            || lexerCopy.Current.Type != LessonTokenType.Number)
-                        {
-                            return null;
-                        }
-                        if (!LessonParsingHelper.TryGetExactDashedLegacySubGroup(
-                                word.Span,
-                                lexerCopy.Current.Value.Span,
-                                out _))
-                        {
-                            return null;
-                        }
-                        lexerCopy.Move();
-                        lexer.MoveTo(lexerCopy.Position);
                         return lexer.Position;
                     }
 
