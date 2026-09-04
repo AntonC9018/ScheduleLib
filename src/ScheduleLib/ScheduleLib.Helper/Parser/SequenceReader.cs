@@ -410,11 +410,10 @@ public static class ParserHelper
         }
 
         {
-            if (reader.Current != ':')
+            if (!reader.ConsumeExactChar(':'))
             {
                 return null;
             }
-            reader.Move();
         }
 
         uint minutes;
