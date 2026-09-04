@@ -24,64 +24,71 @@ public static partial class ScheduleBuilderHelper
         {
             return;
         }
-        var errors = new List<string>();
         var lessons = s.WeeklyLessons.List;
-        for (int i = 0; i < lessons.Count; i++)
-        {
-            for (int j = i + 1; j < lessons.Count; j++)
-            {
-                if (DescribeOverlapIfConflicting(s, lessons[i].Data, lessons[j].Data) is { } error)
-                {
-                    errors.Add(error);
-                }
-            }
-        }
+        var errors = CollectOverlapErrors(s, lessons, config);
         if (errors.Count > 0)
         {
             throw new OverlappingLessonsException(
                 $"The schedule has {errors.Count} overlapping lesson pairs:\n"
                 + string.Join("\n", errors));
         }
-        return;
+    }
 
-        string? DescribeOverlapIfConflicting(
-            ScheduleBuilder s,
-            in WeeklyLessonBuilderModelData a,
-            in WeeklyLessonBuilderModelData b)
+    private static List<string> CollectOverlapErrors(
+        ScheduleBuilder s,
+        List<WeeklyLessonBuilderModel> lessons,
+        LessonOverlapValidationConfig config)
+    {
+        var errors = new List<string>();
+        for (int i = 0; i < lessons.Count; i++)
         {
-            if (a.Base.General.Period != b.Base.General.Period)
+            for (int j = i + 1; j < lessons.Count; j++)
             {
-                return null;
+                if (DescribeOverlapIfConflicting(s, config, lessons[i].Data, lessons[j].Data) is { } error)
+                {
+                    errors.Add(error);
+                }
             }
-            if (a.Date.DayOfWeek is not { } day || a.Date.DayOfWeek != b.Date.DayOfWeek)
-            {
-                return null;
-            }
-            if (a.Date.TimeSlot is not { } slot || !a.Date.TimeSlot.Equals(b.Date.TimeSlot))
-            {
-                return null;
-            }
-            if (!ParitiesIntersect(a.Date.Parity, b.Date.Parity))
-            {
-                return null;
-            }
-            var shared = SharedGroup(a.Base.Group.Groups, b.Base.Group.Groups);
-            if (shared is null)
-            {
-                return null;
-            }
-            if (!Intersects(a.Base.Group.SubGroup, b.Base.Group.SubGroup)
-                || !Intersects(a.Base.Group.Specialization, b.Base.Group.Specialization)
-                || !Intersects(a.Base.Group.Alternative, b.Base.Group.Alternative))
-            {
-                return null;
-            }
-            if (IsAllowlisted(config.Allowlist, s, a, b, shared.Value))
-            {
-                return null;
-            }
-            return Describe(s, a, b, shared.Value);
         }
+        return errors;
+    }
+
+    private static string? DescribeOverlapIfConflicting(
+        ScheduleBuilder s,
+        LessonOverlapValidationConfig config,
+        in WeeklyLessonBuilderModelData a,
+        in WeeklyLessonBuilderModelData b)
+    {
+        if (a.Base.General.Period != b.Base.General.Period)
+        {
+            return null;
+        }
+        if (a.Date.DayOfWeek is not { } day || a.Date.DayOfWeek != b.Date.DayOfWeek)
+        {
+            return null;
+        }
+        if (a.Date.TimeSlot is not { } slot || !a.Date.TimeSlot.Equals(b.Date.TimeSlot))
+        {
+            return null;
+        }
+        if (!ParitiesIntersect(a.Date.Parity, b.Date.Parity))
+        {
+            return null;
+        }
+        var shared = SharedGroup(a.Base.Group.Groups, b.Base.Group.Groups);
+        if (shared is null)
+        {
+            return null;
+        }
+        if (!SplitDimensionsIntersect(a.Base.Group, b.Base.Group))
+        {
+            return null;
+        }
+        if (IsAllowlisted(config.Allowlist, s, a, b, shared.Value))
+        {
+            return null;
+        }
+        return Describe(s, a, b, shared.Value);
     }
 
     private static bool ParitiesIntersect(Parity? a, Parity? b)
@@ -94,12 +101,30 @@ public static partial class ScheduleBuilderHelper
         return pa == Parity.EveryWeek || pb == Parity.EveryWeek || pa == pb;
     }
 
+    private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
+    {
+        // Local dimension enumeration; item 15 may unify this with PartitionDimension later.
+        ReadOnlySpan<string?> aValues = [a.SubGroup.Value, a.Specialization.Value, a.Alternative.Value];
+        ReadOnlySpan<string?> bValues = [b.SubGroup.Value, b.Specialization.Value, b.Alternative.Value];
+        for (int i = 0; i < aValues.Length; i++)
+        {
+            if (!ValuesIntersect(aValues[i], bValues[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ValuesIntersect(string? a, string? b)
+        => a is null || b is null || a == b;
+
     private static bool Intersects(SubGroup a, SubGroup b)
-        => a.Value is null || b.Value is null || a.Value == b.Value;
+        => ValuesIntersect(a.Value, b.Value);
     private static bool Intersects(Specialization a, Specialization b)
-        => a.Value is null || b.Value is null || a.Value == b.Value;
+        => ValuesIntersect(a.Value, b.Value);
     private static bool Intersects(Alternative a, Alternative b)
-        => a.Value is null || b.Value is null || a.Value == b.Value;
+        => ValuesIntersect(a.Value, b.Value);
 
     private static GroupId? SharedGroup(in LessonGroups a, in LessonGroups b)
     {
