@@ -76,6 +76,23 @@ public sealed class ImplicitSplitAssignmentTests
             .Lesson.Specialization;
     }
 
+    private static List<AnyLessonAccessor> LessonsOf(Schedule schedule, string courseName)
+    {
+        return schedule.EnumerateAllLessons()
+            .Where(x => schedule.Get(x.Lesson.Course).FullName == courseName)
+            .ToList();
+    }
+
+    private static List<string> GroupNamesOf(AnyLessonAccessor lesson, Schedule schedule)
+    {
+        var names = new List<string>();
+        foreach (var groupId in lesson.Lesson.Groups)
+        {
+            names.Add(schedule.EnumerateGroups().Single(x => x.Id == groupId).Item.Name);
+        }
+        return names;
+    }
+
     private static Alternative AlternativeOf(Schedule schedule, string courseName)
     {
         return schedule.EnumerateAllLessons()
@@ -114,7 +131,7 @@ public sealed class ImplicitSplitAssignmentTests
     }
 
     [Fact]
-    public void LessonsSharedWithGroupsOutsideEveryScopeStayUnattributed()
+    public void SplitsSharedLessonsWhenOnlySomeGroupsAreCovered()
     {
         var builder = CreateBuilder();
         AddLesson(builder, "IA2403", courseName: "RVA");
@@ -126,10 +143,23 @@ public sealed class ImplicitSplitAssignmentTests
 
         var schedule = builder.Build();
 
-        // The lesson held together with the M faculty group can only stay whole: one
-        // stored value could not represent both populations.
         Assert.Equal(Specializations.DJ, SpecializationOf(schedule, "RVA"));
-        Assert.Equal(Specialization.All, SpecializationOf(schedule, "SAWM"));
+
+        // The covered groups get the specialization; the rest keep the lesson without
+        // one, so the lesson is split in two, both parts keeping the shared time.
+        var sawm = LessonsOf(schedule, "SAWM");
+        Assert.Equal(2, sawm.Count);
+        var stamped = sawm.Single(x => x.Lesson.Specialization == Specializations.DJ);
+        var unstamped = sawm.Single(x => x.Lesson.Specialization == Specialization.All);
+        Assert.Equal(["IA2403"], GroupNamesOf(stamped, schedule));
+        Assert.Equal(["M2403"], GroupNamesOf(unstamped, schedule));
+        Assert.Equal(stamped.Lesson.Room, unstamped.Lesson.Room);
+        Assert.Equal(
+            stamped.Weekly!.Value.Date.DayOfWeek,
+            unstamped.Weekly!.Value.Date.DayOfWeek);
+        Assert.Equal(
+            stamped.Weekly!.Value.Date.TimeSlot,
+            unstamped.Weekly!.Value.Date.TimeSlot);
     }
 
     [Fact]
