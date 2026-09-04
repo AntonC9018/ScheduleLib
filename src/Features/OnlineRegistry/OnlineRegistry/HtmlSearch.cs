@@ -189,6 +189,14 @@ internal static class HtmlSearch
         }
     }
 
+    /// <summary>
+    /// Classifies the subgroup suffix of a registry group link (e.g. "Spring", "I", or empty)
+    /// into a <see cref="GroupPartitionKey"/>: empty means whole group; a known
+    /// specialization (built-in <see cref="Specializations"/> or custom
+    /// <paramref name="specializationRegistry"/>) means a specialization partition;
+    /// anything else means a numeric subgroup (e.g. "I" is subgroup 1).
+    /// Called per group row by <see cref="ScanGroupsDocumentForLinks"/>.
+    /// </summary>
     internal static GroupPartitionKey GroupPartitionFromString(
         in GroupForSearch groupForSearch,
         SpecializationRegistry? specializationRegistry = null)

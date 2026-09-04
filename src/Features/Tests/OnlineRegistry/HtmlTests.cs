@@ -95,20 +95,20 @@ public sealed class HtmlTests
     [Fact]
     public void GroupLinkSplitClassifiesSpecializationsSeparately()
     {
-        var specialization = HtmlSearch.GroupPartitionFromString(GroupForSearch("Spring"));
-        var numeric = HtmlSearch.GroupPartitionFromString(GroupForSearch("I"));
+        var specialization = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("Spring"));
+        var numeric = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("I"));
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
         registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
         var future = HtmlSearch.GroupPartitionFromString(
-            GroupForSearch(futureSpecialization.Value!),
+            MakeGroupForSearch(futureSpecialization.Value!),
             registryBuilder.Build());
 
         Assert.Equal(new GroupPartitionKey(SubGroup.All, Specializations.Spring), specialization);
         Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
         Assert.Equal(new GroupPartitionKey(SubGroup.All, futureSpecialization), future);
 
-        static GroupForSearch GroupForSearch(string subGroup)
+        static GroupForSearch MakeGroupForSearch(string subGroup)
         {
             return new()
             {
