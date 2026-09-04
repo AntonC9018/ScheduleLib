@@ -153,6 +153,7 @@ public static class Registration
                 services.AddSingleton(ParityParser.Instance);
                 services.AddSingleton(LessonTypeParser.Instance);
                 services.AddSingleton(RoomParser.Instance);
+                services.AddSingleton(SubGroupPrefixMatcher.Default);
                 services.AddSingleton<LessonParserFactory>(sp =>
                 {
                     return new LessonParserFactory(new()

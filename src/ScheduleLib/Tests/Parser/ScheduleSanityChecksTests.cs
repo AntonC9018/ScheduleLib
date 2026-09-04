@@ -272,6 +272,25 @@ public sealed class ScheduleSanityChecksTests
     }
 
     [Fact]
+    public void SourceClassificationUsesInjectedPrefixMatcher()
+    {
+        var future = new Specialization("Future track");
+        var registryBuilder = new SpecializationRegistryBuilder();
+        registryBuilder.Set([future]).ApplyTo(_ => { });
+        // The default matcher knows nothing about "Future track", so the
+        // abbreviated group name only classifies through the injected matcher.
+        var matcher = new SubGroupPrefixMatcher([new SubGroup(future.Value!)]);
+        var (context, group) = CreateDocContext(registryBuilder.Build(), matcher);
+        var lesson = context.Schedule.RegularLesson();
+        lesson.Group(group);
+
+        context.SetCommonProps(lesson, Parsed(groupName: "futu", subGroup: "I"));
+
+        Assert.Equal(SubGroup.CreateNumeric(1), lesson.Model.Base.Group.SubGroup);
+        Assert.Equal(future, lesson.Model.Base.Group.Specialization);
+    }
+
+    [Fact]
     public void SkipsSubGroupValidationWhenDisabled()
     {
         var schedule = new ScheduleBuilder();
@@ -282,7 +301,8 @@ public sealed class ScheduleSanityChecksTests
     }
 
     private static (DocParseContext Context, GroupId Group) CreateDocContext(
-        SpecializationRegistry? specializationRegistry = null)
+        SpecializationRegistry? specializationRegistry = null,
+        SubGroupPrefixMatcher? subGroupMatcher = null)
     {
         var context = DocParseContext.Create(new()
         {
@@ -293,6 +313,7 @@ public sealed class ScheduleSanityChecksTests
                 ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName,
             }),
             SpecializationRegistry = specializationRegistry,
+            SubGroupMatcher = subGroupMatcher,
         });
         var group = context.Schedule.Group("IA2401").Id;
         return (context, group);

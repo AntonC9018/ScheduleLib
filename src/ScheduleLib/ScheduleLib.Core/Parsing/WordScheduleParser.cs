@@ -27,6 +27,7 @@ public sealed class DocParseContext
     public DayNameParser DayNameParser { get; }
     public CourseNameUnifierModule CourseNameUnifierModule { get; }
     public LessonParserFactory ParserFactory { get; }
+    public SubGroupPrefixMatcher SubGroupMatcher { get; }
     public PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
 
     public DocParseContext(
@@ -35,7 +36,8 @@ public sealed class DocParseContext
         LessonParserFactory parserFactory,
         ScheduleBuilder schedule,
         LessonTimeConfig timeConfig,
-        SpecializationRegistry specializationRegistry)
+        SpecializationRegistry specializationRegistry,
+        SubGroupPrefixMatcher? subGroupMatcher = null)
     {
         CourseNameUnifierModule = courseNameUnifierModule;
         DayNameParser = dayNameParser;
@@ -43,6 +45,7 @@ public sealed class DocParseContext
         Schedule = schedule;
         TimeConfig = timeConfig;
         Schedule.SpecializationRegistry = specializationRegistry;
+        SubGroupMatcher = subGroupMatcher ?? SubGroupPrefixMatcher.Default;
     }
 
 
@@ -64,6 +67,7 @@ public sealed class DocParseContext
         public required CourseNameUnifierConfig CourseNameUnifierConfig;
         public required LessonParserFactory ParserFactory;
         public SpecializationRegistry? SpecializationRegistry;
+        public SubGroupPrefixMatcher? SubGroupMatcher;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -84,7 +88,8 @@ public sealed class DocParseContext
             courseNameUnifierModule: new(p.CourseNameUnifierConfig),
             dayNameParser: new DayNameParser(p.DayNameProvider),
             parserFactory: p.ParserFactory,
-            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty);
+            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty,
+            subGroupMatcher: p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default);
     }
 
     public SubGroupStatus SetCommonProps(
@@ -118,7 +123,7 @@ public sealed class DocParseContext
         if (!parsedLesson.GroupName.IsEmpty)
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.GroupName.Span);
-            if (SpecialSubGroups.TryFromNamePrefix(parsedLesson.GroupName.Span, out var group))
+            if (SubGroupMatcher.TryFromNamePrefix(parsedLesson.GroupName.Span, out var group))
             {
                 groupNameIsLabel = true;
                 var remapped = Schedule.RemapSubGroup(group);
