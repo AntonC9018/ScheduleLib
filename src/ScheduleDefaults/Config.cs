@@ -44,64 +44,56 @@ public static class Config
     /// stopped carrying the labels. Scopes carry the study year, so rebuilding an older
     /// semester applies only that year's entries.
     /// </summary>
-    public static ImplicitSplitConfig ImplicitSplitConfig { get; } = new()
+    public static ImplicitSplitConfig ImplicitSplitConfig { get; } = CreateImplicitSplitConfig();
+
+    private static ImplicitSplitConfig CreateImplicitSplitConfig()
     {
-        Scopes =
-        [
-            new ImplicitSplitScope
-            {
-                StudyYear = new(2026),
-                Grade = new(3),
-                Faculty = new("IA"),
-                AttendanceMode = AttendanceMode.Zi,
-                Qualification = QualificationType.Licenta,
-                SpecializationCourses =
-                {
-                    ["Realitate virtuală și augmentată"] = Specializations.DJ,
-                    ["Design audio și efecte vizuale"] = Specializations.DJ,
-                    ["Fotogrametrie și scanare 3D"] = Specializations.DJ,
-                    ["Server-side"] = Specializations.DezvoltareaAplicatiilor,
-                    ["Dezvoltarea aplicațiilor mobile"] = Specializations.DezvoltareaAplicatiilor,
-                    ["Securitatea aplicațiilor enterprise"] = Specializations.DezvoltareaAplicatiilor,
-                    ["Securitatea aplicațiilor web și mobile"] = Specializations.DezvoltareaAplicatiilor,
-                },
-            },
-            new ImplicitSplitScope
-            {
-                StudyYear = new(2026),
-                Grade = new(2),
-                Faculty = new("IA"),
-                AttendanceMode = AttendanceMode.Zi,
-                Qualification = QualificationType.Licenta,
-                SpecializationCourses =
-                {
-                    ["Grafică și animație 2D"] = Specializations.GA2D,
-                    ["Designul UI/UX"] = Specializations.UI,
-                },
-            },
-            // Elective stacks students choose between. One scope covers every
-            // faculty and attendance mode of the year because the joint elective
-            // lessons span I, M, IA and DJ groups, including Dual ones. Both
-            // cache variants of the same human course (the long "Disciplină
-            // umanistică opțională: ..." form and the short form) point at the
-            // same alternative.
-            new ImplicitSplitScope
-            {
-                StudyYear = new(2026),
-                Grade = new(2),
-                Qualification = QualificationType.Licenta,
-                AlternativeCourses =
-                {
-                    ["Disciplină umanistică opțională: Antreprenoriat inovativ"] = new("Antreprenoriat inovativ"),
-                    ["Antreprenoriat inovativ"] = new("Antreprenoriat inovativ"),
-                    ["Disciplină umanistică opțională: Psihologie"] = new("Psihologie"),
-                    ["Psihologie"] = new("Psihologie"),
-                    ["Opț. ped."] = new("Opț. ped."),
-                    ["Cult. comun."] = new("Cult. comun."),
-                },
-            },
-        ],
-    };
+        var builder = new ImplicitSplitConfigBuilder();
+        builder.Scope(x =>
+        {
+            x.StudyYear = new(2026);
+            x.Grade = new(3);
+            x.Faculty = new("IA");
+            x.AttendanceMode = AttendanceMode.Zi;
+            x.Qualification = QualificationType.Licenta;
+            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
+            x.Specialization("Design audio și efecte vizuale", Specializations.DJ);
+            x.Specialization("Fotogrametrie și scanare 3D", Specializations.DJ);
+            x.Specialization("Server-side", Specializations.DezvoltareaAplicatiilor);
+            x.Specialization("Dezvoltarea aplicațiilor mobile", Specializations.DezvoltareaAplicatiilor);
+            x.Specialization("Securitatea aplicațiilor enterprise", Specializations.DezvoltareaAplicatiilor);
+            x.Specialization("Securitatea aplicațiilor web și mobile", Specializations.DezvoltareaAplicatiilor);
+        });
+        builder.Scope(x =>
+        {
+            x.StudyYear = new(2026);
+            x.Grade = new(2);
+            x.Faculty = new("IA");
+            x.AttendanceMode = AttendanceMode.Zi;
+            x.Qualification = QualificationType.Licenta;
+            x.Specialization("Grafică și animație 2D", Specializations.GA2D);
+            x.Specialization("Designul UI/UX", Specializations.UI);
+        });
+        // Elective stacks students choose between. One scope covers every
+        // faculty and attendance mode of the year because the joint elective
+        // lessons span I, M, IA and DJ groups, including Dual ones. Both
+        // cache variants of the same human course (the long "Disciplină
+        // umanistică opțională: ..." form and the short form) point at the
+        // same alternative.
+        builder.Scope(x =>
+        {
+            x.StudyYear = new(2026);
+            x.Grade = new(2);
+            x.Qualification = QualificationType.Licenta;
+            x.Alternative("Disciplină umanistică opțională: Antreprenoriat inovativ", new("Antreprenoriat inovativ"));
+            x.Alternative("Antreprenoriat inovativ", new("Antreprenoriat inovativ"));
+            x.Alternative("Disciplină umanistică opțională: Psihologie", new("Psihologie"));
+            x.Alternative("Psihologie", new("Psihologie"));
+            x.Alternative("Opț. ped.", new("Opț. ped."));
+            x.Alternative("Cult. comun.", new("Cult. comun."));
+        });
+        return builder.Build();
+    }
 
     /// <summary>
     /// Tolerated lesson overlaps. Every entry is temporary and documents why the pair

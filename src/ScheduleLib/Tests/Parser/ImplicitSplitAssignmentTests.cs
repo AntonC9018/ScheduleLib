@@ -21,29 +21,24 @@ public sealed class ImplicitSplitAssignmentTests
     }
 
     // The context carries the study year, the config declares it in full.
-    private static ImplicitSplitConfig Config { get; } = new()
+    private static ImplicitSplitConfig Config { get; } = CreateConfig();
+
+    private static ImplicitSplitConfig CreateConfig()
     {
-        Scopes =
-        [
-            new ImplicitSplitScope
-            {
-                StudyYear = new(2026),
-                Grade = new(3),
-                Faculty = new("IA"),
-                AttendanceMode = AttendanceMode.Zi,
-                Qualification = QualificationType.Licenta,
-                SpecializationCourses =
-                {
-                    ["RVA"] = Specializations.DJ,
-                    ["SAWM"] = Specializations.DJ,
-                },
-                AlternativeCourses =
-                {
-                    ["Antreprenoriat inovativ"] = new("Antreprenoriat"),
-                },
-            },
-        ],
-    };
+        var builder = new ImplicitSplitConfigBuilder();
+        builder.Scope(x =>
+        {
+            x.StudyYear = new(2026);
+            x.Grade = new(3);
+            x.Faculty = new("IA");
+            x.AttendanceMode = AttendanceMode.Zi;
+            x.Qualification = QualificationType.Licenta;
+            x.Specialization("RVA", Specializations.DJ);
+            x.Specialization("SAWM", Specializations.DJ);
+            x.Alternative("Antreprenoriat inovativ", new("Antreprenoriat"));
+        });
+        return builder.Build();
+    }
 
     private static Schedule Build(Action<ScheduleBuilder> configure)
     {
@@ -165,30 +160,20 @@ public sealed class ImplicitSplitAssignmentTests
     [Fact]
     public void AssignsSharedLessonWhenEveryGroupMatchesAScopeWithTheSameValue()
     {
-        var config = new ImplicitSplitConfig
+        var configBuilder = new ImplicitSplitConfigBuilder();
+        configBuilder.Scope(x =>
         {
-            Scopes =
-            [
-                new ImplicitSplitScope
-                {
-                    Grade = new(3),
-                    Faculty = new("IA"),
-                    SpecializationCourses =
-                    {
-                        ["Realitate virtuală și augmentată"] = Specializations.DJ,
-                    },
-                },
-                new ImplicitSplitScope
-                {
-                    Grade = new(3),
-                    Faculty = new("M"),
-                    SpecializationCourses =
-                    {
-                        ["Realitate virtuală și augmentată"] = Specializations.DJ,
-                    },
-                },
-            ],
-        };
+            x.Grade = new(3);
+            x.Faculty = new("IA");
+            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
+        });
+        configBuilder.Scope(x =>
+        {
+            x.Grade = new(3);
+            x.Faculty = new("M");
+            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
+        });
+        var config = configBuilder.Build();
         var builder = new ScheduleBuilder
         {
             ImplicitSplitConfig = config,
@@ -216,22 +201,15 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var builder = CreateBuilder();
         // Built for the 2026 study year; the scope only applies to 2025.
-        builder.ImplicitSplitConfig = new ImplicitSplitConfig
+        var scopeBuilder = new ImplicitSplitConfigBuilder();
+        scopeBuilder.Scope(x =>
         {
-            Scopes =
-            [
-                new ImplicitSplitScope
-                {
-                    StudyYear = new(2025),
-                    Grade = new(3),
-                    Faculty = new("IA"),
-                    SpecializationCourses =
-                    {
-                        ["RVA"] = Specializations.DJ,
-                    },
-                },
-            ],
-        };
+            x.StudyYear = new(2025);
+            x.Grade = new(3);
+            x.Faculty = new("IA");
+            x.Specialization("RVA", Specializations.DJ);
+        });
+        builder.ImplicitSplitConfig = scopeBuilder.Build();
         AddLesson(builder, "IA2403", courseName: "RVA");
 
         var schedule = builder.Build();
@@ -294,68 +272,56 @@ public sealed class ImplicitSplitAssignmentTests
     [Fact]
     public void CacheHashDescriptionIgnoresDeclarationOrder()
     {
-        var a = new ImplicitSplitConfig
-        {
-            Scopes =
-            [
-                new ImplicitSplitScope
-                {
-                    Grade = new(3),
-                    SpecializationCourses =
-                    {
-                        ["A"] = Specializations.DJ,
-                        ["B"] = Specializations.UI,
-                    },
-                },
-                new ImplicitSplitScope
-                {
-                    Grade = new(2),
-                    AlternativeCourses =
-                    {
-                        ["C"] = new("Alt"),
-                    },
-                },
-            ],
-        };
-        var b = new ImplicitSplitConfig
-        {
-            Scopes =
-            [
-                new ImplicitSplitScope
-                {
-                    Grade = new(2),
-                    AlternativeCourses =
-                    {
-                        ["C"] = new("Alt"),
-                    },
-                },
-                new ImplicitSplitScope
-                {
-                    Grade = new(3),
-                    SpecializationCourses =
-                    {
-                        ["B"] = Specializations.UI,
-                        ["A"] = Specializations.DJ,
-                    },
-                },
-            ],
-        };
-        var c = new ImplicitSplitConfig
-        {
-            Scopes =
-            [
-                new ImplicitSplitScope
-                {
-                    Grade = new(3),
-                    SpecializationCourses =
-                    {
-                        ["A"] = Specializations.GA2D,
-                    },
-                },
-            ],
-        };
+        var a = BuildConfigA();
+        var b = BuildConfigB();
+        var c = BuildConfigC();
 
         Assert.Equal(a.DescribeForCacheHash(), b.DescribeForCacheHash());
         Assert.NotEqual(a.DescribeForCacheHash(), c.DescribeForCacheHash());
+    }
+
+    private static ImplicitSplitConfig BuildConfigA()
+    {
+        var builder = new ImplicitSplitConfigBuilder();
+        builder.Scope(x =>
+        {
+            x.Grade = new(3);
+            x.Specialization("A", Specializations.DJ);
+            x.Specialization("B", Specializations.UI);
+        });
+        builder.Scope(x =>
+        {
+            x.Grade = new(2);
+            x.Alternative("C", new("Alt"));
+        });
+        return builder.Build();
+    }
+
+    private static ImplicitSplitConfig BuildConfigB()
+    {
+        var builder = new ImplicitSplitConfigBuilder();
+        builder.Scope(x =>
+        {
+            x.Grade = new(2);
+            x.Alternative("C", new("Alt"));
+        });
+        builder.Scope(x =>
+        {
+            x.Grade = new(3);
+            x.Specialization("B", Specializations.UI);
+            x.Specialization("A", Specializations.DJ);
+        });
+        return builder.Build();
+    }
+
+    private static ImplicitSplitConfig BuildConfigC()
+    {
+        var builder = new ImplicitSplitConfigBuilder();
+        builder.Scope(x =>
+        {
+            x.Grade = new(3);
+            x.Specialization("A", Specializations.GA2D);
+        });
+        return builder.Build();
     }
 }
