@@ -95,8 +95,9 @@ public sealed class HtmlTests
     [Fact]
     public void GroupLinkSplitClassifiesSpecializationsSeparately()
     {
-        var specialization = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("Spring"));
-        var numeric = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("I"));
+        // Explicit null: no custom registry; only built-in specializations apply.
+        var specialization = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("Spring"), null);
+        var numeric = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("I"), null);
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
         registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });

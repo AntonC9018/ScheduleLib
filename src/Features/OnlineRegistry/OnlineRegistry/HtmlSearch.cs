@@ -197,9 +197,11 @@ internal static class HtmlSearch
     /// anything else means a numeric subgroup (e.g. "I" is subgroup 1).
     /// Called per group row by <see cref="ScanGroupsDocumentForLinks"/>.
     /// </summary>
+    /// <param name="specializationRegistry">Custom specialization registry, or
+    /// <c>null</c> when only built-in <see cref="Specializations"/> apply.</param>
     internal static GroupPartitionKey GroupPartitionFromString(
         in GroupForSearch groupForSearch,
-        SpecializationRegistry? specializationRegistry = null)
+        SpecializationRegistry? specializationRegistry)
     {
         if (groupForSearch.SubGroupName.IsEmpty)
         {
