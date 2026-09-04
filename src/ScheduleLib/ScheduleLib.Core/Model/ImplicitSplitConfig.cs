@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace ScheduleLib;
 
 /// <summary>
@@ -17,47 +15,6 @@ public sealed class ImplicitSplitConfig
     }
 
     public IReadOnlyList<ImplicitSplitScope> Scopes { get; }
-
-    /// <summary>
-    /// A stable textual form of the configuration. It feeds the schedule cache hash, so
-    /// editing the configuration invalidates the cache instead of silently reusing one
-    /// built without the assignments.
-    /// </summary>
-    public string DescribeForCacheHash()
-    {
-        var sb = new StringBuilder();
-        // Scope order carries no meaning, so it is normalized: the same configuration
-        // must produce the same hash regardless of how it was written down.
-        var lines = new List<string>(Scopes.Count);
-        foreach (var scope in Scopes)
-        {
-            var line = new StringBuilder();
-            line.Append(scope.StudyYear?.ToString() ?? "*").Append('|')
-                .Append(scope.Grade?.Value.ToString() ?? "*").Append('|')
-                .Append(scope.Faculty?.Name ?? "*").Append('|')
-                .Append(scope.AttendanceMode?.ToString() ?? "*").Append('|')
-                .Append(scope.Qualification?.ToString() ?? "*");
-            AppendCourses(line, scope.SpecializationCourses, x => x.Value);
-            AppendCourses(line, scope.AlternativeCourses, x => x.Value);
-            lines.Add(line.ToString());
-        }
-        lines.Sort(StringComparer.Ordinal);
-        sb.AppendJoin('\n', lines);
-        if (lines.Count > 0)
-        {
-            sb.Append('\n');
-        }
-        return sb.ToString();
-
-        static void AppendCourses<T>(StringBuilder sb, IReadOnlyDictionary<string, T> courses, Func<T, string?> value)
-            where T : struct
-        {
-            foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
-            {
-                sb.Append('|').Append(name).Append('=').Append(value(v));
-            }
-        }
-    }
 }
 
 public sealed class ImplicitSplitScope

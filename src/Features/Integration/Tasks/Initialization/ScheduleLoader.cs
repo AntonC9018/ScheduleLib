@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,9 +41,7 @@ public sealed class ScheduleLoader
                 // The implicit split configuration participates in the hash: editing it
                 // invalidates the cache instead of silently reusing one built without
                 // the assignments.
-                hasher.AppendData(
-                    Encoding.UTF8.GetBytes(
-                        context.Schedule.ImplicitSplitConfig?.DescribeForCacheHash() ?? ""));
+                hasher.AppendImplicitSplitConfig(context.Schedule.ImplicitSplitConfig);
                 hashHex = hasher.ToHexString();
             }
         }
@@ -431,6 +430,146 @@ public static class HashHelper
             int len = hasher.GetCurrentHash(hash.Span);
             Debug.Assert(len == hashLen);
             return Convert.ToHexStringLower(hash.Span);
+        }
+
+        /// <summary>
+        /// Feeds an <see cref="ImplicitSplitConfig"/> into the schedule cache hash
+        /// member by member, without a string round-trip. Scope and course order
+        /// carry no meaning, so both are normalized: the same configuration
+        /// produces the same hash regardless of how it was written down.
+        /// A null config hashes distinctly from an empty one.
+        /// </summary>
+        public void AppendImplicitSplitConfig(ImplicitSplitConfig? config)
+        {
+            if (config is null)
+            {
+                AppendByte(0);
+                return;
+            }
+            AppendByte(1);
+            AppendInt32(config.Scopes.Count);
+            var scopes = config.Scopes.ToArray();
+            Array.Sort(scopes, CompareScopes);
+            foreach (var scope in scopes)
+            {
+                AppendNullableInt(scope.StudyYear?.Value);
+                AppendNullableInt(scope.Grade?.Value);
+                AppendString(scope.Faculty?.Name);
+                AppendNullableInt(scope.AttendanceMode is { } mode ? (int)mode : null);
+                AppendNullableInt(scope.Qualification is { } qualification ? (int)qualification : null);
+                AppendCourses(scope.SpecializationCourses, static s => s.Value);
+                AppendCourses(scope.AlternativeCourses, static a => a.Value);
+            }
+            return;
+
+            void AppendByte(byte value)
+            {
+                Span<byte> buffer = stackalloc byte[1];
+                buffer[0] = value;
+                hasher.AppendData(buffer);
+            }
+
+            void AppendInt32(int value)
+            {
+                Span<byte> buffer = stackalloc byte[sizeof(int)];
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, value);
+                hasher.AppendData(buffer);
+            }
+
+            void AppendNullableInt(int? value)
+            {
+                if (value is not { } v)
+                {
+                    AppendByte(0);
+                    return;
+                }
+                AppendByte(1);
+                AppendInt32(v);
+            }
+
+            void AppendString(string? value)
+            {
+                if (value is null)
+                {
+                    AppendInt32(-1);
+                    return;
+                }
+                var bytes = Encoding.UTF8.GetBytes(value);
+                AppendInt32(bytes.Length);
+                hasher.AppendData(bytes);
+            }
+
+            void AppendCourses<T>(IReadOnlyDictionary<string, T> courses, Func<T, string?> value)
+                where T : struct
+            {
+                AppendInt32(courses.Count);
+                foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
+                {
+                    AppendString(name);
+                    AppendString(value(v));
+                }
+            }
+
+            static int CompareScopes(ImplicitSplitScope x, ImplicitSplitScope y)
+            {
+                int c;
+                if ((c = Nullable.Compare(x.StudyYear?.Value, y.StudyYear?.Value)) != 0)
+                {
+                    return c;
+                }
+                if ((c = Nullable.Compare(x.Grade?.Value, y.Grade?.Value)) != 0)
+                {
+                    return c;
+                }
+                if ((c = string.Compare(x.Faculty?.Name, y.Faculty?.Name, StringComparison.Ordinal)) != 0)
+                {
+                    return c;
+                }
+                if ((c = Nullable.Compare(x.AttendanceMode, y.AttendanceMode)) != 0)
+                {
+                    return c;
+                }
+                if ((c = Nullable.Compare(x.Qualification, y.Qualification)) != 0)
+                {
+                    return c;
+                }
+                if ((c = CompareCourses(
+                        x.SpecializationCourses, y.SpecializationCourses, static s => s.Value)) != 0)
+                {
+                    return c;
+                }
+                return CompareCourses(
+                    x.AlternativeCourses, y.AlternativeCourses, static a => a.Value);
+            }
+
+            static int CompareCourses<T>(
+                IReadOnlyDictionary<string, T> xs,
+                IReadOnlyDictionary<string, T> ys,
+                Func<T, string?> value)
+                where T : struct
+            {
+                if (xs.Count != ys.Count)
+                {
+                    return xs.Count.CompareTo(ys.Count);
+                }
+                using var xe = xs.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
+                using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
+                while (xe.MoveNext() && ye.MoveNext())
+                {
+                    int c = string.Compare(xe.Current.Key, ye.Current.Key, StringComparison.Ordinal);
+                    if (c != 0)
+                    {
+                        return c;
+                    }
+                    c = string.Compare(
+                        value(xe.Current.Value), value(ye.Current.Value), StringComparison.Ordinal);
+                    if (c != 0)
+                    {
+                        return c;
+                    }
+                }
+                return 0;
+            }
         }
 
         public async ValueTask AppendDirectory(
