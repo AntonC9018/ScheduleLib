@@ -20,7 +20,7 @@ public static partial class DocsExcel
         var ws = wb.Worksheets.Add("Persons");
 
         // --- 1. Write headers ---
-        for (int i = 0; i < (int)PersonColumns.Count; i++)
+        for (int i = 0; i < (int) PersonColumns.Count; i++)
         {
             ws.Cell(HeaderRow, i + 1).Value = ColumnLabels.Labels[i][0];
         }

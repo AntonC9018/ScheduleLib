@@ -264,7 +264,7 @@ public static class ParityExcelParser
             var monthName = MonthNames[i];
             if (monthName.AsSpan().Equals(name, StringComparison.OrdinalIgnoreCase))
             {
-                var month = (Month)(i + 1);
+                var month = (Month) (i + 1);
                 return month;
             }
         }

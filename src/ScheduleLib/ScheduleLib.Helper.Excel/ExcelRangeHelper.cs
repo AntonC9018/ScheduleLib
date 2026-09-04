@@ -23,8 +23,8 @@ public static class ExcelRangeHelper
         while (true)
         {
             const uint base_ = 'Z' - 'A' + 1;
-            byte remainder = (byte)((remaining - 1) % base_);
-            byte letter = (byte)('A' + remainder);
+            byte remainder = (byte) ((remaining - 1) % base_);
+            byte letter = (byte) ('A' + remainder);
             char ch = (char) letter;
             stack[stackPos] = ch;
             stackPos++;
@@ -98,7 +98,7 @@ public static class ExcelRangeHelper
         else
         {
             uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
-            pos = new((uint)(cell.Index + 1), rowIndex);
+            pos = new((uint) (cell.Index + 1), rowIndex);
         }
         return pos;
     }

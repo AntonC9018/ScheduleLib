@@ -359,7 +359,7 @@ public static class Config
 
         for (int i = 1; i <= 10; i++)
         {
-            var from = $"{(char)('a' + i - 1)}";
+            var from = $"{(char) ('a' + i - 1)}";
             var to = NumberHelper.ToRoman(i);
             subgroup.Add(from, to);
         }

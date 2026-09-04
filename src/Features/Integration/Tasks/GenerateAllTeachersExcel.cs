@@ -145,7 +145,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + teachers.Length),
+                Max = (uint) (3 + teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };

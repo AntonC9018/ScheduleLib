@@ -789,7 +789,7 @@ public static class LexerHelper
             return null;
         }
 
-        int offset = (int)((byte*) aStart - (byte*) bStart) / Unsafe.SizeOf<T>();
+        int offset = (int) ((byte*) aStart - (byte*) bStart) / Unsafe.SizeOf<T>();
         return offset;
     }
 

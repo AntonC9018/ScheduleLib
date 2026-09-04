@@ -15,14 +15,14 @@ public readonly struct SizeComputer
     {
         var total = _maxRowsInOneCell;
         var x = (float) lessonIndex / (float) _lessonCount;
-        return (int)(x * total);
+        return (int) (x * total);
     }
 
     public uint ComputeRowSpan(int lessonIndex)
     {
         var a = ComputeRowOffsetOf(lessonIndex);
         var b = ComputeRowOffsetOf(lessonIndex + 1);
-        return (uint)(b - a);
+        return (uint) (b - a);
     }
 
 }

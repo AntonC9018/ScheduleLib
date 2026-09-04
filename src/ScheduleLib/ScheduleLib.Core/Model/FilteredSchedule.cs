@@ -221,9 +221,21 @@ public static class FilterHelper
 
             // Partition selections as dimension-agnostic values, hoisted: the
             // filter is constant across lessons.
-            PartitionKey[]? subGroupSelection = filter.GroupFilter.SubGroups?.Select(s => (PartitionKey)s).ToArray();
-            PartitionKey[]? specializationSelection = filter.GroupFilter.Specializations?.Select(s => (PartitionKey)s).ToArray();
-            PartitionKey[]? alternativeSelection = filter.GroupFilter.Alternatives?.Select(a => (PartitionKey)a).ToArray();
+            var selections = ToPartitionKeys(filter.GroupFilter);
+
+            static (PartitionKey[]? SubGroup, PartitionKey[]? Specialization, PartitionKey[]? Alternative) ToPartitionKeys(
+                GroupFilter groupFilter)
+            {
+                return (
+                    SubGroup: ToKeys(groupFilter.SubGroups, s => s),
+                    Specialization: ToKeys(groupFilter.Specializations, s => s),
+                    Alternative: ToKeys(groupFilter.Alternatives, a => a));
+
+                static PartitionKey[]? ToKeys<T>(IEnumerable<T>? values, Func<T, PartitionKey> convert)
+                {
+                    return values?.Select(convert).ToArray();
+                }
+            }
 
             foreach (var l in schedule.EnumerateAllLessons())
             {
@@ -380,9 +392,9 @@ public static class FilterHelper
 
                 PartitionKey[]? SelectedValues(PartitionDimension dimension) => dimension switch
                 {
-                    PartitionDimension.SubGroup => subGroupSelection,
-                    PartitionDimension.Specialization => specializationSelection,
-                    PartitionDimension.Alternative => alternativeSelection,
+                    PartitionDimension.SubGroup => selections.SubGroup,
+                    PartitionDimension.Specialization => selections.Specialization,
+                    PartitionDimension.Alternative => selections.Alternative,
                     _ => throw Unreachable(),
                 };
 
