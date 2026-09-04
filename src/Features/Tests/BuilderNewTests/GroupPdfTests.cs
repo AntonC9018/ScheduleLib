@@ -4,6 +4,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib;
+using ScheduleLib.ScheduleDefaults;
 using System.Text;
 
 public sealed class GroupPdfTests
@@ -261,7 +262,7 @@ public sealed class GroupPdfTests
                 LessonTimeConfig.CreateDefault(),
                 new TimeSlotDisplayHandler(),
                 new DayNameProvider(),
-                SpecializationRegistryHelper.CreateDefault(),
+                Config.SpecializationRegistry,
                 schedule);
 
             await handler.Run(new()

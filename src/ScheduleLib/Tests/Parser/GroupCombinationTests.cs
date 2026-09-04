@@ -654,7 +654,7 @@ public sealed class GroupCombinationTests
             Language = Language.Ro,
         };
 
-        var permitted = SpecializationRegistryHelper.CreateDefault().PermittedFor(in dual);
+        var permitted = Config.SpecializationRegistry.PermittedFor(in dual);
 
         Assert.True(new[] { Specialization.AlgoritmicaGrafurilor, Specialization.Logica }
             .SequenceEqual(permitted));

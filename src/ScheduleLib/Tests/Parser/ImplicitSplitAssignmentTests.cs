@@ -1,6 +1,7 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;
 
@@ -263,7 +264,7 @@ public sealed class ImplicitSplitAssignmentTests
             Language = Language.Ru,
         };
 
-        var permitted = SpecializationRegistryHelper.CreateDefault().PermittedFor(in group);
+        var permitted = ScheduleDefaults.Config.SpecializationRegistry.PermittedFor(in group);
 
         Assert.True(new[] { Specialization.DJ, Specialization.DezvoltareaAplicatiilor }
             .SequenceEqual(permitted));

@@ -173,6 +173,75 @@ public static class Config
 
     public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
 
+    /// <summary>
+    /// The initial specialization registry. Uses the canonical extension
+    /// accessors on Specialization (only visible in this config layer).
+    /// </summary>
+    public static SpecializationRegistry SpecializationRegistry { get; } = CreateSpecializationRegistry();
+
+    private static SpecializationRegistry CreateSpecializationRegistry()
+    {
+        var b = new SpecializationRegistryBuilder();
+        b.Set([Specialization.AlgoritmicaGrafurilor, Specialization.Logica])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(1);
+                x.Faculty = new("I");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
+        b.Set([Specialization.AlgoritmicaGrafurilor, Specialization.Logica])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(1);
+                x.Faculty = new("IA");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
+        b.Set([Specialization.AlgoritmicaGrafurilor, Specialization.Logica])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(1);
+                x.Faculty = new("IA");
+                x.AttendanceMode = AttendanceMode.Dual;
+                x.Qualification = QualificationType.Licenta;
+            });
+        b.Set([Specialization.Spring])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(2);
+                x.Faculty = new("I");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
+        b.Set([
+                Specialization.CV,
+                Specialization.DJ,
+                Specialization.GA2D,
+                Specialization.GA3D,
+                Specialization.React,
+                Specialization.Spring,
+                Specialization.SSI,
+                Specialization.UI,
+            ])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(2);
+                x.Faculty = new("IA");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
+        b.Set([Specialization.DJ, Specialization.DezvoltareaAplicatiilor])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(3);
+                x.Faculty = new("IA");
+                x.AttendanceMode = AttendanceMode.Zi;
+                x.Qualification = QualificationType.Licenta;
+            });
+        return b.Build();
+    }
+
     public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)
     {
         Debug.Assert(!c.Lexer.IsEmpty);

@@ -138,7 +138,7 @@ public static class Registration
                     });
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
-                services.AddSingleton(ScheduleLib.SpecializationRegistryHelper.CreateDefault());
+                services.AddSingleton(ScheduleDefaults.Config.SpecializationRegistry);
                 services.AddSingleton<CourseNameParserConfig>(ScheduleDefaults.Config.CourseNameParser);
                 services.AddSingleton<CourseNameUnifierConfig>(sp =>
                 {
