@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ScheduleLib.Builders;
 
@@ -6,15 +8,23 @@ public static partial class ScheduleBuilderHelper
 {
     /// <summary>
     /// Assigns the implicitly configured specializations and alternatives to lessons of
-    /// matching courses. Runs after <see cref="ScheduleBuilderHelper.ClassifySubGroups"/>,
-    /// so explicitly labeled lessons are already classified and contradictions with the
-    /// configuration get detected here.
+    /// matching courses.
     /// <para>
     /// A lesson covering several groups can resolve differently per group: the groups
     /// covered by a configuration entry receive the value, the rest stay without one.
     /// A single lesson stores a single value, so such a lesson is split into one lesson
     /// per distinct resolution, each carrying only the groups it represents. The shared
     /// time, room and teachers are copied to every part.
+    /// </para>
+    /// <para>
+    /// Contracts (what must hold, independent of the pass order in the build pipeline):
+    /// every lesson carries a course that refers to a known course with at least one
+    /// name (established by <c>LessonBuilderHelper.ValidateLessons</c>, including for
+    /// consultation lessons, which exit through the empty-groups guard below); explicit
+    /// specialization and alternative labels are already classified into their fields,
+    /// so any contradiction between an explicit value and the configuration is an error
+    /// reported here. The pass either stamps a single resolution in place or splits the
+    /// lesson; it never reorders or drops groups.
     /// </para>
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
@@ -26,43 +36,47 @@ public static partial class ScheduleBuilderHelper
         }
         StudyYear? studyYear = s.GroupParseContext?.CurrentStudyYear;
 
-        // Splits append new lessons, so the loops cover only the original ones.
+        // Splits append new lessons, so the loops cover only the original ones:
+        // the counts are captured before any split runs.
         int weeklyCount = s.WeeklyLessons.Count;
         for (int i = 0; i < weeklyCount; i++)
         {
-            Split(s, s.WeeklyLessons.Ref(i), config, studyYear);
+            Split(s.WeeklyLessons.Ref(i));
         }
         int oneTimeCount = s.OneTimeLessons.Count;
         for (int i = 0; i < oneTimeCount; i++)
         {
-            Split(s, s.OneTimeLessons.Ref(i), config, studyYear);
+            Split(s.OneTimeLessons.Ref(i));
         }
         return;
 
-        void Split(
-            ScheduleBuilder s,
-            ILessonBuilderModel lesson,
-            ImplicitSplitConfig config,
-            StudyYear? studyYear)
+        // Resolves one lesson against the captured config and study year, splitting
+        // it when its groups resolve to distinct values.
+        void Split(ILessonBuilderModel lesson)
         {
-            var courseId = lesson.Base.General.Course;
-            if (courseId is null || courseId.Value.IsInvalid)
+            if (lesson.Base.General.Course is not { } courseId
+                || courseId.IsInvalid)
             {
-                return;
+                // Unreachable: ValidateLessons guarantees a known course on every
+                // lesson (consultations included). Throws so release builds fail
+                // loudly instead of silently skipping the lesson.
+                Debug.Assert(false, "ValidateLessons guarantees a course on every lesson.");
+                throw new InvalidOperationException("The lesson course must be initialized.");
             }
             var groups = lesson.Base.Group.Groups;
             if (groups.IsEmpty)
             {
+                // Consultations and other group-less lessons: nothing to resolve per group.
                 return;
             }
 
-            var names = s.Courses.Ref(courseId.Value.Id).Names;
-            var courseName = names.Length > 0 ? names[0] : courseId.Value.Id.ToString();
+            var names = s.Courses.Ref(courseId.Id).Names;
+            // Invariant (see ValidateLessons): every referenced course has at least
+            // one name; the first one identifies the course in diagnostics.
+            Debug.Assert(names.Length > 0, "ValidateLessons guarantees at least one course name.");
+            var courseName = names[0];
 
-            var parts = new List<Part>();
-            List<GroupId>? remainder = null;
-            Specialization? seenSpec = null;
-            Alternative? seenAlt = null;
+            var accumulator = new SplitAccumulator();
             foreach (var groupId in groups)
             {
                 var group = s.Groups.Ref(groupId.Value);
@@ -86,89 +100,68 @@ public static partial class ScheduleBuilderHelper
                 {
                     // The group is covered by no entry: its part of the lesson keeps
                     // going out without a specialization.
-                    (remainder ??= []).Add(groupId);
+                    accumulator.AddUncovered(groupId);
                     continue;
                 }
                 if (spec is { } resolvedSpec)
                 {
-                    if (seenSpec is { } prevSpec && prevSpec != resolvedSpec)
-                    {
-                        throw new InvalidOperationException(
-                            $"The implicit split configuration assigns conflicting specializations "
-                            + $"'{prevSpec.Value}' and '{resolvedSpec.Value}' to course '{courseName}'.");
-                    }
-                    seenSpec ??= resolvedSpec;
+                    accumulator.NoteSpec(resolvedSpec, courseName);
                 }
                 if (alt is { } resolvedAlt)
                 {
-                    if (seenAlt is { } prevAlt && prevAlt != resolvedAlt)
-                    {
-                        throw new InvalidOperationException(
-                            $"The implicit split configuration assigns conflicting alternatives "
-                            + $"'{prevAlt.Value}' and '{resolvedAlt.Value}' to course '{courseName}'.");
-                    }
-                    seenAlt ??= resolvedAlt;
+                    accumulator.NoteAlt(resolvedAlt, courseName);
                 }
-                int partIndex = parts.FindIndex(p =>
-                    Nullable.Equals(p.Spec, spec)
-                    && Nullable.Equals(p.Alt, alt));
-                if (partIndex == -1)
-                {
-                    var partGroups = new LessonGroups();
-                    partGroups[0] = groupId;
-                    parts.Add(new()
-                    {
-                        Groups = partGroups,
-                        Spec = spec,
-                        Alt = alt,
-                    });
-                }
-                else
-                {
-                    var part = parts[partIndex];
-                    part.Groups[part.Groups.Count] = groupId;
-                }
+                accumulator.AddCovered(groupId, spec, alt);
             }
-            if (parts.Count == 0)
+            if (accumulator.Parts.Count == 0)
             {
                 return;
             }
 
-            bool isSplit = parts.Count + (remainder?.Count ?? 0) > 1;
+            bool isSplit = accumulator.Parts.Count + (accumulator.Remainder?.Count ?? 0) > 1;
+            if (isSplit)
+            {
+                AppendCopies();
+            }
+            StampOriginal();
+            return;
+
             // The original lesson keeps the first part; the remaining parts and the
             // uncovered groups become lessons of their own. Copies are made before the
             // original is stamped, so they inherit its unassigned values.
-            if (isSplit)
+            void AppendCopies()
+            {
+                foreach (var part in PartsAfterFirst())
+                {
+                    AppendCopy(part);
+                }
+            }
+
+            void AppendCopy(Part part)
             {
                 switch (lesson)
                 {
                     case WeeklyLessonBuilderModel w:
-                        foreach (var part in PartsAfterFirst())
+                        var weeklySlot = s.WeeklyLessons.New();
+                        weeklySlot.Value = new()
                         {
-                            var slot = s.WeeklyLessons.New();
-                            slot.Value = new()
+                            Data = new()
                             {
-                                Data = new()
-                                {
-                                    Base = CopiedBase(w.Data.Base, part, courseName),
-                                    Date = w.Data.Date,
-                                },
-                            };
-                        }
+                                Base = CopiedBase(w.Data.Base, part, courseName),
+                                Date = w.Data.Date,
+                            },
+                        };
                         break;
                     case OneTimeLessonBuilderModel o:
-                        foreach (var part in PartsAfterFirst())
+                        var oneTimeSlot = s.OneTimeLessons.New();
+                        oneTimeSlot.Value = new()
                         {
-                            var slot = s.OneTimeLessons.New();
-                            slot.Value = new()
+                            Data = new()
                             {
-                                Data = new()
-                                {
-                                    Base = CopiedBase(o.Data.Base, part, courseName),
-                                    Date = o.Data.Date,
-                                },
-                            };
-                        }
+                                Base = CopiedBase(o.Data.Base, part, courseName),
+                                Date = o.Data.Date,
+                            },
+                        };
                         break;
                     default:
                         throw new InvalidOperationException(
@@ -176,8 +169,9 @@ public static partial class ScheduleBuilderHelper
                 }
             }
 
+            void StampOriginal()
             {
-                var part = parts[0];
+                var part = accumulator.Parts[0];
                 ref var group = ref lesson.Base.Group;
                 if (isSplit)
                 {
@@ -185,15 +179,14 @@ public static partial class ScheduleBuilderHelper
                 }
                 Stamp(ref group, part, courseName);
             }
-            return;
 
             IEnumerable<Part> PartsAfterFirst()
             {
-                for (int i = 1; i < parts.Count; i++)
+                for (int i = 1; i < accumulator.Parts.Count; i++)
                 {
-                    yield return parts[i];
+                    yield return accumulator.Parts[i];
                 }
-                if (remainder is { } rest)
+                if (accumulator.Remainder is { } rest)
                 {
                     var partGroups = new LessonGroups();
                     for (int i = 0; i < rest.Count; i++)
@@ -224,9 +217,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw new InvalidOperationException(
-                        $"The implicit split configuration assigns conflicting specializations "
-                        + $"'{prev.Value}' and '{value.Value}' to course '{courseName}'.");
+                    ImplicitSplitErrors.ThrowConflictingAssignment("specialization", prev.Value, value.Value, courseName);
                 }
                 assigned = value;
             }
@@ -246,9 +237,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw new InvalidOperationException(
-                        $"The implicit split configuration assigns conflicting alternatives "
-                        + $"'{prev.Value}' and '{value.Value}' to course '{courseName}'.");
+                    ImplicitSplitErrors.ThrowConflictingAssignment("alternative", prev.Value, value.Value, courseName);
                 }
                 assigned = value;
             }
@@ -295,6 +284,90 @@ public static partial class ScheduleBuilderHelper
             copy.Group.Groups = part.Groups;
             Stamp(ref copy.Group, part, courseName);
             return copy;
+        }
+    }
+}
+
+/// <summary>
+/// Builds the shared "conflicting assignment" error for the implicit split pass.
+/// One helper keeps the four resolution sites (per-group and per-name, for both
+/// dimensions) worded identically.
+/// </summary>
+file static class ImplicitSplitErrors
+{
+    [DoesNotReturn]
+    public static void ThrowConflictingAssignment(
+        string dimension,
+        string? prev,
+        string? next,
+        string courseName)
+    {
+        throw new InvalidOperationException(
+            $"The implicit split configuration assigns conflicting {dimension}s "
+            + $"'{prev}' and '{next}' to course '{courseName}'.");
+    }
+}
+
+/// <summary>
+/// Tracks the per-lesson split state while its groups resolve: one <see cref="Part"/>
+/// per distinct (specialization, alternative) resolution, the groups covered by no
+/// entry, and the single values seen so far (used to reject conflicting assignments
+/// to the same course).
+/// </summary>
+file sealed class SplitAccumulator
+{
+    public readonly List<Part> Parts = new();
+    public List<GroupId>? Remainder;
+    public Specialization? SeenSpec;
+    public Alternative? SeenAlt;
+
+    public void AddUncovered(GroupId groupId)
+    {
+        (Remainder ??= []).Add(groupId);
+    }
+
+    public void NoteSpec(Specialization spec, string courseName)
+    {
+        if (SeenSpec is { } prev && prev != spec)
+        {
+            ImplicitSplitErrors.ThrowConflictingAssignment("specialization", prev.Value, spec.Value, courseName);
+        }
+        SeenSpec ??= spec;
+    }
+
+    public void NoteAlt(Alternative alt, string courseName)
+    {
+        if (SeenAlt is { } prev && prev != alt)
+        {
+            ImplicitSplitErrors.ThrowConflictingAssignment("alternative", prev.Value, alt.Value, courseName);
+        }
+        SeenAlt ??= alt;
+    }
+
+    public void AddCovered(GroupId groupId, Specialization? spec, Alternative? alt)
+    {
+        // Nullable.Equals compares the wrapped values with null equal to null, so two
+        // groups resolving to "no value" on a dimension share one part. An explicit
+        // call states that null-handling intent; lifted == would resolve the same way
+        // but hides it behind operator lifting.
+        int partIndex = Parts.FindIndex(p =>
+            Nullable.Equals(p.Spec, spec)
+            && Nullable.Equals(p.Alt, alt));
+        if (partIndex == -1)
+        {
+            var partGroups = new LessonGroups();
+            partGroups[0] = groupId;
+            Parts.Add(new()
+            {
+                Groups = partGroups,
+                Spec = spec,
+                Alt = alt,
+            });
+        }
+        else
+        {
+            var part = Parts[partIndex];
+            part.Groups[part.Groups.Count] = groupId;
         }
     }
 }

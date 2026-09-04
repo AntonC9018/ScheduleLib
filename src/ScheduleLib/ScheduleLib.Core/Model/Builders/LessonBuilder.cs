@@ -494,9 +494,19 @@ public static class LessonBuilderHelper
                 }
             }
 
-            if (lesson.General.Course == null)
+            if (lesson.General.Course is not { } courseId)
             {
                 throw new InvalidOperationException("The lesson course must be initialized.");
+            }
+            if (courseId.IsInvalid || courseId.Id < 0 || courseId.Id >= s.Courses.Count)
+            {
+                throw new InvalidOperationException("The lesson course must refer to a known course.");
+            }
+            // Invariant for AssignImplicitSplits: every referenced course carries at
+            // least one name, so the split pass can index Names[0] for diagnostics.
+            if (s.Courses.Ref(courseId.Id).Names.Length == 0)
+            {
+                throw new InvalidOperationException("The lesson course must have at least one name.");
             }
         }
     }
