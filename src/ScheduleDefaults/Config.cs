@@ -278,9 +278,9 @@ public static class Config
         });
 
         var subgroup = remap.SubGroupNameRemappings;
-        subgroup.Add(new("AG"), Specializations.AlgoritmicaGrafurilor.Value!);
-        subgroup.Add(new("GR"), Specializations.GA2D.Value!);
-        subgroup.Add(new("Node"), Specializations.UI.Value!);
+        subgroup.Add(new("AG"), Specializations.AlgoritmicaGrafurilor);
+        subgroup.Add(new("GR"), Specializations.GA2D);
+        subgroup.Add(new("Node"), Specializations.UI);
 
         for (int i = 1; i <= 10; i++)
         {

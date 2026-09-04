@@ -9,6 +9,9 @@ public sealed class Remappings()
 
 public sealed class SubGroupNameRemappings : Dictionary<string, string>
 {
+    public void Add(string from, Specialization to) => Add(from, to.Value!);
+    public void Add(string from, Alternative to) => Add(from, to.Value!);
+
     public SubGroup Remap(SubGroup subGroup)
     {
         var ret = this!.GetValueOrDefault(subGroup.Value, subGroup.Value);
