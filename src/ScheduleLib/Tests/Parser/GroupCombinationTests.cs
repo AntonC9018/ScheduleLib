@@ -467,10 +467,17 @@ public sealed class GroupCombinationTests
         });
 
         var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
-        Assert.Equal(["CV-I"], info.Combinations.Select(NameOf));
-        Assert.False(info.IncludesLesson(info.Combinations[0], djLesson.Lesson));
+        // Only CV is permitted, so the partition is inactive: no specialization
+        // dimension, and both the permitted and the filtered-out values behave
+        // as shared for the group instead of vanishing from every combination.
+        Assert.False(info.SpecializationActive);
+        Assert.Equal(["I"], info.Combinations.Select(NameOf));
+        Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
+        Assert.True(info.IncludesLesson(info.Combinations[0], cvLesson.Lesson));
+        Assert.True(info.IncludesLesson(info.Combinations[0], djLesson.Lesson));
     }
 
     [Fact]
@@ -492,10 +499,52 @@ public sealed class GroupCombinationTests
 
         var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
+        var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
-        Assert.True(info.SpecializationActive);
+        // Nothing is permitted, so the partition is inactive and both observed
+        // values behave as shared for the group.
+        Assert.False(info.SpecializationActive);
         Assert.Equal(["I"], info.Combinations.Select(NameOf));
-        Assert.False(info.IncludesLesson(info.Combinations[0], cvLesson.Lesson));
+        Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
+        Assert.True(info.IncludesLesson(info.Combinations[0], cvLesson.Lesson));
+        Assert.True(info.IncludesLesson(info.Combinations[0], djLesson.Lesson));
+    }
+
+    [Fact]
+    public void RegistryFilteringKeepsThePermittedSubsetActive()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I");
+            AddLesson(s, "IA2401", specialization: "CV");
+            AddLesson(s, "IA2401", specialization: "DJ");
+            AddLesson(s, "IA2401", specialization: "React");
+        });
+        var group = AddAndReturnGroup(schedule, "IA2401").Item;
+
+        var b = new SpecializationRegistryBuilder();
+        b.Set([Specializations.CV, Specializations.DJ]).ApplyTo(x =>
+        {
+            x.Grade = group.Grade;
+            x.Faculty = group.Faculty;
+            x.AttendanceMode = group.AttendanceMode;
+            x.Qualification = group.QualificationType;
+        });
+
+        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var cvLesson = GetLessonBySpecialization(schedule, "CV");
+        var reactLesson = GetLessonBySpecialization(schedule, "React");
+
+        // Two permitted values keep the partition active on the permitted
+        // subset only; the filtered-out value has no combination.
+        Assert.True(info.SpecializationActive);
+        Assert.Equal(["CV", "DJ"], info.ObservedSpecializations.Select(x => x.Value));
+        Assert.Equal(["CV-I", "DJ-I"], info.Combinations.Select(NameOf));
+
+        var cvCombination = info.Combinations.Single(x => x.Specialization == Specializations.CV);
+        Assert.True(info.IncludesLesson(cvCombination, cvLesson.Lesson));
+        Assert.False(info.IncludesLesson(cvCombination, reactLesson.Lesson));
+        Assert.All(info.Combinations, c => Assert.False(info.IncludesLesson(c, reactLesson.Lesson)));
     }
 
     [Fact]

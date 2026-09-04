@@ -70,7 +70,9 @@ public readonly record struct GroupCombination(
 /// </summary>
 public sealed class GroupSplitInfo
 {
-    // Two or more observed specializations activate the specialization partition.
+    // Two or more registry-permitted observed specializations activate the
+    // specialization partition. A null registry permits every observed value;
+    // otherwise filtered-out values behave as shared for the group.
     public required ImmutableArray<Specialization> ObservedSpecializations { get; init; }
     public bool SpecializationActive => ObservedSpecializations.Length >= 2;
     // Same activation rule for the alternative partition.
@@ -210,9 +212,11 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
             }
             // A singleton specialization is stored on the lesson but is shared for
             // this group. It must not create a filename dimension or a student
-            // combination. If several values were observed, keep the registry-
-            // permitted values as the active specialization choices.
-            var specValues = observedSpecs.Count < 2
+            // combination. Activation follows the registry-permitted subset: if
+            // filtering leaves fewer than two permitted values, the partition is
+            // inactive and the filtered-out values behave as shared instead of
+            // vanishing from every combination.
+            var specValues = permitted.Length < 2
                 ? []
                 : permitted
                     .OrderBy(x => x.Value, StringComparer.Ordinal)
@@ -265,7 +269,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
 
             ret[groupId] = new()
             {
-                ObservedSpecializations = [.. observedSpecs.OrderBy(x => x.Value, StringComparer.Ordinal)],
+                ObservedSpecializations = [.. permitted.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 ObservedAlternatives = [.. observedAlts.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 Combinations = combinations.ToImmutable(),
             };
