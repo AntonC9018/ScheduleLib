@@ -1,7 +1,6 @@
 import html
 import os
 import re
-import shutil
 import tempfile
 import zipfile
 from pathlib import Path
@@ -43,22 +42,25 @@ replace_paragraph.count = 0
 
 with zipfile.ZipFile(DOCX, "r") as source:
     document_xml = source.read("word/document.xml").decode("utf-8")
-    updated_xml = re.sub(
-        r"<w:p(?:\s[^>]*)?>.*?</w:p>", replace_paragraph, document_xml, flags=re.DOTALL
-    )
-    if replace_paragraph.count != 2:
-        raise RuntimeError(f"Expected two unique paragraphs, changed {replace_paragraph.count}")
+    entries = [(entry, source.read(entry.filename)) for entry in source.infolist()]
 
-    handle, temp_name = tempfile.mkstemp(suffix=".docx", dir=DOCX.parent)
-    os.close(handle)
-    temp_path = Path(temp_name)
-    try:
-        with zipfile.ZipFile(temp_path, "w") as destination:
-            for entry in source.infolist():
-                payload = updated_xml.encode("utf-8") if entry.filename == "word/document.xml" else source.read(entry.filename)
-                destination.writestr(entry, payload)
-        shutil.copyfile(temp_path, DOCX)
-    finally:
-        temp_path.unlink(missing_ok=True)
+updated_xml = re.sub(
+    r"<w:p(?:\s[^>]*)?>.*?</w:p>", replace_paragraph, document_xml, flags=re.DOTALL
+)
+if replace_paragraph.count != 2:
+    raise RuntimeError(f"Expected two unique paragraphs, changed {replace_paragraph.count}")
+
+handle, temp_name = tempfile.mkstemp(suffix=".docx", dir=DOCX.parent)
+os.close(handle)
+temp_path = Path(temp_name)
+try:
+    with zipfile.ZipFile(temp_path, "w") as destination:
+        for entry, payload in entries:
+            if entry.filename == "word/document.xml":
+                payload = updated_xml.encode("utf-8")
+            destination.writestr(entry, payload)
+    os.replace(temp_path, DOCX)
+finally:
+    temp_path.unlink(missing_ok=True)
 
 print(f"Updated {replace_paragraph.count} unique schedule cells in {DOCX}")
