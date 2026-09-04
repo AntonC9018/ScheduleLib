@@ -408,6 +408,26 @@ public sealed class GroupCombinationTests
         Assert.All(
             rebuiltLegacy.EnumerateAllLessons(),
             l => Assert.Equal(Alternative.All, l.Lesson.Alternative));
+
+        // Fresh serialize→deserialize preserves Alternative (and siblings).
+        using var freshStream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var freshModel = await ScheduleSerializer.Deserialize(freshStream, CancellationToken.None);
+        var freshBuilder = CreateBuilder();
+        ScheduleSerializer.AddToBuilder(freshBuilder, freshModel);
+        var rebuiltFresh = freshBuilder.Build();
+        var freshLessons = rebuiltFresh.EnumerateAllLessons().ToList();
+        Assert.Equal(2, freshLessons.Count);
+        var freshElective = Assert.Single(
+            freshLessons.Where(l => l.Lesson.Alternative == new Alternative("Psihologie")));
+        Assert.Equal(new SubGroup("I"), freshElective.Lesson.SubGroup);
+        Assert.Equal(new Specialization("GA2D"), freshElective.Lesson.Specialization);
+        Assert.All(
+            freshLessons.Where(l => l.Lesson.Alternative == Alternative.All),
+            l =>
+            {
+                Assert.Equal(SubGroup.All, l.Lesson.SubGroup);
+                Assert.Equal(Specialization.All, l.Lesson.Specialization);
+            });
     }
 
     [Fact]
