@@ -30,6 +30,7 @@ public sealed partial class ScheduleBuilder()
     public Remappings Remappings = new();
     public SpecializationRegistry? SpecializationRegistry;
     public ImplicitSplitConfig? ImplicitSplitConfig;
+    public LessonOverlapValidationConfig? OverlapValidationConfig;
     public ListBuilder<OneTimeLessonBuilderModel> OneTimeLessons = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
@@ -54,6 +55,7 @@ public static partial class ScheduleBuilderHelper
         s.ClassifySubGroups();
         s.AssignImplicitSplits();
         s.NormalizeLanguageProficiency();
+        s.ValidateLessonOverlaps();
         s.SanityChecks();
         var ret = builder(s);
         return ret;

@@ -82,6 +82,79 @@ public static class Config
         ],
     };
 
+    /// <summary>
+    /// Tolerated lesson overlaps. Every entry is temporary and documents why the pair
+    /// is accepted today; entries are removed as the data or the configuration gets
+    /// fixed.
+    /// </summary>
+    public static LessonOverlapValidationConfig OverlapValidationConfig { get; } = new()
+    {
+        StudyYear = new(2026),
+        Allowlist =
+        [
+            // Elective courses students choose between: parallel alternatives sharing
+            // slots by design. To be replaced by Alternative assignments.
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Disciplină umanistică opțională: Antreprenoriat inovativ",
+                CourseB = "Disciplină umanistică opțională: Psihologie",
+                Reason = "Elective alternatives (Antreprenoriat vs Psihologie), pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Disciplină umanistică opțională: Antreprenoriat inovativ",
+                Reason = "Elective alternatives, pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Disciplină umanistică opțională: Psihologie",
+                Reason = "Elective alternatives, pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Antreprenoriat inovativ",
+                GroupName = "I2502",
+                Reason = "Elective alternatives, pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Psihologie",
+                GroupName = "I2502",
+                Reason = "Elective alternatives, pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Cult. comun.",
+                CourseB = "Psihologie",
+                Reason = "DJ-group elective alternatives, pending Alternative maps.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Baze de date",
+                CourseB = "Tehnologii de programare",
+                GroupName = "I2502",
+                Day = DayOfWeek.Friday,
+                Reason = "Data bug: two regular I2502 courses share the Friday slot in the An-II doc.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Limba rom.",
+                CourseB = "Limba straina",
+                Reason = "An-I doc language block: the odd-week Limba rom. lesson meets the every-week straina lesson.",
+            },
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Limba straina",
+                CourseB = "Educația fizică",
+                Reason = "An-I doc language block: the every-week straina lesson meets the even-week Educatia fizica lesson.",
+            },
+        ],
+    };
+
     public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
 
     public static WhiteSpaceResult WhiteSpaceActionCourseName(WhiteSpaceContext c)
