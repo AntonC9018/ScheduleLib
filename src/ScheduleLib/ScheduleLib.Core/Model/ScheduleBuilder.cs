@@ -35,7 +35,32 @@ public sealed partial class ScheduleBuilder()
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
 
-    public GroupParseContext? GroupParseContext;
+    public GroupParseContext? GroupParseContext
+    {
+        get => _groupParseContext;
+        set
+        {
+            _groupParseContext = value;
+            GroupParseContextIsExplicit = value is not null;
+        }
+    }
+
+    private GroupParseContext? _groupParseContext;
+
+    /// <summary>
+    /// Whether <see cref="GroupParseContext"/> was supplied explicitly by the
+    /// caller rather than defaulted from the wall clock in
+    /// <c>GroupBuilderHelper.ParseGroup</c>. A clock-derived year silently stops
+    /// matching year-pinned implicit split scopes once the clock moves past
+    /// them, so <c>AssignImplicitSplits</c> fails loudly instead in that case.
+    /// </summary>
+    internal bool GroupParseContextIsExplicit { get; private set; }
+
+    internal void SetDefaultGroupParseContext(GroupParseContext context)
+    {
+        _groupParseContext = context;
+        GroupParseContextIsExplicit = false;
+    }
 
     public static Schedule Create(Action<ScheduleBuilder> builder)
     {

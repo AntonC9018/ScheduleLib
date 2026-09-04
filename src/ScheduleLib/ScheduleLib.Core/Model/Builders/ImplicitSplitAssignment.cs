@@ -43,6 +43,17 @@ public static partial class ScheduleBuilderHelper
                 + "no year-pinned scope, so building would silently skip those assignments; "
                 + "set ScheduleBuilder.GroupParseContext or remove the StudyYear pins.");
         }
+        if (studyYear is { } currentYear
+            && !s.GroupParseContextIsExplicit
+            && config.Scopes.Any(static scope => scope.StudyYear is not null)
+            && !config.Scopes.Any(scope => scope.StudyYear == currentYear))
+        {
+            throw new MissingImplicitSplitStudyYearException(
+                "The implicit split configuration pins scopes to a study year, but no scope "
+                + $"matches the wall-clock-derived study year {currentYear}. The assignments "
+                + "would be silently skipped; set ScheduleBuilder.GroupParseContext explicitly "
+                + "(before adding groups) to pin the study year, or remove the StudyYear pins.");
+        }
         // A null study year matches only year-less scopes (see ImplicitSplitScope.Matches).
 
         // Splits append new lessons, so the loops cover only the original ones:

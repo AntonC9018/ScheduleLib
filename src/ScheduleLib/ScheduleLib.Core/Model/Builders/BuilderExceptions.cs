@@ -66,7 +66,10 @@ public sealed class InvalidSubGroupPartitionException : ScheduleBuildException
 
 /// <summary>
 /// The implicit split configuration pins scopes to a study year, but the build
-/// carries no group parse context to resolve the current study year against.
+/// carries no usable study year to resolve them against: either there is no
+/// group parse context at all, or the context was defaulted from the wall clock
+/// and the clock has moved past every pinned year (which would silently skip
+/// those assignments).
 /// </summary>
 public sealed class MissingImplicitSplitStudyYearException : ScheduleBuildException
 {

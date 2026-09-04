@@ -221,6 +221,30 @@ public sealed class ImplicitSplitAssignmentTests
     }
 
     [Fact]
+    public void WallClockDerivedStudyYearMatchingNoPinnedScopeThrows()
+    {
+        // No explicit study year, so ParseGroup defaults it from the wall clock,
+        // while the only scope is pinned to 2000. Building must fail loudly
+        // instead of silently skipping the assignment.
+        var scopeBuilder = new ImplicitSplitConfigBuilder();
+        scopeBuilder.Scope(x =>
+        {
+            x.StudyYear = new(2000);
+            x.Grade = new(3);
+            x.Faculty = new("IA");
+            x.Specialization("RVA", Specialization.DJ);
+        });
+        var builder = new ScheduleBuilder
+        {
+            ImplicitSplitConfig = scopeBuilder.Build(),
+        };
+        builder.EnableLookupModule();
+        AddLesson(builder, "IA2403", courseName: "RVA");
+
+        Assert.Throws<MissingImplicitSplitStudyYearException>(() => builder.Build());
+    }
+
+    [Fact]
     public void ExplicitSpecializationDifferentFromTheConfiguredOneThrows()
     {
         var builder = CreateBuilder();

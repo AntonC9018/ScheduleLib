@@ -31,12 +31,17 @@ public static class GroupBuilderHelper
 
     public static Group ParseGroup(this ScheduleBuilder s, string fullName)
     {
-        s.GroupParseContext ??= GroupParseContext.Create(new()
+        var context = s.GroupParseContext;
+        if (context is null)
         {
-            CurrentStudyYear = DetermineStudyYear(),
-        });
+            context = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = DetermineStudyYear(),
+            });
+            s.SetDefaultGroupParseContext(context);
+        }
 
-        var ret = s.GroupParseContext.Parse(fullName.AsMemory());
+        var ret = context.Parse(fullName.AsMemory());
         return ret;
     }
 
