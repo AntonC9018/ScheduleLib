@@ -149,6 +149,7 @@ internal struct ParsingStateStack
     {
         if (_list.Count < 2)
         {
+            Debug.Assert(false, "Cannot pop the base layer of the parsing state stack.");
             throw new InvalidOperationException("Cannot pop the base layer.");
         }
         if (apply)
@@ -507,11 +508,13 @@ public static class LessonParsingHelper
 
         if (countBefore != c.StateStack.Count)
         {
+            Debug.Assert(false, "Parser iteration must pop every state frame it pushes.");
             throw new InvalidOperationException("Stack frame pushed and not popped.");
         }
         if (stepBefore == state.Step
             && c.Lexer.Position == posBefore)
         {
+            Debug.Assert(false, "Parser iteration must consume input or advance the step.");
             throw new InvalidOperationException("Infinite loop in the parser");
         }
     }

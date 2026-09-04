@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using ScheduleLib.Builders;
 using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Dates;
@@ -49,11 +50,11 @@ public static class ParityExcelParser
     {
         if (word.MainDocumentPart?.Document is not { } document)
         {
-            throw new InvalidOperationException("No document found.");
+            throw new InvalidParityDocumentException("No document found.");
         }
         if (document.Body is not { } body)
         {
-            throw new InvalidOperationException("No body found.");
+            throw new InvalidParityDocumentException("No body found.");
         }
 
         var table = body.Descendants<Table>().First();

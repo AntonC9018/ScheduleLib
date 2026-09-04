@@ -80,12 +80,12 @@ public static class GroupBuilderHelper
         {
             if (group.Name == null)
             {
-                throw new InvalidOperationException("The group name must be initialized.");
+                throw new UninitializedScheduleModelException("The group name must be initialized.");
             }
 
             if (group.Grade.Value == 0)
             {
-                throw new InvalidOperationException("The group grade must be initialized.");
+                throw new UninitializedScheduleModelException("The group grade must be initialized.");
             }
         }
     }

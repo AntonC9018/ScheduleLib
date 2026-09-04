@@ -153,7 +153,7 @@ public static partial class ScheduleBuilderHelper
             var groupContext = groups.Count == 0
                 ? "no group"
                 : string.Join("; ", groups.Select(DescribeGroup));
-            throw new InvalidOperationException(
+            throw new UnknownSubGroupException(
                 $"Invalid subgroup '{subGroup.Value}' for group '{groupContext}'. "
                 + "Specialization registry context: "
                 + (s.SpecializationRegistry is { } registry
@@ -341,7 +341,7 @@ public static partial class ScheduleBuilderHelper
             if (status1 != TeacherNameRemapStatus.None)
             {
                 // Maybe allow 1 recursion level?
-                throw new InvalidOperationException(
+                throw new ConflictingTeacherNameRemapException(
                     "Recursive teacher name remaps are not supported to prevent errors. Ensure the remap maps to the final version.");
             }
         }

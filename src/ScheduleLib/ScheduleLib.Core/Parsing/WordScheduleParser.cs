@@ -152,7 +152,7 @@ public sealed class DocParseContext
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw new InvalidOperationException(
+                    throw new ConflictingSpecializationException(
                         $"A lesson may not have two specializations: '{prevSpec.Value}' and '{spec.Value}'.");
                 }
                 specialization = spec;
@@ -162,7 +162,7 @@ public sealed class DocParseContext
                 var label = remapped;
                 if (subGroup is { } prevSub)
                 {
-                    throw new InvalidOperationException(
+                    throw new ConflictingSubGroupException(
                         $"A lesson may not have two subgroups: '{prevSub.Value}' and '{label.Value}'.");
                 }
                 subGroup = label;
@@ -748,7 +748,7 @@ public static class WordScheduleParser
 
                         if (parser.SkipWhitespace().EndOfInput)
                         {
-                            throw new InvalidOperationException("Expected time after the time slot");
+                            throw new InvalidScheduleDocumentException("Expected time after the time slot");
                         }
 
                         var parsedTime = parser.ParseTimeInterval();
@@ -1152,12 +1152,12 @@ public static class WordScheduleParser
                 var res = parser.ReadRoman();
                 if (res.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidOperationException("Sem must be followed by a roman numeral");
+                    throw new InvalidScheduleDocumentException("Sem must be followed by a roman numeral");
                 }
 
                 if (!parser.IsEmpty)
                 {
-                    throw new InvalidOperationException("Roman numeral after sem must be the last thing");
+                    throw new InvalidScheduleDocumentException("Roman numeral after sem must be the last thing");
                 }
 
                 return res.Number;

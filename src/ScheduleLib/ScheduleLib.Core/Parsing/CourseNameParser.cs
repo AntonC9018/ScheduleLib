@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 
 namespace ScheduleLib.Parsing.CourseName;
@@ -75,7 +76,7 @@ public sealed class CourseNameParserConfig
             var w = p.IgnoredShortenedWords[i];
             if (w[^1] == '.')
             {
-                throw new InvalidOperationException("Just provide the words without the dot.");
+                throw new InvalidCourseNameConfigException("Just provide the words without the dot.");
             }
         }
 

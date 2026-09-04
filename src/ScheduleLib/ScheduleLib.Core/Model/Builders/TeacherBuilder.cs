@@ -395,7 +395,7 @@ public static class TeacherBuilderHelper
         {
             if (teacher.Name.LastName.IsNull)
             {
-                throw new InvalidOperationException("The teacher last name must be initialized.");
+                throw new UninitializedScheduleModelException("The teacher last name must be initialized.");
             }
         }
     }
@@ -639,7 +639,7 @@ public static class TeacherNameHelper
             {
                 if (!retPartE.MoveNext())
                 {
-                    throw new InvalidOperationException("Too many name parts.");
+                    throw new InvalidTeacherNameException("Too many name parts.");
                 }
 
                 bool isShort = false;

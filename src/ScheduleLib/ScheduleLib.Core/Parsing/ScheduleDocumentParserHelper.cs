@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using ScheduleLib.Builders;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.WordDoc;
 
@@ -93,13 +94,13 @@ public static class ScheduleDocumentParserHelper
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
-                throw new InvalidOperationException("Expected the day name");
+                throw new InvalidScheduleDocumentException("Expected the day name");
             }
 
             var dayOfWeekSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (dayNameParser.Map(dayOfWeekSpan) is not { } day1)
             {
-                throw new InvalidOperationException($"Unknown day name: `{dayOfWeekSpan}`");
+                throw new InvalidScheduleDocumentException($"Unknown day name: `{dayOfWeekSpan}`");
             }
 
             reader.MoveTo(bparser.Position);
@@ -112,14 +113,14 @@ public static class ScheduleDocumentParserHelper
             var result = bparser.Skip(new SkipDate());
             if (!result.SkippedAny)
             {
-                throw new InvalidOperationException($"Could not parse the date in string `{reader}`");
+                throw new InvalidScheduleDocumentException($"Could not parse the date in string `{reader}`");
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
             bool parsed = DateOnly.TryParseExact(dateSpan, format, out var date);
             if (!parsed)
             {
-                throw new InvalidOperationException("Date not parsed according to the format.");
+                throw new InvalidScheduleDocumentException("Date not parsed according to the format.");
             }
 
             reader.MoveTo(bparser.Position);

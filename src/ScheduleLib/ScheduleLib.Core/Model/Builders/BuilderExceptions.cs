@@ -90,3 +90,165 @@ public sealed class OverlappingLessonsException : ScheduleBuildException
     {
     }
 }
+
+/// <summary>
+/// A required schedule-model value was never set: a group name or grade, a
+/// lesson date, group or course reference, or a teacher last name.
+/// </summary>
+public sealed class UninitializedScheduleModelException : ScheduleBuildException
+{
+    public UninitializedScheduleModelException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A lesson's group set is malformed: a consultation carries groups, a group
+/// repeats within one lesson, a group id refers to no known group, or the
+/// groups mix attendance modes that may not combine.
+/// </summary>
+public sealed class InvalidLessonGroupsException : ScheduleBuildException
+{
+    public InvalidLessonGroupsException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A teaching period ends before it starts.
+/// </summary>
+public sealed class InvalidPeriodException : ScheduleBuildException
+{
+    public InvalidPeriodException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A lesson carries a subgroup value that is neither numeric, special, nor a
+/// configured specialization.
+/// </summary>
+public sealed class UnknownSubGroupException : ScheduleBuildException
+{
+    public UnknownSubGroupException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// Teacher name remaps recurse instead of mapping to the final version.
+/// </summary>
+public sealed class ConflictingTeacherNameRemapException : ScheduleBuildException
+{
+    public ConflictingTeacherNameRemapException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A teacher name carries more parts than the model can store.
+/// </summary>
+public sealed class InvalidTeacherNameException : ScheduleBuildException
+{
+    public InvalidTeacherNameException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A group name does not follow the expected label/year/number/language shape.
+/// </summary>
+public sealed class InvalidGroupNameException : ScheduleBuildException
+{
+    public InvalidGroupNameException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A schedule document header or cell does not follow the expected
+/// day/date/time/semester shape.
+/// </summary>
+public sealed class InvalidScheduleDocumentException : ScheduleBuildException
+{
+    public InvalidScheduleDocumentException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A lesson carries two different subgroups: one stored directly and one
+/// classified out of the partition hint.
+/// </summary>
+public sealed class ConflictingSubGroupException : ScheduleBuildException
+{
+    public ConflictingSubGroupException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// The course-name parser configuration is malformed: ignored shortened words
+/// must be given without the trailing dot.
+/// </summary>
+public sealed class InvalidCourseNameConfigException : ScheduleBuildException
+{
+    public InvalidCourseNameConfigException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A semester date-range configuration leaves a required value unspecified:
+/// semester, attendance mode, qualification type, start/end date, or year.
+/// </summary>
+public sealed class IncompleteSemesterDateRangeException : ScheduleBuildException
+{
+    public IncompleteSemesterDateRangeException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// A semester date-range configuration ends before it starts.
+/// </summary>
+public sealed class InvalidSemesterDateRangeException : ScheduleBuildException
+{
+    public InvalidSemesterDateRangeException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// Two semester date-range configurations cover the same key.
+/// </summary>
+public sealed class DuplicateSemesterDateRangeException : ScheduleBuildException
+{
+    public DuplicateSemesterDateRangeException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
+/// The study-week parity document has no usable document or body.
+/// </summary>
+public sealed class InvalidParityDocumentException : ScheduleBuildException
+{
+    public InvalidParityDocumentException(string message)
+        : base(message)
+    {
+    }
+}

@@ -184,6 +184,7 @@ public static partial class ScheduleBuilderHelper
                         };
                         break;
                     default:
+                        Debug.Assert(false, "All lesson model kinds are covered above.");
                         throw new InvalidOperationException(
                             "Unknown lesson model kind: cannot split the lesson.");
                 }

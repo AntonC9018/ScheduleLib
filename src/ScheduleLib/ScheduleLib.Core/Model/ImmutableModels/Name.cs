@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ScheduleLib.Parsing;
@@ -59,6 +60,7 @@ public struct NameParts<T>() : IEquatable<NameParts<T>>
                 return;
             }
         }
+        Debug.Assert(false, "NameParts has fixed capacity; callers must not add more items than fit.");
         throw new InvalidOperationException("No more space to add item");
     }
 

@@ -17,7 +17,7 @@ public sealed class ScheduleSanityChecksTests
         lesson.Group(group);
         lesson.SubGroup(new("IA2504"));
 
-        var error = Assert.Throws<InvalidOperationException>(() => schedule.SanityChecks());
+        var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
         Assert.Contains("IA2504", error.Message);
         Assert.Contains("IA2401", error.Message);
@@ -41,7 +41,7 @@ public sealed class ScheduleSanityChecksTests
         lesson.Group(group);
         lesson.SubGroup(new("unconfigured"));
 
-        var error = Assert.Throws<InvalidOperationException>(() => schedule.SanityChecks());
+        var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
         Assert.Contains("(any group) => [CV]", error.Message);
     }
@@ -69,7 +69,7 @@ public sealed class ScheduleSanityChecksTests
         var schedule = new ScheduleBuilder();
         schedule.RegularLesson().SubGroup(new(Specialization.CV.Value!));
 
-        var error = Assert.Throws<InvalidOperationException>(() => schedule.SanityChecks());
+        var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
         Assert.Contains("CV", error.Message);
     }
@@ -236,7 +236,7 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        var error = Assert.Throws<InvalidOperationException>(
+        var error = Assert.Throws<ConflictingSubGroupException>(
             () => context.SetCommonProps(lesson, Parsed(groupName: "ro", subGroup: "ru")));
 
         Assert.Contains("two subgroups", error.Message);
@@ -249,7 +249,7 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        var error = Assert.Throws<InvalidOperationException>(
+        var error = Assert.Throws<ConflictingSpecializationException>(
             () => context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "CV")));
 
         Assert.Contains("two specializations", error.Message);
