@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "ScheduleLib",
+  "project_id": "3af00f87-d3f7-4943-9406-2b795b911054"
+}
