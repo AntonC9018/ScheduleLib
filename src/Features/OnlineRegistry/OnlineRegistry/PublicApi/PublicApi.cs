@@ -283,18 +283,18 @@ public static partial class RegistryScraping
 public record struct StudentsLookupKey
 {
     public LessonGroups Groups;
-    public GroupSplitKey GroupSplit;
+    public GroupPartitionKey GroupPartition;
     public CourseId CourseId;
     public LessonType LessonType;
 
     public StudentsLookupKey(
         in LessonGroups groups,
-        GroupSplitKey groupSplit,
+        GroupPartitionKey groupPartition,
         CourseId courseId,
         LessonType lessonType)
     {
         Groups = groups;
-        GroupSplit = groupSplit;
+        GroupPartition = groupPartition;
         CourseId = courseId;
         LessonType = lessonType;
     }
@@ -311,7 +311,7 @@ public record struct StudentsLookupKey
 public readonly record struct AttendanceLookupKey
 {
     public readonly FoundGroups Groups;
-    public readonly GroupSplitKey GroupSplit;
+    public readonly GroupPartitionKey GroupPartition;
     public readonly CourseId CourseId;
     public LessonType LessonType { get; init; }
 
@@ -321,14 +321,14 @@ public readonly record struct AttendanceLookupKey
 
     public AttendanceLookupKey(
         in FoundGroups groups,
-        GroupSplitKey groupSplit,
+        GroupPartitionKey groupPartition,
         CourseId courseId,
         LessonType lessonType,
         int dayIndex,
         DateTime dateTime)
     {
         Groups = groups;
-        GroupSplit = groupSplit;
+        GroupPartition = groupPartition;
         CourseId = courseId;
         LessonType = lessonType;
         DayIndex = dayIndex;

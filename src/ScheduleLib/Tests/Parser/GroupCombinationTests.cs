@@ -102,7 +102,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", specialization: "GA2D");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
 
         Assert.True(info.SpecializationActive);
         Assert.Equal(16, info.Combinations.Length);
@@ -120,7 +120,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
 
         Assert.Empty(info.Combinations);
         Assert.False(info.SpecializationActive);
@@ -136,7 +136,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", specialization: "Spring");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var springLesson = GetLessonBySpecialization(schedule, "Spring");
 
         Assert.False(info.SpecializationActive);
@@ -168,8 +168,8 @@ public sealed class GroupCombinationTests
         sharedSpring.Specialization(Specializations.Spring);
 
         var schedule = builder.Build();
-        var iInfo = schedule.GetGroupSplitInfo()[iGroup];
-        var iaInfo = schedule.GetGroupSplitInfo()[iaGroup];
+        var iInfo = schedule.GetGroupPartitionInfo()[iGroup];
+        var iaInfo = schedule.GetGroupPartitionInfo()[iaGroup];
         var sharedLesson = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Course == sharedCourse);
 
@@ -226,7 +226,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", specialization: "DJ");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
@@ -252,7 +252,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", subGroup: "II", alternative: "A2", courseName: "C2");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
 
         Assert.True(info.AlternativeActive);
         Assert.Equal(["A1-I", "A1-II", "A2-I", "A2-II"], info.Combinations.Select(NameOf));
@@ -268,7 +268,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", alternative: "Psihologie", courseName: "Elective");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var elective = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Alternative == new Alternative("Psihologie"));
 
@@ -287,7 +287,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", alternative: "A2", courseName: "Elective A2");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var a1Lesson = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Alternative == new Alternative("A1"));
         var a2Lesson = schedule.EnumerateAllLessons()
@@ -358,7 +358,7 @@ public sealed class GroupCombinationTests
     public async Task SerializationUsesFlatSiblingFieldsWithNullForAll()
     {
         // Spec-6: lessons serialize SubGroup/Specialization/Alternative as flat
-        // sibling fields with null = All; GroupSplitKey is never serialized.
+        // sibling fields with null = All; GroupPartitionKey is never serialized.
         // Committed caches predate Alternative and omit the field, which
         // deserializes as All (see LessonBaseModel.Alternative comment).
         // The AllThingsWork Verify snapshot was intentionally removed in
@@ -377,7 +377,7 @@ public sealed class GroupCombinationTests
             json = Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        Assert.DoesNotContain("GroupSplitKey", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("GroupPartitionKey", json, StringComparison.Ordinal);
 
         using var doc = JsonDocument.Parse(json);
         var lessons = doc.RootElement.GetProperty("RegularLessons");
@@ -439,7 +439,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", subGroup: "S21");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var opaqueLesson = GetLessonBySubGroup(schedule, "S21");
 
         Assert.Equal(["I"], info.Combinations.Select(NameOf));
@@ -466,7 +466,7 @@ public sealed class GroupCombinationTests
             x.Qualification = group.QualificationType;
         });
 
-        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
@@ -497,7 +497,7 @@ public sealed class GroupCombinationTests
             x.Grade = new(group.Grade.Value + 1);
         });
 
-        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
@@ -531,7 +531,7 @@ public sealed class GroupCombinationTests
             x.Qualification = group.QualificationType;
         });
 
-        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var reactLesson = GetLessonBySpecialization(schedule, "React");
 
@@ -567,7 +567,7 @@ public sealed class GroupCombinationTests
             x.Qualification = group.Item.QualificationType;
         });
 
-        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
         Assert.False(info.SpecializationActive);
         var combination = Assert.Single(info.Combinations);
 
@@ -670,7 +670,7 @@ public sealed class GroupCombinationTests
         AddLesson(builder, "IA2401", subGroup: "Node");
 
         var schedule = builder.Build();
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
 
         Assert.True(info.SpecializationActive);
         Assert.Equal(
@@ -730,7 +730,7 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401", specialization: "DJ", courseName: "DJ");
         });
 
-        var info = schedule.GetGroupSplitInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo().Single().Value;
         var combination = info.Combinations.Single(c => c.Specialization == Specializations.CV
             && c.Proficiency == SpecialSubGroups.Beginners
             && c.Language == SpecialSubGroups.Ro

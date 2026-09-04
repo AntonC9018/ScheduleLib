@@ -55,8 +55,8 @@ public sealed class AttendanceExcelTests
             Course = schedule.Get(x.Key.CourseId).FullName,
             x.Key.LessonType,
             Group = schedule.Get(x.Key.Groups[0]).Name,
-            SubGroup = x.Key.GroupSplit.SubGroup.Value,
-            Specialization = x.Key.GroupSplit.Specialization.Value,
+            SubGroup = x.Key.GroupPartition.SubGroup.Value,
+            Specialization = x.Key.GroupPartition.Specialization.Value,
             StudentNames = x.Value.StudentNames
                 .OrderBy(y => y.Value)
                 .Select(y => new

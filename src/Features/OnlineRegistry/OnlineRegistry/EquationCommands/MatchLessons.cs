@@ -7,16 +7,16 @@ public readonly record struct LessonSearchFilter
 {
     public readonly CourseId CourseId;
     public readonly FoundGroups Groups;
-    public GroupSplitKey GroupSplit { get; init; }
+    public GroupPartitionKey GroupPartition { get; init; }
 
     public LessonSearchFilter(
         CourseId courseId,
         FoundGroups groups,
-        GroupSplitKey groupSplit)
+        GroupPartitionKey groupPartition)
     {
         CourseId = courseId;
         Groups = groups;
-        GroupSplit = groupSplit;
+        GroupPartition = groupPartition;
     }
 }
 
@@ -43,7 +43,7 @@ internal static class MatchLessonHelper
     {
         {
             bool yielded = false;
-            foreach (var x in MatchLessonsImpl(p, p.Filter.GroupSplit))
+            foreach (var x in MatchLessonsImpl(p, p.Filter.GroupPartition))
             {
                 yield return x;
                 yielded = true;
@@ -55,12 +55,12 @@ internal static class MatchLessonHelper
         }
 
         {
-            var groupSplit = p.Filter.GroupSplit;
-            if (groupSplit != GroupSplitKey.All)
+            var groupPartition = p.Filter.GroupPartition;
+            if (groupPartition != GroupPartitionKey.All)
             {
-                groupSplit = new(SpecialSubGroups.Optional, Specialization.All);
+                groupPartition = new(SpecialSubGroups.Optional, Specialization.All);
             }
-            foreach (var x in MatchLessonsImpl(p, groupSplit))
+            foreach (var x in MatchLessonsImpl(p, groupPartition))
             {
                 yield return x;
             }
@@ -69,13 +69,13 @@ internal static class MatchLessonHelper
 
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
         LessonMatchParams p,
-        GroupSplitKey groupSplit)
+        GroupPartitionKey groupPartition)
     {
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
-            if (lesson.Lesson.GroupSplitKey != groupSplit)
+            if (lesson.Lesson.GroupPartitionKey != groupPartition)
             {
                 continue;
             }

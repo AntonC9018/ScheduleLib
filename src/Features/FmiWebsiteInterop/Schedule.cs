@@ -247,10 +247,10 @@ public static class WebsiteJsonScheduleHelper
         }
 
         // Split - only if all lessons share the same subgroup and specialization
-        var distinctSplits = lessons.Select(l => l.Lesson.GroupSplitKey).Distinct().ToList();
-        if (distinctSplits.Count == 1 && distinctSplits[0].ToDisplayString() is { } splitDisplay)
+        var distinctPartitions = lessons.Select(l => l.Lesson.GroupPartitionKey).Distinct().ToList();
+        if (distinctPartitions.Count == 1 && distinctPartitions[0].ToDisplayString() is { } partitionDisplay)
         {
-            listBuilder.Append($"s.{splitDisplay}");
+            listBuilder.Append($"s.{partitionDisplay}");
         }
 
         // Room

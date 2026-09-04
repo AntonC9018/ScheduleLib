@@ -604,10 +604,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 b.Append(group.Name);
 
                 if (appendSubgroup
-                    && lesson.Lesson.GroupSplitKey.ToDisplayString("-") is { } splitDisplay)
+                    && lesson.Lesson.GroupPartitionKey.ToDisplayString("-") is { } partitionDisplay)
                 {
                     b.StringBuilder.Append('-');
-                    b.StringBuilder.Append(splitDisplay);
+                    b.StringBuilder.Append(partitionDisplay);
                 }
             }
             string GetParityName(WeeklyLessonRef l)

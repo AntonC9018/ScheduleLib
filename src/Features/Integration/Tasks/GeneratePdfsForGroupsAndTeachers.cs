@@ -37,7 +37,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 {
                 });
 
-            var splitInfoByGroup = _schedule.GetGroupSplitInfo(_specializationRegistry);
+            var partitionInfoByGroup = _schedule.GetGroupPartitionInfo(_specializationRegistry);
 
             foreach (var g in _schedule.EnumerateGroups())
             {
@@ -47,7 +47,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 };
                 GenerateGroupPdf(g, $"{g.Item.Name}.pdf", groupFilter);
 
-                foreach (var combination in splitInfoByGroup[g.Id].Combinations)
+                foreach (var combination in partitionInfoByGroup[g.Id].Combinations)
                 {
                     var sb = new StringBuilder();
                     sb.Append(g.Item.Name);

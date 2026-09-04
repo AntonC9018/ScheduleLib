@@ -42,9 +42,9 @@ SubGroup SubGroup;
 Specialization Specialization;
 ```
 
-Add a readonly `GroupSplitKey` that combines them. Expose it as a computed extension property on lesson data and equivalent lesson references. Use the key for grouping, diffing, matching, color selection, and other helper operations that must consider both restrictions.
+Add a readonly `GroupPartitionKey` that combines them. Expose it as a computed extension property on lesson data and equivalent lesson references. Use the key for grouping, diffing, matching, color selection, and other helper operations that must consider both restrictions.
 
-Do not serialize `GroupSplitKey`.
+Do not serialize `GroupPartitionKey`.
 
 ### Add a combination abstraction
 
@@ -52,10 +52,10 @@ Add a core abstraction for one generated student selection. It must support:
 
 - deterministic Cartesian-product enumeration for a Group;
 - canonical display and filename ordering;
-- matching a lesson's Group split in the context of one Group;
+- matching a lesson's Group partition in the context of one Group;
 - several selected subgroup values plus an optional specialization.
 
-The exact internal representation is an implementation choice. Do not reuse `GroupSplitKey`; a generated combination may contain more data than one lesson split.
+The exact internal representation is an implementation choice. Do not reuse `GroupPartitionKey`; a generated combination may contain more data than one lesson split.
 
 ## Parser changes
 
@@ -245,7 +245,7 @@ GA2D, I: Grafică și animație 2D
 A1, GA2D, I: Grafică și animație 2D
 ```
 
-Use the computed `GroupSplitKey` wherever equality or grouping must include both fields.
+Use the computed `GroupPartitionKey` wherever equality or grouping must include both fields.
 
 ## Serialization and cache migration
 
@@ -256,7 +256,7 @@ Serialize flat sibling lesson fields:
 "Specialization": "GA2D"
 ```
 
-Use the existing null/default convention for `All`. Do not serialize `GroupSplitKey` or generated combinations.
+Use the existing null/default convention for `All`. Do not serialize `GroupPartitionKey` or generated combinations.
 
 Do not implement backward-compatible upgrade logic. Regenerate all committed caches and snapshots, including:
 

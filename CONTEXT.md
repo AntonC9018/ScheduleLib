@@ -16,13 +16,13 @@ _Avoid_: Specialization, Group
 A named study-track partition within a Group, separate from its subgroups.
 _Avoid_: Specialty, specialization subgroup
 
-**Group split**:
+**Group partition**:
 The subgroup and specialization restriction that determines which students in a Group attend a lesson. A lesson may have at most one subgroup restriction and one specialization restriction.
 _Avoid_: Subgroup combination
 
 **Subgroup combination**:
 One possible student population obtained by selecting an active value from every subgroup dimension and, when active, one specialization.
-_Avoid_: Group split, compound subgroup
+_Avoid_: Group partition, compound subgroup
 
 **Whole-Group schedule**:
 An administrative schedule containing every lesson associated with a Group, regardless of subgroup or specialization.

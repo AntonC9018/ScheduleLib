@@ -376,7 +376,7 @@ public readonly struct StudentAttendanceList
         var attendanceKey = new StudentsLookupKey(
             courseId: key.CourseId,
             groups: key.Groups.Value.Ordered(),
-            groupSplit: key.GroupSplit,
+            groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
         // TODO: Should work for any subset of the groups, currently it does not.
         if (_map.TryGetValue(attendanceKey, out var list)

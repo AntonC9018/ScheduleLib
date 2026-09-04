@@ -565,19 +565,19 @@ public record struct LessonData()
 /// into one identity. Used wherever equality or grouping must consider all fields.
 /// Not serialized.
 /// </summary>
-public readonly record struct GroupSplitKey(SubGroup SubGroup, Specialization Specialization, Alternative Alternative = default)
+public readonly record struct GroupPartitionKey(SubGroup SubGroup, Specialization Specialization, Alternative Alternative = default)
 {
-    public static GroupSplitKey All => new(SubGroup.All, Specialization.All, Alternative.All);
+    public static GroupPartitionKey All => new(SubGroup.All, Specialization.All, Alternative.All);
 }
 
 public static class LessonDataExtensions
 {
     extension(in LessonData lesson)
     {
-        public GroupSplitKey GroupSplitKey => new(lesson.SubGroup, lesson.Specialization, lesson.Alternative);
+        public GroupPartitionKey GroupPartitionKey => new(lesson.SubGroup, lesson.Specialization, lesson.Alternative);
     }
 
-    extension(in GroupSplitKey key)
+    extension(in GroupPartitionKey key)
     {
         /// <summary>
         /// Alternative first, then the specialization, then the subgroup.

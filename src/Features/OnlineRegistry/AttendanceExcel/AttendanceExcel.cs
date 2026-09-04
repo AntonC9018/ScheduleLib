@@ -96,7 +96,7 @@ public sealed partial class AttendanceListsExcelParser
                 return new(
                     courseId: lesson.Course,
                     groups: groups,
-                    groupSplit: lesson.GroupSplit,
+                    groupPartition: lesson.GroupPartition,
                     lessonType: lesson.Type);
             }
 
@@ -202,7 +202,7 @@ public sealed partial class AttendanceListsExcelParser
     {
         public CourseId CourseId = CourseId.Invalid;
         public LessonGroups Groups = [];
-        public GroupSplitKey GroupSplit = GroupSplitKey.All;
+        public GroupPartitionKey GroupPartition = GroupPartitionKey.All;
         public LessonType LessonType = LessonType.Lab;
     }
 
@@ -210,7 +210,7 @@ public sealed partial class AttendanceListsExcelParser
     {
         public required (SequencePosition Start, SequencePosition End)? NameRange;
         public required LessonType LessonType;
-        public required GroupSplitKey GroupSplit;
+        public required GroupPartitionKey GroupPartition;
         public required Group? Group;
     }
 
@@ -224,7 +224,7 @@ public sealed partial class AttendanceListsExcelParser
         SequencePosition? nameEnd = null;
         bool isInParens = false;
         var lessonType = LessonType.None;
-        var groupSplit = GroupSplitKey.All;
+        var groupPartition = GroupPartitionKey.All;
         Group? group = null;
 
         while (!lexer.IsEmpty)
@@ -241,13 +241,13 @@ public sealed partial class AttendanceListsExcelParser
                             lessonType = lessonType1;
                             break;
                         }
-                        else if (GroupSplit())
+                        else if (GroupPartition())
                         {
                             break;
                         }
                         throw new InvalidOperationException($"Lesson type {token.Value.Span} is not a valid lesson type");
                     }
-                    if (GroupSplit())
+                    if (GroupPartition())
                     {
                         break;
                     }
@@ -276,19 +276,19 @@ public sealed partial class AttendanceListsExcelParser
             }
             lexer.Move();
 
-            bool GroupSplit()
+            bool GroupPartition()
             {
                 var remapped = subGroupRemapper.Remap(new(token.Value.ToString()));
                 if (NumberHelper.FromRoman(remapped.Value) is { } ord)
                 {
                     _ = ord;
-                    groupSplit = new(remapped, Specialization.All);
+                    groupPartition = new(remapped, Specialization.All);
                     return true;
                 }
                 if (Specializations.TryFromValue(remapped.Value, out var specialization)
                     || specializationRegistry.TryFromValue(remapped.Value, out specialization))
                 {
-                    groupSplit = new(SubGroup.All, specialization);
+                    groupPartition = new(SubGroup.All, specialization);
                     return true;
                 }
                 return false;
@@ -309,14 +309,14 @@ public sealed partial class AttendanceListsExcelParser
             Group = group,
             LessonType = lessonType,
             NameRange = nameStart is null ? null : (nameStart.Value, nameEnd!.Value),
-            GroupSplit = groupSplit,
+            GroupPartition = groupPartition,
         };
     }
 
     private readonly record struct LookedUpLesson(
         LessonType Type,
         LessonGroups Groups,
-        GroupSplitKey GroupSplit,
+        GroupPartitionKey GroupPartition,
         CourseId Course)
     {
         public readonly LessonGroups Groups = Groups;
@@ -391,7 +391,7 @@ public sealed partial class AttendanceListsExcelParser
                 CourseId = courseId,
                 Groups = groups,
                 LessonType = parsedName.LessonType,
-                GroupSplit = parsedName.GroupSplit,
+                GroupPartition = parsedName.GroupPartition,
             };
             var ret = LookupLesson(key, _schedule, additionallyIgnoredFields);
             if (ret == null)
@@ -414,7 +414,7 @@ public sealed partial class AttendanceListsExcelParser
             return new(
                 l.Type,
                 l.Groups,
-                l.GroupSplitKey,
+                l.GroupPartitionKey,
                 l.Course);
         }
 
@@ -440,8 +440,8 @@ public sealed partial class AttendanceListsExcelParser
                 }
             }
             {
-                diffLesson.SubGroup = key.GroupSplit.SubGroup;
-                diffLesson.Specialization = key.GroupSplit.Specialization;
+                diffLesson.SubGroup = key.GroupPartition.SubGroup;
+                diffLesson.Specialization = key.GroupPartition.Specialization;
                 diffMask.SubGroup = true;
             }
             if (key.LessonType != LessonType.None)

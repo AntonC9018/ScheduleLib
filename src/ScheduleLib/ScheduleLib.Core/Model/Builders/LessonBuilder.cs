@@ -801,7 +801,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.GroupSplitKey != b.GroupSplitKey)
+            if (a.GroupPartitionKey != b.GroupPartitionKey)
             {
                 ret.SubGroup = true;
             }

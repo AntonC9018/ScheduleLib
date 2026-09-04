@@ -38,7 +38,7 @@ public readonly record struct GroupCombination(
     /// Builds the <see cref="GroupFilter"/> the combination PDFs use for this
     /// combination. A null selection means the partition is inactive for the
     /// group, so no restriction is applied: this keeps the filter consistent
-    /// with <see cref="GroupSplitInfo.IncludesLesson"/>, where an inactive
+    /// with <see cref="GroupPartitionInfo.IncludesLesson"/>, where an inactive
     /// partition (including a registry-deactivated one) behaves as shared.
     /// Passing an empty array instead would wrongly drop those lessons,
     /// because <c>FilteredSchedule</c> counts raw observed values.
@@ -93,11 +93,11 @@ public readonly record struct GroupCombination(
 }
 
 /// <summary>
-/// The split state of one group: the observed specializations and every generated
+/// The partition state of one group: the observed specializations and every generated
 /// student combination. Matching uses this context, because the same stored lesson
 /// may behave differently per group (a singleton specialization behaves as shared).
 /// </summary>
-public sealed class GroupSplitInfo
+public sealed class GroupPartitionInfo
 {
     // Two or more registry-permitted observed specializations activate the
     // specialization partition. A null registry permits every observed value;
@@ -171,17 +171,17 @@ public sealed class GroupSplitInfo
     }
 }
 
-public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
+public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartitionInfo>
 {
-    private GroupSplitInfoByGroup()
+    private GroupPartitionInfoByGroup()
     {
     }
 
-    public static GroupSplitInfoByGroup Build(
+    public static GroupPartitionInfoByGroup Build(
         Schedule schedule,
         SpecializationRegistry? registry)
     {
-        var ret = new GroupSplitInfoByGroup();
+        var ret = new GroupPartitionInfoByGroup();
 
         var numeric = new Dictionary<GroupId, SortedSet<int>>();
         var languages = new Dictionary<GroupId, HashSet<SubGroup>>();
@@ -202,31 +202,31 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
         foreach (var l in schedule.EnumerateAllLessons())
         {
             ref readonly var lesson = ref l.Lesson;
-            var splitKey = lesson.GroupSplitKey;
+            var partitionKey = lesson.GroupPartitionKey;
             foreach (var groupId in lesson.Groups)
             {
-                if (NumberHelper.FromRoman(splitKey.SubGroup.Value) is { } number)
+                if (NumberHelper.FromRoman(partitionKey.SubGroup.Value) is { } number)
                 {
                     numeric[groupId].Add(number);
                 }
-                else if (splitKey.SubGroup == SpecialSubGroups.Ro
-                    || splitKey.SubGroup == SpecialSubGroups.Ru
-                    || splitKey.SubGroup == SpecialSubGroups.Eng)
+                else if (partitionKey.SubGroup == SpecialSubGroups.Ro
+                    || partitionKey.SubGroup == SpecialSubGroups.Ru
+                    || partitionKey.SubGroup == SpecialSubGroups.Eng)
                 {
-                    languages[groupId].Add(splitKey.SubGroup);
+                    languages[groupId].Add(partitionKey.SubGroup);
                 }
-                else if (splitKey.SubGroup == SpecialSubGroups.Beginners)
+                else if (partitionKey.SubGroup == SpecialSubGroups.Beginners)
                 {
                     hasBeginners.Add(groupId);
                 }
 
-                if (splitKey.Specialization != Specialization.All)
+                if (partitionKey.Specialization != Specialization.All)
                 {
-                    specializations[groupId].Add(splitKey.Specialization);
+                    specializations[groupId].Add(partitionKey.Specialization);
                 }
-                if (splitKey.Alternative != Alternative.All)
+                if (partitionKey.Alternative != Alternative.All)
                 {
-                    alternatives[groupId].Add(splitKey.Alternative);
+                    alternatives[groupId].Add(partitionKey.Alternative);
                 }
             }
         }
@@ -291,7 +291,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
                 }
             }
 
-            // A group with no active split has no suffixed combinations at all;
+            // A group with no active partition has no suffixed combinations at all;
             // it only gets its whole-group schedule.
             if (combinations.Count == 1 && combinations[0] == default)
             {
@@ -324,16 +324,16 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
     }
 }
 
-public static class GroupSplitInfoHelper
+public static class GroupPartitionInfoHelper
 {
     /// <summary>
     /// Discovers the active partitions and generated combinations of every group.
     /// A null registry permits every observed specialization value.
     /// </summary>
-    public static GroupSplitInfoByGroup GetGroupSplitInfo(
+    public static GroupPartitionInfoByGroup GetGroupPartitionInfo(
         this Schedule schedule,
         SpecializationRegistry? registry = null)
     {
-        return GroupSplitInfoByGroup.Build(schedule, registry);
+        return GroupPartitionInfoByGroup.Build(schedule, registry);
     }
 }

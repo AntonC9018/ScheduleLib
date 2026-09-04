@@ -38,7 +38,7 @@ LSP exposed as an MCP server, wired into ZCode and OpenAI Codex?
   a language server as a child process and re-expose a handful of LSP requests
   as MCP tools.
 - Why bother when the agent can already grep and read files: grep finds text,
-  not symbols. `Find References` on `GroupSplitKey` won't be fooled by comments,
+  not symbols. `Find References` on `GroupPartitionKey` won't be fooled by comments,
   string literals, or same-named symbols in other namespaces, and rename via
   Roslyn is semantics-aware. Diagnostics catch build breaks without a full
   `dotnet build` round-trip.

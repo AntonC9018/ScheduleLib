@@ -1,4 +1,4 @@
-# Group splits and student schedules
+# Group partitions and student schedules
 
 ## Purpose
 
@@ -11,7 +11,7 @@ A `Group` contains every student registered under one university group identity.
 ```text
 Group
   lessons
-    GroupSplitKey
+    GroupPartitionKey
       SubGroup
       Specialization
   active partitions
@@ -25,7 +25,7 @@ Group
 
 ### Lesson targeting
 
-A lesson has at most one `SubGroup` and one `Specialization`. These values form its Group split.
+A lesson has at most one `SubGroup` and one `Specialization`. These values form its Group partition.
 
 Examples:
 

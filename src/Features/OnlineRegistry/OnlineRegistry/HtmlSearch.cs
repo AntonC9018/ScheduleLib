@@ -19,18 +19,18 @@ public readonly record struct CourseLink(
 public readonly record struct GroupLink
 {
     public readonly FoundGroups Groups;
-    public readonly GroupSplitKey GroupSplit;
+    public readonly GroupPartitionKey GroupPartition;
     public readonly Uri Uri;
     public readonly Uri EvaluationUri;
 
     public GroupLink(
         in FoundGroups groups,
-        GroupSplitKey groupSplit,
+        GroupPartitionKey groupPartition,
         Uri uri,
         Uri evaluationUri)
     {
         Groups = groups;
-        GroupSplit = groupSplit;
+        GroupPartition = groupPartition;
         Uri = uri;
         EvaluationUri = evaluationUri;
     }
@@ -133,7 +133,7 @@ internal static class HtmlSearch
             }
 
             Uri groupUri;
-            GroupSplitKey groupSplit;
+            GroupPartitionKey groupPartition;
             FoundGroups foundGroups;
             {
                 var anchor = urls[0];
@@ -164,7 +164,7 @@ internal static class HtmlSearch
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
-                groupSplit = GroupSplitFromString(groupForSearch, p.SpecializationRegistry);
+                groupPartition = GroupPartitionFromString(groupForSearch, p.SpecializationRegistry);
                 groupUri = new Uri(url);
                 foundGroups = new()
                 {
@@ -185,17 +185,17 @@ internal static class HtmlSearch
                 uri: groupUri,
                 evaluationUri: evaluationUri,
                 groups: foundGroups,
-                groupSplit: groupSplit);
+                groupPartition: groupPartition);
         }
     }
 
-    internal static GroupSplitKey GroupSplitFromString(
+    internal static GroupPartitionKey GroupPartitionFromString(
         in GroupForSearch groupForSearch,
         SpecializationRegistry? specializationRegistry = null)
     {
         if (groupForSearch.SubGroupName.IsEmpty)
         {
-            return GroupSplitKey.All;
+            return GroupPartitionKey.All;
         }
         var subGroup = new SubGroup(groupForSearch.SubGroupName.ToString());
         if (Specializations.TryFromValue(subGroup.Value, out var specialization)
