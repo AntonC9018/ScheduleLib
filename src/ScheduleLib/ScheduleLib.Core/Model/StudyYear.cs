@@ -11,11 +11,11 @@ public readonly record struct StudyYear : IComparable<StudyYear>
 
     public StudyYear(int value)
     {
-        if (value is < 1000 or > 2999)
+        if (value is < 1900 or > 2999)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(value), value,
-                "The study year must be the full year, e.g. 2026, not a two-digit form.");
+                "The study year must be the full year, e.g. 2026, not lower than 1900.");
         }
         Value = value;
     }
