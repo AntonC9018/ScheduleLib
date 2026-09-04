@@ -1,15 +1,5 @@
 namespace ScheduleLib;
 
-/// <summary>
-/// The canonical known specialization values. These live outside Core as
-/// extension properties so schedule-source knowledge stays in the config
-/// layer; Core only keeps the aggregate lookup surface
-/// (<see cref="Specializations.AllKnown"/> and
-/// <see cref="Specializations.TryFromValue"/>) as thin forwards for
-/// prefix matching and classification, which cannot cross the assembly
-/// boundary (this assembly references Core, and OnlineRegistry cannot
-/// reference this assembly back).
-/// </summary>
 public static class SpecializationExtensions
 {
     extension(Specialization)
