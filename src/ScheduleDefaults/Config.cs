@@ -96,9 +96,10 @@ public static class Config
     }
 
     /// <summary>
-    /// Tolerated lesson overlaps. Every entry is temporary and documents why the pair
-    /// is accepted today; entries are removed as the data or the configuration gets
-    /// fixed.
+    /// Tolerated lesson overlaps. The elective entries are a permanent safety net
+    /// for alternative lessons whose groups fall outside every implicit-split
+    /// scope; the data-bug and language-block entries are temporary and are
+    /// removed as the source docs get fixed.
     /// </summary>
     public static LessonOverlapValidationConfig OverlapValidationConfig { get; } = new()
     {

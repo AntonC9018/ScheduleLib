@@ -13,8 +13,11 @@ public sealed class LessonOverlapValidationConfig
     public StudyYear? StudyYear { get; init; }
 
     /// <summary>
-    /// Pairs the validation tolerates, each with the reason. Entries are temporary:
-    /// they are removed as the data or the configuration gets fixed.
+    /// Pairs the validation tolerates, each with the reason. Some entries are
+    /// permanent by design: they cover known shared-slot cases (elective
+    /// alternatives whose lessons fall outside every implicit-split scope and
+    /// so keep no separating value). The rest are temporary data-bug
+    /// workarounds, removed once the source docs get fixed.
     /// </summary>
     public List<LessonOverlapAllowlistEntry> Allowlist { get; init; } = [];
 }
