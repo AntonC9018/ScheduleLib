@@ -862,6 +862,30 @@ public static class Specializations
         specialization = default;
         return false;
     }
+
+    /// <summary>
+    /// Resolves a raw label against the built-in values, falling back to the
+    /// configured registry (which may be null). Chained built-in
+    /// <c>||</c> registry <c>TryFromValue</c> checks stay here so call sites
+    /// don't inline the double disjunction.
+    /// </summary>
+    public static bool TryResolveSpecialization(
+        string? value,
+        SpecializationRegistry? registry,
+        out Specialization specialization)
+    {
+        if (TryFromValue(value, out specialization))
+        {
+            return true;
+        }
+        if (registry is not null
+            && registry.TryFromValue(value, out specialization))
+        {
+            return true;
+        }
+        specialization = default;
+        return false;
+    }
 }
 
 public static class SpecialSubGroups

@@ -285,8 +285,8 @@ public sealed partial class AttendanceListsExcelParser
                     groupPartition = new(remapped, Specialization.All);
                     return true;
                 }
-                if (Specializations.TryFromValue(remapped.Value, out var specialization)
-                    || specializationRegistry.TryFromValue(remapped.Value, out specialization))
+                if (Specializations.TryResolveSpecialization(
+                    remapped.Value, specializationRegistry, out var specialization))
                 {
                     groupPartition = new(SubGroup.All, specialization);
                     return true;

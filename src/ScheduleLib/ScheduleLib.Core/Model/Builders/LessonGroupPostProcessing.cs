@@ -56,17 +56,8 @@ public static partial class ScheduleBuilderHelper
         SubGroup label,
         out Specialization specialization)
     {
-        if (Specializations.TryFromValue(label.Value, out specialization))
-        {
-            return true;
-        }
-        if (s.SpecializationRegistry is { } registry
-            && registry.TryFromValue(label.Value, out specialization))
-        {
-            return true;
-        }
-        specialization = default;
-        return false;
+        return Specializations.TryResolveSpecialization(
+            label.Value, s.SpecializationRegistry, out specialization);
     }
 
     /// <summary>

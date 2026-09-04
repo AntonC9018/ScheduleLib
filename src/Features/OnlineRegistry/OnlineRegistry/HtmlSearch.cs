@@ -208,9 +208,8 @@ internal static class HtmlSearch
             return GroupPartitionKey.All;
         }
         var subGroup = new SubGroup(groupForSearch.SubGroupName.ToString());
-        if (Specializations.TryFromValue(subGroup.Value, out var specialization)
-            || (specializationRegistry is not null
-                && specializationRegistry.TryFromValue(subGroup.Value, out specialization)))
+        if (Specializations.TryResolveSpecialization(
+            subGroup.Value, specializationRegistry, out var specialization))
         {
             return new(SubGroup.All, specialization);
         }
