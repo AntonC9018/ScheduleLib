@@ -14,8 +14,22 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
 
     public SubGroup Remap(SubGroup subGroup)
     {
-        var ret = this!.GetValueOrDefault(subGroup.Value, subGroup.Value);
-        return new(ret);
+        if (subGroup.Value is null)
+        {
+            return subGroup;
+        }
+        return Remap(subGroup.Value.AsSpan());
+    }
+
+    public SubGroup Remap(ReadOnlyMemory<char> mem) => Remap(mem.Span);
+
+    public SubGroup Remap(ReadOnlySpan<char> mem)
+    {
+        if (TryRemapName(mem) is { } remapped)
+        {
+            return remapped;
+        }
+        return new(mem.ToString());
     }
 
     public SubGroup? TryRemapName(ReadOnlySpan<char> mem)

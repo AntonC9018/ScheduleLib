@@ -8,6 +8,8 @@ public sealed partial class SubGroupNameRemapper
     private readonly ScheduleBuilder _builder;
     private SubGroupNameRemappings Remappings => _builder.Remappings.SubGroupNameRemappings;
     public SubGroup Remap(SubGroup subGroup) => Remappings.Remap(subGroup);
+    public SubGroup Remap(ReadOnlyMemory<char> subGroup) => Remappings.Remap(subGroup);
+    public SubGroup Remap(ReadOnlySpan<char> subGroup) => Remappings.Remap(subGroup);
     public SubGroup? TryRemapName(ReadOnlySpan<char> subGroup) => Remappings.TryRemapName(subGroup);
 }
 

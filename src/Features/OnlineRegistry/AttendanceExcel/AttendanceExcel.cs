@@ -278,7 +278,7 @@ public sealed partial class AttendanceListsExcelParser
 
             bool GroupPartition()
             {
-                var remapped = subGroupRemapper.Remap(new(token.Value.ToString()));
+                var remapped = subGroupRemapper.Remap(token.Value);
                 if (NumberHelper.FromRoman(remapped.Value) is { } ord)
                 {
                     _ = ord;
