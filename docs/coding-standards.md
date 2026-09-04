@@ -1,4 +1,3 @@
 # Coding Standards
 
-- **Named tuple elements:** every tuple type must name its elements at declaration (e.g. `(Partition: GroupPartitionKey, Course: CourseId)`), and all accesses must use those names — never `Item1`/`Item2`/etc.
-- **Typed exceptions:** domain errors in `ScheduleLib.Core` (+ Dates ranges/parity) throw a specific `ScheduleBuildException` subtype (e.g. `ConflictingImplicitAssignmentException`), never a bare `InvalidOperationException` — that one is only for unreachable internal invariants (with `Debug.Assert`). New types derive from `ScheduleBuildException` so existing `InvalidOperationException` catches keep working. Scope: Core/Dates only — infra-layer assemblies (`Helper`, `Helper.Excel`, `Helper.DependencyInjection`, `Scraping.*`) and test helpers must NOT reference Core (layering: Core depends on Helper), so their bare `InvalidOperationException` throws stay as-is.
+Moved to [.agents/coding-standards.md](../.agents/coding-standards.md) — the single source of truth.
