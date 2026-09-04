@@ -25,6 +25,70 @@ public sealed class GroupPdfTests
     }
 
     [Fact]
+    public async Task AlternativeComesFirstInCombinationFileNames()
+    {
+        var schedule = BuildWithAlternative();
+
+        var files = await Generate(schedule);
+
+        Assert.True(new[]
+        {
+            "IA2401.pdf",
+            "IA2401_A1-CV-I.pdf",
+            "IA2401_A1-DJ-I.pdf",
+            "IA2401_A2-CV-I.pdf",
+            "IA2401_A2-DJ-I.pdf",
+        }.SequenceEqual(files));
+    }
+
+    private static Schedule BuildWithAlternative()
+    {
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2025),
+            }),
+        };
+        builder.EnableLookupModule();
+
+        var group = builder.Group("IA2401").Id;
+        var course = builder.Course("Course");
+
+        AddLesson();
+        AddLesson(subGroup: SubGroup.CreateNumeric(1));
+        AddLesson(specialization: Specializations.CV);
+        AddLesson(specialization: Specializations.DJ);
+        AddLesson(alternative: new Alternative("A1"));
+        AddLesson(alternative: new Alternative("A2"));
+
+        return builder.Build();
+
+        void AddLesson(
+            SubGroup? subGroup = null,
+            Specialization? specialization = null,
+            Alternative? alternative = null)
+        {
+            var lesson = builder.RegularLesson();
+            lesson.Group(group);
+            lesson.Course(course);
+            lesson.DayOfWeek(DayOfWeek.Monday);
+            lesson.TimeSlot(TimeSlot.First);
+            if (subGroup is { } subgroupValue)
+            {
+                lesson.SubGroup(subgroupValue);
+            }
+            if (specialization is { } specializationValue)
+            {
+                lesson.Specialization(specializationValue);
+            }
+            if (alternative is { } alternativeValue)
+            {
+                lesson.Alternative(alternativeValue);
+            }
+        }
+    }
+    [Fact]
     public async Task AGroupWithoutSplitsGetsOnlyItsWholeGroupPdf()
     {
         var schedule = Build(withSplits: false);
