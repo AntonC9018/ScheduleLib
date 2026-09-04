@@ -561,6 +561,58 @@ public record struct LessonData()
 }
 
 /// <summary>
+/// One student-partition axis of a <see cref="GroupPartitionKey"/>.
+/// Closed set on purpose: no extensible-dimension support, just an abstraction
+/// so the per-site dimension loops stay unified.
+/// </summary>
+public enum PartitionDimension
+{
+    SubGroup,
+    Specialization,
+    Alternative,
+}
+
+/// <summary>
+/// The value on one <see cref="PartitionDimension"/>. Wraps a string for now;
+/// every dimension type converts implicitly. A null value means "all".
+/// </summary>
+public readonly record struct PartitionKey
+{
+    public readonly string? Value { get; }
+
+    public PartitionKey(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static implicit operator PartitionKey(SubGroup subGroup) => new(subGroup.Value);
+    public static implicit operator PartitionKey(Specialization specialization) => new(specialization.Value);
+    public static implicit operator PartitionKey(Alternative alternative) => new(alternative.Value);
+}
+
+public static class PartitionDimensions
+{
+    /// <summary>
+    /// Every dimension in storage order.
+    /// </summary>
+    public static ReadOnlySpan<PartitionDimension> All => [
+        PartitionDimension.SubGroup,
+        PartitionDimension.Specialization,
+        PartitionDimension.Alternative,
+    ];
+
+    /// <summary>
+    /// Alternative first, then specialization, then subgroup.
+    /// </summary>
+    public static ReadOnlySpan<PartitionDimension> DisplayOrder => [
+        PartitionDimension.Alternative,
+        PartitionDimension.Specialization,
+        PartitionDimension.SubGroup,
+    ];
+}
+
+/// <summary>
 /// Combines the subgroup, specialization and alternative values a lesson targets
 /// into one identity. Used wherever equality or grouping must consider all fields.
 /// Not serialized.
@@ -579,6 +631,17 @@ public static class LessonDataExtensions
 
     extension(in GroupPartitionKey key)
     {
+        /// <summary>
+        /// The key's value on one partition dimension.
+        /// </summary>
+        public PartitionKey GetPartitionDimension(PartitionDimension dimension) => dimension switch
+        {
+            PartitionDimension.SubGroup => key.SubGroup,
+            PartitionDimension.Specialization => key.Specialization,
+            PartitionDimension.Alternative => key.Alternative,
+            _ => throw Unreachable(),
+        };
+
         /// <summary>
         /// Alternative first, then the specialization, then the subgroup.
         /// Null when the key targets everything.

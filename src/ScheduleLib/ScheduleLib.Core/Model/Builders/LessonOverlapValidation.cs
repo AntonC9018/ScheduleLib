@@ -103,12 +103,13 @@ public static partial class ScheduleBuilderHelper
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
     {
-        // Local dimension enumeration; item 15 may unify this with PartitionDimension later.
-        ReadOnlySpan<string?> aValues = [a.SubGroup.Value, a.Specialization.Value, a.Alternative.Value];
-        ReadOnlySpan<string?> bValues = [b.SubGroup.Value, b.Specialization.Value, b.Alternative.Value];
-        for (int i = 0; i < aValues.Length; i++)
+        var aKey = new GroupPartitionKey(a.SubGroup, a.Specialization, a.Alternative);
+        var bKey = new GroupPartitionKey(b.SubGroup, b.Specialization, b.Alternative);
+        foreach (var dimension in PartitionDimensions.All)
         {
-            if (!ValuesIntersect(aValues[i], bValues[i]))
+            if (!ValuesIntersect(
+                aKey.GetPartitionDimension(dimension).Value,
+                bKey.GetPartitionDimension(dimension).Value))
             {
                 return false;
             }

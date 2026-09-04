@@ -75,20 +75,17 @@ public sealed partial class LessonTextDisplayHandler
         {
             // Alternative first, then specialization, then the subgroup: "A1, GA2D, I: ".
             var lesson = p.Lesson.Lesson;
-            string? PartitionDimension(int index) => index switch
-            {
-                0 => lesson.Alternative.Value,
-                1 => lesson.Specialization.Value,
-                2 => _services.SubGroupNumberDisplay.Get(lesson.SubGroup),
-                _ => null,
-            };
+            var partitionKey = lesson.GroupPartitionKey;
             int prefixStart = sb.Length;
             var list = new ListStringBuilder(sb, ", ");
-            for (int i = 0; i < 3; i++)
+            foreach (var dimension in PartitionDimensions.DisplayOrder)
             {
-                if (PartitionDimension(i) is { } dimension)
+                string? text = dimension == PartitionDimension.SubGroup
+                    ? _services.SubGroupNumberDisplay.Get(lesson.SubGroup)
+                    : partitionKey.GetPartitionDimension(dimension).Value;
+                if (text is { } dimensionText)
                 {
-                    list.Append(dimension);
+                    list.Append(dimensionText);
                 }
             }
             if (sb.Length > prefixStart)
