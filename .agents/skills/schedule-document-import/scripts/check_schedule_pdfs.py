@@ -79,7 +79,7 @@ def main() -> int:
             if lesson:
                 title = lesson.group(1).strip()
                 length = visible_length(title)
-                if 0 < length < args.minimum_title_length:
+                if length < args.minimum_title_length:
                     findings.append(
                         f"{pdf}:{line_number}: title shorter than {args.minimum_title_length}: {title!r}"
                     )

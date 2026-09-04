@@ -9,8 +9,8 @@ public sealed class Remappings()
 
 public sealed class SubGroupNameRemappings : Dictionary<string, string>
 {
-    public void Add(string from, Specialization to) => Add(from, to.Value!);
-    public void Add(string from, Alternative to) => Add(from, to.Value!);
+    public void Add(string from, Specialization to) => Add(from, to.Value ?? throw new ArgumentException("The specialization must not be All.", nameof(to)));
+    public void Add(string from, Alternative to) => Add(from, to.Value ?? throw new ArgumentException("The alternative must not be All.", nameof(to)));
 
     public SubGroup Remap(SubGroup subGroup)
     {

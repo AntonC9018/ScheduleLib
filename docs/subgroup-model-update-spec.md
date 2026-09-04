@@ -35,14 +35,15 @@ Requirements:
 
 ### Extend lesson data
 
-Store both fields directly on lesson data and builder models:
+Store all three fields directly on lesson data and builder models:
 
 ```csharp
 SubGroup SubGroup;
 Specialization Specialization;
+Alternative Alternative;
 ```
 
-Add a readonly `GroupPartitionKey` that combines them. Expose it as a computed extension property on lesson data and equivalent lesson references. Use the key for grouping, diffing, matching, color selection, and other helper operations that must consider both restrictions.
+Add a readonly `GroupPartitionKey` that combines all three. Expose it as a computed extension property on lesson data and equivalent lesson references. Use the key for grouping, diffing, matching, color selection, and other helper operations that must consider all three restrictions.
 
 Do not serialize `GroupPartitionKey`.
 
@@ -245,7 +246,7 @@ GA2D, I: Grafică și animație 2D
 A1, GA2D, I: Grafică și animație 2D
 ```
 
-Use the computed `GroupPartitionKey` wherever equality or grouping must include both fields.
+Use the computed `GroupPartitionKey` wherever equality or grouping must include all three fields (subgroup, specialization, and alternative).
 
 ## Serialization and cache migration
 
@@ -253,10 +254,11 @@ Serialize flat sibling lesson fields:
 
 ```json
 "SubGroup": "I",
-"Specialization": "GA2D"
+"Specialization": "GA2D",
+"Alternative": "A1"
 ```
 
-Use the existing null/default convention for `All`. Do not serialize `GroupPartitionKey` or generated combinations.
+Use the existing null/default convention for `All`. `Alternative` is non-required: caches written before alternatives existed deserialize a missing value as `All`. Do not serialize `GroupPartitionKey` or generated combinations.
 
 Do not implement backward-compatible upgrade logic. Regenerate all committed caches and snapshots, including:
 
@@ -334,7 +336,7 @@ Assume no external caches need migration.
 - `începători-I`, `nuîncepători-I`, `începători-II`, and `nuîncepători-II` schedules contain the correct union of lessons.
 - Specialization, language, proficiency, and numeric values remain independent in generated combinations.
 - A lesson never stores two subgroup values or two specialization values.
-- Every downstream equality or grouping operation uses both specialization and subgroup where lesson targeting matters.
+- Every downstream equality or grouping operation uses specialization, subgroup, and alternative where lesson targeting matters.
 - The whole-Group PDF remains available.
 - Generated filenames are deterministic.
 - Committed JSON contains normalized `nuîncepători` and a separate `Specialization` field.

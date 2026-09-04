@@ -237,26 +237,41 @@ file static class VisitSequence
 {
     // The enumerator reports internal bookkeeping states to the contexts in
     // addition to the per-node visitation. The expected sequences only name
-    // the per-node visits, so match them as an in-order subsequence.
+    // the per-node visits, so filter only the documented bookkeeping states
+    // (BeforeChildren, ProcessChild, AfterChildren) and then require an exact
+    // match, so prohibited child visits fail instead of being skipped.
     public static void AssertInOrder(
         IReadOnlyList<VisitRecord> expected,
         IReadOnlyList<VisitRecord> actual)
     {
-        int actualIndex = 0;
+        var filtered = new List<VisitRecord>(actual.Count);
+        foreach (var record in actual)
+        {
+            if (record.State is DfsVisitationState.BeforeChildren
+                or DfsVisitationState.ProcessChild
+                or DfsVisitationState.AfterChildren)
+            {
+                continue;
+            }
+            filtered.Add(record);
+        }
+        if (filtered.Count != expected.Count)
+        {
+            Assert.Fail(
+                $"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."
+                + $" Expected: {string.Join(", ", expected)}."
+                + $" Recorded sequence: {string.Join(", ", actual)}");
+        }
         for (int i = 0; i < expected.Count; i++)
         {
-            while (actualIndex < actual.Count && actual[actualIndex] != expected[i])
-            {
-                actualIndex++;
-            }
-            if (actualIndex == actual.Count)
+            if (filtered[i] != expected[i])
             {
                 Assert.Fail(
-                    $"The expected visits were not found in order."
-                    + $" First unmatched: [{i}] {expected[i]}."
+                    $"The expected visits did not match exactly."
+                    + $" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."
+                    + $" Expected: {string.Join(", ", expected)}."
                     + $" Recorded sequence: {string.Join(", ", actual)}");
             }
-            actualIndex++;
         }
     }
 }

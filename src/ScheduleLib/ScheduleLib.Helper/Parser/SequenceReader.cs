@@ -197,7 +197,7 @@ public static class ParserHelper
                     continue;
                 }
 
-                if (window[.. str.Length].Equals(str, StringComparison.CurrentCultureIgnoreCase))
+                if (window[.. str.Length].Equals(str, StringComparison.OrdinalIgnoreCase))
                 {
                     Match = index;
                     return false;
