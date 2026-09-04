@@ -245,9 +245,7 @@ public static partial class ScheduleBuilderHelper
         CollectObservedSubGroups(s, observed);
         foreach (var (groupId, values) in observed)
         {
-            int languageCount = values.Count(x => x == SpecialSubGroups.Ro
-                || x == SpecialSubGroups.Ru
-                || x == SpecialSubGroups.Eng);
+            int languageCount = values.Count(SpecialSubGroups.IsLanguageSubGroup);
             if (languageCount == 1)
             {
                 throw new InvalidSubGroupPartitionException(

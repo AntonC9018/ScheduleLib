@@ -920,6 +920,11 @@ public static class SpecialSubGroups
             _ => throw new ArgumentOutOfRangeException(nameof(lang)),
         };
     }
+
+    public static bool IsLanguageSubGroup(this SubGroup subGroup)
+    {
+        return subGroup == Ro || subGroup == Ru || subGroup == Eng;
+    }
 }
 
 public readonly record struct GroupId(int Value) : IComparable<GroupId>

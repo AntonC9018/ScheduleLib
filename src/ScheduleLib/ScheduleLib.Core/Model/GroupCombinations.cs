@@ -209,9 +209,7 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
                 {
                     numeric[groupId].Add(number);
                 }
-                else if (partitionKey.SubGroup == SpecialSubGroups.Ro
-                    || partitionKey.SubGroup == SpecialSubGroups.Ru
-                    || partitionKey.SubGroup == SpecialSubGroups.Eng)
+                else if (SpecialSubGroups.IsLanguageSubGroup(partitionKey.SubGroup))
                 {
                     languages[groupId].Add(partitionKey.SubGroup);
                 }
