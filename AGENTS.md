@@ -1,6 +1,7 @@
 # Agent Instructions
 
 - **Tasks:** this project uses **bd** (beads). Run `bd prime` first; see [docs/task-management.md](docs/task-management.md) and `.agents/skills/beads/SKILL.md`.
+- **Code style:** see [docs/coding-standards.md](docs/coding-standards.md).
 
 ## Non-Interactive Shell Commands
 
