@@ -57,7 +57,7 @@ internal readonly struct ScanGroupsParams
 {
     public required IDocument Document { get; init; }
     public required GroupParseContext GroupParseContext { get; init; }
-    public required SpecializationRegistry SpecializationRegistry { get; init; }
+    public required GroupPartitionResolver GroupPartitionResolver { get; init; }
     public required SearchGroupId SearchGroupId { get; init; }
     public required ParseErrorHandler ParseErrorHandler { get; init; }
 }
@@ -164,7 +164,7 @@ internal static class HtmlSearch
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
-                groupPartition = GroupPartitionFromString(groupForSearch, p.SpecializationRegistry);
+                groupPartition = p.GroupPartitionResolver.Resolve(in groupForSearch);
                 groupUri = new Uri(url);
                 foundGroups = new()
                 {
@@ -187,33 +187,6 @@ internal static class HtmlSearch
                 groups: foundGroups,
                 groupPartition: groupPartition);
         }
-    }
-
-    /// <summary>
-    /// Classifies the subgroup suffix of a registry group link (e.g. "Spring", "I", or empty)
-    /// into a <see cref="GroupPartitionKey"/>: empty means whole group; a known
-    /// specialization (built-in <see cref="Specializations"/> or custom
-    /// <paramref name="specializationRegistry"/>) means a specialization partition;
-    /// anything else means a numeric subgroup (e.g. "I" is subgroup 1).
-    /// Called per group row by <see cref="ScanGroupsDocumentForLinks"/>.
-    /// </summary>
-    /// <param name="specializationRegistry">Custom specialization registry, or
-    /// <c>null</c> when only built-in <see cref="Specializations"/> apply.</param>
-    internal static GroupPartitionKey GroupPartitionFromString(
-        in GroupForSearch groupForSearch,
-        SpecializationRegistry? specializationRegistry)
-    {
-        if (groupForSearch.SubGroupName.IsEmpty)
-        {
-            return GroupPartitionKey.All;
-        }
-        var subGroup = new SubGroup(groupForSearch.SubGroupName.ToString());
-        if (Specializations.TryResolveSpecialization(
-            subGroup.Value, specializationRegistry, out var specialization))
-        {
-            return new(SubGroup.All, specialization);
-        }
-        return new(subGroup, Specialization.All);
     }
 
     internal static Uri ScanForLessonAddLink(IDocument doc)

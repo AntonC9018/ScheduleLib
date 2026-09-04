@@ -73,7 +73,7 @@ public sealed class HtmlTests
         {
             Document = doc,
             GroupParseContext = groupParseContext,
-            SpecializationRegistry = SpecializationRegistry.Empty,
+            GroupPartitionResolver = new GroupPartitionResolver(SpecializationRegistry.Empty),
             SearchGroupId = (ref g) =>
             {
                 groups.Add(g);
@@ -96,14 +96,13 @@ public sealed class HtmlTests
     public void GroupLinkSplitClassifiesSpecializationsSeparately()
     {
         // Explicit null: no custom registry; only built-in specializations apply.
-        var specialization = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("Spring"), null);
-        var numeric = HtmlSearch.GroupPartitionFromString(MakeGroupForSearch("I"), null);
+        var specialization = new GroupPartitionResolver(null).Resolve(MakeGroupForSearch("Spring"));
+        var numeric = new GroupPartitionResolver(null).Resolve(MakeGroupForSearch("I"));
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
         registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
-        var future = HtmlSearch.GroupPartitionFromString(
-            MakeGroupForSearch(futureSpecialization.Value!),
-            registryBuilder.Build());
+        var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
+            MakeGroupForSearch(futureSpecialization.Value!));
 
         Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.Spring), specialization);
         Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);

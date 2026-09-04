@@ -94,7 +94,7 @@ public sealed class GroupsNavigator
         {
             Document = doc,
             GroupParseContext = _groupParseContext,
-            SpecializationRegistry = _specializationRegistry,
+            GroupPartitionResolver = new GroupPartitionResolver(_specializationRegistry),
             SearchGroupId = (ref GroupForSearch group) =>
             {
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
