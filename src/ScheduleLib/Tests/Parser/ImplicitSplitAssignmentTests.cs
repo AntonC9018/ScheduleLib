@@ -33,8 +33,8 @@ public sealed class ImplicitSplitAssignmentTests
             x.Faculty = new("IA");
             x.AttendanceMode = AttendanceMode.Zi;
             x.Qualification = QualificationType.Licenta;
-            x.Specialization("RVA", Specializations.DJ);
-            x.Specialization("SAWM", Specializations.DJ);
+            x.Specialization("RVA", Specialization.DJ);
+            x.Specialization("SAWM", Specialization.DJ);
             x.Alternative("Antreprenoriat inovativ", new("Antreprenoriat"));
         });
         return builder.Build();
@@ -105,7 +105,7 @@ public sealed class ImplicitSplitAssignmentTests
         });
 
         Assert.Equal(
-            Specializations.DJ,
+            Specialization.DJ,
             SpecializationOf(schedule, "RVA"));
         Assert.Equal(
             Specialization.All,
@@ -138,13 +138,13 @@ public sealed class ImplicitSplitAssignmentTests
 
         var schedule = builder.Build();
 
-        Assert.Equal(Specializations.DJ, SpecializationOf(schedule, "RVA"));
+        Assert.Equal(Specialization.DJ, SpecializationOf(schedule, "RVA"));
 
         // The covered groups get the specialization; the rest keep the lesson without
         // one, so the lesson is split in two, both parts keeping the shared time.
         var sawm = LessonsOf(schedule, "SAWM");
         Assert.Equal(2, sawm.Count);
-        var stamped = sawm.Single(x => x.Lesson.Specialization == Specializations.DJ);
+        var stamped = sawm.Single(x => x.Lesson.Specialization == Specialization.DJ);
         var unstamped = sawm.Single(x => x.Lesson.Specialization == Specialization.All);
         Assert.Equal(["IA2403"], GroupNamesOf(stamped, schedule));
         Assert.Equal(["M2403"], GroupNamesOf(unstamped, schedule));
@@ -165,13 +165,13 @@ public sealed class ImplicitSplitAssignmentTests
         {
             x.Grade = new(3);
             x.Faculty = new("IA");
-            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
+            x.Specialization("Realitate virtuală și augmentată", Specialization.DJ);
         });
         configBuilder.Scope(x =>
         {
             x.Grade = new(3);
             x.Faculty = new("M");
-            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
+            x.Specialization("Realitate virtuală și augmentată", Specialization.DJ);
         });
         var config = configBuilder.Build();
         var builder = new ScheduleBuilder
@@ -192,7 +192,7 @@ public sealed class ImplicitSplitAssignmentTests
         var schedule = builder.Build();
 
         Assert.Equal(
-            Specializations.DJ,
+            Specialization.DJ,
             SpecializationOf(schedule, "Realitate virtuală și augmentată"));
     }
 
@@ -207,7 +207,7 @@ public sealed class ImplicitSplitAssignmentTests
             x.StudyYear = new(2025);
             x.Grade = new(3);
             x.Faculty = new("IA");
-            x.Specialization("RVA", Specializations.DJ);
+            x.Specialization("RVA", Specialization.DJ);
         });
         builder.ImplicitSplitConfig = scopeBuilder.Build();
         AddLesson(builder, "IA2403", courseName: "RVA");
@@ -245,7 +245,7 @@ public sealed class ImplicitSplitAssignmentTests
         var schedule = builder.Build();
 
         Assert.Equal(
-            Specializations.DJ,
+            Specialization.DJ,
             SpecializationOf(schedule, "RVA"));
     }
 
@@ -265,7 +265,7 @@ public sealed class ImplicitSplitAssignmentTests
 
         var permitted = SpecializationRegistryHelper.CreateDefault().PermittedFor(in group);
 
-        Assert.True(new[] { Specializations.DJ, Specializations.DezvoltareaAplicatiilor }
+        Assert.True(new[] { Specialization.DJ, Specialization.DezvoltareaAplicatiilor }
             .SequenceEqual(permitted));
     }
 
@@ -286,8 +286,8 @@ public sealed class ImplicitSplitAssignmentTests
         builder.Scope(x =>
         {
             x.Grade = new(3);
-            x.Specialization("A", Specializations.DJ);
-            x.Specialization("B", Specializations.UI);
+            x.Specialization("A", Specialization.DJ);
+            x.Specialization("B", Specialization.UI);
         });
         builder.Scope(x =>
         {
@@ -308,8 +308,8 @@ public sealed class ImplicitSplitAssignmentTests
         builder.Scope(x =>
         {
             x.Grade = new(3);
-            x.Specialization("B", Specializations.UI);
-            x.Specialization("A", Specializations.DJ);
+            x.Specialization("B", Specialization.UI);
+            x.Specialization("A", Specialization.DJ);
         });
         return builder.Build();
     }
@@ -320,7 +320,7 @@ public sealed class ImplicitSplitAssignmentTests
         builder.Scope(x =>
         {
             x.Grade = new(3);
-            x.Specialization("A", Specializations.GA2D);
+            x.Specialization("A", Specialization.GA2D);
         });
         return builder.Build();
     }

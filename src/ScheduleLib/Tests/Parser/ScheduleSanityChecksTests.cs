@@ -30,7 +30,7 @@ public sealed class ScheduleSanityChecksTests
     public void UnknownSubGroupReportsTheMatchingRegistrySelector()
     {
         var registryBuilder = new SpecializationRegistryBuilder();
-        registryBuilder.Set([Specializations.CV]).ApplyTo(_ => { });
+        registryBuilder.Set([Specialization.CV]).ApplyTo(_ => { });
 
         var schedule = new ScheduleBuilder
         {
@@ -67,7 +67,7 @@ public sealed class ScheduleSanityChecksTests
     public void RejectsSpecializationLabelsAsSubGroups()
     {
         var schedule = new ScheduleBuilder();
-        schedule.RegularLesson().SubGroup(new(Specializations.CV.Value!));
+        schedule.RegularLesson().SubGroup(new(Specialization.CV.Value!));
 
         var error = Assert.Throws<InvalidOperationException>(() => schedule.SanityChecks());
 
@@ -84,7 +84,7 @@ public sealed class ScheduleSanityChecksTests
         schedule.ClassifySubGroups();
 
         Assert.Equal(SubGroup.All, lesson.Model.Base.Group.SubGroup);
-        Assert.Equal(Specializations.CV, lesson.Model.Base.Group.Specialization);
+        Assert.Equal(Specialization.CV, lesson.Model.Base.Group.Specialization);
     }
 
     [Fact]
@@ -137,16 +137,16 @@ public sealed class ScheduleSanityChecksTests
         beginner.Course(courseId);
         beginner.Group(groupId);
         beginner.SubGroup(SpecialSubGroups.Beginners);
-        beginner.Specialization(Specializations.CV);
+        beginner.Specialization(Specialization.CV);
         var counterpart = schedule.RegularLesson();
         counterpart.Course(courseId);
         counterpart.Group(groupId);
-        counterpart.Specialization(Specializations.CV);
+        counterpart.Specialization(Specialization.CV);
 
         schedule.NormalizeLanguageProficiency();
 
         Assert.Equal(SpecialSubGroups.NonBeginners, counterpart.Model.Base.Group.SubGroup);
-        Assert.Equal(Specializations.CV, counterpart.Model.Base.Group.Specialization);
+        Assert.Equal(Specialization.CV, counterpart.Model.Base.Group.Specialization);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public sealed class ScheduleSanityChecksTests
         context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "I"));
 
         Assert.Equal(SubGroup.CreateNumeric(1), lesson.Model.Base.Group.SubGroup);
-        Assert.Equal(Specializations.Spring, lesson.Model.Base.Group.Specialization);
+        Assert.Equal(Specialization.Spring, lesson.Model.Base.Group.Specialization);
     }
 
     [Fact]

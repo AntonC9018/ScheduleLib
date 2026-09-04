@@ -104,7 +104,7 @@ public sealed class HtmlTests
             MakeGroupForSearch(futureSpecialization.Value!),
             registryBuilder.Build());
 
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specializations.Spring), specialization);
+        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.Spring), specialization);
         Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
         Assert.Equal(new GroupPartitionKey(SubGroup.All, futureSpecialization), future);
 

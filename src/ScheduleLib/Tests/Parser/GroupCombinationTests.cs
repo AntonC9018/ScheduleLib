@@ -165,7 +165,7 @@ public sealed class GroupCombinationTests
         sharedSpring.Groups([iGroup, iaGroup]);
         sharedSpring.TimeSlot(new(0));
         sharedSpring.DayOfWeek(DayOfWeek.Monday);
-        sharedSpring.Specialization(Specializations.Spring);
+        sharedSpring.Specialization(Specialization.Spring);
 
         var schedule = builder.Build();
         var iInfo = schedule.GetGroupPartitionInfo()[iGroup];
@@ -176,9 +176,9 @@ public sealed class GroupCombinationTests
         Assert.False(iInfo.SpecializationActive);
         Assert.All(iInfo.Combinations, c => Assert.True(iInfo.IncludesLesson(c, sharedLesson.Lesson)));
 
-        var spring = iaInfo.Combinations.Single(c => c.Specialization == Specializations.Spring
+        var spring = iaInfo.Combinations.Single(c => c.Specialization == Specialization.Spring
             && c.Numeric == SubGroup.CreateNumeric(1));
-        var react = iaInfo.Combinations.Single(c => c.Specialization == Specializations.React
+        var react = iaInfo.Combinations.Single(c => c.Specialization == Specialization.React
             && c.Numeric == SubGroup.CreateNumeric(1));
         Assert.True(iaInfo.IncludesLesson(spring, sharedLesson.Lesson));
         Assert.False(iaInfo.IncludesLesson(react, sharedLesson.Lesson));
@@ -198,7 +198,7 @@ public sealed class GroupCombinationTests
             {
                 OneOfGroupIds = [iaGroup],
                 SubGroups = [SubGroup.CreateNumeric(1)],
-                Specializations = [Specializations.React],
+                Specializations = [Specialization.React],
             },
         });
         Assert.Contains(sharedLesson.Id, iFiltered.Lessons);
@@ -210,7 +210,7 @@ public sealed class GroupCombinationTests
             {
                 OneOfGroupIds = [iGroup, iaGroup],
                 SubGroups = [SubGroup.CreateNumeric(1)],
-                Specializations = [Specializations.React],
+                Specializations = [Specialization.React],
             },
         });
         Assert.Contains(sharedLesson.Id, multiGroupFiltered.Lessons);
@@ -458,7 +458,7 @@ public sealed class GroupCombinationTests
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.CV]).ApplyTo(x =>
+        b.Set([Specialization.CV]).ApplyTo(x =>
         {
             x.Grade = group.Grade;
             x.Faculty = group.Faculty;
@@ -492,7 +492,7 @@ public sealed class GroupCombinationTests
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.CV]).ApplyTo(x =>
+        b.Set([Specialization.CV]).ApplyTo(x =>
         {
             x.Grade = new(group.Grade.Value + 1);
         });
@@ -523,7 +523,7 @@ public sealed class GroupCombinationTests
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.CV, Specializations.DJ]).ApplyTo(x =>
+        b.Set([Specialization.CV, Specialization.DJ]).ApplyTo(x =>
         {
             x.Grade = group.Grade;
             x.Faculty = group.Faculty;
@@ -541,7 +541,7 @@ public sealed class GroupCombinationTests
         Assert.Equal(["CV", "DJ"], info.PermittedSpecializations.Select(x => x.Value));
         Assert.Equal(["CV-I", "DJ-I"], info.Combinations.Select(NameOf));
 
-        var cvCombination = info.Combinations.Single(x => x.Specialization == Specializations.CV);
+        var cvCombination = info.Combinations.Single(x => x.Specialization == Specialization.CV);
         Assert.True(info.IncludesLesson(cvCombination, cvLesson.Lesson));
         Assert.False(info.IncludesLesson(cvCombination, reactLesson.Lesson));
         Assert.All(info.Combinations, c => Assert.False(info.IncludesLesson(c, reactLesson.Lesson)));
@@ -559,7 +559,7 @@ public sealed class GroupCombinationTests
         var group = AddAndReturnGroup(schedule, "IA2401");
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.CV]).ApplyTo(x =>
+        b.Set([Specialization.CV]).ApplyTo(x =>
         {
             x.Grade = group.Item.Grade;
             x.Faculty = group.Item.Faculty;
@@ -591,11 +591,11 @@ public sealed class GroupCombinationTests
     public void RegistrySelectorsOmitFieldsToMatchEveryValueAndUnionOverlaps()
     {
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.CV]).ApplyTo(x =>
+        b.Set([Specialization.CV]).ApplyTo(x =>
         {
             x.Grade = new(2);
         });
-        b.Set([Specializations.DJ]).ApplyTo(x =>
+        b.Set([Specialization.DJ]).ApplyTo(x =>
         {
             x.Faculty = new("IA");
         });
@@ -632,11 +632,11 @@ public sealed class GroupCombinationTests
             Language = Language.Ro,
         };
 
-        Assert.True(new[] { Specializations.CV, Specializations.DJ }
+        Assert.True(new[] { Specialization.CV, Specialization.DJ }
             .SequenceEqual(registry.PermittedFor(in both)));
-        Assert.True(new[] { Specializations.CV }
+        Assert.True(new[] { Specialization.CV }
             .SequenceEqual(registry.PermittedFor(in otherFaculty)));
-        Assert.True(new[] { Specializations.DJ }
+        Assert.True(new[] { Specialization.DJ }
             .SequenceEqual(registry.PermittedFor(in otherGrade)));
     }
 
@@ -656,7 +656,7 @@ public sealed class GroupCombinationTests
 
         var permitted = SpecializationRegistryHelper.CreateDefault().PermittedFor(in dual);
 
-        Assert.True(new[] { Specializations.AlgoritmicaGrafurilor, Specializations.Logica }
+        Assert.True(new[] { Specialization.AlgoritmicaGrafurilor, Specialization.Logica }
             .SequenceEqual(permitted));
     }
 
@@ -703,7 +703,7 @@ public sealed class GroupCombinationTests
             {
                 OneOfGroupIds = [group.Id],
                 SubGroups = [SubGroup.CreateNumeric(1)],
-                Specializations = [Specializations.CV],
+                Specializations = [Specialization.CV],
             },
         });
 
@@ -731,7 +731,7 @@ public sealed class GroupCombinationTests
         });
 
         var info = schedule.GetGroupPartitionInfo().Single().Value;
-        var combination = info.Combinations.Single(c => c.Specialization == Specializations.CV
+        var combination = info.Combinations.Single(c => c.Specialization == Specialization.CV
             && c.Proficiency == SpecialSubGroups.Beginners
             && c.Language == SpecialSubGroups.Ro
             && c.Numeric == SubGroup.CreateNumeric(1));

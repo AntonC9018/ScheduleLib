@@ -223,11 +223,13 @@ public static partial class SpecializationRegistryHelper
 {
     /// <summary>
     /// The initial registry. See docs/domain-model.md for the permitted sets.
+    /// String literals until Item 19 moves this to the config layer, where the
+    /// canonical extension accessors on Specialization are visible.
     /// </summary>
     public static SpecializationRegistry CreateDefault()
     {
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specializations.AlgoritmicaGrafurilor, Specializations.Logica])
+        b.Set([new Specialization("Algoritmica Grafurilor"), new Specialization("Logica")])
             .ApplyTo(x =>
             {
                 x.Grade = new(1);
@@ -235,7 +237,7 @@ public static partial class SpecializationRegistryHelper
                 x.AttendanceMode = AttendanceMode.Zi;
                 x.Qualification = QualificationType.Licenta;
             });
-        b.Set([Specializations.AlgoritmicaGrafurilor, Specializations.Logica])
+        b.Set([new Specialization("Algoritmica Grafurilor"), new Specialization("Logica")])
             .ApplyTo(x =>
             {
                 x.Grade = new(1);
@@ -243,7 +245,7 @@ public static partial class SpecializationRegistryHelper
                 x.AttendanceMode = AttendanceMode.Zi;
                 x.Qualification = QualificationType.Licenta;
             });
-        b.Set([Specializations.AlgoritmicaGrafurilor, Specializations.Logica])
+        b.Set([new Specialization("Algoritmica Grafurilor"), new Specialization("Logica")])
             .ApplyTo(x =>
             {
                 x.Grade = new(1);
@@ -251,7 +253,7 @@ public static partial class SpecializationRegistryHelper
                 x.AttendanceMode = AttendanceMode.Dual;
                 x.Qualification = QualificationType.Licenta;
             });
-        b.Set([Specializations.Spring])
+        b.Set([new Specialization("Spring")])
             .ApplyTo(x =>
             {
                 x.Grade = new(2);
@@ -260,14 +262,14 @@ public static partial class SpecializationRegistryHelper
                 x.Qualification = QualificationType.Licenta;
             });
         b.Set([
-                Specializations.CV,
-                Specializations.DJ,
-                Specializations.GA2D,
-                Specializations.GA3D,
-                Specializations.React,
-                Specializations.Spring,
-                Specializations.SSI,
-                Specializations.UI,
+                new Specialization("CV"),
+                new Specialization("DJ"),
+                new Specialization("GA2D"),
+                new Specialization("GA3D"),
+                new Specialization("React"),
+                new Specialization("Spring"),
+                new Specialization("SSI"),
+                new Specialization("UI"),
             ])
             .ApplyTo(x =>
             {
@@ -276,7 +278,7 @@ public static partial class SpecializationRegistryHelper
                 x.AttendanceMode = AttendanceMode.Zi;
                 x.Qualification = QualificationType.Licenta;
             });
-        b.Set([Specializations.DJ, Specializations.DezvoltareaAplicatiilor])
+        b.Set([new Specialization("DJ"), new Specialization("DezvoltareaAplicatiilor")])
             .ApplyTo(x =>
             {
                 x.Grade = new(3);

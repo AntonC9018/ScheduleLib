@@ -58,8 +58,8 @@ public sealed class GroupPdfTests
 
         AddLesson();
         AddLesson(subGroup: SubGroup.CreateNumeric(1));
-        AddLesson(specialization: Specializations.CV);
-        AddLesson(specialization: Specializations.DJ);
+        AddLesson(specialization: Specialization.CV);
+        AddLesson(specialization: Specialization.DJ);
         AddLesson(alternative: new Alternative("A1"));
         AddLesson(alternative: new Alternative("A2"));
 
@@ -150,7 +150,7 @@ public sealed class GroupPdfTests
         lesson.DayOfWeek(DayOfWeek.Monday);
         lesson.TimeSlot(TimeSlot.First);
         lesson.SubGroup(SubGroup.CreateNumeric(1));
-        lesson.Specialization(Specializations.CV);
+        lesson.Specialization(Specialization.CV);
         lesson.Alternative(new Alternative("A1"));
 
         var schedule = builder.Build();
@@ -219,8 +219,8 @@ public sealed class GroupPdfTests
         {
             AddLesson(subGroup: SubGroup.CreateNumeric(1));
             AddLesson(subGroup: SubGroup.CreateNumeric(2));
-            AddLesson(specialization: Specializations.CV);
-            AddLesson(specialization: Specializations.DJ);
+            AddLesson(specialization: Specialization.CV);
+            AddLesson(specialization: Specialization.DJ);
         }
 
         return builder.Build();

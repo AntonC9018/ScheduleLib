@@ -784,6 +784,8 @@ public readonly record struct SubGroup
 /// A restriction of a lesson to one specialization of study.
 /// <see cref="All"/> means the lesson carries no specialization restriction.
 /// Backed by a string, because schedule sources may add new names over time.
+/// Known values live as extension properties on this type in ScheduleDefaults;
+/// only the unset marker stays here because Core logic depends on it.
 /// </summary>
 public readonly record struct Specialization
 {
@@ -796,20 +798,6 @@ public readonly record struct Specialization
     }
 
     public static Specialization All => new(null!);
-    // Keep the known values available on the value type as well as through
-    // Specializations for call sites that want the domain name.
-    public static Specialization AG => Specializations.AG;
-    public static Specialization AlgoritmicaGrafurilor => Specializations.AlgoritmicaGrafurilor;
-    public static Specialization CV => Specializations.CV;
-    public static Specialization DJ => Specializations.DJ;
-    public static Specialization DezvoltareaAplicatiilor => Specializations.DezvoltareaAplicatiilor;
-    public static Specialization GA2D => Specializations.GA2D;
-    public static Specialization GA3D => Specializations.GA3D;
-    public static Specialization Logica => Specializations.Logica;
-    public static Specialization React => Specializations.React;
-    public static Specialization Spring => Specializations.Spring;
-    public static Specialization SSI => Specializations.SSI;
-    public static Specialization UI => Specializations.UI;
 }
 
 /// <summary>
@@ -831,36 +819,29 @@ public readonly record struct Alternative
     public static Alternative All => new(null!);
 }
 
+/// <summary>
+/// Thin forwards over the built-in specialization values: the canonical
+/// known-value accessors are extension properties on <see cref="Specialization"/>
+/// in ScheduleDefaults, but prefix matching and classification run inside Core
+/// (and OnlineRegistry cannot reference ScheduleDefaults back), so the
+/// aggregate lookup surface stays here.
+/// </summary>
 public static class Specializations
 {
     public static readonly ImmutableArray<Specialization> AllKnown = [
-        AG,
-        AlgoritmicaGrafurilor,
-        CV,
-        DezvoltareaAplicatiilor,
-        DJ,
-        GA2D,
-        GA3D,
-        Logica,
-        React,
-        Spring,
-        SSI,
-        UI,
+        new("AG"),
+        new("Algoritmica Grafurilor"),
+        new("CV"),
+        new("DezvoltareaAplicatiilor"),
+        new("DJ"),
+        new("GA2D"),
+        new("GA3D"),
+        new("Logica"),
+        new("React"),
+        new("Spring"),
+        new("SSI"),
+        new("UI"),
     ];
-
-    // ReSharper disable once InconsistentNaming
-    public static Specialization AG => new("AG");
-    public static Specialization AlgoritmicaGrafurilor => new("Algoritmica Grafurilor");
-    public static Specialization CV => new("CV");
-    public static Specialization DezvoltareaAplicatiilor => new("DezvoltareaAplicatiilor");
-    public static Specialization DJ => new("DJ");
-    public static Specialization GA2D => new("GA2D");
-    public static Specialization GA3D => new("GA3D");
-    public static Specialization Logica => new("Logica");
-    public static Specialization React => new("React");
-    public static Specialization Spring => new("Spring");
-    public static Specialization SSI => new("SSI");
-    public static Specialization UI => new("UI");
 
     public static bool TryFromValue(string? value, out Specialization specialization)
     {

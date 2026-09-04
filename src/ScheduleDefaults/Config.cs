@@ -56,13 +56,13 @@ public static class Config
             x.Faculty = new("IA");
             x.AttendanceMode = AttendanceMode.Zi;
             x.Qualification = QualificationType.Licenta;
-            x.Specialization("Realitate virtuală și augmentată", Specializations.DJ);
-            x.Specialization("Design audio și efecte vizuale", Specializations.DJ);
-            x.Specialization("Fotogrametrie și scanare 3D", Specializations.DJ);
-            x.Specialization("Server-side", Specializations.DezvoltareaAplicatiilor);
-            x.Specialization("Dezvoltarea aplicațiilor mobile", Specializations.DezvoltareaAplicatiilor);
-            x.Specialization("Securitatea aplicațiilor enterprise", Specializations.DezvoltareaAplicatiilor);
-            x.Specialization("Securitatea aplicațiilor web și mobile", Specializations.DezvoltareaAplicatiilor);
+            x.Specialization("Realitate virtuală și augmentată", Specialization.DJ);
+            x.Specialization("Design audio și efecte vizuale", Specialization.DJ);
+            x.Specialization("Fotogrametrie și scanare 3D", Specialization.DJ);
+            x.Specialization("Server-side", Specialization.DezvoltareaAplicatiilor);
+            x.Specialization("Dezvoltarea aplicațiilor mobile", Specialization.DezvoltareaAplicatiilor);
+            x.Specialization("Securitatea aplicațiilor enterprise", Specialization.DezvoltareaAplicatiilor);
+            x.Specialization("Securitatea aplicațiilor web și mobile", Specialization.DezvoltareaAplicatiilor);
         });
         builder.Scope(x =>
         {
@@ -71,8 +71,8 @@ public static class Config
             x.Faculty = new("IA");
             x.AttendanceMode = AttendanceMode.Zi;
             x.Qualification = QualificationType.Licenta;
-            x.Specialization("Grafică și animație 2D", Specializations.GA2D);
-            x.Specialization("Designul UI/UX", Specializations.UI);
+            x.Specialization("Grafică și animație 2D", Specialization.GA2D);
+            x.Specialization("Designul UI/UX", Specialization.UI);
         });
         // Elective stacks students choose between. One scope covers every
         // faculty and attendance mode of the year because the joint elective
@@ -278,9 +278,9 @@ public static class Config
         });
 
         var subgroup = remap.SubGroupNameRemappings;
-        subgroup.Add(new("AG"), Specializations.AlgoritmicaGrafurilor);
-        subgroup.Add(new("GR"), Specializations.GA2D);
-        subgroup.Add(new("Node"), Specializations.UI);
+        subgroup.Add(new("AG"), Specialization.AlgoritmicaGrafurilor);
+        subgroup.Add(new("GR"), Specialization.GA2D);
+        subgroup.Add(new("Node"), Specialization.UI);
 
         for (int i = 1; i <= 10; i++)
         {
