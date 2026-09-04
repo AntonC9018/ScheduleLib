@@ -943,6 +943,15 @@ public static class SpecialSubGroups
 
         foreach (var candidate in PrefixCandidates)
         {
+            if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(candidate.Value!, value))
+            {
+                subGroup = candidate;
+                return true;
+            }
+        }
+
+        foreach (var candidate in PrefixCandidates)
+        {
             if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(candidate.Value!, value))
             {
                 subGroup = candidate;

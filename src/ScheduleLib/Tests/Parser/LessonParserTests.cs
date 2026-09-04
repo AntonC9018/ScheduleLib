@@ -1144,6 +1144,13 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public void SpecialSubGroupPrefixPrefersExactLegacyMatchOverLongerSpecialization()
+    {
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("GA", out var ga));
+        Assert.Equal(new SubGroup("GA"), ga);
+    }
+
+    [Fact]
     public void DotInTimeAllowed()
     {
         var lessons = ParseLessons(["17.30 Sisteme operare (exam)", "M. Butnaru, 218/4a"]);
