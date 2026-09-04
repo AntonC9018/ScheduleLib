@@ -17,7 +17,7 @@ public static partial class ScheduleBuilderHelper
     /// time, room and teachers are copied to every part.
     /// </para>
     /// </summary>
-    public static void AssignImplicitSplits(this ScheduleBuilder s)
+    private static void AssignImplicitSplits(this ScheduleBuilder s)
     {
         if (s.ImplicitSplitConfig is not { } config
             || config.Scopes.Count == 0)

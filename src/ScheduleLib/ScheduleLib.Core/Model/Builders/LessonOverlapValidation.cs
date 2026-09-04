@@ -14,7 +14,7 @@ public static partial class ScheduleBuilderHelper
     /// are tolerated; every other offending pair ends up in a single error.
     /// </para>
     /// </summary>
-    public static void ValidateLessonOverlaps(this ScheduleBuilder s)
+    private static void ValidateLessonOverlaps(this ScheduleBuilder s)
     {
         if (s.OverlapValidationConfig is not { } config)
         {

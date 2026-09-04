@@ -69,7 +69,7 @@ public static class GroupBuilderHelper
         }
     }
 
-    public static void ValidateGroups(ScheduleBuilder s)
+    internal static void ValidateGroups(ScheduleBuilder s)
     {
         foreach (ref var group in CollectionsMarshal.AsSpan(s.Groups.List))
         {

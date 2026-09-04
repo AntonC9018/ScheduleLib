@@ -387,7 +387,7 @@ public static class LessonBuilderHelper
         public void InitLookup() => b.UpdateLookup(prevCourseId: null);
     }
 
-    public static void ValidateLessons(ScheduleBuilder s)
+    internal static void ValidateLessons(ScheduleBuilder s)
     {
         var groupIdValidationSet = new HashSet<GroupId>();
 

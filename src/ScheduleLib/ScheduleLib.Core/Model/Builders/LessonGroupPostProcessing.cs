@@ -9,7 +9,7 @@ public static partial class ScheduleBuilderHelper
     /// Raw sources and remapped aliases both store their label in the subgroup field during parsing;
     /// only here, once the lesson groups are known, does the value get classified.
     /// </summary>
-    public static void ClassifySubGroups(this ScheduleBuilder s)
+    internal static void ClassifySubGroups(this ScheduleBuilder s)
     {
         var remappings = s.Remappings.SubGroupNameRemappings;
         foreach (var lesson in s.WeeklyLessons.List)
@@ -51,7 +51,7 @@ public static partial class ScheduleBuilderHelper
     /// Resolves a raw label using the built-in values and the configured registry.
     /// The registry supports future values without making them enum members.
     /// </summary>
-    public static bool TryGetSpecialization(
+    internal static bool TryGetSpecialization(
         this ScheduleBuilder s,
         SubGroup label,
         out Specialization specialization)
@@ -75,7 +75,7 @@ public static partial class ScheduleBuilderHelper
     /// <see cref="SpecialSubGroups.NonBeginners"/>. Already normalized data is left alone, so
     /// building over deserialized schedules is idempotent.
     /// </summary>
-    public static void NormalizeLanguageProficiency(this ScheduleBuilder s)
+    internal static void NormalizeLanguageProficiency(this ScheduleBuilder s)
     {
         var beginnerSplits = new HashSet<(GroupId Group, CourseId Course)>();
         var normalizedSplits = new HashSet<(GroupId Group, CourseId Course)>();
@@ -208,7 +208,7 @@ public static partial class ScheduleBuilderHelper
     /// Observed numeric subgroups must form a contiguous prefix starting at I:
     /// if X occurs, every value from I through X must occur somewhere for the group.
     /// </summary>
-    public static void CheckNumericSubGroupsAreContiguous(this ScheduleBuilder s)
+    private static void CheckNumericSubGroupsAreContiguous(this ScheduleBuilder s)
     {
         var observed = new Dictionary<GroupId, HashSet<SubGroup>>();
         CollectObservedSubGroups(s, observed);
@@ -239,7 +239,7 @@ public static partial class ScheduleBuilderHelper
     /// <summary>
     /// A group has either zero observed language subgroup values or at least two.
     /// </summary>
-    public static void CheckLanguageSubGroupCount(this ScheduleBuilder s)
+    private static void CheckLanguageSubGroupCount(this ScheduleBuilder s)
     {
         var observed = new Dictionary<GroupId, HashSet<SubGroup>>();
         CollectObservedSubGroups(s, observed);

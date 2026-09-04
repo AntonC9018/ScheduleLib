@@ -67,7 +67,7 @@ public static partial class ScheduleBuilderHelper
         return ret;
     }
 
-    public static void Preprocess(this ScheduleBuilder b)
+    private static void Preprocess(this ScheduleBuilder b)
     {
         if (b.LookupModule is not { } lookup)
         {
@@ -89,7 +89,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    public static void Validate(this ScheduleBuilder s)
+    private static void Validate(this ScheduleBuilder s)
     {
         GroupBuilderHelper.ValidateGroups(s);
         LessonBuilderHelper.ValidateLessons(s);
@@ -97,7 +97,7 @@ public static partial class ScheduleBuilderHelper
         PeriodBuilderHelper.ValidatePeriods(s);
     }
 
-    public static void SanityChecks(this ScheduleBuilder s)
+    internal static void SanityChecks(this ScheduleBuilder s)
     {
         if (s.ValidationSettings.SubGroup == SubGroupValidationMode.None)
         {
@@ -160,7 +160,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    public static Schedule CreateDefaultModel(ScheduleBuilder s)
+    private static Schedule CreateDefaultModel(ScheduleBuilder s)
     {
         LessonBase BuildBase(in LessonBuilderModelDataBase x)
         {
@@ -293,7 +293,7 @@ public static partial class ScheduleBuilderHelper
 
     // Obviously pretty bad code.
     // Gonna need to introduce some more abstraction later.
-    public static void UpdateLookupAfterCourseAdded(ScheduleBuilder s)
+    internal static void UpdateLookupAfterCourseAdded(ScheduleBuilder s)
     {
         if (s.LookupModule is { } lookupModule)
         {
@@ -348,7 +348,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
+    internal static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
     {
         if (subGroup == SubGroup.All)
         {

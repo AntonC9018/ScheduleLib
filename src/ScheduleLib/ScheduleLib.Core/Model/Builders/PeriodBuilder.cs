@@ -35,7 +35,7 @@ public static class PeriodBuilderHelper
         };
     }
 
-    public static void ValidatePeriods(ScheduleBuilder s)
+    internal static void ValidatePeriods(ScheduleBuilder s)
     {
         foreach (var period in s.Periods.List)
         {

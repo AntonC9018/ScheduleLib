@@ -389,7 +389,7 @@ public static class TeacherBuilderHelper
         return ret;
     }
 
-    public static void ValidateTeachers(ScheduleBuilder s)
+    internal static void ValidateTeachers(ScheduleBuilder s)
     {
         foreach (ref var teacher in CollectionsMarshal.AsSpan(s.Teachers.List))
         {
@@ -719,7 +719,7 @@ public static class TeacherNameHelper
         }
     }
 
-    public static void ValidateInitialsCompatibility(RequiredFirstNamePart requiredFirstName)
+    private static void ValidateInitialsCompatibility(RequiredFirstNamePart requiredFirstName)
     {
         bool isOk = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
             requiredFirstName.Full.AsSpan(),
