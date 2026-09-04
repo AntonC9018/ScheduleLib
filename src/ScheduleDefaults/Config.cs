@@ -358,23 +358,47 @@ public static class Config
         return s.Build();
     }
 
-    public static StudyWeek[] StudyWeeks
-    {
-        get
-        {
-            static IEnumerable<StudyWeek> Weeks(DateOnly firstMonday, int count, bool firstIsOdd) =>
-                Enumerable.Range(0, count)
-                    .Select(i => new StudyWeek(
-                        monday: firstMonday.AddDays(i * 7),
-                        isOddWeek: i % 2 == 0 ? firstIsOdd : !firstIsOdd));
-
-            return
-            [
-                .. Weeks(new(2026, 8, 31), count: 15, firstIsOdd: false),
-                .. Weeks(new(2027, 2, 1), count: 13, firstIsOdd: true),
-            ];
-        }
-    }
+    /// <summary>
+    /// Teaching weeks of the 2026-2027 academic year, verified against the official USM
+    /// "Calendar academic Licenta 2026-2027" PDF (Licenta zi): semestrul I 01.09.2026-13.12.2026
+    /// (15 saptamani), semestrul II 01.02.2027-01.05.2027 (13 saptamani). Each entry names its
+    /// Monday explicitly instead of generating dates in a loop. Parity follows the continuous
+    /// academic-year numbering (fall week 1 is odd, so spring week 1 after the 15-week fall
+    /// term is even); the PDF fixes only the week counts and dates, not the parity.
+    /// </summary>
+    public static StudyWeek[] StudyWeeks =>
+    [
+        // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
+        new(monday: new(2026, 8, 31), isOddWeek: true),
+        new(monday: new(2026, 9, 7), isOddWeek: false),
+        new(monday: new(2026, 9, 14), isOddWeek: true),
+        new(monday: new(2026, 9, 21), isOddWeek: false),
+        new(monday: new(2026, 9, 28), isOddWeek: true),
+        new(monday: new(2026, 10, 5), isOddWeek: false),
+        new(monday: new(2026, 10, 12), isOddWeek: true),
+        new(monday: new(2026, 10, 19), isOddWeek: false),
+        new(monday: new(2026, 10, 26), isOddWeek: true),
+        new(monday: new(2026, 11, 2), isOddWeek: false),
+        new(monday: new(2026, 11, 9), isOddWeek: true),
+        new(monday: new(2026, 11, 16), isOddWeek: false),
+        new(monday: new(2026, 11, 23), isOddWeek: true),
+        new(monday: new(2026, 11, 30), isOddWeek: false),
+        new(monday: new(2026, 12, 7), isOddWeek: true),
+        // Semestrul II: 13 weeks, numbering continues from the fall term.
+        new(monday: new(2027, 2, 1), isOddWeek: false),
+        new(monday: new(2027, 2, 8), isOddWeek: true),
+        new(monday: new(2027, 2, 15), isOddWeek: false),
+        new(monday: new(2027, 2, 22), isOddWeek: true),
+        new(monday: new(2027, 3, 1), isOddWeek: false),
+        new(monday: new(2027, 3, 8), isOddWeek: true),
+        new(monday: new(2027, 3, 15), isOddWeek: false),
+        new(monday: new(2027, 3, 22), isOddWeek: true),
+        new(monday: new(2027, 3, 29), isOddWeek: false),
+        new(monday: new(2027, 4, 5), isOddWeek: true),
+        new(monday: new(2027, 4, 12), isOddWeek: false),
+        new(monday: new(2027, 4, 19), isOddWeek: true),
+        new(monday: new(2027, 4, 26), isOddWeek: false),
+    ];
 
     public static HolidayPeriod[] HolidayPeriods
     {
