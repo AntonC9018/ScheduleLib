@@ -56,23 +56,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                     sb.Append(".pdf");
                     var fileName = sb.ToStringAndClear();
 
-                    var selectedSubGroups = new List<SubGroup>
-                    {
-                        SubGroup.All,
-                    };
-                    selectedSubGroups.AddRange(combination.SelectedSubGroups());
-
-                    var combinationFilter = new GroupFilter
-                    {
-                        OneOfGroupIds = [g.Id],
-                        SubGroups = [.. selectedSubGroups],
-                        Specializations = combination.Specialization is { } spec
-                            ? [spec]
-                            : [],
-                        Alternatives = combination.Alternative is { } alternative
-                            ? [alternative]
-                            : [],
-                    };
+                    var combinationFilter = combination.ToGroupFilter(g.Id);
                     GenerateGroupPdf(g, fileName, combinationFilter);
                 }
             }

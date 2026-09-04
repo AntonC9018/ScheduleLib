@@ -35,6 +35,35 @@ public readonly record struct GroupCombination(
     }
 
     /// <summary>
+    /// Builds the <see cref="GroupFilter"/> the combination PDFs use for this
+    /// combination. A null selection means the partition is inactive for the
+    /// group, so no restriction is applied: this keeps the filter consistent
+    /// with <see cref="GroupSplitInfo.IncludesLesson"/>, where an inactive
+    /// partition (including a registry-deactivated one) behaves as shared.
+    /// Passing an empty array instead would wrongly drop those lessons,
+    /// because <c>FilteredSchedule</c> counts raw observed values.
+    /// </summary>
+    public GroupFilter ToGroupFilter(GroupId groupId)
+    {
+        var selectedSubGroups = new List<SubGroup>
+        {
+            SubGroup.All,
+        };
+        selectedSubGroups.AddRange(SelectedSubGroups());
+        return new GroupFilter
+        {
+            OneOfGroupIds = [groupId],
+            SubGroups = [.. selectedSubGroups],
+            Specializations = Specialization is { } spec
+                ? [spec]
+                : null,
+            Alternatives = Alternative is { } alternative
+                ? [alternative]
+                : null,
+        };
+    }
+
+    /// <summary>
     /// Appends the selected values in the canonical name order:
     /// alternative-specialization-proficiency-language-numeric.
     /// </summary>

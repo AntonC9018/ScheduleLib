@@ -548,6 +548,46 @@ public sealed class GroupCombinationTests
     }
 
     [Fact]
+    public void RegistryDeactivatedCombinationFilterIncludesAllSpecializationLessons()
+    {
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I");
+            AddLesson(s, "IA2401", specialization: "CV");
+            AddLesson(s, "IA2401", specialization: "DJ");
+        });
+        var group = AddAndReturnGroup(schedule, "IA2401");
+
+        var b = new SpecializationRegistryBuilder();
+        b.Set([Specializations.CV]).ApplyTo(x =>
+        {
+            x.Grade = group.Item.Grade;
+            x.Faculty = group.Item.Faculty;
+            x.AttendanceMode = group.Item.AttendanceMode;
+            x.Qualification = group.Item.QualificationType;
+        });
+
+        var info = schedule.GetGroupSplitInfo(b.Build()).Single().Value;
+        Assert.False(info.SpecializationActive);
+        var combination = Assert.Single(info.Combinations);
+
+        // The combination PDF path must use IncludesLesson semantics: the
+        // partition is inactive, so the filter carries no specialization
+        // restriction and both the permitted and the filtered-out values
+        // behave as shared. (An empty array here would drop both lessons,
+        // because FilteredSchedule counts raw observed values.)
+        var filtered = schedule.Filter(new()
+        {
+            GroupFilter = combination.ToGroupFilter(group.Id),
+        });
+
+        var cvLesson = GetLessonBySpecialization(schedule, "CV");
+        var djLesson = GetLessonBySpecialization(schedule, "DJ");
+        Assert.Contains(cvLesson.Id, filtered.Lessons);
+        Assert.Contains(djLesson.Id, filtered.Lessons);
+    }
+
+    [Fact]
     public void RegistrySelectorsOmitFieldsToMatchEveryValueAndUnionOverlaps()
     {
         var b = new SpecializationRegistryBuilder();
