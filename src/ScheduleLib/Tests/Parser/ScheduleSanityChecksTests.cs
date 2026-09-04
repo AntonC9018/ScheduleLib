@@ -306,7 +306,7 @@ public sealed class ScheduleSanityChecksTests
             TeacherNames = [],
             RoomName = default,
             GroupName = groupName.AsMemory(),
-            SubGroup = subGroup.AsMemory(),
+            PartitionHint = subGroup.AsMemory(),
         };
     }
 }

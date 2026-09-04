@@ -144,10 +144,10 @@ public sealed class DocParseContext
             }
         }
 
-        if (!parsedLesson.SubGroup.IsEmpty)
+        if (!parsedLesson.PartitionHint.IsEmpty)
         {
-            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.SubGroup.Span);
-            var remapped = Schedule.RemapSubGroup(new(parsedLesson.SubGroup.ToString()));
+            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
+            var remapped = Schedule.RemapSubGroup(new(parsedLesson.PartitionHint.ToString()));
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)

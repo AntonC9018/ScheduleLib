@@ -121,12 +121,7 @@ public struct ParsedLesson()
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
 
-    /// <summary>
-    /// The raw, unclassified subgroup-like label from the source.
-    /// Empty means no label. The schedule-aware parser classifies it
-    /// into a subgroup or a specialization once the groups are known.
-    /// </summary>
-    public ReadOnlyMemory<char> SubGroup;
+    public ReadOnlyMemory<char> PartitionHint;
 }
 
 internal struct ParsingStateStack
@@ -397,7 +392,7 @@ public static class LessonParsingHelper
                     StartTime = state.CommonLesson.StartTime,
                     LessonType = v.General.LessonType,
                     Parity = v.General.Parity,
-                    SubGroup = subGroup,
+                    PartitionHint = subGroup,
                     GroupName = v.General.GroupName,
                     TeacherNames = l,
                     RoomName = v.Specific.RoomName,
