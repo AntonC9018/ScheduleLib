@@ -108,7 +108,8 @@ public readonly record struct ScheduleObjectEnumerable<T, TAccessor>
         using var e = GetEnumerator();
         if (!e.MoveNext())
         {
-            throw new InvalidOperationException();
+            Debug.Assert(false, "First must only be called on a non-empty schedule collection.");
+            throw new InvalidOperationException("Sequence contains no elements.");
         }
         return e.Current;
     }
