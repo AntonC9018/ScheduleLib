@@ -35,6 +35,15 @@ public static partial class ScheduleBuilderHelper
             return;
         }
         StudyYear? studyYear = s.GroupParseContext?.CurrentStudyYear;
+        if (studyYear is null && config.Scopes.Any(static scope => scope.StudyYear is not null))
+        {
+            throw new MissingImplicitSplitStudyYearException(
+                "The implicit split configuration pins scopes to a study year, but the "
+                + "schedule builder has no group parse context. A null study year matches "
+                + "no year-pinned scope, so building would silently skip those assignments; "
+                + "set ScheduleBuilder.GroupParseContext or remove the StudyYear pins.");
+        }
+        // A null study year matches only year-less scopes (see ImplicitSplitScope.Matches).
 
         // Splits append new lessons, so the loops cover only the original ones:
         // the counts are captured before any split runs.

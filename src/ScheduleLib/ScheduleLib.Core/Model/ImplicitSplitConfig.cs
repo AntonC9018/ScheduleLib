@@ -98,6 +98,10 @@ public sealed class ImplicitSplitScope
     /// </summary>
     public IReadOnlyDictionary<string, Alternative> AlternativeCourses { get; }
 
+    /// <summary>
+    /// A null <paramref name="currentStudyYear"/> matches no year-pinned scope;
+    /// only scopes with a null <see cref="StudyYear"/> can match.
+    /// </summary>
     public bool Matches(
         StudyYear? currentStudyYear,
         Grade grade,

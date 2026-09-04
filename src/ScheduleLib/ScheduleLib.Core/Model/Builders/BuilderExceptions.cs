@@ -65,6 +65,18 @@ public sealed class InvalidSubGroupPartitionException : ScheduleBuildException
 }
 
 /// <summary>
+/// The implicit split configuration pins scopes to a study year, but the build
+/// carries no group parse context to resolve the current study year against.
+/// </summary>
+public sealed class MissingImplicitSplitStudyYearException : ScheduleBuildException
+{
+    public MissingImplicitSplitStudyYearException(string message)
+        : base(message)
+    {
+    }
+}
+
+/// <summary>
 /// Two weekly lessons occupy the same period, day and time slot for a shared
 /// group without being separated on any split dimension.
 /// </summary>
