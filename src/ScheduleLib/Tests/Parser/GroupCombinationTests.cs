@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
@@ -350,6 +352,62 @@ public sealed class GroupCombinationTests
 
         var lesson = Assert.Single(rebuilt.EnumerateAllLessons());
         Assert.Equal(new Alternative("Psihologie"), lesson.Lesson.Alternative);
+    }
+
+    [Fact]
+    public async Task SerializationUsesFlatSiblingFieldsWithNullForAll()
+    {
+        // Spec-6: lessons serialize SubGroup/Specialization/Alternative as flat
+        // sibling fields with null = All; GroupSplitKey is never serialized.
+        // Committed caches predate Alternative and omit the field, which
+        // deserializes as All (see LessonBaseModel.Alternative comment).
+        // The AllThingsWork Verify snapshot was intentionally removed in
+        // 05cfdc8/c3f5a3a (a machine-specific path baked into the expectation
+        // made it brittle); it is not restored here.
+        var schedule = Build(s =>
+        {
+            AddLesson(s, "IA2401", subGroup: "I", specialization: "GA2D", alternative: "Psihologie", courseName: "Elective");
+            AddLesson(s, "IA2401", courseName: "Shared");
+        });
+
+        string json;
+        using (var stream = new MemoryStream())
+        {
+            await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+            json = Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        Assert.DoesNotContain("GroupSplitKey", json, StringComparison.Ordinal);
+
+        using var doc = JsonDocument.Parse(json);
+        var lessons = doc.RootElement.GetProperty("RegularLessons");
+        Assert.Equal(2, lessons.GetArrayLength());
+
+        var elective = lessons.EnumerateArray()
+            .Single(e => e.GetProperty("Alternative").ValueKind == JsonValueKind.String);
+        Assert.Equal("I", elective.GetProperty("SubGroup").GetString());
+        Assert.Equal("GA2D", elective.GetProperty("Specialization").GetString());
+        Assert.Equal("Psihologie", elective.GetProperty("Alternative").GetString());
+
+        var shared = lessons.EnumerateArray()
+            .Single(e => e.GetProperty("Alternative").ValueKind == JsonValueKind.Null);
+        Assert.Equal(JsonValueKind.Null, shared.GetProperty("SubGroup").ValueKind);
+        Assert.Equal(JsonValueKind.Null, shared.GetProperty("Specialization").ValueKind);
+
+        // Legacy caches omit Alternative entirely; they still load as All.
+        var node = JsonNode.Parse(json)!;
+        foreach (var lessonNode in node["RegularLessons"]!.AsArray())
+        {
+            lessonNode!.AsObject().Remove("Alternative");
+        }
+        using var legacyStream = new MemoryStream(Encoding.UTF8.GetBytes(node.ToJsonString()));
+        var legacyModel = await ScheduleSerializer.Deserialize(legacyStream, CancellationToken.None);
+        var legacyBuilder = CreateBuilder();
+        ScheduleSerializer.AddToBuilder(legacyBuilder, legacyModel);
+        var rebuiltLegacy = legacyBuilder.Build();
+        Assert.All(
+            rebuiltLegacy.EnumerateAllLessons(),
+            l => Assert.Equal(Alternative.All, l.Lesson.Alternative));
     }
 
     [Fact]
