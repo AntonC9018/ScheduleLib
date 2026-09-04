@@ -102,8 +102,10 @@ public sealed class GroupSplitInfo
     // Two or more registry-permitted observed specializations activate the
     // specialization partition. A null registry permits every observed value;
     // otherwise filtered-out values behave as shared for the group.
-    public required ImmutableArray<Specialization> ObservedSpecializations { get; init; }
-    public bool SpecializationActive => ObservedSpecializations.Length >= 2;
+    // This stores the permitted subset only, not the raw observed set, so it
+    // diverges from FilteredSchedule raw observed counts by design.
+    public required ImmutableArray<Specialization> PermittedSpecializations { get; init; }
+    public bool SpecializationActive => PermittedSpecializations.Length >= 2;
     // Same activation rule for the alternative partition.
     public required ImmutableArray<Alternative> ObservedAlternatives { get; init; }
     public bool AlternativeActive => ObservedAlternatives.Length >= 2;
@@ -298,7 +300,7 @@ public sealed class GroupSplitInfoByGroup : Dictionary<GroupId, GroupSplitInfo>
 
             ret[groupId] = new()
             {
-                ObservedSpecializations = [.. permitted.OrderBy(x => x.Value, StringComparer.Ordinal)],
+                PermittedSpecializations = [.. permitted.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 ObservedAlternatives = [.. observedAlts.OrderBy(x => x.Value, StringComparer.Ordinal)],
                 Combinations = combinations.ToImmutable(),
             };

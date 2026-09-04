@@ -129,6 +129,53 @@ public sealed class GroupPdfTests
         Assert.True(seenAlternative);
     }
 
+    [Fact]
+    public void LessonPrefixPrintsAlternativeThenSpecializationThenSubgroup()
+    {
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2025),
+            }),
+        };
+        builder.EnableLookupModule();
+
+        var group = builder.Group("IA2401").Id;
+        var course = builder.Course("Course");
+
+        var lesson = builder.RegularLesson();
+        lesson.Group(group);
+        lesson.Course(course);
+        lesson.DayOfWeek(DayOfWeek.Monday);
+        lesson.TimeSlot(TimeSlot.First);
+        lesson.SubGroup(SubGroup.CreateNumeric(1));
+        lesson.Specialization(Specializations.CV);
+        lesson.Alternative(new Alternative("A1"));
+
+        var schedule = builder.Build();
+        var accessor = schedule.EnumerateAllLessons().Single();
+
+        var services = new LessonTextDisplayHandler.Services(
+            new SubGroupNumberDisplayHandler(),
+            new ParityDisplayHandler(),
+            new LessonTypeDisplayHandler());
+        var handler = new LessonTextDisplayHandler(services, new());
+
+        var text = new RecordingRichText();
+        handler.Handle(new()
+        {
+            TextDescriptor = text,
+            Schedule = schedule,
+            LessonTimeConfig = LessonTimeConfig.CreateDefault(),
+            Lesson = accessor,
+            ColumnWidth = 100,
+            StringBuilder = new StringBuilder(),
+        });
+
+        Assert.Equal("A1, CV, I: ", text.BoldPrefix);
+    }
+
     private sealed class RecordingRichText : IRichText
     {
         public string BoldPrefix = "";

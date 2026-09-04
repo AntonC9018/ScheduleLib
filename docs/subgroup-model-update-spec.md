@@ -238,10 +238,11 @@ Update every consumer that assumes `SubGroup` alone describes lesson targeting:
 - online-registry search, attendance, matching, and command models
 - lesson diffing, lookup, and builder helper code
 
-When both values are displayed, print specialization first:
+Print alternative first, then specialization, then subgroup:
 
 ```text
 GA2D, I: Grafică și animație 2D
+A1, GA2D, I: Grafică și animație 2D
 ```
 
 Use the computed `GroupSplitKey` wherever equality or grouping must include both fields.

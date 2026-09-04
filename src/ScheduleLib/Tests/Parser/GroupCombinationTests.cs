@@ -538,7 +538,7 @@ public sealed class GroupCombinationTests
         // Two permitted values keep the partition active on the permitted
         // subset only; the filtered-out value has no combination.
         Assert.True(info.SpecializationActive);
-        Assert.Equal(["CV", "DJ"], info.ObservedSpecializations.Select(x => x.Value));
+        Assert.Equal(["CV", "DJ"], info.PermittedSpecializations.Select(x => x.Value));
         Assert.Equal(["CV-I", "DJ-I"], info.Combinations.Select(NameOf));
 
         var cvCombination = info.Combinations.Single(x => x.Specialization == Specializations.CV);
@@ -675,7 +675,7 @@ public sealed class GroupCombinationTests
         Assert.True(info.SpecializationActive);
         Assert.Equal(
             ["Algoritmica Grafurilor", "GA2D", "UI"],
-            info.ObservedSpecializations
+            info.PermittedSpecializations
                 .Select(x => x.Value)
                 .OrderBy(x => x, StringComparer.Ordinal));
         Assert.Equal(
