@@ -17,6 +17,7 @@ var appExecutionContext = new AppTasksExecutionContext
         AppTask.UploadDocsToDrive,
         // AppTask.AllTeachersExcel,
         // AppTask.PerGroupAndPerTeacherPdfs,
+        // AppTask.GenerateIcsCalendars,
         // AppTask.FreeRooms,
         // AppTask.CreateLessonsInRegistry,
         // AppTask.TableOfAllLabLessons,

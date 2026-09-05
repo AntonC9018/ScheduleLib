@@ -258,6 +258,7 @@ public static class Registration
             services.AddScoped<GenerateAllTeachersExcelTaskHandler>();
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
+            services.AddScoped<GenerateIcsCalendarsTaskHandler>();
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             {
