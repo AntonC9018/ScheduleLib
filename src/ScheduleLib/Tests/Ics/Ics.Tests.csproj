@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\..\ScheduleLib.Generator.Ics\ScheduleLib.Generator.Ics.csproj" />
+    </ItemGroup>
+</Project>
