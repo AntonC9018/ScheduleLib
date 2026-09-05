@@ -88,33 +88,24 @@ public readonly record struct Event
     {
         private readonly Event _item;
         public DateOnly Current { get; private set; }
-        private int _count;
+        private int _index;
 
         public Enumerator(Event item)
         {
             _item = item;
-            _count = -1;
-            Current = DateOnly.MinValue;
+            _index = 0;
+            Current = default;
         }
 
         public bool MoveNext()
         {
-            if (_count == 0)
+            if (_index >= _item.Count)
             {
-                Current = _item.First;
-                _count = 1;
-                return true;
+                return false;
             }
-            if (_count <= _item.Count)
-            {
-                var c = Current;
-                c = c.AddDays(_item.DayInterval);
-                Debug.Assert(c < _item.Last);
-                Current = c;
-                _count++;
-                return true;
-            }
-            return false;
+            Current = _item.First.AddDays(_item.DayInterval * _index);
+            _index++;
+            return true;
         }
 
         object IEnumerator.Current => Current;
