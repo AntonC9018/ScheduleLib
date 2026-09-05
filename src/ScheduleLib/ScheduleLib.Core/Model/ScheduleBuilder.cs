@@ -78,6 +78,7 @@ public static partial class ScheduleBuilderHelper
         s.Preprocess();
         s.Validate();
         s.ClassifySubGroups();
+        s.DropEngSubGroupFromEnglishGroups();
         s.AssignImplicitSplits();
         s.NormalizeLanguageProficiency();
         s.ValidateLessonOverlaps();

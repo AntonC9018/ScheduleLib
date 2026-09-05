@@ -300,6 +300,46 @@ public sealed class ScheduleSanityChecksTests
         schedule.SanityChecks();
     }
 
+    [Fact]
+    public void DropsEngSubGroupFromEnglishGroups()
+    {
+        var schedule = new ScheduleBuilder();
+        var englishGroup = schedule.Group("IA2401(en)").Id;
+        var roGroup = schedule.Group("IA2402").Id;
+        var courseId = schedule.Course("Limba engleză");
+        var lesson = schedule.RegularLesson();
+        lesson.Course(courseId);
+        lesson.Group(englishGroup);
+        lesson.SubGroup(SpecialSubGroups.Eng);
+        var ruLesson = schedule.RegularLesson();
+        ruLesson.Course(courseId);
+        ruLesson.Group(roGroup);
+        ruLesson.SubGroup(SpecialSubGroups.Ru);
+
+        schedule.DropEngSubGroupFromEnglishGroups();
+
+        Assert.Equal(SubGroup.All, lesson.Model.Base.Group.SubGroup);
+        Assert.Equal(SpecialSubGroups.Ru, ruLesson.Model.Base.Group.SubGroup);
+    }
+
+    [Fact]
+    public void KeepsEngSubGroupWhenGroupsAreNotAllEnglish()
+    {
+        var schedule = new ScheduleBuilder();
+        var englishGroup = schedule.Group("IA2401(en)").Id;
+        var roGroup = schedule.Group("IA2402").Id;
+        var courseId = schedule.Course("Limba engleză");
+        var lesson = schedule.RegularLesson();
+        lesson.Course(courseId);
+        lesson.Group(englishGroup);
+        lesson.Group(roGroup);
+        lesson.SubGroup(SpecialSubGroups.Eng);
+
+        schedule.DropEngSubGroupFromEnglishGroups();
+
+        Assert.Equal(SpecialSubGroups.Eng, lesson.Model.Base.Group.SubGroup);
+    }
+
     private static (DocParseContext Context, GroupId Group) CreateDocContext(
         SpecializationRegistry? specializationRegistry = null,
         SubGroupPrefixMatcher? subGroupMatcher = null)

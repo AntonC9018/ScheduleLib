@@ -16153,7 +16153,7 @@
       "Room": "423/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -16724,7 +16724,7 @@
       "Room": "251/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -17120,7 +17120,7 @@
       "Room": "423/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -17620,7 +17620,7 @@
       "Room": "222/4",
       "Time": "09:45:00",
       "LessonType": "Seminar",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -17670,7 +17670,7 @@
       "Room": "327/4",
       "Time": "11:30:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -17695,7 +17695,7 @@
       "Room": "423/4",
       "Time": "13:15:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -29504,7 +29504,7 @@
       "Room": "423/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -30075,7 +30075,7 @@
       "Room": "251/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -30471,7 +30471,7 @@
       "Room": "423/4",
       "Time": "08:00:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -30971,7 +30971,7 @@
       "Room": "222/4",
       "Time": "09:45:00",
       "LessonType": "Seminar",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -31021,7 +31021,7 @@
       "Room": "327/4",
       "Time": "11:30:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {
@@ -31046,7 +31046,7 @@
       "Room": "423/4",
       "Time": "13:15:00",
       "LessonType": "Lab",
-      "SubGroup": "eng",
+      "SubGroup": null,
       "Specialization": null
     },
     {

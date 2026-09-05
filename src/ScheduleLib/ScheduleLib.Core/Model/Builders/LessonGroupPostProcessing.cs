@@ -162,6 +162,39 @@ public static partial class ScheduleBuilderHelper
     }
 
     /// <summary>
+    /// English-language groups are taught entirely in English, so an en label on their
+    /// lessons carries no split information. Dropping it keeps those groups out of the
+    /// language-split machinery: they observe no language subgroups and keep every
+    /// lesson whole, even when other groups split ru/ro.
+    /// </summary>
+    internal static void DropEngSubGroupFromEnglishGroups(this ScheduleBuilder s)
+    {
+        foreach (var lesson in Lessons(s))
+        {
+            var group = lesson.Base.Group;
+            if (group.SubGroup != SpecialSubGroups.Eng || group.Groups.IsEmpty)
+            {
+                continue;
+            }
+            bool allEnglish = true;
+            foreach (var g in group.Groups)
+            {
+                if (s.Groups.List[g.Value].Language != Language.En)
+                {
+                    allEnglish = false;
+                    break;
+                }
+            }
+            if (!allEnglish)
+            {
+                continue;
+            }
+            group.SubGroup = SubGroup.All;
+            lesson.Base.Group = group;
+        }
+    }
+
+    /// <summary>
     /// Groups the subgroup values observed per participating group.
     /// The <c>opțional</c> marker and <see cref="SubGroup.All"/> are ignored.
     /// </summary>
