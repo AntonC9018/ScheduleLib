@@ -3,6 +3,11 @@ namespace ScheduleLib;
 /// <summary>
 /// Configuration of the lesson overlap validation. The validation only runs when the
 /// configuration is present, so builders that never opted in are not checked.
+/// <para>
+/// There is no tolerance list: an overlap is always an error. Elective lessons are
+/// separated by their partition values, and anything else is a source-document
+/// defect to fix there.
+/// </para>
 /// </summary>
 public sealed class LessonOverlapValidationConfig
 {
@@ -11,32 +16,4 @@ public sealed class LessonOverlapValidationConfig
     /// unchecked: their data is frozen and their overlaps were never going to be fixed.
     /// </summary>
     public StudyYear? StudyYear { get; init; }
-
-    /// <summary>
-    /// Pairs the validation tolerates, each with the reason. Some entries are
-    /// permanent by design: they cover known shared-slot cases (elective
-    /// alternatives whose lessons fall outside every implicit-split scope and
-    /// so keep no separating value). The rest are temporary data-bug
-    /// workarounds, removed once the source docs get fixed.
-    /// </summary>
-    public List<LessonOverlapAllowlistEntry> Allowlist { get; init; } = [];
-}
-
-/// <summary>
-/// Accepts a conflict of two courses. The entry matches when the two canonical course
-/// names are the given ones (in either order) and every set field also matches. The
-/// more fields are set, the narrower the acceptance.
-/// </summary>
-public sealed class LessonOverlapAllowlistEntry
-{
-    public required string CourseA { get; init; }
-    public required string CourseB { get; init; }
-
-    /// <summary>Constrains the entry to conflicts whose shared group is this one.</summary>
-    public string? GroupName { get; init; }
-    public DayOfWeek? Day { get; init; }
-    public TimeSlot? TimeSlot { get; init; }
-
-    /// <summary>Why the pair is tolerated. Shows up in this entry's documentation only.</summary>
-    public required string Reason { get; init; }
 }

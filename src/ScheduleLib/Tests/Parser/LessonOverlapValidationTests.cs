@@ -6,11 +6,11 @@ namespace ScheduleLib.ParserTests;
 
 public sealed class LessonOverlapValidationTests
 {
-    private static ScheduleBuilder CreateBuilder(LessonOverlapValidationConfig? config = null)
+    private static ScheduleBuilder CreateBuilder()
     {
         var builder = new ScheduleBuilder
         {
-            OverlapValidationConfig = config ?? new LessonOverlapValidationConfig(),
+            OverlapValidationConfig = new LessonOverlapValidationConfig(),
             GroupParseContext = GroupParseContext.Create(new()
             {
                 CurrentStudyYear = new(2026),
@@ -141,54 +141,6 @@ public sealed class LessonOverlapValidationTests
         AddWeeklyLesson(builder, "IA2403", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
 
         builder.Build();
-    }
-
-    [Fact]
-    public void AllowlistedPairsAreTolerated()
-    {
-        var config = new LessonOverlapValidationConfig
-        {
-            Allowlist =
-            [
-                new LessonOverlapAllowlistEntry
-                {
-                    CourseA = "X",
-                    CourseB = "Y",
-                    GroupName = "IA2401",
-                    Day = DayOfWeek.Monday,
-                    TimeSlot = new(0),
-                    Reason = "Known data bug.",
-                },
-            ],
-        };
-        var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y");
-
-        builder.Build();
-    }
-
-    [Fact]
-    public void AllowlistEntriesAreMatchedExactly()
-    {
-        var config = new LessonOverlapValidationConfig
-        {
-            Allowlist =
-            [
-                new LessonOverlapAllowlistEntry
-                {
-                    CourseA = "X",
-                    CourseB = "Y",
-                    GroupName = "IA2402",
-                    Reason = "Narrow entry for another group.",
-                },
-            ],
-        };
-        var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y");
-
-        Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
 
     [Fact]

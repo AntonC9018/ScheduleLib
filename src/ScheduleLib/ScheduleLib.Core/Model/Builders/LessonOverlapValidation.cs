@@ -8,11 +8,7 @@ public static partial class ScheduleBuilderHelper
     /// Fails when two weekly lessons occupy the same period, day and time slot, share a
     /// group, and their student populations are not separated on any split dimension:
     /// week parity, subgroup, specialization or alternative. One-time lessons are not
-    /// checked.
-    /// <para>
-    /// Pairs listed in <see cref="ScheduleBuilder.OverlapValidationConfig"/>'s allowlist
-    /// are tolerated; every other offending pair ends up in a single error.
-    /// </para>
+    /// checked. Every offending pair ends up in a single error.
     /// </summary>
     private static void ValidateLessonOverlaps(this ScheduleBuilder s)
     {
@@ -25,7 +21,7 @@ public static partial class ScheduleBuilderHelper
             return;
         }
         var lessons = s.WeeklyLessons.List;
-        var errors = CollectOverlapErrors(s, lessons, config);
+        var errors = CollectOverlapErrors(s, lessons);
         if (errors.Count > 0)
         {
             throw OverlappingLessonsException.ForOverlaps(errors);
@@ -34,15 +30,14 @@ public static partial class ScheduleBuilderHelper
 
     private static List<string> CollectOverlapErrors(
         ScheduleBuilder s,
-        List<WeeklyLessonBuilderModel> lessons,
-        LessonOverlapValidationConfig config)
+        List<WeeklyLessonBuilderModel> lessons)
     {
         var errors = new List<string>();
         for (int i = 0; i < lessons.Count; i++)
         {
             for (int j = i + 1; j < lessons.Count; j++)
             {
-                if (DescribeOverlapIfConflicting(s, config, lessons[i].Data, lessons[j].Data) is { } error)
+                if (DescribeOverlapIfConflicting(s, lessons[i].Data, lessons[j].Data) is { } error)
                 {
                     errors.Add(error);
                 }
@@ -53,7 +48,6 @@ public static partial class ScheduleBuilderHelper
 
     private static string? DescribeOverlapIfConflicting(
         ScheduleBuilder s,
-        LessonOverlapValidationConfig config,
         in WeeklyLessonBuilderModelData a,
         in WeeklyLessonBuilderModelData b)
     {
@@ -79,10 +73,6 @@ public static partial class ScheduleBuilderHelper
             return null;
         }
         if (!SplitDimensionsIntersect(a.Base.Group, b.Base.Group))
-        {
-            return null;
-        }
-        if (IsAllowlisted(config.Allowlist, s, a, b, shared.Value))
         {
             return null;
         }
@@ -138,45 +128,6 @@ public static partial class ScheduleBuilderHelper
             }
         }
         return null;
-    }
-
-    private static bool IsAllowlisted(
-        List<LessonOverlapAllowlistEntry> allowlist,
-        ScheduleBuilder s,
-        in WeeklyLessonBuilderModelData a,
-        in WeeklyLessonBuilderModelData b,
-        GroupId shared)
-    {
-        if (allowlist.Count == 0)
-        {
-            return false;
-        }
-        var aName = s.Courses.Ref(a.Base.General.Course!.Value.Id).FullName;
-        var bName = s.Courses.Ref(b.Base.General.Course!.Value.Id).FullName;
-        var groupName = s.Groups.Ref(shared.Value).Name;
-        foreach (var entry in allowlist)
-        {
-            bool coursesMatch = (aName == entry.CourseA && bName == entry.CourseB)
-                || (aName == entry.CourseB && bName == entry.CourseA);
-            if (!coursesMatch)
-            {
-                continue;
-            }
-            if (entry.GroupName is { } entryGroup && entryGroup != groupName)
-            {
-                continue;
-            }
-            if (entry.Day is { } entryDay && entryDay != a.Date.DayOfWeek)
-            {
-                continue;
-            }
-            if (entry.TimeSlot is { } entrySlot && !entrySlot.Equals(a.Date.TimeSlot))
-            {
-                continue;
-            }
-            return true;
-        }
-        return false;
     }
 
     private static string Describe(

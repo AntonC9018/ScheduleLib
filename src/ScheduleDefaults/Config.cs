@@ -96,79 +96,15 @@ public static class Config
     }
 
     /// <summary>
-    /// Tolerated lesson overlaps. The elective entries are a permanent safety net
-    /// for alternative lessons whose groups fall outside every implicit-split
-    /// scope; the data-bug and language-block entries are temporary and are
-    /// removed as the source docs get fixed.
+    /// Lesson overlap validation for the 2026 build: any overlap is a build error.
+    /// The former allowlist was removed (2026-09): elective overlaps are separated
+    /// by the grade-2 Alternative assignments, and the remaining conflicts were
+    /// source-doc defects, fixed by adding the missing week-parity markers
+    /// (see docs/wayfinder/2026-sem1-clash-fixes.md).
     /// </summary>
     public static LessonOverlapValidationConfig OverlapValidationConfig { get; } = new()
     {
         StudyYear = new(2026),
-        Allowlist =
-        [
-            // Elective courses students choose between: parallel alternatives sharing
-            // slots by design. Separated by the grade-2 Alternative assignments
-            // above; the entries stay as a safety net for lessons whose groups
-            // fall outside every scope.
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Disciplină umanistică opțională: Antreprenoriat inovativ",
-                CourseB = "Disciplină umanistică opțională: Psihologie",
-                Reason = "Elective alternatives (Antreprenoriat vs Psihologie), separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Opț. ped.",
-                CourseB = "Disciplină umanistică opțională: Antreprenoriat inovativ",
-                Reason = "Elective alternatives, separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Opț. ped.",
-                CourseB = "Disciplină umanistică opțională: Psihologie",
-                Reason = "Elective alternatives, separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Opț. ped.",
-                CourseB = "Antreprenoriat inovativ",
-                GroupName = "I2502",
-                Reason = "Elective alternatives, separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Opț. ped.",
-                CourseB = "Psihologie",
-                GroupName = "I2502",
-                Reason = "Elective alternatives, separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Cult. comun.",
-                CourseB = "Psihologie",
-                Reason = "DJ-group elective alternatives, separated by Alternative assignments.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Baze de date",
-                CourseB = "Tehnologii de programare",
-                GroupName = "I2502",
-                Day = DayOfWeek.Friday,
-                Reason = "Data bug: two regular I2502 courses share the Friday slot in the An-II doc.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Limba rom.",
-                CourseB = "Limba straina",
-                Reason = "An-I doc language block: the odd-week Limba rom. lesson meets the every-week straina lesson.",
-            },
-            new LessonOverlapAllowlistEntry
-            {
-                CourseA = "Limba straina",
-                CourseB = "Educația fizică",
-                Reason = "An-I doc language block: the every-week straina lesson meets the even-week Educatia fizica lesson.",
-            },
-        ],
     };
 
     public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
