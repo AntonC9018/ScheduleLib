@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using AutoConstructor.Attributes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
@@ -33,6 +34,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
     private readonly SpecializationRegistry _specializationRegistry;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly Schedule _schedule;
+    private readonly ILogger _logger;
 
     public readonly struct RunParams
     {
@@ -47,7 +49,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         foreach (var g in _schedule.EnumerateGroups())
         {
             var calendarName = GroupCalendarName(g.Item, semester);
-            WriteGroupCalendar(g.Item.Name, calendarName, new()
+            WriteGroupCalendar($"{g.Item.Name}.ics", calendarName, new()
             {
                 OneOfGroupIds = [g.Id],
             });
@@ -73,7 +75,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             sb1.Append(".ics");
             var fileName = sb1.ToStringAndClear();
 
-            WriteCalendar(fileName, TeacherCalendarName(teacher), new()
+            WriteCalendar(fileName, TeacherCalendarName(teacher), isTeacherCalendar: true, new()
             {
                 TeacherFilter = new()
                 {
@@ -85,13 +87,13 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
         void WriteGroupCalendar(string fileName, string calendarName, in GroupFilter groupFilter)
         {
-            WriteCalendar(fileName, calendarName, new()
+            WriteCalendar(fileName, calendarName, isTeacherCalendar: false, new()
             {
                 GroupFilter = groupFilter,
             });
         }
 
-        void WriteCalendar(string fileName, string calendarName, in ScheduleFilter filter)
+        void WriteCalendar(string fileName, string calendarName, bool isTeacherCalendar, in ScheduleFilter filter)
         {
             var filteredSchedule = _schedule.Filter(
                 filter
@@ -102,16 +104,35 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 return;
             }
 
+            List<IcsEvent> events;
+            try
+            {
+                events = BuildEvents(filteredSchedule, isTeacherCalendar);
+            }
+            catch (MissingSemesterDateRangeException e)
+            {
+                // A group's attendance mode/grade has no semester dates
+                // configured (e.g. a new Dual program): skip the calendar
+                // instead of failing the whole run. Add the missing range to
+                // ScheduleDefaults.SemesterIntervalProvider to cover it.
+                _logger.LogWarning(e, "Skipping calendar {File}: {Reason}", fileName, e.Message);
+                return;
+            }
+            if (events.Count == 0)
+            {
+                return;
+            }
+
             var calendar = new IcsCalendar
             {
                 Name = calendarName,
-                Events = BuildEvents(filteredSchedule),
+                Events = events,
             };
             using var outputFile = p.OutputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
             IcsCalendarWriter.Write(outputFile, calendar);
         }
 
-        List<IcsEvent> BuildEvents(FilteredSchedule filteredSchedule)
+        List<IcsEvent> BuildEvents(FilteredSchedule filteredSchedule, bool isTeacherCalendar)
         {
             var events = new List<IcsEvent>();
             var timeEvents = _eventsProvider.Get(new()
@@ -122,7 +143,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             foreach (var timeEvent in timeEvents)
             {
                 var lesson = filteredSchedule.Source.Get(timeEvent.LessonId);
-                var (summary, description) = LessonText(lesson);
+                var (summary, description) = LessonText(lesson, isTeacherCalendar);
 
                 string? location = null;
                 if (lesson.Lesson.Room.IsValid)
@@ -146,7 +167,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             return events;
         }
 
-        (string Summary, string? Description) LessonText(AnyLessonAccessor lesson)
+        (string Summary, string? Description) LessonText(AnyLessonAccessor lesson, bool isTeacherCalendar)
         {
             var course = _schedule.Get(lesson.Lesson.Course);
 
@@ -166,14 +187,19 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             }
             var summary = sb.ToStringAndClear();
 
+            // Like the PDFs: a group calendar names the teachers, a teacher
+            // calendar names the groups attending.
             string? description = null;
-            if (lesson.Lesson.Teachers.Length > 0)
+            if (isTeacherCalendar)
+            {
+                if (lesson.Lesson.Groups.Count > 0)
+                {
+                    description = JoinGroupNames(lesson.Lesson.Groups);
+                }
+            }
+            else if (lesson.Lesson.Teachers.Length > 0)
             {
                 description = JoinTeacherNames(lesson.Lesson.Teachers);
-            }
-            else if (lesson.Lesson.Groups.Count > 0)
-            {
-                description = JoinGroupNames(lesson.Lesson.Groups);
             }
 
             return (summary, description);
