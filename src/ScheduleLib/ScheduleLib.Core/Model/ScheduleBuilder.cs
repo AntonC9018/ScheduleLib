@@ -75,8 +75,8 @@ public static partial class ScheduleBuilderHelper
 {
     public static T Build<T>(this ScheduleBuilder s, Func<ScheduleBuilder, T> builder)
     {
-        s.Validate();
         s.Preprocess();
+        s.Validate();
         s.ClassifySubGroups();
         s.AssignImplicitSplits();
         s.NormalizeLanguageProficiency();
