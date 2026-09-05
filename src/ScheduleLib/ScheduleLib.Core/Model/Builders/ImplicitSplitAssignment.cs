@@ -6,25 +6,9 @@ namespace ScheduleLib.Builders;
 public static partial class ScheduleBuilderHelper
 {
     /// <summary>
-    /// Assigns the implicitly configured specializations and alternatives to lessons of
-    /// matching courses.
-    /// <para>
-    /// A lesson covering several groups can resolve differently per group: the groups
-    /// covered by a configuration entry receive the value, the rest stay without one.
-    /// A single lesson stores a single value, so such a lesson is split into one lesson
-    /// per distinct resolution, each carrying only the groups it represents. The shared
-    /// time, room and teachers are copied to every part.
-    /// </para>
-    /// <para>
-    /// Contracts (what must hold, independent of the pass order in the build pipeline):
-    /// every lesson carries a course that refers to a known course with at least one
-    /// name (established by <c>LessonBuilderHelper.ValidateLessons</c>, including for
-    /// consultation lessons, which exit through the empty-groups guard below); explicit
-    /// specialization and alternative labels are already classified into their fields,
-    /// so any contradiction between an explicit value and the configuration is an error
-    /// reported here. The pass either stamps a single resolution in place or splits the
-    /// lesson; it never reorders or drops groups.
-    /// </para>
+    /// Assigns implicit specializations and alternatives, splitting lessons whose
+    /// groups resolve differently (one lesson stores one value).
+    /// Assumes <c>LessonBuilderHelper.ValidateLessons</c> has been called.
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
     {
@@ -74,6 +58,7 @@ public static partial class ScheduleBuilderHelper
                 Debug.Assert(false, "ValidateLessons guarantees a course on every lesson.");
                 throw new InvalidOperationException("The lesson course must be initialized.");
             }
+            Debug.Assert(courseId.Id >= 0 && courseId.Id < s.Courses.Count, "ValidateLessons guarantees a known course.");
             var groups = lesson.Base.Group.Groups;
             if (groups.IsEmpty)
             {
