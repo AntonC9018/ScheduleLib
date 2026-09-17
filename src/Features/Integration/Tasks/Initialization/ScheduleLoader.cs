@@ -51,6 +51,11 @@ public sealed class ScheduleLoader
         {
             if (CachedPath is { } cachedPath)
             {
+                var parentDir = Path.GetDirectoryName(cachedPath);
+                if (!string.IsNullOrEmpty(parentDir))
+                {
+                    Directory.CreateDirectory(parentDir);
+                }
 #pragma warning disable CA2000 // file not disposed
                 var ret = new FileStream(cachedPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
 #pragma warning restore CA2000
