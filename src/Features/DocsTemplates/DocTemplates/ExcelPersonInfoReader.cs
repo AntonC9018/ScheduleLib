@@ -58,7 +58,10 @@ public static partial class DocsExcel
 {
     public static List<PersonInfo> Parse(string path)
     {
-        using var workbook = new XLWorkbook(path);
+        // Excel locks the workbook while it is open, so read through a
+        // shared stream instead of letting ClosedXML open the file exclusively.
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var workbook = new XLWorkbook(stream);
         var worksheet = workbook.Worksheets.Worksheet("Persons");
         var headerRow = worksheet.FirstRowUsed()
             ?? throw new InvalidOperationException("Fișierul Excel trebuie să conțină antetul.");
