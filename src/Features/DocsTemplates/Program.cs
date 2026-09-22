@@ -3,10 +3,13 @@ using Microsoft.Extensions.Configuration;
 
 var fileNames = new FilePaths
 {
-    Declaration = "declaratie_proprie_raspundere.docx",
-    Hire = "angajare_didactica.docx",
-    DeclarationConsimtand = "declaratie_consimtand.docx",
-    CIM = "cim.docx",
+    AdditionalAgreement = "acord_suplimentar.docx",
+    HireRequest = "cerere_angajare_didactica.docx",
+    IndividualEmploymentContract = "contract_individual_de_munca.docx",
+    ConsentDeclaration = "declaratie_consimtamant.docx",
+    InformationDeclaration = "declaratie_informare.docx",
+    OwnResponsibilityDeclaration = "declaratie_proprie_raspundere.docx",
+    AssistantJobDescription = "fisa_postului_asistent_universitar.docx",
 };
 
 IConfiguration config;
@@ -16,7 +19,8 @@ IConfiguration config;
     config = builder.Build();
 }
 
-const string inputExcelPath = "data/docs_data.xlsx";
+var inputExcelPath = args.FirstOrDefault(argument => argument.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+    ?? "data/docs_data.xlsx";
 if (!File.Exists(inputExcelPath))
 {
     var personal = config.GetSection("Personal")?.Get<PersonalConfig>();
@@ -35,13 +39,13 @@ if (!File.Exists(inputExcelPath))
     }
     var defaultPerson = new PersonInfo
     {
-        Date = new DateOnly(year: DateTime.Now.Year, month: 9, day: 1),
+        DocumentDate = new DateOnly(year: DateTime.Now.Year, month: 9, day: 1),
         Department = "Informatică",
         Faculty = "Matematică și Informatică",
         Function = "asistent universitar",
-        FirstName = "Anton",
-        LastName = "Curmanschii",
-        Units = 1.1f,
+        FirstName = "Prenume",
+        LastName = "Nume",
+        Units = 1.00m,
         HireType = HireType.Titular,
         Email = personal.Email,
         HomeAddress = personal.HomeAddress,
@@ -49,11 +53,14 @@ if (!File.Exists(inputExcelPath))
         {
             IssueDate = personal.IDIssueDate,
             PersonalIdentifier = personal.PersonalIdentifier,
-            BSeriesCode = personal.BISeries,
+            BISeriesCode = personal.BISeries,
         },
         PhoneNumber = personal.PhoneNumber,
-        WorkingMode = WorkingMode.Birou,
-        WorkingPlace = "Universitatea de Stat din Moldova",
+        WorkplaceAddress = "Str. Alexei Mateevici, nr. 60, biroul 225, blocul IV, MD-2009, Chișinău",
+        FacultyShort = "Fac. de Mat. și Inf.",
+        DepartmentShort = "Dep. Inf.",
+        PreparedByName = "Capcelea Titu",
+        PreparedByDepartment = "Informatica",
     };
 
     DocsExcel.GenerateTemplateExcel(inputExcelPath, defaultPerson);
@@ -80,9 +87,11 @@ static bool HasDuplicates(List<PersonInfo> people)
 DocsGenerator.Generate(new()
 {
     Data = data.ToArray(),
-    OutputDir = "output",
+    OutputDir = args.FirstOrDefault(argument => argument.StartsWith("--output=", StringComparison.Ordinal))?[9..]
+        ?? "output",
     TemplateFilePaths = fileNames.Map(x => $"data/templates/{x}"),
     OutputFilePaths = fileNames,
+    OpenOutputDirectory = !args.Contains("--no-open", StringComparer.Ordinal),
 });
 
 public sealed class PersonalConfig

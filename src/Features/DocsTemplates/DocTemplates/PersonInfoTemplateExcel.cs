@@ -2,140 +2,87 @@ using ClosedXML.Excel;
 
 namespace EmploymentDocs;
 
-// ChatGPT code
 public static partial class DocsExcel
 {
     private const int HeaderRow = 1;
     private const int DefaultRow = 2;
-    private const int MaxRows = 1048576;
 
     public static void GenerateTemplateExcel(string path, PersonInfo defaultPerson)
     {
-        if (defaultPerson == null)
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Persons");
+
+        for (var index = 0; index < (int) PersonColumns.Count; index++)
         {
-            throw new ArgumentNullException(nameof(defaultPerson));
+            var cell = worksheet.Cell(HeaderRow, index + 1);
+            cell.Value = ColumnLabels.Labels[index][0];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.LightGray;
         }
 
-        using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add("Persons");
+        Set(PersonColumns.FirstName, defaultPerson.FirstName);
+        Set(PersonColumns.LastName, defaultPerson.LastName);
+        Set(PersonColumns.Function, defaultPerson.Function);
+        Set(PersonColumns.Faculty, defaultPerson.Faculty);
+        Set(PersonColumns.Department, defaultPerson.Department);
+        Set(PersonColumns.DocumentDate, defaultPerson.DocumentDate);
+        Set(PersonColumns.Units, defaultPerson.Units);
+        Set(PersonColumns.HireType, defaultPerson.HireType.ToString());
+        Set(PersonColumns.HomeAddress, defaultPerson.HomeAddress);
+        Set(PersonColumns.PhoneNumber, defaultPerson.PhoneNumber);
+        Set(PersonColumns.Email, defaultPerson.Email);
+        Set(PersonColumns.BISeries, defaultPerson.ID.BISeriesCode);
+        Set(PersonColumns.IDIssueDate, defaultPerson.ID.IssueDate);
+        Set(PersonColumns.PersonalIdentifier, defaultPerson.ID.PersonalIdentifier);
+        Set(PersonColumns.PrimaryFunction, defaultPerson.PrimaryFunction);
+        Set(PersonColumns.PrimaryEmployer, defaultPerson.PrimaryEmployer);
+        Set(PersonColumns.WorkplaceAddress, defaultPerson.WorkplaceAddress);
+        Set(PersonColumns.FacultyShort, defaultPerson.FacultyShort);
+        Set(PersonColumns.DepartmentShort, defaultPerson.DepartmentShort);
+        Set(PersonColumns.PreparedByName, defaultPerson.PreparedByName);
+        Set(PersonColumns.PreparedByDepartment, defaultPerson.PreparedByDepartment);
 
-        // --- 1. Write headers ---
-        for (int i = 0; i < (int)PersonColumns.Count; i++)
+        AddAllowedValues(PersonColumns.Function, AcademicFunctions.Allowed);
+        AddAllowedValues(PersonColumns.HireType, Enum.GetNames<HireType>());
+        worksheet.SheetView.FreezeRows(1);
+        worksheet.Columns().AdjustToContents();
+
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
         {
-            ws.Cell(HeaderRow, i + 1).Value = ColumnLabels.Labels[i][0];
+            Directory.CreateDirectory(directory);
+        }
+        workbook.SaveAs(path);
+
+        void Set(PersonColumns column, object value)
+        {
+            var cell = worksheet.Cell(DefaultRow, (int) column + 1);
+            switch (value)
+            {
+                case DateOnly date:
+                    cell.Value = date.ToDateTime(TimeOnly.MinValue);
+                    worksheet.Column((int) column + 1).Style.NumberFormat.Format = "dd.mm.yyyy";
+                    break;
+                case decimal number:
+                    cell.Value = number;
+                    worksheet.Column((int) column + 1).Style.NumberFormat.Format = "0.00";
+                    break;
+                default:
+                    cell.Value = value?.ToString() ?? string.Empty;
+                    worksheet.Column((int) column + 1).Style.NumberFormat.Format = "@";
+                    break;
+            }
         }
 
-        // --- 2. Local helper to set default values ---
-        void SetDefaultValue<T>(PersonColumns col, T value)
+        void AddAllowedValues(PersonColumns column, IReadOnlyCollection<string> values)
         {
-            int colIndex = (int) col + 1;
-            var cell = ws.Cell(DefaultRow, colIndex);
-            cell.Value = value switch
-            {
-                DateOnly d when d == DateOnly.MinValue => "",
-                DateOnly d => d.ToDateTime(TimeOnly.MinValue),
-                float f => (double) f,
-                double db => db,
-                int i => i,
-                string s => s,
-                bool b => b,
-                _ => value?.ToString() ?? "",
-            };
-
-            // Don't know how to do this properly.
-            var columnRange = ws.Column(colIndex);
-            if (value is DateOnly || value is DateTime)
-            {
-                // Date format
-                columnRange.Style.NumberFormat.Format = "yyyy-MM-dd";  // or whatever date format you want
-            }
-            else if (value is float || value is double || value is int)
-            {
-                // Numeric format, possibly decimals
-                columnRange.Style.NumberFormat.Format = "0.00";  // two decimal places
-            }
-            else
-            {
-                // Force Text format
-                columnRange.Style.NumberFormat.Format = "@";  // "@" = text in Excel/ClosedXML
-            }
-        }
-
-        // --- 3. Populate default row from parameter object ---
-        SetDefaultValue(PersonColumns.FirstName, defaultPerson.FirstName);
-        SetDefaultValue(PersonColumns.LastName, defaultPerson.LastName);
-        SetDefaultValue(PersonColumns.Function, defaultPerson.Function);
-        SetDefaultValue(PersonColumns.Faculty, defaultPerson.Faculty);
-        SetDefaultValue(PersonColumns.Department, defaultPerson.Department);
-        SetDefaultValue(PersonColumns.Date, defaultPerson.Date);
-        SetDefaultValue(PersonColumns.Units, defaultPerson.Units);
-        SetDefaultValue(PersonColumns.HireType, defaultPerson.HireType.ToString());
-        SetDefaultValue(PersonColumns.WorkingPlace, defaultPerson.WorkingPlace);
-        SetDefaultValue(PersonColumns.WorkingMode, defaultPerson.WorkingMode.ToString());
-        SetDefaultValue(PersonColumns.ContractEndDate, defaultPerson.ContractEndDate);
-        SetDefaultValue(PersonColumns.ProbationPeriodEndDate, defaultPerson.ProbationPeriodEndDate);
-        SetDefaultValue(PersonColumns.HomeAddress, defaultPerson.HomeAddress);
-        SetDefaultValue(PersonColumns.PhoneNumber, defaultPerson.PhoneNumber);
-        SetDefaultValue(PersonColumns.Email, defaultPerson.Email);
-        SetDefaultValue(PersonColumns.BISeries, defaultPerson.ID.BSeriesCode);
-        SetDefaultValue(PersonColumns.IDIssueDate, defaultPerson.ID.IssueDate);
-        SetDefaultValue(PersonColumns.PersonalIdentifier, defaultPerson.ID.PersonalIdentifier);
-
-#pragma warning disable CS8321 // Local function is declared but never used
-        void AddDropdownValidation(PersonColumns col, string[] allowedValues)
-#pragma warning restore CS8321 // Local function is declared but never used
-        {
-            int colIndex = (int) col + 1;
-            var comment = ws.Cell(HeaderRow, colIndex).CreateComment();
-            var list = string.Join(",", allowedValues);
-            comment.AddText(list);
-            comment.SetVisible(false);
-
-            // data validation doesn't work
-            #if false
-            var range = ws.Range(DefaultRow, colIndex, 30, colIndex);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            var validation = range.SetDataValidation();
-#pragma warning restore CS0618 // Type or member is obsolete
-            validation.IgnoreBlanks = true;
+            var header = worksheet.Cell(HeaderRow, (int) column + 1);
+            header.CreateComment().AddText("Valori permise: " + string.Join(", ", values));
+            var validation = worksheet.Range(DefaultRow, (int) column + 1, 1000, (int) column + 1)
+                .CreateDataValidation();
+            validation.IgnoreBlanks = false;
             validation.InCellDropdown = true;
-
-
-            if (list.Length < 255)
-            {
-                // Inline list, must be quoted
-                validation.List(list, inCellDropdown: true);
-            }
-            else
-            {
-                // Too long: put in helper sheet
-                var helper = ws.Workbook.Worksheets.FirstOrDefault(s => s.Name == "ValidationHelper")
-                    ?? ws.Workbook.Worksheets.Add("ValidationHelper");
-
-                int colIndex1 = helper.LastColumnUsed()?.ColumnNumber() + 1 ?? 1;
-
-                for (int i = 0; i < allowedValues.Length; i++)
-                {
-                    helper.Cell(i + 1, colIndex1).Value = allowedValues[i];
-                }
-
-                var listRange = helper.Range(1, colIndex1, allowedValues.Length, colIndex);
-                string namedRange = $"{col}_Values";
-                listRange.AddToNamed(namedRange);
-
-                validation.List("=" + namedRange);
-                helper.Hide();
-            }
-            #endif
+            validation.List('"' + string.Join(',', values) + '"');
         }
-
-        AddDropdownValidation(PersonColumns.HireType, Enum.GetNames<HireType>());
-        AddDropdownValidation(PersonColumns.WorkingMode, Enum.GetNames<WorkingMode>());
-
-        // --- 5. Adjust column widths ---
-        ws.Columns().AdjustToContents();
-
-        wb.SaveAs(path);
     }
 }

@@ -5,227 +5,177 @@ namespace EmploymentDocs;
 
 public enum PersonColumns
 {
-    FirstName,
-    LastName,
-    Function,
-    Faculty,
-    Department,
-    Date,
-    Units,
-    HireType,
-    WorkingPlace,
-    WorkingMode,
-    ContractEndDate,
-    ProbationPeriodEndDate,
-    HomeAddress,
-    PhoneNumber,
-    Email,
-    BISeries,
-    IDIssueDate,
-    PersonalIdentifier,
-
+    FirstName, LastName, Function, Faculty, Department, DocumentDate, Units, HireType,
+    HomeAddress, PhoneNumber, Email, BISeries, IDIssueDate, PersonalIdentifier,
+    PrimaryFunction, PrimaryEmployer, WorkplaceAddress, FacultyShort, DepartmentShort,
+    PreparedByName, PreparedByDepartment,
     Count,
 }
 
 public static class ColumnLabels
 {
-    public static readonly string[][] Labels;
+    public static readonly string[][] Labels = BuildLabels();
 
-    static ColumnLabels()
+    private static string[][] BuildLabels()
     {
-        Labels = new string[(int) PersonColumns.Count][];
-
+        var labels = new string[(int) PersonColumns.Count][];
         Set(PersonColumns.FirstName, "FirstName", "Prenume");
         Set(PersonColumns.LastName, "LastName", "Nume");
         Set(PersonColumns.Function, "Function", "Funcție");
         Set(PersonColumns.Faculty, "Faculty", "Facultate");
         Set(PersonColumns.Department, "Department", "Departament");
-        Set(PersonColumns.Date, "Date", "Data");
+        Set(PersonColumns.DocumentDate, "DocumentDate", "DataDocumentului");
         Set(PersonColumns.Units, "Units", "Unități");
         Set(PersonColumns.HireType, "HireType", "TipAngajare");
-        Set(PersonColumns.WorkingPlace, "WorkingPlace", "LocMuncă");
-        Set(PersonColumns.WorkingMode, "WorkingMode", "ModLucru");
-        Set(PersonColumns.ContractEndDate, "ContractEndDate", "DataSfârșitContract");
-        Set(PersonColumns.ProbationPeriodEndDate, "ProbationPeriodEndDate", "DataSfârșitProbă");
-        Set(PersonColumns.HomeAddress, "HomeAddress", "Adresă");
+        Set(PersonColumns.HomeAddress, "HomeAddress", "AdresăDomiciliu");
         Set(PersonColumns.PhoneNumber, "PhoneNumber", "Telefon");
         Set(PersonColumns.Email, "Email", "E-mail");
         Set(PersonColumns.BISeries, "BISeries", "SerieBI");
         Set(PersonColumns.IDIssueDate, "IDIssueDate", "DataEliberareBI");
-        Set(PersonColumns.PersonalIdentifier, "PersonalIdentifier", "CodPersonal");
+        Set(PersonColumns.PersonalIdentifier, "PersonalIdentifier", "IDNP");
+        Set(PersonColumns.PrimaryFunction, "PrimaryFunction", "FuncțieDeBază");
+        Set(PersonColumns.PrimaryEmployer, "PrimaryEmployer", "AngajatorDeBază");
+        Set(PersonColumns.WorkplaceAddress, "WorkplaceAddress", "AdresaLoculuiDeMuncă");
+        Set(PersonColumns.FacultyShort, "FacultyShort", "FacultateScurt");
+        Set(PersonColumns.DepartmentShort, "DepartmentShort", "DepartamentScurt");
+        Set(PersonColumns.PreparedByName, "PreparedByName", "ÎntocmităDe");
+        Set(PersonColumns.PreparedByDepartment, "PreparedByDepartment", "DepartamentÎntocmitor");
 
-        ValidateNoDuplicates();
-    }
-
-    private static void Set(PersonColumns col, params string[] labels)
-    {
-        Labels[(int) col] = labels;
-    }
-
-    private static void ValidateNoDuplicates()
-    {
-        var seen = new Dictionary<string, PersonColumns>(StringComparer.OrdinalIgnoreCase);
-
-        for (int i = 0; i < (int) PersonColumns.Count; i++)
+        var duplicate = labels.SelectMany(values => values)
+            .GroupBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate is not null)
         {
-            if (Labels is null)
-            {
-                throw new InvalidOperationException($"No labels defined for {(PersonColumns) i}");
-            }
-
-            foreach (var label in Labels[i])
-            {
-                if (seen.TryGetValue(label, out var existing))
-                {
-                    throw new InvalidOperationException(
-                        $"Duplicate label '{label}' found in {existing} and {(PersonColumns) i}");
-                }
-
-                seen[label] = (PersonColumns) i;
-            }
+            throw new InvalidOperationException($"Etichetă de coloană duplicată: {duplicate.Key}");
         }
+        return labels;
+
+        void Set(PersonColumns column, params string[] values) => labels[(int) column] = values;
     }
 }
 
 public static partial class DocsExcel
 {
-    // ChatGPT code
     public static List<PersonInfo> Parse(string path)
     {
-        using var wb = new XLWorkbook(path);
-        var ws = wb.Worksheets.Worksheet(1);
-
-        // Map header labels → column indices
-        var headerRow = ws.FirstRowUsed();
-        if (headerRow is null)
-        {
-            throw new InvalidOperationException("Excel must contain the header row");
-        }
-        var colCount = headerRow.CellCount();
-
-        int[] fieldColumnIndexes = new int[(int) PersonColumns.Count];
-        for (int i = 0; i < fieldColumnIndexes.Length; i++)
-        {
-            fieldColumnIndexes[i] = -1;
-        }
-
-        for (int c = 1; c <= colCount; c++)
-        {
-            string header = headerRow.Cell(c).GetString().Trim();
-            if (string.IsNullOrEmpty(header))
-            {
-                continue;
-            }
-
-            for (int f = 0; f < (int) PersonColumns.Count; f++)
-            {
-                foreach (var label in ColumnLabels.Labels[f])
-                {
-                    if (string.Equals(header, label, StringComparison.OrdinalIgnoreCase))
-                    {
-                        fieldColumnIndexes[f] = c;
-                    }
-                }
-            }
-        }
-
-        // Validate required columns
-        foreach (PersonColumns col in Enum.GetValues(typeof(PersonColumns)))
-        {
-            if (col == PersonColumns.Count)
-            {
-                continue;
-            }
-
-            if (fieldColumnIndexes[(int) col] == -1)
-            {
-                throw new InvalidOperationException($"Missing column for {col}");
-            }
-        }
-
+        using var workbook = new XLWorkbook(path);
+        var worksheet = workbook.Worksheets.Worksheet("Persons");
+        var headerRow = worksheet.FirstRowUsed()
+            ?? throw new InvalidOperationException("Fișierul Excel trebuie să conțină antetul.");
+        var indexes = FindColumnIndexes(headerRow);
         var people = new List<PersonInfo>();
 
-        foreach (var row in ws.RowsUsed().Skip(1))
+        foreach (var row in worksheet.RowsUsed().Skip(1))
         {
-            var person = new PersonInfo
+            if (row.CellsUsed().All(cell => string.IsNullOrWhiteSpace(cell.GetString())))
             {
-                FirstName = GetString(row, fieldColumnIndexes[(int) PersonColumns.FirstName]),
-                LastName = GetString(row, fieldColumnIndexes[(int) PersonColumns.LastName]),
-                Function = GetString(row, fieldColumnIndexes[(int) PersonColumns.Function]),
-                Faculty = GetString(row, fieldColumnIndexes[(int) PersonColumns.Faculty]),
-                Department = GetString(row, fieldColumnIndexes[(int) PersonColumns.Department]),
-                Date = GetDate(row, fieldColumnIndexes[(int) PersonColumns.Date]),
-                Units = GetFloat(row, fieldColumnIndexes[(int) PersonColumns.Units]),
-                HireType = GetEnum<HireType>(row, fieldColumnIndexes[(int) PersonColumns.HireType]),
-                WorkingPlace = GetString(row, fieldColumnIndexes[(int) PersonColumns.WorkingPlace]),
-                WorkingMode = GetEnum<WorkingMode>(row, fieldColumnIndexes[(int) PersonColumns.WorkingMode]),
-                ContractEndDate = GetDateOrMin(row, fieldColumnIndexes[(int) PersonColumns.ContractEndDate]),
-                ProbationPeriodEndDate =
-                    GetDateOrMin(row, fieldColumnIndexes[(int) PersonColumns.ProbationPeriodEndDate]),
-                HomeAddress = GetString(row, fieldColumnIndexes[(int) PersonColumns.HomeAddress]),
-                PhoneNumber = GetString(row, fieldColumnIndexes[(int) PersonColumns.PhoneNumber]),
-                Email = GetString(row, fieldColumnIndexes[(int) PersonColumns.Email]),
+                continue;
+            }
+
+            people.Add(new PersonInfo
+            {
+                FirstName = GetRequiredString(row, indexes, PersonColumns.FirstName),
+                LastName = GetRequiredString(row, indexes, PersonColumns.LastName),
+                Function = AcademicFunctions.Normalize(GetRequiredString(row, indexes, PersonColumns.Function)),
+                Faculty = GetRequiredString(row, indexes, PersonColumns.Faculty),
+                Department = GetRequiredString(row, indexes, PersonColumns.Department),
+                DocumentDate = GetDate(row, indexes, PersonColumns.DocumentDate),
+                Units = GetDecimal(row, indexes, PersonColumns.Units),
+                HireType = GetEnum<HireType>(row, indexes, PersonColumns.HireType),
+                HomeAddress = GetRequiredString(row, indexes, PersonColumns.HomeAddress),
+                PhoneNumber = GetRequiredString(row, indexes, PersonColumns.PhoneNumber),
+                Email = GetRequiredString(row, indexes, PersonColumns.Email),
+                PrimaryFunction = GetString(row, indexes, PersonColumns.PrimaryFunction),
+                PrimaryEmployer = GetString(row, indexes, PersonColumns.PrimaryEmployer),
+                WorkplaceAddress = GetRequiredString(row, indexes, PersonColumns.WorkplaceAddress),
+                FacultyShort = GetString(row, indexes, PersonColumns.FacultyShort),
+                DepartmentShort = GetString(row, indexes, PersonColumns.DepartmentShort),
+                PreparedByName = GetRequiredString(row, indexes, PersonColumns.PreparedByName),
+                PreparedByDepartment = GetRequiredString(row, indexes, PersonColumns.PreparedByDepartment),
                 ID = new IDInfo
                 {
-                    BSeriesCode = GetString(row, fieldColumnIndexes[(int) PersonColumns.BISeries]),
-                    IssueDate = GetDate(row, fieldColumnIndexes[(int) PersonColumns.IDIssueDate]),
-                    PersonalIdentifier =
-                        GetString(row, fieldColumnIndexes[(int) PersonColumns.PersonalIdentifier]),
+                    BISeriesCode = GetRequiredString(row, indexes, PersonColumns.BISeries),
+                    IssueDate = GetDate(row, indexes, PersonColumns.IDIssueDate),
+                    PersonalIdentifier = GetRequiredString(row, indexes, PersonColumns.PersonalIdentifier),
                 },
-            };
-
-            people.Add(person);
+            });
         }
 
         return people;
     }
 
-    private static string GetString(IXLRow row, int col)
+    private static int[] FindColumnIndexes(IXLRow headerRow)
     {
-        return row.Cell(col).GetString().Trim();
-    }
-
-    private static float GetFloat(IXLRow row, int col)
-    {
-        return float.TryParse(row.Cell(col).GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var f)
-            ? f
-            : 0;
-    }
-
-    private static DateOnly GetDate(IXLRow row, int col)
-    {
-        if (row.Cell(col).DataType == XLDataType.DateTime)
+        var indexes = Enumerable.Repeat(-1, (int) PersonColumns.Count).ToArray();
+        foreach (var cell in headerRow.CellsUsed())
         {
-            return DateOnly.FromDateTime(row.Cell(col).GetDateTime());
+            var header = cell.GetString().Trim();
+            for (var field = 0; field < indexes.Length; field++)
+            {
+                if (ColumnLabels.Labels[field].Contains(header, StringComparer.OrdinalIgnoreCase))
+                {
+                    indexes[field] = cell.Address.ColumnNumber;
+                }
+            }
         }
 
-        if (DateTime.TryParse(row.Cell(col).GetString(), out var dt))
+        for (var field = 0; field < indexes.Length; field++)
         {
-            return DateOnly.FromDateTime(dt);
+            if (indexes[field] < 0)
+            {
+                throw new InvalidOperationException($"Lipsește coloana {ColumnLabels.Labels[field][0]}.");
+            }
         }
-
-        throw new FormatException($"Invalid date in cell {row.Cell(col).Address}");
+        return indexes;
     }
 
-    private static DateOnly GetDateOrMin(IXLRow row, int col)
-    {
-        var txt = row.Cell(col).GetString();
-        if (string.IsNullOrWhiteSpace(txt))
-        {
-            return DateOnly.MinValue;
-        }
+    private static string GetString(IXLRow row, int[] indexes, PersonColumns column) =>
+        row.Cell(indexes[(int) column]).GetString().Trim();
 
-        return GetDate(row, col);
+    private static string GetRequiredString(IXLRow row, int[] indexes, PersonColumns column)
+    {
+        var value = GetString(row, indexes, column);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new FormatException($"Câmpul {ColumnLabels.Labels[(int) column][0]} este gol în rândul {row.RowNumber()}.");
+        }
+        return value;
     }
 
-    private static TEnum GetEnum<TEnum>(IXLRow row, int col) where TEnum : struct
+    private static decimal GetDecimal(IXLRow row, int[] indexes, PersonColumns column)
     {
-        var txt = row.Cell(col).GetString().Trim();
-        if (Enum.TryParse<TEnum>(txt, ignoreCase: true, out var value))
+        var cell = row.Cell(indexes[(int) column]);
+        if (cell.TryGetValue<decimal>(out var value) ||
+            decimal.TryParse(cell.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out value) ||
+            decimal.TryParse(cell.GetString(), NumberStyles.Number, CultureInfo.GetCultureInfo("ro-MD"), out value))
         {
             return value;
         }
+        throw new FormatException($"Valoare numerică invalidă în {cell.Address}.");
+    }
 
-        throw new FormatException($"Invalid enum value '{txt}' for {typeof(TEnum).Name} at {row.Cell(col).Address}");
+    private static DateOnly GetDate(IXLRow row, int[] indexes, PersonColumns column)
+    {
+        var cell = row.Cell(indexes[(int) column]);
+        if (cell.TryGetValue<DateTime>(out var dateTime))
+        {
+            return DateOnly.FromDateTime(dateTime);
+        }
+        if (DateOnly.TryParse(cell.GetString(), CultureInfo.GetCultureInfo("ro-MD"), DateTimeStyles.None, out var date) ||
+            DateOnly.TryParse(cell.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            return date;
+        }
+        throw new FormatException($"Dată invalidă în {cell.Address}.");
+    }
+
+    private static TEnum GetEnum<TEnum>(IXLRow row, int[] indexes, PersonColumns column) where TEnum : struct
+    {
+        var cell = row.Cell(indexes[(int) column]);
+        if (Enum.TryParse<TEnum>(cell.GetString().Trim(), ignoreCase: true, out var value))
+        {
+            return value;
+        }
+        throw new FormatException($"Valoare invalidă '{cell.GetString()}' pentru {column} în {cell.Address}.");
     }
 }
