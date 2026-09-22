@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Security;
@@ -70,15 +69,6 @@ public static class AcademicFunctions
 
         return normalized;
     }
-
-    public static string OccupationCode(string function) => Normalize(function) switch
-    {
-        "asistent universitar" => "231001",
-        "conferențiar universitar" => "231004",
-        "lector universitar" => "231005",
-        "profesor universitar" => "231007",
-        _ => throw new UnreachableException(),
-    };
 }
 
 public sealed class FilePaths
@@ -257,14 +247,14 @@ public static class DocsGenerator
         var fields = CommonFields(person);
         var period = EmploymentPeriodPolicy.For(person.DocumentDate, hireType);
         fields["AcademicYear"] = $"{person.DocumentDate.Year}–{person.DocumentDate.Year + 1}";
+        fields["EmploymentBasis"] = $"pe perioada anului de studii {person.DocumentDate.Year}–{person.DocumentDate.Year + 1}";
         fields["Units"] = FormatUnits(units);
-        fields["UnitsText"] = units == 1m ? "1 unitate" : $"{FormatUnits(units)} unități";
+        fields["UnitsText"] = units == 1m ? "1.00 unitate" : $"{FormatUnits(units)} unități";
         fields["HireType"] = HireTypeForRequest(hireType);
         fields["CimHireType"] = HireTypeForCim(hireType);
         fields["DateFrom"] = FormatDate(period.Start);
         fields["DateTo"] = FormatDate(period.End);
         fields["ContractPeriod"] = $"{FormatDate(period.Start)} până la {FormatDate(period.End)}";
-        fields["OccupationCode"] = AcademicFunctions.OccupationCode(person.Function);
         fields["Workplace"] = Workplace(person);
         fields["WorkplaceAddress"] = person.WorkplaceAddress;
         fields["PrimaryFunction"] = hireType == HireType.CumulExtern ? person.PrimaryFunction : string.Empty;
@@ -363,7 +353,7 @@ public static class DocsGenerator
     }
 
     private static string FormatDate(DateOnly date) => date.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
-    private static string FormatUnits(decimal units) => units.ToString("0.##", CultureInfo.InvariantCulture);
+    private static string FormatUnits(decimal units) => units.ToString("0.00", CultureInfo.InvariantCulture);
 
     private static void GenerateDoc(
         IReadOnlyDictionary<string, string> fields,
