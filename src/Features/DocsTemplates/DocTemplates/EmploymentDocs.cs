@@ -3,6 +3,8 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Security;
 using System.Text;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 using ScheduleLib.Helper;
 
 namespace EmploymentDocs;
@@ -114,6 +116,8 @@ public static class DocsGenerator
 {
     private const decimal MaxUnitsPerDocument = 1.00m;
     private const decimal MaxTotalUnits = 2.00m;
+    private const int PrintCopiesPerRepeatedDocument = 2;
+    private const string PrintBundleFileName = "print.pdf";
 
     public static void Generate(GenerateReportParams parameters)
     {
@@ -147,29 +151,80 @@ public static class DocsGenerator
         GenerateDoc(common, parameters.TemplateFilePaths.AdditionalAgreement,
             Path.Combine(notPrintDirectory, parameters.OutputFilePaths.AdditionalAgreement));
 
-        GenerateDoc(common, parameters.TemplateFilePaths.ConsentDeclaration,
-            Path.Combine(printDirectory, parameters.OutputFilePaths.ConsentDeclaration));
-        GenerateDoc(common, parameters.TemplateFilePaths.InformationDeclaration,
-            Path.Combine(printDirectory, parameters.OutputFilePaths.InformationDeclaration));
-        GenerateDoc(common, parameters.TemplateFilePaths.OwnResponsibilityDeclaration,
-            Path.Combine(printDirectory, parameters.OutputFilePaths.OwnResponsibilityDeclaration));
+        // Documents merged into print.pdf, with their print copy counts.
+        // The hire request and the employment contract print twice per split
+        // part; the remaining print documents print once.
+        var printDocuments = new List<(string Path, int Copies)>();
 
-        if (AcademicFunctions.Normalize(person.Function) == "asistent universitar")
-        {
-            GenerateDoc(common, parameters.TemplateFilePaths.AssistantJobDescription,
-                Path.Combine(printDirectory, parameters.OutputFilePaths.AssistantJobDescription));
-        }
+        string PrintPath(string fileName) => Path.Combine(printDirectory, fileName);
 
         var repeatedDocuments = SplitUnits(person).ToArray();
         for (var index = 0; index < repeatedDocuments.Length; index++)
         {
             var part = repeatedDocuments[index];
             var fields = RepeatingFields(person, part.HireType, part.Units);
-            GenerateDoc(fields, parameters.TemplateFilePaths.HireRequest,
-                RepeatedPath(printDirectory, parameters.OutputFilePaths.HireRequest, index, repeatedDocuments.Length));
-            GenerateDoc(fields, parameters.TemplateFilePaths.IndividualEmploymentContract,
-                RepeatedPath(printDirectory, parameters.OutputFilePaths.IndividualEmploymentContract, index, repeatedDocuments.Length));
+            var hirePath = RepeatedPath(printDirectory, parameters.OutputFilePaths.HireRequest, index, repeatedDocuments.Length);
+            GenerateDoc(fields, parameters.TemplateFilePaths.HireRequest, hirePath);
+            var contractPath = RepeatedPath(printDirectory, parameters.OutputFilePaths.IndividualEmploymentContract, index, repeatedDocuments.Length);
+            GenerateDoc(fields, parameters.TemplateFilePaths.IndividualEmploymentContract, contractPath);
+            printDocuments.Add((hirePath, PrintCopiesPerRepeatedDocument));
+            printDocuments.Add((contractPath, PrintCopiesPerRepeatedDocument));
         }
+
+        var consentPath = PrintPath(parameters.OutputFilePaths.ConsentDeclaration);
+        GenerateDoc(common, parameters.TemplateFilePaths.ConsentDeclaration, consentPath);
+        printDocuments.Add((consentPath, 1));
+
+        var informationPath = PrintPath(parameters.OutputFilePaths.InformationDeclaration);
+        GenerateDoc(common, parameters.TemplateFilePaths.InformationDeclaration, informationPath);
+        printDocuments.Add((informationPath, 1));
+
+        var responsibilityPath = PrintPath(parameters.OutputFilePaths.OwnResponsibilityDeclaration);
+        GenerateDoc(common, parameters.TemplateFilePaths.OwnResponsibilityDeclaration, responsibilityPath);
+        printDocuments.Add((responsibilityPath, 1));
+
+        if (AcademicFunctions.Normalize(person.Function) == "asistent universitar")
+        {
+            var jobPath = PrintPath(parameters.OutputFilePaths.AssistantJobDescription);
+            GenerateDoc(common, parameters.TemplateFilePaths.AssistantJobDescription, jobPath);
+            printDocuments.Add((jobPath, 1));
+        }
+
+        MergePrintDocuments(personDirectory, printDocuments);
+    }
+
+    /// <summary>
+    /// Merges every generated PDF print document into a single
+    /// <c>print.pdf</c> bundle at the person-folder level, repeating each
+    /// document by its print copy count. Non-PDF outputs (the legacy DOCX
+    /// path) cannot be merged and are skipped.
+    /// </summary>
+    private static void MergePrintDocuments(
+        string personDirectory,
+        List<(string Path, int Copies)> printDocuments)
+    {
+        var pdfDocuments = printDocuments
+            .Where(document => document.Path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (pdfDocuments.Count == 0)
+        {
+            return;
+        }
+
+        using var bundle = new PdfDocument();
+        foreach (var (path, copies) in pdfDocuments)
+        {
+            using var source = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+            for (var copy = 0; copy < copies; copy++)
+            {
+                foreach (var page in source.Pages)
+                {
+                    bundle.AddPage(page);
+                }
+            }
+        }
+
+        bundle.Save(Path.Combine(personDirectory, PrintBundleFileName));
     }
 
     private static Dictionary<string, string> CommonFields(PersonInfo person) => new(StringComparer.Ordinal)
@@ -246,13 +301,6 @@ public static class DocsGenerator
         {
             throw new InvalidOperationException(
                 $"Norma didactică pentru {person.Name} trebuie să fie mai mare decât 0 și cel mult {MaxTotalUnits:0.00}.");
-        }
-
-        if (person.HireType == HireType.CumulExtern &&
-            (string.IsNullOrWhiteSpace(person.PrimaryFunction) || string.IsNullOrWhiteSpace(person.PrimaryEmployer)))
-        {
-            throw new InvalidOperationException(
-                $"Funcția de bază și angajatorul de bază sunt obligatorii pentru cumul extern ({person.Name}).");
         }
     }
 
