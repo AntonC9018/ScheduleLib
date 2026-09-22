@@ -116,7 +116,8 @@ public static class DocsGenerator
 {
     private const decimal MaxUnitsPerDocument = 1.00m;
     private const decimal MaxTotalUnits = 2.00m;
-    private const int PrintCopiesPerRepeatedDocument = 2;
+    private const int PrintCopiesPerContract = 2;
+    private const int PrintCopiesPerJobDescription = 2;
     private const string PrintBundleFileName = "print.pdf";
 
     public static void Generate(GenerateReportParams parameters)
@@ -152,8 +153,8 @@ public static class DocsGenerator
             Path.Combine(notPrintDirectory, parameters.OutputFilePaths.AdditionalAgreement));
 
         // Documents merged into print.pdf, with their print copy counts.
-        // The hire request and the employment contract print twice per split
-        // part; the remaining print documents print once.
+        // The employment contract prints twice per split part and the
+        // assistant job description twice; everything else prints once.
         var printDocuments = new List<(string Path, int Copies)>();
 
         string PrintPath(string fileName) => Path.Combine(printDirectory, fileName);
@@ -167,8 +168,8 @@ public static class DocsGenerator
             GenerateDoc(fields, parameters.TemplateFilePaths.HireRequest, hirePath);
             var contractPath = RepeatedPath(printDirectory, parameters.OutputFilePaths.IndividualEmploymentContract, index, repeatedDocuments.Length);
             GenerateDoc(fields, parameters.TemplateFilePaths.IndividualEmploymentContract, contractPath);
-            printDocuments.Add((hirePath, PrintCopiesPerRepeatedDocument));
-            printDocuments.Add((contractPath, PrintCopiesPerRepeatedDocument));
+            printDocuments.Add((hirePath, 1));
+            printDocuments.Add((contractPath, PrintCopiesPerContract));
         }
 
         var consentPath = PrintPath(parameters.OutputFilePaths.ConsentDeclaration);
@@ -187,7 +188,7 @@ public static class DocsGenerator
         {
             var jobPath = PrintPath(parameters.OutputFilePaths.AssistantJobDescription);
             GenerateDoc(common, parameters.TemplateFilePaths.AssistantJobDescription, jobPath);
-            printDocuments.Add((jobPath, 1));
+            printDocuments.Add((jobPath, PrintCopiesPerJobDescription));
         }
 
         MergePrintDocuments(personDirectory, printDocuments);
