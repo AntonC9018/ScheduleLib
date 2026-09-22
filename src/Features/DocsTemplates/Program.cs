@@ -3,13 +3,13 @@ using Microsoft.Extensions.Configuration;
 
 var fileNames = new FilePaths
 {
-    AdditionalAgreement = "acord_suplimentar.docx",
-    HireRequest = "cerere_angajare_didactica.docx",
-    IndividualEmploymentContract = "contract_individual_de_munca.docx",
-    ConsentDeclaration = "declaratie_consimtamant.docx",
-    InformationDeclaration = "declaratie_informare.docx",
-    OwnResponsibilityDeclaration = "declaratie_proprie_raspundere.docx",
-    AssistantJobDescription = "fisa_postului_asistent_universitar.docx",
+    AdditionalAgreement = "acord_suplimentar.pdf",
+    HireRequest = "cerere_angajare_didactica.pdf",
+    IndividualEmploymentContract = "contract_individual_de_munca.pdf",
+    ConsentDeclaration = "declaratie_consimtamant.pdf",
+    InformationDeclaration = "declaratie_informare.pdf",
+    OwnResponsibilityDeclaration = "declaratie_proprie_raspundere.pdf",
+    AssistantJobDescription = "fisa_postului_asistent_universitar.pdf",
 };
 
 IConfiguration config;
@@ -89,7 +89,7 @@ DocsGenerator.Generate(new()
     Data = data.ToArray(),
     OutputDir = args.FirstOrDefault(argument => argument.StartsWith("--output=", StringComparison.Ordinal))?[9..]
         ?? "output",
-    TemplateFilePaths = fileNames.Map(x => $"data/templates/{x}"),
+    TemplateFilePaths = fileNames.Map(x => $"data/pdf-backgrounds/{x}"),
     OutputFilePaths = fileNames,
     OpenOutputDirectory = !args.Contains("--no-open", StringComparer.Ordinal),
 });

@@ -206,6 +206,8 @@ public static class DocsGenerator
         fields["OccupationCode"] = AcademicFunctions.OccupationCode(person.Function);
         fields["Workplace"] = Workplace(person);
         fields["WorkplaceAddress"] = person.WorkplaceAddress;
+        fields["PrimaryFunction"] = hireType == HireType.CumulExtern ? person.PrimaryFunction : string.Empty;
+        fields["PrimaryEmployer"] = hireType == HireType.CumulExtern ? person.PrimaryEmployer : string.Empty;
         // The overlay extends into the empty space after the short street blank
         // and covers its original full stop, so retain that punctuation here.
         fields["WorkplaceAddressCompact"] = CompactWorkplaceAddress(person.WorkplaceAddress).TrimEnd('.') + ".";
@@ -314,6 +316,12 @@ public static class DocsGenerator
         string templatePath,
         string outputPath)
     {
+        if (templatePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            PdfTemplateRenderer.Render(templatePath, outputPath, fields);
+            return;
+        }
+
         DocxTemplateRenderer.Render(templatePath, outputPath, fields);
     }
 }
