@@ -38,6 +38,9 @@ internal static class PdfTemplateRenderer
 
         using var document = PdfReader.Open(backgroundPath, PdfDocumentOpenMode.Modify);
         var graphicsByPage = new Dictionary<int, XGraphics>();
+        // Overflow text that a flowTo field pushes onto its continuation field,
+        // keyed by page and field name (each page has its own pair).
+        var flowValues = new Dictionary<(int Page, string Name), string>();
 
         try
         {
@@ -53,6 +56,11 @@ internal static class PdfTemplateRenderer
                 {
                     throw new InvalidOperationException(
                         $"Câmp de șablon fără valoare în {backgroundPath}: {field.Name}");
+                }
+
+                if (flowValues.Remove((field.Page, field.Name), out var flowed))
+                {
+                    value = flowed;
                 }
 
                 if (string.IsNullOrWhiteSpace(value))
@@ -74,7 +82,7 @@ internal static class PdfTemplateRenderer
                     graphics.DrawRectangle(XBrushes.White, rectangle);
                 }
 
-                DrawFitted(graphics, value, rectangle, field, backgroundPath);
+                DrawField(graphics, value, rectangle, field, backgroundPath, flowValues);
             }
         }
         finally
@@ -86,6 +94,67 @@ internal static class PdfTemplateRenderer
         }
 
         document.Save(outputPath);
+    }
+
+    /// <summary>
+    /// Draws one field value. Fields with a <c>flowTo</c> link keep the first
+    /// line at the requested size and push the remaining words onto the
+    /// continuation field; all other fields shrink or wrap in place.
+    /// </summary>
+    private static void DrawField(
+        XGraphics graphics,
+        string value,
+        XRect rectangle,
+        PdfFieldPlacement field,
+        string backgroundPath,
+        Dictionary<(int Page, string Name), string> flowValues)
+    {
+        var text = value.Trim();
+        if (text.Length == 0)
+        {
+            return;
+        }
+
+        if (field.FlowTo is null)
+        {
+            DrawFitted(graphics, text, rectangle, field, backgroundPath);
+            return;
+        }
+
+        var font = PdfFontProvider.GetFont(field.Size);
+        var maxWidth = Math.Max(1, rectangle.Width - 2);
+        if (graphics.MeasureString(text, font).Width <= maxWidth)
+        {
+            DrawFitted(graphics, text, rectangle, field, backgroundPath);
+            flowValues[(field.Page, field.FlowTo)] = string.Empty;
+            return;
+        }
+
+        var prefix = string.Empty;
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = prefix.Length == 0 ? word : prefix + " " + word;
+            if (graphics.MeasureString(candidate, font).Width > maxWidth)
+            {
+                break;
+            }
+
+            prefix = candidate;
+        }
+
+        var rest = text.Substring(prefix.Length).TrimStart();
+
+        if (prefix.Length == 0)
+        {
+            // A single word exceeds the first line even at the requested size:
+            // fall back to shrinking the whole value in place.
+            DrawFitted(graphics, text, rectangle, field, backgroundPath);
+            flowValues[(field.Page, field.FlowTo)] = string.Empty;
+            return;
+        }
+
+        graphics.DrawString(prefix, font, XBrushes.Black, rectangle, AlignFormat(field.Align));
+        flowValues[(field.Page, field.FlowTo)] = rest;
     }
 
     private static void DrawFitted(
@@ -207,7 +276,8 @@ internal sealed record PdfFieldPlacement(
     double Height,
     double Size,
     string Align,
-    bool Cover = false);
+    bool Cover = false,
+    string? FlowTo = null);
 
 internal static class PdfManifestCache
 {

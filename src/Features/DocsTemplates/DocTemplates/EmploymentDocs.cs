@@ -182,6 +182,11 @@ public static class DocsGenerator
         ["DocumentDayMonth"] = person.DocumentDate.ToString("dd.MM", CultureInfo.InvariantCulture),
         ["DocumentYear2"] = person.DocumentDate.ToString("yy", CultureInfo.InvariantCulture),
         ["HomeAddress"] = person.HomeAddress,
+        // Continuation line for long addresses in templates whose address area
+        // spans two rules (acord). The renderer flows the overflow here via
+        // the manifest's flowTo link; empty by default so short addresses
+        // leave the second rule blank.
+        ["HomeAddressCont"] = string.Empty,
         ["PhoneNumber"] = person.PhoneNumber,
         ["Email"] = person.Email,
         ["BISeries"] = person.ID.BISeriesCode,
