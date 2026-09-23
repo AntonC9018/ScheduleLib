@@ -1,6 +1,9 @@
 <Project>
     <ItemGroup>
+        <!-- DOCX masters stay out of the build: the runtime stamps the
+             exported PDF backgrounds via the JSON placement manifests. -->
         <None Include="$(ProjectDir)data\**\*.*" CopyToOutputDirectory="Always" />
+        <None Remove="$(ProjectDir)data\**\*.docx" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(IncludeHelpers)' == 'true'">

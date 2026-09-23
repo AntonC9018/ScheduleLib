@@ -20,6 +20,12 @@ public sealed class PersonInfo
     public required DateOnly DocumentDate { get; init; }
     public required decimal Units { get; init; }
     public required HireType HireType { get; init; }
+    /// <summary>
+    /// Concurs teachers sign a multi-year contract: they gain the concurs
+    /// request and the additional agreement, but no CIM for the 1.0 part
+    /// of the norm (only for a sub-1.0 norm or the remainder above 1.0).
+    /// </summary>
+    public bool Concurs { get; init; }
     public required string WorkplaceAddress { get; init; }
     public string PrimaryFunction { get; init; } = string.Empty;
     public string PrimaryEmployer { get; init; } = string.Empty;
@@ -75,6 +81,7 @@ public sealed class FilePaths
 {
     public required string AdditionalAgreement { get; init; }
     public required string HireRequest { get; init; }
+    public required string ConcursRequest { get; init; }
     public required string IndividualEmploymentContract { get; init; }
     public required string ConsentDeclaration { get; init; }
     public required string InformationDeclaration { get; init; }
@@ -85,6 +92,7 @@ public sealed class FilePaths
     {
         AdditionalAgreement = map(AdditionalAgreement),
         HireRequest = map(HireRequest),
+        ConcursRequest = map(ConcursRequest),
         IndividualEmploymentContract = map(IndividualEmploymentContract),
         ConsentDeclaration = map(ConsentDeclaration),
         InformationDeclaration = map(InformationDeclaration),
@@ -132,51 +140,70 @@ public static class DocsGenerator
             Directory.Delete(personDirectory, recursive: true);
         }
 
-        var printDirectory = Path.Combine(personDirectory, "print");
-        var notPrintDirectory = Path.Combine(personDirectory, "not-print");
-        Directory.CreateDirectory(printDirectory);
-        Directory.CreateDirectory(notPrintDirectory);
+        var docsDirectory = Path.Combine(personDirectory, "docs");
+        Directory.CreateDirectory(docsDirectory);
 
         var common = CommonFields(person);
-        common["Units"] = FormatUnits(person.Units);
-        GenerateDoc(common, parameters.TemplateFilePaths.AdditionalAgreement,
-            Path.Combine(notPrintDirectory, parameters.OutputFilePaths.AdditionalAgreement));
+
+        if (person.Concurs)
+        {
+            // Concurs teachers sign a multi-year contract, so the additional
+            // agreement is generated only for them, outside the print bundle.
+            common["Units"] = FormatUnits(person.Units);
+            GenerateDoc(common, parameters.TemplateFilePaths.AdditionalAgreement,
+                Path.Combine(docsDirectory, parameters.OutputFilePaths.AdditionalAgreement));
+        }
 
         // Documents merged into print.pdf, with their print copy counts.
         // The employment contract prints twice per split part and the
         // assistant job description twice; everything else prints once.
+        // Under concurs the 1.0 part produces no contract: only a sub-1.0
+        // norm or the remainder above 1.0 does.
         var printDocuments = new List<(string Path, int Copies)>();
 
-        string PrintPath(string fileName) => Path.Combine(printDirectory, fileName);
+        string DocsPath(string fileName) => Path.Combine(docsDirectory, fileName);
+
+        if (person.Concurs)
+        {
+            var concursPath = DocsPath(parameters.OutputFilePaths.ConcursRequest);
+            GenerateDoc(RepeatingFields(person, person.HireType, person.Units),
+                parameters.TemplateFilePaths.ConcursRequest, concursPath);
+            printDocuments.Add((concursPath, 1));
+        }
 
         var repeatedDocuments = SplitUnits(person).ToArray();
         for (var index = 0; index < repeatedDocuments.Length; index++)
         {
             var part = repeatedDocuments[index];
             var fields = RepeatingFields(person, part.HireType, part.Units);
-            var hirePath = RepeatedPath(printDirectory, parameters.OutputFilePaths.HireRequest, index, repeatedDocuments.Length);
+            var hirePath = RepeatedPath(docsDirectory, parameters.OutputFilePaths.HireRequest, index, repeatedDocuments.Length);
             GenerateDoc(fields, parameters.TemplateFilePaths.HireRequest, hirePath);
-            var contractPath = RepeatedPath(printDirectory, parameters.OutputFilePaths.IndividualEmploymentContract, index, repeatedDocuments.Length);
-            GenerateDoc(fields, parameters.TemplateFilePaths.IndividualEmploymentContract, contractPath);
             printDocuments.Add((hirePath, 1));
-            printDocuments.Add((contractPath, PrintCopiesPerContract));
+
+            var isConcursBasePart = person.Concurs && index == 0 && person.Units >= MaxUnitsPerDocument;
+            if (!isConcursBasePart)
+            {
+                var contractPath = RepeatedPath(docsDirectory, parameters.OutputFilePaths.IndividualEmploymentContract, index, repeatedDocuments.Length);
+                GenerateDoc(fields, parameters.TemplateFilePaths.IndividualEmploymentContract, contractPath);
+                printDocuments.Add((contractPath, PrintCopiesPerContract));
+            }
         }
 
-        var consentPath = PrintPath(parameters.OutputFilePaths.ConsentDeclaration);
+        var consentPath = DocsPath(parameters.OutputFilePaths.ConsentDeclaration);
         GenerateDoc(common, parameters.TemplateFilePaths.ConsentDeclaration, consentPath);
         printDocuments.Add((consentPath, 1));
 
-        var informationPath = PrintPath(parameters.OutputFilePaths.InformationDeclaration);
+        var informationPath = DocsPath(parameters.OutputFilePaths.InformationDeclaration);
         GenerateDoc(common, parameters.TemplateFilePaths.InformationDeclaration, informationPath);
         printDocuments.Add((informationPath, 1));
 
-        var responsibilityPath = PrintPath(parameters.OutputFilePaths.OwnResponsibilityDeclaration);
+        var responsibilityPath = DocsPath(parameters.OutputFilePaths.OwnResponsibilityDeclaration);
         GenerateDoc(common, parameters.TemplateFilePaths.OwnResponsibilityDeclaration, responsibilityPath);
         printDocuments.Add((responsibilityPath, 1));
 
         if (AcademicFunctions.Normalize(person.Function) == "asistent universitar")
         {
-            var jobPath = PrintPath(parameters.OutputFilePaths.AssistantJobDescription);
+            var jobPath = DocsPath(parameters.OutputFilePaths.AssistantJobDescription);
             GenerateDoc(common, parameters.TemplateFilePaths.AssistantJobDescription, jobPath);
             printDocuments.Add((jobPath, PrintCopiesPerJobDescription));
         }
@@ -252,6 +279,11 @@ public static class DocsGenerator
         fields["UnitsText"] = units == 1m ? "1.00 unitate" : $"{FormatUnits(units)} unități";
         fields["HireType"] = HireTypeForRequest(hireType);
         fields["CimHireType"] = HireTypeForCim(hireType);
+        // Concurs request duplicates the current-employment block.
+        fields["UnitsCurrent"] = FormatUnits(units);
+        fields["FacultyCurrent"] = person.Faculty;
+        fields["DepartmentCurrent"] = person.Department;
+        fields["Solicit"] = SolicitForConcurs(hireType);
         fields["DateFrom"] = FormatDate(period.Start);
         fields["DateTo"] = FormatDate(period.End);
         fields["ContractPeriod"] = $"{FormatDate(period.Start)} până la {FormatDate(period.End)}";
@@ -329,6 +361,14 @@ public static class DocsGenerator
         HireType.CumulIntern => "prin cumul intern",
         HireType.CumulExtern => "prin cumul extern",
         HireType.Contract or HireType.Titular => "de bază",
+        _ => throw new ArgumentOutOfRangeException(nameof(hireType)),
+    };
+
+    private static string SolicitForConcurs(HireType hireType) => hireType switch
+    {
+        HireType.CumulIntern => "angajarea prin cumul intern",
+        HireType.CumulExtern => "angajarea prin cumul extern",
+        HireType.Contract or HireType.Titular => "transferul normei didactice",
         _ => throw new ArgumentOutOfRangeException(nameof(hireType)),
     };
 

@@ -5,6 +5,7 @@ var fileNames = new FilePaths
 {
     AdditionalAgreement = "acord_suplimentar.pdf",
     HireRequest = "cerere_angajare_didactica.pdf",
+    ConcursRequest = "cerere_concurs.pdf",
     IndividualEmploymentContract = "contract_individual_de_munca.pdf",
     ConsentDeclaration = "declaratie_consimtamant.pdf",
     InformationDeclaration = "declaratie_informare.pdf",

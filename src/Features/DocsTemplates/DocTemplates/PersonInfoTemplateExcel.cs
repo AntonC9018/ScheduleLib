@@ -41,9 +41,11 @@ public static partial class DocsExcel
         Set(PersonColumns.DepartmentShort, defaultPerson.DepartmentShort);
         Set(PersonColumns.PreparedByName, defaultPerson.PreparedByName);
         Set(PersonColumns.PreparedByDepartment, defaultPerson.PreparedByDepartment);
+        Set(PersonColumns.Concurs, defaultPerson.Concurs);
 
         AddAllowedValues(PersonColumns.Function, AcademicFunctions.Allowed);
         AddAllowedValues(PersonColumns.HireType, Enum.GetNames<HireType>());
+        AddAllowedValues(PersonColumns.Concurs, ["TRUE", "FALSE"]);
         worksheet.SheetView.FreezeRows(1);
         worksheet.Columns().AdjustToContents();
 
@@ -59,13 +61,15 @@ public static partial class DocsExcel
             var cell = worksheet.Cell(DefaultRow, (int) column + 1);
             switch (value)
             {
-                case DateOnly date:
-                    cell.Value = date.ToDateTime(TimeOnly.MinValue);
+                case DateOnly date:                    cell.Value = date.ToDateTime(TimeOnly.MinValue);
                     worksheet.Column((int) column + 1).Style.NumberFormat.Format = "dd.mm.yyyy";
                     break;
                 case decimal number:
                     cell.Value = number;
                     worksheet.Column((int) column + 1).Style.NumberFormat.Format = "0.00";
+                    break;
+                case bool flag:
+                    cell.Value = flag;
                     break;
                 default:
                     cell.Value = value?.ToString() ?? string.Empty;

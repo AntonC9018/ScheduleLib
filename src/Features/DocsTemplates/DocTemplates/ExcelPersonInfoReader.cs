@@ -8,7 +8,7 @@ public enum PersonColumns
     FirstName, LastName, Function, Faculty, Department, DocumentDate, Units, HireType,
     HomeAddress, PhoneNumber, Email, BISeries, IDIssueDate, PersonalIdentifier,
     PrimaryFunction, PrimaryEmployer, WorkplaceAddress, FacultyShort, DepartmentShort,
-    PreparedByName, PreparedByDepartment,
+    PreparedByName, PreparedByDepartment, Concurs,
     Count,
 }
 
@@ -40,6 +40,7 @@ public static class ColumnLabels
         Set(PersonColumns.DepartmentShort, "DepartmentShort", "DepartamentScurt");
         Set(PersonColumns.PreparedByName, "PreparedByName", "ÎntocmităDe");
         Set(PersonColumns.PreparedByDepartment, "PreparedByDepartment", "DepartamentÎntocmitor");
+        Set(PersonColumns.Concurs, "Concurs");
 
         var duplicate = labels.SelectMany(values => values)
             .GroupBy(value => value, StringComparer.OrdinalIgnoreCase)
@@ -85,6 +86,7 @@ public static partial class DocsExcel
                 DocumentDate = GetDate(row, indexes, PersonColumns.DocumentDate),
                 Units = GetDecimal(row, indexes, PersonColumns.Units),
                 HireType = GetEnum<HireType>(row, indexes, PersonColumns.HireType),
+                Concurs = GetBool(row, indexes, PersonColumns.Concurs),
                 HomeAddress = GetRequiredString(row, indexes, PersonColumns.HomeAddress),
                 PhoneNumber = GetRequiredString(row, indexes, PersonColumns.PhoneNumber),
                 Email = GetRequiredString(row, indexes, PersonColumns.Email),
@@ -180,5 +182,20 @@ public static partial class DocsExcel
             return value;
         }
         throw new FormatException($"Valoare invalidă '{cell.GetString()}' pentru {column} în {cell.Address}.");
+    }
+
+    private static bool GetBool(IXLRow row, int[] indexes, PersonColumns column)
+    {
+        var cell = row.Cell(indexes[(int) column]);
+        if (cell.TryGetValue<bool>(out var value))
+        {
+            return value;
+        }
+        return cell.GetString().Trim().ToLowerInvariant() switch
+        {
+            "true" or "1" or "da" or "yes" or "x" => true,
+            "false" or "0" or "nu" or "no" or "" => false,
+            _ => throw new FormatException($"Valoare invalidă '{cell.GetString()}' pentru {column} în {cell.Address}. Așteptat TRUE/FALSE."),
+        };
     }
 }
