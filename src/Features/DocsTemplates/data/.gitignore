@@ -1,7 +1,0 @@
-# Personal info
-docs_data.xlsx
-# Private uni docs: Word masters and their measured PDF placement manifests
-templates/*.docx
-templates/*.json
-# Generated locally from the templates via tools/export_pdf_template_backgrounds.ps1
-pdf-backgrounds/*.pdf
