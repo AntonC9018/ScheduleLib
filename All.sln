@@ -1,4 +1,4 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurriculumShared", "src\Features\CurriculumShared\CurriculumShared.csproj", "{9566925D-C674-450C-BA0F-8086A23F7B04}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConvertDocToDocx", "src\Features\ConvertDocToDocx\ConvertDocToDocx.csproj", "{204B90D3-368A-49B8-A484-B82E8792CD8D}"
@@ -151,12 +151,26 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "src\Tests\Common"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "src\Tests", "{859DA9E0-5B2E-449E-9E95-223C9D2770A1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParsePdf", "src\Features\ParsePdf\ParsePdf.csproj", "{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParsePdf.Tests", "src\Features\Tests\ParsePdf\ParsePdf.Tests.csproj", "{F65661F1-38BD-4578-895B-95725B059EDE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FmiScheduleImport", "src\Features\FmiScheduleImport\FmiScheduleImport.csproj", "{9FA14926-92F4-4DC2-8023-76305299C7CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F65661F1-38BD-4578-895B-95725B059EDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F65661F1-38BD-4578-895B-95725B059EDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F65661F1-38BD-4578-895B-95725B059EDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F65661F1-38BD-4578-895B-95725B059EDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9566925D-C674-450C-BA0F-8086A23F7B04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9566925D-C674-450C-BA0F-8086A23F7B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9566925D-C674-450C-BA0F-8086A23F7B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -297,11 +311,17 @@ Global
 		{24A0A4ED-4ACB-4AB9-B55C-0CD8EB68329B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24A0A4ED-4ACB-4AB9-B55C-0CD8EB68329B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{24A0A4ED-4ACB-4AB9-B55C-0CD8EB68329B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FA14926-92F4-4DC2-8023-76305299C7CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FA14926-92F4-4DC2-8023-76305299C7CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FA14926-92F4-4DC2-8023-76305299C7CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FA14926-92F4-4DC2-8023-76305299C7CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{F65661F1-38BD-4578-895B-95725B059EDE} = {26D7F1FA-776E-44C4-9E21-1B22A46987AA}
+		{FBFDA770-1559-42CF-B2E3-77BFE2CEF83F} = {9B3C264B-9DA8-4BB4-9579-23D479BFFDA8}
 		{204B90D3-368A-49B8-A484-B82E8792CD8D} = {A4B78FDE-7A04-43E6-BEC8-48094B6671CB}
 		{A4B78FDE-7A04-43E6-BEC8-48094B6671CB} = {9B3C264B-9DA8-4BB4-9579-23D479BFFDA8}
 		{72D46349-E223-4B43-9295-455F0024D0CC} = {F607E63C-CABB-4205-8D99-BDA88242D301}
@@ -371,6 +391,7 @@ Global
 		{19B0A502-F206-4E8E-B60F-9700E0C7D207} = {6A9C3A24-B67A-4642-AF26-152F5A82EDF4}
 		{24A0A4ED-4ACB-4AB9-B55C-0CD8EB68329B} = {E177C8E0-2ADA-4328-9FD3-DD41ADB357A9}
 		{E177C8E0-2ADA-4328-9FD3-DD41ADB357A9} = {859DA9E0-5B2E-449E-9E95-223C9D2770A1}
+		{9FA14926-92F4-4DC2-8023-76305299C7CE} = {9B3C264B-9DA8-4BB4-9579-23D479BFFDA8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {243B26F8-4A98-46C2-A906-7B8CE0DA5B1E}

@@ -64,6 +64,9 @@ public sealed class InvalidGroupNameException : ScheduleBuildException
 /// </summary>
 public sealed class InvalidScheduleDocumentException : ScheduleBuildException
 {
+    public static InvalidScheduleDocumentException ForUnknownTimeSlot(TimeOnly start) =>
+        new($"Unknown lesson start time: {start}");
+
     private InvalidScheduleDocumentException(string message)
         : base(message)
     {

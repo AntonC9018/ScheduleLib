@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -71,7 +72,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             loader.Components.Add(l);
         }
 
-        var context = ActivatorUtilities.CreateInstance<DocParseContext>(sp, builder);
+        var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
         await loader.Load(
             context,
             cancellationToken,
