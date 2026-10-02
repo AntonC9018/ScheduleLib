@@ -13,17 +13,20 @@ public sealed class ScheduleLoading
 {
     private ObservableValueSource<Schedule> _names;
     public ObservableValue<Schedule> Names => _names.As();
+    private ObservableValueSource<string> _status;
+    public ObservableValue<string> Status => _status.As();
 
     public ScheduleLoading(IDispatcher dispatcher)
     {
         _names = dispatcher.CreateObservableValue(Schedule.Empty);
+        _status = dispatcher.CreateObservableValue("Schedule not loaded. Teacher search is unavailable.");
     }
 
     public async void StartLoading(
         IServiceProvider sp,
         CancellationToken cancellationToken)
     {
-        // TODO: Do this better?
+        _status.Value = "Loading schedule…";
         try
         {
             await Task.Run(async () =>
@@ -32,6 +35,7 @@ public sealed class ScheduleLoading
                     Dispatcher.UIThread.Post(() =>
                     {
                         _names.Value = sp.GetRequiredService<ScheduleProvider>().Get();
+                        _status.Value = "Schedule loaded. Search for a teacher by name.";
                     });
                 },
                 cancellationToken);
@@ -39,6 +43,10 @@ public sealed class ScheduleLoading
         catch (Exception e)
         {
             Console.WriteLine(e);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _status.Value = $"Could not load schedule: {e.Message}";
+            });
         }
     }
 }

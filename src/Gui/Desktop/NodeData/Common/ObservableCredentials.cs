@@ -7,60 +7,35 @@ namespace Desktop.NodeData.Features.Registry;
 
 public static class ObservableCredentials
 {
-    public static ViewModelId Id;
+    public static ViewModelId Id { get; } = new(typeof(CredentialsPropertyViewModel));
 }
 
-public sealed class ObservableCredentials<T> : ObservableObject
-    where T : class, ICredentialsHolder
+/// <summary>A reusable editor for any CredentialsSource property.</summary>
+public sealed class CredentialsPropertyViewModel : ObservableObject, IPropertyEditorViewModel
 {
-    private ConditionallyEditableData<T> _m;
-    public void Set(ConditionallyEditableData<T> m)
-    {
-        _m = m;
-        OnPropertyChanged((string?) "");
-    }
-
+    private PropertyEditorContext? _context;
+    private Credentials? Read => (_context?.Value as ValueCredentialsSource)?.Value;
     public string Login
     {
-        get => Model()?.Login ?? "";
-        set => Model()?.Login = value;
-        // {
-        //     var m = Model;
-        //     SetProperty(m.Login, value, m, static (m, v) => m.Login = v);
-        // }
+        get => Read?.Login ?? "";
+        set => Write(value, Password);
     }
-
     public string Password
     {
-        get => Model()?.Password ?? "";
-        set => Model()?.Password = value;
-        // {
-        //     var m = Model;
-        //     SetProperty(m.Password, value, m, static (m, v) => m.Password = v);
-        // }
+        get => Read?.Password ?? "";
+        set => Write(Login, value);
     }
-
-    public Credentials? Model()
+    public void Update(PropertyEditorContext context)
     {
-        if (_m.Value is null)
-        {
-            return null;
-        }
-        var builder = new CredentialsSourceBuilder(_m.Value);
-        var source = builder.Value(overwriteIfOther: _m.IsEditable);
-        if (source is null)
-        {
-            return null;
-        }
-        if (source.Value is not { } x)
-        {
-            x = new Credentials
-            {
-                Login = "",
-                Password = "",
-            };
-            source.Value = x;
-        }
-        return x;
+        _context = context;
+        OnPropertyChanged(nameof(Login));
+        OnPropertyChanged(nameof(Password));
     }
+    private void Write(string login, string password)
+    {
+        if (_context is not { IsEditable: true } context || (Login == login && Password == password)) return;
+        // Replace the value through the generated property's guarded setter; don't mutate inherited sources.
+        context.SetValue(new ValueCredentialsSource { Value = new Credentials { Login = login, Password = password } });
+    }
+    public void Dispose() => _context = null;
 }

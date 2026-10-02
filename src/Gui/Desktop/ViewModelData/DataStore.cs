@@ -56,6 +56,7 @@ public sealed class DataStore : IDisposable
     {
         NodeDataChangeDispatcher.Dispose();
         UiSelectedNodeViewModel.Dispose();
+        LayerLevelViewModel.Dispose();
     }
 }
 

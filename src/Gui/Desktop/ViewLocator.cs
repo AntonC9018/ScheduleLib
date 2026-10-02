@@ -28,6 +28,10 @@ public sealed partial class ViewLocator : IDataTemplate
             return null;
         }
 
+        if (param is PropertySetViewModel)
+        {
+            return new PropertySetView();
+        }
         var t = param.GetType();
         if (t.IsAssignableTo(typeof(INodeDataVmHost)))
         {
@@ -55,7 +59,7 @@ public sealed partial class ViewLocator : IDataTemplate
 
     public bool Match(object? data)
     {
-        return data is ObservableObject;
+        return data is ObservableObject or IPropertyEditorViewModel;
     }
 }
 
@@ -97,7 +101,7 @@ public static class ViewAndViewModelConverter
         //     return null;
         // }
         // var bName = $"{aName[.. ^remove.Length]}{add}";
-        var bType = Type.GetType(bName);
+        var bType = type.Assembly.GetType(bName);
         return bType;
     }
 }

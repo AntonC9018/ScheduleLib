@@ -68,6 +68,7 @@ public struct VmBuilderData<T> : IDisposable
         {
             d.Dispose();
         }
+        Accessor.Dispose();
     }
 
     public NodeDataViewModelResult Build()
@@ -162,6 +163,8 @@ public readonly struct VmFactoryBuilder<T, TVM>
     {
         _builder = builder;
     }
+
+    public VmFactory<T> CreateFactory() => _builder.CreateFactory();
 
     public VmFactoryBuilder<T, TVM2> Use<TVM2>(Func<VmBuilder<T, TVM>, TVM2> factory)
         where TVM2 : ObservableObject, IDisposable

@@ -36,7 +36,7 @@ public sealed partial class App : Application
         services.AddTransient<MainWindowViewModel>();
 
         NodeDataViewModelResolver.Register(services);
-        RegistryConfigViewModel.Register(services);
+        RegistryEditorRegistration.Register(services);
 
         services.AddSingleton<IAllTeacherNamesProvider>(sp =>
         {
@@ -64,7 +64,6 @@ public sealed partial class App : Application
         services.AddTransient<NodeDataEditorView>();
         services.AddTransient<NodeDataVmHostView>();
 
-        services.AddTransient<RegistryConfigView>();
 
         services.AddSingleton<ViewLocator>();
 

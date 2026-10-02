@@ -27,15 +27,21 @@ public sealed partial class UpdateTreeHelper
     {
         _treeContext.Dispatcher.StartQueueing();
 
-        var previousPath = _path.NodePath.Get();
-        var path = await change();
-        if (path == default)
+        try
         {
-            path = CreateNewPath(previousPath);
+            var previousPath = _path.NodePath.Get();
+            var path = await change();
+            if (path == default)
+            {
+                path = CreateNewPath(previousPath);
+            }
+            Debug.Assert(path != default);
+            _path.NodePath.Set(path);
         }
-        Debug.Assert(path != default);
-        _path.NodePath.Set(path);
-        await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
+        finally
+        {
+            await Dispatcher.UIThread.InvokeSyncFallingBackToAsync(Continue);
+        }
 
         void Continue()
         {

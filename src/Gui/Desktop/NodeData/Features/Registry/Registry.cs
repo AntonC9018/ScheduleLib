@@ -13,7 +13,7 @@ public sealed class Registry<T>
 
     public Registry(
         IOptionsMonitor<ThingRegistryOptions<T>> monitor,
-        string? optionKey)
+        string? optionKey = null)
     {
         var options = monitor.Get(optionKey);
         _values = options.Values;
@@ -25,13 +25,14 @@ public sealed class Registry<T>
         var x = _values.FirstOrDefault(x => _comparer.Equals(x.Value, value));
         if (x is null)
         {
-            throw new NotImplementedException("Implement the proper registry system!");
+            throw new KeyNotFoundException($"No registered choice for {typeof(T).Name}.");
         }
 
         return x;
     }
 
     public IReadOnlyList<Named<T>> Values => _values;
+    public IEqualityComparer<T> Comparer => _comparer;
 }
 
 public sealed class ThingRegistryOptions<T>
@@ -102,7 +103,7 @@ public static class ThingRegistryHelper
             RegistryKey<T> key,
             Action<ThingRegistryOptions<T>> configure)
         {
-            services.Configure(key.ToString(), configure);
+            services.Configure(key == default ? null : key.ToString(), configure);
         }
     }
 
