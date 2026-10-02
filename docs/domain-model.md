@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A `Group` contains every student registered under one university group identity. Students inside it may be partitioned independently by numeric subgroup, language subgroup, language proficiency, specialization, and alternative. A generated student schedule represents one combination of the active partitions.
+A `Group` contains every student registered under one university group identity. The current implementation partitions students independently by numeric subgroup, language subgroup, language proficiency, specialization, and one generic alternative axis. A generated student schedule represents one combination of those implemented partitions.
 
 `Group.Language` is separate metadata. It does not represent a language subgroup.
 
@@ -70,11 +70,17 @@ These are specializations, not special subgroups.
 
 ### Alternative
 
-`Alternative` is a readonly, null-backed string value. `All` means that the lesson has no alternative restriction. It is not an enum because the choices (elective tracks students pick one of, such as `A1`) are configured per schedule.
+`Alternative` is a readonly, null-backed string value. `All` means that the lesson has no alternative restriction. It is not an enum because its configured values, such as `A1`, vary by schedule.
 
 It mirrors `Specialization`: at most one value per lesson; unset means `All`; a single observed value for a Group behaves as shared; two or more observed values activate the alternative partition and join the combination product. Student populations intersect on every split dimension: `All` intersects everything, two differing concrete values do not.
 
 The serialized cache field is non-required: caches written before alternatives existed still load, with a missing value deserializing as `All`.
+
+#### Known limitation: multiple curriculum choice blocs
+
+`Alternative` is one scalar implementation axis; it is not a curriculum Choice bloc. A real curriculum may define several independent, semester-scoped blocs, with each student selecting one option from each bloc. The present model cannot retain the bloc identity or represent that vector of simultaneous selections without incorrectly treating every option as mutually exclusive.
+
+The future domain model needs plan-specific Choice blocs, their Curriculum options, and per-bloc Student choices. Options in one bloc identify disjoint audiences and therefore may overlap in the timetable, but bloc membership must not itself create a same-slot constraint. The [year-3 curriculum research](wayfinder/year3-curriculum-website-research.md) records the source evidence and cardinalities.
 
 ## Discovering active partitions
 
