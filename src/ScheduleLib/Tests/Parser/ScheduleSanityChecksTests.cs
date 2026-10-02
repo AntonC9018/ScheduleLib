@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.Lesson;
@@ -340,11 +341,11 @@ public sealed class ScheduleSanityChecksTests
         Assert.Equal(SpecialSubGroups.Eng, lesson.Model.Base.Group.SubGroup);
     }
 
-    private static (DocParseContext Context, GroupId Group) CreateDocContext(
+    private static (ScheduleImportContext Context, GroupId Group) CreateDocContext(
         SpecializationRegistry? specializationRegistry = null,
         SubGroupPrefixMatcher? subGroupMatcher = null)
     {
-        var context = DocParseContext.Create(new()
+        var context = ScheduleImportContext.Create(new()
         {
             DayNameProvider = new DayNameProvider(),
             CourseNameUnifierConfig = Config.CourseNameUnifier,

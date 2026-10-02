@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using System.Collections.Immutable;
 using ScheduleLib.Helper;
 
@@ -7,7 +8,7 @@ namespace ScheduleLib;
 /// Injectable prefix matcher over subgroup/specialization labels.
 /// Follows the <see cref="Parsing.Lesson.RoomParser"/> precedent: a concrete
 /// sealed class with a <see cref="Default"/> instance, taken via ctor/param
-/// (<see cref="Parsing.WordDoc.DocParseContext"/>). The parser uses the
+/// (<see cref="Parsing.ScheduleImportContext"/>). The parser uses the
 /// injected instance, so it no longer depends on the exact
 /// <see cref="Specializations.AllKnown"/> list; callers with their own labels
 /// supply their own candidate set.
