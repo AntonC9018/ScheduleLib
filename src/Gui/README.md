@@ -18,11 +18,13 @@ These previews render the actual Avalonia views with a configured teacher and UI
 
 The screen configures the existing registry integration. It does not execute registry synchronization. The schedule's loading/error state is shown below teacher search; configured teachers can still be selected if loading fails.
 
-## Editor integration
+## Avalonia property-set builder
 
-`RegistryEditorFactory` uses the existing `VmFactoryBuilder`, `NodeDataAccessor`, and `NodeDataVmHost` to construct the registry editor and update it when selection changes. The configuration selector uses the factory's shared key and selects the editor at startup. The experimental generic property-set builders remain separate from this working registration.
+The property-set sketch is implemented as a reusable configuration, layout, view-model, and Avalonia rendering pipeline. The registry editor now uses this pipeline through `RegistryEditorRegistration`; it has no configuration-specific host view or view model.
 
-The main view model owns and disposes its child view models. Editor hosts dispose their inner view model and accessor. Credential getters preserve inherited credential sources and only create explicit credentials on an editable write.
+See [the builder guide](docs/property-set-builder.md) for registration, mapped properties, nested groups, registries, and custom editors. `ConfigurePropertySet` defines property behavior, `AddPropertySetDisplayFactory` defines its layout, and `PropertySetView` renders the generated tree.
+
+The main view model owns its child view models. Generated editor results own their accessors, refresh subscriptions, and custom editor view models. Credential getters preserve inherited credential sources and only create explicit credentials on an editable write.
 
 ## Run and validate
 
@@ -41,4 +43,4 @@ For this change, the available SDK was .NET 10.0.401. Validation used an isolate
 dotnet test src/Gui/Tests/Desktop/Desktop.Tests.csproj -p:EnableWindowsTargeting=true -p:NuGetAudit=false
 ```
 
-All 22 desktop tests passed. `NuGetAudit=false` bypassed an existing AngleSharp 1.2.0 advisory that otherwise fails restore under the repository's warnings-as-errors policy. Light and dark screenshots were rendered through Avalonia Headless and Skia. The native .NET 11 build and live schedule/registry integrations were not exercised in this environment.
+All 33 desktop tests passed, including headless Avalonia control interactions, configuration precedence, mappings, multiple sources, custom editors, and disposal. `NuGetAudit=false` bypassed an existing AngleSharp 1.2.0 advisory that otherwise fails restore under the repository's warnings-as-errors policy. Light and dark screenshots were rendered through Avalonia Headless and Skia. The native .NET 11 build and live schedule/registry integrations were not exercised in this environment.

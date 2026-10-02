@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using Desktop.NodeData.Common;
 using Desktop.NodeData.Features.Registry;
 using Desktop.ViewModelData;
@@ -8,48 +9,50 @@ namespace Desktop.Tests;
 
 public sealed class EditorTests
 {
-    [Fact]
+    [AvaloniaFact]
     public async Task RegistryEditorIsSelectedOnStartup()
     {
         await using var c = Context.Create();
         var editor = c.Main.NodeDataEditor;
-        Assert.Equal(RegistryEditorFactory.EditorKey, editor.CurrentConfigType?.Key);
-        var host = Assert.IsAssignableFrom<INodeDataVmHost>(editor.SelectedNodeEditorViewModel);
-        Assert.IsType<RegistryConfigViewModel>(host.Inner);
-        Assert.False(host.IsEditable);
+        Assert.Equal(RegistryEditorRegistration.EditorKey, editor.CurrentConfigType?.Key);
+        var generated = Assert.IsType<PropertySetViewModel>(editor.SelectedNodeEditorViewModel);
+        Assert.IsType<CredentialsPropertyViewModel>(generated.Properties.Single(p => p.Id.Name == "Credentials").Editor);
+        Assert.False(generated.IsEditable);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task EnablingTeacherEditingUpdatesEditorAndAllowsResetToInheritedSettings()
     {
         await using var c = Context.Create();
         c.Main.LayerLevelSelection.LayerLevel = LayerLevel.ProgrammableUser;
         c.Main.NodeSelection.Model.SelectedNode = c.Main.NodeSelection.Model.AllNodes.First(x => !x.IsNull);
-        var host = Assert.IsAssignableFrom<INodeDataVmHost>(c.Main.NodeDataEditor.SelectedNodeEditorViewModel);
-        Assert.False(host.IsEditable);
+        var generated = Assert.IsType<PropertySetViewModel>(c.Main.NodeDataEditor.SelectedNodeEditorViewModel);
+        Assert.False(generated.IsEditable);
         c.Main.EnableSelectedUser();
-        Assert.True(host.IsEditable);
-        var registry = Assert.IsType<RegistryConfigViewModel>(host.Inner);
-        registry.DryRun = true;
-        Assert.True(registry.DryRun);
-        registry.DryRun = false;
-        Assert.False(registry.DryRun);
-        registry.DryRun = null;
-        Assert.Null(registry.DryRun);
+        Assert.True(generated.IsEditable);
+        var dryRun = generated.Properties.Single(p => p.Id.Name == "DryRun");
+        dryRun.BooleanValue = true;
+        Assert.True(dryRun.BooleanValue);
+        dryRun.BooleanValue = false;
+        Assert.False(dryRun.BooleanValue);
+        dryRun.BooleanValue = null;
+        Assert.Null(dryRun.BooleanValue);
 
-        registry.ExtraLesson.Value = registry.ExtraLesson.Values.First(x => x.Name == "Delete");
-        Assert.Equal(ExtraLessonInstanceAction.Delete, registry.ExtraLesson.Value?.Value);
-        registry.ExtraLesson.Value = Named<ExtraLessonInstanceAction>.Default;
-        Assert.Same(Named<ExtraLessonInstanceAction>.Default, registry.ExtraLesson.Value);
+        var extra = generated.Properties.Single(p => p.Id.Name == "ExtraLessonInstanceAction");
+        extra.SelectedChoice = extra.Choices.First(x => x.Name == "Delete");
+        Assert.Equal(ExtraLessonInstanceAction.Delete, extra.Value);
+        extra.SelectedChoice = extra.Choices.First(x => x.IsDefault);
+        Assert.Null(extra.Value);
+
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ReadingOrWritingReadOnlyCredentialsPreservesTheConfiguredSource()
     {
         var source = new AppConfigCredentialsSource();
         var config = new RegistryConfig { Credentials = source };
-        var credentials = new ObservableCredentials<RegistryConfig>();
-        credentials.Set(new(false, config));
+        using var credentials = new CredentialsPropertyViewModel();
+        credentials.Update(new(config, source, false, _ => throw new InvalidOperationException("Read-only credentials must not be written.")));
         Assert.Equal("", credentials.Login);
         Assert.Equal("", credentials.Password);
         credentials.Login = "ignored";
@@ -57,7 +60,7 @@ public sealed class EditorTests
         Assert.Same(source, config.Credentials);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task MissingSavedLayersReportsAnEmptyState()
     {
         await using var c = Context.Create();
@@ -67,7 +70,7 @@ public sealed class EditorTests
         Assert.StartsWith("No saved UI layers found", c.Main.StatusMessage);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task MalformedLoadReportsFailureAndDoesNotLeaveTheDispatcherQueueing()
     {
         await using var c = Context.Create();

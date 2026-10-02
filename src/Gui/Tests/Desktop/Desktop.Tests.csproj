@@ -3,6 +3,7 @@
         <TargetFramework>$(WindowsTarget)</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.11" />
         <ProjectReference Include="..\..\Desktop\Desktop.csproj" />
     </ItemGroup>
 </Project>

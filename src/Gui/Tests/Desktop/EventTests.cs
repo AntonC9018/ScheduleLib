@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using System.Collections.Immutable;
 using Anton.LayeredData;
 using Desktop.MainWindow;
@@ -11,7 +12,7 @@ namespace Desktop.Tests;
 
 public sealed class EventTests
 {
-    [Fact]
+    [AvaloniaFact]
     public async Task LayerChangedTest()
     {
         await using var c = Context.Create();
@@ -46,7 +47,7 @@ public sealed class EventTests
         nodeSelection.Model.SelectedNode = nodeToSelect;
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task NodeChangedTest()
     {
         await using var c = Context.Create();
@@ -89,7 +90,7 @@ public sealed class EventTests
         Assert.True(c.Main.CanRemoveSelectedUser);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task ReloadWorks()
     {
         await using var c = Context.Create();
@@ -176,7 +177,7 @@ public sealed class Context : IAsyncDisposable
         Tags.Dispose();
     }
 
-    public static Context Create()
+    public static Context Create(Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
@@ -188,6 +189,7 @@ public sealed class Context : IAsyncDisposable
         services.RemoveAll<IAllTeacherNamesProvider>();
         services.AddSingleton<IAllTeacherNamesProvider, MockTeacherNamesProvider>();
 
+        configure?.Invoke(services);
         var sp = AppConfiguration.BuildServiceProvider(services);
 
         try

@@ -78,7 +78,7 @@ public sealed class ConfigTypesProvider
     public ConfigType[] ConfigTypes = [new()
     {
         DisplayName = "Online registry",
-        Key = Desktop.NodeData.Features.Registry.RegistryEditorFactory.EditorKey,
+        Key = Desktop.NodeData.Features.Registry.RegistryEditorRegistration.EditorKey,
     }];
 }
 
