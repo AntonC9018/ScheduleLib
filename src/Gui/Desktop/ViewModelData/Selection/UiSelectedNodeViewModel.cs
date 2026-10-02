@@ -21,7 +21,7 @@ public sealed record class UiNode
     public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();
-    public override string ToString() => IsNull ? "No User" : Name.ToString();
+    public override string ToString() => IsNull ? "No teacher selected" : Name.ToString();
 }
 
 public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable

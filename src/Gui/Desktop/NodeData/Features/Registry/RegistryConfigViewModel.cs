@@ -1,4 +1,3 @@
-using Avalonia.Controls;
 using Desktop.NodeData.Common;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.OnlineRegistry.Impl;
@@ -17,57 +16,7 @@ public sealed class RegistryConfigViewModel(
 {
     public static void Register(IServiceCollection services)
     {
-        services.AddPropertySetDisplayFactory(
-            new("Online Registry"),
-            b => b.SourceFrom(RegistryConfig.Key)
-            // b => b.SourceFrom(RegistryConfig.Key, c =>
-            // {
-            //     c.IncludeAll();
-            //
-            //     var viewId = new ViewId(typeof(UserControl));
-            //     c.IncludeProperty(x => x.CommandProcessingConfig).UseView(viewId);
-            // })
-            );
-
-        services.ConfigurePropertySet(RegistryConfig.Key, b =>
-        {
-            // Can easily do a loop over each type.
-            b.Property<bool>("DryRun")
-                .Uses(x => x.CommandProcessingConfig)
-                // .GetUnwrap(c => c.HasAnyDryRun(LessonEquationCommandTypes.All))
-                .Get(c => c?.HasAnyDryRun(LessonEquationCommandTypes.All) ?? false)
-                .Set((commandProcessingConfigValue, value) =>
-                {
-                    CommandProcessingConfigBuilder b1;
-                    if (commandProcessingConfigValue is { } c)
-                    {
-                        b1 = c.Builder();
-                    }
-                    else
-                    {
-                        b1 = new();
-                        b1.Log().SetAll();
-                        b1.Process().SetAll();
-                    }
-
-                    b1.DryRun().SetAll(value);
-                    return b1.Build();
-                });
-
-            b.Property(x => x.ExtraLessonInstanceAction)
-                .Rename("ExtraLesson")
-                .UseDefaultRegistry();
-
-            b.Property(x => x.EquationCommandsDerivation)
-                .Rename("Derivation")
-                .UseDefaultRegistry();
-        });
-
-        services.ConfigurePropertySetDefaults(b =>
-        {
-            b.PropertiesWithType<CredentialsSource>(p => p.UseVm(ObservableCredentials.Id));
-            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials).UseVm(ObservableCredentials.Id));
-        });
+        services.AddSingleton<IPropertySetViewModelFactory, RegistryEditorFactory>();
 
         services.AddRegistry<IEquationCommandsDerivation>(opts =>
         {
@@ -123,6 +72,13 @@ public sealed class RegistryConfigViewModel(
                 throw new InvalidOperationException("Cannot set DryRun when no node selected");
             }
 
+            if (value is null)
+            {
+                v.CommandProcessingConfig = null;
+                OnPropertyChanged();
+                return;
+            }
+
             CommandProcessingConfigBuilder b;
             if (v.CommandProcessingConfig is { } c)
             {
@@ -137,6 +93,21 @@ public sealed class RegistryConfigViewModel(
 
             b.DryRun().SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
+            OnPropertyChanged();
         }
+    }
+}
+
+public sealed class RegistryEditorFactory : IPropertySetViewModelFactory
+{
+    public static PropertySetId EditorKey { get; } = new("Online Registry");
+    public PropertySetId Key => EditorKey;
+
+    public NodeDataViewModelResult Create(NodeDataVMCreateParams p)
+    {
+        var factory = new VmFactoryBuilder<RegistryConfig>()
+            .VM<RegistryConfigViewModel>()
+            .UseUpdateOnDataChange();
+        return p.BuildVm(RegistryConfig.Key, factory.CreateFactory());
     }
 }

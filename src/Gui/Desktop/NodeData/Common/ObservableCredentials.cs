@@ -22,45 +22,40 @@ public sealed class ObservableCredentials<T> : ObservableObject
 
     public string Login
     {
-        get => Model()?.Login ?? "";
-        set => Model()?.Login = value;
-        // {
-        //     var m = Model;
-        //     SetProperty(m.Login, value, m, static (m, v) => m.Login = v);
-        // }
+        get => Read()?.Login ?? "";
+        set
+        {
+            if (Editable() is { } credentials && credentials.Login != value)
+            {
+                credentials.Login = value;
+                OnPropertyChanged();
+            }
+        }
     }
 
     public string Password
     {
-        get => Model()?.Password ?? "";
-        set => Model()?.Password = value;
-        // {
-        //     var m = Model;
-        //     SetProperty(m.Password, value, m, static (m, v) => m.Password = v);
-        // }
+        get => Read()?.Password ?? "";
+        set
+        {
+            if (Editable() is { } credentials && credentials.Password != value)
+            {
+                credentials.Password = value;
+                OnPropertyChanged();
+            }
+        }
     }
 
-    public Credentials? Model()
+    private Credentials? Read() => (_m.Value?.Credentials as ValueCredentialsSource)?.Value;
+
+    private Credentials? Editable()
     {
-        if (_m.Value is null)
+        if (!_m.IsEditable || _m.Value is null)
         {
             return null;
         }
         var builder = new CredentialsSourceBuilder(_m.Value);
-        var source = builder.Value(overwriteIfOther: _m.IsEditable);
-        if (source is null)
-        {
-            return null;
-        }
-        if (source.Value is not { } x)
-        {
-            x = new Credentials
-            {
-                Login = "",
-                Password = "",
-            };
-            source.Value = x;
-        }
-        return x;
+        var source = builder.Value(overwriteIfOther: true)!;
+        return source.Value ??= new Credentials { Login = "", Password = "" };
     }
 }

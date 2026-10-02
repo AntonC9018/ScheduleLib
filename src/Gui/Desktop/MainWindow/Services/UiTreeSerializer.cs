@@ -88,15 +88,16 @@ public sealed class UiTreeSerializer
         return true;
     }
 
-    public async ValueTask Deserialize(TreeBuilder tree)
+    public async ValueTask<bool> Deserialize(TreeBuilder tree)
     {
         if (_outputProvider.GetRead(tree) is not { } output)
         {
-            return;
+            return false;
         }
         await using (output)
         {
             await _serializer.DeserializeUiLayers(output, tree).ConfigureAwait(false);
         }
+        return true;
     }
 }

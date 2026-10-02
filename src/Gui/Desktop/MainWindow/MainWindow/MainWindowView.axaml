@@ -1,45 +1,110 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Desktop.MainWindow"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Desktop.MainWindow.MainWindowView"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Desktop">
-
-  <StackPanel>
-    <StackPanel>
-      <TextBlock Text="Layer Level" />
-      <ComboBox
-        ItemsSource="{Binding LayerLevelSelection.AllLayerLevels}"
-        SelectedItem="{Binding LayerLevelSelection.LayerLevel}" />
-
-      <TextBlock Text="User" />
-      <ComboBox
-        IsEnabled="{Binding CanSelectUser}"
-        ItemsSource="{Binding NodeSelection.Model.AllNodes}"
-        SelectedItem="{Binding NodeSelection.Model.SelectedNode}" />
-
-      <Button
-        Content="Click to enable selected UI layer"
-        Command="{Binding EnableSelectedUserCommand}" />
-      <Button
-        Content="Click to remove selected UI layer"
-        Command="{Binding RemoveSelectedUserCommand}" />
-
-      <ContentControl Content="{Binding AddUser, Mode=OneTime}"/>
-
-      <Button
-        Content="Click to serialize UI layers"
-        Command="{Binding SerializeUiLayersCommand}" />
-
-      <Button
-        Content="Click to deserialize UI layers"
-        Command="{Binding DeserializeUiLayersCommand}" />
-    </StackPanel>
-    <Separator/>
-    <ContentControl Content="{Binding NodeDataEditor}" />
-  </StackPanel>
+        Width="1120" Height="780" MinWidth="820" MinHeight="600"
+        Title="ScheduleLib · Configuration"
+        Background="{DynamicResource WorkspacePageBrush}">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="WorkspacePageBrush" Color="#F5F6F8" />
+          <SolidColorBrush x:Key="WorkspacePanelBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#DFE3E8" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="WorkspacePageBrush" Color="#151922" />
+          <SolidColorBrush x:Key="WorkspacePanelBrush" Color="#20252E" />
+          <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#303847" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <Window.Styles>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Opacity" Value="0.65" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Padding="28,22" BorderThickness="0,0,0,1"
+            Background="{DynamicResource WorkspacePanelBrush}"
+            BorderBrush="{DynamicResource WorkspaceBorderBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Text="ScheduleLib" FontSize="24" FontWeight="Bold" />
+          <TextBlock Text="Teacher settings &amp; online registry" Classes="muted" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                    VerticalAlignment="Center" IsEnabled="{Binding !IsBusy}">
+          <Button Content="Load layers" Command="{Binding DeserializeUiLayersCommand}"
+                  ToolTip.Tip="Load saved UI settings from ui-layers.json." />
+          <Button Content="Save layers" Command="{Binding SerializeUiLayersCommand}"
+                  Classes="accent" ToolTip.Tip="Save UI settings to ui-layers.json" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Row="1" ColumnDefinitions="300,*" Margin="24" ColumnSpacing="24"
+          IsEnabled="{Binding !IsBusy}">
+      <Border Padding="20" CornerRadius="10"
+              Background="{DynamicResource WorkspacePanelBrush}">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="16">
+            <TextBlock Text="Configuration layers" Classes="section" />
+            <TextBlock Text="Choose a layer, then select the teacher whose settings you want to view." Classes="muted" />
+            <StackPanel Spacing="6">
+              <TextBlock Text="Layer" />
+              <ComboBox ItemsSource="{Binding LayerLevelSelection.LayerChoices}"
+                        SelectedItem="{Binding LayerLevelSelection.SelectedChoice}" />
+            </StackPanel>
+            <StackPanel Spacing="6">
+              <TextBlock Text="Teacher" />
+              <ComboBox IsEnabled="{Binding CanSelectUser}"
+                        ItemsSource="{Binding NodeSelection.Model.AllNodes}"
+                        SelectedItem="{Binding NodeSelection.Model.SelectedNode}" />
+            </StackPanel>
+            <Button Content="Enable UI editing" HorizontalAlignment="Stretch"
+                    Command="{Binding EnableSelectedUserCommand}" />
+            <Button Content="Remove UI settings" HorizontalAlignment="Stretch"
+                    Command="{Binding RemoveSelectedUserCommand}"
+                    ToolTip.Tip="Remove this teacher's UI layer and fall back to configured settings." />
+            <Separator Margin="0,4" />
+            <ContentControl Content="{Binding AddUser, Mode=OneTime}" />
+            <TextBlock Text="{Binding ScheduleStatus}" Classes="muted" FontSize="12" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="24">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding SelectionTitle}" FontSize="26" FontWeight="SemiBold"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding SelectionDescription}" Classes="muted" />
+        </StackPanel>
+        <Border Grid.Row="1" Padding="24" CornerRadius="10"
+                Background="{DynamicResource WorkspacePanelBrush}">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ContentControl Content="{Binding NodeDataEditor}" />
+          </ScrollViewer>
+        </Border>
+      </Grid>
+    </Grid>
+    <Border Grid.Row="2" Padding="28,14" BorderThickness="0,1,0,0"
+            Background="{DynamicResource WorkspacePanelBrush}"
+            BorderBrush="{DynamicResource WorkspaceBorderBrush}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <ProgressBar Width="80" Height="4" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+        <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite" />
+      </Grid>
+    </Border>
+  </Grid>
 </Window>

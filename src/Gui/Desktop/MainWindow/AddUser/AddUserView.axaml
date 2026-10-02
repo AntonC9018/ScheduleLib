@@ -7,10 +7,12 @@
         x:Class="Desktop.MainWindow.AddUserView"
         x:DataType="vm:AddUserViewModel">
 
-    <StackPanel>
-      <TextBlock Text="User Name To Add:" />
+    <StackPanel Spacing="10">
+      <TextBlock Text="Add a teacher" />
       <AutoCompleteBox
         x:Name="AutoCompleteBox"
+        Watermark="Search schedule teachers"
+        AutomationProperties.Name="Teacher to add"
         SearchText="{Binding UserNameToAdd, Mode=OneWayToSource}"
         SelectedItem="{Binding SelectedUserName, Mode=OneWayToSource}"
         ItemsSource="{Binding FilteredUserNames, Mode=OneTime}"
@@ -23,19 +25,15 @@
             <DataTemplate DataType="{x:Type vm:NameAndScore}">
               <StackPanel Orientation="Horizontal" >
                 <TextBlock Text="{Binding Name}" />
-                <TextBlock
-                  Text="{Binding ScoreString}"
-                  FontSize="8"
-                  Foreground="DeepSkyBlue"
-                  VerticalAlignment="Center"
-                  Margin="5,0,0,0" />
               </StackPanel>
             </DataTemplate>
           </AutoCompleteBox.ItemTemplate>
       </AutoCompleteBox>
 
       <Button
-        Content="Click to create new UI layer"
+        Content="Add teacher"
+        HorizontalAlignment="Stretch"
         Command="{Binding AddUserWithTypedNameCommand}" />
+      <TextBlock Text="Type a name and select a match from the schedule." TextWrapping="Wrap" Opacity="0.65" />
     </StackPanel>
 </UserControl>

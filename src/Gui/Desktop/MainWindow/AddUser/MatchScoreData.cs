@@ -10,7 +10,7 @@ public readonly record struct MatchScore(
     EnumBitArray<NameField> PartialMatch,
     int UnmatchedCount)
 {
-    public EnumBitArray<NameField> PartialMatch { get; } = FullMatch.Union(PartialMatch);
+    public EnumBitArray<NameField> PartialMatch { get; } = FullMatch.UnionWith(PartialMatch);
 
     private struct MatchScoreFields
     {

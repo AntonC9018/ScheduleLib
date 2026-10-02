@@ -131,9 +131,11 @@ public sealed class MockUiTreeOutputProvider : IUiTreeOutputProvider, IDisposabl
         return _mem;
     }
 
-    public Stream GetRead(TreeBuilder tree)
+    public bool IsReadAvailable { get; set; } = true;
+
+    public Stream? GetRead(TreeBuilder tree)
     {
-        return GetWrite(tree);
+        return IsReadAvailable ? GetWrite(tree) : null;
     }
 
     public void Dispose()
@@ -223,4 +225,9 @@ public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {
     public ObservableValueSource<ImmutableArray<Name>> NamesSource;
     public ObservableValue<ImmutableArray<Name>> Names => NamesSource.As();
+
+    public MockTeacherNamesProvider(TreeEventDispatcher dispatcher)
+    {
+        NamesSource = dispatcher.CreateObservableValue<ImmutableArray<Name>>([]);
+    }
 }

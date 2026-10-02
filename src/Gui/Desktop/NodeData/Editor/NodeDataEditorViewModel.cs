@@ -6,17 +6,27 @@ using Desktop.ViewModelData;
 
 namespace Desktop.NodeData.Editor;
 
-public sealed partial class NodeDataEditorViewModel(
-        DataStore _dataStore,
-        NodeDataViewModelResolver _modelResolver,
-        ConfigTypesProvider _configTypesProvider)
-    : ViewModelBase(_dataStore.TreeContext.Dispatcher), IDisposable
+public sealed partial class NodeDataEditorViewModel : ViewModelBase, IDisposable
 {
+    private readonly DataStore _dataStore;
+    private readonly NodeDataViewModelResolver _modelResolver;
+
+    public NodeDataEditorViewModel(
+        DataStore dataStore,
+        NodeDataViewModelResolver modelResolver,
+        ConfigTypesProvider configTypesProvider)
+        : base(dataStore.TreeContext.Dispatcher)
+    {
+        _dataStore = dataStore;
+        _modelResolver = modelResolver;
+        ConfigTypes = configTypesProvider.ConfigTypes
+            .Where(x => modelResolver.Supported.Contains(x.Key)).ToArray();
+        CurrentConfigType = ConfigTypes.FirstOrDefault();
+    }
+
     private NullableOwnedViewModel _selectedViewModel;
     public ObservableObject? SelectedNodeEditorViewModel => _selectedViewModel.Value;
-    public IReadOnlyList<ConfigType> ConfigTypes => field ??= _configTypesProvider
-        .ConfigTypes
-        .Where(x => _modelResolver.Supported.Contains(x.Key)).ToArray();
+    public IReadOnlyList<ConfigType> ConfigTypes { get; }
 
     [ObservableProperty]
     public partial ConfigType? CurrentConfigType { get; set; }
@@ -67,8 +77,8 @@ public sealed class ConfigTypesProvider
     //     }).ToArray();
     public ConfigType[] ConfigTypes = [new()
     {
-        DisplayName = "Registry",
-        Key = new("Registry"),
+        DisplayName = "Online registry",
+        Key = Desktop.NodeData.Features.Registry.RegistryEditorFactory.EditorKey,
     }];
 }
 

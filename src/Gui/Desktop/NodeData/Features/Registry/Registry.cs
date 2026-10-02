@@ -13,7 +13,7 @@ public sealed class Registry<T>
 
     public Registry(
         IOptionsMonitor<ThingRegistryOptions<T>> monitor,
-        string? optionKey)
+        string? optionKey = null)
     {
         var options = monitor.Get(optionKey);
         _values = options.Values;

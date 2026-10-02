@@ -36,6 +36,11 @@ public sealed class NodeDataVmHost<T> : ViewModelBase, INodeDataVmHost, IDisposa
 
     public IDisposable Inner { get; }
     INotifyPropertyChanged INodeDataVmHost.Inner => (INotifyPropertyChanged) Inner;
-    public void Dispose() => _subscription.Dispose();
+    public void Dispose()
+    {
+        _subscription.Dispose();
+        Inner.Dispose();
+        _accessor.Dispose();
+    }
     public bool IsEditable => _accessor.IsEditable;
 }
