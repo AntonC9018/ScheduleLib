@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
@@ -1951,14 +1951,7 @@ internal static class DisciplineProvisionsProcessing
                     case Column.AttendanceMode:
                     {
                         var para = x.Cell.Descendants<Paragraph>().Single();
-
-                        static ImmutableArray<string> Strings() =>
-                            StringSearchHelper.SetupSearchArray<AttendanceMode>(b =>
-                            {
-                                b.Set(AttendanceMode.FrecventaRedusa, "cu frecventa redusa");
-                                b.Set(AttendanceMode.Zi, "cu frecventa la zi");
-                            });
-                        var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), Strings());
+                        var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), AttendanceModeStrings);
                         StringSearchHelper.DefaultHandleError(attendanceResult);
                         if (attendanceResult.IsNotEmpty)
                         {
@@ -2175,6 +2168,14 @@ internal static class DisciplineProvisionsProcessing
             return ret;
         }
     }
+
+
+    private static readonly ImmutableArray<string> AttendanceModeStrings =
+        StringSearchHelper.SetupSearchArray<AttendanceMode>(b =>
+        {
+            b.Set(AttendanceMode.FrecventaRedusa, "cu frecventa redusa");
+            b.Set(AttendanceMode.Zi, "cu frecventa la zi");
+        });
 }
 
 public readonly struct SectionParseResult
