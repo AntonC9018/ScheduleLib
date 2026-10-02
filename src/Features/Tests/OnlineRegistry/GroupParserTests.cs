@@ -9,7 +9,7 @@ public class RegistryScrapingTests
     {
         var context = GroupParseContext.Create(new()
         {
-            CurrentStudyYear = 2025,
+            CurrentStudyYear = new(2025),
         });
         return RegistryScraping.ParseGroupFromOnlineRegistry(context, input);
     }

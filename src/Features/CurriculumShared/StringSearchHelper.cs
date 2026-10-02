@@ -25,7 +25,7 @@ public static class StringSearchHelper
         bool isFirstCheck = true;
         foreach (var textItem in para.Descendants<Text>())
         {
-            var parser = new Parser(textItem.Text);
+            var parser = new SequenceReader(textItem.Text);
             if (parser.SkipWhitespace().EndOfInput)
             {
                 continue;
@@ -66,7 +66,7 @@ public static class StringSearchHelper
                     // I need to get the character positions IN THE ORIGINAL string.
                     // This is currently NOT CORRECT.
                     refStartIndex += shorter.Length;
-                    var p = new Parser(sectionsString);
+                    var p = new SequenceReader(sectionsString);
                     p.MoveTo(new(refStartIndex));
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
@@ -185,5 +185,5 @@ public static class StringSearchHelper
 
 public interface IPreprocess
 {
-    public void Preprocess(ref Parser parser);
+    public void Preprocess(ref SequenceReader reader);
 }

@@ -5,7 +5,6 @@ using System.Text.Unicode;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Config;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.WebEncoders.Testing;
 using ScheduleLib;
 using ScheduleLib.Builders;
@@ -56,7 +55,7 @@ public sealed class IntegrationTestHelper : IDisposable
         services.AddLogging();
         services.Configure<StudyYearOptions>(opts =>
         {
-            opts.StudyYear = year;
+            opts.StudyYear = new(year);
             opts.Semester = sem;
         });
         services.Configure<ScheduleBuilderInitializerOptions>(opts =>
@@ -65,9 +64,6 @@ public sealed class IntegrationTestHelper : IDisposable
             opts.EnrichWithFullNames = false;
             opts.LoadConsultations = false;
         });
-
-        services.RemoveAll<ConfigureRemappingsDelegate>();
-        services.AddSingleton(new ConfigureRemappingsDelegate(x => { _ = x; }));
 
         _rootServiceProvider = services.BuildServiceProvider();
         _scope = _rootServiceProvider.CreateScope();
@@ -90,6 +86,7 @@ public sealed class IntegrationTestHelper : IDisposable
         var ret = new IntegrationTestHelper(2024, Semester.Sem2);
         try
         {
+            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
@@ -105,6 +102,7 @@ public sealed class IntegrationTestHelper : IDisposable
         var ret = new IntegrationTestHelper(2025, Semester.Sem1);
         try
         {
+            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
@@ -113,6 +111,12 @@ public sealed class IntegrationTestHelper : IDisposable
             throw;
         }
         return ret;
+    }
+
+    private void DisableSubGroupValidation()
+    {
+        var builder = ServiceProvider.GetRequiredService<ScheduleBuilder>();
+        builder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
     }
 
     public static CancellationTokenSource CreateCts()
@@ -138,6 +142,7 @@ public sealed class IntegrationTestHelper : IDisposable
     public static async Task<Schedule> GetScheduleFromJson(string jsonPath, CancellationToken cancellationToken)
     {
         var scheduleBuilder = new ScheduleBuilder();
+        scheduleBuilder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
         await AddScheduleToBuilder(scheduleBuilder, jsonPath, cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
         return jsonSchedule;
@@ -187,6 +192,8 @@ public sealed class IntegrationTestHelper : IDisposable
                         Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName.ToString()).ToArray(),
                         Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
                         LessonType = lesson.Type,
+                        SubGroup = lesson.SubGroup.Value,
+                        Specialization = lesson.Specialization.Value,
                     };
                 }).ToArray(),
             Groups = schedule.EnumerateGroups().Select(g =>
@@ -265,6 +272,8 @@ public sealed class ReadableLessonModel
     public required string? Room { get; set; }
     public required TimeOnly Time { get; set; }
     public required LessonType LessonType { get; set; }
+    public required string? SubGroup { get; set; }
+    public required string? Specialization { get; set; }
 }
 
 public sealed class ReadableCourseModel

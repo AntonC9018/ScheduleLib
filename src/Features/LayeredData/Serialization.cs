@@ -128,7 +128,7 @@ public sealed class TreeSerializer
         using var ms = new MemoryStream();
         await input.CopyToAsync(ms);
         var buffer = ms.GetBuffer();
-        var reader = new Utf8JsonReader(buffer.AsSpan(0, (int)ms.Length));
+        var reader = new Utf8JsonReader(buffer.AsSpan(0, (int) ms.Length));
 
         reader.Read();
         while (reader.Read())

@@ -1,16 +1,16 @@
 using System.Collections.ObjectModel;
+using ScheduleLib.Builders;
 using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Parsing.GroupParser;
 
 public sealed class GroupParseContext
 {
-    // Must be modulo 100
-    public int CurrentStudyYear { get; init; }
+    public StudyYear CurrentStudyYear { get; }
     public ReadOnlySet<string> GroupLabelsThatAreMaster { get; }
 
     private GroupParseContext(
-        int currentStudyYear,
+        StudyYear currentStudyYear,
         ReadOnlySet<string> groupLabelsThatAreMaster)
     {
         CurrentStudyYear = currentStudyYear;
@@ -19,7 +19,7 @@ public sealed class GroupParseContext
 
     public struct Params
     {
-        public required int CurrentStudyYear;
+        public required StudyYear CurrentStudyYear;
         public ReadOnlySet<string>? GroupLabelsThatAreMaster;
     }
 
@@ -31,13 +31,12 @@ public sealed class GroupParseContext
 
     public static GroupParseContext Create(Params p)
     {
-        int year = p.CurrentStudyYear % 100;
-        return new(year, p.GroupLabelsThatAreMaster ?? ReadOnlySet<string>.Empty);
+        return new(p.CurrentStudyYear, p.GroupLabelsThatAreMaster ?? ReadOnlySet<string>.Empty);
     }
 
     public Grade DetermineGrade(int year)
     {
-        var ret = CurrentStudyYear - year + 1;
+        var ret = CurrentStudyYear.Mod100 - year + 1;
         return new(ret);
     }
 }
@@ -69,7 +68,7 @@ public static class GroupHelper
             throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
         }
 
-        var baseParser = new Parser(name);
+        var baseParser = new SequenceReader(name);
         var parser = baseParser.BufferedView();
 
         bool isDual = parser.ConsumeExactString("DU-");
@@ -84,7 +83,7 @@ public static class GroupHelper
 
         if (isFr && isDual)
         {
-            throw new InvalidOperationException("Both FR and DUAL parsed, not allowed.");
+            throw InvalidGroupNameException.ForFrenchAndDual();
         }
 
         parser.SkipWhitespace();
@@ -146,7 +145,7 @@ public static class GroupHelper
                 {
                     if (ch != 'R')
                     {
-                        throw new InvalidOperationException($"Unrecognized language: {ch}");
+                        throw InvalidGroupNameException.ForUnrecognizedLanguage(ch);
                     }
                     parser.Move();
                     return Language.Ru;
@@ -169,7 +168,7 @@ public static class GroupHelper
                 {
                     if (isParen)
                     {
-                        throw new InvalidOperationException("Unclosed parenthesis in the language.");
+                        throw InvalidGroupNameException.ForUnclosedLanguageParenthesis();
                     }
 
                     break;
@@ -189,18 +188,18 @@ public static class GroupHelper
 
             var langSpan = parser.PeekSpan(languageLen);
             var ret = LanguageHelper.ParseName(langSpan)
-                ?? throw new InvalidOperationException($"Unrecognized language string");
+                ?? throw InvalidGroupNameException.ForUnrecognizedLanguageString();
             parser.MoveTo(bparser.Position);
             return ret;
         }
     }
 
-    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref Parser parser)
+    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref SequenceReader reader)
     {
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         if (!ParserHelper.IsUpperAscii(bparser.Current))
         {
-            throw new InvalidOperationException("Must be prefixed with at least one letter indicating the group.");
+            throw InvalidGroupNameException.ForMissingLabel();
         }
 
         bool isMaybeMaster = false;
@@ -244,7 +243,7 @@ public static class GroupHelper
         if (bparser.IsEmpty
             || IsLabelChar(bparser.Current))
         {
-            throw new InvalidOperationException("After the label, it must include a number!");
+            throw InvalidGroupNameException.ForMissingNumberAfterLabel();
         }
 
         bool isCertainlyMaster = isMaybeMaster && !label.IsEmpty;
@@ -253,25 +252,25 @@ public static class GroupHelper
             label = "M";
         }
 
-        parser.MoveTo(bparser.Position);
+        reader.MoveTo(bparser.Position);
         return (label.ToString(), isFr, isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
-    private static int ParseGroup(ref Parser parser)
+    private static int ParseGroup(ref SequenceReader reader)
     {
-        var result = parser.ConsumePositiveIntWithMaxLength(GroupNumberLen);
+        var result = reader.ConsumePositiveIntWithMaxLength(GroupNumberLen);
         if (result is { } num)
         {
             return (int) num;
         }
-        throw new InvalidOperationException($"String must include {GroupNumberLen} letters of the group after the year.");
+        throw InvalidGroupNameException.ForInvalidGroupNumberLength(GroupNumberLen);
     }
 
     public const int YearLen = 2;
-    private static int ParseYear(ref Parser parser)
+    private static int ParseYear(ref SequenceReader reader)
     {
-        var result = parser.ConsumePositiveInt(YearLen);
+        var result = reader.ConsumePositiveInt(YearLen);
         switch (result.Status)
         {
             case ConsumeIntStatus.Ok:
@@ -280,11 +279,11 @@ public static class GroupHelper
             }
             case ConsumeIntStatus.InputTooShort:
             {
-                throw new InvalidOperationException("String must include 2 letters of the year after the label.");
+                throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
             }
             case ConsumeIntStatus.NotAnInteger:
             {
-                throw new InvalidOperationException("Must be a valid year that has 2 letters.");
+                throw InvalidGroupNameException.ForInvalidYear();
             }
             default:
             {

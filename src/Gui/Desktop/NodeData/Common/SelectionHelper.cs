@@ -165,7 +165,7 @@ internal static class PropertyAccess
         var nullableAccessor = access.MapReturn(x => new AnyNullable<TProperty>(x.HasValue, x ?? default));
         var getter = nullableAccessor.ToLambda();
 
-        var backward = AccessExpression.Create((AnyNullable<TProperty> x) => (TProperty?)(x.HasValue ? x.Value : null));
+        var backward = AccessExpression.Create((AnyNullable<TProperty> x) => (TProperty?) (x.HasValue ? x.Value : null));
         // 'parent.X = backward(nullableX)'
         var setterBody = Expression.Assign(access.Access, backward.Access);
         // ('parent', 'nullableX') => 'parent.X = backward(nullableX)'

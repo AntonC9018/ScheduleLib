@@ -27,6 +27,7 @@ public sealed class DocParseContext
     public DayNameParser DayNameParser { get; }
     public CourseNameUnifierModule CourseNameUnifierModule { get; }
     public LessonParserFactory ParserFactory { get; }
+    public SubGroupPrefixMatcher SubGroupMatcher { get; }
     public PeriodId CurrentPeriodId { get; private set; } = PeriodId.Unspecified;
 
     public DocParseContext(
@@ -34,13 +35,17 @@ public sealed class DocParseContext
         DayNameParser dayNameParser,
         LessonParserFactory parserFactory,
         ScheduleBuilder schedule,
-        LessonTimeConfig timeConfig)
+        LessonTimeConfig timeConfig,
+        SpecializationRegistry specializationRegistry,
+        SubGroupPrefixMatcher? subGroupMatcher = null)
     {
         CourseNameUnifierModule = courseNameUnifierModule;
         DayNameParser = dayNameParser;
         ParserFactory = parserFactory;
         Schedule = schedule;
         TimeConfig = timeConfig;
+        Schedule.SpecializationRegistry = specializationRegistry;
+        SubGroupMatcher = subGroupMatcher ?? SubGroupPrefixMatcher.Default;
     }
 
 
@@ -61,6 +66,8 @@ public sealed class DocParseContext
         public required DayNameProvider DayNameProvider;
         public required CourseNameUnifierConfig CourseNameUnifierConfig;
         public required LessonParserFactory ParserFactory;
+        public SpecializationRegistry? SpecializationRegistry;
+        public SubGroupPrefixMatcher? SubGroupMatcher;
     }
 
     public static DocParseContext Create(CreateParams p)
@@ -80,7 +87,9 @@ public sealed class DocParseContext
             timeConfig: timeConfig,
             courseNameUnifierModule: new(p.CourseNameUnifierConfig),
             dayNameParser: new DayNameParser(p.DayNameProvider),
-            parserFactory: p.ParserFactory);
+            parserFactory: p.ParserFactory,
+            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty,
+            subGroupMatcher: p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default);
     }
 
     public SubGroupStatus SetCommonProps(
@@ -105,46 +114,76 @@ public sealed class DocParseContext
         builder.Type(parsedLesson.LessonType);
         builder.Period(CurrentPeriodId);
 
-        if (HandleSpecialSubGroup(parsedLesson, builder))
+        // Classify the raw labels now that the lesson's groups are known.
+        // At most one subgroup and one specialization may be assigned to a lesson.
+        SubGroup? subGroup = null;
+        Specialization? specialization = null;
+        bool groupNameIsLabel = false;
+
+        if (!parsedLesson.GroupName.IsEmpty)
         {
-            if (parsedLesson.SubGroup != SubGroup.All)
+            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.GroupName.Span);
+            if (SubGroupMatcher.TryFromNamePrefix(parsedLesson.GroupName.Span, out var group))
             {
-                throw new InvalidOperationException("SubGroup specified twice?");
+                groupNameIsLabel = true;
+                var remapped = Schedule.RemapSubGroup(group);
+                if (Schedule.TryGetSpecialization(remapped, out var spec))
+                {
+                    specialization = spec;
+                }
+                else
+                {
+                    subGroup = remapped;
+                }
             }
-            return SubGroupStatus.GroupNameIsSubGroup;
-        }
-        else
-        {
-            builder.SubGroup(parsedLesson.SubGroup);
-            return SubGroupStatus.SetFromSubGroup;
+            else
+            {
+                // Future specialization labels are registered by their complete
+                // name, not by the built-in abbreviation table.
+                var remapped = Schedule.RemapSubGroup(new(parsedLesson.GroupName.ToString()));
+                if (Schedule.TryGetSpecialization(remapped, out var spec))
+                {
+                    groupNameIsLabel = true;
+                    specialization = spec;
+                }
+            }
         }
 
-        // Check for special case when it's a subgroup.
-        static bool HandleSpecialSubGroup(
-            in ParsedLesson lesson,
-            ILessonBuilder<ILessonBuilderModel> builder)
+        if (!parsedLesson.PartitionHint.IsEmpty)
         {
-            if (lesson.GroupName.IsEmpty)
+            LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
+            var remapped = Schedule.RemapSubGroup(new(parsedLesson.PartitionHint.ToString()));
+            if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
-                return false;
+                if (specialization is { } prevSpec)
+                {
+                    throw ConflictingSpecializationException.ForConflictingValues(prevSpec.Value, spec.Value);
+                }
+                specialization = spec;
             }
-            var specialGroups = SpecialSubGroups.AllSpecial;
-            foreach (var group in specialGroups)
+            else
             {
-                if (!IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(group.Value!, lesson.GroupName.Span))
+                var label = remapped;
+                if (subGroup is { } prevSub)
                 {
-                    continue;
+                    throw ConflictingSubGroupException.ForConflictingValues(prevSub.Value, label.Value);
                 }
-                if (lesson.SubGroup.Value is not null)
-                {
-                    throw new NotImplementedException("Multiple subgroups as a single group");
-                }
-                builder.SubGroup(group);
-                return true;
+                subGroup = label;
             }
-            return false;
         }
 
+        if (subGroup is { } s)
+        {
+            builder.SubGroup(s);
+        }
+        if (specialization is { } sp)
+        {
+            builder.Specialization(sp);
+        }
+
+        return groupNameIsLabel
+            ? SubGroupStatus.GroupNameIsSubGroup
+            : SubGroupStatus.SetFromSubGroup;
     }
 
     public CourseId GetOrAddCourse(ReadOnlyMemory<char> name)
@@ -691,7 +730,7 @@ public static class WordScheduleParser
                         }
 
                         var timeSlotCellText = cell.Cell.InnerText;
-                        var parser = new Parser(timeSlotCellText);
+                        var parser = new SequenceReader(timeSlotCellText);
 
                         int newTimeSlotOrdinal;
                         {
@@ -712,7 +751,7 @@ public static class WordScheduleParser
 
                         if (parser.SkipWhitespace().EndOfInput)
                         {
-                            throw new InvalidOperationException("Expected time after the time slot");
+                            throw InvalidScheduleDocumentException.ForMissingTimeAfterSlot();
                         }
 
                         var parsedTime = parser.ParseTimeInterval();
@@ -1090,7 +1129,7 @@ public static class WordScheduleParser
             }
 
             {
-                var parser = new Parser(paragraphs.Current.InnerText);
+                var parser = new SequenceReader(paragraphs.Current.InnerText);
                 var interval = parser.ParseDateInterval("dd.MM.yy");
 
                 // Ignored for now.
@@ -1105,7 +1144,7 @@ public static class WordScheduleParser
             int? ParseSem()
             {
                 var semPara = paragraphs.Current.InnerText;
-                var parser = new Parser(semPara);
+                var parser = new SequenceReader(semPara);
                 parser.SkipWhitespace();
                 if (!parser.ConsumeExactString("Sem."))
                 {
@@ -1116,12 +1155,12 @@ public static class WordScheduleParser
                 var res = parser.ReadRoman();
                 if (res.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidOperationException("Sem must be followed by a roman numeral");
+                    throw InvalidScheduleDocumentException.ForSemesterWithoutRoman();
                 }
 
                 if (!parser.IsEmpty)
                 {
-                    throw new InvalidOperationException("Roman numeral after sem must be the last thing");
+                    throw InvalidScheduleDocumentException.ForTrailingAfterSemesterRoman();
                 }
 
                 return res.Number;

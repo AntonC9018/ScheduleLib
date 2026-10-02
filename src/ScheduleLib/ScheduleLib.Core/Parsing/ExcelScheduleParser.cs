@@ -108,7 +108,7 @@ public static class ExcelScheduleParser
         var ret = xl.Worksheets
             .Select(x =>
             {
-                var parser = new Parser(x.Name);
+                var parser = new SequenceReader(x.Name);
                 if (!parser.ConsumeExactString("sem"))
                 {
                     return default;
@@ -421,7 +421,7 @@ public static class ExcelScheduleParser
 
         private void ParseNewTimeSlot(IXLCell cell)
         {
-            var parser = new Parser(cell.GetString());
+            var parser = new SequenceReader(cell.GetString());
             parser.SkipWhitespace();
             var romanReadResult = parser.ReadRoman();
             if (romanReadResult.Status != ReadRomanStatus.Ok)
@@ -552,7 +552,7 @@ public static class ExcelScheduleParser
         DayNameParser dayNameParser,
         DayParseMode parseMode)
     {
-        var parser = new Parser(text);
+        var parser = new SequenceReader(text);
         // DayOfWeek, dd.MM.yyyy
         if (parser.IsEmpty)
         {
@@ -631,7 +631,7 @@ public static class ExcelScheduleParser
                 continue;
             }
 
-            var parser = new Parser(str);
+            var parser = new SequenceReader(str);
             if (!parser.ConsumeExactString("Anul", StringComparison.OrdinalIgnoreCase))
             {
                 if (startOffset != null)

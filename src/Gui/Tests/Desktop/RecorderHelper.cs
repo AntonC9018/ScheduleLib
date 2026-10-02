@@ -202,9 +202,9 @@ public readonly record struct ExpectHelper<T>(IEnumerable<Ev> Events)
     public ExpectHelper<T> WhereValue(Func<T?, bool> f)
     {
         var t = Events
-            .Select(x => (x, x.GetPayload<T>()))
-            .Where(x => f(x.Item2))
-            .Select(x => x.x);;
+            .Select(x => (Ev: x, Payload: x.GetPayload<T>()))
+            .Where(x => f(x.Payload))
+            .Select(x => x.Ev);
         return new(t);
     }
 

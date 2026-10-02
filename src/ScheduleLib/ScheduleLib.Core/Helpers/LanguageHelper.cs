@@ -34,7 +34,7 @@ public static class LanguageHelper
         return null;
     }
 
-    public static Language? ParseName(ref Parser p)
+    public static Language? ParseName(ref SequenceReader p)
     {
         for (int i = 0; i < LanguageNames.Length; i++)
         {

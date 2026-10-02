@@ -168,6 +168,8 @@ public struct LessonBuilderGroupData()
 {
     public LessonGroups Groups = new();
     public SubGroup SubGroup = SubGroup.All;
+    public Specialization Specialization = Specialization.All;
+    public Alternative Alternative = Alternative.All;
 }
 public struct LessonBuilderGeneralData()
 {
@@ -300,6 +302,14 @@ public static class LessonBuilderHelper
         {
             b.Model.Base.Group.SubGroup = subGroup;
         }
+        public void Specialization(Specialization specialization)
+        {
+            b.Model.Base.Group.Specialization = specialization;
+        }
+        public void Alternative(Alternative alternative)
+        {
+            b.Model.Base.Group.Alternative = alternative;
+        }
         public void Group(GroupId group, SubGroup? subGroup = null)
         {
             b.Model.Base.Group.Groups = [group];
@@ -377,7 +387,7 @@ public static class LessonBuilderHelper
         public void InitLookup() => b.UpdateLookup(prevCourseId: null);
     }
 
-    public static void ValidateLessons(ScheduleBuilder s)
+    internal static void ValidateLessons(ScheduleBuilder s)
     {
         var groupIdValidationSet = new HashSet<GroupId>();
 
@@ -390,12 +400,12 @@ public static class LessonBuilderHelper
 
                 if (lesson.Date.TimeSlot is null)
                 {
-                    throw new InvalidOperationException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
 
                 if (lesson.Date.DayOfWeek is null)
                 {
-                    throw new InvalidOperationException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
             }
         }
@@ -409,12 +419,12 @@ public static class LessonBuilderHelper
 
                 if (lesson.Date.TimeSlot is null)
                 {
-                    throw new InvalidOperationException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
 
                 if (lesson.Date.Date is null)
                 {
-                    throw new InvalidOperationException("The lesson date must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonDateNotInitialized();
                 }
             }
         }
@@ -425,14 +435,14 @@ public static class LessonBuilderHelper
             {
                 if (lesson.Group.Groups.Count != 0)
                 {
-                    throw new InvalidOperationException("Consultation lessons must have no groups attached");
+                    throw InvalidLessonGroupsException.ForConsultationHasGroups();
                 }
             }
             else
             {
                 if (lesson.Group.Groups.Group0 == GroupId.Invalid)
                 {
-                    throw new InvalidOperationException("The lesson group must be initialized.");
+                    throw UninitializedScheduleModelException.ForLessonGroupNotInitialized();
                 }
 
                 var hs = groupIdValidationSet;
@@ -443,7 +453,7 @@ public static class LessonBuilderHelper
                     {
                         var course = s.Courses.Ref(lesson.General.Course!.Value.Id);
                         _ = course;
-                        throw new InvalidOperationException("Duplicate group in the same lesson");
+                        throw InvalidLessonGroupsException.ForDuplicateGroup();
                     }
                 }
 
@@ -451,7 +461,7 @@ public static class LessonBuilderHelper
                 {
                     if (groupId.Value >= s.Groups.Count || groupId.Value < 0)
                     {
-                        throw new InvalidOperationException("Invalid group id in lesson");
+                        throw InvalidLessonGroupsException.ForInvalidGroupId();
                     }
                 }
 
@@ -478,15 +488,24 @@ public static class LessonBuilderHelper
                     var ami = gi.AttendanceMode;
                     if (!allowedModes.Contains(ami))
                     {
-                        throw new InvalidOperationException(
-                            $"Mixed attendance modes for a lesson are not allowed, attendances '{g0.AttendanceMode}' and '{gi.AttendanceMode}', groups '{g0.Name}' and '{gi.Name}'!");
+                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(g0.AttendanceMode, gi.AttendanceMode, g0.Name, gi.Name);
                     }
                 }
             }
 
-            if (lesson.General.Course == null)
+            if (lesson.General.Course is not { } courseId)
             {
-                throw new InvalidOperationException("The lesson course must be initialized.");
+                throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
+            }
+            if (courseId.IsInvalid || courseId.Id < 0 || courseId.Id >= s.Courses.Count)
+            {
+                throw UninitializedScheduleModelException.ForLessonCourseUnknown();
+            }
+            // Invariant for AssignImplicitSplits: every referenced course carries at
+            // least one name, so the split pass can index Names[0] for diagnostics.
+            if (s.Courses.Ref(courseId.Id).Names.Length == 0)
+            {
+                throw UninitializedScheduleModelException.ForLessonCourseWithoutNames();
             }
         }
     }
@@ -508,6 +527,7 @@ public static class LessonBuilderHelper
     {
         if (builder.Id != UninitializedId)
         {
+            Debug.Assert(false, "Attach must only be called on a detached builder.");
             throw new InvalidOperationException("Can only attach a detached builder.");
         }
         var x = builder.Schedule.WeeklyLessons.New();
@@ -658,7 +678,9 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.Group.SubGroup != b.Group.SubGroup)
+            if (a.Group.SubGroup != b.Group.SubGroup
+                || a.Group.Specialization != b.Group.Specialization
+                || a.Group.Alternative != b.Group.Alternative)
             {
                 ret.SubGroup = true;
             }
@@ -789,7 +811,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.SubGroup != b.SubGroup)
+            if (a.GroupPartitionKey != b.GroupPartitionKey)
             {
                 ret.SubGroup = true;
             }

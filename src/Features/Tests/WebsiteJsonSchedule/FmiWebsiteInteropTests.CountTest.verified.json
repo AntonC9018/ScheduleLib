@@ -1,0 +1,69 @@
+﻿{
+  "scheduleDaysDto": [
+    {
+      "schedulePairsDto": [
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (lab), IA2402, 423/4",
+          "pairTime": "II",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (lab), I2401, 423/4",
+          "pairTime": "III",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (curs), I2401, IA2401, IA2402, 404/4",
+          "pairTime": "IV",
+          "weekType": "GENERAL"
+        }
+      ],
+      "weekday": "WEDNESDAY"
+    },
+    {
+      "schedulePairsDto": [
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (lab, impar), I2401, 423/4",
+          "pairTime": "II",
+          "weekType": "IMPAR"
+        },
+        {
+          "pairInfo": "Re\u021Bele de calcul. (curs), DU2501, 145a/4",
+          "pairTime": "III",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (lab), IA2401, 423/4",
+          "pairTime": "IV",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "Criptografie \u0219i securitatea informa\u021Biei (lab), IA2401-impar, IA2402-par, 423/4",
+          "pairTime": "V",
+          "weekType": "GENERAL"
+        }
+      ],
+      "weekday": "THURSDAY"
+    },
+    {
+      "schedulePairsDto": [
+        {
+          "pairInfo": "SSV \u00EEn MJ (curs), DJ2501, DJ2503, 423/4",
+          "pairTime": "II",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "SSV \u00EEn MJ (lab), DJ2501, s.I, 423/4",
+          "pairTime": "III",
+          "weekType": "GENERAL"
+        },
+        {
+          "pairInfo": "SSV \u00EEn MJ (lab), DJ2501, s.II, 423/4",
+          "pairTime": "IV",
+          "weekType": "GENERAL"
+        }
+      ],
+      "weekday": "FRIDAY"
+    }
+  ]
+}

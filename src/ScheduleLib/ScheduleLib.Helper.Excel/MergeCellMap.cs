@@ -30,7 +30,7 @@ public sealed class MergeCellMap
                 continue;
             }
 
-            var parser = new Parser(val);
+            var parser = new SequenceReader(val);
             var start = parser.ParseCellPosition();
             if (!parser.ConsumeExactString(":"))
             {
@@ -41,7 +41,7 @@ public sealed class MergeCellMap
             {
                 throw new InvalidOperationException("Range syntax continues?");
             }
-            int width = (int)(end.Col - start.Col + 1);
+            int width = (int) (end.Col - start.Col + 1);
             _cellWidths[start] = width;
         }
     }

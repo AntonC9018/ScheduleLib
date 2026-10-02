@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ScheduleLib.Builders;
 
 namespace ScheduleLib.Dates;
 
@@ -200,39 +201,39 @@ public sealed class CurrentYearSemesterIntervalBuilder
         {
             if (model.Semester == Semester.Invalid)
             {
-                throw new InvalidOperationException("Semester not specified");
+                throw IncompleteSemesterDateRangeException.ForSemesterNotSpecified();
             }
             if (model.AttendanceMode == AttendanceMode.Invalid)
             {
-                throw new InvalidOperationException("AttendanceMode not specified");
+                throw IncompleteSemesterDateRangeException.ForAttendanceModeNotSpecified();
             }
             if (model.QualificationType == QualificationType.Invalid)
             {
-                throw new InvalidOperationException("QualificationType not specified");
+                throw IncompleteSemesterDateRangeException.ForQualificationTypeNotSpecified();
             }
             ref var d = ref model.LessonDateRange;
             if (d.Start == DateOnly.MinValue)
             {
-                throw new InvalidOperationException("Start date not specified");
+                throw IncompleteSemesterDateRangeException.ForStartDateNotSpecified();
             }
             if (d.EndInclusive == DateOnly.MaxValue)
             {
-                throw new InvalidOperationException("End date not specified");
+                throw IncompleteSemesterDateRangeException.ForEndDateNotSpecified();
             }
             if (model.Year <= 0)
             {
                 if (d.Start.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
-                    throw new InvalidOperationException("Year not specified");
+                    throw IncompleteSemesterDateRangeException.ForYearNotSpecified();
                 }
                 if (d.EndInclusive.Year == YearDateRangeBuilderModel.MinYearInExistingDate)
                 {
-                    throw new InvalidOperationException("Year not specified");
+                    throw IncompleteSemesterDateRangeException.ForYearNotSpecified();
                 }
             }
             if (d.Start > d.EndInclusive)
             {
-                throw new InvalidOperationException("Start date is after end date");
+                throw InvalidSemesterDateRangeException.ForStartAfterEnd();
             }
         }
 
@@ -249,7 +250,7 @@ public sealed class CurrentYearSemesterIntervalBuilder
                 continue;
             }
 
-            throw new InvalidOperationException($"Two range configurations found for the same key: {key}");
+            throw DuplicateSemesterDateRangeException.ForDuplicate(key.ToString());
         }
 
         var ranges = new YearDateRanges(map);
@@ -276,7 +277,11 @@ internal readonly struct YearDateRanges
 
     public SemesterDateRange Get(DateRangeKey key)
     {
-        return _values[key];
+        if (_values.TryGetValue(key, out var range))
+        {
+            return range;
+        }
+        throw MissingSemesterDateRangeException.ForMissingRange(key.ToString());
     }
 
     // TODO: Do this better

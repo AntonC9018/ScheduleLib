@@ -19,24 +19,29 @@ public struct GroupBuilder
 
 public static class GroupBuilderHelper
 {
-    private static int DetermineStudyYear()
+    private static StudyYear DetermineStudyYear()
     {
         var now = DateTime.Now;
         if (now.Month >= 8 && now.Month <= 12)
         {
-            return now.Year;
+            return new(now.Year);
         }
-        return now.Year - 1;
+        return new(now.Year - 1);
     }
 
     public static Group ParseGroup(this ScheduleBuilder s, string fullName)
     {
-        s.GroupParseContext ??= GroupParseContext.Create(new()
+        var context = s.GroupParseContext;
+        if (context is null)
         {
-            CurrentStudyYear = DetermineStudyYear(),
-        });
+            context = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = DetermineStudyYear(),
+            });
+            s.SetDefaultGroupParseContext(context);
+        }
 
-        var ret = s.GroupParseContext.Parse(fullName.AsMemory());
+        var ret = context.Parse(fullName.AsMemory());
         return ret;
     }
 
@@ -69,18 +74,18 @@ public static class GroupBuilderHelper
         }
     }
 
-    public static void ValidateGroups(ScheduleBuilder s)
+    internal static void ValidateGroups(ScheduleBuilder s)
     {
         foreach (ref var group in CollectionsMarshal.AsSpan(s.Groups.List))
         {
             if (group.Name == null)
             {
-                throw new InvalidOperationException("The group name must be initialized.");
+                throw UninitializedScheduleModelException.ForGroupNameNotInitialized();
             }
 
             if (group.Grade.Value == 0)
             {
-                throw new InvalidOperationException("The group grade must be initialized.");
+                throw UninitializedScheduleModelException.ForGroupGradeNotInitialized();
             }
         }
     }

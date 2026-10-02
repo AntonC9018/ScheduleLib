@@ -19,27 +19,27 @@ public sealed class LessonTokenReader : ITokenReader
     public static readonly LessonTokenReader Instance = new();
     public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(LessonTokenType));
 
-    public TokenType Read(ref Parser parser)
+    public TokenType Read(ref SequenceReader reader)
     {
-        if (SkipWhitespace(ref parser).SkippedAny)
+        if (SkipWhitespace(ref reader).SkippedAny)
         {
             return TokenType.Whitespace;
         }
 
-        if (SkipRegular(ref parser).SkippedAny)
+        if (SkipRegular(ref reader).SkippedAny)
         {
-            bool isShort = parser.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
+            bool isShort = reader.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
             var type = isShort ? LessonTokenType.ShortWord : LessonTokenType.Word;
             return type;
         }
 
-        if (parser.SkipNumbers().SkippedAny)
+        if (reader.SkipNumbers().SkippedAny)
         {
             return LessonTokenType.Number;
         }
 
-        char ch = parser.Current;
-        parser.Move();
+        char ch = reader.Current;
+        reader.Move();
 
         switch (ch)
         {
@@ -60,9 +60,9 @@ public sealed class LessonTokenReader : ITokenReader
         }
     }
 
-    public static ParserHelper.SkipResult SkipWhitespace(ref Parser parser)
+    public static ParserHelper.SkipResult SkipWhitespace(ref SequenceReader reader)
     {
-        return parser.Skip(new SkipWhitespaceButNotUnderscore());
+        return reader.Skip(new SkipWhitespaceButNotUnderscore());
     }
     private struct SkipWhitespaceButNotUnderscore : IShouldSkip
     {
@@ -80,9 +80,9 @@ public sealed class LessonTokenReader : ITokenReader
         }
     }
 
-    public static ParserHelper.SkipResult SkipRegular(ref Parser parser)
+    public static ParserHelper.SkipResult SkipRegular(ref SequenceReader reader)
     {
-        return parser.Skip(new SkipRegularImpl());
+        return reader.Skip(new SkipRegularImpl());
     }
 
     private struct SkipRegularImpl : IShouldSkip

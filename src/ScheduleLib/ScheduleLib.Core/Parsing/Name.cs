@@ -204,33 +204,33 @@ public sealed class NameTokenReader : ITokenReader
     public static readonly NameTokenReader Instance = new();
     public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(NameTokenType));
 
-    public TokenType Read(ref Parser parser)
+    public TokenType Read(ref SequenceReader reader)
     {
-        if (parser.SkipLetters().SkippedAny)
+        if (reader.SkipLetters().SkippedAny)
         {
             // That's how we do short name support.
-            parser.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
+            reader.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
             return NameTokenType.Word;
         }
-        if (parser.ConsumeExactString(NameConstants.DoubleNameSeparator))
+        if (reader.ConsumeExactString(NameConstants.DoubleNameSeparator))
         {
             return NameTokenType.DoubleNameSeparator;
         }
-        if (parser.ConsumeExactChar('('))
+        if (reader.ConsumeExactChar('('))
         {
-            var bparser = parser.BufferedView();
+            var bparser = reader.BufferedView();
             if (!bparser.SkipUntilAny(")").Satisfied)
             {
                 return TokenType.Invalid;
             }
-            parser.MovePast(bparser.Position);
+            reader.MovePast(bparser.Position);
             return NameTokenType.ParenthesizedText;
         }
-        if (parser.SkipWhitespace().SkippedAny)
+        if (reader.SkipWhitespace().SkippedAny)
         {
             return TokenType.Whitespace;
         }
-        var s = parser.SkipNotWhitespace();
+        var s = reader.SkipNotWhitespace();
         Debug.Assert(s.SkippedAny);
         return TokenType.Invalid;
     }
@@ -238,11 +238,11 @@ public sealed class NameTokenReader : ITokenReader
 
 public static class NameHelper
 {
-    public static Name? TryParseName(ref Parser parser)
+    public static Name? TryParseName(ref SequenceReader reader)
     {
         try
         {
-            return Parse(ref parser);
+            return Parse(ref reader);
         }
         catch (NameParsingException)
         {
@@ -359,19 +359,19 @@ public static class NameHelper
     }
 
     // LastName FirstName Patronymic
-    public static Name Parse(ref Parser parser)
+    public static Name Parse(ref SequenceReader reader)
     {
         var p = new NameParser();
-        p.Load(parser.SourceUntilEnd());
+        p.Load(reader.SourceUntilEnd());
         var scope = p.Scope();
         var ret = ParseImpl(ref scope);
-        scope.Apply(ref parser);
+        scope.Apply(ref reader);
         return ret;
     }
 
     public static Name Parse(string s)
     {
-        var parser = new Parser(s);
+        var parser = new SequenceReader(s);
         var ret = Parse(ref parser);
         if (!parser.IsEmpty)
         {

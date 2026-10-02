@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
+using ScheduleLib.Core.Services;
 using ScheduleLib.Dates;
 using ScheduleLib.Generation;
 using ScheduleLib.OnlineRegistry;
@@ -117,6 +118,8 @@ public static class Registration
                 {
                     var builder = new ScheduleBuilder();
                     builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
+                    builder.ImplicitSplitConfig = ScheduleDefaults.Config.ImplicitSplitConfig;
+                    builder.OverlapValidationConfig = ScheduleDefaults.Config.OverlapValidationConfig;
                     builder.EnableLookupModule();
                     return builder;
                 });
@@ -131,10 +134,11 @@ public static class Registration
                     return GroupParseContext.Create(new()
                     {
                         GroupLabelsThatAreMaster = ScheduleDefaults.Config.GroupLabelsThatAreMaster,
-                        CurrentStudyYear = options.StudyYear,
+                        CurrentStudyYear = options.StudyYear!.Value,
                     });
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
+                services.AddSingleton(ScheduleDefaults.Config.SpecializationRegistry);
                 services.AddSingleton<CourseNameParserConfig>(ScheduleDefaults.Config.CourseNameParser);
                 services.AddSingleton<CourseNameUnifierConfig>(sp =>
                 {
@@ -149,6 +153,7 @@ public static class Registration
                 services.AddSingleton(ParityParser.Instance);
                 services.AddSingleton(LessonTypeParser.Instance);
                 services.AddSingleton(RoomParser.Instance);
+                services.AddSingleton(SubGroupPrefixMatcher.Default);
                 services.AddSingleton<LessonParserFactory>(sp =>
                 {
                     return new LessonParserFactory(new()
@@ -253,6 +258,7 @@ public static class Registration
             services.AddScoped<GenerateAllTeachersExcelTaskHandler>();
             services.AddScoped<GenerateFreeRoomsTaskHandler>();
             services.AddScoped<GeneratePdfsForGroupsAndTeachersTaskHandler>();
+            services.AddScoped<GenerateIcsCalendarsTaskHandler>();
             services.AddScoped<CopyGradesFromMoodleForTestTaskHandler>();
             services.AddScoped<PrintFreeHoursOfGroupTaskHandler>();
             {

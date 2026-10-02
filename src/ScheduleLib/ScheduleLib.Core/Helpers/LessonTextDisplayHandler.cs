@@ -73,10 +73,23 @@ public sealed partial class LessonTextDisplayHandler
         var sb = p.CleanStringBuilder;
         if (_config.PrintsSubGroup)
         {
-            var subGroupNumber = _services.SubGroupNumberDisplay.Get(p.Lesson.Lesson.SubGroup);
-            if (subGroupNumber is { } s1)
+            // Alternative first, then specialization, then the subgroup: "A1, GA2D, I: ".
+            var lesson = p.Lesson.Lesson;
+            var partitionKey = lesson.GroupPartitionKey;
+            int prefixStart = sb.Length;
+            var list = new ListStringBuilder(sb, ", ");
+            foreach (var dimension in PartitionDimensions.DisplayOrder)
             {
-                sb.Append(s1);
+                string? text = dimension == PartitionDimension.SubGroup
+                    ? _services.SubGroupNumberDisplay.Get(lesson.SubGroup)
+                    : partitionKey.GetPartitionDimension(dimension).Value;
+                if (text is { } dimensionText)
+                {
+                    list.Append(dimensionText);
+                }
+            }
+            if (sb.Length > prefixStart)
+            {
                 sb.Append(": ");
             }
         }

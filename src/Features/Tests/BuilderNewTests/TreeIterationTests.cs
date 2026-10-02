@@ -45,7 +45,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, states);
+        VisitSequence.AssertInOrder(expected, states);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, states);
+        VisitSequence.AssertInOrder(expected, states);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class TreeIterationTests
             new("Root", DfsVisitationState.Process),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected, recorder.Records);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class TreeIterationTests
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        Assert.Equal(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected, recorder.Records);
     }
 
     [Fact]
@@ -233,5 +233,53 @@ file sealed class RecorderContext : IDfsEnumerationContext
     }
 }
 
-internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State);
+file static class VisitSequence
+{
+    // The enumerator reports internal bookkeeping states to the contexts in
+    // addition to the per-node visitation. The expected sequences only name
+    // the per-node visits, so filter only the documented bookkeeping states
+    // (BeforeChildren, ProcessChild, AfterChildren) and then require an exact
+    // match, so prohibited child visits fail instead of being skipped.
+    public static void AssertInOrder(
+        IReadOnlyList<VisitRecord> expected,
+        IReadOnlyList<VisitRecord> actual)
+    {
+        var filtered = new List<VisitRecord>(actual.Count);
+        foreach (var record in actual)
+        {
+            if (record.State is DfsVisitationState.BeforeChildren
+                or DfsVisitationState.ProcessChild
+                or DfsVisitationState.AfterChildren)
+            {
+                continue;
+            }
+            filtered.Add(record);
+        }
+        if (filtered.Count != expected.Count)
+        {
+            Assert.Fail(
+                $"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."
+                + $" Expected: {string.Join(", ", expected)}."
+                + $" Recorded sequence: {string.Join(", ", actual)}");
+        }
+        for (int i = 0; i < expected.Count; i++)
+        {
+            if (filtered[i] != expected[i])
+            {
+                Assert.Fail(
+                    $"The expected visits did not match exactly."
+                    + $" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."
+                    + $" Expected: {string.Join(", ", expected)}."
+                    + $" Recorded sequence: {string.Join(", ", actual)}");
+            }
+        }
+    }
+}
 
+internal readonly record struct VisitRecord(string LayerName, DfsVisitationState State)
+{
+    public override string ToString()
+    {
+        return $"{LayerName}-{State.ToString()}";
+    }
+}

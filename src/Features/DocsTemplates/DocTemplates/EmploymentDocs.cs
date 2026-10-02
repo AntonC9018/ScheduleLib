@@ -479,7 +479,7 @@ public static class XmlModels
 
     internal static (string BOrI, string Code) ParseBICode(string code)
     {
-        var parser = new Parser(code);
+        var parser = new SequenceReader(code);
         var bparser = parser.BufferedView();
         bparser.SkipLetters();
         var bi = parser.PeekSpanUntilPosition(bparser.Position);

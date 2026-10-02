@@ -6,5 +6,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Features\Integration\Integration.csproj" />
+        <ProjectReference Include="..\..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
     </ItemGroup>
 </Project>

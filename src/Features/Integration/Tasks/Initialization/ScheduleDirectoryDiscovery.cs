@@ -3,6 +3,7 @@ using ScheduleLib.Dates;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Excel;
 using TruePath;
+using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace ScheduleLib.Application.Core;
 
@@ -59,10 +60,10 @@ public static class ScheduleDirectoryDiscovery
         }
     }
 
-    private static (int StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
+    private static (StudyYear StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
     {
-        var baseParser = new Parser(path);
-        InvalidScheduleDirectoryFormat Error(ParserPosition position, string reason)
+        var baseParser = new SequenceReader(path);
+        InvalidScheduleDirectoryFormat Error(SequencePosition position, string reason)
         {
             var segment = baseParser.Segment(position);
             return new(segment, reason);
@@ -83,7 +84,7 @@ public static class ScheduleDirectoryDiscovery
             return (studyYear, sem);
         }
 
-        int? StudyYear()
+        StudyYear? StudyYear()
         {
             var bparser = parser.BufferedView();
             var result = bparser.SkipUntilAny("_");
@@ -97,7 +98,7 @@ public static class ScheduleDirectoryDiscovery
                 return null;
             }
             parser.MoveTo(bparser.Position);
-            return ret;
+            return new StudyYear(ret);
         }
 
         Semester Sem()
@@ -123,14 +124,14 @@ public static class ScheduleDirectoryDiscovery
 public sealed class ScheduleDirectoryDescriptor
 {
     public AttendanceMode AttendanceMode { get; }
-    public int StudyYear { get; }
+    public StudyYear StudyYear { get; }
     public Semester Semester { get; }
     public AbsolutePath Path { get; }
 
     public ScheduleDirectoryDescriptor(
         AttendanceMode attendanceMode,
         AbsolutePath path,
-        int studyYear,
+        StudyYear studyYear,
         Semester semester)
     {
         AttendanceMode = attendanceMode;
@@ -175,11 +176,11 @@ public sealed class ScheduleDirectoryDescriptor
 
 public sealed class InvalidScheduleDirectoryFormat : NotSupportedException
 {
-    public InvalidScheduleDirectoryFormat(ParserSegment segment, string expected)
+    public InvalidScheduleDirectoryFormat(SequenceSegment segment, string expected)
         : base($"Invalid directory name format at `{segment}`. {expected}")
     {
         Segment = segment;
     }
 
-    public ParserSegment Segment { get; }
+    public SequenceSegment Segment { get; }
 }

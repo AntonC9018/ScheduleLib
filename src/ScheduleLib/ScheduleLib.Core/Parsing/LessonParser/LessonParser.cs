@@ -120,7 +120,8 @@ public struct ParsedLesson()
     public TimeOnly? StartTime = null;
     public LessonType LessonType = LessonType.Unspecified;
     public Parity Parity = Parity.EveryWeek;
-    public SubGroup SubGroup = SubGroup.All;
+
+    public ReadOnlyMemory<char> PartitionHint;
 }
 
 internal struct ParsingStateStack
@@ -148,6 +149,7 @@ internal struct ParsingStateStack
     {
         if (_list.Count < 2)
         {
+            Debug.Assert(false, "Cannot pop the base layer of the parsing state stack.");
             throw new InvalidOperationException("Cannot pop the base layer.");
         }
         if (apply)
@@ -165,6 +167,89 @@ internal struct ParsingStateStack
 public static class LessonParsingHelper
 {
     public static Lexer CreateLexer() => new(LessonTokenReader.Instance);
+
+    /// <summary>
+    /// The derived non-beginner value only exists in normalized model data.
+    /// A source document may not write it.
+    /// </summary>
+    public static void RejectExplicitNonBeginners(ReadOnlySpan<char> label)
+    {
+        if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
+                label,
+                SpecialSubGroups.NonBeginners.Value.AsSpan()))
+        {
+            throw new WrongFormatException(
+                "The non-beginner subgroup is derived during schedule normalization and may not be written in the source.");
+        }
+    }
+
+    /// <summary>
+    /// Narrow exact support for the legacy dashed labels, whose hyphen the normal
+    /// modifier syntax would treat as a separator. See <see cref="SpecialSubGroups.Legacy"/>.
+    /// </summary>
+    public static bool TryGetExactDashedLegacySubGroup(
+        ReadOnlySpan<char> word,
+        ReadOnlySpan<char> number,
+        out SubGroup subGroup)
+    {
+        foreach (var candidate in SpecialSubGroups.Legacy)
+        {
+            var value = candidate.Value!;
+            int dash = value.IndexOf('-');
+            if (dash == -1)
+            {
+                continue;
+            }
+            if (word.Equals(value.AsSpan(..dash), StringComparison.Ordinal)
+                && number.Equals(value.AsSpan((dash + 1)..), StringComparison.Ordinal))
+            {
+                subGroup = candidate;
+                return true;
+            }
+        }
+        subGroup = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Consumes a `Word '-' Number` triple when it exactly matches a configured
+    /// dashed legacy label (e.g. UI-1), whose hyphen the normal modifier syntax
+    /// would otherwise treat as a separator. See <see cref="SpecialSubGroups.Legacy"/>.
+    /// Returns false without consuming anything otherwise.
+    /// </summary>
+    public static bool TryConsumeDashedLegacySubGroup<T>(ref T lexer, out SubGroup subGroup)
+        where T : struct, ILexer
+    {
+        subGroup = default;
+        if (lexer.IsEmpty)
+        {
+            return false;
+        }
+        var word = lexer.Current;
+        if (word.Type != LessonTokenType.Word)
+        {
+            return false;
+        }
+        if (!lexer.CanPeek(2) || !lexer.Peek(2).Is('-'))
+        {
+            return false;
+        }
+        if (!lexer.CanPeek(3))
+        {
+            return false;
+        }
+        var number = lexer.Peek(3);
+        if (number.Type != LessonTokenType.Number)
+        {
+            return false;
+        }
+        if (!TryGetExactDashedLegacySubGroup(word.Value.Span, number.Value.Span, out subGroup))
+        {
+            return false;
+        }
+        lexer.Move(3);
+        return true;
+    }
 
     public static IEnumerable<ParsedLesson> ParseLessons(ParseLessonsParams p)
     {
@@ -219,7 +304,7 @@ public static class LessonParsingHelper
         IEnumerable<ParsedLesson> DoOutput()
         {
             ref var state = ref stateStack.First();
-            var allDefaultIndex = state.DefaultModifiers.FindIndex(SubGroup.All);
+            var allDefaultIndex = state.DefaultModifiers.FindIndex(default);
             DefaultModifiersValue allDefaults;
             if (allDefaultIndex != -1)
             {
@@ -291,8 +376,9 @@ public static class LessonParsingHelper
                 foreach (var defaultMod in state2.DefaultModifiers)
                 {
                     ref var lesson1 = ref lessonsE.Current;
-                    if (defaultMod.SubGroup == SubGroup.All
-                        && !lesson1.Modifiers.IsEmpty)
+                    if (defaultMod.SubGroup.IsEmpty
+                        && (defaultHasOtherThanAllSubGroup
+                            || !lesson1.Modifiers.IsEmpty))
                     {
                         continue;
                     }
@@ -323,7 +409,7 @@ public static class LessonParsingHelper
                         && state3.DefaultModifiers.IsEmpty)
                     {
                         yield return Output(
-                            SubGroup.All,
+                            default,
                             allFallback,
                             lesson1.LessonName);
                     }
@@ -331,7 +417,7 @@ public static class LessonParsingHelper
             }
 
             ParsedLesson Output(
-                SubGroup subGroup,
+                ReadOnlyMemory<char> subGroup,
                 in DefaultModifiersValue v,
                 ReadOnlyMemory<char> lessonName)
             {
@@ -347,7 +433,7 @@ public static class LessonParsingHelper
                     StartTime = state.CommonLesson.StartTime,
                     LessonType = v.General.LessonType,
                     Parity = v.General.Parity,
-                    SubGroup = subGroup,
+                    PartitionHint = subGroup,
                     GroupName = v.General.GroupName,
                     TeacherNames = l,
                     RoomName = v.Specific.RoomName,
@@ -422,11 +508,13 @@ public static class LessonParsingHelper
 
         if (countBefore != c.StateStack.Count)
         {
+            Debug.Assert(false, "Parser iteration must pop every state frame it pushes.");
             throw new InvalidOperationException("Stack frame pushed and not popped.");
         }
         if (stepBefore == state.Step
             && c.Lexer.Position == posBefore)
         {
+            Debug.Assert(false, "Parser iteration must consume input or advance the step.");
             throw new InvalidOperationException("Infinite loop in the parser");
         }
     }
@@ -479,7 +567,7 @@ public static class LessonParsingHelper
                     break;
                 }
 
-                var unparsedModifiers = new List<(LimitedLexerScope Lexer, SubGroup SubGroup)>();
+                var unparsedModifiers = new List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)>();
                 foreach (var l in c.Lexer.List())
                 {
                     var lexer = l;
@@ -494,16 +582,16 @@ public static class LessonParsingHelper
                 var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
                     unparsedModifiers,
                     c);
-                if (defaultSubGroup != default)
+                if (!defaultSubGroup.IsEmpty)
                 {
                     c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(defaultSubGroup);
                 }
 
-                static SubGroup DetermineDefaultSubGroupByParsingSbShortForm(
-                    List<(LimitedLexerScope Lexer, SubGroup SubGroup)> unparsedModifiers,
+                static ReadOnlyMemory<char> DetermineDefaultSubGroupByParsingSbShortForm(
+                    List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)> unparsedModifiers,
                     ParsingContext c)
                 {
-                    SubGroup defaultSubGroup = default;
+                    ReadOnlyMemory<char> defaultSubGroup = default;
                     int i = 0;
                     while (true)
                     {
@@ -513,8 +601,8 @@ public static class LessonParsingHelper
                         }
 
                         ref var l = ref CollectionsMarshal.AsSpan(unparsedModifiers)[i];
-                        var subGroup = ShortSbModifierForm(ref l.Lexer);
-                        if (subGroup == default)
+                        var subGroup = DefaultSubGroupForm(ref l.Lexer);
+                        if (subGroup.IsEmpty)
                         {
                             i++;
                             continue;
@@ -536,7 +624,7 @@ public static class LessonParsingHelper
                         {
                             throw new WrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
                         }
-                        if (defaultSubGroup != default)
+                        if (!defaultSubGroup.IsEmpty)
                         {
                             throw new WrongFormatException("Cannot specify the subgrou inside the modifier list twice");
                         }
@@ -557,7 +645,7 @@ public static class LessonParsingHelper
                     // OR
                     // sb NUMBER modifier
                     SubLessonModifiersKey key;
-                    if (t.SubGroup != default)
+                    if (!t.SubGroup.IsEmpty)
                     {
                         key = new()
                         {
@@ -615,7 +703,9 @@ public static class LessonParsingHelper
                     {
                         c.StateStack.Push();
                         if (TryParsingUntilOutputOrTerminalState(c)
-                            && !c.State.LastModifiers.Specific.LastTeacher.IsNull)
+                            && (!c.State.LastModifiers.Specific.RoomName.IsEmpty
+                                || (c.State.LastModifiers.Specific.TeacherNames.Count != 0
+                                    && !c.State.LastModifiers.Specific.LastTeacher.IsNull)))
                         {
                             c.StateStack.Pop(apply: true);
                             return true;
@@ -656,28 +746,46 @@ public static class LessonParsingHelper
                             WrongFormatException.ExpectedWordToken();
                         }
 
-                        // Skip both the word and the -
-                        lexer.Move(2);
-
                         if (lessonTypeParser.Parse(token.Value.Span) is { } lessonType)
                         {
+                            // Skip both the word and the -
+                            lexer.Move(2);
                             return new()
                             {
                                 LessonType = lessonType,
                             };
                         }
 
-                        var subGroup = new SubGroup(token.Value.Span.ToString());
+                        // Narrow exact support for legacy dashed labels, which the
+                        // word-number split would otherwise leave partially unconsumed.
+                        if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashed))
+                        {
+                            return new()
+                            {
+                                SubGroup = dashed.Value.AsMemory(),
+                            };
+                        }
+
+                        // Skip both the word and the -
+                        lexer.Move(2);
+                        LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
                         return new()
                         {
-                            SubGroup = subGroup,
+                            SubGroup = token.Value,
                         };
                     }
                 }
 
-                // sb.1 MODIFIER form
-                static SubGroup ShortSbModifierForm(ref LimitedLexerScope lexer)
+                // A standalone subgroup label in a modifier list. The sb.1 form
+                // is normalized to Roman numerals, while UI-1 and UI-2 retain
+                // their exact configured legacy spelling.
+                static ReadOnlyMemory<char> DefaultSubGroupForm(ref LimitedLexerScope lexer)
                 {
+                    if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashedSubGroup))
+                    {
+                        return dashedSubGroup.Value.AsMemory();
+                    }
+
                     var sbToken = lexer.Current;
                     if (!sbToken.IsAnyWord())
                     {
@@ -717,8 +825,7 @@ public static class LessonParsingHelper
                     }
                     lexer.Move();
                     var number = tokNum.Value.Span[0] - '0';
-                    var subGroup = SubGroup.CreateNumeric(number);
-                    return subGroup;
+                    return SubGroup.CreateNumeric(number).Value.AsMemory();
                 }
 
                 static bool IsParsingInsideSubgroupAlready(ParsingContext c)
@@ -752,10 +859,11 @@ public static class LessonParsingHelper
                         WrongFormatException.LexerEmpty();
                     }
                     var t = lexer.Current;
-                    if (t.Type is not LessonTokenType.Word)
+                    if (!t.IsAnyWord())
                     {
                         WrongFormatException.InvalidToken(t);
                     }
+                    LessonParsingHelper.RejectExplicitNonBeginners(t.Value.Span);
 
                     if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
                     {
@@ -777,7 +885,7 @@ public static class LessonParsingHelper
                     var groupName = lexer.ConcatWithSpaceReplacement(new()
                     {
                         StringBuilder = sb,
-                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.Number],
+                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.ShortWord, LessonTokenType.Number],
                         WhitespaceReplacer = " ",
                     });
                     Debug.Assert(!groupName.IsEmpty);
@@ -835,8 +943,8 @@ public static class LessonParsingHelper
                 var subGroupStr = subgroupStartLexer
                     .Until(subGroupEndPos)
                     .Concat(sb);
-                var subgroup = new SubGroup(subGroupStr.ToString());
-                c.State.SetDefaultModifier(subgroup);
+                LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
+                c.State.SetDefaultModifier(subGroupStr);
 
                 c.Lexer.MoveTo(lexer.Position);
 
@@ -857,6 +965,10 @@ public static class LessonParsingHelper
                     {
                         return null;
                     }
+                    if (ConsumeDashedLegacy(ref lexer) is { } dpos)
+                    {
+                        return dpos;
+                    }
                     if (ConsumeS(ref lexer) is { } spos)
                     {
                         return spos;
@@ -866,6 +978,17 @@ public static class LessonParsingHelper
                         return cpos;
                     }
                     return null;
+
+                    // Format UI-1, UI-2: the narrow configured dashed legacy labels,
+                    // whose hyphen is otherwise treated as a separator.
+                    static LexerPosition? ConsumeDashedLegacy(ref LexerScope lexer)
+                    {
+                        if (!TryConsumeDashedLegacySubGroup(ref lexer, out _))
+                        {
+                            return null;
+                        }
+                        return lexer.Position;
+                    }
 
                     // Format S{Number}{OptionalNumber}
                     LexerPosition? ConsumeS(ref LexerScope lexer)
@@ -912,7 +1035,12 @@ public static class LessonParsingHelper
                         return null;
                     }
                     var endPos = lexer.Position;
-                    if (!lexer.TryConsumeAny(":."))
+                    if (lexer.TryConsume(':'))
+                    {
+                        lexer.TryConsume(TokenType.Whitespace);
+                        return endPos;
+                    }
+                    if (!lexer.TryConsume('.'))
                     {
                         return null;
                     }
@@ -937,7 +1065,7 @@ public static class LessonParsingHelper
                     }
                     // Maybe should check how it was added and give an error if it was
                     // added through "subgroup:" rather than "subgroup-modifier" syntax.
-                    c.State.SetDefaultModifier(SubGroup.All);
+                    c.State.SetDefaultModifier(default);
                     c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
                 }
             }
@@ -1038,7 +1166,7 @@ public static class LessonParsingHelper
 
                     if (c.State.LastModiferIndex == -1)
                     {
-                        c.State.SetDefaultModifier(SubGroup.All);
+                        c.State.SetDefaultModifier(default);
                     }
                     ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
                     teacher = result;
@@ -1255,7 +1383,7 @@ public static class LessonParsingHelper
                     AppendCurrentWord();
                     return true;
                 }
-                if (t.Is('/'))
+                if (t.Is('/') || t.Is(':'))
                 {
                     AppendCurrentWord();
                     return true;
@@ -1836,16 +1964,16 @@ internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
         {
             return true;
         }
-        return Ref(0).SubGroup != SubGroup.All;
+        return !Ref(0).SubGroup.IsEmpty;
     }
 
-    public int FindIndex(SubGroup subGroup)
+    public int FindIndex(ReadOnlyMemory<char> subGroup)
     {
         var mods = _list.Items;
         for (int i = 0; i < mods.Length; i++)
         {
             ref var it = ref mods[i];
-            if (it.SubGroup == subGroup)
+            if (it.SubGroup.Span.SequenceEqual(subGroup.Span))
             {
                 return i;
             }
@@ -1853,7 +1981,7 @@ internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
         return -1;
     }
 
-    public int FindOrAdd(SubGroup subGroup)
+    public int FindOrAdd(ReadOnlyMemory<char> subGroup)
     {
         int index = FindIndex(subGroup);
         if (index != -1)
@@ -2087,7 +2215,7 @@ internal struct DefaultModifiersValue() : IBasic<DefaultModifiersValue>
 internal struct DefaultModifiers() : IBasic<DefaultModifiers>
 {
     public DefaultModifiersValue Value = new();
-    public SubGroup SubGroup { get; set; }
+    public ReadOnlyMemory<char> SubGroup { get; set; }
 
     [UnscopedRef] public ref GeneralModifiersValue General => ref Value.General;
     [UnscopedRef] public ref SpecificModifiersValue Specific => ref Value.Specific;
@@ -2101,15 +2229,53 @@ internal struct DefaultModifiers() : IBasic<DefaultModifiers>
     public void Clear()
     {
         Value.Clear();
-        SubGroup = SubGroup.All;
+        SubGroup = default;
     }
 }
 
-internal readonly record struct SubLessonModifiersKey()
+internal readonly struct SubLessonModifiersKey : IEquatable<SubLessonModifiersKey>
 {
     public static SubLessonModifiersKey Default => new();
-    public SubGroup SubGroup { get; init; } = SubGroup.All;
-    public LessonType LessonType { get; init; } = LessonType.Unspecified;
+    public ReadOnlyMemory<char> SubGroup { get; init; }
+    public LessonType LessonType { get; init; }
+
+    public SubLessonModifiersKey()
+    {
+        SubGroup = default;
+        LessonType = LessonType.Unspecified;
+    }
+
+    public bool Equals(SubLessonModifiersKey other)
+    {
+        return LessonType == other.LessonType
+            && SubGroup.Span.SequenceEqual(other.SubGroup.Span);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is SubLessonModifiersKey other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add((int) LessonType);
+        foreach (var ch in SubGroup.Span)
+        {
+            hash.Add(ch);
+        }
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(SubLessonModifiersKey left, SubLessonModifiersKey right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(SubLessonModifiersKey left, SubLessonModifiersKey right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 internal struct SubLessonModifiers() : IBasic<SubLessonModifiers>
@@ -2319,7 +2485,7 @@ internal struct ParsingState() : IBasic<ParsingState>
         }
     }
 
-    public void SetDefaultModifier(SubGroup subGroup)
+    public void SetDefaultModifier(ReadOnlyMemory<char> subGroup)
     {
         LastModiferIndex = DefaultModifiers.FindOrAdd(subGroup);
     }

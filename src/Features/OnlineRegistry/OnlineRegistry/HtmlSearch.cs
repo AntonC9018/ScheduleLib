@@ -19,18 +19,18 @@ public readonly record struct CourseLink(
 public readonly record struct GroupLink
 {
     public readonly FoundGroups Groups;
-    public readonly SubGroup SubGroup;
+    public readonly GroupPartitionKey GroupPartition;
     public readonly Uri Uri;
     public readonly Uri EvaluationUri;
 
     public GroupLink(
         in FoundGroups groups,
-        SubGroup subGroup,
+        GroupPartitionKey groupPartition,
         Uri uri,
         Uri evaluationUri)
     {
         Groups = groups;
-        SubGroup = subGroup;
+        GroupPartition = groupPartition;
         Uri = uri;
         EvaluationUri = evaluationUri;
     }
@@ -57,6 +57,7 @@ internal readonly struct ScanGroupsParams
 {
     public required IDocument Document { get; init; }
     public required GroupParseContext GroupParseContext { get; init; }
+    public required GroupPartitionResolver GroupPartitionResolver { get; init; }
     public required SearchGroupId SearchGroupId { get; init; }
     public required ParseErrorHandler ParseErrorHandler { get; init; }
 }
@@ -132,7 +133,7 @@ internal static class HtmlSearch
             }
 
             Uri groupUri;
-            SubGroup subGroup;
+            GroupPartitionKey groupPartition;
             FoundGroups foundGroups;
             {
                 var anchor = urls[0];
@@ -163,7 +164,7 @@ internal static class HtmlSearch
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
-                subGroup = SubGroupFromString(groupForSearch);
+                groupPartition = p.GroupPartitionResolver.Resolve(in groupForSearch);
                 groupUri = new Uri(url);
                 foundGroups = new()
                 {
@@ -184,19 +185,8 @@ internal static class HtmlSearch
                 uri: groupUri,
                 evaluationUri: evaluationUri,
                 groups: foundGroups,
-                subGroup: subGroup);
+                groupPartition: groupPartition);
         }
-    }
-
-    internal static SubGroup SubGroupFromString(in GroupForSearch groupForSearch)
-    {
-        string? subgroupName = null;
-        if (!groupForSearch.SubGroupName.IsEmpty)
-        {
-            subgroupName = groupForSearch.SubGroupName.ToString();
-        }
-        var subgroup = new SubGroup(subgroupName);
-        return subgroup;
     }
 
     internal static Uri ScanForLessonAddLink(IDocument doc)
@@ -426,7 +416,7 @@ internal static class HtmlSearch
         private static string ExtractTopic(IHtmlTableCellElement cell)
         {
             var topicRaw = cell.TextContent;
-            var parser = new Parser(topicRaw);
+            var parser = new SequenceReader(topicRaw);
 
             // Number in front.
             parser.SkipWhitespace();
@@ -509,7 +499,7 @@ internal static class HtmlSearch
             var headerRow = _table!.Rows[0];
             var cell = headerRow.Cells[attendanceStartColIndex + index];
 
-            var parser = new Parser(cell.TextContent);
+            var parser = new SequenceReader(cell.TextContent);
             parser.SkipWhitespace();
 
             DateTime dateTime;
@@ -684,7 +674,7 @@ internal static class HtmlSearch
                     {
                         Name? ParseStudent(HtmlStudent s)
                         {
-                            var studentParser = new Parser(s.Name);
+                            var studentParser = new SequenceReader(s.Name);
                             var parsedStudent = NameHelper.TryParseName(ref studentParser);
                             return parsedStudent;
                         }
@@ -776,7 +766,7 @@ internal static class HtmlSearch
         string s,
         IRegistryLessonParserErrorHandler errorHandler)
     {
-        var parser = new Parser(s);
+        var parser = new SequenceReader(s);
         parser.SkipWhitespace();
         if (parser.IsEmpty)
         {

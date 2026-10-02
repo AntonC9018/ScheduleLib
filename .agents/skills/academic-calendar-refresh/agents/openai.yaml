@@ -1,0 +1,3 @@
+interface:
+  display_name: "Academic Calendar Refresh"
+  short_description: "Refresh USM calendar dates from official PDFs"

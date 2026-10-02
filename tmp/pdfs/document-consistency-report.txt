@@ -1,0 +1,228 @@
+PDFS=70 EXPECTED=71 TEACHER=39 GROUP=32
+PROBLEMS=163
+TEXT_LAYER A_Coliban.pdf: NUL=4, replacement=0
+TEXT_LAYER DJ2601.pdf: NUL=2, replacement=0
+TEXT_LAYER DJ2601_începători.pdf: NUL=2, replacement=0
+TEXT_LAYER DJ2602.pdf: NUL=12, replacement=0
+TEXT_LAYER DJ2602_I.pdf: NUL=7, replacement=0
+TEXT_LAYER DJ2602_II.pdf: NUL=9, replacement=0
+TEXT_LAYER DJ2602_începători.pdf: NUL=4, replacement=0
+TEXT_LAYER DJ2603_eng.pdf: NUL=5, replacement=0
+TEXT_LAYER DJ2603_ro.pdf: NUL=1, replacement=0
+TEXT_LAYER DJ2603_ru.pdf: NUL=3, replacement=0
+TEXT_LAYER DU-IA2601.pdf: NUL=2, replacement=0
+TEXT_LAYER DU-IA2601_începători.pdf: NUL=2, replacement=0
+TEXT_LAYER E_Murea.pdf: NUL=3, replacement=0
+TEXT_LAYER F_Damian.pdf: NUL=5, replacement=0
+TEXT_LAYER G_Sprinceanu.pdf: NUL=2, replacement=0
+TEXT_LAYER I2601.pdf: NUL=3, replacement=0
+TEXT_LAYER I2601_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER I2602.pdf: NUL=3, replacement=0
+TEXT_LAYER I2602_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2601.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2601_I.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2601_II.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2601_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2602.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2602_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2603.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2603_I.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2603_II.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2603_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2604.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2604_I.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2604_II.pdf: NUL=3, replacement=0
+TEXT_LAYER IA2604_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER L_Solovei.pdf: NUL=5, replacement=0
+TEXT_LAYER M2601.pdf: NUL=3, replacement=0
+TEXT_LAYER M2601_începători.pdf: NUL=3, replacement=0
+TEXT_LAYER S_Coșeru.pdf: NUL=7, replacement=0
+MISSING_PDF DJ2603.pdf
+MISSING_COURSE I_Tican.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE S_Coșeru.pdf: Matematică
+MISSING_COURSE N_Lupu.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE G_Sprinceanu.pdf: Matematică
+MISSING_COURSE F_Damian.pdf: Geometrie analitică
+MISSING_COURSE F_Damian.pdf: Matematică
+MISSING_COURSE D_Borș.pdf: Fundamentele programării
+MISSING_COURSE D_Borș.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE L_Solovei.pdf: Matematică
+MISSING_COURSE E_Murea.pdf: Designul narativ
+MISSING_COURSE A_Coliban.pdf: Designul narativ
+MISSING_COURSE M2601.pdf: Calcul difer. și integral
+MISSING_COURSE M2601.pdf: Fundamentele programării
+MISSING_COURSE M2601.pdf: Geometrie analitică
+MISSING_COURSE M2601.pdf: Logica și teor. mulț.
+MISSING_COURSE M2601_începători.pdf: Calcul difer. și integral
+MISSING_COURSE M2601_începători.pdf: Fundamentele programării
+MISSING_COURSE M2601_începători.pdf: Geometrie analitică
+MISSING_COURSE M2601_începători.pdf: Logica și teor. mulț.
+MISSING_COURSE I2601.pdf: Fundamentele programării
+MISSING_COURSE I2601.pdf: Matematică
+MISSING_COURSE I2601.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE I2601.pdf: Sisteme de operare
+MISSING_COURSE I2601_începători.pdf: Fundamentele programării
+MISSING_COURSE I2601_începători.pdf: Matematică
+MISSING_COURSE I2601_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE I2601_începători.pdf: Sisteme de operare
+MISSING_COURSE IA2601.pdf: Fundamentele programării
+MISSING_COURSE IA2601.pdf: Matematică
+MISSING_COURSE IA2601.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2601_I.pdf: Fundamentele programării
+MISSING_COURSE IA2601_I.pdf: Matematică
+MISSING_COURSE IA2601_I.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2601_II.pdf: Fundamentele programării
+MISSING_COURSE IA2601_II.pdf: Matematică
+MISSING_COURSE IA2601_II.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2601_începători.pdf: Fundamentele programării
+MISSING_COURSE IA2601_începători.pdf: Matematică
+MISSING_COURSE IA2601_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2601_începători.pdf: Sisteme de operare
+MISSING_COURSE IA2602.pdf: Fundamentele programării
+MISSING_COURSE IA2602.pdf: Matematică
+MISSING_COURSE IA2602.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2602.pdf: Sisteme de operare
+MISSING_COURSE IA2602_începători.pdf: Fundamentele programării
+MISSING_COURSE IA2602_începători.pdf: Matematică
+MISSING_COURSE IA2602_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2602_începători.pdf: Sisteme de operare
+MISSING_COURSE DU-IA2601.pdf: Fundamentele programării
+MISSING_COURSE DU-IA2601.pdf: Matematică
+MISSING_COURSE DU-IA2601.pdf: Rețele de calcul.
+MISSING_COURSE DU-IA2601.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE DU-IA2601.pdf: Sisteme de operare
+MISSING_COURSE DU-IA2601_începători.pdf: Fundamentele programării
+MISSING_COURSE DU-IA2601_începători.pdf: Matematică
+MISSING_COURSE DU-IA2601_începători.pdf: Rețele de calcul.
+MISSING_COURSE DU-IA2601_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE DU-IA2601_începători.pdf: Sisteme de operare
+MISSING_COURSE I2602.pdf: Fundamentele programării
+MISSING_COURSE I2602.pdf: Matematică
+MISSING_COURSE I2602.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE I2602_începători.pdf: Fundamentele programării
+MISSING_COURSE I2602_începători.pdf: Matematică
+MISSING_COURSE I2602_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2603.pdf: Fundamentele programării
+MISSING_COURSE IA2603.pdf: Matematică
+MISSING_COURSE IA2603.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2603.pdf: Sisteme de operare
+MISSING_COURSE IA2603_I.pdf: Matematică
+MISSING_COURSE IA2603_I.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2603_I.pdf: Sisteme de operare
+MISSING_COURSE IA2603_II.pdf: Fundamentele programării
+MISSING_COURSE IA2603_II.pdf: Matematică
+MISSING_COURSE IA2603_II.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2603_II.pdf: Sisteme de operare
+MISSING_COURSE IA2603_începători.pdf: Matematică
+MISSING_COURSE IA2603_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2603_începători.pdf: Sisteme de operare
+MISSING_COURSE IA2604.pdf: Fundamentele programării
+MISSING_COURSE IA2604.pdf: Matematică
+MISSING_COURSE IA2604.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2604_I.pdf: Fundamentele programării
+MISSING_COURSE IA2604_I.pdf: Matematică
+MISSING_COURSE IA2604_I.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2604_I.pdf: Sisteme de operare
+MISSING_COURSE IA2604_II.pdf: Matematică
+MISSING_COURSE IA2604_II.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2604_începători.pdf: Matematică
+MISSING_COURSE IA2604_începători.pdf: S e c u r i t a t e a c i b e r n e t i c ă
+MISSING_COURSE IA2604_începători.pdf: Sisteme de operare
+MISSING_COURSE DJ2601.pdf: Designul narativ
+MISSING_COURSE DJ2601.pdf: Fundamentele programării
+MISSING_COURSE DJ2601_începători.pdf: Designul narativ
+MISSING_COURSE DJ2601_începători.pdf: Fundamentele programării
+MISSING_COURSE DJ2602.pdf: Designul narativ
+MISSING_COURSE DJ2602.pdf: Educația fizică
+MISSING_TEACHER DJ2602.pdf: Lefter
+MISSING_TEACHER DJ2602.pdf: Sirotiuc
+MISSING_TEACHER DJ2602.pdf: Tretiacova
+MISSING_COURSE DJ2602_I.pdf: Designul narativ
+MISSING_COURSE DJ2602_I.pdf: Fundamentele programării
+MISSING_TEACHER DJ2602_I.pdf: Lefter
+MISSING_TEACHER DJ2602_I.pdf: Tretiacova
+MISSING_COURSE DJ2602_II.pdf: Designul narativ
+MISSING_COURSE DJ2602_II.pdf: Fundamentele programării
+MISSING_TEACHER DJ2602_II.pdf: Lefter
+MISSING_TEACHER DJ2602_II.pdf: Sirotiuc
+MISSING_TEACHER DJ2602_II.pdf: Tretiacova
+MISSING_COURSE DJ2602_începători.pdf: Designul narativ
+MISSING_COURSE DJ2602_începători.pdf: Educația fizică
+MISSING_COURSE DJ2602_începători.pdf: Fundamentele programării
+MISSING_TEACHER DJ2602_începători.pdf: Lefter
+MISSING_TEACHER DJ2602_începători.pdf: Tretiacova
+MISSING_COURSE DJ2603_eng.pdf: Designul narativ
+MISSING_COURSE DJ2603_eng.pdf: Fundamentele programării
+MISSING_TEACHER DJ2603_eng.pdf: Lefter
+MISSING_TEACHER DJ2603_eng.pdf: Sirotiuc
+MISSING_COURSE DJ2603_ro.pdf: Designul narativ
+MISSING_COURSE DJ2603_ro.pdf: Fundamentele programării
+MISSING_COURSE DJ2603_ru.pdf: Designul narativ
+MISSING_COURSE DJ2603_ru.pdf: Educația fizică
+MISSING_COURSE DJ2603_ru.pdf: Fundamentele programării
+MISSING_COURSE DJ2603_ru.pdf: Limba straina
+MISSING_TEACHER DJ2603_ru.pdf: Lefter
+MISSING_TEACHER DJ2603_ru.pdf: Tretiacova
+CONFLICTS=4
+CONFLICT (0, 'Wednesday', 4) lessons 27/115 group=5: Limba straina vs Limba straina
+CONFLICT (0, 'Thursday', 3) lessons 164/170 group=6: Limba rom. vs Limba straina
+CONFLICT (0, 'Thursday', 3) lessons 165/171 group=7: Limba straina vs Educația fizică
+CONFLICT (0, 'Saturday', 2) lessons 199/201 teacher=33: Designul narativ vs Designul narativ
+SOURCE_PREFIX_LIKE=2
+(încep.)
+(încep., imp )
+SOURCE_PARENTHETICAL=54
+(   par)
+( en )
+( lab ,imp )
+( lab ,par )
+( lab,imp )
+( lab,par )
+( par )
+( par ,ro )
+( ro )
+( ru )
+( sem )
+(curs )
+(curs)
+(curs,ro)
+(curs,ru)
+(imp)
+(lab ,   par )
+(lab ,imp )
+(lab)
+(lab,   en )
+(lab,   imp)
+(lab,   par)
+(lab, en )
+(lab, imp )
+(lab,imp )
+(lab,imp)
+(lab,imp, en )
+(lab,par )
+(lab,par)
+(par)
+(par,ro)
+(par,ru)
+(ro)
+(ru)
+(ru,imp)
+(sem )
+(sem ,   par )
+(sem ,par )
+(sem)
+(sem,   en )
+(sem,   imp )
+(sem,   imp)
+(sem,   par )
+(sem,   par)
+(sem, imp)
+(sem,par)
+(sem,ro)
+(sem,ru)
+(încep)
+(încep,   imp )
+(încep,  imp )
+(încep.)
+(încep., imp )
+(începători)

@@ -108,7 +108,8 @@ public readonly record struct ScheduleObjectEnumerable<T, TAccessor>
         using var e = GetEnumerator();
         if (!e.MoveNext())
         {
-            throw new InvalidOperationException();
+            Debug.Assert(false, "First must only be called on a non-empty schedule collection.");
+            throw new InvalidOperationException("Sequence contains no elements.");
         }
         return e.Current;
     }
@@ -555,7 +556,115 @@ public record struct LessonData()
     public required LessonType Type;
 
     public SubGroup SubGroup = SubGroup.All;
+    public Specialization Specialization = Specialization.All;
+    public Alternative Alternative = Alternative.All;
     public readonly GroupId Group => Groups.Group0;
+}
+
+/// <summary>
+/// One student-partition axis of a <see cref="GroupPartitionKey"/>.
+/// Closed set on purpose: no extensible-dimension support, just an abstraction
+/// so the per-site dimension loops stay unified.
+/// </summary>
+public enum PartitionDimension
+{
+    SubGroup,
+    Specialization,
+    Alternative,
+}
+
+/// <summary>
+/// The value on one <see cref="PartitionDimension"/>. Wraps a string for now;
+/// every dimension type converts implicitly. A null value means "all".
+/// </summary>
+public readonly record struct PartitionKey
+{
+    public readonly string? Value { get; }
+
+    public PartitionKey(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static implicit operator PartitionKey(SubGroup subGroup) => new(subGroup.Value);
+    public static implicit operator PartitionKey(Specialization specialization) => new(specialization.Value);
+    public static implicit operator PartitionKey(Alternative alternative) => new(alternative.Value);
+}
+
+public static class PartitionDimensions
+{
+    /// <summary>
+    /// Every dimension in storage order.
+    /// </summary>
+    public static ReadOnlySpan<PartitionDimension> All => [
+        PartitionDimension.SubGroup,
+        PartitionDimension.Specialization,
+        PartitionDimension.Alternative,
+    ];
+
+    /// <summary>
+    /// Alternative first, then specialization, then subgroup.
+    /// </summary>
+    public static ReadOnlySpan<PartitionDimension> DisplayOrder => [
+        PartitionDimension.Alternative,
+        PartitionDimension.Specialization,
+        PartitionDimension.SubGroup,
+    ];
+}
+
+/// <summary>
+/// Combines the subgroup, specialization and alternative values a lesson targets
+/// into one identity. Used wherever equality or grouping must consider all fields.
+/// Not serialized.
+/// </summary>
+public readonly record struct GroupPartitionKey(SubGroup SubGroup, Specialization Specialization, Alternative Alternative = default)
+{
+    public static GroupPartitionKey All => new(SubGroup.All, Specialization.All, Alternative.All);
+}
+
+public static class LessonDataExtensions
+{
+    extension(in LessonData lesson)
+    {
+        public GroupPartitionKey GroupPartitionKey => new(lesson.SubGroup, lesson.Specialization, lesson.Alternative);
+    }
+
+    extension(in GroupPartitionKey key)
+    {
+        /// <summary>
+        /// The key's value on one partition dimension.
+        /// </summary>
+        public PartitionKey GetPartitionDimension(PartitionDimension dimension) => dimension switch
+        {
+            PartitionDimension.SubGroup => key.SubGroup,
+            PartitionDimension.Specialization => key.Specialization,
+            PartitionDimension.Alternative => key.Alternative,
+            _ => throw Unreachable(),
+        };
+
+        /// <summary>
+        /// Alternative first, then the specialization, then the subgroup.
+        /// Null when the key targets everything.
+        /// </summary>
+        public string? ToDisplayString(string separator = ", ")
+        {
+            var parts = new List<string>(3);
+            if (key.Alternative.Value is { } a)
+            {
+                parts.Add(a);
+            }
+            if (key.Specialization.Value is { } s)
+            {
+                parts.Add(s);
+            }
+            if (key.SubGroup.Value is { } subGroup)
+            {
+                parts.Add(subGroup);
+            }
+            return parts.Count == 0 ? null : string.Join(separator, parts);
+        }
+    }
 }
 
 public enum LessonRegularity
@@ -672,37 +781,110 @@ public readonly record struct SubGroup
     public static SubGroup All => new(null!);
 }
 
-public static class SpecialSubGroups
+/// <summary>
+/// A restriction of a lesson to one specialization of study.
+/// <see cref="All"/> means the lesson carries no specialization restriction.
+/// Backed by a string, because schedule sources may add new names over time.
+/// Known values live as extension properties on this type in ScheduleDefaults;
+/// only the unset marker stays here because Core logic depends on it.
+/// </summary>
+public readonly record struct Specialization
 {
-    public static readonly ImmutableArray<SubGroup> AllSpecial = [
-        Optional,
-        Beginners,
-        Ru,
-        Ro,
-        Eng,
-        // TODO: configure these better
-        AG,
-        Logica,
-        AlgoGraf,
-    ];
-    public static SubGroup Optional => new("opțional");
-    public static SubGroup Beginners => new("începători");
-    public static SubGroup Ru => new("ru");
-    public static SubGroup Ro => new("ro");
-    public static SubGroup Eng => new("eng");
-    // ReSharper disable once InconsistentNaming
-    public static SubGroup AG => new("AG");
-    public static SubGroup Logica => new("Logica");
-    public static SubGroup AlgoGraf => new("Algoritmica Grafurilor");
-    public static SubGroup FromLanguage(Language lang)
+    public readonly string? Value { get; }
+
+    public Specialization(string? value)
     {
-        return lang switch
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static Specialization All => new(null!);
+}
+
+/// <summary>
+/// A restriction of a lesson to one alternative of a student choice dimension,
+/// such as elective courses between which students pick one.
+/// <see cref="All"/> means the lesson carries no alternative restriction.
+/// Backed by a string, because the choices are configured per schedule.
+/// </summary>
+public readonly record struct Alternative
+{
+    public readonly string? Value { get; }
+
+    public Alternative(string? value)
+    {
+        Debug.Assert(value != "");
+        Value = value;
+    }
+
+    public static Alternative All => new(null!);
+}
+
+/// <summary>
+/// Thin forwards over the built-in specialization values: the canonical
+/// known-value accessors are extension properties on <see cref="Specialization"/>
+/// in ScheduleDefaults, but prefix matching and classification run inside Core
+/// (and OnlineRegistry cannot reference ScheduleDefaults back), so the
+/// aggregate lookup surface stays here.
+/// </summary>
+public static class Specializations
+{
+    public static readonly ImmutableArray<Specialization> AllKnown = [
+        new("AG"),
+        new("Algoritmica Grafurilor"),
+        new("CV"),
+        new("DezvoltareaAplicatiilor"),
+        new("DJ"),
+        new("GA2D"),
+        new("GA3D"),
+        new("Logica"),
+        new("React"),
+        new("Spring"),
+        new("SSI"),
+        new("UI"),
+    ];
+
+    public static bool TryFromValue(string? value, out Specialization specialization)
+    {
+        if (value is null)
         {
-            Language.Ro => Ro,
-            Language.Ru => Ru,
-            Language.En => Eng,
-            _ => throw new ArgumentOutOfRangeException(nameof(lang)),
-        };
+            specialization = default;
+            return false;
+        }
+        foreach (var candidate in AllKnown)
+        {
+            if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+            {
+                specialization = candidate;
+                return true;
+            }
+        }
+        specialization = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves a raw label against the built-in values, falling back to the
+    /// configured registry (which may be null). Chained built-in
+    /// <c>||</c> registry <c>TryFromValue</c> checks stay here so call sites
+    /// don't inline the double disjunction.
+    /// </summary>
+    public static bool TryResolveSpecialization(
+        string? value,
+        SpecializationRegistry? registry,
+        out Specialization specialization)
+    {
+        if (TryFromValue(value, out specialization))
+        {
+            return true;
+        }
+        if (registry is not null
+            && registry.TryFromValue(value, out specialization))
+        {
+            return true;
+        }
+        specialization = default;
+        return false;
     }
 }
 

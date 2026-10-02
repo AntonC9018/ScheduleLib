@@ -121,7 +121,7 @@ public sealed class LessonParserTests
         void CheckCommon(in ParsedLesson lesson)
         {
             Assert.Equal(time, lesson.StartTime);
-            Assert.Null(lesson.SubGroup.Value);
+            Assert.True(lesson.PartitionHint.IsEmpty);
             var teacherName = Assert.Single(lesson.TeacherNames);
             AssertEqualName("V.Miron", teacherName);
             Assert.Equal("433/3", lesson.RoomName.Span);
@@ -183,6 +183,32 @@ public sealed class LessonParserTests
     }
 
     [Fact]
+    public void ColonAllowedInCourseName()
+    {
+        var lesson = Assert.Single(ParseLessons([
+            "Disciplină umanistică opțională: Antreprenoriat inovativ (curs), I. Dobrovolschi 528/3",
+        ]));
+
+        Assert.Equal("Disciplină umanistică opțională: Antreprenoriat inovativ", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Curs, lesson.LessonType);
+        AssertEqualName("I. Dobrovolschi", Assert.Single(lesson.TeacherNames));
+        Assert.Equal("528/3", lesson.RoomName.Span);
+    }
+
+    [Fact]
+    public void CourseWithRoomButNoTeacherDoesNotReadLastTeacher()
+    {
+        var lesson = Assert.Single(ParseLessons([
+            "Disciplină umanistică opțională: Psihologie (curs), 113/4",
+        ]));
+
+        Assert.Equal("Disciplină umanistică opțională: Psihologie", lesson.LessonName.Span);
+        Assert.Equal(LessonType.Curs, lesson.LessonType);
+        Assert.Empty(lesson.TeacherNames);
+        Assert.Equal("113/4", lesson.RoomName.Span);
+    }
+
+    [Fact]
     public void TimeSlotThatLooksLikeGroupIsParseProperly()
     {
         var lessons = ParseLessons([
@@ -202,7 +228,7 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Assert.Equal(Time(8), lesson1.StartTime);
-                Assert.Equal("CV", lesson1.SubGroup.Value);
+                Assert.Equal("CV", lesson1.PartitionHint.Span);
                 AssertEqualName("M.Croitor", Assert.Single(lesson1.TeacherNames));
                 Assert.Equal("326/4", lesson1.RoomName.Span);
                 Assert.Equal(LessonType.Lab, lesson1.LessonType);
@@ -212,7 +238,7 @@ public sealed class LessonParserTests
             lesson2 =>
             {
                 Assert.Equal(Time(15), lesson2.StartTime);
-                Assert.Equal("WR", lesson2.SubGroup.Value);
+                Assert.Equal("WR", lesson2.PartitionHint.Span);
                 AssertEqualName("A.Donu", Assert.Single(lesson2.TeacherNames));
                 Assert.Equal("213a/4", lesson2.RoomName.Span);
                 Assert.Equal(LessonType.Curs, lesson2.LessonType);
@@ -239,16 +265,44 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 CheckCommon(lesson1);
-                Assert.Equal("WR1", lesson1.SubGroup.Value);
+                Assert.Equal("WR1", lesson1.PartitionHint.Span);
                 AssertEqualName("A.Donu", Assert.Single(lesson1.TeacherNames));
                 Assert.Equal("143/4", lesson1.RoomName.Span);
             },
             lesson2 =>
             {
                 CheckCommon(lesson2);
-                Assert.Equal("WR2", lesson2.SubGroup.Value);
+                Assert.Equal("WR2", lesson2.PartitionHint.Span);
                 AssertEqualName("Cr.Crudu", Assert.Single(lesson2.TeacherNames));
                 Assert.Equal("145a/4", lesson2.RoomName.Span);
+            });
+    }
+
+    [Fact]
+    public void SubGroupListWithoutWhitespaceAfterColon()
+    {
+        var lessons = ParseLessons([
+            "HTML(lab)",
+            "I:B.Vișnevschi  218/4a",
+            "II:V.Vișnevschi  219/4a",
+        ]);
+
+        Assert.Collection(lessons,
+            first =>
+            {
+                Assert.Equal("HTML", first.LessonName.Span);
+                Assert.Equal(LessonType.Lab, first.LessonType);
+                Assert.Equal("I", first.PartitionHint.Span);
+                AssertEqualName("B. Vișnevschi", Assert.Single(first.TeacherNames));
+                Assert.Equal("218/4a", first.RoomName.Span);
+            },
+            second =>
+            {
+                Assert.Equal("HTML", second.LessonName.Span);
+                Assert.Equal(LessonType.Lab, second.LessonType);
+                Assert.Equal("II", second.PartitionHint.Span);
+                AssertEqualName("V. Vișnevschi", Assert.Single(second.TeacherNames));
+                Assert.Equal("219/4a", second.RoomName.Span);
             });
     }
 
@@ -275,7 +329,7 @@ public sealed class LessonParserTests
                 return false;
             }
             if (!groupName.AsSpan().Equals(
-                    lesson.SubGroup.Value.AsSpan(),
+                    lesson.PartitionHint.Span,
                     StringComparison.CurrentCultureIgnoreCase))
             {
                 return false;
@@ -311,13 +365,13 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Lesson(lesson1);
-                Assert.Equal("A", lesson1.SubGroup.Value);
+                Assert.Equal("A", lesson1.PartitionHint.Span);
                 AssertEqualName("TeacherA", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
                 Lesson(lesson2);
-                Assert.Equal("B", lesson2.SubGroup.Value);
+                Assert.Equal("B", lesson2.PartitionHint.Span);
                 AssertEqualName("TeacherB", Assert.Single(lesson2.TeacherNames));
             });
     }
@@ -335,14 +389,14 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Assert.Equal("Lesson", lesson1.LessonName.Span);
-                Assert.Equal("A", lesson1.SubGroup.Value);
+                Assert.Equal("A", lesson1.PartitionHint.Span);
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
                 AssertEqualName("TeacherA", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
                 Assert.Equal("Lesson", lesson2.LessonName.Span);
-                Assert.Equal("B", lesson2.SubGroup.Value);
+                Assert.Equal("B", lesson2.PartitionHint.Span);
                 Assert.Equal(Parity.OddWeek, lesson2.Parity);
                 AssertEqualName("TeacherB", Assert.Single(lesson2.TeacherNames));
             });
@@ -360,14 +414,14 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Assert.Equal("Lesson", lesson1.LessonName.Span);
-                Assert.Equal("A", lesson1.SubGroup.Value);
+                Assert.Equal("A", lesson1.PartitionHint.Span);
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
                 Assert.Empty(lesson1.TeacherNames);
             },
             lesson2 =>
             {
                 Assert.Equal("Lesson", lesson2.LessonName.Span);
-                Assert.Equal("B", lesson2.SubGroup.Value);
+                Assert.Equal("B", lesson2.PartitionHint.Span);
                 Assert.Equal(Parity.EveryWeek, lesson2.Parity);
                 AssertEqualName("TeacherA", Assert.Single(lesson2.TeacherNames));
             });
@@ -391,7 +445,7 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Common(lesson1);
-                Assert.Equal("A", lesson1.SubGroup.Value);
+                Assert.Equal("A", lesson1.PartitionHint.Span);
                 Assert.Equal(Parity.EvenWeek, lesson1.Parity);
             });
     }
@@ -445,13 +499,13 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Common(lesson1);
-                Assert.Equal("I", lesson1.SubGroup.Value);
+                Assert.Equal("I", lesson1.PartitionHint.Span);
                 Assert.Equal(Parity.OddWeek, lesson1.Parity);
             },
             lesson2 =>
             {
                 Common(lesson2);
-                Assert.Equal("II", lesson2.SubGroup.Value);
+                Assert.Equal("II", lesson2.PartitionHint.Span);
                 Assert.Equal(Parity.EvenWeek, lesson2.Parity);
             });
     }
@@ -790,12 +844,12 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("NameOne", l1.LessonName.Span);
-                Assert.Equal(new SubGroup("S21"), l1.SubGroup);
+                Assert.Equal("S21", l1.PartitionHint.Span);
             },
             l2 =>
             {
                 Assert.Equal("NameTwo", l2.LessonName.Span);
-                Assert.Equal(new SubGroup("S1"), l2.SubGroup);
+                Assert.Equal("S1", l2.PartitionHint.Span);
             });
     }
 
@@ -811,7 +865,7 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("Fund. Progr.", l1.LessonName.Span);
-                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(LessonType.Prelegere, l1.LessonType);
                 AssertEqualName("M.Pavel", Assert.Single(l1.TeacherNames));
                 Assert.Equal("404/4", l1.RoomName.Span);
@@ -829,7 +883,7 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("Elab. aplic. graf.", l1.LessonName.Span);
-                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(LessonType.Lab, l1.LessonType);
                 AssertEqualName("M.Marin", Assert.Single(l1.TeacherNames));
                 Assert.Equal("145a/4", l1.RoomName.Span);
@@ -849,7 +903,7 @@ public sealed class LessonParserTests
             {
                 Assert.Equal("Matematica discretă", l1.LessonName.Span);
                 Assert.Equal("Algoritmica Grafurilor", l1.GroupName.Span);
-                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(LessonType.Curs, l1.LessonType);
                 Assert.Equal(Parity.OddWeek, l1.Parity);
                 AssertEqualName("A.Niculiță", Assert.Single(l1.TeacherNames));
@@ -870,7 +924,7 @@ public sealed class LessonParserTests
             {
                 Assert.Equal("Matematica discretă", l1.LessonName.Span);
                 Assert.Equal("Algoritmica Grafurilor", l1.GroupName.Span);
-                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(LessonType.Curs, l1.LessonType);
                 Assert.Equal(Parity.OddWeek, l1.Parity);
                 AssertEqualName("A.Niculiță", Assert.Single(l1.TeacherNames));
@@ -889,14 +943,14 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("test", l1.LessonName.Span);
-                Assert.Equal(SubGroup.All, l1.SubGroup);
+                Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(LessonType.Curs, l1.LessonType);
                 Assert.Equal(Parity.EveryWeek, l1.Parity);
             },
             l2 =>
             {
                 Assert.Equal("Spring", l2.LessonName.Span);
-                Assert.Equal("Spring", l2.SubGroup.Value);
+                Assert.Equal("Spring", l2.PartitionHint.Span);
                 Assert.Equal(LessonType.Lab, l2.LessonType);
                 Assert.Equal(Parity.EveryWeek, l2.Parity);
             });
@@ -914,7 +968,7 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Assert.Equal("Dezvoltare de aplicații enterprise", l1.LessonName.Span);
-                Assert.Equal("Spring", l1.SubGroup.Value);
+                Assert.Equal("Spring", l1.PartitionHint.Span);
                 Assert.Equal(LessonType.Curs, l1.LessonType);
                 Assert.Equal(new TimeOnly(hour: 8, minute: 00), l1.StartTime);
                 Assert.Equal(Parity.EveryWeek, l1.Parity);
@@ -924,7 +978,7 @@ public sealed class LessonParserTests
             l2 =>
             {
                 Assert.Equal("Dezvoltare de aplicații enterprise", l2.LessonName.Span);
-                Assert.Equal("Spring", l2.SubGroup.Value);
+                Assert.Equal("Spring", l2.PartitionHint.Span);
                 Assert.Equal(LessonType.Lab, l2.LessonType);
                 Assert.Equal(new TimeOnly(hour: 9, minute: 45), l2.StartTime);
                 Assert.Equal(Parity.EveryWeek, l2.Parity);
@@ -957,7 +1011,7 @@ public sealed class LessonParserTests
         Assert.Collection(lessons,
             l1 =>
             {
-                Assert.Equal("I", l1.SubGroup.Value);
+                Assert.Equal("I", l1.PartitionHint.Span);
                 Assert.Equal("Javascript", l1.LessonName.Span);
                 Assert.Equal(LessonType.Lab, l1.LessonType);
                 AssertEqualName("N. Nartea", Assert.Single(l1.TeacherNames));
@@ -965,7 +1019,7 @@ public sealed class LessonParserTests
             },
             l2 =>
             {
-                Assert.Equal("II", l2.SubGroup.Value);
+                Assert.Equal("II", l2.PartitionHint.Span);
                 Assert.Equal("POO", l2.LessonName.Span);
                 Assert.Equal(LessonType.Lab, l2.LessonType);
                 AssertEqualName("Gh. Latul", Assert.Single(l2.TeacherNames));
@@ -1002,6 +1056,98 @@ public sealed class LessonParserTests
         Assert.Equal(Parity.OddWeek, lesson.Parity);
         Assert.Equal("IA2303", lesson.GroupName.Span);
 
+    }
+
+    [Theory]
+    [InlineData("UI-1")]
+    [InlineData("UI-2")]
+    public void DashedLegacySubGroupsParseAsRawLabels(string subGroup)
+    {
+        var lessons = ParseLessons([
+            $"8:00 Limba engleza ({subGroup})",
+            "T. Teacher 214/4",
+        ]);
+
+        var lesson = Assert.Single(lessons);
+        Assert.Equal(subGroup, lesson.PartitionHint.Span.ToString());
+    }
+
+    [Fact]
+    public void ExplicitNonBeginnersIsRejected()
+    {
+        Assert.ThrowsAny<Exception>(() => ParseLessons([
+            "8:00 Limba engleza (nuîncepători)",
+            "T. Teacher 214/4",
+        ]));
+    }
+
+    [Fact]
+    public void ShortenedGroupNameAsModifier()
+    {
+        var lessons = ParseLessons([
+            "8:00  L. str. (încep.)",
+            "G.Ciudin   222/4",
+            "15:00 Limba straina",
+            "O.Bașirov   419/4",
+        ]);
+
+        Assert.Collection(lessons,
+            first =>
+            {
+                Assert.Equal(new TimeOnly(8, 0), first.StartTime);
+                Assert.Equal("încep.", first.GroupName.Span);
+                Assert.True(SpecialSubGroups.TryFromNamePrefix(first.GroupName.Span, out var subGroup));
+                Assert.Equal(SpecialSubGroups.Beginners, subGroup);
+                AssertEqualName("G. Ciudin", Assert.Single(first.TeacherNames));
+                Assert.Equal("222/4", first.RoomName.Span);
+            },
+            second =>
+            {
+                Assert.Equal(new TimeOnly(15, 0), second.StartTime);
+                AssertEqualName("O. Bașirov", Assert.Single(second.TeacherNames));
+                Assert.Equal("419/4", second.RoomName.Span);
+            });
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    [InlineData("r")]
+    [InlineData("r.")]
+    [InlineData("a")]
+    [InlineData("a.")]
+    public void SpecialSubGroupPrefixRequiresAtLeastTwoCharacters(string value)
+    {
+        Assert.False(SpecialSubGroups.TryFromNamePrefix(value, out _));
+    }
+
+    [Fact]
+    public void SpecialSubGroupPrefixAcceptsTwoCharactersAndLongerAbbreviations()
+    {
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ro", out var ro));
+        Assert.Equal(SpecialSubGroups.Ro, ro);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ru", out var ru));
+        Assert.Equal(SpecialSubGroups.Ru, ru);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("AG", out var ag));
+        Assert.Equal(new SubGroup(Specialization.AG.Value!), ag);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ui", out var ui));
+        Assert.Equal(new SubGroup(Specialization.UI.Value!), ui);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("în", out var beginners));
+        Assert.Equal(SpecialSubGroups.Beginners, beginners);
+
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("încep.", out beginners));
+        Assert.Equal(SpecialSubGroups.Beginners, beginners);
+    }
+
+    [Fact]
+    public void SpecialSubGroupPrefixPrefersExactLegacyMatchOverLongerSpecialization()
+    {
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("GA", out var ga));
+        Assert.Equal(new SubGroup("GA"), ga);
     }
 
     [Fact]
@@ -1065,13 +1211,13 @@ public sealed class LessonParserTests
             l1 =>
             {
                 Common(l1);
-                Assert.Equal(SubGroup.CreateNumeric(1), l1.SubGroup);
+                Assert.Equal("I", l1.PartitionHint.Span);
                 Assert.Equal(Parity.EvenWeek, l1.Parity);
             },
             l2 =>
             {
                 Common(l2);
-                Assert.Equal(SubGroup.CreateNumeric(2), l2.SubGroup);
+                Assert.Equal("II", l2.PartitionHint.Span);
                 Assert.Equal(Parity.OddWeek, l2.Parity);
             });
     }
@@ -1085,7 +1231,7 @@ public sealed class LessonParserTests
         Assert.Equal("Proiect practic de știința datelor", l1.LessonName.Span);
         AssertEqualName("V. Ursachi", Assert.Single(l1.TeacherNames));
         Assert.Equal(LessonType.Lab, l1.LessonType);
-        Assert.Equal(SubGroup.CreateNumeric(1), l1.SubGroup);
+        Assert.Equal("I", l1.PartitionHint.Span);
         Assert.Equal("219/4a", l1.RoomName.Span);
     }
 }

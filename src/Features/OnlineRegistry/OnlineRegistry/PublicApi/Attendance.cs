@@ -376,7 +376,7 @@ public readonly struct StudentAttendanceList
         var attendanceKey = new StudentsLookupKey(
             courseId: key.CourseId,
             groups: key.Groups.Value.Ordered(),
-            subGroup: key.SubGroup,
+            groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
         // TODO: Should work for any subset of the groups, currently it does not.
         if (_map.TryGetValue(attendanceKey, out var list)
@@ -465,7 +465,7 @@ internal readonly struct StudentNameRemapHelper
 
         for (int i = 0; i < namesInHtml.Length; i++)
         {
-            var parser = new Parser(namesInHtml[i].Name);
+            var parser = new SequenceReader(namesInHtml[i].Name);
             var name = NameHelper.Parse(ref parser);
             var remappedIndex = namesInDb.NameToIndex(name);
             if (!remappedIndex.IsInvalid)

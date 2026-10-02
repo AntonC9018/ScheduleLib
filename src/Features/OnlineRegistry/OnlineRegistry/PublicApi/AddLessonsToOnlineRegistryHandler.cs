@@ -62,7 +62,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var filter = new LessonSearchFilter(
                     courseLink.CourseId,
                     group.Groups,
-                    group.SubGroup);
+                    group.GroupPartition);
                 var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
                         lookup: _lookup.LessonsByCourse,
                         schedule: _schedule,
@@ -72,6 +72,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     continue;
                 }
+                var matchedGroupPartition =
+                    _schedule.Get(lessons[0]).Lesson.GroupPartitionKey;
 
                 var decision = p.LessonFilter.Filter(new(
                     filter: filter,
@@ -137,7 +139,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var studentNames = p.Attendance.StudentNames(new(
                         courseId: courseLink.CourseId,
                         groups: group.Groups.Value,
-                        subGroup: group.SubGroup,
+                        groupPartition: matchedGroupPartition,
                         lessonType: dbLessonType));
                     remapHelpers[dbLessonType] = StudentNameRemapHelper.Create(
                         namesInHtml: scanResult.Students,
@@ -207,7 +209,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     var key = new AttendanceLookupKey(
                         groups: group.Groups,
-                        subGroup: group.SubGroup,
+                        groupPartition: matchedGroupPartition,
                         courseId: courseId,
                         lessonType: dbLessonType,
                         dayIndex: attendanceIndex,

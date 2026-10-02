@@ -209,7 +209,7 @@ public static class WebsiteJsonScheduleHelper
         listBuilder.MaybeAppendSeparator();
 
         // Groups - handle merged groups with parity suffixes
-        var groupsWithParity = new Dictionary<GroupId, List<(Parity parity, SubGroup subGroup)>>();
+        var groupsWithParity = new Dictionary<GroupId, List<Parity>>();
         foreach (var lesson in lessons)
         {
             foreach (var groupId in lesson.Lesson.Groups)
@@ -218,7 +218,7 @@ public static class WebsiteJsonScheduleHelper
                 {
                     groupsWithParity[groupId] = new();
                 }
-                groupsWithParity[groupId].Add((lesson.Date.Parity, lesson.Lesson.SubGroup));
+                groupsWithParity[groupId].Add(lesson.Date.Parity);
             }
         }
 
@@ -231,10 +231,10 @@ public static class WebsiteJsonScheduleHelper
             // Add parity suffix if this is a merged lesson with different parities
             if (hasMixedParity)
             {
-                var distinctParities = parityList.Select(p => p.parity).Distinct().ToList();
-                if (distinctParities.Count == 1 && distinctParities[0] != Parity.EveryWeek)
+                var firstParity = parityList[0];
+                if (parityList.All(p => p == firstParity) && firstParity != Parity.EveryWeek)
                 {
-                    var paritySuffix = services.ParityDisplay.Get(distinctParities[0]);
+                    var paritySuffix = services.ParityDisplay.Get(firstParity);
                     if (paritySuffix != null)
                     {
                         groupSb.Append('-');
@@ -246,15 +246,14 @@ public static class WebsiteJsonScheduleHelper
             listBuilder.Append(groupSb.ToString());
         }
 
-        // Subgroup - only if all lessons share the same subgroup
-        var distinctSubGroups = lessons.Select(l => l.Lesson.SubGroup).Distinct().ToList();
-        if (distinctSubGroups.Count == 1 && distinctSubGroups[0] != SubGroup.All)
+        // Split - only if all lessons share the same subgroup and specialization.
+        // Lessons are grouped by course/type/room, so mixed partitions are possible;
+        // then no single suffix applies and none is shown.
+        var firstPartition = lessons[0].Lesson.GroupPartitionKey;
+        if (lessons.All(l => l.Lesson.GroupPartitionKey.Equals(firstPartition))
+            && firstPartition.ToDisplayString() is { } partitionDisplay)
         {
-            var subGroupNumber = services.SubGroupNumberDisplay.Get(distinctSubGroups[0]);
-            if (subGroupNumber != null)
-            {
-                listBuilder.Append($"s.{subGroupNumber}");
-            }
+            listBuilder.Append($"s.{partitionDisplay}");
         }
 
         // Room
@@ -270,6 +269,6 @@ public static class WebsiteJsonScheduleHelper
     private static int MondayBasedIndex(DayOfWeek day)
     {
         const int weekDayCount = 7;
-        return ((int)day - (int)DayOfWeek.Monday + weekDayCount) % weekDayCount;
+        return ((int) day - (int) DayOfWeek.Monday + weekDayCount) % weekDayCount;
     }
 }

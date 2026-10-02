@@ -30,6 +30,7 @@ public enum AppTask
     JsonSchedulesForWebsite,
     CopyGradesFromMoodleToRegistry,
     UpdateCalendar,
+    GenerateIcsCalendars,
     ListOfThesesPerTeacherForWebsite,
     CreatePredzashitaExcels,
     Query,
@@ -68,6 +69,7 @@ public static class AppTasks
                     GenerateAllTeacherExcel(c),
                     GenerateFreeRoomsExcel(c),
                     GeneratePdfsForGroupsAndTeachers(c),
+                    GenerateIcsCalendars(c),
                 ];
                 await Task.WhenAll(tasks);
                 var handler = c.Services.GetRequiredService<SyncDriveFolderTaskHandler>();
@@ -88,6 +90,13 @@ public static class AppTasks
             case AppTask.PerGroupAndPerTeacherPdfs:
             {
                 await GeneratePdfsForGroupsAndTeachers(c);
+                c.OutputDirectory.TryOpenInExplorer();
+                break;
+            }
+
+            case AppTask.GenerateIcsCalendars:
+            {
+                await GenerateIcsCalendars(c);
                 c.OutputDirectory.TryOpenInExplorer();
                 break;
             }
@@ -315,6 +324,18 @@ public static class AppTasks
             await handler.Run(new()
             {
                 CancellationToken = c.CancellationToken,
+                OutputDirectory = c.OutputDirectory,
+            });
+        });
+    }
+
+    public static Task GenerateIcsCalendars(TaskExecutionContext c)
+    {
+        return Task.Run(() =>
+        {
+            var handler = c.Services.GetRequiredService<GenerateIcsCalendarsTaskHandler>();
+            handler.Run(new()
+            {
                 OutputDirectory = c.OutputDirectory,
             });
         });

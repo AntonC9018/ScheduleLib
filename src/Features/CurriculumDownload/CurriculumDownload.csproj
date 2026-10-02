@@ -11,7 +11,7 @@
 
     <ItemGroup>
         <PackageReference Include="TextCopy" Version="6.2.1" />
-        <PackageReference Include="Microsoft.Identity.Web" Version="4.9.0" />
+        <PackageReference Include="Microsoft.Identity.Web" Version="4.14.2" />
         <PackageReference Include="Microsoft.Graph" Version="4.54.0" />
     </ItemGroup>
 </Project>

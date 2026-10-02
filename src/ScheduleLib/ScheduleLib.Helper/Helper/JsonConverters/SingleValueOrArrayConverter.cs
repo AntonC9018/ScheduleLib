@@ -46,7 +46,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         }
 
         var converterType = typeof(SingleValueOrArrayConverter<,>).MakeGenericType(elementType, typeToConvert);
-        return (JsonConverter)Activator.CreateInstance(converterType)!;
+        return (JsonConverter) Activator.CreateInstance(converterType)!;
     }
 }
 
@@ -85,7 +85,7 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         // Handle arrays
         if (targetType.IsArray)
         {
-            return (TCollection)(object)items;
+            return (TCollection) (object) items;
         }
 
         // Handle generic types
@@ -95,11 +95,11 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
 
             if (genericTypeDef == typeof(ImmutableArray<>))
             {
-                return (TCollection)(object)ImmutableArray.Create(items);
+                return (TCollection) (object) ImmutableArray.Create(items);
             }
             if (genericTypeDef == typeof(List<>))
             {
-                return (TCollection)(object)new List<TElement>(items);
+                return (TCollection) (object) new List<TElement>(items);
             }
             if (genericTypeDef == typeof(IEnumerable<>) ||
                 genericTypeDef == typeof(ICollection<>) ||
@@ -107,7 +107,7 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 genericTypeDef == typeof(IReadOnlyCollection<>) ||
                 genericTypeDef == typeof(IReadOnlyList<>))
             {
-                return (TCollection)(object)items;
+                return (TCollection) (object) items;
             }
         }
 

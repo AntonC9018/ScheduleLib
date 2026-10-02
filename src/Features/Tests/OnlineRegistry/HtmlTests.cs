@@ -65,7 +65,7 @@ public sealed class HtmlTests
         var doc = Load(GroupsHtmlPath);
         var groupParseContext = GroupParseContext.Create(new()
         {
-            CurrentStudyYear = 2025,
+            CurrentStudyYear = new(2025),
         });
 
         List<GroupForSearch> groups = new();
@@ -73,6 +73,7 @@ public sealed class HtmlTests
         {
             Document = doc,
             GroupParseContext = groupParseContext,
+            GroupPartitionResolver = new GroupPartitionResolver(SpecializationRegistry.Empty),
             SearchGroupId = (ref g) =>
             {
                 groups.Add(g);
@@ -89,6 +90,42 @@ public sealed class HtmlTests
             FacultyName = b.FacultyName.ToString(),
         });
         await Verify(mapped);
+    }
+
+    [Fact]
+    public void GroupLinkSplitClassifiesSpecializationsSeparately()
+    {
+        // Explicit null: no custom registry; only built-in specializations apply.
+        var resolver = new GroupPartitionResolver(null);
+        var specialization = resolver.Resolve(MakeGroupForSearch("Spring"));
+        var numeric = resolver.Resolve(MakeGroupForSearch("I"));
+        var registryBuilder = new SpecializationRegistryBuilder();
+        var futureSpecialization = new Specialization("Future track");
+        registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
+        var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
+            MakeGroupForSearch(futureSpecialization.Value!));
+
+        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.Spring), specialization);
+        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
+        Assert.Equal(new GroupPartitionKey(SubGroup.All, futureSpecialization), future);
+
+        static GroupForSearch MakeGroupForSearch(string subGroup)
+        {
+            return new()
+            {
+                UnparsedName = "I2401",
+                AttendanceMode = AttendanceMode.Zi,
+                Grade = new(2),
+                GroupNumber = 1,
+                FacultyName = "I".AsMemory(),
+                QualificationType = QualificationType.Licenta,
+                SubGroupName = subGroup.AsMemory(),
+                Language = null,
+                IsRepeat = false,
+                IsWildcard = false,
+                IsDual = false,
+            };
+        }
     }
 
     private sealed class ScanLessonVerifyModel
@@ -149,7 +186,7 @@ public sealed class HtmlTests
 
         var schedule = ScheduleBuilder.Create(b =>
         {
-            b.SetStudyYear(25);
+            b.SetStudyYear(2025);
             var courseId = b.Course("My Course");
             var groupId = b.Group("I2501");
             b.RegularLesson(x =>

@@ -30,6 +30,8 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <!--Transitive dependency of Avalonia; 0.21.2 has a known high severity vulnerability (GHSA-xrw6-gwf8-vvr9).-->
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
 <!--        <PackageReference Include="DynamicData" Version="9.4.31" />-->
         <PackageReference Include="FastExpressionCompiler" Version="5.4.0" />
     </ItemGroup>

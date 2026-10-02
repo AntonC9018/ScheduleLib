@@ -145,7 +145,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             var teacherColumns = new Column
             {
                 Min = 3,
-                Max = (uint)(3 + teachers.Length),
+                Max = (uint) (3 + teachers.Length),
                 Width = FromPixels(100),
                 CustomWidth = true,
             };
@@ -604,9 +604,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 b.Append(group.Name);
 
                 if (appendSubgroup
-                    && lesson.Lesson.SubGroup != SubGroup.All)
+                    && lesson.Lesson.GroupPartitionKey.ToDisplayString("-") is { } partitionDisplay)
                 {
-                    b.StringBuilder.Append($"-{lesson.Lesson.SubGroup.Value}");
+                    b.StringBuilder.Append('-');
+                    b.StringBuilder.Append(partitionDisplay);
                 }
             }
             string GetParityName(WeeklyLessonRef l)

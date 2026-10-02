@@ -77,10 +77,10 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
             var lesson = students.Schedule.Get(students.LessonId);
             var lessonType = lesson.Lesson.Type;
             var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
-            var subGroup = lesson.Lesson.SubGroup.Value ?? "all subgroups";
+            var groupPartition = lesson.Lesson.GroupPartitionKey.ToDisplayString() ?? "all subgroups";
             return _logger.BeginScope(new{
                 groupName,
-                subGroup,
+                groupPartition,
                 course,
                 lessonType,
             });

@@ -14,6 +14,7 @@ csharp_new_line_before_members_in_object_initializers = true
 csharp_preserve_single_line_blocks = true
 
 # ReSharper properties
+resharper_csharp_blank_lines_after_block_statements = 0
 resharper_csharp_wrap_after_declaration_lpar = true
 resharper_csharp_wrap_after_invocation_lpar = true
 resharper_csharp_wrap_arguments_style = chop_if_long

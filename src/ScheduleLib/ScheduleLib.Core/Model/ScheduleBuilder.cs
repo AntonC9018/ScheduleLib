@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using ScheduleLib.Helper;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Builders;
@@ -27,11 +28,39 @@ public sealed class ValidationSettings()
 public sealed partial class ScheduleBuilder()
 {
     public Remappings Remappings = new();
+    public SpecializationRegistry? SpecializationRegistry;
+    public ImplicitSplitConfig? ImplicitSplitConfig;
+    public LessonOverlapValidationConfig? OverlapValidationConfig;
     public ListBuilder<OneTimeLessonBuilderModel> OneTimeLessons = new();
     public ListBuilder<Course> Courses = new();
     public ValidationSettings ValidationSettings = new();
 
-    public GroupParseContext? GroupParseContext;
+    public GroupParseContext? GroupParseContext
+    {
+        get => _groupParseContext;
+        set
+        {
+            _groupParseContext = value;
+            GroupParseContextIsExplicit = value is not null;
+        }
+    }
+
+    private GroupParseContext? _groupParseContext;
+
+    /// <summary>
+    /// Whether <see cref="GroupParseContext"/> was supplied explicitly by the
+    /// caller rather than defaulted from the wall clock in
+    /// <c>GroupBuilderHelper.ParseGroup</c>. A clock-derived year silently stops
+    /// matching year-pinned implicit split scopes once the clock moves past
+    /// them, so <c>AssignImplicitSplits</c> fails loudly instead in that case.
+    /// </summary>
+    internal bool GroupParseContextIsExplicit { get; private set; }
+
+    internal void SetDefaultGroupParseContext(GroupParseContext context)
+    {
+        _groupParseContext = context;
+        GroupParseContextIsExplicit = false;
+    }
 
     public static Schedule Create(Action<ScheduleBuilder> builder)
     {
@@ -46,8 +75,13 @@ public static partial class ScheduleBuilderHelper
 {
     public static T Build<T>(this ScheduleBuilder s, Func<ScheduleBuilder, T> builder)
     {
-        s.Validate();
         s.Preprocess();
+        s.Validate();
+        s.ClassifySubGroups();
+        s.DropEngSubGroupFromEnglishGroups();
+        s.AssignImplicitSplits();
+        s.NormalizeLanguageProficiency();
+        s.ValidateLessonOverlaps();
         s.SanityChecks();
         var ret = builder(s);
         return ret;
@@ -59,7 +93,7 @@ public static partial class ScheduleBuilderHelper
         return ret;
     }
 
-    public static void Preprocess(this ScheduleBuilder b)
+    private static void Preprocess(this ScheduleBuilder b)
     {
         if (b.LookupModule is not { } lookup)
         {
@@ -81,7 +115,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    public static void Validate(this ScheduleBuilder s)
+    private static void Validate(this ScheduleBuilder s)
     {
         GroupBuilderHelper.ValidateGroups(s);
         LessonBuilderHelper.ValidateLessons(s);
@@ -89,13 +123,66 @@ public static partial class ScheduleBuilderHelper
         PeriodBuilderHelper.ValidatePeriods(s);
     }
 
-    public static void SanityChecks(this ScheduleBuilder s)
+    internal static void SanityChecks(this ScheduleBuilder s)
     {
-        // TODO
-        _ = s;
+        if (s.ValidationSettings.SubGroup == SubGroupValidationMode.None)
+        {
+            return;
+        }
+
+        foreach (var lesson in s.WeeklyLessons.List)
+        {
+            ValidateSubGroup(lesson.Base.Group.SubGroup, lesson.Base.Group.Groups);
+        }
+        foreach (var lesson in s.OneTimeLessons.List)
+        {
+            ValidateSubGroup(lesson.Base.Group.SubGroup, lesson.Base.Group.Groups);
+        }
+
+        s.CheckNumericSubGroupsAreContiguous();
+        s.CheckLanguageSubGroupCount();
+
+        void ValidateSubGroup(SubGroup subGroup, in LessonGroups groups)
+        {
+            if (subGroup == SubGroup.All
+                || SpecialSubGroups.AllSpecial.Contains(subGroup)
+                || NumberHelper.FromRoman(subGroup.Value) is not null)
+            {
+                return;
+            }
+
+            var groupContext = groups.Count == 0
+                ? "no group"
+                : string.Join("; ", groups.Select(DescribeGroup));
+            var registryContext = s.SpecializationRegistry is { } registry
+                ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
+                : "no specialization registry configured";
+            throw UnknownSubGroupException.ForInvalid(subGroup.Value, groupContext, registryContext);
+        }
+
+        string DescribeGroup(GroupId id)
+        {
+            if (id.Value < 0 || id.Value >= s.Groups.List.Count)
+            {
+                return id.Value.ToString();
+            }
+            var group = s.Groups.List[id.Value];
+            return $"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "
+                + $"attendance {group.AttendanceMode}, qualification {group.QualificationType})";
+        }
+
+        string DescribeRegistryContext(SpecializationRegistry registry, GroupId id)
+        {
+            if (id.Value < 0 || id.Value >= s.Groups.List.Count)
+            {
+                return $"{id.Value} => unavailable group";
+            }
+            var group = s.Groups.List[id.Value];
+            return $"{group.Name} => {registry.DescribeMatches(in group)}";
+        }
     }
 
-    public static Schedule CreateDefaultModel(ScheduleBuilder s)
+    private static Schedule CreateDefaultModel(ScheduleBuilder s)
     {
         LessonBase BuildBase(in LessonBuilderModelDataBase x)
         {
@@ -105,6 +192,8 @@ public static partial class ScheduleBuilderHelper
                 {
                     Groups = x.Group.Groups.Ordered(),
                     SubGroup = x.Group.SubGroup,
+                    Specialization = x.Group.Specialization,
+                    Alternative = x.Group.Alternative,
                     Course = x.General.Course!.Value,
                     Room = x.General.Room,
                     Teachers = [.. x.General.Teachers],
@@ -226,7 +315,7 @@ public static partial class ScheduleBuilderHelper
 
     // Obviously pretty bad code.
     // Gonna need to introduce some more abstraction later.
-    public static void UpdateLookupAfterCourseAdded(ScheduleBuilder s)
+    internal static void UpdateLookupAfterCourseAdded(ScheduleBuilder s)
     {
         if (s.LookupModule is { } lookupModule)
         {
@@ -249,8 +338,7 @@ public static partial class ScheduleBuilderHelper
             if (status1 != TeacherNameRemapStatus.None)
             {
                 // Maybe allow 1 recursion level?
-                throw new InvalidOperationException(
-                    "Recursive teacher name remaps are not supported to prevent errors. Ensure the remap maps to the final version.");
+                throw ConflictingTeacherNameRemapException.ForRecursive();
             }
         }
         return status;
@@ -281,7 +369,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    public static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
+    internal static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
     {
         if (subGroup == SubGroup.All)
         {

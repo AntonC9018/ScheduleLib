@@ -30,6 +30,8 @@ public struct PeriodFilter()
 public struct GroupFilter()
 {
     public SubGroup[]? SubGroups = null;
+    public Specialization[]? Specializations = null;
+    public Alternative[]? Alternatives = null;
     public GroupId[]? OneOfGroupIds = null;
     public EnumBitArray<AttendanceMode> AttendanceMode = EnumBitArray<AttendanceMode>.Empty;
 }
@@ -211,6 +213,30 @@ public static class FilterHelper
 
         IEnumerable<AnyLessonId> GetRegularLessons(ScheduleFilter filter)
         {
+            // Observed specializations/alternatives per group, computed lazily: the
+            // singleton rule needs them to decide whether a lesson's annotation
+            // behaves as shared.
+            Dictionary<GroupId, int>? specializationCounts = null;
+            Dictionary<GroupId, int>? alternativeCounts = null;
+
+            // Partition selections as dimension-agnostic values, hoisted: the
+            // filter is constant across lessons.
+            var selections = ToPartitionKeys(filter.GroupFilter);
+
+            static (PartitionKey[]? SubGroup, PartitionKey[]? Specialization, PartitionKey[]? Alternative) ToPartitionKeys(
+                GroupFilter groupFilter)
+            {
+                return (
+                    SubGroup: ToKeys(groupFilter.SubGroups, s => s),
+                    Specialization: ToKeys(groupFilter.Specializations, s => s),
+                    Alternative: ToKeys(groupFilter.Alternatives, a => a));
+
+                static PartitionKey[]? ToKeys<T>(IEnumerable<T>? values, Func<T, PartitionKey> convert)
+                {
+                    return values?.Select(convert).ToArray();
+                }
+            }
+
             foreach (var l in schedule.EnumerateAllLessons())
             {
                 // TODO: Can be optimized because these are in different arrays
@@ -227,7 +253,7 @@ public static class FilterHelper
                 {
                     continue;
                 }
-                if (!PassesSubGroupFilter())
+                if (!PassesPartitionFilters())
                 {
                     continue;
                 }
@@ -300,20 +326,108 @@ public static class FilterHelper
                     return false;
                 }
 
-                bool PassesSubGroupFilter()
+                bool PassesPartitionFilters()
                 {
-                    if (filter.GroupFilter.SubGroups is not { } subGroups)
+                    foreach (var dimension in PartitionDimensions.All)
+                    {
+                        if (!PassesPartitionFilter(dimension))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                bool PassesPartitionFilter(PartitionDimension dimension)
+                {
+                    if (SelectedValues(dimension) is not { } selected)
                     {
                         return true;
                     }
-                    foreach (var subGroup in subGroups)
+                    PartitionKey lessonValue = l.Lesson.GroupPartitionKey.GetPartitionDimension(dimension);
+                    if (lessonValue.Value is null)
                     {
-                        if (subGroup == l.Lesson.SubGroup)
+                        return true;
+                    }
+                    if (ObservedCounts(dimension) is not { } counts)
+                    {
+                        // The subgroup partition has no singleton rule: plain membership.
+                        return selected.Contains(lessonValue);
+                    }
+                    if (l.Lesson.Groups.IsEmpty)
+                    {
+                        return true;
+                    }
+                    foreach (var groupId in RelevantGroups())
+                    {
+                        // The effective value depends on the group being
+                        // filtered: a group with fewer than two observed values treats
+                        // every annotation as shared. A filter spanning
+                        // several groups includes the lesson when it matches at least
+                        // one of those group contexts.
+                        if (!counts.TryGetValue(groupId, out var count)
+                            || count < 2)
+                        {
+                            return true;
+                        }
+                        if (selected.Contains(lessonValue))
                         {
                             return true;
                         }
                     }
                     return false;
+
+                    IEnumerable<GroupId> RelevantGroups()
+                    {
+                        foreach (var lessonGroup in l.Lesson.Groups)
+                        {
+                            if (filter.GroupFilter.OneOfGroupIds is not { } groupIds
+                                || groupIds.Contains(lessonGroup))
+                            {
+                                yield return lessonGroup;
+                            }
+                        }
+                    }
+                }
+
+                PartitionKey[]? SelectedValues(PartitionDimension dimension) => dimension switch
+                {
+                    PartitionDimension.SubGroup => selections.SubGroup,
+                    PartitionDimension.Specialization => selections.Specialization,
+                    PartitionDimension.Alternative => selections.Alternative,
+                    _ => throw Unreachable(),
+                };
+
+                Dictionary<GroupId, int>? ObservedCounts(PartitionDimension dimension) => dimension switch
+                {
+                    PartitionDimension.SubGroup => null,
+                    PartitionDimension.Specialization => specializationCounts ??= CountObservedValues(schedule, dimension),
+                    PartitionDimension.Alternative => alternativeCounts ??= CountObservedValues(schedule, dimension),
+                    _ => throw Unreachable(),
+                };
+
+                static Dictionary<GroupId, int> CountObservedValues(Schedule schedule, PartitionDimension dimension)
+                {
+                    var sets = new Dictionary<GroupId, HashSet<PartitionKey>>();
+                    foreach (var l1 in schedule.EnumerateAllLessons())
+                    {
+                        ref readonly var lesson = ref l1.Lesson;
+                        PartitionKey value = lesson.GroupPartitionKey.GetPartitionDimension(dimension);
+                        if (value.Value is null)
+                        {
+                            continue;
+                        }
+                        foreach (var groupId in lesson.Groups)
+                        {
+                            if (!sets.TryGetValue(groupId, out var set))
+                            {
+                                set = [];
+                                sets[groupId] = set;
+                            }
+                            set.Add(value);
+                        }
+                    }
+                    return sets.ToDictionary(x => x.Key, x => x.Value.Count);
                 }
 
                 bool PassesGroupFilter()

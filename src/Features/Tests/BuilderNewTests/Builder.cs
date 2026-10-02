@@ -55,10 +55,15 @@ public static class TestBuilderHelper
                 x.ProcessingFlags(CommandProcessingConfig.None);
             });
 
-            t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse.xlsx", attendance =>
-            {
-                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-            });
+            t.LessonAttendance().Source(
+                Path.Join(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Desktop",
+                    "lipse.xlsx"),
+                attendance =>
+                {
+                    attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+                });
             t.LessonTopics().Configure(topics =>
             {
                 topics.Manifest();

@@ -23,8 +23,8 @@ public static class ExcelRangeHelper
         while (true)
         {
             const uint base_ = 'Z' - 'A' + 1;
-            byte remainder = (byte)((remaining - 1) % base_);
-            byte letter = (byte)('A' + remainder);
+            byte remainder = (byte) ((remaining - 1) % base_);
+            byte letter = (byte) ('A' + remainder);
             char ch = (char) letter;
             stack[stackPos] = ch;
             stackPos++;
@@ -88,7 +88,7 @@ public static class ExcelRangeHelper
         CellPosition pos;
         if (cell.Item.CellReference?.Value is { } val)
         {
-            var parser = new Parser(val);
+            var parser = new SequenceReader(val);
             pos = parser.ParseCellPosition();
             if (!parser.IsEmpty)
             {
@@ -98,36 +98,36 @@ public static class ExcelRangeHelper
         else
         {
             uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
-            pos = new((uint)(cell.Index + 1), rowIndex);
+            pos = new((uint) (cell.Index + 1), rowIndex);
         }
         return pos;
     }
 
-    public static CellPosition ParseCellPosition(this ref Parser parser)
+    public static CellPosition ParseCellPosition(this ref SequenceReader reader)
     {
         uint col = 0;
         while (true)
         {
-            if (parser.IsEmpty)
+            if (reader.IsEmpty)
             {
                 throw new InvalidOperationException("Invalid cell position");
             }
-            if (!char.IsLetter(parser.Current))
+            if (!char.IsLetter(reader.Current))
             {
                 break;
             }
             col *= 'Z' - 'A' + 1;
-            col += (uint) (char.ToUpperInvariant(parser.Current) - 'A' + 1);
-            parser.Move();
+            col += (uint) (char.ToUpperInvariant(reader.Current) - 'A' + 1);
+            reader.Move();
         }
 
-        var bparser = parser.BufferedView();
+        var bparser = reader.BufferedView();
         if (!bparser.SkipNumbers().SkippedAny)
         {
             throw new InvalidOperationException("Expected number after the letter");
         }
-        uint row = uint.Parse(parser.PeekSpanUntilPosition(bparser.Position));
-        parser.MoveTo(bparser.Position);
+        uint row = uint.Parse(reader.PeekSpanUntilPosition(bparser.Position));
+        reader.MoveTo(bparser.Position);
 
         return new(col, row);
     }

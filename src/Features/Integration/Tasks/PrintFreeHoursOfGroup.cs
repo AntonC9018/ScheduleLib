@@ -39,12 +39,13 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                             {
                                 return true;
                             }
-                            var sg = x.Lesson.SubGroup;
-                            if (sg == SubGroup.All)
+                            var partition = x.Lesson.GroupPartitionKey;
+                            if (partition == GroupPartitionKey.All)
                             {
                                 return true;
                             }
-                            if (sg == SpecialSubGroups.Optional)
+                            if (partition.SubGroup == SpecialSubGroups.Optional
+                                && partition.Specialization == Specialization.All)
                             {
                                 return true;
                             }

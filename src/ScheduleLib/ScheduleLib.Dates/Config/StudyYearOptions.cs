@@ -5,7 +5,7 @@ namespace ScheduleLib.Dates;
 
 public sealed class StudyYearOptions
 {
-    public required int StudyYear { get; set; } = -1;
+    public StudyYear? StudyYear { get; set; }
     public required Semester Semester { get; set; } = Semester.Invalid;
 }
 
@@ -15,7 +15,7 @@ public sealed class StudyYearOptionsValidator : IValidateOptions<StudyYearOption
     {
         _ = name;
 
-        if (options.StudyYear == -1)
+        if (options.StudyYear is null)
         {
             return ValidateOptionsResult.Fail("StudyYear not initialized");
         }
