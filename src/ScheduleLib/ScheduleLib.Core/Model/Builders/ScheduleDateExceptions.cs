@@ -79,6 +79,24 @@ public sealed class DuplicateSemesterDateRangeException : ScheduleBuildException
 }
 
 /// <summary>
+/// A group's attendance mode, grade or qualification has no semester date-range
+/// configuration for the current academic year, so concrete lesson dates cannot
+/// be computed for it.
+/// </summary>
+public sealed class MissingSemesterDateRangeException : ScheduleBuildException
+{
+    private MissingSemesterDateRangeException(string message)
+        : base(message)
+    {
+    }
+
+    public static MissingSemesterDateRangeException ForMissingRange(string key)
+    {
+        return new($"No semester date range found for: {key}");
+    }
+}
+
+/// <summary>
 /// The study-week parity document has no usable document or body.
 /// </summary>
 public sealed class InvalidParityDocumentException : ScheduleBuildException

@@ -277,7 +277,11 @@ internal readonly struct YearDateRanges
 
     public SemesterDateRange Get(DateRangeKey key)
     {
-        return _values[key];
+        if (_values.TryGetValue(key, out var range))
+        {
+            return range;
+        }
+        throw MissingSemesterDateRangeException.ForMissingRange(key.ToString());
     }
 
     // TODO: Do this better

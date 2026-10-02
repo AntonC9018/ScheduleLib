@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />
+        <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Generator.Ics\ScheduleLib.Generator.Ics.csproj" />
         <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Helper.Excel\ScheduleLib.Helper.Excel.csproj" />
     </ItemGroup>
 

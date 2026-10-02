@@ -42,7 +42,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         var opts = _opts.Value;
         if (opts.UseCache)
         {
-            loader.CachedPath = @$"data\schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
+            loader.CachedPath = Path.Combine("data", $"schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json");
         }
 
         {
@@ -59,7 +59,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         {
             // loader.Components.Add(new EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent
             // {
-            //     FilePath = @"data\Cadre didactice DI 2024-2025.xlsx",
+            //     FilePath = Path.Combine("data", "Cadre didactice DI 2024-2025.xlsx"),
             // });
 
             var websiteLoader = sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();
