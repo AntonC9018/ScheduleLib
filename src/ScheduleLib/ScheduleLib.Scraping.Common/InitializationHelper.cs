@@ -44,6 +44,7 @@ public sealed class ScrapingContextBuilder
 
     public void AddLogging(ILoggerFactory f)
     {
+        _services.AddLogging();
         _services.AddSingleton(f);
     }
 
@@ -195,14 +196,18 @@ public sealed class ScrapingContextBuilder
 
     // Add more stuff here.
 
-    public async Task<ScrapingContext> Build(CancellationToken cancellationToken)
+    /// <summary>Builds an authenticated session, taking ownership of an optional supplied transport.</summary>
+    public async Task<ScrapingContext> Build(CancellationToken cancellationToken, HttpClientContext? httpContext = null)
     {
+        if (httpContext is not null)
+            _services.Replace(ServiceDescriptor.Singleton<HttpClientContext>(_ => httpContext));
         var sp = _services.BuildServiceProvider();
+        ScrapingContext? ret = null;
         try
         {
             var http = sp.GetRequiredService<HttpClientContext>();
             var auth = sp.GetRequiredService<IAuthHandler>();
-            var ret = ScrapingContext.Create(http, auth);
+            ret = ScrapingContext.Create(http, auth);
             ret.BuilderServices = sp;
 
             var lazyBrowser = sp.GetRequiredService<BrowsingContextProvider>();
@@ -217,6 +222,7 @@ public sealed class ScrapingContextBuilder
         }
         catch
         {
+            ret?.Browser.Dispose();
             await sp.DisposeAsync();
             throw;
         }

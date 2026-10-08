@@ -95,3 +95,12 @@ registry login/base destination lock. The legacy name parser can interpret
 `exmatr` after a two-part name as a patronymic; planning checks that suffix first
 to omit expelled students. See [grade-import contracts](../src/MainCli/REGISTRY-GRADES.md)
 for outcomes, omissions, page-size and cancellation limitations.
+
+Grade submission uses a scoped requester policy that suppresses authentication
+replay; legacy requester retries remain unchanged outside that scope. Completion
+requires a fresh grade-form read with matching named fields. HTTP rejection is
+failed, while server errors and failed confirmation remain uncertain. Moodle's
+form login validates a logout link and cancels its wait on uncancellable
+AngleSharp submission; failed context construction disposes both browser and
+transport before the CLI releases the account lock. Tests inject in-memory
+transports through the production builder and Moodle/planner paths.

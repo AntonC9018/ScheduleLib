@@ -36,6 +36,9 @@ passwords or tokens.
 Outcomes are `planned`, `completed`, `failed`, `uncertain`, `cancelled` or
 `not-attempted`. Application stops at the first failed form and never retries.
 A rejected submission is failed; an unconfirmed transport response is uncertain.
+Successful submission requires a fresh read with matching saved grade values.
+Grade POSTs bypass authentication replay, including after HTTP 401; other
+legacy requester retry behavior is preserved.
 Ctrl+C cancels reads and execution. AngleSharp submission cannot be natively
 cancelled, so cancellation stops awaiting the response and disposes the session;
 an already-started submission is uncertain. Inspect the registry before any
@@ -49,5 +52,8 @@ application failure; 7 conflicting local account operation; 8 unsupported
 capability; 130 cancellation. JSON is emitted once after session/lock cleanup,
 including cleanup failures. Locks coordinate this machine only.
 
-Verification uses fake providers and portable schedule/HTML fixtures only.
+Verification uses fake providers, in-memory production HTTP adapters and portable
+schedule/HTML fixtures only. Moodle login requires a successful response with
+a logout link; rejected login exits 4 before report scraping. Login cancellation
+stops waiting, disposes its owned session and releases the registry account lock.
 Windows and real Moodle/registry authentication/submission remain unverified.

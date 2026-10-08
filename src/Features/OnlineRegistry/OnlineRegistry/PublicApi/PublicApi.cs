@@ -1,5 +1,7 @@
+using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -204,9 +206,35 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var form = document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")
             ?? throw new InvalidOperationException("Registry grade form is missing.");
         token.ThrowIfCancellationRequested();
-        var response = await form.SubmitAsync().WaitAsync(token) ?? throw new IOException("Registry returned no grade response.");
-        if (response.QuerySelector(".validation-summary-errors") is { } errors && !string.IsNullOrWhiteSpace(errors.TextContent))
-            throw new RegistrySubmissionRejectedException("Registry rejected grade submission.");
+        var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
+            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+        if (expected.Length == 0 || expected.Any(input => string.IsNullOrEmpty(input.Name))
+            || expected.Select(input => input.Name).Distinct(StringComparer.Ordinal).Count() != expected.Length)
+            throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
+        var response = await Context.ScrapingContext.SubmitFormOnce(form, token)
+            ?? throw new IOException("Registry returned no grade response.");
+        RejectResponse(response);
+        // An ordinary form response or navigation away from the edit page must still be
+        // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
+        if (response.QuerySelector<IHtmlFormElement>("form") is null && response.Url == document.Url)
+            throw new IOException("Registry grade submission response could not be confirmed.");
+        var saved = await Context.Browser.OpenAsync(document.Url, token);
+        var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
+        if (saved.StatusCode != HttpStatusCode.OK
+            || saved.QuerySelector("input[type=password], .validation-summary-errors") is not null
+            || expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
+                || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+            throw new IOException("Registry saved grades could not be confirmed.");
+
+        static void RejectResponse(IDocument response)
+        {
+            if ((int) response.StatusCode is >= 400 and < 500
+                || response.QuerySelector("input[type=password]") is not null
+                || response.QuerySelector(".validation-summary-errors") is { } errors && !string.IsNullOrWhiteSpace(errors.TextContent))
+                throw new RegistrySubmissionRejectedException("Registry rejected grade submission.");
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new IOException("Registry grade submission response could not be confirmed.");
+        }
     }
 
     public CoursesNavigator Courses()

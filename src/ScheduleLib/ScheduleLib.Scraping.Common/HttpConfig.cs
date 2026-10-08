@@ -3,6 +3,7 @@ using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Io;
+using AngleSharp.Html.Dom;
 using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace ScheduleLib.Scraping.Common;
@@ -80,14 +81,17 @@ public sealed class ScrapingContext : IDisposable
 {
     // Takes ownership of everything.
     private readonly HttpClientContext _http;
+    private readonly HttpClientRequester _requester;
     public IServiceProvider? BuilderServices { get; set; }
 
     private ScrapingContext(
         HttpClientContext http,
-        IBrowsingContext browser)
+        IBrowsingContext browser,
+        HttpClientRequester requester)
     {
         _http = http;
         Browser = browser;
+        _requester = requester;
     }
 
     public HttpClient HttpClient => _http.Client;
@@ -106,8 +110,12 @@ public sealed class ScrapingContext : IDisposable
         config = config.With<ICookieProvider>(_ => http.CookieProvider);
 
         var browsingContext = BrowsingContext.New(config);
-        return new(http, browsingContext);
+        return new(http, browsingContext, requester);
     }
+
+    /// <summary>Suppresses authentication replay only for this explicit mutation.</summary>
+    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token) =>
+        _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token));
 
     public void Dispose()
     {
@@ -171,6 +179,7 @@ internal sealed class HttpClientRequester : BaseRequester
 {
     private readonly HttpClient _httpClient;
     private readonly IAuthHandler _authHandler;
+    private readonly AsyncLocal<bool> _suppressAuthenticationReplay = new();
 
     public HttpClientRequester(
         HttpClient client,
@@ -178,6 +187,14 @@ internal sealed class HttpClientRequester : BaseRequester
     {
         _httpClient = client;
         _authHandler = authHandler;
+    }
+
+    public async Task<T> WithoutAuthenticationReplay<T>(Func<Task<T>> submit)
+    {
+        var previous = _suppressAuthenticationReplay.Value;
+        _suppressAuthenticationReplay.Value = true;
+        try { return await submit(); }
+        finally { _suppressAuthenticationReplay.Value = previous; }
     }
 
     public override bool SupportsProtocol(string protocol) => true;
@@ -208,7 +225,7 @@ internal sealed class HttpClientRequester : BaseRequester
             }
 
             // if invalid token
-            if (ShouldAuthenticate())
+            if (!_suppressAuthenticationReplay.Value && ShouldAuthenticate())
             {
                 if (failedOnce)
                 {
