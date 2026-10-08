@@ -93,3 +93,18 @@ The storage tests run two real .NET processes for cache/export reuse, output
 locks and killed staging writes; they inspect workbook content with ClosedXML
 and deserialize the retained cache. Existing query fixtures explicitly bypass
 caches. Windows execution remains unverified in this Linux environment.
+
+```sh
+dotnet run --project src/MainCli -- export pdf --json
+dotnet run --project src/MainCli -- export ics --output ./calendars --no-cache
+```
+
+PDF and ICS exports retain the latest-period weekly lessons and generate the
+existing full set of group, partition-combination and teacher files. A profile
+can supply settings, but does not filter the export. ICS expands lessons into
+concrete semester dates with the existing parity and holiday exclusions; missing
+semester date ranges skip affected calendars and appear in result warnings.
+Empty filtered schedules produce no file. These commands publish each completed
+artifact through the same owned-output contract and never launch Explorer or an
+editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
+synchronous PDF render finishes before cancellation is observed.

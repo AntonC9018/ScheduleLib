@@ -38,18 +38,24 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
     public readonly struct RunParams
     {
-        public required OutputDirectory OutputDirectory { get; init; }
+        public OutputDirectory? OutputDirectory { get; init; }
+        public CancellationToken CancellationToken { get; init; }
+        public Func<string, Func<Stream, CancellationToken, Task>, CancellationToken, Task>? PublishArtifact { get; init; }
+        public Action<string>? ReportOmission { get; init; }
     }
 
-    public void Run(RunParams p)
+    public void Run(RunParams p) => RunAsync(p).GetAwaiter().GetResult();
+
+    public async Task RunAsync(RunParams p)
     {
+        p.CancellationToken.ThrowIfCancellationRequested();
         var semester = _studyYearOptions.Value.Semester;
         var partitionInfoByGroup = _schedule.GetGroupPartitionInfo(_specializationRegistry);
 
         foreach (var g in _schedule.EnumerateGroups())
         {
             var calendarName = GroupCalendarName(g.Item, semester);
-            WriteGroupCalendar($"{g.Item.Name}.ics", calendarName, new()
+            await WriteGroupCalendar($"{g.Item.Name}.ics", calendarName, new()
             {
                 OneOfGroupIds = [g.Id],
             });
@@ -63,7 +69,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 sb.Append(".ics");
                 var fileName = sb.ToStringAndClear();
 
-                WriteGroupCalendar(fileName, calendarName, combination.ToGroupFilter(g.Id));
+                await WriteGroupCalendar(fileName, calendarName, combination.ToGroupFilter(g.Id));
             }
         }
 
@@ -75,7 +81,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             sb1.Append(".ics");
             var fileName = sb1.ToStringAndClear();
 
-            WriteCalendar(fileName, TeacherCalendarName(teacher), isTeacherCalendar: true, new()
+            await WriteCalendar(fileName, TeacherCalendarName(teacher), isTeacherCalendar: true, new()
             {
                 TeacherFilter = new()
                 {
@@ -85,16 +91,17 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         }
         return;
 
-        void WriteGroupCalendar(string fileName, string calendarName, in GroupFilter groupFilter)
+        async Task WriteGroupCalendar(string fileName, string calendarName, GroupFilter groupFilter)
         {
-            WriteCalendar(fileName, calendarName, isTeacherCalendar: false, new()
+            await WriteCalendar(fileName, calendarName, isTeacherCalendar: false, new()
             {
                 GroupFilter = groupFilter,
             });
         }
 
-        void WriteCalendar(string fileName, string calendarName, bool isTeacherCalendar, in ScheduleFilter filter)
+        async Task WriteCalendar(string fileName, string calendarName, bool isTeacherCalendar, ScheduleFilter filter)
         {
+            p.CancellationToken.ThrowIfCancellationRequested();
             var filteredSchedule = _schedule.Filter(
                 filter
                     .WithLatestPeriod(_schedule)
@@ -115,6 +122,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 // configured (e.g. a new Dual program): skip the calendar
                 // instead of failing the whole run. Add the missing range to
                 // ScheduleDefaults.SemesterIntervalProvider to cover it.
+                var omission = $"Skipping calendar {fileName}: {e.Message}";
+                p.ReportOmission?.Invoke(omission);
                 _logger.LogWarning(e, "Skipping calendar {File}: {Reason}", fileName, e.Message);
                 return;
             }
@@ -128,8 +137,21 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 Name = calendarName,
                 Events = events,
             };
-            using var outputFile = p.OutputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
-            IcsCalendarWriter.Write(outputFile, calendar);
+            if (p.PublishArtifact is { } publish)
+                await publish(fileName, Write, p.CancellationToken);
+            else
+            {
+                using var outputFile = p.OutputDirectory!.OpenFile(fileName, FileMode.Create, FileAccess.Write);
+                await Write(outputFile, p.CancellationToken);
+            }
+
+            Task Write(Stream stream, CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                IcsCalendarWriter.Write(stream, calendar);
+                token.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
         }
 
         List<IcsEvent> BuildEvents(FilteredSchedule filteredSchedule, bool isTeacherCalendar)
@@ -142,6 +164,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             });
             foreach (var timeEvent in timeEvents)
             {
+                p.CancellationToken.ThrowIfCancellationRequested();
                 var lesson = filteredSchedule.Source.Get(timeEvent.LessonId);
                 var (summary, description) = LessonText(lesson, isTeacherCalendar);
 
@@ -153,6 +176,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
                 foreach (var date in timeEvent.Event)
                 {
+                    p.CancellationToken.ThrowIfCancellationRequested();
                     events.Add(new()
                     {
                         Summary = summary,
