@@ -279,6 +279,89 @@ public sealed class MicrosoftTests
         Assert.Empty(Directory.GetFiles(temp.Path, "*.tmp"));
     }
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public async Task ProductionMiddlewarePreservesKnownCallbackFailures(bool busy, bool partial, bool nested)
+    {
+        using var temp = new TempDirectory();
+        using var capture = new Capture();
+        Exception failure = busy
+            ? new LocalOperationBusyException("Microsoft token state is busy.", new IOException("cache-secret"))
+            : new AuthenticationRequiredException("microsoft", Teacher);
+        if (nested) failure = new IOException("access-secret", failure);
+        using var commands = new MiddlewareFailureCommands(failure, partial);
+        var expected = partial ? 6 : busy ? 7 : 4;
+        Assert.Equal(expected, await commands.Download(new() { Profile = Teacher }, new() { Directory = temp.Path }, new() { Json = true }));
+        var result = capture.Result();
+        Assert.Equal(expected, result.GetProperty("exitCode").GetInt32());
+        Assert.Equal(partial ? "partial" : "failed", result.GetProperty("status").GetString());
+        var error = result.GetProperty("errors")[0].GetString();
+        Assert.Equal(busy ? "Microsoft token state is busy." : new AuthenticationRequiredException("microsoft", Teacher).Message, error);
+        Assert.Contains(error!, capture.Errors);
+        Assert.DoesNotContain("access-secret", result.GetRawText() + capture.Errors);
+        Assert.DoesNotContain("cache-secret", result.GetRawText() + capture.Errors);
+        Assert.Equal(partial ? 1 : 0, commands.Handler.ContentRequests);
+        Assert.Equal(partial ? 1 : 0, Directory.GetFiles(temp.Path, "*.docx").Length);
+        if (partial)
+        {
+            using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json")));
+            Assert.Equal("partial", manifest.RootElement.GetProperty("Status").GetString());
+            Assert.Single(manifest.RootElement.GetProperty("Artifacts").EnumerateArray());
+        }
+        else Assert.Empty(Directory.GetFiles(temp.Path));
+    }
+
+    [Theory]
+    [InlineData(false, 5)]
+    [InlineData(true, 6)]
+    public async Task ProductionMiddlewareKeepsUnknownCallbackFailuresRedacted(bool partial, int expected)
+    {
+        using var temp = new TempDirectory();
+        using var capture = new Capture();
+        using var commands = new MiddlewareFailureCommands(new IOException("access-secret cache-secret"), partial);
+        Assert.Equal(expected, await commands.Download(new() { Profile = Teacher }, new() { Directory = temp.Path }, new() { Json = true }));
+        var result = capture.Result();
+        Assert.Equal("Curricula download or local publication failed.", result.GetProperty("errors")[0].GetString());
+        Assert.DoesNotContain("access-secret", result.GetRawText() + capture.Errors);
+        Assert.DoesNotContain("cache-secret", result.GetRawText() + capture.Errors);
+    }
+
+    private sealed class MiddlewareFailureCommands(Exception failure, bool partial) : CurriculaCommands, IDisposable
+    {
+        public FakeGraphHandler Handler { get; } = new("course.docx", false, false, partial, false);
+        public void Dispose() => Handler.Dispose();
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The Graph adapter owns the HttpProvider and its middleware pipeline.")]
+        protected override async Task<ICurriculaProvider> CreateProvider(string profile, CancellationToken token)
+        {
+            var calls = 0;
+            var authentication = new DelegateAuthenticationProvider(request =>
+            {
+                // Preflight succeeds; fail during middleware authentication, before the terminal fixture handler.
+                if (++calls > 1 && (!partial || request.RequestUri!.AbsolutePath.EndsWith("/content", StringComparison.Ordinal) && Handler.ContentRequests == 1))
+                {
+                    Assert.Contains("Microsoft.Graph.AuthenticationHandler", new System.Diagnostics.StackTrace().ToString());
+                    throw failure;
+                }
+                return Task.CompletedTask;
+            });
+            using (var preflight = new HttpRequestMessage()) await authentication.AuthenticateRequestAsync(preflight);
+            var http = new HttpProvider();
+            // Test-only replacement of the default client's transport: use the same SDK factory and
+            // middleware flags as HttpProvider's production constructor, with a local terminal handler.
+            var clientField = typeof(HttpProvider).GetField("httpClient", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            ((HttpClient)clientField.GetValue(http)!).Dispose();
+            clientField.SetValue(http, GraphClientFactory.Create(authenticationProvider: null, finalHandler: Handler));
+            return new GraphCurriculaProvider(new GraphServiceClient(authentication, http), http);
+        }
+    }
+
     private sealed class FakeTokens : IMicrosoftTokenProvider
     {
         public int Consents;
@@ -403,10 +486,13 @@ public sealed class MicrosoftTests
     private sealed class Capture : IDisposable
     {
         private readonly TextWriter _original = Console.Out;
+        private readonly TextWriter _originalError = Console.Error;
+        private readonly StringWriter _errors = new();
+        public string Errors => _errors.ToString();
         private readonly StringWriter _text = new();
-        public Capture() => Console.SetOut(_text);
+        public Capture() { Console.SetOut(_text); Console.SetError(_errors); }
         public JsonElement Result() { using var doc = JsonDocument.Parse(_text.ToString()); return doc.RootElement.Clone(); }
-        public void Dispose() { Console.SetOut(_original); _text.Dispose(); }
+        public void Dispose() { Console.SetOut(_original); Console.SetError(_originalError); _text.Dispose(); _errors.Dispose(); }
     }
     private sealed class TempDirectory : IDisposable
     {

@@ -148,6 +148,16 @@ public class CurriculaCommands
         catch (JsonException e) { exit = 3; errors = [e.Message]; }
         catch (DirectoryNotFoundException e) { exit = 3; errors = [e.Message]; }
         catch (ArgumentException e) { exit = 2; errors = [e.Message]; }
+        // Graph's production HttpProvider wraps authentication middleware failures in ServiceException.
+        // Recover only our known local errors; never expose SDK/wrapper messages or reclassify unknown failures.
+        catch (ServiceException e) when (FindInnerException<AuthenticationRequiredException>(e) is { } authentication)
+        {
+            exit = 4; errors = [authentication.Message];
+        }
+        catch (ServiceException e) when (FindInnerException<LocalOperationBusyException>(e) is { } busy)
+        {
+            exit = 7; errors = [busy.Message];
+        }
         catch (ServiceException e) when (e.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             exit = 4; errors = [new AuthenticationRequiredException("microsoft", settings.Profile ?? "TEACHER").Message];
@@ -187,6 +197,13 @@ public class CurriculaCommands
             foreach (var path in paths) Console.WriteLine(path);
         }
         return exit;
+    }
+
+    private static T? FindInnerException<T>(Exception exception) where T : Exception
+    {
+        for (var inner = exception.InnerException; inner is not null; inner = inner.InnerException)
+            if (inner is T known) return known;
+        return null;
     }
 
     private static string ArtifactName(CurriculaFile file, string extension = ".docx") => file.Group + " - " + Path.GetFileNameWithoutExtension(file.Name) + extension;
