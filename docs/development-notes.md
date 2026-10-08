@@ -55,3 +55,18 @@ not different hosts.
 AngleSharp form submission does not accept a cancellation token. The adapter
 cancels its wait and disposes the session on cancellation; an in-flight submission
 can already have reached the server, so its outcome is explicitly uncertain.
+
+### Calendar CLI replacement (#199)
+
+`calendar sync` previews by default; `--apply` uses the shared `ApplyArguments`
+from the registry slice. The extracted `BuildDesiredEvents` in the existing
+Google Calendar handler is the common recurring payload builder. The CLI
+checks the selected teacher exists before using the legacy teacher lookup.
+`ICalendarSyncProvider` isolates paginated reads and single-attempt mutations;
+`CalendarSync.Run` locks actual primary-calendar account ID plus configured
+calendar name before rereading state and replacing the first matching summary.
+Do not lock the soon-to-be-replaced ID alone: aliases must conflict even when
+replacement changes that ID. Primary destinations are prohibited by both
+configured literal and actual remote identity. Outcomes preserve completed
+calendar/event IDs and desired-event indexes; lost or cancelled responses are
+uncertain and never retried. See `src/MainCli/CALENDAR.md` for result semantics.
