@@ -25,11 +25,11 @@ public static class MoodleQuizScraper
     public static async Task<QuizAttemptsPage> ScrapeQuizAttempts(
         this MoodleScrapingContext context,
         string quizId,
-        int pageSize = 2000)
+        int pageSize = 2000, CancellationToken cancellationToken = default)
     {
         // Navigate to the quiz overview page
         string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
-        var page = await context.Browser.OpenAsync(url);
+        var page = await context.Browser.OpenAsync(url, cancellationToken);
 
         // await page.SaveForDebug();
 
@@ -55,7 +55,8 @@ public static class MoodleQuizScraper
 
         // Submit the form
         var submitButton = (IHtmlInputElement) page.QuerySelector("#id_submitbutton")!;
-        page = await submitButton.Form!.SubmitAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+        page = await submitButton.Form!.SubmitAsync().WaitAsync(cancellationToken);
 
         // Find the attempts table
         var attemptsElement = page.QuerySelector("table#attempts");
@@ -65,7 +66,7 @@ public static class MoodleQuizScraper
         }
 
         // Parse the table
-        var attempts = ParseAttemptsTable(attemptsTable);
+        var attempts = ParseAttemptsTable(attemptsTable, cancellationToken);
         return new()
         {
             Attempts = attempts,
@@ -73,7 +74,7 @@ public static class MoodleQuizScraper
         };
     }
 
-    private static List<QuizAttempt> ParseAttemptsTable(IHtmlTableElement table)
+    private static List<QuizAttempt> ParseAttemptsTable(IHtmlTableElement table, CancellationToken cancellationToken)
     {
         var attempts = new List<QuizAttempt>();
         if (MappedTableHelper.Create(table) is not { } helper)
@@ -86,6 +87,7 @@ public static class MoodleQuizScraper
 
         foreach (var row in rows)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // Skip divider and summary rows
             if (row.QuerySelector(".tabledivider") != null ||
                 row.TextContent.Contains("Medie generală"))
@@ -283,7 +285,7 @@ public static class MoodleQuizScraper
             var gradeSpan = cell.QuerySelector(".correct, .incorrect, .partiallycorrect, .requiresgrading");
             if (gradeSpan is null)
             {
-                Console.WriteLine(cell.InnerHtml);
+                Console.Error.WriteLine("Moodle question grade markup was not recognized.");
             }
 
             grades.Add(new QuestionGrade

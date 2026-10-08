@@ -125,3 +125,7 @@ Empty filtered schedules produce no file. These commands publish each completed
 artifact through the same owned-output contract and never launch Explorer or an
 editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
 synchronous PDF render finishes before cancellation is observed.
+
+`registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
+quiz grades. `--apply` rereads under the registry account lock and submits each
+planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).

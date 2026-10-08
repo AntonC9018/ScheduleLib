@@ -82,3 +82,16 @@ document pagination and performs reads only. Curricula retain their coded
 2024–2025 owner/path and disclose them in results. Legacy DOC conversion uses
 staged copies with separately published originals. See [CLI authorization](../src/MainCli/AUTH.md)
 for storage, capability prerequisites and unverified Windows/real-consent paths.
+
+### Registry Moodle grade import (#198)
+
+`registry import-grades` uses the existing configured registry session and
+account lock from #197. `IRegistryGradePlanner` adapts the existing Moodle
+scraper and `CopyGradesFromMoodleForTestTaskHandler.Plan`; the latter only reads
+forms and captures mapped/rounded changes. `RegistryGradeAction.Execute` fills
+inputs and crosses the submission boundary explicitly. Preview neither changes
+form inputs nor submits grade forms. Apply fetches a new plan under the actual
+registry login/base destination lock. The legacy name parser can interpret
+`exmatr` after a two-part name as a patronymic; planning checks that suffix first
+to omit expelled students. See [grade-import contracts](../src/MainCli/REGISTRY-GRADES.md)
+for outcomes, omissions, page-size and cancellation limitations.

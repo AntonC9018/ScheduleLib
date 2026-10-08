@@ -179,7 +179,7 @@ public sealed class GroupsNavigator
 }
 
 [AutoConstructor]
-public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator
+public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IRegistryGradeNavigator
 {
     public readonly IRegistryErrorHandler ErrorHandler;
     public readonly RegistryScrapingContext Context;
@@ -197,6 +197,16 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator
         var response = await form.SubmitAsync().WaitAsync(CancellationToken) ?? throw new IOException("Registry returned no delete response.");
         if (response.QuerySelector(".validation-summary-errors") is { } errors && !string.IsNullOrWhiteSpace(errors.TextContent))
             throw new RegistrySubmissionRejectedException("Registry rejected deletion: " + errors.TextContent);
+    }
+
+    public async Task SubmitGrades(IDocument document, CancellationToken token)
+    {
+        var form = document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")
+            ?? throw new InvalidOperationException("Registry grade form is missing.");
+        token.ThrowIfCancellationRequested();
+        var response = await form.SubmitAsync().WaitAsync(token) ?? throw new IOException("Registry returned no grade response.");
+        if (response.QuerySelector(".validation-summary-errors") is { } errors && !string.IsNullOrWhiteSpace(errors.TextContent))
+            throw new RegistrySubmissionRejectedException("Registry rejected grade submission.");
     }
 
     public CoursesNavigator Courses()
