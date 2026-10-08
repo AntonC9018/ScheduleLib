@@ -1,7 +1,8 @@
 # Agent Instructions
 
-- **Tasks:** this project uses **bd** (beads). Run `bd prime` first; see [docs/task-management.md](docs/task-management.md) and `.agents/skills/beads/SKILL.md`.
+- **Tasks:** use [GitHub Issues](https://github.com/AntonC9018/ScheduleLib/issues) for all shared project work. See [docs/task-management.md](docs/task-management.md) for the `gh` workflow, dependencies, and agent coordination.
 - **Code style:** see [.agents/coding-standards.md](.agents/coding-standards.md).
+- **Project knowledge:** see [docs/development-notes.md](docs/development-notes.md) for durable technical findings.
 
 ## Non-Interactive Shell Commands
 

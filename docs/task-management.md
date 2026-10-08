@@ -1,67 +1,80 @@
-# Task Management (Beads)
+# Task Management (GitHub Issues)
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
-Full CLI guidance: `.agents/skills/beads/SKILL.md`.
+[GitHub Issues](https://github.com/AntonC9018/ScheduleLib/issues) is the single
+source of truth for project tasks, blockers, decisions, and shared work status.
+Use the authenticated `gh` CLI. Local plans can organize a turn but must not
+replace issues for work that needs to survive a handoff.
 
-## Architecture
-
-Issues live in a local Dolt database (`.beads/dolt/`); cross-machine sync uses
-`bd dolt push/pull` (a git-compatible protocol), stored under `refs/dolt/data`
-on the git remote — separate from `refs/heads/*` where code lives.
-`.beads/issues.jsonl` is a passive export, not the wire protocol.
-
-See [SYNC_CONCEPTS.md](https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md)
-for the one-screen overview and anti-patterns (don't treat JSONL as the source
-of truth; don't `bd import` during normal operation; don't reach for
-third-party Dolt hosting before trying the default).
-
-## Quick Reference
+## Start work
 
 ```bash
-bd ready                # Find available work
-bd show <id>            # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>           # Complete work
-bd dolt push            # Push beads data to remote
+gh auth status
+gh issue list --repo AntonC9018/ScheduleLib --state open --limit 100
+gh issue view NUMBER --repo AntonC9018/ScheduleLib --comments
 ```
 
-## Rules
+Read the issue, discussion, parent, and blocking issues before starting. A
+parent/sub-issue relationship groups work; it does not make the parent a blocker.
+Work is ready when its actual blockers are closed and no other agent owns the
+current implementation.
 
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists.
-- Run `bd prime` for detailed command reference and session close protocol.
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files.
-- Do not use `bd edit`; it opens an interactive editor. Use `bd update` flags instead.
+Before starting implementation, make sure the issue exists and matches the
+user's scope. Check assignments and recent comments, then record the claim:
 
-## Agent Context Profiles
+```bash
+gh issue edit NUMBER --repo AntonC9018/ScheduleLib --add-assignee @me --add-label status:in-progress
+gh issue comment NUMBER --repo AntonC9018/ScheduleLib --body-file /tmp/work-claim.md
+```
 
-The Beads workflow below is task-tracking guidance, not permission to override
-repository, user, or orchestrator instructions.
+A claim comment should identify the agent/thread, its scope, and any branch or
+worktree. Assignment and labels alone are not an atomic lock: concurrent agents
+may share a GitHub account. Re-read ownership before editing, coordinate with
+existing owners, and use separate worktrees for overlapping implementation.
 
-- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
-- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
-- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+## Create and relate work
 
-## Session Completion
+Search existing issues before creating another one. Write multiline content to
+a file and pass it through `--body-file`; do not use an interactive editor.
 
-This protocol applies when ending a Beads implementation workflow. It is subordinate to explicit user, repository, and orchestrator instructions.
+```bash
+gh issue create --repo AntonC9018/ScheduleLib --title "Concrete task" --body-file /tmp/task.md
+gh issue edit CHILD --repo AntonC9018/ScheduleLib --parent PARENT
+gh issue edit NUMBER --repo AntonC9018/ScheduleLib --add-blocked-by BLOCKER
+```
 
-1. **File issues for remaining work** — create beads for anything that needs follow-up.
-2. **Run quality gates** (if code changed) — tests, linters, builds.
-3. **Update issue status** — close finished work, update in-progress items.
-4. **Handle git/sync by active profile**:
-   ```bash
-   # Conservative/minimal/default: report status and proposed commands; wait for approval.
-   git status
+Use native GitHub sub-issues and blocking relationships, and explain any
+non-obvious ordering in the description. A follow-up discovered during work
+should link back to its source issue.
 
-   # Team-maintainer opt-in only, unless current instructions forbid it:
-   git pull --rebase
-   bd dolt push
-   git push
-   git status
-   ```
-5. **Hand off** — summarize changes, validation, issue status, and any blocked sync/commit/push step.
+Migrated priorities use `priority:P0` through `priority:P4` (P0 is highest).
+`status:in-progress` marks active work. Original labels and authors/timestamps
+are preserved on migrated issues. Preserve existing labels when updating work.
 
-**Critical rules:**
-- Explicit user or orchestrator instructions override this Beads block.
-- Do not commit or push without clear authority from the active profile or the current user request.
-- If a required sync or push is blocked, stop and report the exact command and error.
+## Finish or hand off
+
+Record what changed, relevant validation, limitations, and remaining work.
+Close the issue only when its requested scope is actually complete:
+
+```bash
+gh issue comment NUMBER --repo AntonC9018/ScheduleLib --body-file /tmp/result.md
+gh issue edit NUMBER --repo AntonC9018/ScheduleLib --remove-label status:in-progress
+gh issue close NUMBER --repo AntonC9018/ScheduleLib --reason completed
+```
+
+For unfinished work, leave the issue open and record a concrete handoff. Release
+an active claim if work is no longer underway. Do not close an issue merely
+because this turn ends.
+
+Do not commit, push, merge, deploy, or publish without authority from the active
+user request or repository policy. Report uncommitted changes at handoff.
+
+## Technical knowledge and migration archive
+
+Keep durable technical facts in [development-notes.md](development-notes.md) or
+the relevant domain document. Record pending decisions in GitHub issues.
+
+The [2026-10-08 archive](archive/beads-2026-10-08/README.md) preserves the former
+tracker's issue export, comments, audit records, and old-ID-to-GitHub mapping.
+It is historical recovery material, not an active task store. No task-tracker
+database, synchronization service, or session/git hook is required for the
+GitHub workflow.

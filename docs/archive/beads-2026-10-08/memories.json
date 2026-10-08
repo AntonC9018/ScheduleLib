@@ -1,0 +1,4 @@
+{
+  "preview-sdk-11-0-100-preview-4-ignores": "Preview SDK 11.0.100-preview.4 ignores [DoesNotReturn] for definite assignment (repro: if(b)x=1;else Boom();return x fails CS0165). Prefer exception factories returning instances + throw at sites over void Throw helpers.",
+  "schema_version": 1
+}

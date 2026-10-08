@@ -10,8 +10,5 @@ obj
 # Local credentials
 /secrets.json
 
-# Beads / Dolt files (added by bd init)
-.dolt/
+# Local databases
 *.db
-.beads-credential-key
-.beads/proxieddb/

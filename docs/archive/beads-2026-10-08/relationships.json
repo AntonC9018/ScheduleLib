@@ -1,0 +1,162 @@
+[
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.2",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.6",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.12",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.1",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.3",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.5",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.7",
+    "target": "ScheduleLib-6xo.4",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.1.1",
+    "target": "ScheduleLib-6xo.1",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.12",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.11",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.11",
+    "target": "ScheduleLib-6xo.10",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.10",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.9",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.8",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.5",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.5",
+    "target": "ScheduleLib-6xo.8",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.6",
+    "target": "ScheduleLib-6xo.5",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.6",
+    "target": "ScheduleLib-6xo.1",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.6",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.6",
+    "target": "ScheduleLib-6xo.4",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.6",
+    "target": "ScheduleLib-6xo.2",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.4",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.4",
+    "target": "ScheduleLib-6xo.10",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.3",
+    "target": "ScheduleLib-6xo.9",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.3",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.2",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.2",
+    "target": "ScheduleLib-6xo.8",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.1",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  },
+  {
+    "source": "ScheduleLib-6xo.1",
+    "target": "ScheduleLib-6xo.10",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-9xr",
+    "target": "ScheduleLib-6xo.1",
+    "type": "blocks"
+  },
+  {
+    "source": "ScheduleLib-6xo.13",
+    "target": "ScheduleLib-6xo",
+    "type": "parent-child"
+  }
+]

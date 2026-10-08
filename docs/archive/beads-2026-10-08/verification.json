@@ -1,0 +1,15 @@
+{
+  "verified": {
+    "comments": 141,
+    "issues": 107,
+    "closed": 98,
+    "open": 9
+  },
+  "source_sha256": "2f90a173d8fcb8db5ece36dd435061b46284f76982f16c08a301c98237943c9f",
+  "native_relationships": {
+    "blocks": 18,
+    "parent-child": 14
+  },
+  "historical_discovered_from_links": 1,
+  "active_workspace_retired": true
+}
