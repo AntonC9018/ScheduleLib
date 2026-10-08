@@ -42,7 +42,10 @@ dotnet test src/MainCli/Tests
 The fixtures use existing third-year DOCX and master XLSX resources, disable
 website enrichment in the test service configuration, and do not write caches.
 The first-year 2025 semester-2 source has an existing invalid IA2502 subgroup
-prefix, so it is not used as this query's valid fixture.
+prefix, so it is not used as this query's valid fixture. The free-hour checks
+pin the fixture intervals and the free-room checks pin the workbook cells; a
+copy of that master workbook with its lesson rows deleted is the
+schedule-without-lessons case.
 
 
 ```sh
@@ -57,6 +60,44 @@ identity or interactive consent is required. Code-defined website enrichment
 still reads the existing teacher provider on a cache rebuild; remote website
 changes alone cannot invalidate a local cache. `--no-cache` obtains fresh input
 without replacing the shared cache.
+
+```sh
+dotnet run --project src/MainCli -- query free-hours --group IA2301 --group M2301
+dotnet run --project src/MainCli -- query free-hours --group MIA2501 --json
+```
+
+`query free-hours` uses the supplied groups instead of the two embedded in the
+desktop dispatch. At least one `--group` is required, and names resolve against
+the schedule: an unknown or ambiguous name is an argument error that reports the
+name and suggests a case-insensitive match. Results keep the existing handler's
+behavior for every group: both parities and both partition modes (with and
+without optional lessons), over all weekly periods rather than only the latest
+one. `--help` states those defaults and the result repeats them as a warning.
+Days are the Monday-Friday slots of the configured lesson times, and consecutive
+free slots are merged into one interval. Text output prints one block per
+group/parity/mode; `--json` returns the same structure under `data.sections`.
+Repeating a group reports it once with a warning. A group with no lessons
+succeeds with a fully free week.
+
+The desktop task keeps its original Romanian rendering.
+`PrintFreeHoursOfGroupTaskHandler.Sections` exposes that same computation as
+`FreeHoursSection` records and `Run` renders those sections, so the existing
+text and the CLI results cannot drift apart.
+
+```sh
+dotnet run --project src/MainCli -- export free-rooms
+dotnet run --project src/MainCli -- export free-rooms --output ./free-rooms-export --cache-dir ./cache
+```
+
+`export free-rooms` generates the existing free-room workbook: one worksheet per
+parity, a day header row for each day that has lessons, and one row per time
+slot listing the rooms free in it. Rooms and occupancy come from every weekly
+period, room identifiers without a block suffix are written as `<room>/4`, and
+days without lessons are skipped. It reuses `RunOutput`, so it takes the same
+isolated default output directory, manifest, and replacement rules as
+`export teachers-excel`. A schedule without weekly lessons succeeds with an
+empty workbook and a warning. No teacher identity or interactive consent is
+required.
 
 Default exports use a unique `output/RUN_ID` directory beneath the invocation
 root. The result reports the workbook and `schedulelib-manifest.json` paths.
