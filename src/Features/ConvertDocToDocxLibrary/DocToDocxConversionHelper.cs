@@ -4,7 +4,6 @@ namespace ConvertDocToDocx;
 
 public static class DocToDocxConversionHelper
 {
-    // TODO: This is only for windows
     public static async Task<bool> TryConvertFile(
         string inputPath,
         string outputPath,
@@ -41,13 +40,12 @@ public static class DocToDocxConversionHelper
             throw;
         }
 
-        // File.Delete(filePath);
-
-        if (process.ExitCode != 0)
-        {
-            return false;
-        }
-        return true;
+        return ClassifyConverterExit(process.ExitCode);
     }
-
+    internal static bool ClassifyConverterExit(int exitCode)
+    {
+        if (exitCode == WordConverterProtocol.MissingWordExitCode)
+            throw new PlatformNotSupportedException(WordConverterProtocol.MissingWordMessage);
+        return exitCode == 0;
+    }
 }

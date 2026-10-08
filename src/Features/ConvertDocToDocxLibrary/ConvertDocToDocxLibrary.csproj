@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <InternalsVisibleTo Include="MainCli.Tests" />
+    </ItemGroup>
+
     <PropertyGroup>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
