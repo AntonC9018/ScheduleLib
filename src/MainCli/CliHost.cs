@@ -110,6 +110,7 @@ public partial class QueryCommands
             return Finish(0, lessons, []);
         }
         catch (ArgumentException e) { return Finish(2, [], [e.Message]); }
+        catch (ScheduleLib.Application.Config.AuthenticationRequiredException e) { return Finish(4, [], [e.Message]); }
         catch (OperationCanceledException) { return Finish(130, [], ["Cancelled."]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [], [e.Message]); }
         catch (InvalidScheduleSourceException e) { return Finish(3, [], [e.Message]); }

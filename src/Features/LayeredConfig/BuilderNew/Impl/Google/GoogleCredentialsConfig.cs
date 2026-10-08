@@ -115,57 +115,52 @@ public readonly struct BuiltGoogleCredentialsConfig
     public required IGoogleApiKeysSource ApiKeysSource { get; init; }
 }
 
-[AutoConstructor]
-public sealed partial class GoogleCredentialResolver
+public sealed class GoogleCredentialResolver : IDisposable
 {
+    private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
+    public void Dispose() { foreach (var flow in _flows) flow.Dispose(); }
     private readonly CurrentUserNameProvider _userNameProvider;
     private readonly IServiceProvider _sp;
+    public GoogleCredentialResolver(CurrentUserNameProvider userNameProvider, IServiceProvider sp)
+    {
+        _userNameProvider = userNameProvider;
+        _sp = sp;
+    }
 
     public async Task<UserCredential> Resolve(
         BuiltGoogleCredentialsConfig config,
         string[] requiredScopes,
         CancellationToken cancellationToken)
     {
-        var clientSecrets = await config.ApiKeysSource.Get(_sp, cancellationToken);
+        if (_sp.GetService<IGoogleCredentialAuthorization>() is { } authorization)
+            return await authorization.Resolve(config, requiredScopes, _userNameProvider.Get(), _sp, cancellationToken);
+
+        // Legacy hosts may refresh provisioned credentials, but never initiate consent.
         var user = _userNameProvider.Get();
-
-        IDataStore? dataStore = config.CredentialsPath is { } credPath
-            ? new FileDataStore(credPath, fullPath: true)
-            : null;
-
-        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-            clientSecrets: clientSecrets,
-            scopes: requiredScopes,
-            user: user,
-            taskCancellationToken: cancellationToken,
-            dataStore: dataStore);
-
-        var grantedScopes = credential.Token.Scope?.Split(' ') ?? [];
-        var noMissingScopes = requiredScopes.Except(grantedScopes).None();
-        if (noMissingScopes)
+        if (config.CredentialsPath is null) throw new AuthenticationRequiredException("google", user);
+        ClientSecrets secrets;
+        try { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) { throw new AuthenticationRequiredException("google", user); }
+        if (string.IsNullOrWhiteSpace(secrets.ClientId) || string.IsNullOrWhiteSpace(secrets.ClientSecret))
+            throw new AuthenticationRequiredException("google", user);
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
-            return credential;
-        }
-
-        var mergedScopes = grantedScopes.Union(requiredScopes).ToArray();
-        if (dataStore != null)
-        {
-            await dataStore.DeleteAsync<TokenResponse>(user);
-        }
-
-        // Re-authorize with merged scopes and force consent
-        const string forceShowConsentScreen = "consent";
-        using var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-        {
-            ClientSecrets = clientSecrets,
-            Scopes = mergedScopes,
-            Prompt = forceShowConsentScreen,
-            DataStore = dataStore,
+            ClientSecrets = secrets,
+            Scopes = requiredScopes,
+            DataStore = config.CredentialsPath is { } path ? new FileDataStore(path, true) : null,
         });
-
-        credential = await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver())
-            .AuthorizeAsync(user, cancellationToken);
-
+        _flows.Add(flow);
+        var token = await flow.LoadTokenAsync(user, cancellationToken);
+        if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? []).Any())
+            throw new AuthenticationRequiredException("google", user);
+        var credential = new UserCredential(flow, user, token);
+        try
+        {
+            if (token.IsStale && !await credential.RefreshTokenAsync(cancellationToken))
+                throw new AuthenticationRequiredException("google", user);
+        }
+        catch (TokenResponseException) { throw new AuthenticationRequiredException("google", user); }
         return credential;
     }
 }
@@ -238,3 +233,23 @@ public sealed partial class GoogleApiHelper
     }
 }
 
+/// <summary>Operational authorization contract: implementations must never initiate consent.</summary>
+public interface IGoogleCredentialAuthorization
+{
+    Task<UserCredential> Resolve(BuiltGoogleCredentialsConfig config, string[] scopes, string teacher,
+        IServiceProvider services, CancellationToken cancellationToken);
+}
+
+public sealed class AuthenticationRequiredException : Exception
+{
+    public string Provider { get; }
+    public string LoginCommand { get; }
+    public AuthenticationRequiredException(string provider, string teacher)
+        : base($"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider, teacher)}")
+    {
+        Provider = provider;
+        LoginCommand = BuildLoginCommand(provider, teacher);
+    }
+    private static string BuildLoginCommand(string provider, string teacher) =>
+        "schedulelib auth login " + provider + " --profile \"" + teacher.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+}

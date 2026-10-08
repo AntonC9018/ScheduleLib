@@ -72,6 +72,7 @@ public partial class ExportCommands
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
+        catch (ScheduleLib.Application.Config.AuthenticationRequiredException e) { return await Finish(4, [e.Message]); }
         catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
         catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
         catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }

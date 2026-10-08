@@ -21,6 +21,7 @@ public static class CliRuntime
             throw new DirectoryNotFoundException($"Schedule source directory does not exist: {dataDirectory}");
         var services = new ServiceCollection();
         configure(services);
+        GoogleAuthentication.Register(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;

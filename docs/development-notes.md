@@ -20,3 +20,15 @@ Set `DiffEngine_Disabled=true` when running Verify snapshot tests from an agent
 or other non-interactive shell. Otherwise a mismatch can launch an editor and
 stall the test process. This flag disables the diff viewer while retaining
 snapshot assertions. See the [DiffEngine documentation](https://github.com/VerifyTests/DiffEngine#disable-for-a-machineprocess).
+
+## CLI Google authorization (#195)
+
+CLI Google services use `IGoogleCredentialAuthorization` through
+`GoogleCredentialResolver`; `CliRuntime.CreateServices` registers the
+noninteractive `GoogleAuthentication`. Independently assembled remote-command
+services must register it too and map `AuthenticationRequiredException` to exit
+4. Only `auth login google` invokes consent. Status/logout need no secrets or
+schedule initialization. User-state tokens are teacher/OAuth-client partitions,
+written atomically under local locks; user-secrets client sources are preserved.
+See [CLI authorization](../src/MainCli/AUTH.md) for storage, successor APIs, and
+unverified real-consent/Windows behavior.
