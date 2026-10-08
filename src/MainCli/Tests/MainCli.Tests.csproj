@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../MainCli.csproj" />
     <None Include="../../Features/Integration/data/2025_sem2/zi/13.02.26/Orar_An_III Lic.docx" Link="fixtures/2025_sem2/zi/13.02.26/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

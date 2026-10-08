@@ -21,6 +21,7 @@ namespace ScheduleLib.Application.Core;
 public sealed class ScheduleLoader
 {
     public string? CachedPath { get; set; }
+    public string ConfigurationIdentity { get; set; } = "";
     public List<IScheduleLoaderComponent> Components { get; set; } = new();
 
     public async ValueTask Load(
@@ -28,14 +29,21 @@ public sealed class ScheduleLoader
         CancellationToken cancellationToken,
         bool bypassCache = false)
     {
+        // One local writer owns a cache key through the entire rebuild. Readers wait
+        // and reopen after publication; the live file is never truncated in place.
+        await using var cacheLock = CachedPath is { } cachePath
+            ? await LocalFileLock.Acquire(cachePath + ".lock", cancellationToken, wait: true)
+            : null;
         string? hashHex = null;
         {
             bool shouldComputeHash = CachedPath != null;
             if (shouldComputeHash)
             {
-                using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+                using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                hasher.AppendFileName(ConfigurationIdentity);
                 foreach (var loader in Components)
                 {
+                    hasher.AppendFileName(loader.GetType().FullName!);
                     await loader.Hash(hasher, cancellationToken);
                 }
                 // The implicit split configuration participates in the hash: editing it
@@ -46,53 +54,31 @@ public sealed class ScheduleLoader
             }
         }
 
-        await using var cachedFile = OpenCachedFile();
-        MaybeAsyncDisposable<FileStream> OpenCachedFile()
+        if (!bypassCache && CachedPath is { } existingPath && File.Exists(existingPath))
         {
-            if (CachedPath is { } cachedPath)
+            SerializationModels.ScheduleModel? model = null;
+            try
             {
-                var parentDir = Path.GetDirectoryName(cachedPath);
-                if (!string.IsNullOrEmpty(parentDir))
-                {
-                    Directory.CreateDirectory(parentDir);
-                }
-#pragma warning disable CA2000 // file not disposed
-                var ret = new FileStream(cachedPath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-#pragma warning restore CA2000
-                return new(ret);
+                await using var input = new FileStream(existingPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                model = await ScheduleSerializer.Deserialize(input, cancellationToken);
             }
-            return default;
-        }
-
-        if (!bypassCache
-            && cachedFile.Value != null
-            && cachedFile.Value.Length != 0)
-        {
-            var serializedModel = await ScheduleSerializer.Deserialize(cachedFile.Value, cancellationToken);
-            Debug.Assert(hashHex is not null);
-            if (serializedModel.Hash == hashHex)
+            catch (System.Text.Json.JsonException) { }
+            catch (InvalidDataException) { }
+            if (model is not null && model.Hash == hashHex)
             {
-                ScheduleSerializer.AddToBuilder(
-                    context.Schedule,
-                    serializedModel,
-                    context.CourseNameUnifierModule);
+                ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
                 return;
             }
         }
 
         foreach (var loader in Components)
-        {
             await loader.Apply(context, cancellationToken);
-        }
 
-        if (cachedFile.Value != null)
+        if (CachedPath is { } destination)
         {
             var schedule = context.Schedule.Build();
-            Debug.Assert(hashHex != null);
-            var f = cachedFile.Value;
-            f.Seek(0, SeekOrigin.Begin);
-            await ScheduleSerializer.Serialize(schedule, f, hashHex, cancellationToken);
-            f.SetLength(f.Position);
+            await AtomicFile.Publish(destination, async (stream, token) =>
+                await ScheduleSerializer.Serialize(schedule, stream, hashHex!, token), cancellationToken);
         }
     }
 }
@@ -113,6 +99,7 @@ public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
+        hasher.AppendFileName(DirectoryPath.Value);
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
@@ -190,6 +177,15 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
+        hasher.AppendFileName(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Config.DayParseMode,
+            AttendanceModes = Config.AllowedAttendanceModes.ToArray(),
+            QualificationTypes = Config.AllowedQualificationTypes.ToArray(),
+            Handler = Config.AddLessonHandler.GetType().AssemblyQualifiedName,
+            Config.ExpectBullshitRow,
+        }));
+        hasher.AppendFileName(DirectoryPath.Value);
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 

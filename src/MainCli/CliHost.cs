@@ -35,6 +35,9 @@ public static class CliHost
 public sealed partial class Commands
 {
     [Subcommand]
+    public ExportCommands Export { get; set; } = new();
+
+    [Subcommand]
     public QueryCommands Query { get; set; } = new();
 }
 
@@ -56,18 +59,7 @@ public partial class QueryCommands
             if (query.BeforeSlot is < 1 or > 7 || query.Day is { } day && !Enum.IsDefined(day)
                 || query.Parity is { } parity && !Enum.IsDefined(parity))
                 return Finish(2, [], ["Invalid day, parity, or slot (slots start at 1)."]);
-            var dataDirectory = source.DataDirectory is { } path
-                ? Path.GetFullPath(path)
-                : Path.Combine(AppContext.BaseDirectory, "data");
-            if (!Directory.Exists(dataDirectory))
-                return Finish(3, [], [$"Schedule source directory does not exist: {dataDirectory}"]);
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
-            {
-                x.DataDirectory = dataDirectory;
-                x.UseCache = false;
-            });
+            var services = CliRuntime.CreateServices(source, ConfigureServices);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -92,11 +84,15 @@ public partial class QueryCommands
             }
             return Finish(0, lessons, []);
         }
+        catch (ArgumentException e) { return Finish(2, [], [e.Message]); }
         catch (OperationCanceledException) { return Finish(130, [], ["Cancelled."]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [], [e.Message]); }
+        catch (InvalidScheduleSourceException e) { return Finish(3, [], [e.Message]); }
         catch (ScheduleBuildException e) { return Finish(3, [], [e.Message]); }
         catch (FileNotFoundException e) { return Finish(3, [], [e.Message]); }
         catch (DirectoryNotFoundException e) { return Finish(3, [], [e.Message]); }
+        catch (LocalOperationBusyException e) { return Finish(7, [], [e.Message]); }
+        catch (UnauthorizedAccessException e) { return Finish(5, [], [e.Message]); }
         catch (IOException e) { return Finish(5, [], [e.Message]); }
         catch (Exception e) { return Finish(1, [], [e.Message]); }
         finally { Console.CancelKeyPress -= cancel; }
@@ -131,8 +127,10 @@ public sealed class SourceArguments : IArgumentModel
 {
     [Option("data-dir", Description = "Schedule data root; defaults to packaged code-configured resources. Academic year and semester remain configured in C#.")]
     public string? DataDirectory { get; set; }
-    [Option("no-cache", Description = "Bypass cache (this first CLI slice always bypasses it).")]
+    [Option("no-cache", Description = "Bypass schedule cache reads and writes.")]
     public bool NoCache { get; set; }
+    [Option("cache-dir", Description = "Shared schedule cache directory; defaults to the ScheduleLib user cache.")]
+    public string? CacheDirectory { get; set; }
 }
 
 public sealed class ResultArguments : IArgumentModel

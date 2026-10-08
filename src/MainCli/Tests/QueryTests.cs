@@ -112,7 +112,7 @@ public sealed class QueryTests
         {
             Console.SetOut(output);
             var exit = await new FixtureQuery().Lessons(query,
-                new() { DataDirectory = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures") }, new() { Json = true });
+                new() { NoCache = true, DataDirectory = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures") }, new() { Json = true });
             Assert.Equal(0, exit);
             using var document = JsonDocument.Parse(output.ToString());
             Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
