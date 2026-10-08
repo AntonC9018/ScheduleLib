@@ -41,6 +41,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     private readonly ServiceProvider _provider;
     private readonly JsonSerializerOptions _json;
     private readonly IReadOnlyDictionary<string, NodePath> _profilePaths;
+    internal JsonSerializerOptions Json => _json;
     public TreeBuilder Tree { get; }
     public NodePath Path { get; }
     public string? ProjectDirectory { get; }
@@ -130,7 +131,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public void Dispose() => _provider.Dispose();
 }
 
-public static class CliSettings
+public static partial class CliSettings
 {
     public const string FileName = "schedulelib.json";
     private static readonly HashSet<string> SupportedBlocks = new(StringComparer.Ordinal)
@@ -142,6 +143,11 @@ public static class CliSettings
 
     public static async Task<ResolvedSettings> Load(SettingsArguments arguments, string? invocationDirectory = null,
         string? userFile = null, CancellationToken cancellationToken = default, ConfigOverrideArguments? overrides = null)
+        => await LoadCore(arguments, invocationDirectory, userFile, cancellationToken, overrides);
+
+    private static async Task<ResolvedSettings> LoadCore(SettingsArguments arguments, string? invocationDirectory,
+        string? userFile, CancellationToken cancellationToken, ConfigOverrideArguments? overrides = null,
+        (string Path, JsonObject Envelope)? replacement = null)
     {
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         var project = DiscoverProject(arguments.Project, cwd);
@@ -166,8 +172,8 @@ public static class CliSettings
             };
             json.Converters.Insert(0, new ConfigColorConverter());
             json.Converters.Insert(0, new JsonStringEnumConverter(allowIntegerValues: false));
-            var user = await ReadFile(userFile ?? UserFile, json, codeProfiles.Keys, cancellationToken);
-            var local = project is null ? null : await ReadFile(Path.Combine(project, FileName), json, codeProfiles.Keys, cancellationToken);
+            var user = await ReadFile(userFile ?? UserFile, json, codeProfiles.Keys, cancellationToken, replacement);
+            var local = project is null ? null : await ReadFile(Path.Combine(project, FileName), json, codeProfiles.Keys, cancellationToken, replacement);
             var defaultSources = new List<SettingsSource> { CodeSource("code defaults", tree.BaseNode, json) };
             var defaultsPath = ImmutableArray.CreateBuilder<MutableNode>();
             defaultsPath.Add(tree.BaseNode);
@@ -244,8 +250,10 @@ public static class CliSettings
 
     private sealed record SettingsFile(string Path, JsonObject? Defaults, Dictionary<string, JsonObject?> Profiles);
 
-    private static async Task<SettingsFile?> ReadFile(string path, JsonSerializerOptions json, IEnumerable<string> teachers, CancellationToken cancellationToken)
+    private static async Task<SettingsFile?> ReadFile(string path, JsonSerializerOptions json, IEnumerable<string> teachers, CancellationToken cancellationToken, (string Path, JsonObject Envelope)? replacement = null)
     {
+        if (replacement is { } candidate && Path.GetFullPath(path) == candidate.Path)
+            return ReadEnvelope((JsonObject)candidate.Envelope.DeepClone(), path, json, teachers);
         if (!File.Exists(path)) return null;
         await using var input = File.OpenRead(path);
         JsonNode? node;
@@ -256,6 +264,11 @@ public static class CliSettings
             node = JsonNode.Parse(document.RootElement.GetRawText());
         }
         catch (JsonException e) { throw new JsonException($"Invalid settings JSON in {path}: {e.Message}"); }
+        return ReadEnvelope(node, path, json, teachers);
+    }
+
+    private static SettingsFile ReadEnvelope(JsonNode? node, string path, JsonSerializerOptions json, IEnumerable<string> teachers)
+    {
         if (node is not JsonObject envelope) throw new JsonException($"Expected settings object in {path}.");
         CheckKeys(envelope, ["schemaVersion", "defaults", "profiles"], path);
         if (envelope["schemaVersion"] is not JsonValue version || !version.TryGetValue<int>(out var schema) || schema != 1)

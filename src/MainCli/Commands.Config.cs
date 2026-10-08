@@ -15,8 +15,8 @@ public sealed class ConfigKeyArguments : IArgumentModel
     public string Key { get; set; } = null!;
 }
 
-[Command("config", Description = "Read layered settings without loading schedule sources or contacting providers.")]
-public sealed class ConfigCommands
+[Command("config", Description = "Inspect or edit layered settings without loading schedule sources or contacting providers.")]
+public sealed partial class ConfigCommands
 {
     [Command("show", Description = "Show resolved typed settings and contributing sources; secrets are redacted.")]
     public Task<int> Show(SettingsArguments settings, ConfigOverrideArguments overrides, ResultArguments output, CancellationToken cancellationToken = default) =>

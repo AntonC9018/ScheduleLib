@@ -1,4 +1,4 @@
-# Read-only CLI settings
+# CLI settings
 
 `config show`, `config get KEY`, `config validate`, and `config profiles` read
 settings without loading schedules, resolving credentials, or contacting any
@@ -119,11 +119,46 @@ teacher scopes continue to select their own composed paths. Global scopes can
 use the selected/default path without an unrelated teacher prerequisite.
 `ProjectDirectory` is also available to cache/output runtime composition.
 
-Configuration writes (#189), persisted remove/reset/clear operations (#190),
-and authentication/registry execution belong to successor slices. There are
-no write commands or write side effects here. Version 1 currently stores only
+Persisted remove/reset/clear operations (#190) and authentication/registry
+execution belong to successor slices. Version 1 currently stores only
 values; a successor must add an explicitly validated operations representation
 and route it through existing update actions, rather than interpreting JSON
 null or an empty list as removal. Preserve the defaults/profiles envelope and
-teacher identity constraints when introducing writes, with coordinated atomic
-file replacement. No cloud prerequisite should be added to config inspection.
+teacher identity constraints and coordinated atomic file replacement. No cloud prerequisite should be added to config inspection.
+
+## Scoped writes
+
+`config set KEY VALUE --scope user|project` replaces a local override with a
+typed JSON value. Quote strings as JSON; shell quotes protect those JSON quotes:
+
+```sh
+schedulelib config set GoogleCalendarConfig.calendarName '"lessons"' --scope project --project .
+schedulelib config set DeadlinesExcelConfig.lessonDelayLimit 4 --scope user
+schedulelib config set GoogleCalendarConfig.calendarName '"teacher lessons"' --scope project --project . --profile 'Curmanschii Anton'
+schedulelib config unset GoogleCalendarConfig.calendarName --scope project --project .
+```
+
+The scope is required. Project writes require a discovered project settings file
+or an existing directory selected with `--project`. A missing file is created
+only when setting a value. `--profile` edits the selected scope's overlay for an
+existing teacher; omitting it edits defaults. Dotted keys address object members;
+set a complete collection to edit its local value. `unset` removes only the local
+property/block and prunes empty containers, restoring inherited values. Unsetting
+an absent override succeeds without creating a settings file. JSON null retains
+the existing inheritance semantics.
+
+Keys, typed values, secrets, and all resulting teacher paths are validated before
+publishing. Relative paths remain stored as entered and resolve against the edited
+settings file. Editors wait cancellably on `<settings-file>.lock`, re-read under
+the lease, and atomically replace the complete file; concurrent edits preserve
+each other's unrelated properties. Failed staging or cancellation before
+publication preserves the previous settings. The lock file remains as a
+coordination marker; its exclusive open handle owns the lease. Settings edits
+load no schedules, credentials, or provider clients. Their schema 1 result reports
+file, scope, profile, key, and whether the persisted document changed; it does
+not echo the submitted value.
+
+The internal `CliSettings.Edit` entry point accepts deterministic invocation/user
+paths for tests. `LoadCore` validates an in-memory replacement through the existing
+layer engine. Successor operations can reuse this validation/publication boundary
+while extending the envelope with explicitly supported update operations.
