@@ -111,6 +111,118 @@ public sealed class WebsiteExportTests
     }
 
     [Fact]
+    public async Task WebsiteSchedulesRejectsTraversalSlugBeforeAnyPublish()
+    {
+        var fixture = new FixtureWebsite();
+        var teachers = await fixture.DiscoverTeachersAsync();
+        fixture.Slugs[teachers.ScheduleKey1] = "aaa-valid-teacher";
+        fixture.Slugs[teachers.ScheduleKey2] = "zzz-traversal/../../schedulelib-traversal-sentinel-sched";
+        using var temp = new TempDirectory();
+        var sentinel = Path.Combine(temp.Path, "schedulelib-traversal-sentinel-sched.json");
+        await File.WriteAllTextAsync(sentinel, "sentinel-bytes");
+        var output = Path.Combine(temp.Path, "website");
+        var (exit, stdout, _) = await Capture(async () =>
+            await fixture.WebsiteSchedules(FixtureSource, new() { Directory = output }, new() { Json = true }));
+        Assert.Equal(5, exit);
+        Assert.Equal("sentinel-bytes", await File.ReadAllTextAsync(sentinel));
+        Assert.Empty(Directory.EnumerateFiles(output, "*.json"));
+        using var document = JsonDocument.Parse(stdout);
+        Assert.Equal("failed", document.RootElement.GetProperty("status").GetString());
+        Assert.Equal(5, document.RootElement.GetProperty("exitCode").GetInt32());
+    }
+
+    [Fact]
+    public async Task WebsiteThesesRejectsTraversalSlugBeforeAnyStagedWrite()
+    {
+        var fixture = new FixtureWebsite();
+        var teachers = await fixture.DiscoverTeachersAsync();
+        fixture.WebsiteTeachers.Add((teachers.ApiFirst1, teachers.ApiLast1, "../../schedulelib-traversal-sentinel-theses"));
+        fixture.ThesesXlsx = BuildThesesXlsx(teachers.Display1, teachers.Display2);
+        var sentinel = Path.Combine(Path.GetTempPath(), "schedulelib-traversal-sentinel-theses.json");
+        await File.WriteAllTextAsync(sentinel, "sentinel-bytes");
+        try
+        {
+            using var temp = new TempDirectory();
+            var output = Path.Combine(temp.Path, "theses");
+            var (exit, stdout, _) = await Capture(async () =>
+                await fixture.WebsiteTheses(FixtureSource, new() { Directory = output }, new() { Json = true }));
+            Assert.Equal(5, exit);
+            Assert.Equal("sentinel-bytes", await File.ReadAllTextAsync(sentinel));
+            Assert.Empty(Directory.EnumerateFiles(output, "*.json"));
+            using var document = JsonDocument.Parse(stdout);
+            Assert.Equal("failed", document.RootElement.GetProperty("status").GetString());
+            Assert.Equal(5, document.RootElement.GetProperty("exitCode").GetInt32());
+        }
+        finally
+        {
+            File.Delete(sentinel);
+        }
+    }
+
+    [Theory]
+    [InlineData("website-schedules")]
+    [InlineData("website-theses")]
+    public async Task WebsiteExportsMapHttp503ToExit5(string command)
+    {
+        var fixture = new FixtureWebsite
+        {
+            UseFakeSlugProvider = false,
+            HttpHandlerOverride = new FakeFailingStatusHandler(HttpStatusCode.ServiceUnavailable),
+        };
+        var teachers = await fixture.DiscoverTeachersAsync();
+        fixture.ThesesXlsx = BuildThesesXlsx(teachers.Display1, teachers.Display2);
+        using var temp = new TempDirectory();
+        var output = Path.Combine(temp.Path, "output");
+        var exit = command == "website-schedules"
+            ? await fixture.WebsiteSchedules(FixtureSource, new() { Directory = output }, new())
+            : await fixture.WebsiteTheses(FixtureSource, new() { Directory = output }, new());
+        Assert.Equal(5, exit);
+        Assert.Empty(Directory.EnumerateFiles(output, "*.json"));
+    }
+
+    [Theory]
+    [InlineData("website-schedules")]
+    [InlineData("website-theses")]
+    public async Task WebsiteExportsMapConnectionFailureToExit5(string command)
+    {
+        var fixture = new FixtureWebsite
+        {
+            UseFakeSlugProvider = false,
+            HttpHandlerOverride = new FakeThrowingHandler(new HttpRequestException("connection refused")),
+        };
+        var teachers = await fixture.DiscoverTeachersAsync();
+        fixture.ThesesXlsx = BuildThesesXlsx(teachers.Display1, teachers.Display2);
+        using var temp = new TempDirectory();
+        var output = Path.Combine(temp.Path, "output");
+        var exit = command == "website-schedules"
+            ? await fixture.WebsiteSchedules(FixtureSource, new() { Directory = output }, new())
+            : await fixture.WebsiteTheses(FixtureSource, new() { Directory = output }, new());
+        Assert.Equal(5, exit);
+        Assert.Empty(Directory.EnumerateFiles(output, "*.json"));
+    }
+
+    [Fact]
+    public async Task WebsiteSchedulesReportsLatestPeriodTeacherlessLessons()
+    {
+        var fixture = new FixtureWebsite();
+        var teachers = await fixture.DiscoverTeachersAsync();
+        fixture.Slugs[teachers.ScheduleKey1] = "mapped-teacher";
+        var counts = await fixture.LatestPeriodTeacherlessAsync();
+        Assert.True(counts.LatestWeekly > 0, "Fixture must contain latest-period weekly lessons.");
+        using var temp = new TempDirectory();
+        var output = Path.Combine(temp.Path, "website");
+        var (exit, stdout, _) = await Capture(async () =>
+            await fixture.WebsiteSchedules(FixtureSource, new() { Directory = output }, new() { Json = true }));
+        Assert.Equal(0, exit);
+        using var document = JsonDocument.Parse(stdout);
+        var warnings = document.RootElement.GetProperty("warnings").EnumerateArray().Select(x => x.GetString()).ToArray();
+        if (counts.LatestTeacherless > 0)
+            Assert.Contains(warnings, x => x is not null && x.Contains(counts.LatestTeacherless.ToString(), StringComparison.Ordinal) && x.Contains("no teacher", StringComparison.Ordinal));
+        else
+            Assert.DoesNotContain(warnings, x => x is not null && x.Contains("no teacher", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task CancelledWebsiteCommandsReturn130()
     {
         var cancelled = new CancellationToken(canceled: true);
@@ -188,7 +300,7 @@ public sealed class WebsiteExportTests
         }
     }
 
-    private sealed record TeacherDiscovery(string Display1, Name ScheduleKey1, Name ThesisKey1, string ApiFirst1, string ApiLast1, string Display2, Name ThesisKey2);
+    private sealed record TeacherDiscovery(string Display1, Name ScheduleKey1, Name ScheduleKey2, Name ThesisKey1, string ApiFirst1, string ApiLast1, string Display2, Name ThesisKey2);
 
     private sealed class FakeSlugProvider(TeacherSlugMap map) : ISlugProvider
     {
@@ -232,11 +344,25 @@ public sealed class WebsiteExportTests
             ValueTask.FromResult<Stream>(new MemoryStream(bytes, writable: false));
     }
 
+    private sealed class FakeFailingStatusHandler(HttpStatusCode status) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(status));
+    }
+
+    private sealed class FakeThrowingHandler(Exception error) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(error);
+    }
+
     private sealed class FixtureWebsite : ExportCommands
     {
         public TeacherSlugMap Slugs { get; } = new(0);
         public List<(string FirstName, string LastName, string Slug)> WebsiteTeachers { get; } = [];
         public byte[]? ThesesXlsx { get; set; }
+        public bool UseFakeSlugProvider { get; set; } = true;
+        public HttpMessageHandler? HttpHandlerOverride { get; set; }
 
         public void ConfigureForTest(IServiceCollection services) => ConfigureServices(services);
 
@@ -245,9 +371,10 @@ public sealed class WebsiteExportTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
             services.Configure<StudyYearOptions>(x => { x.StudyYear = new(2025); x.Semester = Semester.Sem2; });
-            services.AddSingleton<ISlugProvider>(new FakeSlugProvider(Slugs));
+            if (UseFakeSlugProvider)
+                services.AddSingleton<ISlugProvider>(new FakeSlugProvider(Slugs));
 #pragma warning disable CA2000 // The service provider owns and disposes the client and handler.
-            services.AddSingleton(new ItUsmWebsiteHttpClient(new HttpClient(new FakeWebsiteHttpHandler(WebsiteTeachers))
+            services.AddSingleton(new ItUsmWebsiteHttpClient(new HttpClient(HttpHandlerOverride ?? new FakeWebsiteHttpHandler(WebsiteTeachers))
             {
                 BaseAddress = new Uri("https://it.usm.md/api/"),
             }));
@@ -279,9 +406,24 @@ public sealed class WebsiteExportTests
             var display2 = second.PersonName.ToString();
             var parsed1 = NameHelper.Parse(display1);
             return new(display1,
-                new(first.PersonName.AsNameFields()), remapper.RemapName(parsed1),
+                new(first.PersonName.AsNameFields()), new(second.PersonName.AsNameFields()), remapper.RemapName(parsed1),
                 JoinParts(parsed1.FirstName), JoinParts(parsed1.LastName),
                 display2, remapper.RemapName(NameHelper.Parse(display2)));
+        }
+
+        public async Task<(int LatestTeacherless, int LatestWeekly, int AllTeacherless)> LatestPeriodTeacherlessAsync()
+        {
+            using var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
+            var services = CliRuntime.CreateServices(FixtureSource, ConfigureForTest, resolved.ProjectDirectory);
+            resolved.ConfigureServices(services);
+            await using var provider = AppConfiguration.BuildServiceProvider(services);
+            await provider.InitializeSchedule(CancellationToken.None);
+            await using var scope = provider.CreateAsyncScope();
+            var latest = scope.ServiceProvider.LatestPeriodSchedule().EnumerateWeeklyLessons().ToArray();
+            var full = scope.ServiceProvider.GetRequiredService<ScheduleLib.Schedule>();
+            var all = full.EnumerateWeeklyLessons().ToArray();
+            return (latest.Count(x => !x.Lesson.Teachers.Any()), latest.Length,
+                all.Count(x => !x.Lesson.Teachers.Any()));
         }
 
         private static string JoinParts(NameParts<string?> parts)

@@ -1,6 +1,8 @@
 using System.IO.Compression;
+using System.Net.Http;
 using System.Text.Json;
 using CommandDotNet;
+using FmiWebsiteInterop.Api;
 using FmiWebsiteInterop.Schedule;
 using FmiWebsiteInterop.Teachers;
 using FmiWebsiteInterop.Theses;
@@ -49,6 +51,10 @@ public partial class ExportCommands
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
             var grouping = full.TeacherGrouping(FilterHelper.Builder().WithLatestPeriod(full));
             var slugLookup = await scope.ServiceProvider.GetRequiredService<ISlugProvider>().SlugMap(cancellation.Token);
+            ValidateWebsiteArtifactNames(slugLookup.Values.Select(x => $"{x}.json"));
+            var latest = scope.ServiceProvider.LatestPeriodSchedule();
+            var teacherless = latest.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
+            if (teacherless > 0) warnings.Add($"The website schedule export omits {teacherless} weekly lessons with no teacher.");
             var displays = new WebsiteJsonScheduleHelper.Services
             {
                 ParityDisplay = new(),
@@ -74,7 +80,8 @@ public partial class ExportCommands
                 }
                 using var buffer = new MemoryStream();
                 await WebsiteJsonScheduleHelper.Serialize(model, buffer);
-                files[$"{slug}.json"] = buffer.ToArray();
+                if (!files.TryAdd($"{slug}.json", buffer.ToArray()))
+                    throw new IOException($"Duplicate website artifact name: {slug}.json");
             }
             foreach (var (name, bytes) in files.OrderBy(x => x.Key, StringComparer.Ordinal))
                 await PublishJson(output, name, bytes, cancellation.Token);
@@ -94,6 +101,8 @@ public partial class ExportCommands
         catch (FileNotFoundException e) { return await Finish(3, [e.Message]); }
         catch (UnauthorizedAccessException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
         catch (IOException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
+        catch (ItUsmWebsiteHttpException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
+        catch (HttpRequestException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
         catch (Exception e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 1, [e.Message]); }
         finally
         {
@@ -152,6 +161,8 @@ public partial class ExportCommands
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
+            var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>().SlugMap(cancellation.Token);
+            ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));
             var stagingRoot = Path.Combine(Path.GetTempPath(), $"schedulelib-theses-{runId}");
             try
             {
@@ -174,6 +185,7 @@ public partial class ExportCommands
                 missingSlugs.Add(ExtractTeacher(warning));
                 warnings.Add(warning);
             }
+            ValidateWebsiteArtifactNames(files.Keys);
             foreach (var (name, bytes) in files)
                 await PublishJson(output, name, bytes, cancellation.Token);
             zipPath = await PublishZip(output, zipName, files, cancellation.Token);
@@ -192,6 +204,8 @@ public partial class ExportCommands
         catch (FileNotFoundException e) { return await Finish(3, [e.Message]); }
         catch (UnauthorizedAccessException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
         catch (IOException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
+        catch (ItUsmWebsiteHttpException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
+        catch (HttpRequestException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
         catch (Exception e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 1, [e.Message]); }
         finally
         {
@@ -218,6 +232,20 @@ public partial class ExportCommands
             else
                 foreach (var path in paths) Console.WriteLine(path);
             return exit;
+        }
+    }
+
+    private static void ValidateWebsiteArtifactNames(IEnumerable<string> names)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in names)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name != Path.GetFileName(name) || name is "." or ".."
+                || name.Contains('\\') || name.Contains('/') || name.Contains(':')
+                || name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+                throw new IOException($"Invalid website artifact name: {name}");
+            if (!seen.Add(name))
+                throw new IOException($"Duplicate website artifact name: {name}");
         }
     }
 
