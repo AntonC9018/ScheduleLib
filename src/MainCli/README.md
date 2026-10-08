@@ -89,6 +89,23 @@ cancelled writes leave the previous live cache untouched. A killed process can
 leave an orphan `.tmp` file; it is never read as a cache. These locks coordinate
 cooperating local processes, not separate machines.
 
+```sh
+dotnet run --project src/MainCli -- export website-schedules --json
+dotnet run --project src/MainCli -- export website-theses --output ./website --cache-dir ./cache
+```
+
+Website exports generate existing per-teacher JSON files and a ZIP locally;
+nothing is published to the website. Schedules keep the latest-period
+selection, teacher enrichment and slug mapping; theses keep the configured
+thesis input. Missing-slug and intentional omissions (such as teachers with
+no schedule entries) appear as warnings and in the JSON result alongside an
+artifact manifest; ZIP entries are verified against the published files.
+Website JSON remains on disk as artifacts, distinct from the command-result
+envelope, and legacy progress messages go to stderr. No Explorer window is
+opened. Cancellation, output ownership, locks and exit codes follow the same
+contracts as the teacher export. Checks use fake slug/website providers and
+synthetic thesis fixtures; the configured real thesis input is preserved.
+
 The storage tests run two real .NET processes for cache/export reuse, output
 locks and killed staging writes; they inspect workbook content with ClosedXML
 and deserialize the retained cache. Existing query fixtures explicitly bypass
