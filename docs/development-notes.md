@@ -32,3 +32,26 @@ schedule initialization. User-state tokens are teacher/OAuth-client partitions,
 written atomically under local locks; user-secrets client sources are preserved.
 See [CLI authorization](../src/MainCli/AUTH.md) for storage, successor APIs, and
 unverified real-consent/Windows behavior.
+
+## Registry CLI synchronization (#197)
+
+`registry sync --profile "Curmanschii Anton"` builds a read-only reconciliation
+plan; `--apply` builds a fresh plan while holding a local lock for the configured
+registry login and registry base URL. The CLI's preview/apply switch controls
+processing flags, while the existing positional derivation, teacher filters,
+topics, attendance mapping and extra-lesson policy remain configured in C#.
+Extra lessons left alone (or requiring unsupported lossless deletion) appear as
+omitted actions. Plans do not submit forms. Application stops on the first failed
+submission, reports completed and unattempted actions, and never retries creates.
+
+`IRegistrySyncNavigator` separates reads from submissions. The configured CLI
+session owns its settings, initialized service scope and authenticated registry
+context. `IConfiguredRegistrySession` exposes that scoped service provider and
+navigator for the grade-import slice without reauthenticating. Both registry
+commands can share `IRegistryAccountLock`; aliases selecting the same configured
+login/base destination use the same local lock. Locks coordinate this machine,
+not different hosts.
+
+AngleSharp form submission does not accept a cancellation token. The adapter
+cancels its wait and disposes the session on cancellation; an in-flight submission
+can already have reached the server, so its outcome is explicitly uncertain.

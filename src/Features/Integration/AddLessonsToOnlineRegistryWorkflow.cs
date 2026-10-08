@@ -23,6 +23,18 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
     // Maybe make a builder, make it possible to override default stuff,
     // then execute from builder (so it's not forced for the current teacher only).
     // Do the same thing for
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(IRegistrySyncNavigator navigator, CancellationToken cancellationToken)
+    {
+        return await _handler.Plan(new()
+        {
+            Navigator = navigator,
+            Attendance = _attendanceLoader.Load(),
+            LessonTopics = await _topicsLoader.Load(cancellationToken),
+            Semester = _studyYear.Value.Semester,
+            LessonFilter = _lessonFilterProvider.Get(),
+        }, cancellationToken, explicitApply: true);
+    }
+
     public async ValueTask Execute(CancellationToken cancellationToken)
     {
         var attendance = _attendanceLoader.Load();

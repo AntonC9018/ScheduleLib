@@ -179,12 +179,25 @@ public sealed class GroupsNavigator
 }
 
 [AutoConstructor]
-public sealed partial class OnlineRegistryNavigator
+public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator
 {
     public readonly IRegistryErrorHandler ErrorHandler;
     public readonly RegistryScrapingContext Context;
     public readonly IServiceProvider ServiceProvider;
     public readonly CancellationToken CancellationToken;
+
+    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Courses().Get(semester);
+    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) => Groups().Get(course);
+    public Task SubmitLesson(IDocument document) => HtmlSearch.SendForm(document, CancellationToken);
+    public async Task SubmitDelete(IDocument document)
+    {
+        var form = document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("""form[name="deleteLessonForm"]""")
+            ?? throw new InvalidOperationException("Registry delete form is missing.");
+        CancellationToken.ThrowIfCancellationRequested();
+        var response = await form.SubmitAsync().WaitAsync(CancellationToken) ?? throw new IOException("Registry returned no delete response.");
+        if (response.QuerySelector(".validation-summary-errors") is { } errors && !string.IsNullOrWhiteSpace(errors.TextContent))
+            throw new RegistrySubmissionRejectedException("Registry rejected deletion: " + errors.TextContent);
+    }
 
     public CoursesNavigator Courses()
     {

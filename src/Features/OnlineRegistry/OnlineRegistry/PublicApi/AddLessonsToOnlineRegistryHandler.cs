@@ -1,8 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
 using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
@@ -31,7 +28,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
     public readonly record struct RunParams()
     {
-        public required OnlineRegistryNavigator Navigator { get; init; }
+        public required IRegistrySyncNavigator Navigator { get; init; }
         public required StudentAttendanceList Attendance { get; init; }
         public required ILessonTopics LessonTopics { get; init; }
         public required Semester Semester { get; init; }
@@ -40,6 +37,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
     public async Task Run(RunParams p)
     {
+        var plan = await Plan(p);
+        foreach (var action in plan) await action.Execute(CancellationToken.None);
+    }
+
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(RunParams p, CancellationToken cancellationToken = default, bool explicitApply = false)
+    {
+        var actions = new List<RegistrySyncAction>();
         var notFoundStudents = new List<Name>();
 
         var config = _configProvider.Get();
@@ -48,15 +52,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             throw new InvalidOperationException("Online registry not configured.");
         }
 
-        var coursesNav = p.Navigator.Courses();
-        var groupsNav = p.Navigator.Groups();
-
-        var courseLinks = await coursesNav.Get(p.Semester);
+        var courseLinks = await p.Navigator.GetCourses(p.Semester);
         foreach (var courseLink in courseLinks)
         {
-            var groups = await groupsNav.Get(courseLink);
+            var groups = await p.Navigator.GetGroups(courseLink);
             foreach (var group in groups)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
 
                 var filter = new LessonSearchFilter(
@@ -243,74 +245,53 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     localLessons: outputBuilder.Complete().ToArray()));
                 foreach (var command in equationCommands)
                 {
-                    if (config.CommandProcessingConfig.HasDryRun(command.Type))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!explicitApply && (config.CommandProcessingConfig.HasLog(command.Type)
+                        || config.CommandProcessingConfig.HasDryRun(command.Type)))
                     {
-                        Log1();
-                        continue;
+                        LogCommandBeforeExecution(command.Type.ToString(),
+                            (command.HasAll ? command.Local.DateTime : command.Remote.DateTime).ToString("dd.MM.yy"),
+                            _schedule.Get(courseLink.CourseId).FullName, group.Groups.Value.ToString(_schedule),
+                            command.HasAll ? _schedule.Get(command.Local.LessonId).Lesson.Type : command.Remote.LessonType);
                     }
-                    else if (config.CommandProcessingConfig.HasLog(command.Type))
+                    var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
+                    var enabled = explicitApply || config.CommandProcessingConfig.HasProcess(command.Type)
+                        && !config.CommandProcessingConfig.HasDryRun(command.Type);
+                    string? omission = enabled ? null : "Disabled by configured processing flags.";
+                    if (command.Type == LessonEquationCommandType.Delete)
                     {
-                        Log1();
-                    }
-
-                    if (config.CommandProcessingConfig.HasProcess(command.Type))
-                    {
-                        try
+                        var policy = _errorHandler.ExtraLessonInstanceFound(date);
+                        if (policy != ExtraLessonInstanceAction.Delete)
                         {
-                            await HandleCommand(
-                                command,
-                                addLessonUri,
-                                expectedStudents: scanResult.Students);
+                            enabled = false;
+                            omission = policy == ExtraLessonInstanceAction.LeaveAlone
+                                ? "Extra lesson left alone by configured policy."
+                                : "DeleteWithoutDataLoss is unsupported; extra lesson omitted.";
                         }
-                        catch (InvalidOperationException e)
+                    }
+                    var captured = command;
+                    actions.Add(new(command.Type.ToString().ToLowerInvariant(), group.Uri.ToString(),
+                        _schedule.Get(courseLink.CourseId).FullName, group.Groups.Value.ToString(_schedule), date,
+                        command.HasAll ? command.Local.Topic : command.Remote.Topic,
+                        command.HasAll ? command.Local.Attendance?.Length : command.Remote.Attendance.Length,
+                        enabled, omission, async token =>
                         {
-                            _logger.LogError(e, "Error while handling command");
-                        }
-                        continue;
-                    }
-
-                    void Log1()
-                    {
-                        Log(command, courseLink.CourseId, group.Groups);
-                    }
+                            token.ThrowIfCancellationRequested();
+                            var submissionStarted = false;
+                            try { await HandleCommand(captured, addLessonUri, scanResult.Students, () => submissionStarted = true); }
+                            catch (OperationCanceledException error) { throw new RegistryActionCancelledException(submissionStarted, error); }
+                            catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
+                        }));
                 }
             }
         }
-        return;
-
-
-        void Log(
-            LessonEquationCommand command,
-            CourseId courseId,
-            in FoundGroups groups)
-        {
-            var commandName = command.Type switch
-            {
-                LessonEquationCommandType.Create => "Create",
-                LessonEquationCommandType.Update => "Update",
-                LessonEquationCommandType.Delete => "Delete",
-                _ => throw Unreachable(),
-            };
-            var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
-            var lessonType = command.HasAll
-                ? _schedule.Get(command.Local.LessonId).Lesson.Type
-                : command.Remote.LessonType;
-            var dateString = date.ToString("dd.MM.yy");
-            var course = _schedule.Get(courseId);
-            var lessonName = course.FullName;
-            var groupName = groups.Value.ToString(_schedule);
-            LogCommandBeforeExecution(
-                CommandName: commandName,
-                DateString: dateString,
-                LessonName: lessonName,
-                GroupName: groupName,
-                LessonType: lessonType);
-        }
+        return actions;
 
         async ValueTask HandleCommand(
             LessonEquationCommand command,
             Uri addLessonUri,
-            HtmlStudent[] expectedStudents)
+            HtmlStudent[] expectedStudents,
+            Action markSubmission)
         {
             switch (command.Type)
             {
@@ -328,7 +309,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 case LessonEquationCommandType.Delete:
                 {
-                    await HandleExtraLesson(command.Remote);
+                    await Delete(command.Remote.ViewUri, markSubmission);
                     break;
                 }
                 default:
@@ -344,7 +325,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 await CreateOrUpdate1(
                     editUri,
                     lessonInstance,
-                    expectedStudents);
+                    expectedStudents, markSubmission);
             }
 
             async Task Create(LessonInstance lessonInstance)
@@ -352,20 +333,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 await CreateOrUpdate1(
                     addLessonUri,
                     lessonInstance,
-                    expectedStudents);
-            }
-        }
-
-        async ValueTask HandleExtraLesson(RemoteLessonInstance x)
-        {
-            var action = _errorHandler.ExtraLessonInstanceFound(x.DateTime);
-            if (action == ExtraLessonInstanceAction.Delete)
-            {
-                await Delete(x.ViewUri);
-            }
-            if (action == ExtraLessonInstanceAction.DeleteWithoutDataLoss)
-            {
-                throw new NotImplementedException("This will need some more scanning");
+                    expectedStudents, markSubmission);
             }
         }
 
@@ -373,11 +341,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             Uri uri,
             LessonInstance lesson,
             Schedule schedule,
-            HttpClient client,
-            HtmlStudent[] expectedStudents)
+            HtmlStudent[] expectedStudents,
+            Action markSubmission)
         {
             var doc = await p.Navigator.GetHtml(uri);
-            _ = client;
             HtmlSearch.UpdateForm(new()
             {
                 Document = doc,
@@ -385,20 +352,21 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 Schedule = schedule,
                 ExpectedStudents = expectedStudents,
             });
-            await HtmlSearch.SendForm(doc);
+            markSubmission();
+            await p.Navigator.SubmitLesson(doc);
         }
 
-        Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents)
+        Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents, Action markSubmission)
         {
             // ReSharper disable once AccessToDisposedClosure
-            return CreateOrUpdate(uri, lesson, _schedule, p.Navigator.Context.HttpClient, expectedStudents);
+            return CreateOrUpdate(uri, lesson, _schedule, expectedStudents, markSubmission);
         }
 
-        async Task Delete(Uri detailsUri)
+        async Task Delete(Uri detailsUri, Action markSubmission)
         {
             var doc = await p.Navigator.GetHtml(detailsUri);
-            var form = doc.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")!;
-            await form.SubmitAsync();
+            markSubmission();
+            await p.Navigator.SubmitDelete(doc);
         }
 
         async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(
