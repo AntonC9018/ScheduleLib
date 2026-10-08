@@ -13,22 +13,25 @@ public sealed partial class Commands
 }
 
 // Enum names are the public command literals (CommandDotNet matches case exactly).
-public enum AuthProvider { google }
+public enum AuthProvider { google, microsoft }
 public sealed class AuthProviderArguments : IArgumentModel
 {
-    [Operand("provider", Description = "Authentication provider: google.")]
+    [Operand("provider", Description = "Authentication provider: google or microsoft.")]
     public AuthProvider Provider { get; set; }
 }
 
 [Command("auth", Description = "Manage local authorization; only login initiates browser consent.")]
-public sealed class AuthCommands
+public partial class AuthCommands
 {
-    [Command("login", Description = "Explicitly authorize the selected teacher for Google Calendar and Drive using configured client secrets.")]
-    public Task<int> Login(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Execute("login", settings, output, cancellationToken);
-    [Command("status", Description = "Inspect local teacher/client authorization without contacting Google or loading schedules.")]
-    public Task<int> Status(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Execute("status", settings, output, cancellationToken);
+    [Command("login", Description = "Explicitly authorize the selected teacher for the chosen provider using configured client settings.")]
+    public Task<int> Login(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("login", provider.Provider, settings, output, cancellationToken);
+    [Command("status", Description = "Inspect local teacher/client authorization without contacting providers or loading schedules.")]
+    public Task<int> Status(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("status", provider.Provider, settings, output, cancellationToken);
     [Command("logout", Description = "Delete local authorization for this teacher's accounts. No cloud revocation is performed.")]
-    public Task<int> Logout(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Execute("logout", settings, output, cancellationToken);
+    public Task<int> Logout(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("logout", provider.Provider, settings, output, cancellationToken);
+
+    private Task<int> Route(string verb, AuthProvider provider, SettingsArguments settings, ResultArguments output, CancellationToken token)
+        => provider == AuthProvider.microsoft ? ExecuteMicrosoft(verb, settings, output, token) : Execute(verb, settings, output, token);
 
     private static async Task<int> Execute(string verb, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken)
     {

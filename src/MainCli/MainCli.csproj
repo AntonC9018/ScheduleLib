@@ -10,6 +10,7 @@
     <Import Project="$(RootPath)build\UserSecrets.props" />
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Identity.Client" Version="4.87.0" />
         <PackageReference Include="CommandDotNet" Version="8.1.0" />
         <ProjectReference Include="..\Features\Integration\Integration.csproj" />
     </ItemGroup>

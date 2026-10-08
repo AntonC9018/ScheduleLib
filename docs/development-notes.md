@@ -70,3 +70,15 @@ replacement changes that ID. Primary destinations are prohibited by both
 configured literal and actual remote identity. Outcomes preserve completed
 calendar/event IDs and desired-event indexes; lost or cancelled responses are
 uncertain and never retried. See `src/MainCli/CALENDAR.md` for result semantics.
+## CLI Microsoft authorization and curricula (#196)
+
+`MicrosoftAuthentication` uses supported MSAL cache callbacks/serialization;
+only `auth login microsoft` invokes interactive acquisition. Downloads resolve
+with `AcquireTokenSilent` under the same teacher operation lease as local
+login/status/logout. State belongs to OS user state, separated by teacher,
+tenant/client and actual MSAL account. The old working-directory cache is not
+imported; explicit login reprovisions it. The Graph adapter follows program and
+document pagination and performs reads only. Curricula retain their coded
+2024–2025 owner/path and disclose them in results. Legacy DOC conversion uses
+staged copies with separately published originals. See [CLI authorization](../src/MainCli/AUTH.md)
+for storage, capability prerequisites and unverified Windows/real-consent paths.
