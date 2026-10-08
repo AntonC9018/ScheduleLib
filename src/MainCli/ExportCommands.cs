@@ -22,7 +22,7 @@ public partial class ExportCommands
     protected virtual void ConfigureServices(IServiceCollection services) => AppConfiguration.ConfigureServices(services);
 
     [Command("teachers-excel", Description = "Generate the all-teacher workbook for the latest period. No teacher profile is required; a profile does not filter teachers.")]
-    public async Task<int> TeachersExcel(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default)
+    public async Task<int> TeachersExcel(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         const string command = "export teachers-excel";
         var runId = Guid.NewGuid().ToString("N");
@@ -37,8 +37,10 @@ public partial class ExportCommands
         {
             cancellation.Token.ThrowIfCancellationRequested();
             if (destination.Directory is { } selectedOutput) CliRuntime.ResolvePath(selectedOutput);
-            var services = CliRuntime.CreateServices(source, ConfigureServices);
-            output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token);
+            using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
+            var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
+            resolvedSettings.ConfigureServices(services);
+            output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -73,6 +75,7 @@ public partial class ExportCommands
         catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
         catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
         catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }
+        catch (JsonException e) { return await Finish(3, [e.Message]); }
         catch (DirectoryNotFoundException e) { return await Finish(3, [e.Message]); }
         catch (InvalidScheduleSourceException e) { return await Finish(3, [e.Message]); }
         catch (ScheduleBuildException e) { return await Finish(3, [e.Message]); }

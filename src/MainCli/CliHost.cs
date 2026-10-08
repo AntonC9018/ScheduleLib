@@ -1,17 +1,23 @@
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using CommandDotNet;
 using CommandDotNet.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
 
+[assembly: InternalsVisibleTo("MainCli.Tests")]
+
 namespace ScheduleLib.Cli;
 
 public static class CliHost
 {
-    public static async Task<int> Run(string[] args)
+    public static Task<int> Run(string[] args) => RunCore(args, null);
+
+    internal static async Task<int> RunCore(string[] args, Action<AppRunner<Commands>>? configure)
     {
         var invoked = false;
+        var inputFailure = false;
         var runner = new AppRunner<Commands>(new AppSettings { Help = { PrintHelpOption = true, UsageAppName = "schedulelib" }, DisableDirectives = true });
         runner.Configure(builder => builder.UseMiddleware((context, next) =>
         {
@@ -21,14 +27,31 @@ public static class CliHost
         runner.Configure(builder => builder.UseMiddleware(async (context, next) =>
         {
             var exit = await next(context);
-            if (exit == 1 && !invoked && args.Contains("--json")) context.ShowHelpOnExit = false;
+            inputFailure = !invoked && (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
+            if (exit != 0 && !invoked && args.Contains("--json")) context.ShowHelpOnExit = false;
             return exit;
         }, MiddlewareSteps.Help.PrintHelpOnExit + 1));
-        var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
-        if (result == 1 && !invoked && args.Contains("--json"))
-            Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object?>(1, "cli", Guid.NewGuid().ToString("N"), "failed", 2, [], [], [], ["Invalid command or arguments. See stderr for details."], null), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        // CommandDotNet uses 1 for parse/binding errors; execution uses the public exit codes.
-        return result == 1 && !invoked ? 2 : result;
+        try
+        {
+            configure?.Invoke(runner);
+            var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
+            if (result == 0 || invoked) return result;
+            var exit = inputFailure ? 2 : 1;
+            WriteStartupResult(exit, inputFailure ? "Invalid command or arguments. See stderr for details." : "Unexpected CLI startup failure. See stderr for details.");
+            return exit;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e.Message);
+            WriteStartupResult(1, "Unexpected CLI startup failure. See stderr for details.");
+            return 1;
+        }
+
+        void WriteStartupResult(int exit, string error)
+        {
+            if (args.Contains("--json"))
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object?>(1, "cli", Guid.NewGuid().ToString("N"), "failed", exit, [], [], [], [error], null), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        }
     }
 }
 
@@ -47,7 +70,7 @@ public partial class QueryCommands
     protected virtual void ConfigureServices(IServiceCollection services) => AppConfiguration.ConfigureServices(services);
 
     [Command("lessons", Description = "List latest-period weekly lessons. All predicates are optional; parity includes lessons held every week. No teacher profile is required.")]
-    public async Task<int> Lessons(QueryArguments query, SourceArguments source, ResultArguments output, CancellationToken cancellationToken = default)
+    public async Task<int> Lessons(QueryArguments query, SourceArguments source, ResultArguments output, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         var runId = Guid.NewGuid().ToString("N");
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -59,7 +82,9 @@ public partial class QueryCommands
             if (query.BeforeSlot is < 1 or > 7 || query.Day is { } day && !Enum.IsDefined(day)
                 || query.Parity is { } parity && !Enum.IsDefined(parity))
                 return Finish(2, [], ["Invalid day, parity, or slot (slots start at 1)."]);
-            var services = CliRuntime.CreateServices(source, ConfigureServices);
+            using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
+            var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
+            resolvedSettings.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -88,6 +113,7 @@ public partial class QueryCommands
         catch (OperationCanceledException) { return Finish(130, [], ["Cancelled."]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [], [e.Message]); }
         catch (InvalidScheduleSourceException e) { return Finish(3, [], [e.Message]); }
+        catch (JsonException e) { return Finish(3, [], [e.Message]); }
         catch (ScheduleBuildException e) { return Finish(3, [], [e.Message]); }
         catch (FileNotFoundException e) { return Finish(3, [], [e.Message]); }
         catch (DirectoryNotFoundException e) { return Finish(3, [], [e.Message]); }
