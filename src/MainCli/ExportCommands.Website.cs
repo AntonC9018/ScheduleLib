@@ -32,7 +32,7 @@ public partial class ExportCommands
         var warnings = new List<string>();
         var missingSlugs = new List<string>();
         var omittedEmpty = new List<string>();
-        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         string? zipPath = null;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
@@ -91,7 +91,12 @@ public partial class ExportCommands
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
-        catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException e)
+        {
+            if (!cancellation.Token.IsCancellationRequested)
+                return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]);
+            return await Finish(130, ["Cancelled."]);
+        }
         catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
         catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }
         catch (JsonException e) { return await Finish(3, [e.Message]); }
@@ -142,7 +147,7 @@ public partial class ExportCommands
         RunOutput? output = null;
         var warnings = new List<string>();
         var missingSlugs = new List<string>();
-        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         string? zipPath = null;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
@@ -173,7 +178,9 @@ public partial class ExportCommands
                 foreach (var file in staging.FilePaths("*.json", new() { RecurseSubdirectories = false }).OrderBy(x => x.Path, StringComparer.Ordinal))
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
-                    files[Path.GetFileName(file.Path)] = await File.ReadAllBytesAsync(staging.BuildPath(file.Path), cancellation.Token);
+                    var stagedName = Path.GetFileName(file.Path);
+                    if (!files.TryAdd(stagedName, await File.ReadAllBytesAsync(staging.BuildPath(file.Path), cancellation.Token)))
+                        throw new IOException($"Duplicate website artifact name: {stagedName}");
                 }
             }
             finally
@@ -194,7 +201,12 @@ public partial class ExportCommands
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
-        catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException e)
+        {
+            if (!cancellation.Token.IsCancellationRequested)
+                return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]);
+            return await Finish(130, ["Cancelled."]);
+        }
         catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
         catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }
         catch (JsonException e) { return await Finish(3, [e.Message]); }
@@ -237,12 +249,13 @@ public partial class ExportCommands
 
     private static void ValidateWebsiteArtifactNames(IEnumerable<string> names)
     {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
             if (string.IsNullOrWhiteSpace(name) || name != Path.GetFileName(name) || name is "." or ".."
                 || name.Contains('\\') || name.Contains('/') || name.Contains(':')
-                || name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+                || string.Equals(name, "schedulelib-manifest.json", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, ".schedulelib-output.lock", StringComparison.OrdinalIgnoreCase))
                 throw new IOException($"Invalid website artifact name: {name}");
             if (!seen.Add(name))
                 throw new IOException($"Duplicate website artifact name: {name}");
