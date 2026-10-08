@@ -201,17 +201,13 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             throw new RegistrySubmissionRejectedException("Registry rejected deletion: " + errors.TextContent);
     }
 
-    public async Task SubmitGrades(IDocument document, CancellationToken token)
+    public async Task SubmitGrades(IDocument document, CancellationToken token, Action? onSubmissionStarted = null)
     {
-        var form = document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")
-            ?? throw new InvalidOperationException("Registry grade form is missing.");
+        var form = RegistryGradeForm.Validate(document);
         token.ThrowIfCancellationRequested();
         var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
             .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
-        if (expected.Length == 0 || expected.Any(input => string.IsNullOrEmpty(input.Name))
-            || expected.Select(input => input.Name).Distinct(StringComparer.Ordinal).Count() != expected.Length)
-            throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
-        var response = await Context.ScrapingContext.SubmitFormOnce(form, token)
+        var response = await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted)
             ?? throw new IOException("Registry returned no grade response.");
         RejectResponse(response);
         // An ordinary form response or navigation away from the edit page must still be

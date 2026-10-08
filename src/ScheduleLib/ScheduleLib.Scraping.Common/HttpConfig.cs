@@ -114,8 +114,12 @@ public sealed class ScrapingContext : IDisposable
     }
 
     /// <summary>Suppresses authentication replay only for this explicit mutation.</summary>
-    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token) =>
-        _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token));
+    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null) =>
+        _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
+        {
+            token.ThrowIfCancellationRequested();
+            onSubmissionStarted?.Invoke();
+        });
 
     public void Dispose()
     {
@@ -180,6 +184,7 @@ internal sealed class HttpClientRequester : BaseRequester
     private readonly HttpClient _httpClient;
     private readonly IAuthHandler _authHandler;
     private readonly AsyncLocal<bool> _suppressAuthenticationReplay = new();
+    private readonly AsyncLocal<Action?> _onSubmissionStarted = new();
 
     public HttpClientRequester(
         HttpClient client,
@@ -189,12 +194,18 @@ internal sealed class HttpClientRequester : BaseRequester
         _authHandler = authHandler;
     }
 
-    public async Task<T> WithoutAuthenticationReplay<T>(Func<Task<T>> submit)
+    public async Task<T> WithoutAuthenticationReplay<T>(Func<Task<T>> submit, Action? onSubmissionStarted)
     {
         var previous = _suppressAuthenticationReplay.Value;
+        var previousCallback = _onSubmissionStarted.Value;
         _suppressAuthenticationReplay.Value = true;
+        _onSubmissionStarted.Value = onSubmissionStarted;
         try { return await submit(); }
-        finally { _suppressAuthenticationReplay.Value = previous; }
+        finally
+        {
+            _suppressAuthenticationReplay.Value = previous;
+            _onSubmissionStarted.Value = previousCallback;
+        }
     }
 
     public override bool SupportsProtocol(string protocol) => true;
@@ -205,6 +216,8 @@ internal sealed class HttpClientRequester : BaseRequester
         while (true)
         {
             using var httpRequest = ToHttpRequest(request);
+            cancel.ThrowIfCancellationRequested();
+            if (httpRequest.Method == HttpMethod.Post) _onSubmissionStarted.Value?.Invoke();
             var httpResponse = await _httpClient.SendAsync(
                 request: httpRequest,
                 completionOption: HttpCompletionOption.ResponseHeadersRead,

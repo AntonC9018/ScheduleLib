@@ -240,10 +240,10 @@ public sealed class RegistryGradeTests
         public async Task<IDocument> GetHtml(Uri uri)
         {
             if (uri.AbsolutePath == "/evaluation") return await new HtmlParser().ParseDocumentAsync("<table><tr><td><a href='https://registry.test/test'>Testarea 1</a></td></tr></table>");
-            Form = await new HtmlParser().ParseDocumentAsync("<form><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>Popescu Ion</td><td><input type='text' value='5'></td></tr><tr><td>Ionescu Ana</td><td><input type='text' value='5'></td></tr><tr><td>Rusu Pavel</td><td><input type='text' value='5'></td></tr><tr><td>Munteanu Mihai exmatr</td><td><input type='text' value='5'></td></tr></table></form>");
+            Form = await new HtmlParser().ParseDocumentAsync("<form><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>Popescu Ion</td><td><input type='text' name='grade[1]' value='5'></td></tr><tr><td>Ionescu Ana</td><td><input type='text' name='grade[2]' value='5'></td></tr><tr><td>Rusu Pavel</td><td><input type='text' name='grade[3]' value='5'></td></tr><tr><td>Munteanu Mihai exmatr</td><td><input type='text' name='grade[4]' value='5'></td></tr></table></form>");
             return Form;
         }
-        public Task SubmitGrades(IDocument document, CancellationToken token) { Submissions++; Assert.Same(Form, document); return Task.CompletedTask; }
+        public Task SubmitGrades(IDocument document, CancellationToken token, Action? onSubmissionStarted = null) { onSubmissionStarted?.Invoke(); Submissions++; Assert.Same(Form, document); return Task.CompletedTask; }
     }
     private sealed class Capture : IDisposable
     {

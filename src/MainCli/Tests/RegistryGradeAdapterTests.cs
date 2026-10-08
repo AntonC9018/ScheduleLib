@@ -21,6 +21,25 @@ public sealed class RegistryGradeAdapterTests
     private const string LoginForm = "<form method='post' action='/login/index.php'><input name='username'><input name='password' type='password'><button type='submit'>Login</button></form>";
 
     [Theory]
+    [InlineData("<input type='text' value='8'>")]
+    [InlineData("<input type='text' name='grade[1]' value='8'><input type='text' name='grade[1]' value='5'>")]
+    public async Task InvalidGradeFieldsFailBeforeProductionPostBoundary(string inputs)
+    {
+        using var handler = new Handler((_, _) => Task.FromResult(Response(HttpStatusCode.OK,
+            $"<form method='post' action='/grades'>{inputs}</form>")));
+        using var client = new HttpClient(handler);
+        using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
+        using var context = ScrapingContext.Create(transport, new Auth());
+        using var services = new ServiceCollection().BuildServiceProvider();
+        var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
+        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+        var started = false;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => navigator.SubmitGrades(document, default, () => started = true));
+        Assert.False(started);
+        Assert.Equal(0, handler.Posts);
+    }
+
+    [Theory]
     [InlineData(500, "server failure", false)]
     [InlineData(400, "bad request", true)]
     [InlineData(401, "unauthorized", true)]

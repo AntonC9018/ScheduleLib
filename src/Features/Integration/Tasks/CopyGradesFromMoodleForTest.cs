@@ -240,8 +240,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     notices.Add(new("omitted", $"No mapped grades to submit for {testUrl.Href}"));
                     continue;
                 }
-                if (test1Doc.QuerySelector<IHtmlFormElement>("form") is null)
-                    throw new InvalidOperationException("No registry grade form found");
+                RegistryGradeForm.Validate(test1Doc);
                 actions.Add(new(testUrl.Href, _schedule.Get(course.CourseId).FullName, string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)), parsedPath.TestNumber, changes, async token =>
                 {
                     var started = false;
@@ -250,8 +249,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         token.ThrowIfCancellationRequested();
                         foreach (var input in inputs) input.Input.Value = input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         token.ThrowIfCancellationRequested();
-                        started = true;
-                        await registryNav.SubmitGrades(test1Doc, token);
+                        await registryNav.SubmitGrades(test1Doc, token, () => started = true);
                     }
                     catch (OperationCanceledException e) { throw new RegistryActionCancelledException(started, e); }
                     catch (Exception e) { throw new RegistryActionExecutionException(started, e); }

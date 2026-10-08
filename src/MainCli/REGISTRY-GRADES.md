@@ -25,7 +25,9 @@ The Moodle report uses the existing page-size request of 2000 and does not page
 through larger reports; the command warns about that limitation. Inspect the
 preview, notices and report completeness before applying. Unsupported mappings
 are deliberate omissions, so an empty preview/apply can succeed with notices.
-Malformed required form markup fails planning before any registry submission.
+Malformed required form markup, including missing or duplicate grade field names,
+fails planning before any registry submission. Every planned form is validated
+before application begins.
 
 Schema-1 JSON includes the actual registry target, quiz ID, notices and per-form
 outcomes, with student source/rounded/previous grades and form destinations.
@@ -41,8 +43,9 @@ Grade POSTs bypass authentication replay, including after HTTP 401; other
 legacy requester retry behavior is preserved.
 Ctrl+C cancels reads and execution. AngleSharp submission cannot be natively
 cancelled, so cancellation stops awaiting the response and disposes the session;
-an already-started submission is uncertain. Inspect the registry before any
-manual retry. Completed and unattempted form results are retained.
+submission starts at the production requester's POST boundary. Deterministic
+failures before that boundary are failed; an already-started submission is
+uncertain. Inspect the registry before any manual retry. Completed and unattempted form results are retained.
 
 Exits follow the shared CLI contract: 0 successful preview/apply; 1 unexpected
 failure; 2 invalid
