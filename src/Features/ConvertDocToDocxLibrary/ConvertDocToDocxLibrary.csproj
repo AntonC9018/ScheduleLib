@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>$(WindowsTarget)</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 
@@ -9,12 +8,13 @@
         <NoWarn>$(NoWarn);NU1702</NoWarn>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <ProjectReference Include="..\ConvertDocToDocx\ConvertDocToDocx.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
         </ProjectReference>
         <Content Include="..\ConvertDocToDocx\bin\$(Configuration)\net4.8\ConvertDocToDocx.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
     </ItemGroup>
 </Project>

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../MainCli.csproj" />
+    <None Include="../../Features/Integration/data/2025_sem2/zi/13.02.26/Orar_An_III Lic.docx" Link="fixtures/2025_sem2/zi/13.02.26/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../Features/Integration/data/2025_sem2/zi/master.xlsx" Link="fixtures/2025_sem2/zi/master.xlsx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -10,10 +10,14 @@ public static class DocToDocxConversionHelper
         string outputPath,
         CancellationToken cancellationToken)
     {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Legacy .doc conversion requires Windows and Microsoft Word. Supply DOCX sources on Linux.");
         inputPath = Path.GetFullPath(inputPath);
         outputPath = Path.GetFullPath(outputPath);
 
-        var converterPath = ConverterPath;
+        var converterPath = Path.Combine(AppContext.BaseDirectory, "ConvertDocToDocx.exe");
+        if (!File.Exists(converterPath))
+            throw new PlatformNotSupportedException("Legacy .doc conversion requires the bundled Windows converter and Microsoft Word. Supply DOCX sources instead.");
         var processInfo = new ProcessStartInfo(
             converterPath,
             arguments: [
@@ -21,12 +25,21 @@ public static class DocToDocxConversionHelper
                 outputPath,
             ]);
 
-        var process = Process.Start(processInfo);
+        using var process = Process.Start(processInfo);
         if (process is null)
         {
             throw Unreachable();
         }
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+            throw;
+        }
 
         // File.Delete(filePath);
 
@@ -37,25 +50,4 @@ public static class DocToDocxConversionHelper
         return true;
     }
 
-    private static string ReplaceLastSegmentOfPath(string input, string fileName)
-    {
-        var directory = Path.GetDirectoryName(input);
-        if (directory is null)
-        {
-            throw new InvalidOperationException("Path has no directory");
-        }
-        return Path.Combine(directory, fileName);
-    }
-
-    private static string CreateConverterPath()
-    {
-        var executablePath = Environment.ProcessPath;
-        if (executablePath is null)
-        {
-            throw Unreachable();
-        }
-        var converterPath = ReplaceLastSegmentOfPath(executablePath, "ConvertDocToDocx.exe");
-        return converterPath;
-    }
-    private static readonly string ConverterPath = CreateConverterPath();
 }

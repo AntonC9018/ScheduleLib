@@ -1,6 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>$(WindowsTarget)</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
     </PropertyGroup>
 

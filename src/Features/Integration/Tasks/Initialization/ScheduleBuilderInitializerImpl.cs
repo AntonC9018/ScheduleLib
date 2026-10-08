@@ -10,6 +10,7 @@ namespace ScheduleLib.Application.Core;
 
 public sealed class ScheduleBuilderInitializerOptions
 {
+    public string DataDirectory { get; set; } = "data";
     public bool BypassCache { get; set; } = false;
     public bool UseCache { get; set; } = true;
     public bool EnrichWithFullNames { get; set; } = true;
@@ -41,15 +42,17 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         var opts = _opts.Value;
         if (opts.UseCache)
         {
-            loader.CachedPath = Path.Combine("data", $"schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json");
+            loader.CachedPath = Path.Combine(opts.DataDirectory, $"schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json");
         }
 
         {
-            var scheduleDirs = ScheduleDirectoryDiscovery.DiscoverDirectories(path: new("data"))
+            var scheduleDirs = ScheduleDirectoryDiscovery.DiscoverDirectories(path: new(opts.DataDirectory))
                 .OrderBy(x => x.StudyYear)
                 .ThenBy(x => x.Semester)
                 .ThenBy(x => x.AttendanceMode);
-            var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear);
+            var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear).ToArray();
+            if (matchingDirs.Length == 0)
+                throw new DirectoryNotFoundException($"No schedule sources for coded study year {studyYear.StudyYear} and semester {studyYear.Semester} under {opts.DataDirectory}.");
             var loaders = matchingDirs.SelectMany(x => x.GetLoaders());
             loader.Components.AddRange(loaders);
         }
@@ -58,7 +61,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         {
             // loader.Components.Add(new EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent
             // {
-            //     FilePath = Path.Combine("data", "Cadre didactice DI 2024-2025.xlsx"),
+            //     FilePath = Path.Combine(opts.DataDirectory, "Cadre didactice DI 2024-2025.xlsx"),
             // });
 
             var websiteLoader = sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();

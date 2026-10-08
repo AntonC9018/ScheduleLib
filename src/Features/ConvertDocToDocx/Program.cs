@@ -17,5 +17,6 @@ try
 }
 finally
 {
-    inputDoc?.Close();
+    inputDoc?.Close(WdSaveOptions.wdDoNotSaveChanges);
+    app.Quit(WdSaveOptions.wdDoNotSaveChanges);
 }
