@@ -119,12 +119,8 @@ teacher scopes continue to select their own composed paths. Global scopes can
 use the selected/default path without an unrelated teacher prerequisite.
 `ProjectDirectory` is also available to cache/output runtime composition.
 
-Persisted remove/reset/clear operations (#190) and authentication/registry
-execution belong to successor slices. Version 1 currently stores only
-values; a successor must add an explicitly validated operations representation
-and route it through existing update actions, rather than interpreting JSON
-null or an empty list as removal. Preserve the defaults/profiles envelope and
-teacher identity constraints and coordinated atomic file replacement. No cloud prerequisite should be added to config inspection.
+Persisted remove/reset/clear operations use the optional `operations` member
+described below. Configuration inspection has no cloud prerequisite.
 
 ## Scoped writes
 
@@ -140,10 +136,10 @@ schedulelib config unset GoogleCalendarConfig.calendarName --scope project --pro
 
 The scope is required. Project writes require a discovered project settings file
 or an existing directory selected with `--project`. A missing file is created
-only when setting a value. `--profile` edits the selected scope's overlay for an
+when setting a value or adding an explicit suppression action. `--profile` edits the selected scope's overlay for an
 existing teacher; omitting it edits defaults. Dotted keys address object members;
 set a complete collection to edit its local value. `unset` removes only the local
-property/block and prunes empty containers, restoring inherited values. Unsetting
+property/block and its suppression actions, then prunes empty containers, restoring inherited values. Unsetting
 an absent override succeeds without creating a settings file. JSON null retains
 the existing inheritance semantics.
 
@@ -160,5 +156,57 @@ not echo the submitted value.
 
 The internal `CliSettings.Edit` entry point accepts deterministic invocation/user
 paths for tests. `LoadCore` validates an in-memory replacement through the existing
-layer engine. Successor operations can reuse this validation/publication boundary
-while extending the envelope with explicitly supported update operations.
+layer engine. Set/unset/remove/clear share this validation/publication boundary.
+
+## Explicit suppression and collection clearing
+
+```sh
+schedulelib config remove GoogleCalendarConfig --scope project
+schedulelib config remove LessonAttendanceConfig.sources --item '{"filePath":"/absolute/attendance.xlsx"}' --scope project
+schedulelib config clear LessonAttendanceConfig.sources --scope user --profile 'Curmanschii Anton'
+schedulelib config unset LessonAttendanceConfig.sources --scope project
+```
+
+`remove` takes a registered block, or a collection path with `--item` containing
+an item in that collection's typed JSON representation. The registered comparer
+matches its identity: attendance sources use `filePath`, topic fallback providers
+use `lessonType`, and topic manifest sources use their typed `path`. Include a
+`$type` discriminator for polymorphic collections. File identities are resolved
+relative to the file being edited; use an absolute path to match an entry defined
+in another directory. A missing item produces a configuration error before
+publication. `clear` accepts registered collections. Scalar removal and clearing
+whole blocks are unsupported.
+
+Actions persist separately from values in the schema 1 CLI envelope:
+
+```json
+{
+  "schemaVersion": 1,
+  "operations": {
+    "defaults": [
+      {"operation": "remove", "key": "GoogleCalendarConfig"},
+      {"operation": "clear", "key": "LessonAttendanceConfig.sources"}
+    ],
+    "profiles": {
+      "Curmanschii Anton": [
+        {"operation": "remove", "key": "LessonTopicsConfig.fallbackProviders", "item": {"lessonType": "Lab"}}
+      ]
+    }
+  }
+}
+```
+
+Each scope/profile applies its values followed by its actions through the existing
+layer update mechanism. Higher layers can supply values again. The optional
+`reset` operation on a whole block uses its registered reset behavior; it is
+available through direct JSON editing. Unknown operation names, action members,
+blocks, collection members and profile identities fail validation. Desktop
+serialized tree files retain their existing format and serializer options.
+
+Null values continue to inherit, and ordinary empty lists retain the engine's
+keyed merge behavior. `unset KEY` removes that scope/profile's local value and
+all actions at KEY or beneath it, restoring inheritance. `set KEY VALUE` also
+removes actions at/beneath KEY and any ancestor suppression so the new value can
+participate in resolution. Unrelated scopes and profiles retain their actions.
+Persisted item removals remain valid if the underlying entry later disappears;
+reload treats the already absent entry as suppressed.

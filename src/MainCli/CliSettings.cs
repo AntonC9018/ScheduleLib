@@ -42,6 +42,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     private readonly JsonSerializerOptions _json;
     private readonly IReadOnlyDictionary<string, NodePath> _profilePaths;
     internal JsonSerializerOptions Json => _json;
+    internal IServiceProvider Services => _provider;
     public TreeBuilder Tree { get; }
     public NodePath Path { get; }
     public string? ProjectDirectory { get; }
@@ -188,8 +189,8 @@ public static partial class CliSettings
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
                 sources.Add(CodeSource("code profile: " + coded.Key, coded.Value, json));
-                AddOverlay(path, sources, user, "user profile: " + coded.Key, user?.Profiles.GetValueOrDefault(coded.Key));
-                AddOverlay(path, sources, local, "project profile: " + coded.Key, local?.Profiles.GetValueOrDefault(coded.Key));
+                AddOverlay(path, sources, user, "user profile: " + coded.Key, user?.Profiles.GetValueOrDefault(coded.Key), coded.Key);
+                AddOverlay(path, sources, local, "project profile: " + coded.Key, local?.Profiles.GetValueOrDefault(coded.Key), coded.Key);
                 AddCli(path, sources);
                 profilePaths.Add(coded.Key, new(path.ToImmutable()));
                 if (arguments.Profile == coded.Key) { selectedPath = path.ToImmutable(); selectedSources = sources; }
@@ -206,19 +207,23 @@ public static partial class CliSettings
             return resolved;
 
             void AddOverlay(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources,
-                SettingsFile? file, string name, JsonObject? values)
+                SettingsFile? file, string name, JsonObject? values, string? profile = null)
             {
-                if (file is null || values is null) return;
+                if (file is null) return;
+                var actions = GetOperations(file.Operations, profile);
+                if (values is null && actions is null) return;
                 var node = new MutableNode();
                 path.Add(node);
-                foreach (var setting in values)
+                foreach (var setting in values ?? new JsonObject())
                 {
                     var key = new NodeDataKey(setting.Key);
                     var type = NodeDataKey.Registry.GetTypeFromKey(key);
                     var value = setting.Value?.Deserialize(type, json);
                     if (value is not null) SetValue(node, key, value);
                 }
-                sources.Add(new(name, file.Path, LeafKeys(values).ToArray()));
+                if (actions is not null)
+                    foreach (var action in actions.Cast<JsonObject>()) AddOperation(node, action, provider, json);
+                sources.Add(new(name, file.Path, LeafKeys(values).Concat(actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? []).ToArray()));
             }
 
             void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
@@ -248,7 +253,7 @@ public static partial class CliSettings
         return null;
     }
 
-    private sealed record SettingsFile(string Path, JsonObject? Defaults, Dictionary<string, JsonObject?> Profiles);
+    private sealed record SettingsFile(string Path, JsonObject? Defaults, Dictionary<string, JsonObject?> Profiles, JsonObject? Operations);
 
     private static async Task<SettingsFile?> ReadFile(string path, JsonSerializerOptions json, IEnumerable<string> teachers, CancellationToken cancellationToken, (string Path, JsonObject Envelope)? replacement = null)
     {
@@ -270,7 +275,7 @@ public static partial class CliSettings
     private static SettingsFile ReadEnvelope(JsonNode? node, string path, JsonSerializerOptions json, IEnumerable<string> teachers)
     {
         if (node is not JsonObject envelope) throw new JsonException($"Expected settings object in {path}.");
-        CheckKeys(envelope, ["schemaVersion", "defaults", "profiles"], path);
+        CheckKeys(envelope, ["schemaVersion", "defaults", "profiles", "operations"], path);
         if (envelope["schemaVersion"] is not JsonValue version || !version.TryGetValue<int>(out var schema) || schema != 1)
             throw new JsonException($"Unsupported or missing schemaVersion in {path}; expected 1.");
         var defaults = ReadBlock(envelope["defaults"], "defaults");
@@ -284,7 +289,8 @@ public static partial class CliSettings
                 profiles.Add(entry.Key, ReadBlock(entry.Value, "profiles." + entry.Key));
             }
         }
-        return new(Path.GetFullPath(path), defaults, profiles);
+        var operations = ReadOperations(envelope["operations"], path, json, teachers);
+        return new(Path.GetFullPath(path), defaults, profiles, operations);
 
         JsonObject? ReadBlock(JsonNode? block, string location)
         {

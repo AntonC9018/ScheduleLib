@@ -29,7 +29,7 @@ public sealed partial class ConfigCommands
         Write("unset", key.Key, null, scope, settings, output, cancellationToken);
 
     private static async Task<int> Write(string verb, string key, string? value, ConfigScopeArguments scope, SettingsArguments settings,
-        ResultArguments output, CancellationToken cancellationToken)
+        ResultArguments output, CancellationToken cancellationToken, string? item = null)
     {
         var runId = Guid.NewGuid().ToString("N");
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -40,7 +40,7 @@ public sealed partial class ConfigCommands
             var destination = scope.Scope switch { "user" => SettingsScope.User, "project" => SettingsScope.Project, _ => (SettingsScope?)null };
             if (destination is null)
                 return Finish(2, null, ["--scope user|project is required."]);
-            var result = await CliSettings.Edit(settings, destination.Value, key, value, verb == "unset", cancellation.Token);
+            var result = await CliSettings.Edit(settings, destination.Value, key, value, verb == "unset", cancellation.Token, operation: verb is "remove" or "clear" ? verb : null, item: item);
             return Finish(0, result, []);
         }
         catch (OperationCanceledException) { return Finish(130, null, ["Cancelled."]); }

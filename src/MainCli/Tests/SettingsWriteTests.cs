@@ -102,7 +102,7 @@ public sealed class SettingsWriteTests
         Assert.Empty(Directory.GetFiles(files.ProjectDirectory, "*.tmp"));
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "schedulelib-writes-" + Guid.NewGuid().ToString("N"));
         public string ProjectDirectory => Path.Combine(Root, "project");

@@ -13,14 +13,15 @@ public static partial class CliSettings
 {
     // The candidate is resolved through the same engine as a fresh invocation before publication.
     internal static async Task<SettingsEdit> Edit(SettingsArguments arguments, SettingsScope scope, string key,
-        string? value, bool unset, CancellationToken cancellationToken, string? invocationDirectory = null, string? userFile = null)
+        string? value, bool unset, CancellationToken cancellationToken, string? invocationDirectory = null, string? userFile = null,
+        string? operation = null, string? item = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         using var initial = await Load(arguments, cwd, userFile, cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
-        if (!unset)
+        if (!unset && operation is null)
         {
             try
             {
@@ -31,6 +32,7 @@ public static partial class CliSettings
             catch (JsonException) { throw new JsonException("VALUE must be valid typed JSON without duplicate properties."); }
             RejectSecrets(parsed, "VALUE");
         }
+        var action = operation is null ? null : CreateOperation(operation, key, item, initial);
         var file = scope switch
         {
             SettingsScope.User => Path.GetFullPath(userFile ?? UserFile),
@@ -38,9 +40,11 @@ public static partial class CliSettings
             SettingsScope.Project => throw new JsonException("Project scope requires a discovered settings file or --project DIRECTORY."),
             _ => throw new ArgumentException("Scope must be user or project."),
         };
+        if (action is not null) ValidateRemoval(action, initial, file);
         // Validate a synthetic document before creating even the coordination file.
         var probe = new JsonObject { ["schemaVersion"] = 1 };
-        Apply(probe, arguments.Profile, key, parsed, unset: false);
+        if (action is null) Apply(probe, arguments.Profile, key, parsed, unset: false);
+        else ApplyOperation(probe, arguments.Profile, action);
         ReadEnvelope(probe, file, initial.Json, initial.Profiles);
         await using var lease = await LocalFileLock.Acquire(file + ".lock", cancellationToken, wait: true);
         // Re-read under the lease so concurrent edits cannot overwrite one another.
@@ -50,7 +54,16 @@ public static partial class CliSettings
             ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!.AsObject()
             : new JsonObject { ["schemaVersion"] = 1 };
         var before = envelope.ToJsonString();
-        Apply(envelope, arguments.Profile, key, parsed, unset);
+        if (action is not null)
+        {
+            ValidateRemoval(action, current, file);
+            ApplyOperation(envelope, arguments.Profile, action);
+        }
+        else
+        {
+            RemoveOperations(envelope, arguments.Profile, key, includeAncestors: !unset);
+            Apply(envelope, arguments.Profile, key, parsed, unset);
+        }
         using var candidate = await LoadCore(arguments, cwd, userFile, cancellationToken, replacement: (file, envelope));
         var changed = before != envelope.ToJsonString();
         if (changed)
