@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using ScheduleLib.Core.Services;
+using ScheduleLib.Builders;
 using ScheduleLib;
 using ScheduleLib.Dates;
 using ScheduleLib.Theses.Parsing;
@@ -110,7 +111,11 @@ public sealed class TeacherExportTests
     [InlineData("remapped-within", true)]
     [InlineData("remapped-across", false)]
     [InlineData("remapped-across", true)]
-    public async Task DuplicateCommissionConfigurationFailsBeforeReadingOrWriting(string duplicate, bool existingOutput)
+    [InlineData("empty-name", false)]
+    [InlineData("empty-name", true)]
+    [InlineData("invalid-name", false)]
+    [InlineData("invalid-name", true)]
+    public async Task InvalidCommissionConfigurationFailsBeforeReadingOrWriting(string duplicate, bool existingOutput)
     {
         using var files = new Fixture();
         files.ConfigureCommission();
@@ -121,6 +126,7 @@ public sealed class TeacherExportTests
         {
             "number" => [commission, new() { Number = 7, Room = "102", Members = [new() { Name = "Ionescu Maria" }] }],
             "member-within" or "remapped-within" => [new() { Number = 7, Room = "101", Members = [.. commission.Members, new() { Name = repeatedName }] }],
+            "empty-name" or "invalid-name" => [new() { Number = 7, Room = "101", Members = [.. commission.Members, new() { Name = duplicate == "empty-name" ? "" : "Invalid" }] }],
             _ => [commission, new() { Number = 8, Room = "102", Members = [new() { Name = repeatedName }] }],
         };
         var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
@@ -143,7 +149,12 @@ public sealed class TeacherExportTests
         Assert.Equal("failed", result.Json.GetProperty("status").GetString());
         Assert.Equal("export pre-defense", result.Json.GetProperty("command").GetString());
         var error = Assert.Single(result.Json.GetProperty("errors").EnumerateArray()).GetString();
-        Assert.Contains(duplicate == "number" ? "commission number 7" : "commission members after name remapping", error);
+        Assert.Contains(duplicate switch
+        {
+            "number" => "commission number 7",
+            "empty-name" or "invalid-name" => "commission 7 member 2 has an invalid name",
+            _ => "commission members after name remapping",
+        }, error);
         Assert.Contains(error!, result.Stderr);
         Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
         Assert.Empty(result.Json.GetProperty("warnings").EnumerateArray());
@@ -159,6 +170,85 @@ public sealed class TeacherExportTests
             Assert.Equal(2, Directory.GetFileSystemEntries(files.Output.Directory!).Length);
         }
         else Assert.False(Directory.Exists(files.Output.Directory));
+    }
+
+    [Theory]
+    [InlineData(-2, false)]
+    [InlineData(-2, true)]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1048576, false)]
+    [InlineData(int.MaxValue, true)]
+    public async Task InvalidResolvedDeadlineRowsFailBeforeSourceReadsOrOutputCreation(int rows, bool existingOutput)
+    {
+        using var files = new Fixture();
+        files.Export.RejectSourceReads = true;
+        var settingsFile = Path.Combine(files.Path, "schedulelib.json");
+        var settings = """
+            {"schemaVersion":1,"defaults":{"DeadlinesExcelConfig":{"maxTaskRows":9}},
+             "profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":ROWS}}}}
+            """.Replace("ROWS", rows.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await File.WriteAllTextAsync(settingsFile, settings);
+        var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
+        var existingWorkbook = Path.Combine(files.Output.Directory!, "deadlines.xlsx");
+        var existingManifest = Path.Combine(files.Output.Directory!, "schedulelib-manifest.json");
+        if (existingOutput)
+        {
+            Directory.CreateDirectory(files.Output.Directory!);
+            await File.WriteAllTextAsync(existingWorkbook, "caller workbook");
+            await File.WriteAllTextAsync(existingManifest, "caller manifest");
+        }
+
+        var result = await Capture(() => files.Export.LabDeadlines(files.Source, files.Output, new() { Json = true }, files.Settings));
+
+        Assert.Equal(3, result.Exit);
+        Assert.Equal(3, result.Json.GetProperty("exitCode").GetInt32());
+        Assert.Equal("failed", result.Json.GetProperty("status").GetString());
+        Assert.Equal("export lab-deadlines", result.Json.GetProperty("command").GetString());
+        var error = Assert.Single(result.Json.GetProperty("errors").EnumerateArray()).GetString();
+        Assert.Contains("maxTaskRows", error);
+        Assert.Contains("Curmanschii Anton", error);
+        Assert.Contains("between 1 and 1048575", error);
+        Assert.Contains($"resolved value is {rows}", error);
+        Assert.Contains(error!, result.Stderr);
+        Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
+        Assert.Empty(result.Json.GetProperty("warnings").EnumerateArray());
+        Assert.Equal(0, result.Json.GetProperty("data").GetProperty("workbookCount").GetInt32());
+        Assert.Equal(JsonValueKind.Null, result.Json.GetProperty("data").GetProperty("outputDirectory").ValueKind);
+        Assert.Equal(0, files.Export.SourceReads);
+        Assert.Equal(0, files.Theses.Reads);
+        Assert.Equal(originalSource, await File.ReadAllBytesAsync(files.SourceFile));
+        Assert.Equal(settings, await File.ReadAllTextAsync(settingsFile));
+        if (existingOutput)
+        {
+            Assert.Equal("caller workbook", await File.ReadAllTextAsync(existingWorkbook));
+            Assert.Equal("caller manifest", await File.ReadAllTextAsync(existingManifest));
+            Assert.Equal(2, Directory.GetFileSystemEntries(files.Output.Directory!).Length);
+        }
+        else Assert.False(Directory.Exists(files.Output.Directory));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(40)]
+    public async Task PositiveDeadlineRowsAndCodedDefaultProduceWorkbook(int rows)
+    {
+        using var files = new Fixture();
+        if (rows == 1)
+            await File.WriteAllTextAsync(Path.Combine(files.Path, "schedulelib.json"), """
+                {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":1},
+                 "LabTasksDatabaseConfig":{"sources":[]}}}}
+                """);
+
+        var result = await Capture(() => files.Export.LabDeadlines(files.Source, files.Output, new() { Json = true }, files.Settings));
+
+        Assert.True(result.Exit == 0, result.Stderr);
+        using var book = new XLWorkbook(Path.Combine(files.Output.Directory!, "deadlines.xlsx"));
+        var sheet = Assert.Single(book.Worksheets);
+        Assert.Equal("01.09", sheet.Cell(1, 2).GetString());
+        Assert.False(sheet.Cell(rows + 1, 2).IsEmpty());
+        Assert.True(sheet.Cell(rows + 2, 2).IsEmpty());
+        AssertManifest(result.Json, files.Output.Directory!, "export lab-deadlines", "deadlines.xlsx");
     }
 
     [Fact]
@@ -304,6 +394,8 @@ public sealed class TeacherExportTests
     private sealed class FixtureExport(FakeTheses theses) : ExportCommands
     {
         public Commission<CommissionMember>[]? Commissions { get; set; }
+        public bool RejectSourceReads { get; set; }
+        public int SourceReads { get; private set; }
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
@@ -323,6 +415,16 @@ public sealed class TeacherExportTests
             services.AddSingleton(dates.Build());
             services.Configure<PreDefenseOptions>(x => { x.Commissions = Commissions; x.AvrStudents = [("Popescu Ion", "I2301")]; });
             services.AddSingleton<IThesesFileProvider>(theses);
+            if (RejectSourceReads) services.AddSingleton<IScheduleInitializer>(new RejectingInitializer(this));
+        }
+
+        private sealed class RejectingInitializer(FixtureExport owner) : IScheduleInitializer
+        {
+            public Task Initialize(ScheduleBuilder builder, CancellationToken cancellationToken)
+            {
+                owner.SourceReads++;
+                throw new InvalidOperationException("Invalid row configuration must be rejected before reading schedule sources.");
+            }
         }
     }
 

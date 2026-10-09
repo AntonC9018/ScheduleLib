@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ClosedXML.Excel;
 using CommandDotNet;
 using DocumentFormat.OpenXml.Packaging;
 using Anton.LayeredData.Retrieval;
@@ -50,13 +51,22 @@ public partial class ExportCommands
             if (preDefense) ConfigureServices(services);
             resolvedSettings.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
+            await using var scope = provider.CreateAsyncScope();
+            if (!preDefense)
+            {
+                var deadlinesConfig = scope.ServiceProvider.GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>().Get();
+                if (deadlinesConfig is null)
+                    return await Finish(3, ["Laboratory deadlines settings are missing for the selected teacher."]);
+                // Task rows start at row 2; reserve the first worksheet row for lesson dates.
+                if (deadlinesConfig.MaxTaskRows < 1 || deadlinesConfig.MaxTaskRows > XLHelper.MaxRowNumber - 1)
+                    return await Finish(3, [$"Laboratory deadlines maxTaskRows for selected teacher '{teacher}' must be between 1 and {XLHelper.MaxRowNumber - 1}; resolved value is {deadlinesConfig.MaxTaskRows}."]);
+            }
             if (preDefense && !ListsForPredzashitaTaskHandler.HasConfiguredCommissions(provider.GetRequiredService<IOptions<PreDefenseOptions>>().Value))
                 return await Finish(3, ["Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense."]);
             if (preDefense)
                 provider.GetRequiredService<ScheduleBuilder>().ConfigureRemappings(provider.GetRequiredService<ConfigureRemappingsDelegate>());
             else
                 await provider.InitializeSchedule(cancellation.Token);
-            await using var scope = provider.CreateAsyncScope();
             if (preDefense)
             {
                 // Reuse the handler's mapping and workbook writer, publishing each complete file under the output lease.
@@ -78,8 +88,6 @@ public partial class ExportCommands
             }
             else
             {
-                if (scope.ServiceProvider.GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>().Get() is null)
-                    return await Finish(3, ["Laboratory deadlines settings are missing for the selected teacher."]);
                 var teacherConfig = scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
                 if (scope.ServiceProvider.GetRequiredService<LookupFacade>().Teacher(teacherConfig.TeacherName.ToNameModel()) is not { } teacherId)
                     return await Finish(3, [$"Selected teacher '{teacher}' is absent from this schedule."]);

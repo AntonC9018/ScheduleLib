@@ -60,7 +60,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         if (!HasConfiguredCommissions(_options))
             return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
-        return GetConfigurationError(ParseCommissionNames());
+        try { return GetConfigurationError(ParseCommissionNames()); }
+        catch (InvalidDataException e) { return e.Message; }
     }
 
     private static string? GetConfigurationError(Commission<Name>[] commissions)
@@ -83,10 +84,20 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private Commission<Name>[] ParseCommissionNames() => (_options.Commissions ?? Commissions).Select(x =>
         new Commission<Name>
         {
-            Members = x.Members.Select(y => _nameRemapper.RemapName(NameHelper.Parse(y.Name))).ToArray(),
+            Members = x.Members.Select((y, index) => ParseCommissionMember(x.Number, index + 1, y.Name)).ToArray(),
             Number = x.Number,
             Room = x.Room,
         }).ToArray();
+
+    private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
+    {
+        try { return _nameRemapper.RemapName(NameHelper.Parse(name)); }
+        catch (NameParsingException e)
+        {
+            throw new InvalidDataException(
+                $"Pre-defense commission {commissionNumber} member {memberNumber} has an invalid name '{name}': {e.Message}", e);
+        }
+    }
 
     public async Task Handle(
         ThesisType thesisType,
