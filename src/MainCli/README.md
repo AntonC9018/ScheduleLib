@@ -121,8 +121,9 @@ isolated default output directory, manifest, and replacement rules as
 empty workbook and a warning. No teacher identity or interactive consent is
 required.
 
-Default exports use a unique `output/RUN_ID` directory beneath the invocation
-root. The result reports the workbook and `schedulelib-manifest.json` paths.
+Default exports use a unique `output/RUN_ID` directory beneath the resolved project
+root, or the invocation root when no project is selected. The result reports the
+workbook and `schedulelib-manifest.json` paths.
 `--output` selects a directory; it is never recursively cleared. Replacement
 requires a manifest for the same operation and an unchanged SHA-256 fingerprint
 of the old artifact. Unrelated files remain, and filename/manifest collisions
