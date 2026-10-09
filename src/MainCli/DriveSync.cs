@@ -75,7 +75,8 @@ public static class DriveSync
                     outcomes.Add(new(action, "completed", id));
                 }
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            catch (Exception error) when (token.IsCancellationRequested
+                && error is OperationCanceledException or GooglePreSendTransportException)
             {
                 outcomes.Add(new(action, attempted ? "uncertain" : "not-attempted", null));
                 AddRemaining();

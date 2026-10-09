@@ -116,6 +116,14 @@ public sealed class GoogleCalendarProviderTests
     }
 
     [Theory]
+    [InlineData("read-sent-real-deadline", 5, 0, 0, 1, null)]
+    [InlineData("create-sent-real-deadline", 6, 1, 0, 2, "uncertain")]
+    [InlineData("read-expired-refresh-real-deadline", 5, 0, 1, 0, null)]
+    [InlineData("create-expired-refresh-real-deadline", 5, 0, 1, 2, "failed")]
+    [InlineData("event-expired-refresh-real-deadline", 6, 1, 1, 2, "failed")]
+    [InlineData("read-expired-refresh-real-cancel", 130, 0, -1, 0, null)]
+    [InlineData("create-expired-refresh-real-cancel", 130, 0, -1, 2, "uncertain")]
+    [InlineData("event-expired-refresh-real-cancel", 130, 1, -1, 2, "uncertain")]
     [InlineData("read-expired-refresh-timeout", 5, 0, 3, 0, null)]
     [InlineData("read-expired-refresh-connection", 5, 0, 1, 0, null)]
     [InlineData("read-expired-refresh-cancel", 130, 0, -1, 0, null)]
@@ -157,8 +165,17 @@ public sealed class GoogleCalendarProviderTests
         UserCredential? credential = null;
         using var cancel = new CancellationTokenSource();
         var createAttempts = 0;
-        using var transport = new Transport((request, _) =>
+        using var transport = new Transport(async (request, requestToken) =>
         {
+            // The API HttpClient cancels the interceptor's linked token when its deadline
+            // expires. Wait on that real token inside OAuth; do not synthesize an exception.
+            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
+                (scenario.EndsWith("real-deadline", StringComparison.Ordinal) || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            {
+                if (scenario.EndsWith("real-cancel", StringComparison.Ordinal)) cancel.Cancel();
+                await Task.Delay(Timeout.Infinite, requestToken);
+                throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
+            }
             if (request.RequestUri!.Host == "oauth2.googleapis.com" && scenario.Contains("-refresh-", StringComparison.Ordinal) && scenario.Contains("expired", StringComparison.Ordinal))
             {
                 if (scenario.EndsWith("connection", StringComparison.Ordinal)) throw new HttpRequestException("synthetic-private-detail");
@@ -170,8 +187,13 @@ public sealed class GoogleCalendarProviderTests
                 throw new TaskCanceledException("synthetic-private-detail", new TimeoutException());
             }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
-                return Task.FromResult(scenario == "create-401-refresh" ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
-                    : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":\"invalid_grant\",\"error_description\":\"synthetic-private-detail\"}", Encoding.UTF8, "application/json") });
+                return scenario == "create-401-refresh" ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
+                    : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":\"invalid_grant\",\"error_description\":\"synthetic-private-detail\"}", Encoding.UTF8, "application/json") };
+            if (scenario == "read-sent-real-deadline" || scenario == "create-sent-real-deadline" && request.Method == HttpMethod.Post)
+            {
+                await Task.Delay(Timeout.Infinite, requestToken);
+                throw new Xunit.Sdk.XunitException("The sent API request must time out.");
+            }
             var path = request.RequestUri.AbsolutePath;
             if (request.Method == HttpMethod.Post) createAttempts++;
             if (scenario == "read-timeout" || scenario.StartsWith("create-timeout", StringComparison.Ordinal) && request.Method == HttpMethod.Post)
@@ -183,27 +205,27 @@ public sealed class GoogleCalendarProviderTests
                 || scenario == "event-second-cancel" && createAttempts == 3 && request.Method == HttpMethod.Post)
             { cancel.Cancel(); throw new OperationCanceledException(cancel.Token); }
             if (scenario.StartsWith("read-401", StringComparison.Ordinal) || scenario.StartsWith("create-401", StringComparison.Ordinal) && request.Method == HttpMethod.Post && createAttempts == 1)
-                return Task.FromResult(Error(HttpStatusCode.Unauthorized));
+                return Error(HttpStatusCode.Unauthorized);
             if (scenario == "event-401" && createAttempts == 2 && request.Method == HttpMethod.Post)
-                return Task.FromResult(Error(HttpStatusCode.Unauthorized));
+                return Error(HttpStatusCode.Unauthorized);
             if ((scenario == "create-503" && createAttempts == 1 || scenario == "event-503" && createAttempts == 2) && request.Method == HttpMethod.Post)
-                return Task.FromResult(Error(HttpStatusCode.ServiceUnavailable));
-            if (path.EndsWith("/calendars/primary", StringComparison.Ordinal)) return Task.FromResult(Json("{\"id\":\"actual@example.test\"}"));
+                return Error(HttpStatusCode.ServiceUnavailable);
+            if (path.EndsWith("/calendars/primary", StringComparison.Ordinal)) return Json("{\"id\":\"actual@example.test\"}");
             if (request.Method == HttpMethod.Get && path.EndsWith("/calendarList", StringComparison.Ordinal))
             {
                 if (scenario.StartsWith("create-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
-                if (scenario == "preview-pagination") return Task.FromResult(Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[],\"nextPageToken\":\"next\"}"));
-                return Task.FromResult(Json(scenario == "create-timeout-after-delete" ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[]}"));
+                if (scenario == "preview-pagination") return Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[],\"nextPageToken\":\"next\"}");
+                return Json(scenario == "create-timeout-after-delete" ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[]}");
             }
             if (request.Method == HttpMethod.Get && path.EndsWith("/events", StringComparison.Ordinal))
-                return Task.FromResult(Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"event2\",\"summary\":\"Second\"}]}" : "{\"items\":[{\"id\":\"event1\",\"summary\":\"First\"}],\"nextPageToken\":\"next\"}"));
+                return Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"event2\",\"summary\":\"Second\"}]}" : "{\"items\":[{\"id\":\"event1\",\"summary\":\"First\"}],\"nextPageToken\":\"next\"}");
             if (request.Method == HttpMethod.Post && path.EndsWith("/calendars", StringComparison.Ordinal))
             {
                 if (scenario.StartsWith("event-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
-                return Task.FromResult(Json(scenario == "create-missing-id" ? "{}" : scenario == "create-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-calendar\"}"));
+                return Json(scenario == "create-missing-id" ? "{}" : scenario == "create-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-calendar\"}");
             }
-            if (request.Method == HttpMethod.Post) return Task.FromResult(Json(scenario == "event-missing-id" ? "{}" : scenario == "event-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-event\"}"));
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            if (request.Method == HttpMethod.Post) return Json(scenario == "event-missing-id" ? "{}" : scenario == "event-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-event\"}");
+            return new HttpResponseMessage(HttpStatusCode.NoContent);
         });
         var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         using var tokens = new SdkTokens(transport, scenario.EndsWith("no-refresh", StringComparison.Ordinal) ? null : "fixture");
@@ -221,6 +243,7 @@ public sealed class GoogleCalendarProviderTests
             if (scenario.StartsWith("read-expired", StringComparison.Ordinal)) credential.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             using var service = new CalendarService(new BaseClientService.Initializer
             { HttpClientFactory = new Factory(transport), HttpClientInitializer = credential, ApplicationName = "fixture" });
+            if (scenario.EndsWith("real-deadline", StringComparison.Ordinal)) service.HttpClient.Timeout = TimeSpan.FromMilliseconds(200);
             using var provider = new GoogleCalendarSyncProvider(service);
             var beforeOut = Console.Out;
             var beforeError = Console.Error;

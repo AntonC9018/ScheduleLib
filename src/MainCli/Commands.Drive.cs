@@ -70,7 +70,8 @@ public class DriveCommands
                 ? [new AuthenticationRequiredException("google", resolved.Profile).Message] : data.Errors);
         }
         catch (AuthenticationRequiredException e) { return await Finish(4, [e.Message]); }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return await Finish(130, ["Cancelled."]); }
+        catch (Exception error) when (cancellation.IsCancellationRequested
+            && error is OperationCanceledException or GooglePreSendTransportException) { return await Finish(130, ["Cancelled."]); }
         catch (OperationCanceledException) { return await Finish(5, ["Drive request timed out or was interrupted before remote application."]); }
         catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException) { return await Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
         catch (HttpRequestException) { return await Finish(5, ["Drive remote state request failed. Check the connection and retry."]); }

@@ -53,7 +53,8 @@ public class CalendarCommands
             return Finish(data.ExitCode, data.Errors);
         }
         catch (AuthenticationRequiredException e) { return Finish(4, [e.Message]); }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, ["Cancelled."]); }
+        catch (Exception error) when (cancellation.IsCancellationRequested
+            && error is OperationCanceledException or GooglePreSendTransportException) { return Finish(130, ["Cancelled."]); }
         catch (OperationCanceledException) { return Finish(5, ["Calendar request timed out or was interrupted before application."]); }
         catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException) { return Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
         catch (HttpRequestException) { return Finish(5, ["Calendar remote state request failed. Check the connection."]); }

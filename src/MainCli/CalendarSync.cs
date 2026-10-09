@@ -85,7 +85,8 @@ public static class CalendarSync
             }
             return Result(0, []);
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        catch (Exception error) when (token.IsCancellationRequested
+            && error is OperationCanceledException or GooglePreSendTransportException)
         {
             if (attempted) outcomes.Add(new(action, action == "delete calendar" ? existing?.Id : created, eventId, "uncertain", desiredIndex));
             return Result(130, ["Cancelled. Any uncertain action may have completed remotely; inspect the destination before another apply."]);
