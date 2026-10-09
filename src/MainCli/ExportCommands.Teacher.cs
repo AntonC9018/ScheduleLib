@@ -60,9 +60,11 @@ public partial class ExportCommands
             if (preDefense)
             {
                 // Reuse the handler's mapping and workbook writer, publishing each complete file under the output lease.
-                output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
                 var handler = ActivatorUtilities.CreateInstance<ListsForPredzashitaTaskHandler>(scope.ServiceProvider,
                     new PreDefenseWarningLogger(warnings));
+                if (handler.GetConfigurationError() is { } configurationError)
+                    return await Finish(3, [configurationError]);
+                output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
                 var workbooks = await handler.BuildWorkbooks(ThesisType.An, cancellation.Token);
                 foreach (var (number, students) in workbooks.OrderBy(x => x.Key))
                 {

@@ -99,6 +99,68 @@ public sealed class TeacherExportTests
         Assert.False(Directory.Exists(files.Output.Directory));
     }
 
+    [Theory]
+    [InlineData("number", false)]
+    [InlineData("number", true)]
+    [InlineData("member-within", false)]
+    [InlineData("member-within", true)]
+    [InlineData("member-across", false)]
+    [InlineData("member-across", true)]
+    [InlineData("remapped-within", false)]
+    [InlineData("remapped-within", true)]
+    [InlineData("remapped-across", false)]
+    [InlineData("remapped-across", true)]
+    public async Task DuplicateCommissionConfigurationFailsBeforeReadingOrWriting(string duplicate, bool existingOutput)
+    {
+        using var files = new Fixture();
+        files.ConfigureCommission();
+        var commission = Assert.Single(files.Export.Commissions!);
+        var repeatedName = duplicate.StartsWith("remapped", StringComparison.Ordinal)
+            ? "Curmanschi Anton" : "Curmanscii Anton";
+        files.Export.Commissions = duplicate switch
+        {
+            "number" => [commission, new() { Number = 7, Room = "102", Members = [new() { Name = "Ionescu Maria" }] }],
+            "member-within" or "remapped-within" => [new() { Number = 7, Room = "101", Members = [.. commission.Members, new() { Name = repeatedName }] }],
+            _ => [commission, new() { Number = 8, Room = "102", Members = [new() { Name = repeatedName }] }],
+        };
+        var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
+        var settingsFile = Path.Combine(files.Path, "schedulelib.json");
+        const string settings = "{\"schemaVersion\":1,\"defaults\":{}}";
+        await File.WriteAllTextAsync(settingsFile, settings);
+        var existingWorkbook = Path.Combine(files.Output.Directory!, "comisia_7.xlsx");
+        var existingManifest = Path.Combine(files.Output.Directory!, "schedulelib-manifest.json");
+        if (existingOutput)
+        {
+            Directory.CreateDirectory(files.Output.Directory!);
+            await File.WriteAllTextAsync(existingWorkbook, "caller workbook");
+            await File.WriteAllTextAsync(existingManifest, "caller manifest");
+        }
+
+        var result = await Capture(() => files.Export.PreDefense(files.Output, new() { Json = true }, files.Settings));
+
+        Assert.Equal(3, result.Exit);
+        Assert.Equal(3, result.Json.GetProperty("exitCode").GetInt32());
+        Assert.Equal("failed", result.Json.GetProperty("status").GetString());
+        Assert.Equal("export pre-defense", result.Json.GetProperty("command").GetString());
+        var error = Assert.Single(result.Json.GetProperty("errors").EnumerateArray()).GetString();
+        Assert.Contains(duplicate == "number" ? "commission number 7" : "commission members after name remapping", error);
+        Assert.Contains(error!, result.Stderr);
+        Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
+        Assert.Empty(result.Json.GetProperty("warnings").EnumerateArray());
+        Assert.Equal(0, result.Json.GetProperty("data").GetProperty("workbookCount").GetInt32());
+        Assert.Equal(JsonValueKind.Null, result.Json.GetProperty("data").GetProperty("outputDirectory").ValueKind);
+        Assert.Equal(0, files.Theses.Reads);
+        Assert.Equal(originalSource, await File.ReadAllBytesAsync(files.SourceFile));
+        Assert.Equal(settings, await File.ReadAllTextAsync(settingsFile));
+        if (existingOutput)
+        {
+            Assert.Equal("caller workbook", await File.ReadAllTextAsync(existingWorkbook));
+            Assert.Equal("caller manifest", await File.ReadAllTextAsync(existingManifest));
+            Assert.Equal(2, Directory.GetFileSystemEntries(files.Output.Directory!).Length);
+        }
+        else Assert.False(Directory.Exists(files.Output.Directory));
+    }
+
     [Fact]
     public async Task DefaultsAreIsolatedAndOwnedReplacementPreservesOtherFiles()
     {

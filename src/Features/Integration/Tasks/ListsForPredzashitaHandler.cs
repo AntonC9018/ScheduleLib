@@ -56,6 +56,38 @@ public sealed partial class ListsForPredzashitaTaskHandler
         _options = options.Value;
     }
 
+    public string? GetConfigurationError()
+    {
+        if (!HasConfiguredCommissions(_options))
+            return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
+        return GetConfigurationError(ParseCommissionNames());
+    }
+
+    private static string? GetConfigurationError(Commission<Name>[] commissions)
+    {
+        var numbers = new HashSet<int>();
+        var members = new HashSet<Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
+        foreach (var commission in commissions)
+        {
+            if (!numbers.Add(commission.Number))
+                return $"Pre-defense commission number {commission.Number} is configured more than once.";
+            foreach (var member in commission.Members)
+            {
+                if (!members.Add(member))
+                    return $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+            }
+        }
+        return null;
+    }
+
+    private Commission<Name>[] ParseCommissionNames() => (_options.Commissions ?? Commissions).Select(x =>
+        new Commission<Name>
+        {
+            Members = x.Members.Select(y => _nameRemapper.RemapName(NameHelper.Parse(y.Name))).ToArray(),
+            Number = x.Number,
+            Room = x.Room,
+        }).ToArray();
+
     public async Task Handle(
         ThesisType thesisType,
         OutputDirectory outputDirectory,
@@ -71,6 +103,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
         cancellationToken.ThrowIfCancellationRequested();
         if (!HasConfiguredCommissions(_options))
             throw new InvalidDataException("Pre-defense requires commission data in the existing C# configuration.");
+        var commissionsWithParsedNames = ParseCommissionNames();
+        if (GetConfigurationError(commissionsWithParsedNames) is { } error)
+            throw new InvalidDataException(error);
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
         var avrLookup = new HashSet<NameAndGroup>(Hasher.Instance);
@@ -92,21 +127,6 @@ public sealed partial class ListsForPredzashitaTaskHandler
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             list.Add(new(studentName, group, thesisName));
         }
-
-        var commissionsWithParsedNames = (_options.Commissions ?? Commissions).Select(x =>
-        {
-            return new Commission<Name>
-            {
-                Members = x.Members.Select(y =>
-                {
-                    var name = NameHelper.Parse(y.Name);
-                    name = _nameRemapper.RemapName(name);
-                    return name;
-                }).ToArray(),
-                Number = x.Number,
-                Room = x.Room,
-            };
-        }).ToArray();
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
         foreach (var c in commissionsWithParsedNames)
