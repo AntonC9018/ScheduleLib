@@ -32,11 +32,18 @@ zero-based `desiredEventIndex` into the desired payloads. Cancellation returns
 response may mean that Google performed the mutation. Inspect the destination
 before another apply. A definite rejected first action returns 5; completed or
 uncertain mutations followed by failure return 6. Lock conflicts return 7 and
-missing authorization returns 4 with the login command.
+missing or failed authorization returns 4 with the login command. Known
+pre-send credential failures mark the action failed without sending a mutation;
+authentication failures after completed actions return 6 with the same hint.
+Only caller cancellation returns 130. Read timeouts/connection failures return
+5; mutation timeouts remain uncertain with exit 6. Create completion requires a
+nonblank returned ID; a missing identity stops application as uncertain.
 
 `ICalendarSyncProvider` is the fakeable read/write boundary; `CalendarSync.Run`
 is the replacement engine. `GoogleCalendarSyncProvider` uses provisioned
 credentials through `CliRuntime`'s `GoogleAuthentication.Register` hook and
-performs paginated reads without swallowing Google failures. No live calendar
+performs paginated reads without swallowing Google failures. Its SDK transport
+disables retries and redirects, and wraps credentials to preserve pre-send
+refresh without response-triggered refresh/replay. No live calendar
 mutation or browser consent was used for verification. Windows execution is
 unverified.

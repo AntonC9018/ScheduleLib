@@ -49,11 +49,14 @@ public class CalendarCommands
                 return Finish(3, [$"Selected teacher {resolved.Profile} is absent from this schedule."]);
             var desired = scope.ServiceProvider.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>().BuildDesiredEvents(cancellation.Token);
             using var provider = await Connect(scope.ServiceProvider, config, cancellation.Token);
-            data = await CalendarSync.Run(provider, config.CalendarName, desired, apply.Apply, cancellation.Token);
+            data = await CalendarSync.Run(provider, config.CalendarName, desired, apply.Apply, cancellation.Token, profile: resolved.Profile);
             return Finish(data.ExitCode, data.Errors);
         }
         catch (AuthenticationRequiredException e) { return Finish(4, [e.Message]); }
-        catch (OperationCanceledException) { return Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) { return Finish(5, ["Calendar request timed out or was interrupted before application."]); }
+        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException) { return Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
+        catch (HttpRequestException) { return Finish(5, ["Calendar remote state request failed. Check the connection."]); }
         catch (LocalOperationBusyException) { return Finish(7, ["Another calendar operation owns this account/destination."]); }
         catch (JsonException e) { return Finish(3, [e.Message]); }
         catch (ArgumentException e) { return Finish(3, [e.Message]); }
@@ -64,6 +67,7 @@ public class CalendarCommands
         catch (PlatformNotSupportedException e) { return Finish(8, [e.Message]); }
         catch (IOException) { return Finish(5, ["Could not read calendar inputs or remote state."]); }
         catch (UnauthorizedAccessException) { return Finish(5, ["Calendar inputs or local lock state are inaccessible."]); }
+        catch (Google.GoogleApiException e) when ((int)e.HttpStatusCode == 401) { return Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
         catch (Google.GoogleApiException) { return Finish(5, ["Google Calendar rejected the remote state request."]); }
         catch (Exception) { return Finish(1, ["Calendar synchronization failed before application."]); }
         finally { Console.CancelKeyPress -= cancel; }

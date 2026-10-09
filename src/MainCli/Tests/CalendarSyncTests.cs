@@ -61,8 +61,9 @@ public sealed class CalendarSyncTests
     [Fact]
     public async Task CancellationAfterOneEventKeepsItsIdAndIdentifiesTheNextUncertainEvent()
     {
-        using var provider = new Fake { Fail = "cancel-second" };
-        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, default);
+        using var cancel = new CancellationTokenSource();
+        using var provider = new Fake { Fail = "cancel-second", Cancellation = cancel };
+        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, cancel.Token);
         Assert.Equal(130, result.ExitCode);
         Assert.Equal("event-1", result.Outcomes[2].EventId);
         Assert.Equal(0, result.Outcomes[2].DesiredEventIndex);
@@ -73,8 +74,9 @@ public sealed class CalendarSyncTests
     [Fact]
     public async Task CancellationDuringCreatePreservesCalendarAndUncertainEvent()
     {
-        using var provider = new Fake { Fail = "cancel" };
-        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, default);
+        using var cancel = new CancellationTokenSource();
+        using var provider = new Fake { Fail = "cancel", Cancellation = cancel };
+        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, cancel.Token);
         Assert.Equal(130, result.ExitCode);
         Assert.Equal("new", result.CreatedCalendarId);
         Assert.Equal(3, result.Outcomes.Count);
@@ -167,6 +169,7 @@ public sealed class CalendarSyncTests
         public List<string> Writes { get; } = [];
         public string Destination { get; set; } = "old";
         public string? Fail { get; init; }
+        public CancellationTokenSource? Cancellation { get; init; }
         public bool Primary { get; init; }
         public bool Missing { get; init; }
         private int _events;
@@ -190,9 +193,9 @@ public sealed class CalendarSyncTests
         {
             Writes.Add("event " + id);
             _events++;
-            if (Fail == "cancel-second" && _events == 2) throw new OperationCanceledException();
+            if (Fail == "cancel-second" && _events == 2) { Cancellation!.Cancel(); throw new OperationCanceledException(token); }
             if (Fail == "event") throw new IOException("Response lost after creating event");
-            if (Fail == "cancel") throw new OperationCanceledException();
+            if (Fail == "cancel") { Cancellation!.Cancel(); throw new OperationCanceledException(token); }
             return Task.FromResult("event-1");
         }
         public void Dispose() { }
