@@ -81,6 +81,13 @@ public static class DriveSync
                 AddRemaining();
                 return Result(130, ["Cancelled. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried."]);
             }
+            catch (GooglePreSendTransportException)
+            {
+                outcomes.Add(new(action, "failed", null));
+                AddRemaining();
+                return Result(outcomes.Any(x => x.State == "completed") ? 6 : 5,
+                    ["Google credential refresh transport failed; the action was not sent. Completed actions remain applied."]);
+            }
             catch (Google.GoogleApiException e) when ((int)e.HttpStatusCode is 400 or 401 or 403 or 404 or 409 or 412 or 422)
             {
                 outcomes.Add(new(action, "failed", null));

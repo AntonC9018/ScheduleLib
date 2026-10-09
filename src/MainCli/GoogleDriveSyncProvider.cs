@@ -1,8 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +20,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         // NumTries does not suppress UserCredential's 401 refresh handler. Keep pre-send
         // refresh, but never let response refresh replace a known rejection or replay a write.
         if (service.HttpClient.MessageHandler.Credential is { } credential)
-            service.HttpClient.MessageHandler.Credential = new SingleAttemptCredential(credential);
+            service.HttpClient.MessageHandler.Credential = new GoogleSingleAttemptCredential(credential, "drive");
         // No HTTP replay or redirect during mutations.
         service.HttpClient.MessageHandler.NumTries = 1;
         service.HttpClient.MessageHandler.FollowRedirect = false;
@@ -101,27 +99,6 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         if (!document.RootElement.TryGetProperty("id", out var id) || string.IsNullOrWhiteSpace(id.GetString()))
             throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
         return id.GetString()!;
-    }
-
-    private sealed class SingleAttemptCredential(IHttpExecuteInterceptor credential) : IHttpExecuteInterceptor
-    {
-        public async Task InterceptAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            // TokenRefreshManager throws InvalidOperationException for this specific
-            // condition. Classify it before interception, while no Drive request was sent.
-            if (credential is UserCredential user && string.IsNullOrEmpty(user.Token?.RefreshToken)
-                && (user.Token is null || user.Token.IsStale))
-                throw new Google.GoogleApiException("drive", "Google authorization failed.")
-                    { HttpStatusCode = System.Net.HttpStatusCode.Unauthorized };
-            try { await credential.InterceptAsync(request, cancellationToken); }
-            catch (TokenResponseException)
-            {
-                // Credential acquisition failed before sending: this action is known not applied.
-                throw new Google.GoogleApiException("drive", "Google authorization failed.")
-                    { HttpStatusCode = System.Net.HttpStatusCode.Unauthorized };
-            }
-        }
     }
 
     private static string Escape(string value) => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal);

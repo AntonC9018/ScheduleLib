@@ -116,6 +116,15 @@ public sealed class GoogleCalendarProviderTests
     }
 
     [Theory]
+    [InlineData("read-expired-refresh-timeout", 5, 0, 3, 0, null)]
+    [InlineData("read-expired-refresh-connection", 5, 0, 1, 0, null)]
+    [InlineData("read-expired-refresh-cancel", 130, 0, -1, 0, null)]
+    [InlineData("create-expired-refresh-timeout", 5, 0, 3, 2, "failed")]
+    [InlineData("create-expired-refresh-connection", 5, 0, 1, 2, "failed")]
+    [InlineData("create-expired-refresh-cancel", 130, 0, -1, 2, "uncertain")]
+    [InlineData("event-expired-refresh-timeout", 6, 1, 3, 2, "failed")]
+    [InlineData("event-expired-refresh-connection", 6, 1, 1, 2, "failed")]
+    [InlineData("event-expired-refresh-cancel", 130, 1, -1, 2, "uncertain")]
     [InlineData("create-503", 6, 1, 0, 2, "uncertain")]
     [InlineData("create-401-refresh", 4, 1, 0, 2, "failed")]
     [InlineData("read-401-refresh-failed", 4, 0, 0, 1, null)]
@@ -150,6 +159,16 @@ public sealed class GoogleCalendarProviderTests
         var createAttempts = 0;
         using var transport = new Transport((request, _) =>
         {
+            if (request.RequestUri!.Host == "oauth2.googleapis.com" && scenario.Contains("-refresh-", StringComparison.Ordinal) && scenario.Contains("expired", StringComparison.Ordinal))
+            {
+                if (scenario.EndsWith("connection", StringComparison.Ordinal)) throw new HttpRequestException("synthetic-private-detail");
+                if (scenario.EndsWith("cancel", StringComparison.Ordinal))
+                {
+                    cancel.Cancel();
+                    throw new OperationCanceledException(cancel.Token);
+                }
+                throw new TaskCanceledException("synthetic-private-detail", new TimeoutException());
+            }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
                 return Task.FromResult(scenario == "create-401-refresh" ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
                     : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":\"invalid_grant\",\"error_description\":\"synthetic-private-detail\"}", Encoding.UTF8, "application/json") });
@@ -172,7 +191,7 @@ public sealed class GoogleCalendarProviderTests
             if (path.EndsWith("/calendars/primary", StringComparison.Ordinal)) return Task.FromResult(Json("{\"id\":\"actual@example.test\"}"));
             if (request.Method == HttpMethod.Get && path.EndsWith("/calendarList", StringComparison.Ordinal))
             {
-                if (scenario is "create-expired-invalid-grant" or "create-expired-no-refresh" or "read-expired-invalid-grant" or "read-expired-no-refresh") credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                if (scenario.StartsWith("create-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
                 if (scenario == "preview-pagination") return Task.FromResult(Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[],\"nextPageToken\":\"next\"}"));
                 return Task.FromResult(Json(scenario == "create-timeout-after-delete" ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}" : "{\"items\":[]}"));
             }
@@ -180,7 +199,7 @@ public sealed class GoogleCalendarProviderTests
                 return Task.FromResult(Json(request.RequestUri.Query.Contains("pageToken") ? "{\"items\":[{\"id\":\"event2\",\"summary\":\"Second\"}]}" : "{\"items\":[{\"id\":\"event1\",\"summary\":\"First\"}],\"nextPageToken\":\"next\"}"));
             if (request.Method == HttpMethod.Post && path.EndsWith("/calendars", StringComparison.Ordinal))
             {
-                if (scenario is "event-expired-invalid-grant" or "event-expired-no-refresh") credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                if (scenario.StartsWith("event-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
                 return Task.FromResult(Json(scenario == "create-missing-id" ? "{}" : scenario == "create-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-calendar\"}"));
             }
             if (request.Method == HttpMethod.Post) return Task.FromResult(Json(scenario == "event-missing-id" ? "{}" : scenario == "event-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-event\"}"));
@@ -224,7 +243,10 @@ public sealed class GoogleCalendarProviderTests
             Assert.Equal(expectedExit == 130 ? "cancelled" : expectedExit == 0 ? "preview" : expectedExit == 6 ? "partial" : "failed", envelope.GetProperty("status").GetString());
             var mutations = transport.Requests.Where(x => x.Host != "oauth2.googleapis.com" && x.Method != "GET").ToArray();
             Assert.Equal(expectedMutations, mutations.Length);
-            Assert.Equal(expectedRefreshes, transport.Requests.Count(x => x.Host == "oauth2.googleapis.com"));
+            var refreshes = transport.Requests.Count(x => x.Host == "oauth2.googleapis.com");
+            // SDK refresh cancellation races its timeout retry loop; API sends remain exact.
+            if (expectedRefreshes == -1) Assert.InRange(refreshes, 1, 3);
+            else Assert.Equal(expectedRefreshes, refreshes);
             Assert.Equal(expectedReads, transport.Requests.Count(x => x.Host != "oauth2.googleapis.com" && x.Method == "GET"));
             if (expectedState is not null)
             {
@@ -239,8 +261,14 @@ public sealed class GoogleCalendarProviderTests
                     if (scenario == "event-second-cancel") Assert.Equal("new-event", outcomes[1].GetProperty("eventId").GetString());
                 }
             }
-            if (expectedExit == 4 || scenario.Contains("expired", StringComparison.Ordinal) || scenario == "event-401") Assert.Contains("auth login google", stderr.ToString());
+            if (expectedExit == 4 || scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401") Assert.Contains("auth login google", stderr.ToString());
             Assert.DoesNotContain("synthetic-private-detail", stdout.ToString() + stderr);
+            if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
+            {
+                Assert.DoesNotContain("auth login google", stdout.ToString() + stderr);
+                Assert.Equal("fixture", credential.Token.RefreshToken);
+                Assert.Contains(CalendarService.Scope.Calendar, credential.Token.Scope);
+            }
             if (scenario == "preview-pagination")
             {
                 Assert.Equal(2, data.GetProperty("deletedEvents").GetArrayLength());

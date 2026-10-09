@@ -35,7 +35,9 @@ uncertain mutations followed by failure return 6. Lock conflicts return 7 and
 missing or failed authorization returns 4 with the login command. Known
 pre-send credential failures mark the action failed without sending a mutation;
 authentication failures after completed actions return 6 with the same hint.
-Only caller cancellation returns 130. Read timeouts/connection failures return
+Pre-send refresh timeouts and connection failures mark the action failed and
+return 5 before any completed mutation or 6 after earlier completed actions;
+they do not request a new login. Only caller cancellation returns 130. Read timeouts/connection failures return
 5; mutation timeouts remain uncertain with exit 6. Create completion requires a
 nonblank returned ID; a missing identity stops application as uncertain.
 

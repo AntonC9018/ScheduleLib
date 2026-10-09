@@ -90,6 +90,12 @@ public static class CalendarSync
             if (attempted) outcomes.Add(new(action, action == "delete calendar" ? existing?.Id : created, eventId, "uncertain", desiredIndex));
             return Result(130, ["Cancelled. Any uncertain action may have completed remotely; inspect the destination before another apply."]);
         }
+        catch (GooglePreSendTransportException)
+        {
+            var partial = outcomes.Any(x => x.State == "completed");
+            outcomes.Add(new(action, action == "delete calendar" ? existing?.Id : created, eventId, "failed", desiredIndex));
+            return Result(partial ? 6 : 5, ["Google credential refresh transport failed; the action was not sent. Completed actions remain applied."]);
+        }
         catch (AuthenticationRequiredException) { return AuthenticationFailure(); }
         catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException) { return AuthenticationFailure(); }
         catch (Google.GoogleApiException e) when ((int)e.HttpStatusCode == 401) { return AuthenticationFailure(); }

@@ -45,9 +45,12 @@ The production adapter bypasses legacy `GoogleApiHelper1` mutation retries and
 batch deletion callbacks (which only log individual failures). SDK HTTP retries
 and redirects are disabled. Credentials may refresh before sending, but 401
 responses do not invoke credential refresh or replay the request. Failed pre-send
-OAuth refresh and known 401 rejections report authentication failure with login
+OAuth authorization rejection and known 401 rejections report authentication failure with login
 guidance before any action completes; earlier completed actions retain a partial
-application result. Invalid explicit directory arguments fail with exit 2 before schedule initialization/authorization;
+application result. Pre-send refresh timeouts and connection failures mark the
+action failed and return 5 before any completed mutation or 6 after earlier
+completed actions, without a login hint. Invalid explicit directory arguments
+fail with exit 2 before schedule initialization/authorization;
 planning transport failures report sanitized provider errors with exit 5.
 Uploads use one multipart request instead of resumable chunk recovery and require a returned
 file ID. Non-success responses and missing identities cannot report success.

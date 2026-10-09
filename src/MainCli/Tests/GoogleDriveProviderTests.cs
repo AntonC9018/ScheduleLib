@@ -95,6 +95,15 @@ public sealed class GoogleDriveProviderTests
     }
 
     [Theory]
+    [InlineData("expired-refresh-timeout", 5, "failed", 0, 3)]
+    [InlineData("expired-refresh-connection", 5, "failed", 0, 1)]
+    [InlineData("expired-refresh-cancel", 130, "cancelled", 0, -1)]
+    [InlineData("apply-expired-refresh-timeout", 5, "failed", 4, 3)]
+    [InlineData("apply-expired-refresh-connection", 5, "failed", 4, 1)]
+    [InlineData("apply-expired-refresh-cancel", 130, "cancelled", 4, -1)]
+    [InlineData("apply-after-create-expired-refresh-timeout", 6, "partial", 5, 3)]
+    [InlineData("apply-after-create-expired-refresh-connection", 6, "partial", 5, 1)]
+    [InlineData("apply-after-create-expired-refresh-cancel", 130, "cancelled", 5, -1)]
     [InlineData("preview-401", 4, "failed", 1, 0)]
     [InlineData("apply-401", 4, "failed", 5, 0)]
     [InlineData("expired", 4, "failed", 0, 1)]
@@ -117,6 +126,16 @@ public sealed class GoogleDriveProviderTests
         UserCredential? credential = null;
         using var handler = new Transport((request, _) =>
         {
+            if (request.RequestUri!.Host == "oauth2.googleapis.com" && scenario.Contains("expired-refresh", StringComparison.Ordinal))
+            {
+                if (scenario.EndsWith("connection", StringComparison.Ordinal)) throw new HttpRequestException("private-provider-diagnostic");
+                if (scenario.EndsWith("cancel", StringComparison.Ordinal))
+                {
+                    cancellation.Cancel();
+                    throw new OperationCanceledException(cancellation.Token);
+                }
+                throw new TaskCanceledException("private-provider-diagnostic", new TimeoutException());
+            }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
                 return Task.FromResult(scenario == "refresh-success" ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
                     : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}", Encoding.UTF8, "application/json") });
@@ -132,16 +151,20 @@ public sealed class GoogleDriveProviderTests
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("{\"error\":{\"code\":401,\"message\":\"rejected\"}}", Encoding.UTF8, "application/json") });
             if (request.RequestUri.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
                 return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
-            if (request.Method == HttpMethod.Post) return Task.FromResult(Json("{\"id\":\"created\"}"));
+            if (request.Method == HttpMethod.Post)
+            {
+                if (scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                return Task.FromResult(Json("{\"id\":\"created\"}"));
+            }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query).Contains("mimeType", StringComparison.Ordinal);
-            if (!folderQuery && scenario == "apply-expired") credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            if (!folderQuery && scenario.StartsWith("apply-expired", StringComparison.Ordinal)) credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             // One create then stop on failures; success uses an empty remote/local plan.
             return Task.FromResult(Json(folderQuery ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}" : "{\"files\":[]}"));
         });
         using var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         { ClientSecrets = new ClientSecrets { ClientId = "fixture", ClientSecret = "fixture" }, HttpClientFactory = new Factory(handler) });
         credential = new UserCredential(flow, "fixture", new TokenResponse
-        { AccessToken = "fixture", RefreshToken = "fixture", ExpiresInSeconds = 3600, IssuedUtc = scenario == "expired" ? DateTime.UtcNow.AddHours(-2) : DateTime.UtcNow });
+        { AccessToken = "fixture", RefreshToken = "fixture", ExpiresInSeconds = 3600, IssuedUtc = scenario.StartsWith("expired", StringComparison.Ordinal) ? DateTime.UtcNow.AddHours(-2) : DateTime.UtcNow });
         using var service = new DriveService(new BaseClientService.Initializer
         { HttpClientFactory = new Factory(handler), HttpClientInitializer = credential, ApplicationName = "fixture", DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None });
         using var provider = new GoogleDriveSyncProvider(service);
@@ -170,13 +193,23 @@ public sealed class GoogleDriveProviderTests
             if (scenario.StartsWith("apply", StringComparison.Ordinal) || scenario.StartsWith("write-", StringComparison.Ordinal))
             {
                 var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
-                Assert.Equal(scenario.StartsWith("write-", StringComparison.Ordinal) ? "uncertain" : "failed", outcomes[0].GetProperty("state").GetString());
-                Assert.All(outcomes.Skip(1), x => Assert.Equal("not-attempted", x.GetProperty("state").GetString()));
+                var completed = scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal) ? 1 : 0;
+                Assert.All(outcomes.Take(completed), x => Assert.Equal("completed", x.GetProperty("state").GetString()));
+                Assert.Equal(scenario.StartsWith("write-", StringComparison.Ordinal) || scenario.EndsWith("refresh-cancel", StringComparison.Ordinal) ? "uncertain" : "failed", outcomes[completed].GetProperty("state").GetString());
+                Assert.All(outcomes.Skip(completed + 1), x => Assert.Equal("not-attempted", x.GetProperty("state").GetString()));
+            }
+            if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
+            {
+                Assert.DoesNotContain("auth login google", stdout.ToString() + stderr);
+                Assert.Equal("fixture", credential.Token.RefreshToken);
             }
             if (exit == 4) Assert.Contains("auth login google", stderr.ToString());
             Assert.DoesNotContain("private-provider-diagnostic", stdout.ToString() + stderr);
             Assert.Equal(driveRequests, handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
-            Assert.Equal(tokenRequests, handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
+            var refreshes = handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com");
+            // SDK refresh cancellation races its timeout retry loop; API sends remain exact.
+            if (tokenRequests == -1) Assert.InRange(refreshes, 1, 3);
+            else Assert.Equal(tokenRequests, refreshes);
         }
         finally
         {
@@ -186,22 +219,24 @@ public sealed class GoogleDriveProviderTests
         }
     }
 
-    [Fact]
-    public async Task UnrelatedCredentialInvalidOperationIsNotAuthenticationFailure()
+    [Theory]
+    [InlineData("Unrelated credential invariant.")]
+    [InlineData("The access token has expired and could not be refreshed. Errors: timeout, timeout, timeout")]
+    public async Task UnrelatedCredentialInvalidOperationIsNotAuthenticationFailure(string message)
     {
         using var handler = new Transport((_, _) => throw new Xunit.Sdk.XunitException("Request must not be sent."));
         using var service = Service(handler);
-        service.HttpClient.MessageHandler.Credential = new BrokenCredential();
+        service.HttpClient.MessageHandler.Credential = new BrokenCredential(message);
         using var provider = new GoogleDriveSyncProvider(service);
         using var input = new MemoryStream([1]);
         await Assert.ThrowsAsync<InvalidOperationException>(() => provider.Create("folder", "a.pdf", input, default));
         Assert.Empty(handler.Requests);
     }
 
-    private sealed class BrokenCredential : IHttpExecuteInterceptor
+    private sealed class BrokenCredential(string message) : IHttpExecuteInterceptor
     {
         public Task InterceptAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => throw new InvalidOperationException("Unrelated credential invariant.");
+            => throw new InvalidOperationException(message);
     }
 
     [Theory]
