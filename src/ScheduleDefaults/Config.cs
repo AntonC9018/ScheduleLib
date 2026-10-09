@@ -171,7 +171,7 @@ public static class Config
         ],
     };
 
-    public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
+    public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD", "MIA"];
 
     /// <summary>
     /// The initial specialization registry. Uses the canonical extension
@@ -349,6 +349,10 @@ public static class Config
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("AG"), Specialization.AlgoritmicaGrafurilor);
         subgroup.Add(new("GR"), Specialization.GA2D);
+        subgroup.Add(new("SAWM"), Specialization.DezvoltareaAplicatiilor);
+        subgroup.Add(new("DAS-S"), Specialization.DezvoltareaAplicatiilor);
+        subgroup.Add(new("UI/UX"), Specialization.UI);
+        subgroup.Add(new("RVA"), Specialization.DJ);
         // "Node" is a grade-2 subgroup label aliasing the UI specialization
         // (see docs/subgroup-model-update-spec.md and docs/domain-model.md).
         // It is unrelated to the grade-3 "Node.js" course ("Dezv. apl.

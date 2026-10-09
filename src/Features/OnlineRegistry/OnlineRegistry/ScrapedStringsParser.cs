@@ -33,21 +33,26 @@ public static partial class RegistryScraping
         }
 
         var label = ParseLabel(ref mainParser);
-        bool isMaster = false;
-        if (context.IsGroupMaster(label))
+        var suffixes = new GroupSuffixes();
+        if (label.Length > 2 && label.Span.EndsWith("FR", StringComparison.OrdinalIgnoreCase))
         {
-            isMaster = true;
+            label = label[..^2];
+            suffixes.ReducedAttendance = true;
         }
+        bool isMaster = context.IsGroupMaster(label);
 
         var year = ParseYear(ref mainParser);
 
         bool isWildcard = false;
-        bool isDual = false;
         uint? groupNumber = null;
         var subGroup = ParseSubGroup(ref mainParser);
         if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
         {
-            isDual = true;
+            if (suffixes.ReducedAttendance)
+            {
+                JustThrow("conflicting attendance");
+            }
+            suffixes.Dual = true;
         }
         else if (!subGroup.IsEmpty)
         {
@@ -58,29 +63,21 @@ public static partial class RegistryScraping
             groupNumber = ParseGroupNumber(ref mainParser);
         }
 
-        // ReSharper disable once InconsistentNaming
-        var languageOrFR = ParseLanguageOrFR(ref mainParser);
+        ParseSuffixes(ref mainParser, ref suffixes);
 
         if (!isWildcard)
         {
             subGroup = ParseSubGroup(ref mainParser);
             if (!subGroup.IsEmpty)
             {
-                var suffix = ParseLanguageOrFR(ref mainParser);
-                if (suffix.Language is { } language)
+                ParseSuffixes(ref mainParser, ref suffixes);
+                var subgroupLanguage = LanguageHelper.ParseName(subGroup.Span);
+                if (subgroupLanguage is Language.Ru or Language.Ro)
                 {
-                    if (languageOrFR.Language is not null)
-                    {
-                        JustThrow("duplicate language");
-                    }
-                    languageOrFR.Language = language;
+                    SetLanguage(ref suffixes, subgroupLanguage.Value);
+                    subGroup = ReadOnlyMemory<char>.Empty;
                 }
-                languageOrFR.FR |= suffix.FR;
             }
-        }
-        if (ParseFR(ref mainParser))
-        {
-            languageOrFR.FR = true;
         }
 
         mainParser.SkipWhitespace();
@@ -104,14 +101,14 @@ public static partial class RegistryScraping
             Grade = grade,
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
-            // Don't have precedents for master yet.
             QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
-            AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
+            AttendanceMode = suffixes.Dual ? AttendanceMode.Dual
+                : suffixes.ReducedAttendance ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
-            Language = languageOrFR.Language,
-            IsDual = isDual,
+            Language = suffixes.Language,
+            IsDual = suffixes.Dual,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref SequenceReader reader)
@@ -148,36 +145,52 @@ public static partial class RegistryScraping
             return num;
         }
 
-        // ReSharper disable once InconsistentNaming
-        static LanguageOrFR ParseLanguageOrFR(ref SequenceReader reader)
+        static void ParseSuffixes(ref SequenceReader reader, ref GroupSuffixes suffixes)
         {
-            var ret = new LanguageOrFR();
-            if (ParseFR(ref reader))
-            {
-                ret.FR = true;
-            }
-            if (reader.ConsumeExactString("SE"))
-            {
-                // Științele Educației: accepted but not represented in the current domain.
-            }
-
-            if (LanguageHelper.ParseName(ref reader) is { } language)
-            {
-                ret.Language = language;
-            }
-            else if (reader.ConsumeExactString("R"))
-            {
-                ret.Language = Language.Ru;
-            }
-
-            if (!ret.FR && ret.IsLanguage)
+            while (!reader.IsEmpty)
             {
                 if (ParseFR(ref reader))
                 {
-                    ret.FR = true;
+                    if (suffixes.ReducedAttendance || suffixes.Dual)
+                    {
+                        JustThrow("duplicate or conflicting attendance");
+                    }
+                    suffixes.ReducedAttendance = true;
+                }
+                else if (reader.ConsumeExactString("DU"))
+                {
+                    if (suffixes.Dual || suffixes.ReducedAttendance)
+                    {
+                        JustThrow("duplicate or conflicting attendance");
+                    }
+                    suffixes.Dual = true;
+                }
+                else if (reader.ConsumeExactString("SE"))
+                {
+                    // Științele Educației: accepted but not represented in the current domain.
+                }
+                else if (LanguageHelper.ParseName(ref reader) is { } language)
+                {
+                    SetLanguage(ref suffixes, language);
+                }
+                else if (reader.ConsumeExactString("R"))
+                {
+                    SetLanguage(ref suffixes, Language.Ru);
+                }
+                else
+                {
+                    break;
                 }
             }
-            return ret;
+        }
+
+        static void SetLanguage(ref GroupSuffixes suffixes, Language language)
+        {
+            if (suffixes.Language is not null)
+            {
+                JustThrow("duplicate language");
+            }
+            suffixes.Language = language;
         }
 
         // ReSharper disable once InconsistentNaming
@@ -239,13 +252,11 @@ public sealed class GroupParsingException : Exception
     }
 }
 
-// ReSharper disable once InconsistentNaming
-file record struct LanguageOrFR
+file record struct GroupSuffixes
 {
     public Language? Language;
-    // ReSharper disable once InconsistentNaming
-    public bool FR;
-    public readonly bool IsLanguage => Language is not null;
+    public bool ReducedAttendance;
+    public bool Dual;
 }
 
 internal struct GroupForSearch
