@@ -13,6 +13,26 @@ using Xunit;
 
 public sealed class SettingsTests
 {
+    [Theory]
+    [InlineData("Visnevschi Vlada")]
+    [InlineData("Pugaci Diana")]
+    [InlineData("Tretiacova Elizaveta")]
+    [InlineData("Plesca Natalia")]
+    public async Task RegistryAnalysisTeachersHaveSeparateSelectableProfiles(string teacher)
+    {
+        using var files = new SettingsFixture();
+        using var settings = await files.Load(new() { Profile = teacher });
+        Assert.Contains(teacher, settings.Profiles);
+        Assert.Equal(teacher, settings.Profile);
+        Assert.Equal(ExtraLessonInstanceAction.LeaveAlone, settings.Get(RegistryConfig.Key)!.ExtraLessonInstanceAction);
+        var services = new ServiceCollection();
+        services.AddConfigsServices();
+        settings.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        Assert.Equal(teacher, scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName.ToString());
+    }
+
     [Fact]
     public async Task LayersResolveTypedValuesAndReachOperationalDataProvider()
     {

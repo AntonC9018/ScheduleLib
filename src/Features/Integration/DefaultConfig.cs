@@ -136,5 +136,11 @@ public static class DefaultConfig
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);
             });
         });
+
+        foreach (var teacher in new[] { "Visnevschi Vlada", "Pugaci Diana", "Tretiacova Elizaveta", "Plesca Natalia" })
+        {
+            b.Defaults.TeacherLayer(teacher, t =>
+                t.Registry().ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone));
+        }
     }
 }
