@@ -64,6 +64,19 @@ public static partial class RegistryScraping
         if (!isWildcard)
         {
             subGroup = ParseSubGroup(ref mainParser);
+            if (!subGroup.IsEmpty)
+            {
+                var suffix = ParseLanguageOrFR(ref mainParser);
+                if (suffix.Language is { } language)
+                {
+                    if (languageOrFR.Language is not null)
+                    {
+                        JustThrow("duplicate language");
+                    }
+                    languageOrFR.Language = language;
+                }
+                languageOrFR.FR |= suffix.FR;
+            }
         }
         if (ParseFR(ref mainParser))
         {
@@ -77,6 +90,13 @@ public static partial class RegistryScraping
         }
 
         var grade = context.DetermineGrade((int) year);
+
+        // Registry "(en)" denotes English labs within a parent-language group.
+        // Keep it as a partition rather than changing the whole group's language.
+        if (subGroup.Span.Equals("en", StringComparison.OrdinalIgnoreCase))
+        {
+            subGroup = SpecialSubGroups.Eng.Value.AsMemory();
+        }
 
         return new()
         {
@@ -138,7 +158,7 @@ public static partial class RegistryScraping
             }
             if (reader.ConsumeExactString("SE"))
             {
-                // ignore this
+                // Științele Educației: accepted but not represented in the current domain.
             }
 
             if (LanguageHelper.ParseName(ref reader) is { } language)

@@ -105,6 +105,52 @@ public class RegistryScrapingTests
         Assert.Equal(1, result.Grade.Value);
     }
 
+    [Theory]
+    [InlineData("DJ2502(I)ru", "I")]
+    [InlineData("DJ2502(II)ru", "II")]
+    public void LanguageAfterNumericSubgroupUsesRequestedAcademicYear(string name, string subgroup)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal("DJ", result.FacultyName.Span);
+        Assert.Equal(2, result.GroupNumber);
+        Assert.Equal(subgroup, result.SubGroupName.ToString());
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(2, result.Grade.Value);
+    }
+
+    [Fact]
+    public void DuplicateLanguageAroundNumericSubgroupIsRejected()
+    {
+        Assert.Throws<GroupParsingException>(() => Parse("DJ2502ru(I)ru"));
+    }
+
+    [Fact]
+    public void EducationSciencesMarkerIsConsumedWithoutAddingDomainMeaning()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "I2402SEru");
+        Assert.Equal("I", result.FacultyName.Span);
+        Assert.Equal(2, result.GroupNumber);
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(3, result.Grade.Value);
+        Assert.True(result.SubGroupName.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData("DJ2501(en)", null)]
+    [InlineData("DJ2501ru(en)", Language.Ru)]
+    public void EnglishLabPartitionPreservesParentGroupLanguage(string name, Language? language)
+    {
+        var result = Parse(name);
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(SpecialSubGroups.Eng.Value, result.SubGroupName.ToString());
+        Assert.Equal(language, result.Language);
+        Assert.False(result.IsWildcard);
+        var partition = new GroupPartitionResolver(null).Resolve(result);
+        Assert.Equal(SpecialSubGroups.Eng, partition.SubGroup);
+    }
+
     [Fact]
     public void WildcardFormat_ParsesCorrectly()
     {
