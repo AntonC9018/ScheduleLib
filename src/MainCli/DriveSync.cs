@@ -75,7 +75,7 @@ public static class DriveSync
                     outcomes.Add(new(action, "completed", id));
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 outcomes.Add(new(action, attempted ? "uncertain" : "not-attempted", null));
                 AddRemaining();

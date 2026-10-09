@@ -37,6 +37,16 @@ public class DriveCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
+            string? outputDirectory;
+            try
+            {
+                outputDirectory = destination.Directory is { } path ? CliRuntime.ResolvePath(path) : null;
+                if (source.DataDirectory is { } sourcePath) CliRuntime.ResolvePath(sourcePath);
+                if (source.CacheDirectory is { } cachePath) CliRuntime.ResolvePath(cachePath);
+            }
+            catch (ArgumentException) { return await Finish(2, ["Invalid directory argument. Supply a nonempty valid path."]); }
+            catch (NotSupportedException) { return await Finish(2, ["Invalid directory argument. Supply a supported path."]); }
+            catch (PathTooLongException) { return await Finish(2, ["Directory argument is too long."]); }
             using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is null) return await Finish(3, ["A teacher --profile is required. Use config profiles to list identities."]);
             var configured = resolved.Get(GoogleDriveConfig.Key);
@@ -50,7 +60,7 @@ public class DriveCommands
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>().Get();
             if (config is null) return await Finish(3, ["Google Drive configuration is missing for this profile."]);
             using var provider = await Connect(scope.ServiceProvider, config, cancellation.Token);
-            outputLease = await RunOutput.Create(destination.Directory, "drive publish", runId, cancellation.Token, resolved.ProjectDirectory);
+            outputLease = await RunOutput.Create(outputDirectory, "drive publish", runId, cancellation.Token, resolved.ProjectDirectory);
             output = outputLease;
             var artifacts = await DriveBundle.Generate(scope.ServiceProvider, output, warnings, cancellation.Token);
             await output.Complete("generated", cancellation.Token);
@@ -60,7 +70,10 @@ public class DriveCommands
                 ? [new AuthenticationRequiredException("google", resolved.Profile).Message] : data.Errors);
         }
         catch (AuthenticationRequiredException e) { return await Finish(4, [e.Message]); }
-        catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return await Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) { return await Finish(5, ["Drive request timed out or was interrupted before remote application."]); }
+        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException) { return await Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
+        catch (HttpRequestException) { return await Finish(5, ["Drive remote state request failed. Check the connection and retry."]); }
         catch (LocalOperationBusyException) { return await Finish(7, ["Another operation owns this output or actual Drive account/folder."]); }
         catch (JsonException e) { return await Finish(3, [e.Message]); }
         catch (ArgumentException e) { return await Finish(3, [e.Message]); }

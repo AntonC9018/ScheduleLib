@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text;
 using Google.Apis.Drive.v3;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Http;
 using Google.Apis.Services;
 using ScheduleLib.Cli;
@@ -85,6 +88,123 @@ public sealed class GoogleDriveProviderTests
         Assert.Contains("O\\'Brien", Uri.UnescapeDataString(handler.Requests[1].Uri));
         Assert.Contains("pageToken=next", handler.Requests[3].Uri);
         Assert.All(handler.Requests, x => Assert.Equal("GET", x.Method));
+    }
+
+    [Theory]
+    [InlineData("preview-401", 4, "failed", 1, 0)]
+    [InlineData("apply-401", 4, "failed", 5, 0)]
+    [InlineData("expired", 4, "failed", 0, 1)]
+    [InlineData("apply-expired", 4, "failed", 4, 1)]
+    [InlineData("refresh-success", 0, "applied", 1, 1)]
+    [InlineData("read-cancel", 130, "cancelled", 1, 0)]
+    [InlineData("write-cancel", 130, "cancelled", 5, 0)]
+    [InlineData("read-timeout", 5, "failed", 1, 0)]
+    [InlineData("write-timeout", 6, "partial", 5, 0)]
+    [InlineData("connection", 5, "failed", 1, 0)]
+    public async Task ProductionHttpFailuresHaveCorrectCliResults(string scenario, int exit, string status, int driveRequests, int tokenRequests)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var original = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        using var cancellation = new CancellationTokenSource();
+        UserCredential? credential = null;
+        using var handler = new Transport((request, _) =>
+        {
+            if (request.RequestUri!.Host == "oauth2.googleapis.com")
+                return Task.FromResult(scenario == "refresh-success" ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
+                    : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}", Encoding.UTF8, "application/json") });
+            if (scenario == "read-cancel" || scenario == "write-cancel" && request.Method == HttpMethod.Post)
+            {
+                cancellation.Cancel();
+                throw new OperationCanceledException(cancellation.Token);
+            }
+            if (scenario == "read-timeout" || scenario == "write-timeout" && request.Method == HttpMethod.Post)
+                throw new TaskCanceledException("private-provider-diagnostic", new TimeoutException());
+            if (scenario == "connection") throw new HttpRequestException("private-provider-diagnostic");
+            if (scenario == "preview-401" || scenario == "apply-401" && request.Method == HttpMethod.Post)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("{\"error\":{\"code\":401,\"message\":\"rejected\"}}", Encoding.UTF8, "application/json") });
+            if (request.RequestUri.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
+                return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
+            if (request.Method == HttpMethod.Post) return Task.FromResult(Json("{\"id\":\"created\"}"));
+            var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query).Contains("mimeType", StringComparison.Ordinal);
+            if (!folderQuery && scenario == "apply-expired") credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            // One create then stop on failures; success uses an empty remote/local plan.
+            return Task.FromResult(Json(folderQuery ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}" : "{\"files\":[]}"));
+        });
+        using var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        { ClientSecrets = new ClientSecrets { ClientId = "fixture", ClientSecret = "fixture" }, HttpClientFactory = new Factory(handler) });
+        credential = new UserCredential(flow, "fixture", new TokenResponse
+        { AccessToken = "fixture", RefreshToken = "fixture", ExpiresInSeconds = 3600, IssuedUtc = scenario == "expired" ? DateTime.UtcNow.AddHours(-2) : DateTime.UtcNow });
+        using var service = new DriveService(new BaseClientService.Initializer
+        { HttpClientFactory = new Factory(handler), HttpClientInitializer = credential, ApplicationName = "fixture", DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None });
+        using var provider = new GoogleDriveSyncProvider(service);
+        // Successful refresh and mutation are also exercised directly without generating a second bundle.
+        if (scenario == "refresh-success")
+        {
+            credential.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            using var input = new MemoryStream([1]);
+            Assert.Equal("created", await provider.Create("folder", "a.pdf", input, default));
+            Assert.Equal(driveRequests, handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+            Assert.Equal(tokenRequests, handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
+            Directory.Delete(directory, true);
+            return;
+        }
+        try
+        {
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+            var actual = await new DriveSyncTests.FixtureDrive(provider).Publish(
+                new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                new() { Profile = "Curmanschii Anton" }, new() { Directory = directory }, new() { Json = true },
+                new() { Apply = scenario.StartsWith("apply", StringComparison.Ordinal) || scenario.StartsWith("write-", StringComparison.Ordinal) }, cancellation.Token);
+            Assert.Equal(exit, actual);
+            using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
+            Assert.Equal(status, json.RootElement.GetProperty("status").GetString());
+            if (scenario.StartsWith("apply", StringComparison.Ordinal) || scenario.StartsWith("write-", StringComparison.Ordinal))
+            {
+                var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+                Assert.Equal(scenario.StartsWith("write-", StringComparison.Ordinal) ? "uncertain" : "failed", outcomes[0].GetProperty("state").GetString());
+                Assert.All(outcomes.Skip(1), x => Assert.Equal("not-attempted", x.GetProperty("state").GetString()));
+            }
+            if (exit == 4) Assert.Contains("auth login google", stderr.ToString());
+            Assert.DoesNotContain("private-provider-diagnostic", stdout.ToString() + stderr);
+            Assert.Equal(driveRequests, handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+            Assert.Equal(tokenRequests, handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
+        }
+        finally
+        {
+            Console.SetOut(original);
+            Console.SetError(originalError);
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("\0")]
+    public async Task InvalidOutputPathFailsBeforeScheduleOrAuthentication(string path)
+    {
+        var original = Console.Out;
+        using var stdout = new StringWriter();
+        try
+        {
+            Console.SetOut(stdout);
+            Assert.Equal(2, await new UninitializedDrive().Publish(new() { DataDirectory = "missing-source" },
+                new(), new() { Directory = path }, new() { Json = true }, new()));
+            using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
+            Assert.Equal(2, json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
+        }
+        finally { Console.SetOut(original); }
+    }
+
+    private sealed class UninitializedDrive : DriveCommands
+    {
+        protected override void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+            => throw new Xunit.Sdk.XunitException("Output arguments must fail before initialization.");
     }
 
     private static DriveService Service(Transport handler) => new(new BaseClientService.Initializer

@@ -34,15 +34,22 @@ coordinate this machine only, not other machines or external Drive clients.
 Actions execute sequentially: delete, create, then update. Completed actions
 retain their returned IDs. A rejection is failed; a cancelled or lost response
 once a mutation starts is uncertain. Processing stops and remaining actions are
-reported as not-attempted. Cancellation returns 130; rejection before remote
+reported as not-attempted. Only caller cancellation returns 130; an HTTP timeout
+while reading returns 5, and a timeout after starting a mutation is uncertain and
+returns 6. Rejection before remote
 application returns 5 (401 returns 4), and completed/uncertain application returns
 6. Completed local artifacts are retained. No automatic rollback or retry is
 provided; inspect Drive before applying again after uncertainty.
 
 The production adapter bypasses legacy `GoogleApiHelper1` mutation retries and
 batch deletion callbacks (which only log individual failures). SDK HTTP retries
-and redirects are disabled, including credential-response replay. Uploads use
-one multipart request instead of resumable chunk recovery and require a returned
+and redirects are disabled. Credentials may refresh before sending, but 401
+responses do not invoke credential refresh or replay the request. Failed pre-send
+OAuth refresh and known 401 rejections report authentication failure with login
+guidance before any action completes; earlier completed actions retain a partial
+application result. Invalid explicit directory arguments fail with exit 2 before schedule initialization/authorization;
+planning transport failures report sanitized provider errors with exit 5.
+Uploads use one multipart request instead of resumable chunk recovery and require a returned
 file ID. Non-success responses and missing identities cannot report success.
 This favors explicit uncertain outcomes over retrying large uploads. Tests use
 real local schedule artifacts and an in-memory HTTP transport, never live Drive.

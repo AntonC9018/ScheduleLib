@@ -1,7 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
+using Google.Apis.Http;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
@@ -16,7 +18,11 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
     public GoogleDriveSyncProvider(DriveService service)
     {
         _service = service;
-        // Applies even to credential response handlers. No HTTP replay or redirect during mutations.
+        // NumTries does not suppress UserCredential's 401 refresh handler. Keep pre-send
+        // refresh, but never let response refresh replace a known rejection or replay a write.
+        if (service.HttpClient.MessageHandler.Credential is { } credential)
+            service.HttpClient.MessageHandler.Credential = new SingleAttemptCredential(credential);
+        // No HTTP replay or redirect during mutations.
         service.HttpClient.MessageHandler.NumTries = 1;
         service.HttpClient.MessageHandler.FollowRedirect = false;
     }
@@ -94,6 +100,20 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         if (!document.RootElement.TryGetProperty("id", out var id) || string.IsNullOrWhiteSpace(id.GetString()))
             throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
         return id.GetString()!;
+    }
+
+    private sealed class SingleAttemptCredential(IHttpExecuteInterceptor credential) : IHttpExecuteInterceptor
+    {
+        public async Task InterceptAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            try { await credential.InterceptAsync(request, cancellationToken); }
+            catch (TokenResponseException)
+            {
+                // Credential acquisition failed before sending: this action is known not applied.
+                throw new Google.GoogleApiException("drive", "Google authorization failed.")
+                    { HttpStatusCode = System.Net.HttpStatusCode.Unauthorized };
+            }
+        }
     }
 
     private static string Escape(string value) => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal);

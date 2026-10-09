@@ -30,7 +30,7 @@ public sealed class DriveSyncTests
 
     [Theory]
     [InlineData("lost", 6, "uncertain")]
-    [InlineData("cancel", 130, "uncertain")]
+    [InlineData("cancel", 6, "uncertain")]
     [InlineData("reject", 5, "failed")]
     public async Task CreateFailureIsNeverRetriedAndRemainingActionsAreReported(string fail, int exit, string state)
     {
@@ -175,7 +175,7 @@ public sealed class DriveSyncTests
         finally { Console.SetOut(original); }
     }
 
-    private sealed class FixtureDrive(Fake? fake) : DriveCommands
+    internal sealed class FixtureDrive(IDriveSyncProvider? fake) : DriveCommands
     {
         protected override void ConfigureServices(IServiceCollection services)
         {
