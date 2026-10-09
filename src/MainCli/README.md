@@ -78,11 +78,11 @@ a subgroup, a specialization or an alternative are counted:
 - `EveryLessonOccupies`: every lesson the group attends occupies its slot, whichever
   subgroup, specialization or alternative it addresses. A slot is free only when
   the group has no lesson in it at all.
-- `OnlyWholeGroupLessonsOccupy`: only lessons targeting the whole group - subgroup,
-  specialization and alternative all unset - occupy their slot, plus lessons
-  carrying the legacy `opțional` subgroup marker without a specialization. Lessons
-  addressed to a subgroup, a specialization or an alternative - optional ones
-  included - leave their slot free.
+- `WholeGroupAndUnspecializedOptionalLessonsOccupy`: lessons targeting the whole
+  group (subgroup, specialization and alternative all unset) occupy their slot,
+  plus lessons carrying the legacy `opțional` subgroup marker without a
+  specialization, regardless of alternative. Other partitioned lessons leave
+  their slot free.
 
 `--help` states those defaults and the result repeats them as a warning. Days are
 the Monday-Friday slots of the configured lesson times, and consecutive free
@@ -95,7 +95,7 @@ interrupted query exits 130 with no `data` instead of a partial success.
 
 The desktop task keeps its original Romanian rendering, including its
 `optional?: True/False` marker, which is printed for the
-`OnlyWholeGroupLessonsOccupy` mode exactly as before.
+`WholeGroupAndUnspecializedOptionalLessonsOccupy` mode exactly as before.
 `PrintFreeHoursOfGroupTaskHandler.Sections` exposes that same computation as
 `FreeHoursSection` records and `Run` renders those sections, so the existing
 text and the CLI results cannot drift apart.

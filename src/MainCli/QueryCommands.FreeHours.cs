@@ -19,7 +19,7 @@ public sealed record FreeHoursResult(string[] Groups, FreeHoursSectionResult[] S
 
 public partial class QueryCommands
 {
-    [Command("free-hours", Description = "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'OnlyWholeGroupLessonsOccupy' - only lessons targeting the whole group occupy their slot, so lessons addressed to a subgroup, a specialization or an alternative leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
+    [Command("free-hours", Description = "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'WholeGroupAndUnspecializedOptionalLessonsOccupy' - whole-group lessons and lessons with the legacy opțional subgroup marker and no specialization occupy their slot, regardless of alternative; other partitioned lessons leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
     public async Task<int> FreeHours(FreeHoursArguments groups, SourceArguments source, ResultArguments output,
         CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
@@ -95,8 +95,8 @@ public partial class QueryCommands
             return exit;
         }
 
-        static string Describe(string mode) => mode == nameof(FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy)
-            ? "only whole-group lessons occupy their slot"
+        static string Describe(string mode) => mode == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
+            ? "whole-group lessons and unspecialized optional lessons occupy their slot"
             : "every lesson occupies its slot";
 
         static string UnknownGroups(string[] unknown, string[] known) =>

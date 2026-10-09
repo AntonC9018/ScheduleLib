@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using ScheduleLib.Dates;
@@ -80,7 +81,7 @@ public sealed class FreeHoursTests
             Assert.Equal(
                 new[]
                 {
-                    "IA2301, EvenWeek week, only whole-group lessons occupy their slot",
+                    "IA2301, EvenWeek week, whole-group lessons and unspecialized optional lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
@@ -92,7 +93,7 @@ public sealed class FreeHoursTests
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                    "IA2301, OddWeek week, only whole-group lessons occupy their slot",
+                    "IA2301, OddWeek week, whole-group lessons and unspecialized optional lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
@@ -210,13 +211,29 @@ public sealed class FreeHoursTests
         await using var scope = provider.CreateAsyncScope();
         var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
 
-        // The calculation must abort instead of returning the sections it can still
-        // compute. This is the layer the enumeration checks belong to, so it is asserted
-        // here; at the command level the pre-success check would mask a handler that
-        // ignores the token.
+        var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
+        var groupId = schedule.EnumerateGroups().Single(x => x.Item.Name == "IA2301").Id;
+        var lessons = schedule.EnumerateWeeklyLessons()
+            .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(Parity.EvenWeek))
+            .ToArray();
+        Assert.True(lessons.Length > 1);
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-        Assert.Throws<OperationCanceledException>(() => handler.Sections(["IA2301"], cancellation.Token));
+        var enumerated = 0;
+        IEnumerable<WeeklyLessonAccessor> CancellingLessons()
+        {
+            foreach (var lesson in lessons)
+            {
+                enumerated++;
+                cancellation.Cancel();
+                yield return lesson;
+            }
+        }
+        Assert.False(cancellation.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() =>
+            handler.Sections(["IA2301"], CancellingLessons(), cancellation.Token));
+        // Entry checks saw an active token; enumeration triggered cancellation. A final
+        // guard alone would consume every lesson instead of stopping at the first one.
+        Assert.Equal(1, enumerated);
         Assert.Equal(4, handler.Sections(["IA2301"], CancellationToken.None).Length);
     }
 
@@ -290,7 +307,7 @@ public sealed class FreeHoursTests
     }
 
     private static string Name(JsonElement section) => $"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/" +
-        (section.GetProperty("mode").GetString() == nameof(FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy) ? "whole" : "every");
+        (section.GetProperty("mode").GetString() == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy) ? "whole" : "every");
 
     private sealed class TempDirectory : IDisposable
     {

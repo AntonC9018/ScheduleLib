@@ -17,12 +17,12 @@ public enum FreeHoursOccupancyMode
     /// whole-group lessons and lessons addressed to a subgroup, a specialization or an
     /// alternative. A slot is free only when the group has no lesson in it at all.</summary>
     EveryLessonOccupies,
-    /// <summary>Only lessons that target the whole group - <see cref="GroupPartitionKey.All"/>,
+    /// <summary>Lessons that target the whole group - <see cref="GroupPartitionKey.All"/>,
     /// meaning subgroup, specialization and alternative are all unset - occupy their slot,
     /// plus lessons that carry the legacy <c>opțional</c> subgroup marker without a
-    /// specialization. Lessons addressed to a subgroup, a specialization or an alternative
-    /// do not occupy anything, so their slots are reported free.</summary>
-    OnlyWholeGroupLessonsOccupy,
+    /// specialization, regardless of alternative. Other partitioned lessons do not occupy
+    /// anything, so their slots are reported free.</summary>
+    WholeGroupAndUnspecializedOptionalLessonsOccupy,
 }
 
 public sealed record FreeHoursSection(string Group, Parity Parity, FreeHoursOccupancyMode Mode, FreeHoursDay[] Days);
@@ -49,16 +49,19 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
     /// for every supplied group, over all weekly periods. Cancellation is observed while
     /// the lessons are enumerated and before the result is handed back.</summary>
     public FreeHoursSection[] Sections(string[] groups, CancellationToken cancellationToken = default)
+        => Sections(groups, _schedule.EnumerateWeeklyLessons().Select(x => x), cancellationToken);
+
+    internal FreeHoursSection[] Sections(string[] groups, IEnumerable<WeeklyLessonAccessor> lessons, CancellationToken cancellationToken)
     {
         var sections = new List<FreeHoursSection>();
         foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
         {
             foreach (var group in groups)
             {
-                foreach (var mode in new[] { FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy, FreeHoursOccupancyMode.EveryLessonOccupies })
+                foreach (var mode in new[] { FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy, FreeHoursOccupancyMode.EveryLessonOccupies })
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    sections.Add(Section(group, parity, mode, cancellationToken));
+                    sections.Add(Section(group, parity, mode, lessons, cancellationToken));
                 }
             }
         }
@@ -66,7 +69,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         return sections.ToArray();
     }
 
-    private FreeHoursSection Section(string group, Parity parity, FreeHoursOccupancyMode mode, CancellationToken cancellationToken)
+    private FreeHoursSection Section(string group, Parity parity, FreeHoursOccupancyMode mode, IEnumerable<WeeklyLessonAccessor> lessonSource, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var groupId = _schedule.Groups
@@ -74,7 +77,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
             .Where(x => x.Item.Name == group)
             .Select(x => new GroupId(x.Index))
             .Single();
-        var lessons = _schedule.EnumerateWeeklyLessons()
+        var lessons = lessonSource
             .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(parity))
             .Where(x =>
             {
@@ -153,7 +156,7 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
     {
         var displayHandler = new TimeSlotDisplayHandler();
         var parityDisplay = new ParityDisplayHandler();
-        var isOptional = section.Mode == FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy;
+        var isOptional = section.Mode == FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy;
         sb.AppendLine($"paritatea: {parityDisplay.Get(section.Parity)}, grupa: {section.Group}, optional?: {isOptional}");
         foreach (var day in section.Days)
         {
