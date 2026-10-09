@@ -117,9 +117,11 @@ public static class TasksHelper
         {
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
             {
-                var stagingDirectory = Path.Combine(Path.GetTempPath(), $"schedulelib-doc-{Guid.NewGuid():N}");
-                Directory.CreateDirectory(stagingDirectory);
-                try
+                // CA2000 misses using-declaration disposal inside this async local function.
+#pragma warning disable CA2000
+                using var stagingOwner = OwnedConversionDirectory.Create(Path.GetTempPath());
+#pragma warning restore CA2000
+                var stagingDirectory = stagingOwner.DirectoryPath;
                 {
                     var stagedInput = Path.Combine(stagingDirectory, Path.GetFileName(filePath));
                     File.Copy(filePath, stagedInput);
@@ -129,10 +131,6 @@ public static class TasksHelper
                     using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
                     context.SetPeriod(period);
                     WordScheduleParser.ParseToSchedule(new() { Context = context, Document = document });
-                }
-                finally
-                {
-                    Directory.Delete(stagingDirectory, recursive: true);
                 }
             }
 

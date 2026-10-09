@@ -110,16 +110,15 @@ public class CurriculaCommands
                     }, cancellation.Token);
                 else
                 {
-                    // Publish the downloaded original first, then convert a separate staging copy: the legacy converter deletes its input.
+                    // Publish the downloaded original first, then convert a separate staging copy.
                     var originalName = ArtifactName(file, ".doc");
                     await output.Publish(originalName, async (stream, ct) =>
                     {
                         await using var remote = await provider.Download(file, ct);
                         await remote.CopyToAsync(stream, ct);
                     }, cancellation.Token);
-                    var staging = Path.Combine(output.DirectoryPath, ".conversion-" + Guid.NewGuid().ToString("N"));
-                    Directory.CreateDirectory(staging);
-                    try
+                    using var stagingOwner = OwnedConversionDirectory.Create(output.DirectoryPath);
+                    var staging = stagingOwner.DirectoryPath;
                     {
                         var input = Path.Combine(staging, "source.doc");
                         var converted = Path.Combine(staging, "converted.docx");
@@ -132,7 +131,6 @@ public class CurriculaCommands
                             ValidateDocx(stream);
                         }, cancellation.Token);
                     }
-                    finally { Directory.Delete(staging, recursive: true); }
                 }
                 count++;
             }
