@@ -38,7 +38,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     public async Task Run(RunParams p)
     {
         var plan = await Plan(p);
-        foreach (var action in plan) await action.Execute(CancellationToken.None);
+        foreach (var action in plan)
+        {
+            try { await action.Execute(CancellationToken.None); }
+            catch (RegistryActionExecutionException error) when (!error.SubmissionStarted
+                && error.InnerException is RegistryFormPreparationException)
+            {
+                _logger.LogError(error.InnerException, "Registry {Kind} form preparation failed for {Date}", action.Kind, action.Date);
+            }
+        }
     }
 
     public async Task<IReadOnlyList<RegistrySyncAction>> Plan(RunParams p, CancellationToken cancellationToken = default, bool explicitApply = false)
@@ -345,15 +353,21 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             Action markSubmission)
         {
             var doc = await p.Navigator.GetHtml(uri);
-            HtmlSearch.UpdateForm(new()
+            try
             {
-                Document = doc,
-                Lesson = lesson,
-                Schedule = schedule,
-                ExpectedStudents = expectedStudents,
-            });
-            markSubmission();
-            await p.Navigator.SubmitLesson(doc);
+                HtmlSearch.UpdateForm(new()
+                {
+                    Document = doc,
+                    Lesson = lesson,
+                    Schedule = schedule,
+                    ExpectedStudents = expectedStudents,
+                });
+            }
+            catch (InvalidOperationException error)
+            {
+                throw new RegistryFormPreparationException(error);
+            }
+            await p.Navigator.SubmitLesson(doc, markSubmission);
         }
 
         Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents, Action markSubmission)
@@ -365,8 +379,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         async Task Delete(Uri detailsUri, Action markSubmission)
         {
             var doc = await p.Navigator.GetHtml(detailsUri);
-            markSubmission();
-            await p.Navigator.SubmitDelete(doc);
+            await p.Navigator.SubmitDelete(doc, markSubmission);
         }
 
         async Task<(ScanLessonResult ScanResult, Uri AddLessonLink)> QueryExistingLessonInstancesOfGroup(

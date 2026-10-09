@@ -113,7 +113,7 @@ public sealed class ScrapingContext : IDisposable
         return new(http, browsingContext, requester);
     }
 
-    /// <summary>Suppresses authentication replay only for this explicit mutation.</summary>
+    /// <summary>Suppresses authentication replay and redirect navigation for this explicit mutation.</summary>
     public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null) =>
         _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
         {
@@ -250,6 +250,15 @@ internal sealed class HttpClientRequester : BaseRequester
                 continue;
             }
 
+            // AngleSharp follows Location itself (including redirects that can replay POST).
+            // Explicit mutations must return control before any redirect navigation.
+            if (_suppressAuthenticationReplay.Value && (int) httpResponse.StatusCode is >= 300 and < 400)
+            {
+                var location = httpResponse.Headers.Location;
+                var statusCode = httpResponse.StatusCode;
+                httpResponse.Dispose();
+                throw new FormSubmissionRedirectException(location, statusCode);
+            }
             var response = await ToResponse(request.Address, httpResponse, cancel);
             return response;
         }
@@ -326,4 +335,12 @@ internal sealed class HttpClientRequester : BaseRequester
         }
         return ret;
     }
+}
+
+/// <summary>A mutation redirect whose destination was deliberately not requested.</summary>
+public sealed class FormSubmissionRedirectException(Uri? location, HttpStatusCode statusCode)
+    : IOException("Form submission redirected; the mutation result is unconfirmed.")
+{
+    public Uri? Location { get; } = location;
+    public HttpStatusCode StatusCode { get; } = statusCode;
 }

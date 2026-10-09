@@ -595,8 +595,8 @@ internal static class HtmlSearch
 
     internal static IHtmlFormElement GetLessonForm(IDocument doc)
     {
-        var lessonDateBox = (IHtmlInputElement) doc.GetElementById("LessonDate")!;
-        return lessonDateBox.Form!;
+        var lessonDateBox = doc.GetElementById("LessonDate") as IHtmlInputElement;
+        return lessonDateBox?.Form ?? throw new InvalidOperationException("Registry lesson form is missing.");
     }
 
     internal static void UpdateForm(SendUpdatedFormParams p)

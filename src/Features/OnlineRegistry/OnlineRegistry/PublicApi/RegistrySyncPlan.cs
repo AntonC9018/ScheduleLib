@@ -11,6 +11,16 @@ public interface IRegistrySyncNavigator
     Task<IDocument> GetHtml(Uri uri);
     Task SubmitLesson(IDocument document);
     Task SubmitDelete(IDocument document);
+    Task SubmitLesson(IDocument document, Action onSubmissionStarted)
+    {
+        onSubmissionStarted();
+        return SubmitLesson(document);
+    }
+    Task SubmitDelete(IDocument document, Action onSubmissionStarted)
+    {
+        onSubmissionStarted();
+        return SubmitDelete(document);
+    }
 }
 
 public sealed class RegistrySyncAction(string kind, string destination, string course, string groups,
@@ -43,3 +53,7 @@ public sealed class RegistryActionCancelledException(bool submissionStarted, Ope
 {
     public bool SubmissionStarted { get; } = submissionStarted;
 }
+
+/// <summary>A locally detected invalid lesson form, before any submission attempt.</summary>
+public sealed class RegistryFormPreparationException(InvalidOperationException inner)
+    : InvalidOperationException("Registry lesson form preparation failed.", inner);
