@@ -91,9 +91,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 
     public void GroupParsingError(GroupParseErrorContext context)
     {
-        _logger.LogError(
-            "Could not parse group {Group}",
-            context.String.Trim());
+        _logger.LogError("Could not parse registry group");
     }
 
     public void CustomLessonType(ReadOnlySpan<char> ch) => LogCustomLessonType(ch.ToString());
@@ -104,7 +102,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
         return ExtraLessonAction;
     }
 
-    public void GroupNotFound(string groupName) => LogGroupNotFound(groupName);
+    public void GroupNotFound(string groupName) => LogGroupNotFound();
 
     [LoggerMessage(LogLevel.Warning, "Course not found: {CourseName}")]
     partial void LogCourseNotFound(string CourseName);
@@ -118,7 +116,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     [LoggerMessage(LogLevel.Information, "Extra lesson instance found: {Date}")]
     partial void LogExtraLessonInstanceFound(DateTime Date);
 
-    [LoggerMessage(LogLevel.Warning, "Group not found: {GroupName}")]
-    partial void LogGroupNotFound(string GroupName);
+    [LoggerMessage(LogLevel.Warning, "Registry group could not be matched to the local schedule")]
+    partial void LogGroupNotFound();
 
 }

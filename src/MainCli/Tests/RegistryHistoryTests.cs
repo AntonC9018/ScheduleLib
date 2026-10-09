@@ -243,7 +243,8 @@ public sealed class RegistryHistoryTests
         var logger = new RegistryErrorLogger(log);
         logger.StudentsNotInDbButInRegistry(new(PrivateStudents(), null!, default, default));
         logger.LessonsDecidedErroneous(new("canary-student canary-password canary-token"));
-        logger.GroupParsingError(new(new GroupParsingException("canary-password canary-student"), "synthetic-group"));
+        logger.GroupParsingError(new(new GroupParsingException("canary-password canary-student"), "canary-student canary-token"));
+        logger.GroupNotFound("canary-student canary-token");
         Assert.NotEmpty(log.Messages);
         Assert.DoesNotContain("canary", string.Join("\n", log.Messages));
 

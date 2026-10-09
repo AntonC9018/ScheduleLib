@@ -124,13 +124,13 @@ public sealed class GroupsNavigator
         in GroupForSearch group)
     {
         bool combined = RegistryFacultyLabels.IsCombined(group.FacultyName);
-        if (!combined && !group.IsWildcard)
+        if (!combined)
         {
             return FindGroupMatch(schedule, group);
         }
 
-        // Registry wildcards describe participants of this elective, not every
-        // group from the intake. Only actual course/partition lessons provide evidence.
+        // Combined registry labels need actual course/partition lessons as evidence
+        // for their parents. Ordinary groups retain their elective fallback behavior.
         var eligibleParents = new HashSet<GroupId>();
         foreach (var lesson in schedule.EnumerateAllLessons())
         {
@@ -374,6 +374,8 @@ public readonly record struct RegistryScrapingContext(
 
 public static partial class RegistryScraping
 {
+    private static readonly TimeSpan RegistryRequestSpacing = TimeSpan.FromSeconds(5);
+
     /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
     public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token)
@@ -386,7 +388,7 @@ public static partial class RegistryScraping
             var cookieProvider = new AngleSharp.Io.MemoryCookieProvider();
             handler = new HttpClientHandler { CookieContainer = cookieProvider.Container, AllowAutoRedirect = false };
             var guard = new RegistryHistoryRequestHandler(handler, new(BaseUrl + "LessonAttendance"),
-                DefaultTokenNames.LoginUrl, TimeSpan.FromSeconds(5));
+                DefaultTokenNames.LoginUrl, RegistryRequestSpacing);
             handler = guard;
             client = new HttpClient(guard);
             transport = new HttpClientContext(cookieProvider, client, guard);
@@ -423,7 +425,7 @@ public static partial class RegistryScraping
 
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
     {
-        b.Delay(TimeSpan.FromSeconds(1.0));
+        b.Delay(RegistryRequestSpacing);
         b.AddConfig(DefaultTokensStorageConfig);
         b.AddConfig(DefaultPasswordLoginFieldNames);
         b.AddConfig(DefaultTokenNames);

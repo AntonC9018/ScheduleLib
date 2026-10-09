@@ -77,13 +77,22 @@ public static partial class RegistryScraping
                     SetLanguage(ref suffixes, subgroupLanguage.Value);
                     subGroup = ReadOnlyMemory<char>.Empty;
                 }
+                else if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (suffixes.Dual || suffixes.ReducedAttendance)
+                    {
+                        JustThrow("duplicate or conflicting attendance");
+                    }
+                    suffixes.Dual = true;
+                    subGroup = ReadOnlyMemory<char>.Empty;
+                }
             }
         }
 
         mainParser.SkipWhitespace();
         if (!mainParser.IsEmpty && !isRepeat)
         {
-            throw new NotSupportedException("Group name not parsed fully.");
+            JustThrow("trailing group suffix");
         }
 
         var grade = context.DetermineGrade((int) year);
@@ -127,6 +136,12 @@ public static partial class RegistryScraping
                 JustThrow("no label");
             }
             reader.MoveTo(bparser.Position);
+            // Historical ordinary groups sometimes separate the faculty and year.
+            if (reader.CanPeekCount(2) && reader.PeekSpan(2)[0] == '_'
+                && char.IsAsciiDigit(reader.PeekSpan(2)[1]))
+            {
+                reader.Move();
+            }
             return ret;
         }
 

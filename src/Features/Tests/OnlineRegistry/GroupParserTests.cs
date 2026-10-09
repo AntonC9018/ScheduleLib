@@ -230,6 +230,30 @@ public class RegistryScrapingTests
     }
 
     [Theory]
+    [InlineData("IA_2001fr", 1, null)]
+    [InlineData("IA_2002Rfr", 2, Language.Ru)]
+    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(string name, int number, Language? language)
+    {
+        var result = Parse(name);
+        Assert.Equal("IA", result.FacultyName.ToString());
+        Assert.Equal(number, result.GroupNumber);
+        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(language, result.Language);
+    }
+
+    [Fact]
+    public void ParenthesizedDualAfterNumberSelectsAttendanceInsteadOfPartition()
+    {
+        var result = Parse("IA2501(Dual)");
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(AttendanceMode.Dual, result.AttendanceMode);
+        Assert.True(result.IsDual);
+        Assert.False(result.IsWildcard);
+        Assert.True(result.SubGroupName.IsEmpty);
+        Assert.Equal(GroupPartitionKey.All, new GroupPartitionResolver(null).Resolve(result));
+    }
+
+    [Theory]
     [InlineData("IA2603ru(ru)")]
     [InlineData("IA2603ro(ru)")]
     [InlineData("IA2603(ru)ro")]
@@ -242,6 +266,9 @@ public class RegistryScrapingTests
     [InlineData("IA2603frDU")]
     [InlineData("IAFR26(Dual)")]
     [InlineData("IA26(Dual)DU")]
+    [InlineData("IA2501(Dual)DU")]
+    [InlineData("IA2501DU(Dual)")]
+    [InlineData("IAFR2501(Dual)")]
     public void DuplicateOrConflictingMarkersAreRejected(string name)
     {
         var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });

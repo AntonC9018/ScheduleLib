@@ -92,19 +92,65 @@ public sealed class CombinedGroupMatchingTests
     }
 
     [Fact]
-    public void OrdinaryWildcardRetainsKnownPartitionAndExcludesUnrelatedCourse()
+    public void OrdinaryWildcardRetainsLegacyParentMatching()
     {
         var fixture = new Fixture();
         fixture.Add("IA2401(ru)", specialization: Specialization.GA2D);
         fixture.Add("IA2402(ru)", specialization: Specialization.GA2D, otherCourse: true);
         fixture.Add("IA2403(ru)");
-        Assert.Equal(new[] { new GroupId(0) }, Match(fixture, "IA24(GA2D)ru").ToArray());
+        Assert.Equal(new[] { new GroupId(0), new GroupId(1), new GroupId(2) }, Match(fixture, "IA24(GA2D)ru").ToArray());
+    }
+
+    [Fact]
+    public void OrdinaryWildcardRetainsOptionalPartitionFallback()
+    {
+        var fixture = new Fixture();
+        fixture.Add("IA2401(ru)", specialization: Specialization.All);
+        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.Optional;
+        var schedule = fixture.Build();
+        var group = Parse("IA24(GA2D)ru");
+        var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, Resolver.Resolve(group), group);
+        Assert.Equal(new[] { new GroupId(0) }, parents.ToArray());
+        var groups = new FoundGroups { IsWildcard = true, Value = parents };
+        var result = MatchLessonHelper.MatchLessonsInSchedule(new(
+            new LessonSearchFilter(fixture.Course, groups, Resolver.Resolve(group)),
+            fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
+        var lesson = Assert.Single(result);
+        Assert.Equal(new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All),
+            schedule.Get(lesson).Lesson.GroupPartitionKey);
+    }
+
+    [Fact]
+    public void UnknownTrailingSuffixIsSkippedWithoutAbortingOtherGroups()
+    {
+        var document = new HtmlParser().ParseDocument("""
+            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+            <div class="row"><a href="https://registry.test/unknown">IA2401unknown</a><a href="https://registry.test/evaluation">Grades</a></div>
+            <div class="row"><a href="https://registry.test/group">IA2401ru</a><a href="https://registry.test/evaluation">Grades</a></div>
+            </div></div></form>
+            """);
+        int failures = 0;
+        int searches = 0;
+        var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
+        {
+            Document = document,
+            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupPartitionResolver = Resolver,
+            SearchGroupId = (ref GroupForSearch group) => { searches++; return [new GroupId(0)]; },
+            ParseErrorHandler = _ => failures++,
+        }).ToArray();
+        Assert.Single(result);
+        Assert.Equal(1, failures);
+        Assert.Equal(1, searches);
     }
 
     [Theory]
     [InlineData("I_DJ24(SAWM)")]
     [InlineData("IA_I24(SAWM)")]
     [InlineData("I__IA24(SAWM)")]
+    [InlineData("IA__2401")]
+    [InlineData("IA_I2401")]
+    [InlineData("I_IA_24(SAWM)")]
     public void UnconfirmedCombinedGrammarIsRejected(string value)
     {
         Assert.Throws<GroupParsingException>(() => Parse(value));
