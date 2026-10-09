@@ -97,6 +97,20 @@ public sealed class RegistryHistoryTests
     }
 
     [Fact]
+    public async Task FreshHistorySessionBlocksMutationAndLessonDataRoutes()
+    {
+        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        guard.CompleteAuthentication();
+        using var client = new HttpClient(guard);
+        using var content = new StringContent("synthetic");
+        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.PostAsync(Index, content));
+        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.DeleteAsync(new Uri(Index.AbsoluteUri + "/groups/1")));
+        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index.AbsoluteUri + "/LessonsList/1")));
+        Assert.Equal(0, inner.Calls);
+    }
+
+    [Fact]
     public async Task GlobalGateSerializesDifferentAccountsAndSpacesRequests()
     {
         var active = 0;
@@ -212,6 +226,34 @@ public sealed class RegistryHistoryTests
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => new RegistryHistoryReader(client, Index).Discover("2024/25", default));
         Assert.DoesNotContain("canary", error.Message);
         Assert.Equal(loginPage ? 1 : 2, inner.Calls);
+    }
+
+    [Fact]
+    public async Task CurrentYearUsesSelectedRegistryValueWithoutHistoricalRequests()
+    {
+        var queries = new List<string>();
+        using var inner = new FakeHandler((request, _) =>
+        {
+            queries.Add(request.RequestUri!.PathAndQuery);
+            var html = request.RequestUri.AbsolutePath.EndsWith("/groups/1", StringComparison.Ordinal)
+                ? """
+                    <a href='/studregistry/Account/Logout'>Exit</a>
+                    <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
+                    <a href='/studregistry/LessonAttendance/LessonsList/1'>Unmapped group</a><a href='/studregistry/Evaluation/Index/1'>grades</a>
+                    </div></div></div></form>
+                    """
+                : Years + """
+                    <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped course</a></span></div></div><div id='nav-2'></div>
+                    """;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html) });
+        });
+        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        guard.CompleteAuthentication();
+        using var client = new HttpClient(guard);
+        var summary = Assert.Single(await new RegistryHistoryReader(client, Index).Discover("current", default));
+        Assert.Equal("2025/26", summary.Year);
+        Assert.Equal("Unmapped group", Assert.Single(Assert.Single(summary.Courses).Groups));
+        Assert.Equal(new[] { "/studregistry/LessonAttendance", "/studregistry/LessonAttendance/groups/1" }, queries);
     }
 
     private sealed class CaptureProvider(CaptureLogger logger) : ILoggerProvider

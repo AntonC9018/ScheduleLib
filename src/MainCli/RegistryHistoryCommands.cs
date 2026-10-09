@@ -12,7 +12,7 @@ namespace ScheduleLib.Cli;
 
 public sealed class RegistryHistoryArguments : IArgumentModel
 {
-    [Option("year", Description = "Exact academic-year selector value, e.g. 2024/25. Omit to discover all offered years.")]
+    [Option("year", Description = "Exact academic-year selector value, e.g. 2024/25, or current for the registry-selected year only. Omit to discover all offered years.")]
     public string? Year { get; set; }
     [Option("local-directory", Description = "Required private output directory named .registry-history (ignored by Git). Only counts appear on stdout.")]
     public string? LocalDirectory { get; set; }

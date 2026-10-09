@@ -7,11 +7,16 @@ read can use:
 
 ```sh
 dotnet run --project src/MainCli -- registry history \
-  --profile "configured teacher" --year "2024/25" \
+  --profile "configured teacher" --year current \
   --local-directory "$PWD/.registry-history" --json
 ```
 
-Omit `--year` to discover every offered year. The configured application
+Use `--year current` for the first probe: it reads only the academic year selected
+by the registry's initial index page, without consulting the machine's date or
+requesting historical years. The saved summary uses that actual selected value.
+An exact value such as `--year "2024/25"` requests only that offered year.
+Omit `--year` to discover every offered year after initial markup validation.
+The configured application
 `CredentialsResolver<BuiltRegistryConfig>` selects credentials; no credential
 arguments, secret-file inspection or current schedule initialization are needed.
 The existing password-login builder authenticates once, without token cache

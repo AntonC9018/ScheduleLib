@@ -182,6 +182,7 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
     {
         using var initial = await Read(index, token);
         var years = RegistryHistoryHtml.Years(initial, index);
+        if (year == "current") year = years.Single(x => x.Selected).Value;
         if (year is not null && !years.Any(x => x.Value == year))
             throw new RegistryHistoryException("Requested academic year is not offered by the registry selector.", RegistryHistoryFailure.RequestedYearUnavailable);
         var summaries = new List<RegistryHistoryYearSummary>();
