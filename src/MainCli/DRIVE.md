@@ -23,8 +23,10 @@ folder name/ID and each create/update/delete. Matching remains case-insensitive:
 every matching remote file (including duplicate names) is updated, and every
 unmatched remote file is deleted, including unrelated content in this folder.
 This is the existing synchronization behavior, not a minimum-change algorithm.
-The first untrashed folder matching the configured name is selected; no folder
-is created. A missing folder is a required-input failure.
+The configured name must resolve to exactly one accessible untrashed folder;
+no folder is created. A missing folder is a required-input failure. Multiple
+matches are rejected before synchronization, including shared folders with the
+same name, so apply cannot select an arbitrary deletion destination.
 
 Apply resolves actual account/folder IDs and acquires their local lock before
 rereading folder selection and listing contents. A changed folder selection is

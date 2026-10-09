@@ -96,8 +96,9 @@ Caller files are preserved and conflicting artifact names fail. Downloaded DOCX
 packages are validated before atomic publication. On Linux, a legacy DOC source
 reports exit 8 before downloading anything. On Windows, the original DOC is
 published, a staging copy is converted, and the DOCX is validated/published;
-the conversion boundary permits input deletion only for that staging copy. Windows/Word execution is
-unverified. Cancellation retains completed artifacts in a partial manifest;
+the conversion boundary permits input deletion only for that staging copy. Legacy
+conversion also requires .NET Framework 4.8 and Microsoft Word. Windows/Word
+execution is unverified. Cancellation retains completed artifacts in a partial manifest;
 provider timeouts are operation failures unless the command token was cancelled.
 Failures after publishing artifacts report partial output (exit 6); cancellation
 retains exit 130 and lists completed outputs. Legacy implicit-consent helper entry
