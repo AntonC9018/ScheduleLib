@@ -1,8 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>$(WindowsTarget)</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
+        <!-- Preserve the publish RID for the platform-specific Word converter dependency. -->
+        <IsRidAgnostic>false</IsRidAgnostic>
     </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="MainCli.Tests" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Generator.Pdf\ScheduleLib.Generator.Pdf.csproj" />

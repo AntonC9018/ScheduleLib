@@ -28,24 +28,9 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         CalendarService.Scope.Calendar,
     ];
 
-    public async Task Update(CancellationToken cancellationToken)
+    /// <summary>Builds the same recurring events used by replacement synchronization, without remote access.</summary>
+    public IReadOnlyList<Event> BuildDesiredEvents(CancellationToken cancellationToken)
     {
-        var config = _configProvider.Get();
-        if (config is null)
-        {
-            throw new InvalidOperationException("No google drive config found.");
-        }
-        if (config.CalendarName == "primary")
-        {
-            throw new InvalidOperationException("Primary calendar not supported!");
-        }
-
-        var credential = await _helper.CredentialResolver.Resolve(
-            config.Credentials.Build(),
-            Scopes,
-            cancellationToken);
-        using var service = new CalendarService(_helper.CreateServiceInitializer(credential));
-
         var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices, new()
         {
             PrintsTeacherName = false,
@@ -65,79 +50,102 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 
         const string locationId = "Chișinău, Moldova";
         const string timeZoneId = "Europe/Chisinau";
+        var colorConverter = new LessonToColorConverter();
+        var result = new List<Event>();
+        foreach (var timeEvent in timeEvents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var schedule = filteredSchedule.Source;
+            var lesson = schedule.Get(timeEvent.LessonId);
+            var course = schedule.Get(lesson.Lesson.Course);
+
+            DateTimeOffset DateTimeFirst(TimeOnly time)
+            {
+                var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                var date = timeEvent.Event.First;
+                var dateTime = new DateTime(date, time);
+                return new(dateTime, zone.GetUtcOffset(dateTime));
+            }
+
+            var notRichText = new NotRichText();
+            lessonDisplay.Handle(new()
+            {
+                Lesson = lesson,
+                StringBuilder = new(),
+                ColumnWidth = 1,
+                LessonTimeConfig = _timeConfig,
+                Schedule = filteredSchedule.Source,
+                TextDescriptor = notRichText,
+            });
+
+            string[] GetRecurrence()
+            {
+                var e = timeEvent.Event;
+                if (!e.IsRepeated)
+                {
+                    return [];
+                }
+                return [$"RRULE:FREQ=DAILY;INTERVAL={e.DayInterval};COUNT={e.Count}"];
+            }
+
+            var color = colorConverter.GetColorId(lesson);
+
+            var ev = new Event
+            {
+                Summary = course.FullName,
+                Start = new()
+                {
+                    TimeZone = timeZoneId,
+                    DateTimeDateTimeOffset = DateTimeFirst(timeEvent.TimeInterval.Start),
+                },
+                End = new()
+                {
+                    TimeZone = timeZoneId,
+                    DateTimeDateTimeOffset = DateTimeFirst(timeEvent.TimeInterval.End),
+                },
+                Description = notRichText.GetString(),
+                Location = locationId,
+                Recurrence = GetRecurrence(),
+                ColorId = color.AsString(),
+            };
+            result.Add(ev);
+        }
+        return result;
+    }
+
+    public async Task Update(CancellationToken cancellationToken)
+    {
+        var config = _configProvider.Get();
+        if (config is null)
+        {
+            throw new InvalidOperationException("No google drive config found.");
+        }
+        if (config.CalendarName == "primary")
+        {
+            throw new InvalidOperationException("Primary calendar not supported!");
+        }
+
+        var credential = await _helper.CredentialResolver.Resolve(
+            config.Credentials.Build(),
+            Scopes,
+            cancellationToken);
+        using var service = new CalendarService(_helper.CreateServiceInitializer(credential));
+
+        var desired = BuildDesiredEvents(cancellationToken);
         var calendarId = await service.MakeSureCleanCalendarWithSummary(new Calendar
         {
             Summary = config.CalendarName,
-            Location = locationId,
-            TimeZone = timeZoneId,
+            Location = "Chișinău, Moldova",
+            TimeZone = "Europe/Chisinau",
         }, cancellationToken);
-
-        var colorConverter = new LessonToColorConverter();
-
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
-        foreach (var timeEvent in timeEvents)
+        foreach (var ev in desired)
         {
-            // ReSharper disable once VariableHidesOuterVariable
-            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (cancellationToken) =>
+            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (token) =>
             {
-                var schedule = filteredSchedule.Source;
-                var lesson = schedule.Get(timeEvent.LessonId);
-                var course = schedule.Get(lesson.Lesson.Course);
-
-                DateTimeOffset DateTimeFirst(TimeOnly time)
-                {
-                    var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                    var date = timeEvent.Event.First;
-                    var dateTime = new DateTime(date, time);
-                    return new(dateTime, zone.GetUtcOffset(dateTime));
-                }
-
-                // var date = timeEvent.Event.First.ToString("yyyy-MM-dd");
-                var notRichText = new NotRichText();
-                lessonDisplay.Handle(new()
-                {
-                    Lesson = lesson,
-                    StringBuilder = new(),
-                    ColumnWidth = 1,
-                    LessonTimeConfig = _timeConfig,
-                    Schedule = filteredSchedule.Source,
-                    TextDescriptor = notRichText,
-                });
-
-                string[] GetRecurrence()
-                {
-                    var e = timeEvent.Event;
-                    if (!e.IsRepeated)
-                    {
-                        return [];
-                    }
-                    return [$"RRULE:FREQ=DAILY;INTERVAL={e.DayInterval};COUNT={e.Count}"];
-                }
-
-                var color = colorConverter.GetColorId(lesson);
-
-                var ev = new Event
-                {
-                    Summary = course.FullName,
-                    Start = new()
-                    {
-                        TimeZone = timeZoneId,
-                        DateTimeDateTimeOffset = DateTimeFirst(timeEvent.TimeInterval.Start),
-                    },
-                    End = new()
-                    {
-                        TimeZone = timeZoneId,
-                        DateTimeDateTimeOffset = DateTimeFirst(timeEvent.TimeInterval.End),
-                    },
-                    Description = notRichText.GetString(),
-                    Location = locationId,
-                    Recurrence = GetRecurrence(),
-                    ColorId = color.AsString(),
-                };
-
                 await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
                 {
-                    await service.Events.Insert(ev, calendarId).ExecuteAsync(cancellationToken);
+                    await service.Events.Insert(ev, calendarId).ExecuteAsync(token);
                 });
             });
         }
@@ -149,7 +157,7 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 file sealed class LessonToColorConverter()
 {
     private GoogleCalendarColorId _nextColor;
-    private Dictionary<(LessonGroups, GroupPartitionKey, CourseId), GoogleCalendarColorId> lessonToColorMap = new();
+    private Dictionary<(LessonGroups Groups, GroupPartitionKey Partition, CourseId Course), GoogleCalendarColorId> lessonToColorMap = new();
 
     public GoogleCalendarColorId GetColorId(AnyLessonAccessor lesson)
     {

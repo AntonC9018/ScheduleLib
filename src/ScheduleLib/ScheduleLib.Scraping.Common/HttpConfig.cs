@@ -3,6 +3,7 @@ using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Io;
+using AngleSharp.Html.Dom;
 using HttpMethod = System.Net.Http.HttpMethod;
 
 namespace ScheduleLib.Scraping.Common;
@@ -80,14 +81,17 @@ public sealed class ScrapingContext : IDisposable
 {
     // Takes ownership of everything.
     private readonly HttpClientContext _http;
+    private readonly HttpClientRequester _requester;
     public IServiceProvider? BuilderServices { get; set; }
 
     private ScrapingContext(
         HttpClientContext http,
-        IBrowsingContext browser)
+        IBrowsingContext browser,
+        HttpClientRequester requester)
     {
         _http = http;
         Browser = browser;
+        _requester = requester;
     }
 
     public HttpClient HttpClient => _http.Client;
@@ -106,8 +110,16 @@ public sealed class ScrapingContext : IDisposable
         config = config.With<ICookieProvider>(_ => http.CookieProvider);
 
         var browsingContext = BrowsingContext.New(config);
-        return new(http, browsingContext);
+        return new(http, browsingContext, requester);
     }
+
+    /// <summary>Suppresses authentication replay and redirect navigation for this explicit mutation.</summary>
+    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null) =>
+        _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
+        {
+            token.ThrowIfCancellationRequested();
+            onSubmissionStarted?.Invoke();
+        });
 
     public void Dispose()
     {
@@ -171,6 +183,8 @@ internal sealed class HttpClientRequester : BaseRequester
 {
     private readonly HttpClient _httpClient;
     private readonly IAuthHandler _authHandler;
+    private readonly AsyncLocal<bool> _suppressAuthenticationReplay = new();
+    private readonly AsyncLocal<Action?> _onSubmissionStarted = new();
 
     public HttpClientRequester(
         HttpClient client,
@@ -178,6 +192,20 @@ internal sealed class HttpClientRequester : BaseRequester
     {
         _httpClient = client;
         _authHandler = authHandler;
+    }
+
+    public async Task<T> WithoutAuthenticationReplay<T>(Func<Task<T>> submit, Action? onSubmissionStarted)
+    {
+        var previous = _suppressAuthenticationReplay.Value;
+        var previousCallback = _onSubmissionStarted.Value;
+        _suppressAuthenticationReplay.Value = true;
+        _onSubmissionStarted.Value = onSubmissionStarted;
+        try { return await submit(); }
+        finally
+        {
+            _suppressAuthenticationReplay.Value = previous;
+            _onSubmissionStarted.Value = previousCallback;
+        }
     }
 
     public override bool SupportsProtocol(string protocol) => true;
@@ -188,6 +216,8 @@ internal sealed class HttpClientRequester : BaseRequester
         while (true)
         {
             using var httpRequest = ToHttpRequest(request);
+            cancel.ThrowIfCancellationRequested();
+            if (httpRequest.Method == HttpMethod.Post) _onSubmissionStarted.Value?.Invoke();
             var httpResponse = await _httpClient.SendAsync(
                 request: httpRequest,
                 completionOption: HttpCompletionOption.ResponseHeadersRead,
@@ -208,7 +238,7 @@ internal sealed class HttpClientRequester : BaseRequester
             }
 
             // if invalid token
-            if (ShouldAuthenticate())
+            if (!_suppressAuthenticationReplay.Value && ShouldAuthenticate())
             {
                 if (failedOnce)
                 {
@@ -220,6 +250,15 @@ internal sealed class HttpClientRequester : BaseRequester
                 continue;
             }
 
+            // AngleSharp follows Location itself (including redirects that can replay POST).
+            // Explicit mutations must return control before any redirect navigation.
+            if (_suppressAuthenticationReplay.Value && (int) httpResponse.StatusCode is >= 300 and < 400)
+            {
+                var location = httpResponse.Headers.Location;
+                var statusCode = httpResponse.StatusCode;
+                httpResponse.Dispose();
+                throw new FormSubmissionRedirectException(location, statusCode);
+            }
             var response = await ToResponse(request.Address, httpResponse, cancel);
             return response;
         }
@@ -296,4 +335,12 @@ internal sealed class HttpClientRequester : BaseRequester
         }
         return ret;
     }
+}
+
+/// <summary>A mutation redirect whose destination was deliberately not requested.</summary>
+public sealed class FormSubmissionRedirectException(Uri? location, HttpStatusCode statusCode)
+    : IOException("Form submission redirected; the mutation result is unconfirmed.")
+{
+    public Uri? Location { get; } = location;
+    public HttpStatusCode StatusCode { get; } = statusCode;
 }

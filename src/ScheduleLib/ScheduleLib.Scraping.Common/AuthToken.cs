@@ -110,6 +110,7 @@ public sealed class PasswordLoginFormConfig
     public required string LoginName { get; init; }
     public required string PasswordName { get; init; }
     public required bool RequireButtonClick { get; init; }
+    public string? AuthenticationSuccessSelector { get; init; }
 }
 
 public sealed class BrowsingContextProvider
@@ -148,6 +149,7 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
     public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
         var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
+        if (html.StatusCode != HttpStatusCode.OK) return false;
         if (GetInput(_formConfig.LoginName) is not { } loginInput)
         {
             return false;
@@ -172,7 +174,8 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
             return false;
         }
 
-        IDocument response;
+        cancellationToken.ThrowIfCancellationRequested();
+        Task<IDocument> submission;
         if (_formConfig.RequireButtonClick)
         {
             var button = form.QuerySelector<IHtmlButtonElement>("button[type=submit]");
@@ -182,19 +185,28 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
                 return false;
             }
 
-            response = await button.SubmitAsync();
+            submission = button.SubmitAsync();
         }
         else
         {
-            response = await form.SubmitAsync();
+            submission = form.SubmitAsync();
         }
 
-        // if (response.Url == _names.BaseUrl.ToString())
-        // {
-        //     return false;
-        // }
-        _ = response;
-        return true;
+        IDocument response;
+        try { response = await submission.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException)
+        {
+            // AngleSharp cannot cancel submission; end this owned browsing session and
+            // observe any later transport fault without waiting for it to finish.
+            _browser.Get().Dispose();
+            _ = submission.ContinueWith(task => _ = task.Exception,
+                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+            throw;
+        }
+        return response.StatusCode == HttpStatusCode.OK
+            && response.QuerySelector("input[type=password]") is null
+            && (_formConfig.AuthenticationSuccessSelector is not { } selector || response.QuerySelector(selector) is not null);
 
         IHtmlInputElement? GetInput(string name)
         {

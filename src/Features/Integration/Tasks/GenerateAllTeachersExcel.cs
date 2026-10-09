@@ -33,6 +33,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
     public ValueTask Run(RunParams p)
     {
+        p.CancellationToken.ThrowIfCancellationRequested();
         var stringBuilder = p.StringBuilder ?? new();
         using var excel = SpreadsheetDocument.Create(
             p.OutputDirectory,
@@ -269,6 +270,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
                     foreach (var teacherId in teachers)
                     {
+                        p.CancellationToken.ThrowIfCancellationRequested();
                         var cell = cells.NextCell();
 
                         if (isSeminarDate)

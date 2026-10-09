@@ -117,20 +117,28 @@ public static class TasksHelper
         {
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
             {
-                var outputPath = PathHelper.WithExtension(filePath, ".docx");
-                var conversionSuccessful = await DocToDocxConversionHelper.TryConvertFile(
-                    inputPath: filePath,
-                    outputPath: outputPath,
-                    cancellationToken: cancellationToken);
-                if (!conversionSuccessful)
+                // CA2000 misses using-declaration disposal inside this async local function.
+#pragma warning disable CA2000
+                using var stagingOwner = OwnedConversionDirectory.Create(Path.GetTempPath());
+#pragma warning restore CA2000
+                var stagingDirectory = stagingOwner.DirectoryPath;
                 {
-                    throw new InvalidOperationException("Could not convert doc to docx");
+                    var stagedInput = Path.Combine(stagingDirectory, Path.GetFileName(filePath));
+                    File.Copy(filePath, stagedInput);
+                    var outputPath = Path.ChangeExtension(stagedInput, ".docx");
+                    if (!await DocToDocxConversionHelper.TryConvertFile(stagedInput, outputPath, cancellationToken))
+                        throw new IOException("Could not convert doc to docx. Windows with Microsoft Word is required.");
+                    using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
+                    context.SetPeriod(period);
+                    WordScheduleParser.ParseToSchedule(new() { Context = context, Document = document });
                 }
-                File.Delete(filePath);
             }
 
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
             {
+                // A paired legacy source was already parsed from its staged conversion.
+                if (File.Exists(Path.ChangeExtension(filePath, ".doc"))) continue;
+                cancellationToken.ThrowIfCancellationRequested();
                 using var document = WordprocessingDocument.Open(filePath, isEditable: false);
                 context.SetPeriod(period);
 

@@ -34,7 +34,7 @@ public static class ScheduleDirectoryDiscovery
                 }
                 else
                 {
-                    throw new NotSupportedException($"Invalid attendance mode: {subdirName}");
+                    throw new InvalidAttendanceDirectoryFormat(subdirName.ToString());
                 }
                 yield return new(
                     attendanceMode: attendanceMode,
@@ -174,7 +174,11 @@ public sealed class ScheduleDirectoryDescriptor
     }
 }
 
-public sealed class InvalidScheduleDirectoryFormat : NotSupportedException
+public abstract class InvalidScheduleSourceException(string message) : NotSupportedException(message);
+
+public sealed class InvalidAttendanceDirectoryFormat(string name) : InvalidScheduleSourceException($"Invalid attendance mode: {name}");
+
+public sealed class InvalidScheduleDirectoryFormat : InvalidScheduleSourceException
 {
     public InvalidScheduleDirectoryFormat(SequenceSegment segment, string expected)
         : base($"Invalid directory name format at `{segment}`. {expected}")

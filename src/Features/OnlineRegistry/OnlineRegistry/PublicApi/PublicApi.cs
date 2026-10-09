@@ -1,5 +1,7 @@
+using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -179,12 +181,95 @@ public sealed class GroupsNavigator
 }
 
 [AutoConstructor]
-public sealed partial class OnlineRegistryNavigator
+public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IRegistryGradeNavigator
 {
     public readonly IRegistryErrorHandler ErrorHandler;
     public readonly RegistryScrapingContext Context;
     public readonly IServiceProvider ServiceProvider;
     public readonly CancellationToken CancellationToken;
+
+    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Courses().Get(semester);
+    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) => Groups().Get(course);
+    public Task SubmitLesson(IDocument document) => SubmitLesson(document, null);
+    public Task SubmitLesson(IDocument document, Action? onSubmissionStarted) =>
+        SubmitMutation(HtmlSearch.GetLessonForm(document), "lesson submission", onSubmissionStarted);
+
+    public Task SubmitDelete(IDocument document) => SubmitDelete(document, null);
+    public Task SubmitDelete(IDocument document, Action? onSubmissionStarted)
+    {
+        var form = document.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")
+            ?? throw new InvalidOperationException("Registry delete form is missing.");
+        return SubmitMutation(form, "deletion", onSubmissionStarted);
+    }
+
+    private async Task SubmitMutation(IHtmlFormElement form, string operation, Action? onSubmissionStarted)
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        var response = await SubmitOnce(form, CancellationToken, onSubmissionStarted);
+        RejectResponse(response, operation);
+    }
+
+    private async Task<IDocument> SubmitOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted)
+    {
+        if (!form.Method.Equals("post", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Registry mutation form must use POST.");
+        try
+        {
+            return await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted)
+                ?? throw new IOException("Registry returned no submission response.");
+        }
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther
+            && error.Location is { } location && IsLoginAddress(location.ToString()))
+        {
+            throw new RegistrySubmissionRejectedException("Registry submission redirected to login.");
+        }
+    }
+
+    private static bool IsLoginAddress(string address)
+    {
+        var path = address.Split('?', '#')[0].TrimEnd('/');
+        return path.EndsWith("/login", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void RejectResponse(IDocument response, string operation)
+    {
+        if ((int) response.StatusCode is >= 400 and < 500
+            || response.QuerySelector("input[type=password]") is not null
+            || IsLoginAddress(response.Url)
+            || response.QuerySelectorAll(".validation-summary-errors").Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
+            throw new RegistrySubmissionRejectedException($"Registry rejected {operation}.");
+        if (response.StatusCode != HttpStatusCode.OK)
+            throw new IOException($"Registry {operation} response could not be confirmed.");
+    }
+
+    public async Task SubmitGrades(IDocument document, CancellationToken token, Action? onSubmissionStarted = null)
+    {
+        var form = RegistryGradeForm.Validate(document);
+        token.ThrowIfCancellationRequested();
+        var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
+            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+        try
+        {
+            var response = await SubmitOnce(form, token, onSubmissionStarted);
+            RejectResponse(response, "grade submission");
+            // An ordinary form response or navigation away from the edit page must still be
+            // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
+            if (response.QuerySelector<IHtmlFormElement>("form") is null && response.Url == document.Url)
+                throw new IOException("Registry grade submission response could not be confirmed.");
+        }
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+        {
+            // Confirm at the known edit URL below. A failed confirmation read cannot
+            // establish rejection of the already-attempted POST.
+        }
+        var saved = await Context.Browser.OpenAsync(document.Url, token);
+        var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
+        if (saved.StatusCode != HttpStatusCode.OK
+            || saved.QuerySelector("input[type=password], .validation-summary-errors") is not null
+            || expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
+                || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+            throw new IOException("Registry saved grades could not be confirmed.");
+    }
 
     public CoursesNavigator Courses()
     {

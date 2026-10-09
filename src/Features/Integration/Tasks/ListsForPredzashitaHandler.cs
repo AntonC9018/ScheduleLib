@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
@@ -21,6 +22,13 @@ public sealed class CommissionMember
     public bool IsPresident { get; init; }
 }
 
+/// <summary>Optional C# configuration; null values retain the existing coded data.</summary>
+public sealed class PreDefenseOptions
+{
+    public Commission<CommissionMember>[]? Commissions { get; set; }
+    public (string Student, string Group)[]? AvrStudents { get; set; }
+}
+
 public sealed partial class ListsForPredzashitaTaskHandler
 {
     // Initialize these in a static constructor.
@@ -30,15 +38,65 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private readonly ThesesListProvider _thesesListProvider;
     private readonly ILogger _logger;
     private readonly INameRemapper _nameRemapper;
+    private readonly PreDefenseOptions _options;
+
+    public static bool HasConfiguredCommissions(PreDefenseOptions options) =>
+        (options.Commissions ?? Commissions) is { Length: > 0 } configured
+        && configured.All(x => x.Members.Length > 0);
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
         ILogger<ListsForPredzashitaTaskHandler> logger,
-        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper)
+        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper,
+        IOptions<PreDefenseOptions> options)
     {
         _thesesListProvider = thesesListProvider;
         _logger = logger;
         _nameRemapper = nameRemapper;
+        _options = options.Value;
+    }
+
+    public string? GetConfigurationError()
+    {
+        if (!HasConfiguredCommissions(_options))
+            return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
+        try { return GetConfigurationError(ParseCommissionNames()); }
+        catch (InvalidDataException e) { return e.Message; }
+    }
+
+    private static string? GetConfigurationError(Commission<Name>[] commissions)
+    {
+        var numbers = new HashSet<int>();
+        var members = new HashSet<Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
+        foreach (var commission in commissions)
+        {
+            if (!numbers.Add(commission.Number))
+                return $"Pre-defense commission number {commission.Number} is configured more than once.";
+            foreach (var member in commission.Members)
+            {
+                if (!members.Add(member))
+                    return $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+            }
+        }
+        return null;
+    }
+
+    private Commission<Name>[] ParseCommissionNames() => (_options.Commissions ?? Commissions).Select(x =>
+        new Commission<Name>
+        {
+            Members = x.Members.Select((y, index) => ParseCommissionMember(x.Number, index + 1, y.Name)).ToArray(),
+            Number = x.Number,
+            Room = x.Room,
+        }).ToArray();
+
+    private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
+    {
+        try { return _nameRemapper.RemapName(NameHelper.Parse(name)); }
+        catch (NameParsingException e)
+        {
+            throw new InvalidDataException(
+                $"Pre-defense commission {commissionNumber} member {memberNumber} has an invalid name '{name}': {e.Message}", e);
+        }
     }
 
     public async Task Handle(
@@ -46,10 +104,23 @@ public sealed partial class ListsForPredzashitaTaskHandler
         OutputDirectory outputDirectory,
         CancellationToken cancellationToken)
     {
+        var data = await BuildWorkbooks(thesisType, cancellationToken);
+        await WriteAllAsync(data, outputDirectory, cancellationToken);
+    }
+
+    public async Task<Dictionary<int, List<StudentThesisRecord>>> BuildWorkbooks(
+        ThesisType thesisType, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!HasConfiguredCommissions(_options))
+            throw new InvalidDataException("Pre-defense requires commission data in the existing C# configuration.");
+        var commissionsWithParsedNames = ParseCommissionNames();
+        if (GetConfigurationError(commissionsWithParsedNames) is { } error)
+            throw new InvalidDataException(error);
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
         var avrLookup = new HashSet<NameAndGroup>(Hasher.Instance);
-        foreach (var x in AvrStudents)
+        foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
             avrLookup.Add(new(name, x.Group));
@@ -67,21 +138,6 @@ public sealed partial class ListsForPredzashitaTaskHandler
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             list.Add(new(studentName, group, thesisName));
         }
-
-        var commissionsWithParsedNames = Commissions.Select(x =>
-        {
-            return new Commission<Name>
-            {
-                Members = x.Members.Select(y =>
-                {
-                    var name = NameHelper.Parse(y.Name);
-                    name = _nameRemapper.RemapName(name);
-                    return name;
-                }).ToArray(),
-                Number = x.Number,
-                Room = x.Room,
-            };
-        }).ToArray();
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
         foreach (var c in commissionsWithParsedNames)
@@ -128,7 +184,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             }
         }
 
-        await WriteAllAsync(thesesOfCommision, outputDirectory, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return thesesOfCommision;
     }
 
     public static async Task WriteAsync(

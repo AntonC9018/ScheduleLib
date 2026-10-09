@@ -29,6 +29,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
     public async ValueTask Run(RunParams p)
     {
+        p.CancellationToken.ThrowIfCancellationRequested();
         var deadlinesExcelConfig = _deadlinesExcelConfigProvider.Get();
         if (deadlinesExcelConfig is null)
         {
@@ -45,6 +46,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
         foreach (var group in schedule.Groups)
         {
+            p.CancellationToken.ThrowIfCancellationRequested();
             var lessonsBySubgroup = schedule
                 .EnumerateLessons()
                 .Where(x => x.Lesson.Group == group)
@@ -59,6 +61,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
             foreach (var l in lessonsBySubgroup)
             {
+                p.CancellationToken.ThrowIfCancellationRequested();
                 var key = l.Key;
                 var scheduledLessons = _dateTimeProvider.GetSorted(new()
                 {
@@ -173,6 +176,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     foreach (var cell in dataRange.Cells())
                     {
+                        p.CancellationToken.ThrowIfCancellationRequested();
                         string leftCellRef = worksheet
                             .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
                             .Address
@@ -205,6 +209,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             }
         }
 
+        p.CancellationToken.ThrowIfCancellationRequested();
         workbook.SaveAs(p.OutputStream);
     }
 }

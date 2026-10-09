@@ -29,12 +29,14 @@ public sealed class MoodleScrapingContext : IDisposable
         LoginName = new("username"),
         PasswordName = new("password"),
         RequireButtonClick = true,
+        AuthenticationSuccessSelector = "a[href*='/login/logout.php']",
     };
 
     public static async Task<MoodleScrapingContext> Create(
         IServiceProvider sp,
         Credentials credentials,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpClientContext? httpContext = null)
     {
         var builder = new ScrapingContextBuilder();
         builder.Delay(TimeSpan.FromSeconds(0.4));
@@ -43,7 +45,7 @@ public sealed class MoodleScrapingContext : IDisposable
         builder.TokenAuth(
             f => f.PasswordLoginForm(credentials));
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
-        var context = await builder.Build(cancellationToken);
+        var context = await builder.Build(cancellationToken, httpContext);
         return new MoodleScrapingContext(context);
     }
 

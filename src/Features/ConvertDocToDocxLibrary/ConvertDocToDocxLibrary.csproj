@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <InternalsVisibleTo Include="MainCli.Tests" />
+    </ItemGroup>
+
     <PropertyGroup>
-        <TargetFramework>$(WindowsTarget)</TargetFramework>
         <IncludeHelpers>true</IncludeHelpers>
+        <!-- Converter content depends on the caller's RID, including cross-publishing. -->
+        <IsRidAgnostic>false</IsRidAgnostic>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -9,12 +14,22 @@
         <NoWarn>$(NoWarn);NU1702</NoWarn>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows'))) Or $(RuntimeIdentifier.StartsWith('win')) Or '$(BundleWordConverter)' == 'true'">
         <ProjectReference Include="..\ConvertDocToDocx\ConvertDocToDocx.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <GlobalPropertiesToRemove>RuntimeIdentifier;SelfContained</GlobalPropertiesToRemove>
         </ProjectReference>
         <Content Include="..\ConvertDocToDocx\bin\$(Configuration)\net4.8\ConvertDocToDocx.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+        <Content Include="..\ConvertDocToDocx\bin\$(Configuration)\net4.8\ConvertDocToDocx.exe.config">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+        <Content Include="..\ConvertDocToDocx\bin\$(Configuration)\net4.8\Microsoft.Office.Interop.Word.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
     </ItemGroup>
 </Project>

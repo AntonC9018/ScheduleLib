@@ -51,7 +51,7 @@ public static class Registration
                 {
                     w = w.Enrich.With(new RemovePropertyEnricher("EventId"));
                     w = w.Enrich.With(new RemovePropertyEnricher("SourceContext"));
-                    w.WriteTo.Console(outputTemplate:
+                    w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose, outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
                 });
 

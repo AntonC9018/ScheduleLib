@@ -595,8 +595,8 @@ internal static class HtmlSearch
 
     internal static IHtmlFormElement GetLessonForm(IDocument doc)
     {
-        var lessonDateBox = (IHtmlInputElement) doc.GetElementById("LessonDate")!;
-        return lessonDateBox.Form!;
+        var lessonDateBox = doc.GetElementById("LessonDate") as IHtmlInputElement;
+        return lessonDateBox?.Form ?? throw new InvalidOperationException("Registry lesson form is missing.");
     }
 
     internal static void UpdateForm(SendUpdatedFormParams p)
@@ -717,10 +717,11 @@ internal static class HtmlSearch
         }
     }
 
-    internal static async Task SendForm(IDocument doc)
+    internal static async Task SendForm(IDocument doc, CancellationToken cancellationToken = default)
     {
         var form = GetLessonForm(doc);
-        var ret = await form.SubmitAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+        var ret = await form.SubmitAsync().WaitAsync(cancellationToken) ?? throw new IOException("Registry returned no submission response.");
         var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
             .SelectMany(x => x.Children)
             .SelectMany(x => x.Children)
@@ -728,7 +729,7 @@ internal static class HtmlSearch
             .ToArray();
         if (validationErrors.Length != 0)
         {
-            throw new InvalidOperationException($"Validation errors: {string.Concat("\n", validationErrors)}");
+            throw new RegistrySubmissionRejectedException($"Validation errors: {string.Concat("\n", validationErrors)}");
         }
     }
 

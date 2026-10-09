@@ -22,14 +22,15 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
     public readonly struct RunParams
     {
         public required CancellationToken CancellationToken { get; init; }
-        public required OutputDirectory OutputDirectory { get; init; }
+        public OutputDirectory? OutputDirectory { get; init; }
+        public Func<string, Func<Stream, CancellationToken, Task>, CancellationToken, Task>? PublishArtifact { get; init; }
     }
 
     public async ValueTask Run(RunParams p)
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
-        var tasks = new List<Task>();
+        var artifacts = new List<(string Name, LessonTextDisplayHandler Display, ScheduleFilter Filter)>();
         {
             var textDisplayHandler = new LessonTextDisplayHandler(
                 _lessonTextDisplayServices,
@@ -66,13 +67,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 string fileName,
                 GroupFilter groupFilter)
             {
-                tasks.Add(Task.Run(() =>
-                {
-                    GenerateWithFilter(fileName, textDisplayHandler, new()
-                    {
-                        GroupFilter = groupFilter,
-                    });
-                }));
+                artifacts.Add((fileName, textDisplayHandler, new() { GroupFilter = groupFilter }));
             }
         }
 
@@ -93,25 +88,22 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 
                 var fileName = sb.ToStringAndClear();
 
-                var t = Task.Run(() =>
+                artifacts.Add((fileName, textDisplayHandler, new()
                 {
-                    GenerateWithFilter(fileName, textDisplayHandler, new()
-                    {
-                        TeacherFilter = new()
-                        {
-                            IncludeIds = [new(teacherId1)],
-                        },
-                    });
-                });
-                tasks.Add(t);
+                    TeacherFilter = new() { IncludeIds = [new(teacherId1)] },
+                }));
             }
         }
-        await Task.WhenAll(tasks);
+        foreach (var artifact in artifacts)
+        {
+            p.CancellationToken.ThrowIfCancellationRequested();
+            await GenerateWithFilter(artifact.Name, artifact.Display, artifact.Filter);
+        }
 
-        void GenerateWithFilter(
+        async Task GenerateWithFilter(
             string name,
             LessonTextDisplayHandler textDisplayHandler,
-            in ScheduleFilter filter)
+            ScheduleFilter filter)
         {
             var filteredSchedule = _schedule.Filter(
                 filter
@@ -131,9 +123,21 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 TimeSlotDisplay = _timeSlotDisplay,
             }, filteredSchedule);
 
-            using var outputFile = p.OutputDirectory.OpenFile(name, FileMode.Create, FileAccess.Write);
-            // This doesn't have an async overload.
-            generator.GeneratePdf(outputFile);
+            if (p.PublishArtifact is { } publish)
+                await publish(name, Generate, p.CancellationToken);
+            else
+            {
+                using var outputFile = p.OutputDirectory!.OpenFile(name, FileMode.Create, FileAccess.Write);
+                await Generate(outputFile, p.CancellationToken);
+            }
+
+            Task Generate(Stream stream, CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                generator.GeneratePdf(stream);
+                token.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
         }
     }
 }
