@@ -200,11 +200,17 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
         catch (FileNotFoundException) { return default!; }
         catch (JsonException) { throw new IOException("Stored Google authorization is invalid; log out and log in again."); }
     }
-    public Task StoreAsync<T>(string key, T value) => Write(value, CancellationToken.None);
-    public async Task Write<T>(T value, CancellationToken token)
+    public Task StoreAsync<T>(string key, T value) => Write(value, CancellationToken.None, preserveOmittedScopes: true);
+    public Task Write<T>(T value, CancellationToken token) => Write(value, token, preserveOmittedScopes: false);
+    private async Task Write<T>(T value, CancellationToken token, bool preserveOmittedScopes)
     {
         await using var lease = await LocalFileLock.Acquire(path + ".lock", token, wait: true);
         if (requireExisting && !File.Exists(path)) throw new IOException("Local authorization was logged out; login is required.");
+        // SDK refresh responses may omit an unchanged grant. Read and merge under the
+        // same account lock as publication, and update the response used by UserCredential too.
+        // Explicit grants (including an empty grant) must replace the previous scopes.
+        if (preserveOmittedScopes && value is TokenResponse { Scope: null } refreshed)
+            refreshed.Scope = (await GetAsync<TokenResponse>(""))?.Scope;
         await AtomicFile.Publish(path, (stream, ct) =>
         {
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(((FileStream)stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);

@@ -6,6 +6,10 @@ using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Http;
 using Google.Apis.Services;
+using Google.Apis.Util.Store;
+using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Application.Config;
+using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using Xunit;
 
@@ -180,6 +184,173 @@ public sealed class GoogleDriveProviderTests
             Console.SetError(originalError);
             Directory.Delete(directory, true);
         }
+    }
+
+    [Fact]
+    public async Task UnrelatedCredentialInvalidOperationIsNotAuthenticationFailure()
+    {
+        using var handler = new Transport((_, _) => throw new Xunit.Sdk.XunitException("Request must not be sent."));
+        using var service = Service(handler);
+        service.HttpClient.MessageHandler.Credential = new BrokenCredential();
+        using var provider = new GoogleDriveSyncProvider(service);
+        using var input = new MemoryStream([1]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => provider.Create("folder", "a.pdf", input, default));
+        Assert.Empty(handler.Requests);
+    }
+
+    private sealed class BrokenCredential : IHttpExecuteInterceptor
+    {
+        public Task InterceptAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Unrelated credential invariant.");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("https://www.googleapis.com/auth/drive")]
+    [InlineData("")]
+    public async Task SdkRefreshPersistsOmittedScopesAndHonorsExplicitGrants(string? responseScope)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        using var handler = new Transport((request, _) => Task.FromResult(Json(
+            request.RequestUri!.Host == "oauth2.googleapis.com"
+                ? "{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\""
+                    + (responseScope is null ? "" : ",\"scope\":\"" + responseScope + "\"") + "}"
+                : "{\"id\":\"created\"}")));
+        using var tokens = new SdkTokens(handler);
+        using var auth = new GoogleAuthentication(directory, tokens);
+        using var services = new ServiceCollection().BuildServiceProvider();
+        try
+        {
+            await auth.Login(AuthConfig, "fixture", services, default);
+            var credential = await auth.Resolve(AuthConfig, GoogleAuthentication.LoginScopes, "fixture", services, default);
+            credential.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            using var service = CredentialService(handler, credential);
+            using var provider = new GoogleDriveSyncProvider(service);
+            using var input = new MemoryStream([1]);
+            Assert.Equal("created", await provider.Create("folder", "a.pdf", input, default));
+            var expected = responseScope ?? string.Join(' ', GoogleAuthentication.LoginScopes);
+            Assert.Equal(expected, credential.Token.Scope);
+            var file = Assert.Single(Directory.GetFiles(directory, "*.json", SearchOption.AllDirectories));
+            var persisted = await new AtomicTokenStore(file).GetAsync<TokenResponse>("fixture");
+            Assert.Equal(expected, persisted.Scope);
+            Assert.Equal("refresh", persisted.RefreshToken);
+            if (responseScope is null)
+            {
+                var second = await auth.Resolve(AuthConfig, GoogleAuthentication.LoginScopes, "fixture", services, default);
+                Assert.Equal(expected, second.Token.Scope);
+                Assert.Equal("fresh", second.Token.AccessToken);
+                using var secondService = CredentialService(handler, second);
+                using var secondProvider = new GoogleDriveSyncProvider(secondService);
+                using var secondInput = new MemoryStream([2]);
+                Assert.Equal("created", await secondProvider.Create("folder", "b.pdf", secondInput, default));
+            }
+            else
+                await Assert.ThrowsAsync<AuthenticationRequiredException>(() => auth.Resolve(
+                    AuthConfig, GoogleAuthentication.LoginScopes, "fixture", services, default));
+            Assert.Equal(responseScope is null ? 2 : 1, handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+            Assert.Single(handler.Requests.Where(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Theory]
+    [InlineData("planning", 4, 0, 0)]
+    [InlineData("first-mutation", 4, 4, 0)]
+    [InlineData("after-completed", 6, 5, 1)]
+    public async Task ExpiryAfterResolutionWithoutRefreshTokenFailsBeforeSending(string stage, int exit, int readsAndWrites, int writes)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var original = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        UserCredential? credential = null;
+        using var handler = new Transport((request, _) =>
+        {
+            Assert.NotEqual("oauth2.googleapis.com", request.RequestUri!.Host);
+            if (request.RequestUri.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
+                return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
+            if (request.Method == HttpMethod.Delete)
+            {
+                credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            }
+            var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query).Contains("mimeType", StringComparison.Ordinal);
+            if (!folderQuery && stage == "first-mutation") credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            return Task.FromResult(Json(folderQuery ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}"
+                : stage == "after-completed" ? "{\"files\":[{\"id\":\"obsolete\",\"name\":\"obsolete.pdf\"}]}" : "{\"files\":[]}"));
+        });
+        using var tokens = new SdkTokens(handler, refreshToken: null);
+        using var auth = new GoogleAuthentication(Path.Combine(directory, "auth"), tokens);
+        using var services = new ServiceCollection().BuildServiceProvider();
+        try
+        {
+            await auth.Login(AuthConfig, "fixture", services, default);
+            credential = await auth.Resolve(AuthConfig, GoogleAuthentication.LoginScopes, "fixture", services, default);
+            if (stage == "planning") credential.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+            using var service = CredentialService(handler, credential);
+            using var provider = new GoogleDriveSyncProvider(service);
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+            Assert.Equal(exit, await new DriveSyncTests.FixtureDrive(provider).Publish(
+                new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                new() { Profile = "Curmanschii Anton" }, new() { Directory = Path.Combine(directory, "output") },
+                new() { Json = true }, new() { Apply = stage != "planning" }));
+            using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
+            Assert.Equal(exit, json.RootElement.GetProperty("exitCode").GetInt32());
+            if (stage != "planning")
+            {
+                var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+                var failedIndex = stage == "after-completed" ? 1 : 0;
+                if (failedIndex == 1) Assert.Equal("completed", outcomes[0].GetProperty("state").GetString());
+                Assert.Equal("failed", outcomes[failedIndex].GetProperty("state").GetString());
+                Assert.All(outcomes.Skip(failedIndex + 1), x => Assert.Equal("not-attempted", x.GetProperty("state").GetString()));
+            }
+            if (exit == 4) Assert.Contains("auth login google", stderr.ToString());
+            Assert.Equal(readsAndWrites, handler.Requests.Count);
+            Assert.Equal(writes, handler.Requests.Count(x => x.Method != "GET"));
+            Assert.DoesNotContain("access-secret", stdout.ToString() + stderr);
+        }
+        finally
+        {
+            Console.SetOut(original);
+            Console.SetError(originalError);
+            Directory.Delete(directory, true);
+        }
+    }
+
+    private static BuiltGoogleCredentialsConfig AuthConfig => new()
+    {
+        CredentialsPath = "unused",
+        ApiKeysSource = new ManualGoogleApiKeysSource { Value = new() { ClientId = "fixture", ClientSecret = "fixture" } },
+    };
+    private static DriveService CredentialService(Transport handler, UserCredential credential) => new(new BaseClientService.Initializer
+    {
+        HttpClientFactory = new Factory(handler), HttpClientInitializer = credential,
+        ApplicationName = "fixture", DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None,
+    });
+    private sealed class SdkTokens(Transport handler, string? refreshToken = "refresh") : IGoogleTokenProvider, IDisposable
+    {
+        private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
+        public Task<TokenResponse> Consent(ClientSecrets secrets, string teacher, string[] scopes, CancellationToken token) => Task.FromResult(new TokenResponse
+        {
+            AccessToken = "access-secret", RefreshToken = refreshToken, Scope = string.Join(' ', scopes),
+            IssuedUtc = DateTime.UtcNow, ExpiresInSeconds = 3600,
+        });
+        public Task<TokenResponse?> Refresh(ClientSecrets secrets, string teacher, string[] scopes, TokenResponse authorization, CancellationToken token)
+            => throw new Xunit.Sdk.XunitException("Refresh must use the production SDK after resolution.");
+        public UserCredential CreateCredential(ClientSecrets secrets, string teacher, string[] scopes, TokenResponse authorization, IDataStore store)
+        {
+            var flow = new GoogleAuthorizationCodeFlow(new()
+            {
+                ClientSecrets = secrets, Scopes = scopes, DataStore = store, HttpClientFactory = new Factory(handler),
+            });
+            _flows.Add(flow);
+            return new(flow, teacher, authorization);
+        }
+        public void Dispose() { foreach (var flow in _flows) flow.Dispose(); }
     }
 
     [Theory]

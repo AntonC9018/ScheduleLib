@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Http;
@@ -106,6 +107,13 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
     {
         public async Task InterceptAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            // TokenRefreshManager throws InvalidOperationException for this specific
+            // condition. Classify it before interception, while no Drive request was sent.
+            if (credential is UserCredential user && string.IsNullOrEmpty(user.Token?.RefreshToken)
+                && (user.Token is null || user.Token.IsStale))
+                throw new Google.GoogleApiException("drive", "Google authorization failed.")
+                    { HttpStatusCode = System.Net.HttpStatusCode.Unauthorized };
             try { await credential.InterceptAsync(request, cancellationToken); }
             catch (TokenResponseException)
             {
