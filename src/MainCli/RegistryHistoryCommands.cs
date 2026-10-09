@@ -23,9 +23,12 @@ public interface IRegistryHistoryProvider
     Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(SettingsArguments settings, string? year, CancellationToken token);
 }
 
-public sealed class ConfiguredRegistryHistoryProvider : IRegistryHistoryProvider
+public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistoryProvider, IRegistryHistoryTopicsProvider
 {
-    public async Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(SettingsArguments settings, string? year, CancellationToken token)
+    public Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(SettingsArguments settings, string? year, CancellationToken token) =>
+        WithHistoryContext(settings, client => new RegistryHistoryReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance")).Discover(year, token), token);
+
+    private static async Task<T> WithHistoryContext<T>(SettingsArguments settings, Func<HttpClient, Task<T>> read, CancellationToken token)
     {
         // A single destination-wide lease covers login and all reads, regardless of account/profile.
         var lockPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScheduleLib", "locks", "registry-history-global.lock");
@@ -50,7 +53,7 @@ public sealed class ConfiguredRegistryHistoryProvider : IRegistryHistoryProvider
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
         using var context = await RegistryScraping.CreateHistoryContext(credentials, token);
-        return await new RegistryHistoryReader(context.HttpClient, new(RegistryScraping.BaseUrl + "LessonAttendance")).Discover(year, token);
+        return await read(context.HttpClient);
     }
 }
 

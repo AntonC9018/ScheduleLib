@@ -125,7 +125,7 @@ public sealed class RegistryHistoryTests
     }
 
     [Fact]
-    public async Task FreshHistorySessionBlocksMutationAndLessonDataRoutes()
+    public async Task FreshHistorySessionBlocksMutationAndLessonEditRoutes()
     {
         using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
         using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
@@ -134,7 +134,7 @@ public sealed class RegistryHistoryTests
         using var content = new StringContent("synthetic");
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.PostAsync(Index, content));
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.DeleteAsync(new Uri(Index.AbsoluteUri + "/groups/1")));
-        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index.AbsoluteUri + "/LessonsList/1")));
+        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index.AbsoluteUri + "/Edit/1")));
         Assert.Equal(0, inner.Calls);
     }
 

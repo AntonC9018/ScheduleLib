@@ -20,9 +20,10 @@ The configured application
 `CredentialsResolver<BuiltRegistryConfig>` selects credentials; no credential
 arguments, secret-file inspection or current schedule initialization are needed.
 The existing password-login builder authenticates once, without token cache
-reads/writes. Only the authentication POST and course-list/group-list GET routes
-are allowed. No lesson, grade, evaluation, delete, or reconciliation endpoint is
-requested. There is no apply switch.
+reads/writes. Only the authentication POST and course-list/group-list GET routes are used
+by this command. The shared guard also allows the exact read-only lesson-list
+route for the separate `history-topics` command below. Grade, evaluation, edit,
+create, delete, and reconciliation routes remain blocked. There is no apply switch.
 
 A destination-wide local file lock covers the whole operation across accounts
 and cooperating CLI processes. A shared process gate spaces complete responses
@@ -45,7 +46,7 @@ and raw group names. Errors are generic and do not print provider exceptions.
 Failures distinguish markup contracts, access rejection, unconfirmed authentication,
 unavailable years and ignored year selection using fixed codes. When an HTTP
 response is rejected, diagnostics also print only its fixed phase (`Login`,
-`Index`, or `Groups`) and numeric status code. Other failures show `Unknown`
+`Index`, `Groups`, or `Lessons`) and numeric status code. Other failures show `Unknown`
 and `HTTP unknown`. These fields describe the request that stopped the current
 run; they do not identify earlier requests or establish why another account's
 past request failed. Exception text, response content, request addresses, headers,
@@ -75,7 +76,40 @@ success. No cookies, credentials, student rows, topic contents or raw pages need
 to be shared. Changed markup is an explicit implementation gap, not permission
 to guess another route.
 
-This phase has no live validation or topic extraction. Lesson/topic acquisition,
-current-year selection, semantic mapping and ambiguous notation remain separate
-coordinator decisions. Historical summaries are not an import manifest or a
-reconciliation plan. Existing authoritative topic files are untouched.
+`registry history-topics --profile "configured teacher" --local-directory "$PWD/.registry-history" --json`
+adds topic acquisition after the coordinator authorizes resuming live requests.
+No live validation has been performed for this topic extraction implementation.
+Do not invoke it during an access-rejection pause. It shares configured credential
+resolution, the destination-wide global lease, and the five-second request gate
+with `history`; it has no apply switch.
+
+The registry-selected year determines current courses. Previous offered years
+are ordered only when they use the observed `YYYY/YY` format; other values stop
+with a generic markup error. The reader fetches current course/group/topic
+snapshots and previous-year courses matching a current course in the same
+semester. Matching ignores letter case, surrounding whitespace and trailing
+commas. Diacritics, spelling and semantic aliases remain distinct. The latest
+previous-year snapshot containing a nonempty topic is selected independently
+for each course. Duplicate matching courses remain unresolved, including a
+duplicate in a newer year even when an older year appears unambiguous.
+
+Topic extraction validates the first table's `Data`, `Tema`, `Redactare` header
+and reads only the first two cells of each lesson row. The observed registry
+sequence number is stripped only when followed by whitespace. Date and lesson
+type must match the observed formats; unsupported markup fails without printing
+cell contents. Student and attendance tables, view/edit/add links and evaluation
+links are never extracted or requested. The guard allows only numeric
+`LessonAttendance/LessonsList/<id>` paths with no query or one numeric
+`groupId` query parameter.
+
+Downloads create unique private CSV files with the existing `name,lessonType`
+columns, separately for every raw source group and lesson type. Rows retain
+chronological ordering, repeated topics and blank topic positions. A separate
+private candidate inventory records year/course/raw-group/source-URI/date
+provenance, current topic snapshots and unresolved course matches. It explicitly
+requires group mapping; faculty, language, attendance mode and grade are not
+inferred. This inventory is not an import manifest. Authoritative Anton/Nichita
+files and earlier downloads remain untouched. Semantic group mapping and a
+reviewed import manifest remain coordinator decisions. Console output contains
+only counts and fixed failure diagnostics. Synthetic tests verify extraction,
+matching, CSV import compatibility, private permissions and blocked routes.

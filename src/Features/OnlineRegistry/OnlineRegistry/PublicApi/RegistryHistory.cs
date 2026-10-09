@@ -6,7 +6,7 @@ using AngleSharp.Html.Parser;
 namespace ScheduleLib.OnlineRegistry;
 
 public enum RegistryHistoryFailure { MarkupContract, AccessRejected, AuthenticationNotConfirmed, RequestedYearUnavailable, YearNotConfirmed, TransportStopped }
-public enum RegistryHistoryPhase { Unknown, Login, Index, Groups }
+public enum RegistryHistoryPhase { Unknown, Login, Index, Groups, Lessons }
 public sealed class RegistryHistoryException(
     string message,
     RegistryHistoryFailure failure = RegistryHistoryFailure.MarkupContract,
@@ -139,7 +139,8 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
         {
             var uri = request.RequestUri;
             var login = !_authenticated && !_loginAttempted && request.Method == HttpMethod.Post && uri == _login;
-            var phase = login ? RegistryHistoryPhase.Login : uri is not null
+            var phase = login ? RegistryHistoryPhase.Login : uri is not null && IsLessonList(uri)
+                ? RegistryHistoryPhase.Lessons : uri is not null
                 && uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal)
                     ? RegistryHistoryPhase.Groups
                     : uri == _index || uri is not null && uri.AbsolutePath == _index.AbsolutePath
@@ -188,7 +189,21 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
     }
 
     private bool AllowedRead(Uri uri) => uri.AbsolutePath == _index.AbsolutePath
-        || uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal);
+        || uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal)
+        || IsLessonList(uri);
+
+    private bool IsLessonList(Uri uri)
+    {
+        var prefix = RegistryHistoryHtml.Root(_index) + "LessonAttendance/LessonsList/";
+        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) || uri.Fragment.Length != 0) return false;
+        var id = uri.AbsolutePath.AsSpan(prefix.Length);
+        if (id.Length == 0 || id.IndexOfAnyExceptInRange('0', '9') >= 0) return false;
+        if (uri.Query.Length == 0) return true;
+        const string groupQuery = "?groupId=";
+        if (!uri.Query.StartsWith(groupQuery, StringComparison.Ordinal)) return false;
+        var groupId = uri.Query.AsSpan(groupQuery.Length);
+        return groupId.Length > 0 && groupId.IndexOfAnyExceptInRange('0', '9') < 0;
+    }
 }
 
 public sealed class RegistryHistoryReader(HttpClient client, Uri index)
@@ -219,7 +234,7 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
         return summaries;
     }
 
-    private async Task<IDocument> Read(Uri uri, CancellationToken token)
+    internal async Task<IDocument> Read(Uri uri, CancellationToken token)
     {
         using var response = await client.GetAsync(uri, token);
         if (!response.IsSuccessStatusCode) throw new RegistryHistoryException("History page request failed.", RegistryHistoryFailure.AccessRejected);
