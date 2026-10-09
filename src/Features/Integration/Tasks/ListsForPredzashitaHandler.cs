@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
@@ -21,6 +22,13 @@ public sealed class CommissionMember
     public bool IsPresident { get; init; }
 }
 
+/// <summary>Optional C# configuration; null values retain the existing coded data.</summary>
+public sealed class PreDefenseOptions
+{
+    public Commission<CommissionMember>[]? Commissions { get; set; }
+    public (string Student, string Group)[]? AvrStudents { get; set; }
+}
+
 public sealed partial class ListsForPredzashitaTaskHandler
 {
     // Initialize these in a static constructor.
@@ -30,15 +38,22 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private readonly ThesesListProvider _thesesListProvider;
     private readonly ILogger _logger;
     private readonly INameRemapper _nameRemapper;
+    private readonly PreDefenseOptions _options;
+
+    public static bool HasConfiguredCommissions(PreDefenseOptions options) =>
+        (options.Commissions ?? Commissions) is { Length: > 0 } configured
+        && configured.All(x => x.Members.Length > 0);
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
         ILogger<ListsForPredzashitaTaskHandler> logger,
-        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper)
+        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper,
+        IOptions<PreDefenseOptions> options)
     {
         _thesesListProvider = thesesListProvider;
         _logger = logger;
         _nameRemapper = nameRemapper;
+        _options = options.Value;
     }
 
     public async Task Handle(
@@ -46,10 +61,20 @@ public sealed partial class ListsForPredzashitaTaskHandler
         OutputDirectory outputDirectory,
         CancellationToken cancellationToken)
     {
+        var data = await BuildWorkbooks(thesisType, cancellationToken);
+        await WriteAllAsync(data, outputDirectory, cancellationToken);
+    }
+
+    public async Task<Dictionary<int, List<StudentThesisRecord>>> BuildWorkbooks(
+        ThesisType thesisType, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!HasConfiguredCommissions(_options))
+            throw new InvalidDataException("Pre-defense requires commission data in the existing C# configuration.");
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
         var avrLookup = new HashSet<NameAndGroup>(Hasher.Instance);
-        foreach (var x in AvrStudents)
+        foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
             avrLookup.Add(new(name, x.Group));
@@ -68,7 +93,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
             list.Add(new(studentName, group, thesisName));
         }
 
-        var commissionsWithParsedNames = Commissions.Select(x =>
+        var commissionsWithParsedNames = (_options.Commissions ?? Commissions).Select(x =>
         {
             return new Commission<Name>
             {
@@ -128,7 +153,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             }
         }
 
-        await WriteAllAsync(thesesOfCommision, outputDirectory, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return thesesOfCommision;
     }
 
     public static async Task WriteAsync(
