@@ -53,6 +53,7 @@ public partial class ExportCommands
                 worksheets.AddRange(sheets.Select(x => x.Name?.Value ?? ""));
             }, cancellation.Token);
             await output.Complete("succeeded", cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }

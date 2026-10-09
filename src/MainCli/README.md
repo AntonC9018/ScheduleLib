@@ -70,16 +70,32 @@ dotnet run --project src/MainCli -- query free-hours --group MIA2501 --json
 desktop dispatch. At least one `--group` is required, and names resolve against
 the schedule: an unknown or ambiguous name is an argument error that reports the
 name and suggests a case-insensitive match. Results keep the existing handler's
-behavior for every group: both parities and both partition modes (with and
-without optional lessons), over all weekly periods rather than only the latest
-one. `--help` states those defaults and the result repeats them as a warning.
-Days are the Monday-Friday slots of the configured lesson times, and consecutive
-free slots are merged into one interval. Text output prints one block per
-group/parity/mode; `--json` returns the same structure under `data.sections`.
-Repeating a group reports it once with a warning. A group with no lessons
-succeeds with a fully free week.
+behavior for every group: both parities, both occupancy modes, and all weekly
+periods rather than only the latest one. The two modes are the two branches the
+desktop task has always computed, and they differ only in how lessons addressed to
+a subgroup, a specialization or an alternative are counted:
 
-The desktop task keeps its original Romanian rendering.
+- `EveryLessonOccupies`: every lesson the group attends occupies its slot, whichever
+  subgroup, specialization or alternative it addresses. A slot is free only when
+  the group has no lesson in it at all.
+- `OnlyWholeGroupLessonsOccupy`: only lessons targeting the whole group - subgroup,
+  specialization and alternative all unset - occupy their slot, plus lessons
+  carrying the legacy `opțional` subgroup marker without a specialization. Lessons
+  addressed to a subgroup, a specialization or an alternative - optional ones
+  included - leave their slot free.
+
+`--help` states those defaults and the result repeats them as a warning. Days are
+the Monday-Friday slots of the configured lesson times, and consecutive free
+slots are merged into one interval. Text output prints one block per
+group/parity/mode; `--json` returns the same structure under `data.sections`, with
+the mode in `mode`. Repeating a group reports it once with a warning. A group
+with no lessons succeeds with a fully free week. Cancellation is observed while
+the lessons are enumerated and again before the result is reported, so an
+interrupted query exits 130 with no `data` instead of a partial success.
+
+The desktop task keeps its original Romanian rendering, including its
+`optional?: True/False` marker, which is printed for the
+`OnlyWholeGroupLessonsOccupy` mode exactly as before.
 `PrintFreeHoursOfGroupTaskHandler.Sections` exposes that same computation as
 `FreeHoursSection` records and `Run` renders those sections, so the existing
 text and the CLI results cannot drift apart.

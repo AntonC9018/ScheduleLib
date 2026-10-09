@@ -21,15 +21,15 @@ public sealed class FreeHoursTests
     }
 
     [Fact]
-    public async Task SuppliedGroupsReportBothParitiesAndBothPartitionModes()
+    public async Task SuppliedGroupsReportBothParitiesAndBothOccupancyModes()
     {
         var data = (await Execute(For("M2301", "IA2301"))).GetProperty("data");
         Assert.Equal(new[] { "M2301", "IA2301" }, data.GetProperty("groups").EnumerateArray().Select(x => x.GetString()).ToArray());
         var sections = data.GetProperty("sections").EnumerateArray().ToArray();
         Assert.Equal(8, sections.Length);
         Assert.Equal(
-            new[] { "M2301/EvenWeek/incl", "M2301/EvenWeek/excl", "IA2301/EvenWeek/incl", "IA2301/EvenWeek/excl",
-                "M2301/OddWeek/incl", "M2301/OddWeek/excl", "IA2301/OddWeek/incl", "IA2301/OddWeek/excl" },
+            new[] { "M2301/EvenWeek/whole", "M2301/EvenWeek/every", "IA2301/EvenWeek/whole", "IA2301/EvenWeek/every",
+                "M2301/OddWeek/whole", "M2301/OddWeek/every", "IA2301/OddWeek/whole", "IA2301/OddWeek/every" },
             sections.Select(Name).ToArray());
         foreach (var section in sections)
             Assert.Equal(new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" },
@@ -44,15 +44,28 @@ public sealed class FreeHoursTests
     }
 
     [Fact]
-    public async Task PartitionInclusionModeChangesTheResult()
+    public async Task OccupancyModesReportTheActualSubgroupDifference()
     {
-        var dj = (await Execute(For("DJ2301"))).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
-        Assert.Equal(new[] { "DJ2301/EvenWeek/incl", "DJ2301/EvenWeek/excl", "DJ2301/OddWeek/incl", "DJ2301/OddWeek/excl" }, dj.Select(Name).ToArray());
-        Assert.Equal("Tuesday: 08:00-11:15,13:15-20:00 | ", Day(dj[2], "Tuesday"));
-        Assert.Equal("Tuesday: 08:00-11:15,13:15-16:30 | ", Day(dj[3], "Tuesday"));
+        // MIASD2501 has three Tuesday lessons: a whole-group one at 16:45-18:15, one for
+        // subgroup I at 15:00-16:30 and one for subgroup II at 18:30-20:00. Only the first
+        // one occupies its slot when only whole-group lessons count, so the two modes must
+        // report different free intervals for the very same lessons.
         var mia = (await Execute(For("MIASD2501"))).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
+        Assert.Equal(
+            new[] { "MIASD2501/EvenWeek/whole", "MIASD2501/EvenWeek/every", "MIASD2501/OddWeek/whole", "MIASD2501/OddWeek/every" },
+            mia.Select(Name).ToArray());
         Assert.Equal("Tuesday: 08:00-16:30,18:30-20:00 | ", Day(mia[0], "Tuesday"));
         Assert.Equal("Tuesday: 08:00-14:45 | ", Day(mia[1], "Tuesday"));
+        Assert.Equal("Tuesday: 08:00-16:30,18:30-20:00 | ", Day(mia[2], "Tuesday"));
+        Assert.Equal("Tuesday: 08:00-14:45 | ", Day(mia[3], "Tuesday"));
+
+        // DJ2301 is the same story with subgroup I lessons at 16:45-18:15 and 18:30-20:00.
+        var dj = (await Execute(For("DJ2301"))).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
+        Assert.Equal(
+            new[] { "DJ2301/EvenWeek/whole", "DJ2301/EvenWeek/every", "DJ2301/OddWeek/whole", "DJ2301/OddWeek/every" },
+            dj.Select(Name).ToArray());
+        Assert.Equal("Tuesday: 08:00-11:15,13:15-20:00 | ", Day(dj[2], "Tuesday"));
+        Assert.Equal("Tuesday: 08:00-11:15,13:15-16:30 | ", Day(dj[3], "Tuesday"));
     }
 
     [Fact]
@@ -67,25 +80,25 @@ public sealed class FreeHoursTests
             Assert.Equal(
                 new[]
                 {
-                    "IA2301, EvenWeek week, optional lessons: included",
+                    "IA2301, EvenWeek week, only whole-group lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                    "IA2301, EvenWeek week, optional lessons: excluded",
+                    "IA2301, EvenWeek week, every lesson occupies its slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                    "IA2301, OddWeek week, optional lessons: included",
+                    "IA2301, OddWeek week, only whole-group lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                    "IA2301, OddWeek week, optional lessons: excluded",
+                    "IA2301, OddWeek week, every lesson occupies its slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
@@ -189,6 +202,38 @@ public sealed class FreeHoursTests
     }
 
     [Fact]
+    public async Task CancellationDuringTheCalculationStopsTheHandler()
+    {
+        var services = CliRuntime.CreateServices(Source(), new FixtureQuery().FixtureServices);
+        await using var provider = AppConfiguration.BuildServiceProvider(services);
+        await provider.InitializeSchedule(CancellationToken.None);
+        await using var scope = provider.CreateAsyncScope();
+        var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
+
+        // The calculation must abort instead of returning the sections it can still
+        // compute. This is the layer the enumeration checks belong to, so it is asserted
+        // here; at the command level the pre-success check would mask a handler that
+        // ignores the token.
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => handler.Sections(["IA2301"], cancellation.Token));
+        Assert.Equal(4, handler.Sections(["IA2301"], CancellationToken.None).Length);
+    }
+
+    [Fact]
+    public async Task CancellationAfterTheCalculationIsNotSuccess()
+    {
+        using var cancellation = new CancellationTokenSource();
+        // Every section is computed by then, so only a check right before the result is
+        // reported can still turn this into a cancellation instead of a success.
+        var result = await Execute(For("IA2301"), new LateCancellingQuery(cancellation), cancellation.Token, expected: 130);
+        Assert.Equal(130, result.GetProperty("exitCode").GetInt32());
+        Assert.Equal("failed", result.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, result.GetProperty("data").ValueKind);
+        Assert.Equal(new[] { "Cancelled." }, result.GetProperty("errors").EnumerateArray().Select(x => x.GetString()).ToArray());
+    }
+
+    [Fact]
     public async Task MissingSourceIsAConfigurationError()
     {
         var original = Console.Out;
@@ -204,9 +249,6 @@ public sealed class FreeHoursTests
         }
         finally { Console.SetOut(original); }
     }
-
-    private static string Name(JsonElement section) => $"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/" +
-        (section.GetProperty("includesOptional").GetBoolean() ? "incl" : "excl");
 
     private static string Day(JsonElement day) => day.GetProperty("day").GetString() + ": " + string.Join(",", day.GetProperty("intervals").EnumerateArray()
         .Select(x => x.GetProperty("start").GetString() + "-" + x.GetProperty("end").GetString())) + " | ";
@@ -224,7 +266,10 @@ public sealed class FreeHoursTests
 
     private static FreeHoursArguments For(params string[] groups) => new() { Groups = groups };
 
-    private static async Task<JsonElement> Execute(FreeHoursArguments groups, int expected = 0)
+    private static Task<JsonElement> Execute(FreeHoursArguments groups, int expected = 0) =>
+        Execute(groups, new FixtureQuery(), CancellationToken.None, expected);
+
+    private static async Task<JsonElement> Execute(FreeHoursArguments groups, QueryCommands query, CancellationToken cancellationToken, int expected = 0)
     {
         var original = Console.Out;
         var cwd = Environment.CurrentDirectory;
@@ -232,7 +277,7 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
-            var exit = await new FixtureQuery().FreeHours(groups, Source(), new() { Json = true });
+            var exit = await query.FreeHours(groups, Source(), new() { Json = true }, cancellationToken);
             Assert.Equal(expected, exit);
             using var document = JsonDocument.Parse(output.ToString());
             Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
@@ -244,6 +289,9 @@ public sealed class FreeHoursTests
         finally { Console.SetOut(original); }
     }
 
+    private static string Name(JsonElement section) => $"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/" +
+        (section.GetProperty("mode").GetString() == nameof(FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy) ? "whole" : "every");
+
     private sealed class TempDirectory : IDisposable
     {
         public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-free-hours-{Guid.NewGuid():N}");
@@ -251,7 +299,7 @@ public sealed class FreeHoursTests
         public void Dispose() => Directory.Delete(Path, recursive: true);
     }
 
-    private sealed class FixtureQuery : QueryCommands
+    private class FixtureQueryBase : QueryCommands
     {
         public void FixtureServices(IServiceCollection services) => ConfigureServices(services);
 
@@ -260,6 +308,41 @@ public sealed class FreeHoursTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
             services.Configure<StudyYearOptions>(x => { x.StudyYear = new(2025); x.Semester = Semester.Sem2; });
+        }
+    }
+
+    private sealed class FixtureQuery : FixtureQueryBase;
+
+    /// <summary>Cancels the query after the free hours are computed, which is the last point
+    /// at which the command could still report success. The handler is built before the
+    /// calculation and takes the lesson times with it; the command asks for them once more
+    /// when it formats the computed intervals, and only that resolution cancels.</summary>
+    private sealed class LateCancellingQuery(CancellationTokenSource cancellation) : FixtureQueryBase
+    {
+        private bool _handlerBuilt;
+
+        protected override void ConfigureServices(IServiceCollection services)
+        {
+            base.ConfigureServices(services);
+            var declaredTime = services.Last(x => x.ServiceType == typeof(LessonTimeConfig));
+            services.AddScoped<PrintFreeHoursOfGroupTaskHandler>(sp =>
+            {
+                var handler = ActivatorUtilities.CreateInstance<PrintFreeHoursOfGroupTaskHandler>(sp);
+                _handlerBuilt = true;
+                return handler;
+            });
+            // Registered as transient so that the resolution after the calculation asks the
+            // factory again; as a singleton the times would be created only once.
+            services.AddTransient<LessonTimeConfig>(sp =>
+            {
+                var config = (LessonTimeConfig?)declaredTime.ImplementationInstance
+                    ?? throw new InvalidOperationException("The lesson times are no longer registered as an instance.");
+                if (_handlerBuilt)
+                {
+                    cancellation.Cancel();
+                }
+                return config;
+            });
         }
     }
 }

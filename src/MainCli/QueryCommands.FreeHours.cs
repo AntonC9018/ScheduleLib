@@ -14,12 +14,12 @@ public sealed class FreeHoursArguments : IArgumentModel
 
 public sealed record FreeHoursIntervalResult(string Start, string End);
 public sealed record FreeHoursDayResult(string Day, FreeHoursIntervalResult[] Intervals);
-public sealed record FreeHoursSectionResult(string Group, string Parity, bool IncludesOptional, FreeHoursDayResult[] Days);
+public sealed record FreeHoursSectionResult(string Group, string Parity, string Mode, FreeHoursDayResult[] Days);
 public sealed record FreeHoursResult(string[] Groups, FreeHoursSectionResult[] Sections);
 
 public partial class QueryCommands
 {
-    [Command("free-hours", Description = "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both partition modes (including and excluding optional lessons), and every weekly period rather than only the latest one. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
+    [Command("free-hours", Description = "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'OnlyWholeGroupLessonsOccupy' - only lessons targeting the whole group occupy their slot, so lessons addressed to a subgroup, a specialization or an alternative leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
     public async Task<int> FreeHours(FreeHoursArguments groups, SourceArguments source, ResultArguments output,
         CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
@@ -51,13 +51,16 @@ public partial class QueryCommands
             if (ambiguous.Length > 0) return Finish(2, [$"Group name(s) match more than one group: {string.Join(", ", ambiguous)}."]);
             warnings.Add("Free hours inspect every weekly period, not only the latest one.");
             var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
+            var sections = handler.Sections(names, cancellation.Token);
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            data = new(names, [.. handler.Sections(names, cancellation.Token)
-                .Select(x => new FreeHoursSectionResult(x.Group, x.Parity.ToString(), x.IncludesOptional,
+            var result = new FreeHoursResult(names, [.. sections
+                .Select(x => new FreeHoursSectionResult(x.Group, x.Parity.ToString(), x.Mode.ToString(),
                     [.. x.Days.Select(day => new FreeHoursDayResult(day.Day.ToString(),
                         [.. day.Intervals.Select(interval => new FreeHoursIntervalResult(
                             time.GetTimeSlotInterval(interval.Start).Start.ToString("HH:mm"),
                             time.GetTimeSlotInterval(interval.EndInclusive).End.ToString("HH:mm")))]))]))]);
+            cancellation.Token.ThrowIfCancellationRequested();
+            data = result;
             return Finish(0, []);
         }
         catch (OperationCanceledException) { return Finish(130, ["Cancelled."]); }
@@ -85,12 +88,16 @@ public partial class QueryCommands
             else if (data is not null)
                 foreach (var section in data.Sections)
                 {
-                    Console.WriteLine($"{section.Group}, {section.Parity} week, optional lessons: {(section.IncludesOptional ? "included" : "excluded")}");
+                    Console.WriteLine($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
                     foreach (var day in section.Days)
                         Console.WriteLine($"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}");
                 }
             return exit;
         }
+
+        static string Describe(string mode) => mode == nameof(FreeHoursOccupancyMode.OnlyWholeGroupLessonsOccupy)
+            ? "only whole-group lessons occupy their slot"
+            : "every lesson occupies its slot";
 
         static string UnknownGroups(string[] unknown, string[] known) =>
             string.Join(" ", unknown.Select(name =>

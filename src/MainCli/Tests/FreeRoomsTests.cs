@@ -41,8 +41,9 @@ public sealed class FreeRoomsTests
         {
             // Six days that have lessons, each a single-cell header followed by seven time slots.
             Assert.Equal(
-                new[] { (1, "Luni"), (10, "Marţi"), (19, "Miercuri"), (28, "Joi"), (37, "Vineri"), (46, "Sâmbătă") },
-                sheet.RowsUsed().Where(x => x.CellsUsed().Count() == 1).Select(x => (x.RowNumber(), x.Cell(1).GetFormattedString())).ToArray());
+                new[] { (Row: 1, Day: "Luni"), (Row: 10, Day: "Marţi"), (Row: 19, Day: "Miercuri"), (Row: 28, Day: "Joi"), (Row: 37, Day: "Vineri"), (Row: 46, Day: "Sâmbătă") },
+                sheet.RowsUsed().Where(x => x.CellsUsed().Count() == 1)
+                    .Select(x => (Row: x.RowNumber(), Day: x.Cell(1).GetFormattedString())).ToArray());
             Assert.Equal(53, sheet.LastRowUsed()!.RowNumber());
             Assert.Equal(new[] { "8:00-9:30", "9:45-11:15", "11:30-13:00", "13:15-14:45", "15:00-16:30", "16:45-18:15", "18:30-20:00" },
                 sheet.Column(1).Cells(2, 8).Select(x => x.GetFormattedString()).ToArray());
