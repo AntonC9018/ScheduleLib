@@ -188,17 +188,34 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
         finally { Gate.Release(); }
     }
 
-    private bool AllowedRead(Uri uri) => uri.AbsolutePath == _index.AbsolutePath
-        || uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal)
+    private bool AllowedRead(Uri uri) => IsIndex(uri)
+        || IsNumericRoute(uri, "groups", allowGroupQuery: false)
         || IsLessonList(uri);
 
-    private bool IsLessonList(Uri uri)
+    private bool IsIndex(Uri uri)
     {
-        var prefix = RegistryHistoryHtml.Root(_index) + "LessonAttendance/LessonsList/";
+        if (uri.AbsolutePath != _index.AbsolutePath || uri.Fragment.Length != 0) return false;
+        if (uri.Query.Length == 0) return true;
+        const string yearQuery = "?AnUniv=";
+        if (!uri.Query.StartsWith(yearQuery, StringComparison.Ordinal)) return false;
+        var value = Uri.UnescapeDataString(uri.Query[yearQuery.Length..]);
+        if (value.Length != 7 || value[4] != '/' || value.AsSpan(0, 4).IndexOfAnyExceptInRange('0', '9') >= 0
+            || value.AsSpan(5, 2).IndexOfAnyExceptInRange('0', '9') >= 0) return false;
+        var start = int.Parse(value.AsSpan(0, 4), System.Globalization.CultureInfo.InvariantCulture);
+        var end = int.Parse(value.AsSpan(5, 2), System.Globalization.CultureInfo.InvariantCulture);
+        return (start + 1) % 100 == end && uri.Query == yearQuery + Uri.EscapeDataString(value);
+    }
+
+    private bool IsLessonList(Uri uri) => IsNumericRoute(uri, "LessonsList", allowGroupQuery: true);
+
+    private bool IsNumericRoute(Uri uri, string route, bool allowGroupQuery)
+    {
+        var prefix = RegistryHistoryHtml.Root(_index) + "LessonAttendance/" + route + "/";
         if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) || uri.Fragment.Length != 0) return false;
         var id = uri.AbsolutePath.AsSpan(prefix.Length);
         if (id.Length == 0 || id.IndexOfAnyExceptInRange('0', '9') >= 0) return false;
         if (uri.Query.Length == 0) return true;
+        if (!allowGroupQuery) return false;
         const string groupQuery = "?groupId=";
         if (!uri.Query.StartsWith(groupQuery, StringComparison.Ordinal)) return false;
         var groupId = uri.Query.AsSpan(groupQuery.Length);

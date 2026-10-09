@@ -107,6 +107,36 @@ public sealed class RegistryHistoryTests
     }
 
     [Theory]
+    [InlineData("https://registry.test/studregistry/LessonAttendance", true)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F25", true)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?AnUniv=1999%2F00", true)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F26", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F25&AnUniv=2023%2F24", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?AnUniv=2024%252F25", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance?action=Delete", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance#Edit", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1", true)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1?groupId=2", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1?action=Delete", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1/Edit", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/Create", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1%2FEdit", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1/", false)]
+    [InlineData("https://registry.test/studregistry/LessonAttendance/groups/1#Edit", false)]
+    [InlineData("https://other.test/studregistry/LessonAttendance/groups/1", false)]
+    [InlineData("https://registry.test/other/LessonAttendance/groups/1", false)]
+    public async Task OnlyExactIndexAndObservedNumericGroupReadsReachTransport(string address, bool allowed)
+    {
+        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        using var guard = new RegistryHistoryRequestHandler(inner, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(1));
+        guard.CompleteAuthentication();
+        using var client = new HttpClient(guard);
+        if (allowed) { using var response = await client.GetAsync(address); }
+        else await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(address));
+        Assert.Equal(allowed ? 1 : 0, inner.Calls);
+    }
+
+    [Theory]
     [InlineData(401)] [InlineData(403)] [InlineData(429)] [InlineData(302)]
     public async Task RejectionStopsWithoutReplayOrFollowingRedirect(int status)
     {

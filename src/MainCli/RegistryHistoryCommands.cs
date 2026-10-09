@@ -73,11 +73,9 @@ public partial class RegistryCommands
         {
             if (string.IsNullOrWhiteSpace(settings.Profile) || string.IsNullOrWhiteSpace(history.LocalDirectory))
                 return Finish(2, "Select --profile and an explicit --local-directory named .registry-history.");
+            try { RegistryHistoryTopicFiles.ValidateDirectory(history.LocalDirectory); }
+            catch (Exception) { return Finish(2, "Private local storage requires a regular directory named .registry-history."); }
             var directory = Path.GetFullPath(history.LocalDirectory);
-            if (Path.GetFileName(Path.TrimEndingDirectorySeparator(directory)) != ".registry-history")
-                return Finish(2, "Private local storage must use a directory named .registry-history.");
-            if (Directory.Exists(directory) && (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
-                return Finish(2, "Private local storage must be a regular directory.");
             var summary = await CreateHistoryProvider().Discover(settings, history.Year, cancellation.Token);
             if (OperatingSystem.IsWindows()) Directory.CreateDirectory(directory);
             else Directory.CreateDirectory(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);

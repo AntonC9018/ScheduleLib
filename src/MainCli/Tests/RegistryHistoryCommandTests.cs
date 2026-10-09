@@ -61,6 +61,25 @@ public sealed class RegistryHistoryCommandTests
     }
 
     [Fact]
+    public async Task SymbolicParentIsRejectedBeforeProviderOpens()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var parent = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var target = Path.Combine(parent, "target");
+        var link = Path.Combine(parent, "link");
+        Directory.CreateDirectory(target);
+        Directory.CreateSymbolicLink(link, target);
+        try
+        {
+            var provider = new Provider();
+            Assert.Equal(2, await new Commands(provider).History(new() { Profile = "synthetic" },
+                new() { LocalDirectory = Path.Combine(link, ".registry-history") }, new()));
+            Assert.Equal(0, provider.Calls);
+        }
+        finally { Directory.Delete(link); Directory.Delete(parent, true); }
+    }
+
+    [Fact]
     public async Task ProviderExceptionsDoNotDisclosePrivateValues()
     {
         var original = Console.Error;
