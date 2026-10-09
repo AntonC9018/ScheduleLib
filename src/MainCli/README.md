@@ -1,4 +1,10 @@
-Run from Windows or Linux with the installed .NET SDK:
+# Local CLI operations
+
+See the [main user guide](../../README.md) for the complete command matrix,
+settings, authorization, preview/apply, exit codes and publishing. This page
+records local schedule/query/export details.
+
+Run from Windows or Linux with the installed .NET 11 preview SDK:
 
 ```sh
 dotnet run --project src/MainCli -- query lessons
@@ -23,8 +29,8 @@ retains its read-only website request. Query requires no profile or cloud login.
 `--json` emits a single schema-version-1 envelope with `command`, `runId`,
 `status`, `exitCode`, `outputs`, `actions`, `warnings`, `errors` and `data`.
 Diagnostics and progress go to stderr. Exit codes are 0 for success, 1 for
-unexpected failures, 2 for invalid arguments, 3 for missing/invalid input,
-5 for I/O failures, 6 for partial outputs, 7 for a busy explicit output
+unexpected failures, 2 for invalid arguments, 3 for missing/invalid input, 4 for missing/failed authentication,
+5 for I/O or remote operation failures, 6 for partial outputs, 7 for a busy explicit output
 destination, 8 for unsupported capabilities and 130 for cancellation.
 Ctrl+C cancels initialization and query enumeration.
 
@@ -186,3 +192,28 @@ synchronous PDF render finishes before cancellation is observed.
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each
 planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).
+
+## Teacher deadlines and pre-defense
+
+```sh
+schedulelib export lab-deadlines --profile "Curmanschii Anton" --output ./deadlines --json
+schedulelib export pre-defense --output ./commissions --json
+```
+
+Deadlines require a selected teacher, laboratory lessons, coded academic date
+ranges and resolved `DeadlinesExcelConfig`/task settings. They inspect every
+period and generate `deadlines.xlsx`. Missing lessons/settings and invalid row
+limits fail with exit 3. Shared/all-group labs mixed with other partition/course
+combinations remain unsupported (exit 8). The command accepts the shared
+schedule/cache arguments; the profile actually selects the teacher here.
+
+Pre-defense uses the coded thesis source and year-thesis (`An`) commissions,
+producing `comisia_NUMBER.xlsx` workbooks. It accepts output/settings/result
+arguments, without schedule/cache arguments. The default commissions are empty:
+configure nonempty commissions/members in C# before use (otherwise exit 3).
+Duplicate/malformed commission/member data is rejected. A selected profile
+supplies settings but does not filter commissions. Both commands use the same
+owned-output/manifests and cancellation contracts as the other exports.
+
+Synthetic teacher/commission tests inspect workbook contents and preserve real
+source data; they do not establish that operational commission data is present.

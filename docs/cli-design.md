@@ -1,9 +1,8 @@
 # ScheduleLib CLI design
 
 Design for [issue #71](https://github.com/AntonC9018/ScheduleLib/issues/71).
-The user has settled the major decisions and delegated routine choices. This
-document records the resulting proposal for final review; implementation has
-not started.
+This document records the approved, implemented command contract. See the [user guide](../README.md)
+and [verification evidence](cli-verification.md) for usage and platform limits.
 
 Baseline: `feat/cli`, created from published `master` at `4caf3c1` after
 integrating `merge` at `5511cc8` and completing the GitHub Issues migration.
@@ -18,14 +17,20 @@ LayeredData/LayeredConfig engine, not a replacement engine.
 
 The public API, proper elective cohorts, Avalonia integration, semantic lesson
 matching, package extraction and external C# configuration authoring are later
-work. The scalar elective workaround remains. PDF PR #68 is still open and is
-not part of this baseline; CLI work does not implicitly merge it.
+work. The scalar elective workaround remains. PDF PR #68 was excluded from
+this baseline; CLI work does not implicitly merge it.
 
 Future C# configuration is recorded in
 [#184](https://github.com/AntonC9018/ScheduleLib/issues/184); Layered Data
 extraction already has [#18](https://github.com/AntonC9018/ScheduleLib/issues/18).
 
 ## Commands
+
+Use CommandDotNet as the command-line framework. Define typed `IArgumentModel`
+classes for operation inputs and reusable option groups where applicable;
+compose them to keep handlers small and argument contracts consistent. Do not
+attach irrelevant options to every command or replace CommandDotNet with a
+custom parser. See the [official argument-model documentation](https://commanddotnet.bilal-fazlani.com/arguments/argument-models/).
 
 The command name is `schedulelib`. During development, the same arguments can
 be passed after `dotnet run --project src/MainCli --`. Release publishing can
@@ -75,8 +80,7 @@ commands require it; global exports and queries do not require an unrelated
 teacher identity. Profile listing includes code-defined teachers. For now,
 there is one logical profile per teacher, with JSON overlays on that teacher;
 independent profiles for different semesters/accounts of the same teacher are
-deferred. The user was uncertain about that future extension, so it must not
-be prevented by irreversible storage choices.
+deferred; storage choices must preserve the possibility of that extension.
 
 Keep `AppConfiguration`/`DefaultConfig` as supported C# configuration. Do not
 move their current study-year, semester, source or teacher data into JSON as
@@ -272,5 +276,6 @@ unverified Windows behavior honestly. Existing NU1510 restore warnings and
 DOCX snapshot baseline failures remain tracked observations; do not hide them
 by globally disabling checks or accepting new snapshots without review.
 
-Implement only after the user confirms this shared design. No code changes,
-live remote actions or Git publication are authorized by this document alone.
+The CLI implementation follows this approved contract. This document does not
+authorize live remote actions or Git publication; those require their own task
+authority. Unavailable verification is recorded separately from completed checks.
