@@ -218,7 +218,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             return await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted)
                 ?? throw new IOException("Registry returned no submission response.");
         }
-        catch (FormSubmissionRedirectException error) when (error.Location is { } location && IsLoginAddress(location.ToString()))
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther
+            && error.Location is { } location && IsLoginAddress(location.ToString()))
         {
             throw new RegistrySubmissionRejectedException("Registry submission redirected to login.");
         }
@@ -247,19 +248,20 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         token.ThrowIfCancellationRequested();
         var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
             .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
-        IDocument response;
-        try { response = await SubmitOnce(form, token, onSubmissionStarted); }
+        try
+        {
+            var response = await SubmitOnce(form, token, onSubmissionStarted);
+            RejectResponse(response, "grade submission");
+            // An ordinary form response or navigation away from the edit page must still be
+            // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
+            if (response.QuerySelector<IHtmlFormElement>("form") is null && response.Url == document.Url)
+                throw new IOException("Registry grade submission response could not be confirmed.");
+        }
         catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
         {
-            // Confirm directly at the known edit URL, without following or replaying
-            // the mutation redirect. Matching saved values establish success.
-            response = await Context.Browser.OpenAsync(document.Url, token);
+            // Confirm at the known edit URL below. A failed confirmation read cannot
+            // establish rejection of the already-attempted POST.
         }
-        RejectResponse(response, "grade submission");
-        // An ordinary form response or navigation away from the edit page must still be
-        // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
-        if (response.QuerySelector<IHtmlFormElement>("form") is null && response.Url == document.Url)
-            throw new IOException("Registry grade submission response could not be confirmed.");
         var saved = await Context.Browser.OpenAsync(document.Url, token);
         var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
         if (saved.StatusCode != HttpStatusCode.OK

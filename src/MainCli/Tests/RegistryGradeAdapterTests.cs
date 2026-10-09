@@ -110,6 +110,52 @@ public sealed class RegistryGradeAdapterTests
         Assert.Equal(2, reads);
     }
 
+    [Theory]
+    [InlineData(302, 200, LoginForm)]
+    [InlineData(303, 200, LoginForm)]
+    [InlineData(302, 200, "<div class='validation-summary-errors'>Invalid</div>")]
+    [InlineData(303, 200, "<div class='validation-summary-errors'>Invalid</div>")]
+    [InlineData(302, 401, "unauthorized")]
+    [InlineData(303, 401, "unauthorized")]
+    [InlineData(302, 403, "forbidden")]
+    [InlineData(303, 403, "forbidden")]
+    [InlineData(302, 500, "failed read")]
+    [InlineData(303, 500, "failed read")]
+    public async Task FailedConfirmationAfterGradeRedirectIsUncertain(int redirectStatus, int readStatus, string body)
+    {
+        var reads = 0;
+        var started = false;
+        var auth = new Auth();
+        using var handler = new Handler((request, _) =>
+        {
+            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
+            if (request.Method == HttpMethod.Post)
+            {
+                var redirect = Response((HttpStatusCode) redirectStatus, "");
+                redirect.Headers.Location = new("/evaluation", UriKind.Relative);
+                return Task.FromResult(redirect);
+            }
+            if (++reads == 1) return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+            // Legacy read authentication may retry the GET, but must never replay the POST.
+            return Task.FromResult(readStatus == 401 && reads > 2
+                ? Response(HttpStatusCode.OK, LoginForm)
+                : Response((HttpStatusCode) readStatus, body));
+        });
+        using var client = new HttpClient(handler);
+        using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
+        using var context = ScrapingContext.Create(transport, auth);
+        using var services = new ServiceCollection().BuildServiceProvider();
+        var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
+        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+
+        await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(document, default, () => started = true));
+
+        Assert.True(started);
+        Assert.Equal(1, handler.Posts);
+        Assert.Equal(readStatus == 401 ? 3 : 2, reads);
+        Assert.Equal(readStatus == 401 ? 1 : 0, auth.Calls);
+    }
+
     [Fact]
     public async Task GradeReplaySuppressionEndsAfterSubmission()
     {
@@ -132,20 +178,24 @@ public sealed class RegistryGradeAdapterTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task GradeRedirectRequiresConfirmedSavedValuesAndRejectsLogin(bool login)
+    [InlineData(302, false)]
+    [InlineData(303, false)]
+    [InlineData(302, true)]
+    [InlineData(303, true)]
+    public async Task GradeRedirectRequiresConfirmedSavedValuesAndRejectsLogin(int status, bool login)
     {
+        var reads = 0;
         using var handler = new Handler((request, _) =>
         {
+            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
             if (request.Method == HttpMethod.Post)
             {
-                var redirect = Response(HttpStatusCode.Redirect, "");
+                var redirect = Response((HttpStatusCode) status, "");
                 redirect.Headers.Location = new(login ? "/login" : "/evaluation", UriKind.Relative);
                 return Task.FromResult(redirect);
             }
-            return Task.FromResult(Response(HttpStatusCode.OK,
-                request.RequestUri!.AbsolutePath == "/grades" ? GradeForm : login ? LoginForm : "<p>Evaluation</p>"));
+            reads++;
+            return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
@@ -156,6 +206,39 @@ public sealed class RegistryGradeAdapterTests
         if (login) await Assert.ThrowsAsync<RegistrySubmissionRejectedException>(() => navigator.SubmitGrades(document, default));
         else await navigator.SubmitGrades(document, default);
         Assert.Equal(1, handler.Posts);
+        Assert.Equal(login ? 1 : 2, reads);
+    }
+
+    [Theory]
+    [InlineData(307, "/grades")]
+    [InlineData(308, "/grades")]
+    [InlineData(307, "/Account/Login")]
+    [InlineData(308, "/Account/Login")]
+    public async Task GradeRedirectThatPreservesPostIsUncertain(int status, string location)
+    {
+        var reads = 0;
+        using var handler = new Handler((request, _) =>
+        {
+            if (request.Method != HttpMethod.Post)
+            {
+                reads++;
+                return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+            }
+            var redirect = Response((HttpStatusCode) status, "");
+            redirect.Headers.Location = new(location, UriKind.Relative);
+            return Task.FromResult(redirect);
+        });
+        using var client = new HttpClient(handler);
+        using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
+        using var context = ScrapingContext.Create(transport, new Auth());
+        using var services = new ServiceCollection().BuildServiceProvider();
+        var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
+        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+
+        await Assert.ThrowsAsync<FormSubmissionRedirectException>(() => navigator.SubmitGrades(document, default));
+
+        Assert.Equal(1, handler.Posts);
+        Assert.Equal(1, reads);
     }
 
     [Fact]

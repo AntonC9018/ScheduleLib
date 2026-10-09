@@ -26,6 +26,8 @@ public sealed class RegistryLessonAdapterTests
             yield return [kind, 303, "redirect", false, "/saved"];
             yield return [kind, 307, "redirect", false, "/save-again"];
             yield return [kind, 308, "redirect", false, "/save-again"];
+            yield return [kind, 307, "redirect", false, "/Account/Login"];
+            yield return [kind, 308, "redirect", false, "/Account/Login"];
         }
     }
 
