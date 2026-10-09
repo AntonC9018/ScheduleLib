@@ -13,6 +13,21 @@ using Xunit;
 
 public sealed class SettingsTests
 {
+    [Fact]
+    public async Task AttendanceWorkbookComesFromProfileInsteadOfPersonalCodedPath()
+    {
+        using var files = new SettingsFixture();
+        using (var defaults = await files.Load(new() { Profile = "Curmanschii Anton" }))
+            Assert.Empty(defaults.Get(LessonAttendanceConfig.Key)?.Sources ?? []);
+        await files.Project("""
+            {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"LessonAttendanceConfig":{
+            "sources":[{"filePath":"private-attendance.xlsx","repeatedCourseBehavior":"Error","cellValueFormat":"IgnoreGrade"}]}}}}
+            """);
+        using var settings = await files.Load(new() { Profile = "Curmanschii Anton" });
+        var source = Assert.Single(settings.Get(LessonAttendanceConfig.Key)!.Sources);
+        Assert.Equal(Path.Combine(files.Root, "project", "private-attendance.xlsx"), source.FilePath);
+    }
+
     [Theory]
     [InlineData("Visnevschi Vlada")]
     [InlineData("Pugaci Diana")]

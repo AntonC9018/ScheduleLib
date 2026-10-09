@@ -1,6 +1,5 @@
 using System.Drawing;
 using Anton.LayeredData;
-using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Topics;
@@ -75,11 +74,6 @@ public static class DefaultConfig
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
             });
 
-            t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse_2.xlsx", attendance =>
-            {
-                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                attendance.CellValueFormat = CellValueFormat.IgnoreGrade;
-            });
             t.LabTasks().ConfigureValue(x =>
             {
                 const string baseUrl = "https://github.com/AntonC9018/uniCourse_dataStructuresAndAlgorithms/blob/master/ru/labs/";
