@@ -150,9 +150,11 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                if (groupForSearch.IsRepeat)
+                if (groupForSearch.IsRepeat
+                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Not handling this yet.
+                    // Repeats and the unconfirmed historical (S) marker are skipped
+                    // before producing navigable links or accessing remote lessons.
                     continue;
                 }
                 var groups = p.SearchGroupId(ref groupForSearch);
@@ -170,6 +172,7 @@ internal static class HtmlSearch
                 {
                     Value = groups,
                     IsWildcard = groupForSearch.IsWildcard,
+                    IsCombined = RegistryFacultyLabels.IsCombined(groupForSearch.FacultyName),
                 };
 
             }

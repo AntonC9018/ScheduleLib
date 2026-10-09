@@ -113,6 +113,12 @@ public static partial class RegistryScraping
 
         static ReadOnlyMemory<char> ParseLabel(ref SequenceReader reader)
         {
+            // Only the confirmed combined registry label is accepted; underscores
+            // do not introduce a general faculty-combination grammar.
+            if (reader.ConsumeExactString(RegistryFacultyLabels.CombinedInformatics))
+            {
+                return RegistryFacultyLabels.CombinedInformatics.AsMemory();
+            }
             var bparser = reader.BufferedView();
             bparser.SkipLetters();
             var ret = reader.SourceUntilExclusive(bparser.Position);
@@ -165,7 +171,7 @@ public static partial class RegistryScraping
                     }
                     suffixes.Dual = true;
                 }
-                else if (reader.ConsumeExactString("SE"))
+                else if (ConsumeMarker(ref reader, "SE"))
                 {
                     // Științele Educației: accepted but not represented in the current domain.
                 }
@@ -173,7 +179,7 @@ public static partial class RegistryScraping
                 {
                     SetLanguage(ref suffixes, language);
                 }
-                else if (reader.ConsumeExactString("R"))
+                else if (ConsumeMarker(ref reader, "R"))
                 {
                     SetLanguage(ref suffixes, Language.Ru);
                 }
@@ -196,15 +202,19 @@ public static partial class RegistryScraping
         // ReSharper disable once InconsistentNaming
         static bool ParseFR(ref SequenceReader p)
         {
-            const string fr = "fr";
-            if (!p.CanPeekCount(fr.Length))
+            return ConsumeMarker(ref p, "fr");
+        }
+
+        static bool ConsumeMarker(ref SequenceReader p, string marker)
+        {
+            if (!p.CanPeekCount(marker.Length))
             {
                 return false;
             }
-            var span = p.PeekSpan(fr.Length);
-            if (span.Equals(fr, StringComparison.OrdinalIgnoreCase))
+            var span = p.PeekSpan(marker.Length);
+            if (span.Equals(marker, StringComparison.OrdinalIgnoreCase))
             {
-                p.Move(fr.Length);
+                p.Move(marker.Length);
                 return true;
             }
             return false;
@@ -272,4 +282,23 @@ internal struct GroupForSearch
     public required bool IsRepeat;
     public required bool IsWildcard;
     public required bool IsDual;
+}
+
+/// <summary>Confirmed registry-only combined label, matched to existing faculties.</summary>
+internal static class RegistryFacultyLabels
+{
+    internal const string CombinedInformatics = "I_IA";
+
+    internal static bool IsCombined(ReadOnlyMemory<char> label) =>
+        label.Span.Equals(CombinedInformatics, StringComparison.OrdinalIgnoreCase);
+
+    internal static bool Matches(ReadOnlyMemory<char> label, string faculty)
+    {
+        if (IsCombined(label))
+        {
+            return faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
+                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase);
+        }
+        return label.Span.Equals(faculty, StringComparison.OrdinalIgnoreCase);
+    }
 }

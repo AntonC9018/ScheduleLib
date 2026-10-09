@@ -48,7 +48,7 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
-            if (yielded)
+            if (yielded || p.Filter.Groups.IsCombined)
             {
                 yield break;
             }
@@ -82,7 +82,16 @@ internal static class MatchLessonHelper
 
             ref readonly var g = ref p.Filter.Groups;
 
-            if (g.IsWildcard)
+            if (g.IsCombined)
+            {
+                // Combined registry cohorts can have separate parent-group lessons.
+                // A lesson must be entirely within the confirmed resolved parents.
+                if (lesson.Lesson.Groups.IsEmpty || !lesson.Lesson.Groups.IsSubSetOf(g.Value))
+                {
+                    continue;
+                }
+            }
+            else if (g.IsWildcard)
             {
                 if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
                 {

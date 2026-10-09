@@ -92,20 +92,23 @@ public sealed class GroupsNavigator
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
     {
         var doc = await _navigator.GetHtml(courseLink.Url);
+        var partitionResolver = new GroupPartitionResolver(_specializationRegistry);
         var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = doc,
             GroupParseContext = _groupParseContext,
-            GroupPartitionResolver = new GroupPartitionResolver(_specializationRegistry),
+            GroupPartitionResolver = partitionResolver,
             SearchGroupId = (ref GroupForSearch group) =>
             {
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
-                var ids = FindGroupMatch(_schedule, group);
+                var ids = FindGroupMatch(_schedule, courseLink.CourseId, partitionResolver.Resolve(group), group);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
                     // TODO: Do this better
-                    _navigator.ErrorHandler.GroupNotFound(group.UnparsedName.Trim());
+                    _navigator.ErrorHandler.GroupNotFound(RegistryFacultyLabels.IsCombined(group.FacultyName)
+                        ? "Combined registry group unresolved: no eligible schedule parents or ambiguous parent language."
+                        : group.UnparsedName.Trim());
                 }
                 return ids;
             },
@@ -116,9 +119,58 @@ public sealed class GroupsNavigator
 
     internal static LessonGroups FindGroupMatch(
         Schedule schedule,
+        CourseId course,
+        GroupPartitionKey partition,
+        in GroupForSearch group)
+    {
+        bool combined = RegistryFacultyLabels.IsCombined(group.FacultyName);
+        if (!combined && !group.IsWildcard)
+        {
+            return FindGroupMatch(schedule, group);
+        }
+
+        // Registry wildcards describe participants of this elective, not every
+        // group from the intake. Only actual course/partition lessons provide evidence.
+        var eligibleParents = new HashSet<GroupId>();
+        foreach (var lesson in schedule.EnumerateAllLessons())
+        {
+            if (lesson.Lesson.Course != course || lesson.Lesson.GroupPartitionKey != partition)
+            {
+                continue;
+            }
+            foreach (var parent in lesson.Lesson.Groups)
+            {
+                eligibleParents.Add(parent);
+            }
+        }
+
+        var ret = new LessonGroups();
+        var languages = new HashSet<Language>();
+        foreach (var candidate in schedule.EnumerateGroups())
+        {
+            if (eligibleParents.Contains(candidate.Id) && IsMatch(candidate.Item, group))
+            {
+                ret.Add(candidate.Id);
+                languages.Add(candidate.Item.Language);
+            }
+        }
+        if (combined && group.Language is null && languages.Count != 1)
+        {
+            return new LessonGroups();
+        }
+        return ret;
+    }
+
+    internal static LessonGroups FindGroupMatch(
+        Schedule schedule,
         in GroupForSearch g)
     {
         var ret = new LessonGroups();
+        // Combined labels require course and partition evidence from the scoped overload.
+        if (RegistryFacultyLabels.IsCombined(g.FacultyName))
+        {
+            return ret;
+        }
         // TODO: reuse
         // var subGroup = HtmlSearch.SubGroupFromString(g);
         foreach (var g1 in schedule.EnumerateGroups())
@@ -133,9 +185,7 @@ public sealed class GroupsNavigator
 
     private static bool IsMatch(Group a, in GroupForSearch b)
     {
-        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
-            b.FacultyName.Span,
-            StringComparison.OrdinalIgnoreCase);
+        bool facultyMatches = RegistryFacultyLabels.Matches(b.FacultyName, a.Faculty.Name);
         if (!facultyMatches)
         {
             return false;
@@ -456,6 +506,8 @@ public readonly record struct AttendanceLookupKey
 
 public record struct FoundGroups
 {
+    /// <summary>Confirmed registry-only combination of existing faculty cohorts.</summary>
+    public bool IsCombined;
     public required bool IsWildcard;
     public required LessonGroups Value;
 }
