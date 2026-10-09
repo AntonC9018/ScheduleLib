@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <IncludeHelpers>true</IncludeHelpers>
+        <!-- Preserve the publish RID for the platform-specific Word converter dependency. -->
+        <IsRidAgnostic>false</IsRidAgnostic>
     </PropertyGroup>
 
     <ItemGroup>

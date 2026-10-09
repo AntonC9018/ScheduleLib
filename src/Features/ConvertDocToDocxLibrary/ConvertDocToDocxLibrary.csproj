@@ -5,6 +5,8 @@
 
     <PropertyGroup>
         <IncludeHelpers>true</IncludeHelpers>
+        <!-- Converter content depends on the caller's RID, including cross-publishing. -->
+        <IsRidAgnostic>false</IsRidAgnostic>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -12,7 +14,7 @@
         <NoWarn>$(NoWarn);NU1702</NoWarn>
     </PropertyGroup>
 
-    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) Or $(RuntimeIdentifier.StartsWith('win')) Or '$(BundleWordConverter)' == 'true'">
+    <ItemGroup Condition="('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows'))) Or $(RuntimeIdentifier.StartsWith('win')) Or '$(BundleWordConverter)' == 'true'">
         <ProjectReference Include="..\ConvertDocToDocx\ConvertDocToDocx.csproj">
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
             <GlobalPropertiesToRemove>RuntimeIdentifier;SelfContained</GlobalPropertiesToRemove>
