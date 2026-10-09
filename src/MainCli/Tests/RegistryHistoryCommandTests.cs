@@ -89,7 +89,30 @@ public sealed class RegistryHistoryCommandTests
             Assert.Equal(5, await new Commands(new Provider { Failure = failure }).History(new() { Profile = "synthetic" },
                 new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") }, new()));
             Assert.Contains(failure.ToString(), error.ToString());
+            Assert.Contains("phase Unknown; HTTP unknown", error.ToString());
             Assert.DoesNotContain("canary", error.ToString());
+        }
+        finally { Console.SetError(original); }
+    }
+
+    [Fact]
+    public async Task HttpDiagnosticPrintsOnlyFailureFixedPhaseAndNumericStatus()
+    {
+        var original = Console.Error;
+        using var error = new StringWriter();
+        try
+        {
+            Console.SetError(error);
+            Assert.Equal(5, await new Commands(new Provider
+            {
+                Failure = RegistryHistoryFailure.AccessRejected,
+                Phase = RegistryHistoryPhase.Login,
+                StatusCode = 403
+            }).History(new() { Profile = "synthetic" },
+                new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") }, new()));
+            Assert.Contains("AccessRejected; phase Login; HTTP 403", error.ToString());
+            Assert.DoesNotContain("canary", error.ToString());
+            Assert.DoesNotContain("https://", error.ToString());
         }
         finally { Console.SetError(original); }
     }
@@ -101,10 +124,12 @@ public sealed class RegistryHistoryCommandTests
         public int Calls { get; private set; }
         public bool Fail { get; init; }
         public RegistryHistoryFailure? Failure { get; init; }
+        public RegistryHistoryPhase Phase { get; init; } = RegistryHistoryPhase.Unknown;
+        public int? StatusCode { get; init; }
         public Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(SettingsArguments settings, string? year, CancellationToken token)
         {
             Calls++;
-            if (Failure is { } failure) throw new RegistryHistoryException("canary-password canary-student", failure);
+            if (Failure is { } failure) throw new RegistryHistoryException("canary-password canary-student https://private.test/?token=canary", failure, Phase, StatusCode);
             if (Fail) throw new Exception("canary-password canary-token canary-student");
             return Task.FromResult<IReadOnlyList<RegistryHistoryYearSummary>>([new("2024/25", [new("private-course", 1, ["private-group"])])]);
         }

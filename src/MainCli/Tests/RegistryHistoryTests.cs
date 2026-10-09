@@ -82,6 +82,34 @@ public sealed class RegistryHistoryTests
         Assert.Equal(1, inner.Calls);
     }
 
+    [Theory]
+    [InlineData("login", 400, RegistryHistoryPhase.Login)]
+    [InlineData("login", 403, RegistryHistoryPhase.Login)]
+    [InlineData("index", 302, RegistryHistoryPhase.Index)]
+    [InlineData("index", 429, RegistryHistoryPhase.Index)]
+    [InlineData("groups", 403, RegistryHistoryPhase.Groups)]
+    public async Task RejectionCarriesOnlyFixedPhaseAndNumericStatus(string route, int status, RegistryHistoryPhase phase)
+    {
+        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
+        { Content = new StringContent("canary-response-body") }));
+        var login = new Uri("https://registry.test/studregistry/Account/Login");
+        using var guard = new RegistryHistoryRequestHandler(inner, Index, login, TimeSpan.FromMilliseconds(1));
+        using var client = new HttpClient(guard);
+        using var content = new StringContent("canary-password");
+        Task<HttpResponseMessage> request = route switch
+        {
+            "login" => client.PostAsync(login, content),
+            "index" => client.GetAsync(Index),
+            "groups" => client.GetAsync(new Uri("https://registry.test/studregistry/LessonAttendance/groups/1")),
+            _ => throw new ArgumentOutOfRangeException(nameof(route))
+        };
+        var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => request);
+        Assert.Equal(phase, error.Phase);
+        Assert.Equal(status, error.StatusCode);
+        Assert.DoesNotContain("canary", error.Message);
+        Assert.Equal(1, inner.Calls);
+    }
+
     [Fact]
     public async Task ReadsRetryAtMostOnceAndMutationNeverReachesTransport()
     {

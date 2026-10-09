@@ -93,7 +93,11 @@ public partial class RegistryCommands
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, "Cancelled."); }
         catch (RegistryAuthenticationException) { return Finish(4, "Registry authentication configuration failed."); }
-        catch (RegistryHistoryException error) { return Finish(5, $"Registry history stopped: {error.Failure}."); }
+        catch (RegistryHistoryException error)
+        {
+            var status = error.StatusCode is { } code ? code.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unknown";
+            return Finish(5, $"Registry history stopped: {error.Failure}; phase {error.Phase}; HTTP {status}.");
+        }
         catch (LocalOperationBusyException) { return Finish(7, "Another local registry history operation is active."); }
         catch (Exception) { return Finish(5, "Registry history discovery failed or stopped. No remote changes were submitted."); }
         finally { Console.CancelKeyPress -= cancel; }

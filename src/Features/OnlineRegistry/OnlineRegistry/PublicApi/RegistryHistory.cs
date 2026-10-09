@@ -6,9 +6,16 @@ using AngleSharp.Html.Parser;
 namespace ScheduleLib.OnlineRegistry;
 
 public enum RegistryHistoryFailure { MarkupContract, AccessRejected, AuthenticationNotConfirmed, RequestedYearUnavailable, YearNotConfirmed, TransportStopped }
-public sealed class RegistryHistoryException(string message, RegistryHistoryFailure failure = RegistryHistoryFailure.MarkupContract) : IOException(message)
+public enum RegistryHistoryPhase { Unknown, Login, Index, Groups }
+public sealed class RegistryHistoryException(
+    string message,
+    RegistryHistoryFailure failure = RegistryHistoryFailure.MarkupContract,
+    RegistryHistoryPhase phase = RegistryHistoryPhase.Unknown,
+    int? statusCode = null) : IOException(message)
 {
     public RegistryHistoryFailure Failure { get; } = failure;
+    public RegistryHistoryPhase Phase { get; } = phase;
+    public int? StatusCode { get; } = statusCode;
 }
 public sealed record RegistryHistoryYear(string Value, bool Selected, Uri Uri);
 public sealed record RegistryHistoryCourse(string Name, int Semester, Uri Uri);
@@ -132,6 +139,12 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
         {
             var uri = request.RequestUri;
             var login = !_authenticated && !_loginAttempted && request.Method == HttpMethod.Post && uri == _login;
+            var phase = login ? RegistryHistoryPhase.Login : uri is not null
+                && uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal)
+                    ? RegistryHistoryPhase.Groups
+                    : uri == _index || uri is not null && uri.AbsolutePath == _index.AbsolutePath
+                        ? RegistryHistoryPhase.Index
+                        : RegistryHistoryPhase.Unknown;
             if (_stopped || uri is null || uri.Scheme != _index.Scheme || uri.Authority != _index.Authority || uri.UserInfo.Length != 0
                 || !login && (request.Method != HttpMethod.Get || !AllowedRead(uri)))
                 throw new RegistryHistoryException("History session stopped or disallowed a request.", RegistryHistoryFailure.TransportStopped);
@@ -163,10 +176,12 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                 if (login && response.StatusCode == HttpStatusCode.Redirect) return response;
                 if (!login && response.IsSuccessStatusCode) return response;
                 var retry = !login && attempt == 0 && response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
+                var statusCode = (int)response.StatusCode;
                 response.Dispose();
                 if (retry) continue;
                 _stopped = true;
-                throw new RegistryHistoryException("Registry rejected history access; session stopped without authentication replay or redirect navigation.", RegistryHistoryFailure.AccessRejected);
+                throw new RegistryHistoryException("Registry rejected history access; session stopped without authentication replay or redirect navigation.",
+                    RegistryHistoryFailure.AccessRejected, phase, statusCode);
             }
         }
         finally { Gate.Release(); }

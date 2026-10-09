@@ -43,9 +43,15 @@ from console results. Raw pages remain in memory and are not saved. The private
 summary contains only offered year values, raw course names, semester numbers,
 and raw group names. Errors are generic and do not print provider exceptions.
 Failures distinguish markup contracts, access rejection, unconfirmed authentication,
-unavailable years and ignored year selection using fixed codes. Existing Unix
-output directories are restricted to their owner; symbolic output directories
-are rejected before credentials are resolved.
+unavailable years and ignored year selection using fixed codes. When an HTTP
+response is rejected, diagnostics also print only its fixed phase (`Login`,
+`Index`, or `Groups`) and numeric status code. Other failures show `Unknown`
+and `HTTP unknown`. These fields describe the request that stopped the current
+run; they do not identify earlier requests or establish why another account's
+past request failed. Exception text, response content, request addresses, headers,
+and credentials are never printed. Existing Unix output directories are
+restricted to their owner; symbolic output directories are rejected before
+credentials are resolved.
 
 Offline evidence is `Features/Tests/OnlineRegistry/data/lessons.html`: the
 `search` form has no method/action (HTML defaults to GET on the same page) and
