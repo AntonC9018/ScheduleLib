@@ -216,9 +216,12 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
         if (year is not null && !years.Any(x => x.Value == year))
             throw new RegistryHistoryException("Requested academic year is not offered by the registry selector.", RegistryHistoryFailure.RequestedYearUnavailable);
         var summaries = new List<RegistryHistoryYearSummary>();
+        var initialYearActive = true;
         foreach (var selected in years.Where(x => year is null || x.Value == year))
         {
-            using var fetched = selected.Selected ? null : await Read(selected.Uri, token);
+            // Historical selection changes server session state, even though the initial document remains unchanged.
+            using var fetched = selected.Selected && initialYearActive ? null : await Read(selected.Uri, token);
+            if (fetched is not null) initialYearActive = selected.Selected;
             var document = fetched ?? initial;
             // Detect ignored year parameters rather than labelling current data as historical.
             if (!RegistryHistoryHtml.Years(document, index).Any(x => x.Selected && x.Value == selected.Value))

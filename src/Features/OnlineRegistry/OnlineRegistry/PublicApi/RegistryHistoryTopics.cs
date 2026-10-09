@@ -50,12 +50,12 @@ public static class RegistryHistoryTopicsHtml
                 "seminar" => LessonType.Seminar,
                 _ => throw InvalidMarkup()
             };
-            var raw = row.Cells[1].TextContent.AsSpan().Trim();
+            var raw = row.Cells[1].TextContent.AsSpan().TrimStart();
             var numberLength = 0;
             while (numberLength < raw.Length && char.IsAsciiDigit(raw[numberLength])) numberLength++;
             // Observed leading registry sequence number is separated by whitespace.
             if (numberLength > 0 && numberLength < raw.Length && char.IsWhiteSpace(raw[numberLength])) raw = raw[numberLength..].TrimStart();
-            result.Add(new(date, type, raw.ToString()));
+            result.Add(new(date, type, raw.TrimEnd().ToString()));
         }
         return result;
     }

@@ -18,6 +18,44 @@ public sealed class RegistryHistoryTests
         """;
 
     [Fact]
+    public async Task HistoricalNavigationReselectsCurrentBeforeReadingItsGroups()
+    {
+        var activeYear = "2025/26";
+        var groupYears = new List<string>();
+        var requests = new List<string>();
+        using var inner = new FakeHandler((request, _) =>
+        {
+            var uri = request.RequestUri!;
+            requests.Add(uri.PathAndQuery);
+            string html;
+            if (uri.AbsolutePath == Index.AbsolutePath)
+            {
+                if (uri.Query.Length > 0) activeYear = Uri.UnescapeDataString(uri.Query[8..]);
+                html = "<form><select id='AnUniv' name='AnUniv'>" +
+                    $"<option {(activeYear == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>" +
+                    $"<option {(activeYear == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>" +
+                    "</select></form><div id='nav-1'><div><span>1</span><span>" +
+                    "<a href='/studregistry/LessonAttendance/groups/1'>Synthetic</a></span></div></div><div id='nav-2'></div>";
+            }
+            else
+            {
+                groupYears.Add(activeYear);
+                html = "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
+                    $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>" +
+                    "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { Content = new StringContent("<a href='/studregistry/Account/Logout'>Exit</a>" + html) });
+        });
+        using var client = new HttpClient(inner);
+        var summaries = await new RegistryHistoryReader(client, Index).Discover(null, default);
+        Assert.Equal(new[] { "2024/25", "2025/26" }, groupYears);
+        Assert.Equal(new[] { "2024/25", "2025/26" }, summaries.Select(x => x.Year));
+        Assert.Equal("2025/26", Assert.Single(Assert.Single(summaries[1].Courses).Groups));
+        Assert.Contains("/studregistry/LessonAttendance?AnUniv=2025%2F26", requests);
+    }
+
+    [Fact]
     public void YearNavigationUsesObservedGetFormAndEncodedValue()
     {
         var years = RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(Years), Index);

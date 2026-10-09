@@ -32,6 +32,18 @@ public sealed class RegistryHistoryTopicsTests
     }
 
     [Theory]
+    [InlineData("1 ", "")]
+    [InlineData("1 3 dimensional geometry", "3 dimensional geometry")]
+    [InlineData("2024", "2024")]
+    [InlineData("1 3D geometry", "3D geometry")]
+    public void SequenceRemovalPreservesBlankPositionsAndTopicNumbers(string cell, string expected)
+    {
+        var html = "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>" +
+            "<tr><td><a>01.10.2024 08:00</a> curs</td><td>" + cell + "</td><td></td></tr></table>";
+        Assert.Equal(expected, Assert.Single(RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html))).Topic);
+    }
+
+    [Theory]
     [InlineData("<html></html>")]
     [InlineData("<table><tr><td>canary-student</td></tr></table>")]
     [InlineData("<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr><tr><td><a>bad date</a> curs</td><td>private topic</td><td></td></tr></table>")]
