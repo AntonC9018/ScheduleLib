@@ -9,7 +9,7 @@ public sealed class CommandSurfaceTests
         "export pdf", "export ics", "export teachers-excel", "export free-rooms",
         "export lab-deadlines", "export website-schedules", "export website-theses", "export pre-defense",
         "query lessons", "query free-hours", "drive publish", "calendar sync",
-        "registry sync", "registry import-grades", "curricula download",
+        "registry sync", "registry import-grades", "registry history", "curricula download",
         "config show", "config get", "config set", "config unset", "config remove",
         "config clear", "config validate", "config profiles", "auth login", "auth status", "auth logout",
     };

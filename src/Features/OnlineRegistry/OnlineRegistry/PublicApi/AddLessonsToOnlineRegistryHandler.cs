@@ -44,7 +44,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             catch (RegistryActionExecutionException error) when (!error.SubmissionStarted
                 && error.InnerException is RegistryFormPreparationException)
             {
-                _logger.LogError(error.InnerException, "Registry {Kind} form preparation failed for {Date}", action.Kind, action.Date);
+                _logger.LogError("Registry {Kind} form preparation failed for {Date}", action.Kind, action.Date);
             }
         }
     }

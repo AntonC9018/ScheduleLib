@@ -324,6 +324,39 @@ public readonly record struct RegistryScrapingContext(
 
 public static partial class RegistryScraping
 {
+    /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
+    public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token)
+    {
+        HttpMessageHandler? handler = null;
+        HttpClient? client = null;
+        HttpClientContext? transport = null;
+        try
+        {
+            var cookieProvider = new AngleSharp.Io.MemoryCookieProvider();
+            handler = new HttpClientHandler { CookieContainer = cookieProvider.Container, AllowAutoRedirect = false };
+            var guard = new RegistryHistoryRequestHandler(handler, new(BaseUrl + "LessonAttendance"),
+                DefaultTokenNames.LoginUrl, TimeSpan.FromSeconds(5));
+            handler = guard;
+            client = new HttpClient(guard);
+            transport = new HttpClientContext(cookieProvider, client, guard);
+            var builder = new ScrapingContextBuilder();
+            AddDefaultConfigWithoutHandlers(builder);
+            builder.AddLogging(Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+            builder.TokenAuth(x => x.PasswordLoginCall(credentials));
+            var context = await builder.Build(token, transport);
+            guard.CompleteAuthentication();
+            return context;
+        }
+        catch
+        {
+            transport?.Dispose();
+            client?.Dispose();
+            handler?.Dispose();
+            throw;
+        }
+    }
+
     public const string CredentialsConfigKey = "Curmanschii Anton:Registry";
 
     public static OnlineRegistryNavigator Navigator(

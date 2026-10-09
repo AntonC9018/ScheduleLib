@@ -104,3 +104,16 @@ form login validates a logout link and cancels its wait on uncancellable
 AngleSharp submission; failed context construction disposes both browser and
 transport before the CLI releases the account lock. Tests inject in-memory
 transports through the production builder and Moodle/planner paths.
+
+### Read-only registry history (#204)
+
+`registry history` uses the configured credential resolver without initializing
+the current schedule. The offline course fixture demonstrates a GET `AnUniv`
+year selector; discovery derives navigation from that form and requires the
+requested year to be selected in the returned page. Raw historical course/group
+names do not pass through current-schedule matching. A destination-wide local
+lease and shared transport gate cover login and reads across history accounts;
+403/429/authentication rejection stop without replay. Private summaries require
+an explicitly selected ignored `.registry-history` directory; stdout contains
+only counts. No live year-navigation validation or topic acquisition has been
+performed in this implementation phase. See [history command details](../src/MainCli/REGISTRY-HISTORY.md).

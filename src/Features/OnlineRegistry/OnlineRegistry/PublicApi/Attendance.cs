@@ -128,7 +128,7 @@ public sealed class StudentAttendanceListBuilder()
     {
         if (!_allNames.Add(name))
         {
-            throw new InvalidOperationException($"Duplicate student name: {name}");
+            throw new InvalidOperationException("Duplicate student name in attendance data.");
         }
         var s = new StudentAttendanceBuilder(name);
         _students.Add(s);
@@ -498,4 +498,3 @@ internal readonly struct StudentNameRemapHelper
         return result;
     }
 }
-

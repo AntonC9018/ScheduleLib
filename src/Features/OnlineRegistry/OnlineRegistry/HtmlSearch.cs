@@ -683,7 +683,7 @@ internal static class HtmlSearch
                         if (expected1 != actual1
                             || expected.IsExpelled != actual.IsExpelled)
                         {
-                            return $"Student mismatch at index {i}: expected {expected}, got {actual}";
+                            return $"Student mismatch at index {i}.";
                         }
                         return null;
                     }
@@ -729,7 +729,7 @@ internal static class HtmlSearch
             .ToArray();
         if (validationErrors.Length != 0)
         {
-            throw new RegistrySubmissionRejectedException($"Validation errors: {string.Concat("\n", validationErrors)}");
+            throw new RegistrySubmissionRejectedException("Registry form validation failed.");
         }
     }
 
@@ -855,4 +855,3 @@ internal readonly struct SendUpdatedFormParams
     public required Schedule Schedule { get; init; }
     public required HtmlStudent[]? ExpectedStudents { get; init; }
 }
-

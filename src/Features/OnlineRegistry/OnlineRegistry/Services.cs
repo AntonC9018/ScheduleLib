@@ -65,26 +65,8 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 
     public void StudentsNotInDbButInRegistry(StudentsInGroup students)
     {
-        using var loggerScope = LoggerScope();
-        foreach (var student in students.Students)
-        {
-            LogStudentNotInDbButInRegistry(student);
-        }
-
-        IDisposable? LoggerScope()
-        {
-            var groupName = students.Groups.Value.ToString(students.Schedule);
-            var lesson = students.Schedule.Get(students.LessonId);
-            var lessonType = lesson.Lesson.Type;
-            var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
-            var groupPartition = lesson.Lesson.GroupPartitionKey.ToDisplayString() ?? "all subgroups";
-            return _logger.BeginScope(new{
-                groupName,
-                groupPartition,
-                course,
-                lessonType,
-            });
-        }
+        // Do not enumerate students or attach schedule/student context to structured logs.
+        _logger.LogWarning("Students in registry could not be matched to the local database");
     }
 
     private static KeyValuePair<string, object?>[] KVA(
@@ -104,17 +86,12 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 
     public void LessonsDecidedErroneous(ErroneousLesson lesson)
     {
-        using var scope = _logger.BeginScope(new
-        {
-            ErrorContext = lesson.Context,
-        });
         _logger.LogError("Found lesson that should not be in the registry of the current person");
     }
 
     public void GroupParsingError(GroupParseErrorContext context)
     {
         _logger.LogError(
-            context.Exception,
             "Could not parse group {Group}",
             context.String.Trim());
     }
@@ -144,6 +121,4 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     [LoggerMessage(LogLevel.Warning, "Group not found: {GroupName}")]
     partial void LogGroupNotFound(string GroupName);
 
-    [LoggerMessage(LogLevel.Warning, "Student not in DB but in registry: {Student}")]
-    partial void LogStudentNotInDbButInRegistry(Name Student);
 }
