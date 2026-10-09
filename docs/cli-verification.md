@@ -31,10 +31,10 @@ Publishing does not distribute credentials or grant provider authorization.
 
 | Check | Evidence |
 | --- | --- |
-| Full CLI suite | **435 passed, zero failed/skipped**: 404 existing behavior/provider/storage checks plus 31 complete-command-surface checks |
+| Full CLI suite | **529 passed, zero failed/skipped** after PR review corrections, including complete-command-surface and production-adapter regressions |
 | CLI build | Zero warnings/errors with repository warning-as-error policy |
 | Linux x64 release package | Framework-dependent publish completed; native ELF apphost executed |
-| Windows x64 release package | Cross-publish completed; PE apphost, managed assembly, dependency/runtime JSON present |
+| Windows x64 release package | Cross-publish completed; PE apphost, managed assembly, dependency/runtime JSON and all three Word converter dependencies present |
 | Package source data | Both packages contained all **44** configured DOCX/XLSX/topic files, compared byte-for-byte by SHA-256 (1,218,612 bytes); existing shared content rules also include `data/.gitignore` |
 | Published Linux help | All **26** operation routes show help from a fresh unrelated working directory, with no files created |
 | Published Linux config | Profiles/validate/set/get/unset/validate succeeded using isolated OS user configuration/state and project directories; a fresh get observed the persisted string |
@@ -66,7 +66,7 @@ command/provider tests.
 | Safe concurrent storage | `StorageTests`, `SettingsWriteTests`, `SettingsRemovalTests`: real process output/cache contention, killed staging writer, atomic preservation of previous files, owned replacement/collision handling, scoped settings/removal roundtrips |
 | Explicit authorization | `AuthenticationTests`, `MicrosoftTests`: consent only through login, local status/logout, teacher/client state, silent refresh/failures, Graph pagination and staged source preservation |
 | No-write preview and apply outcomes | `CalendarSyncTests`, `DriveSyncTests`, `RegistryTests`, `RegistryGradeTests`: preview does not invoke remote writes; apply recomputes under destination locks, partial/uncertain outcomes and cancellation |
-| Production transport failures | `GoogleCalendarProviderTests`, `GoogleDriveProviderTests`, `RegistryGradeAdapterTests`: SDK/HTTP paths against injected transports, no automatic create replay, authentication/network/deadline classification, HTTP rejection and post-submit confirmation |
+| Production transport failures | `GoogleCalendarProviderTests`, `GoogleDriveProviderTests`, `RegistryGradeAdapterTests`, `RegistryLessonAdapterTests`: SDK/HTTP paths against injected transports, no automatic create replay, authentication/network/deadline classification, HTTP rejection and post-submit confirmation |
 | Machine results and errors | Command/query/export/provider tests: single JSON envelope, stderr diagnostics, exits 2/3/4/5/6/7/8/130 where appropriate; completed/uncertain work survives partial failure |
 
 Provider HTTP checks exercise the production adapters with local/in-memory
@@ -80,7 +80,7 @@ implementation/review corrections change behavior.
 
 Native Windows execution and Microsoft Word COM conversion were unavailable.
 Windows cross-publishing proves package construction, not Windows execution or
-Word availability. Linux tests verify that unsupported legacy DOC conversion
+Word availability. Word cancellation uses cooperative shutdown and verified process ownership; a Word instance that blocks before reporting its identity cannot safely be terminated. Linux tests verify that unsupported legacy DOC conversion
 returns a capability error and preserves the original document.
 
 Live Google/Microsoft browser consent, actual organization/account access,
