@@ -155,9 +155,9 @@ schedulelib registry import-grades --profile "Curmanschii Anton" --quiz-id 123 -
 ```
 
 Apply is a new reconciliation, not replay of a saved transaction. Calendar keeps
-its existing replacement semantics; Drive updates matching filenames and deletes
-unmatched remote files. Failures report completed/unattempted/uncertain actions;
-there is no automatic rollback or speculative retry of uncertain creates.
+its existing replacement semantics; Drive requires one unambiguous folder name,
+updates matching filenames and deletes unmatched remote files. Failures report
+completed/unattempted/uncertain actions; there is no automatic rollback or speculative retry of uncertain creates.
 Read the operation-specific contracts before applying:
 [Calendar](src/MainCli/CALENDAR.md), [Drive](src/MainCli/DRIVE.md),
 [registry reconciliation](docs/development-notes.md#registry-cli-synchronization-197)
@@ -201,8 +201,8 @@ Read the exit code and partial/uncertain action outcomes before retrying.
 | 130 | Cancelled, with completed outputs/actions reported where applicable |
 
 DOCX/XLSX and portable exports run on Linux. Legacy `.doc` conversion requires
-Windows with Microsoft Word and operates on staged copies. Native Windows/Word
-and live Google/Microsoft consent checks are explicitly unverified; fake-provider
+Windows with .NET Framework 4.8 and Microsoft Word, and operates on staged copies.
+Native Windows/Word and live Google/Microsoft consent checks are explicitly unverified; fake-provider
 checks exercise preview/apply/failure behavior without live publication.
 [Verification guide](docs/cli-verification.md) records repeatable checks and limits.
 
