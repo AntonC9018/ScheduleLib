@@ -46,11 +46,25 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
 
     public async Task<DriveDestination> FindFolder(string name, CancellationToken token)
     {
-        var request = _service.Files.List();
-        request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{Escape(name)}' and trashed=false";
-        request.Fields = "files(id,name)";
-        var files = (await request.ExecuteAsync(token)).Files;
-        var folder = files?.FirstOrDefault() ?? throw new DirectoryNotFoundException($"Drive folder does not exist: {name}");
+        DriveFile? folder = null;
+        string? page = null;
+        do
+        {
+            var request = _service.Files.List();
+            request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{Escape(name)}' and trashed=false";
+            request.Fields = "nextPageToken,files(id,name)";
+            request.PageSize = 2;
+            request.PageToken = page;
+            var response = await request.ExecuteAsync(token);
+            foreach (var match in response.Files ?? [])
+            {
+                if (folder is not null)
+                    throw new IOException($"More than one Drive folder is named '{name}'. Use a unique folder name before synchronizing.");
+                folder = match;
+            }
+            page = response.NextPageToken;
+        } while (!string.IsNullOrEmpty(page));
+        if (folder is null) throw new DirectoryNotFoundException($"Drive folder does not exist: {name}");
         return new(folder.Id, folder.Name);
     }
 

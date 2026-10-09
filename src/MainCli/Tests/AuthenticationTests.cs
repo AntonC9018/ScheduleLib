@@ -209,6 +209,26 @@ public sealed class AuthenticationTests
         Assert.Equal(0, fixture.Tokens.Refreshes);
     }
 
+    [Theory]
+    [InlineData(AuthProvider.google)]
+    [InlineData(AuthProvider.microsoft)]
+    public async Task CancelledStatusReturnsOneCancelledJsonResult(AuthProvider provider)
+    {
+        var original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Assert.Equal(130, await new AuthCommands().Status(new() { Provider = provider },
+                new() { Profile = Teacher }, new() { Json = true }, new CancellationToken(true)));
+            using var json = JsonDocument.Parse(output.ToString());
+            Assert.Equal("cancelled", json.RootElement.GetProperty("status").GetString());
+            Assert.Equal(130, json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("data").ValueKind);
+        }
+        finally { Console.SetOut(original); }
+    }
+
     private sealed class Fixture : IDisposable
     {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "schedulelib-auth-" + Guid.NewGuid().ToString("N"));

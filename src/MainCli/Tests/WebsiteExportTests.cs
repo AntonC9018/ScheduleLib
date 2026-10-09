@@ -53,7 +53,7 @@ public sealed class WebsiteExportTests
         AssertZipMatchesDirectory(zipPath, output);
         Assert.True(File.Exists(Path.Combine(output, "schedulelib-manifest.json")));
         Assert.Equal("user file", await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
-        Assert.Empty(Directory.EnumerateFiles(Fixtures, "schedule_*.json", SearchOption.AllDirectories));
+        Assert.Empty(Directory.EnumerateFiles(Fixtures, "*schedule_*.json", SearchOption.AllDirectories));
     }
 
     [Fact]

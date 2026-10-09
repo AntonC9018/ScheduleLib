@@ -77,7 +77,7 @@ public partial class AuthCommands
             foreach (var error in errors) Console.Error.WriteLine(error);
             if (output.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<AuthStatus?>(1, "auth " + verb + " google", runId,
-                    exit == 0 ? "succeeded" : "failed", exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                    exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed", exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             else if (data is not null)
             {
                 Console.WriteLine($"Google authorization for {data.Profile}: {(data.Accounts.Count == 0 ? "not provisioned" : "provisioned")}");

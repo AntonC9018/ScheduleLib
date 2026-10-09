@@ -57,7 +57,12 @@ public partial class ExportCommands
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
-        catch (OperationCanceledException) { return await Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException)
+        {
+            if (cancellation.IsCancellationRequested) return await Finish(130, ["Cancelled."]);
+            return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, ["Schedule provider request timed out."]);
+        }
+        catch (HttpRequestException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
         catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
         catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }
         catch (JsonException e) { return await Finish(3, [e.Message]); }

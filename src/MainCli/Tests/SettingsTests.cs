@@ -236,6 +236,40 @@ public sealed class SettingsTests
         finally { Console.SetOut(original); }
     }
 
+    [Fact]
+    public async Task ConcurrentAtomicReplacementsAndSettingsReadsUseCompleteSnapshots()
+    {
+        using var files = new SettingsFixture();
+        var path = Path.Combine(files.Root, "project", CliSettings.FileName);
+        // Large valid documents keep asynchronous readers active while publication replaces
+        // the path. On Windows this also exercises delete sharing on the open reader.
+        var value = new string('x', 1024 * 1024);
+        var before = JsonSerializer.Serialize(new { schemaVersion = 1, defaults = new { GoogleCalendarConfig = new { calendarName = value } } });
+        var after = JsonSerializer.Serialize(new { schemaVersion = 1, defaults = new { GoogleCalendarConfig = new { calendarName = "replacement" + value } } });
+        await files.Project(before);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        async Task Read()
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                using var settings = await CliSettings.Load(new(), Path.Combine(files.Root, "project"), files.UserFile,
+                    cancellationToken: deadline.Token);
+                Assert.Contains(settings.Get(GoogleCalendarConfig.Key)!.CalendarName, new[] { value, "replacement" + value });
+            }
+        }
+        var readers = Enumerable.Range(0, 4).Select(_ => Read()).ToArray();
+        for (var i = 0; i < 8; i++)
+        {
+            await AtomicFile.Publish(path, async (stream, token) =>
+            {
+                using var writer = new StreamWriter(stream, leaveOpen: true);
+                await writer.WriteAsync((i % 2 == 0 ? after : before).AsMemory(), token);
+                await writer.FlushAsync(token);
+            }, deadline.Token);
+        }
+        await Task.WhenAll(readers);
+    }
+
     private sealed class SettingsFixtureExport : ExportCommands
     {
         protected override void ConfigureServices(IServiceCollection services)

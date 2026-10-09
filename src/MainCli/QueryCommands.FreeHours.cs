@@ -63,7 +63,9 @@ public partial class QueryCommands
             data = result;
             return Finish(0, []);
         }
-        catch (OperationCanceledException) { return Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, ["Cancelled."]); }
+        catch (OperationCanceledException) { return Finish(5, ["Schedule provider request timed out."]); }
+        catch (HttpRequestException e) { return Finish(5, [e.Message]); }
         catch (ArgumentException e) { return Finish(2, [e.Message]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [e.Message]); }
         catch (InvalidScheduleSourceException e) { return Finish(3, [e.Message]); }

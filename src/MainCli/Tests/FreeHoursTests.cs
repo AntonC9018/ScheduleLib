@@ -300,7 +300,7 @@ public sealed class FreeHoursTests
             Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
             Assert.Equal("query free-hours", document.RootElement.GetProperty("command").GetString());
             Assert.Equal(cwd, Environment.CurrentDirectory);
-            Assert.Empty(Directory.EnumerateFiles(FixtureDirectory(), "schedule_*.json", SearchOption.AllDirectories));
+            Assert.Empty(Directory.EnumerateFiles(FixtureDirectory(), "*schedule_*.json", SearchOption.AllDirectories));
             return document.RootElement.Clone();
         }
         finally { Console.SetOut(original); }

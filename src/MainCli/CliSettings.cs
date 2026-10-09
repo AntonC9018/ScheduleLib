@@ -260,7 +260,8 @@ public static partial class CliSettings
         if (replacement is { } candidate && Path.GetFullPath(path) == candidate.Path)
             return ReadEnvelope((JsonObject)candidate.Envelope.DeepClone(), path, json, teachers);
         if (!File.Exists(path)) return null;
-        await using var input = File.OpenRead(path);
+        await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete,
+            bufferSize: 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
         JsonNode? node;
         try
         {

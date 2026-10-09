@@ -16,6 +16,58 @@ using Xunit;
 public sealed class GoogleDriveProviderTests
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task AmbiguousFolderStopsPreviewAndApplyBeforeListingOrMutation(bool apply, bool splitPages)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var call = 0;
+        using var handler = new Transport((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            if (request.RequestUri!.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
+                return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
+            Assert.Contains("mimeType", Uri.UnescapeDataString(request.RequestUri.Query));
+            call++;
+            return Task.FromResult(Json(!splitPages
+                ? "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}"
+                : call == 1 ? "{\"nextPageToken\":\"next\",\"files\":[{\"id\":\"one\",\"name\":\"Configured\"}]}"
+                : "{\"files\":[{\"id\":\"two\",\"name\":\"Configured\"}]}"));
+        });
+        using var service = Service(handler);
+        using var provider = new GoogleDriveSyncProvider(service);
+        try
+        {
+            await Assert.ThrowsAsync<IOException>(() => DriveSync.Run(provider, "Configured", [], apply, default, directory));
+            Assert.Equal(splitPages ? 2 : 1, call);
+            if (splitPages) Assert.Contains("pageToken=next", handler.Requests.Last().Uri);
+            Assert.All(handler.Requests, x => Assert.Equal("GET", x.Method));
+            Assert.Empty(Directory.GetFiles(directory, "*.json", SearchOption.AllDirectories));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FolderLookupScansRemainingPagesForSingleOrMissingMatch(bool found)
+    {
+        var call = 0;
+        using var handler = new Transport((_, _) => Task.FromResult(Json(++call == 1
+            ? "{\"nextPageToken\":\"next\",\"files\":[]}"
+            : found ? "{\"files\":[{\"id\":\"only\",\"name\":\"Configured\"}]}" : "{\"files\":[]}")));
+        using var service = Service(handler);
+        using var provider = new GoogleDriveSyncProvider(service);
+        if (found) Assert.Equal("only", (await provider.FindFolder("Configured", default)).Id);
+        else await Assert.ThrowsAsync<DirectoryNotFoundException>(() => provider.FindFolder("Configured", default));
+        Assert.Equal(2, call);
+        Assert.Contains("pageToken=next", handler.Requests.Last().Uri);
+    }
+
+    [Theory]
     [InlineData("create", HttpStatusCode.ServiceUnavailable)]
     [InlineData("update", HttpStatusCode.BadRequest)]
     [InlineData("delete", HttpStatusCode.ServiceUnavailable)]
