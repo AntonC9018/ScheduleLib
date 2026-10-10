@@ -34,6 +34,61 @@ unexpected failures, 2 for invalid arguments, 3 for missing/invalid input, 4 for
 destination, 8 for unsupported capabilities and 130 for cancellation.
 Ctrl+C cancels initialization and query enumeration.
 
+`--jsonl` streams newline-delimited JSON on stdout and is mutually exclusive
+with `--json` (both together exit 2). Human output remains the default; result
+items and action outcomes stream as they become available, followed by a final
+summary that does not repeat them. `--json` keeps its single complete envelope.
+`--jsonl` stdout records each carry `schemaVersion: 1`, `command`, `runId`,
+per-stdout-stream `seq` (starting at 0) and `event`:
+
+```sh
+schedulelib query lessons --jsonl | head -n 3
+```
+
+```json
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":0,"event":"start"}
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":1,"event":"item","id":"0","status":"completed","item":{"day":"Tuesday"}}
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":2,"event":"final","status":"succeeded","exitCode":0,"warnings":[],"errors":[],"data":{"count":1}}
+```
+
+- `start` is always first when `--jsonl` is recognized, including early
+  argument/configuration failures.
+- `item` carries a stable string `id` (plan-order index for registry,
+  calendar, drive and query results; artifact path for exports) and its current
+  `status`, so `planned`/`not-attempted` to
+  `completed`/`failed`/`uncertain`/`cancelled` transitions correlate by `id`.
+- `final` is last on success, failure and normal cancellation (`cancelled`,
+  exit 130 when possible). A missing `final` means the process crashed or was
+  killed and the run is incomplete. It carries `status`, `exitCode`,
+  `warnings`, `errors` and scalar command data (target, counts, directories)
+  without repeating the full array of previously emitted items. Collection
+  commands (`config profiles`, auth accounts, history years/candidates,
+  query sections, export artifacts, registry/calendar/drive plans and
+  outcomes) stream one `item` per element; scalar commands (`config
+  show`/`get`/`validate`/`set`/`unset`, empty auth/history results) emit
+  `start` then `final` with the full data, since there is nothing to stream
+  incrementally.
+- Calendar and drive stream their read selection as items too: deleted remote
+  identities (`deleted-N`) and desired payloads (`desired-N`) for calendar,
+  and every planned drive action. Planned action ids are the same plan-order
+  indexes in preview and apply, so each id transitions from
+  `planned`/`not-attempted` to its terminal state.
+- `seq` orders records within each stream only: stdout `seq` and stderr `seq`
+  are independent counters starting at 0. Both streams share `command` and
+  `runId`.
+- When `--jsonl` is selected, every stderr warning/error/log is also JSONL
+  (`event: "log"` with `level` and `message`, same `command`/`runId`, stderr
+  `seq`), including errors before the command starts. Plain `--json` keeps the
+  existing stderr text. Explicit `--help` stays ordinary text in all modes.
+- Existing Serilog information logs keep their content and levels; registry
+  per-action logs now appear under both preview and `--apply` when the
+  configured processing flags select log/dry-run. History readers keep their
+  `NullLoggerFactory` silence for privacy. No new progress logging or
+  verbosity flag was added.
+- Registry sync applies each completed course/group plan before scanning the
+  next group; later planning failures can leave partial writes. Other commands
+  retain their complete-plan behavior. Failed submissions are never retried.
+
 DOCX/XLSX parsing is portable. Legacy `.doc` conversion requires Windows and
 Microsoft Word; Linux returns the capability error. Conversion operates on
 staged copies and preserves original sources. Windows Word conversion is not

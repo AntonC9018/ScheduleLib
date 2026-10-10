@@ -22,9 +22,17 @@ public class CalendarCommands
         => GoogleCalendarSyncProvider.Connect(services, config, token);
 
     [Command("sync", Description = "Preview the configured teacher's filtered recurring events and calendar/ID replacement. --apply recomputes current state and replaces the first calendar with the configured name. Requires auth login google; never opens consent.")]
-    public async Task<int> Sync(SourceArguments source, SettingsArguments settings, ResultArguments output, ApplyArguments apply, CancellationToken cancellationToken = default)
+    public async Task<int> Sync(SourceArguments source, SettingsArguments settings, ResultArguments outputArgs, ApplyArguments apply, CancellationToken cancellationToken = default)
     {
+        const string command = "calendar sync";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
         CalendarSyncResult? data = null;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
@@ -39,6 +47,8 @@ public class CalendarCommands
                 return Finish(3, ["Primary calendars cannot be replaced; configure a named secondary calendar."]);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
+            if (output.Jsonl) CliLogging.ReplaceWithJsonl(services, output);
+            CliAmbient.Current = output.Jsonl ? output : null;
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
@@ -49,9 +59,15 @@ public class CalendarCommands
                 return Finish(3, [$"Selected teacher {resolved.Profile} is absent from this schedule."]);
             var desired = scope.ServiceProvider.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>().BuildDesiredEvents(cancellation.Token);
             using var provider = await Connect(scope.ServiceProvider, config, cancellation.Token);
-            data = await CalendarSync.Run(provider, config.CalendarName, desired, apply.Apply, cancellation.Token, profile: resolved.Profile);
+            // Planning (reads) completes before mutations; the plan, the read
+            // selection and each applied outcome stream as produced with stable
+            // plan-order ids.
+            data = await CalendarSync.Run(provider, config.CalendarName, desired, apply.Apply, cancellation.Token, profile: resolved.Profile,
+                onOutcome: StreamUpdate);
             return Finish(data.ExitCode, data.Errors);
         }
+        catch (CalendarStreamingException ex) { data = ex.PartialResult; return Finish(data.ExitCode, data.Errors); }
+        catch (CliOutputStreamingException) { return Finish(1, ["Output streaming failed."]); }
         catch (AuthenticationRequiredException e) { return Finish(4, [e.Message]); }
         catch (Exception error) when (cancellation.IsCancellationRequested
             && error is OperationCanceledException or GooglePreSendTransportException) { return Finish(130, ["Cancelled."]); }
@@ -71,31 +87,51 @@ public class CalendarCommands
         catch (Google.GoogleApiException e) when ((int)e.HttpStatusCode == 401) { return Finish(4, [new AuthenticationRequiredException("google", settings.Profile ?? "").Message]); }
         catch (Google.GoogleApiException) { return Finish(5, ["Google Calendar rejected the remote state request."]); }
         catch (Exception) { return Finish(1, ["Calendar synchronization failed before application."]); }
-        finally { Console.CancelKeyPress -= cancel; }
+        finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; }
+
+        void StreamUpdate((string Id, string Status, object? Item, string Human) update)
+        {
+            try
+            {
+                output.WriteHuman(update.Human);
+                output.EmitItem(update.Id, update.Status, update.Item);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new CliOutputStreamingException("Output streaming failed.", ex);
+            }
+        }
 
         int Finish(int exit, string[] errors)
         {
             var warnings = data?.Warnings ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
+            foreach (var error in errors) output.WriteError(error);
+            foreach (var warning in warnings) output.WriteWarning(warning);
             var actions = data is null ? [] : (data.ReplacedCalendar is null ? Array.Empty<string>()
                 : new[] { $"Delete calendar {data.ReplacedCalendar.Id} and its {data.DeletedEvents.Count} events" })
                 .Concat(new[] { $"Create calendar {data.CalendarName} with a new ID", $"Create {data.DesiredEvents.Count} events with new IDs" }).ToArray();
             var status = exit == 130 ? "cancelled" : exit == 0 ? apply.Apply ? "applied" : "preview" : exit == 6 ? "partial" : "failed";
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<CalendarSyncResult?>(1, "calendar sync", runId, status,
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<CalendarSyncResult?>(1, command, runId, status,
                     exit, [], actions, warnings, errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (output.Jsonl)
+            {
+                output.EmitFinal(status, exit, warnings, errors, data is null ? null : new
+                {
+                    data.Account,
+                    data.CalendarName,
+                    replacedCalendarId = data.ReplacedCalendar?.Id,
+                    data.CreatedCalendarId,
+                    desiredCount = data.DesiredEvents.Count,
+                    deletedCount = data.DeletedEvents.Count,
+                    outcomeCount = data.Outcomes.Count,
+                });
+            }
             else if (data is not null)
             {
-                Console.WriteLine($"{status}: {data.Account} / {data.CalendarName}");
-                foreach (var action in actions) Console.WriteLine(action);
-                foreach (var ev in data.DeletedEvents) Console.WriteLine($"Delete event {ev.Id}: {ev.Summary}");
-                for (var index = 0; index < data.DesiredEvents.Count; index++)
-                {
-                    var ev = data.DesiredEvents[index];
-                    Console.WriteLine($"Create event [{index}]: {ev.Summary}; {ev.Start.DateTimeDateTimeOffset}–{ev.End.DateTimeDateTimeOffset}; {string.Join(", ", ev.Recurrence ?? [])}");
-                }
-                foreach (var outcome in data.Outcomes) Console.WriteLine($"{outcome.Action}: {outcome.State}; calendar {outcome.CalendarId}; event {outcome.EventId}; desired index {outcome.DesiredEventIndex}");
+                // Planned actions and the read selection already streamed above;
+                // the final summary does not repeat them.
+                output.WriteHuman($"{status}: {data.Account} / {data.CalendarName}");
             }
             return exit;
         }

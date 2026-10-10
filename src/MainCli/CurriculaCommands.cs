@@ -54,12 +54,20 @@ public class CurriculaCommands
 
     [Command("download", Description = "Download curricula from the existing C#-configured owner/path (2024-2025). Requires provisioned Microsoft authorization; no browser consent. Legacy DOC conversion requires Windows and Word.")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the nested finally block.")]
-    public async Task<int> Download(SettingsArguments settings, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default)
+    public async Task<int> Download(SettingsArguments settings, OutputArguments destination, ResultArguments resultArgs, CancellationToken cancellationToken = default)
     {
         const string command = "curricula download";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         var source = Source;
         RunOutput? output = null;
+        var streamed = 0;
         var warnings = new List<string> { "Curricula source owner/path remain code-defined for 2024-2025; no current-year source discovery is performed." };
         var count = 0;
         var exit = 1;
@@ -102,12 +110,15 @@ public class CurriculaCommands
                 var extension = Path.GetExtension(file.Name);
                 if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase)) continue;
                 if (extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                {
                     await output.Publish(ArtifactName(file), async (stream, ct) =>
                     {
                         await using var remote = await provider.Download(file, ct);
                         await remote.CopyToAsync(stream, ct);
                         ValidateDocx(stream);
                     }, cancellation.Token);
+                    StreamNewLocal();
+                }
                 else
                 {
                     // Publish the downloaded original first, then convert a separate staging copy.
@@ -117,6 +128,7 @@ public class CurriculaCommands
                         await using var remote = await provider.Download(file, ct);
                         await remote.CopyToAsync(stream, ct);
                     }, cancellation.Token);
+                    StreamNewLocal();
                     using var stagingOwner = OwnedConversionDirectory.Create(output.DirectoryPath);
                     var staging = stagingOwner.DirectoryPath;
                     {
@@ -130,12 +142,16 @@ public class CurriculaCommands
                             await read.CopyToAsync(stream, ct);
                             ValidateDocx(stream);
                         }, cancellation.Token);
+                        StreamNewLocal();
                     }
                 }
                 count++;
+                StreamNewLocal();
             }
             if (count == 0) warnings.Add("No supported curriculum documents were found at the configured source.");
+            StreamNewLocal();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNewLocal();
             exit = 0;
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { exit = 130; errors = ["Cancelled."]; }
@@ -178,23 +194,45 @@ public class CurriculaCommands
                 {
                     try { await output.Complete("partial", CancellationToken.None); }
                     catch (Exception) { warnings.Add("Could not publish the partial output manifest."); }
+                    StreamNewLocal();
                 }
             }
             finally { output?.Dispose(); }
         }
-        foreach (var warning in warnings) Console.Error.WriteLine(warning);
-        foreach (var error in errors) Console.Error.WriteLine(error);
+        StreamNewLocal();
+        foreach (var warning in warnings) cli.WriteWarning(warning);
+        foreach (var error in errors) cli.WriteError(error);
         var paths = output?.PublishedPaths.ToArray() ?? [];
-        if (result.Json)
+        var status = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
+        if (resultArgs.Json)
             Console.WriteLine(JsonSerializer.Serialize(new CommandResult<CurriculaDownloadResult>(1, command, runId,
-                exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                status, exit, paths, [], warnings.ToArray(), errors,
                 new(source, output?.DirectoryPath, count)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        else if (resultArgs.Jsonl)
+            cli.EmitFinal(status, exit, warnings.ToArray(), errors, new
+            {
+                source,
+                outputDirectory = output?.DirectoryPath,
+                documentCount = count,
+                artifactCount = paths.Length,
+            });
         else
         {
             Console.WriteLine($"Curricula source: {source.Owner}/{source.Path}");
-            foreach (var path in paths) Console.WriteLine(path);
+            cli.WriteHuman($"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.");
         }
         return exit;
+
+        void StreamNewLocal()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var streamedPath = output.PublishedPaths[streamed++];
+                cli.WriteHuman(streamedPath);
+                cli.EmitItem("artifact:" + streamedPath, "completed", new { path = streamedPath });
+            }
+        }
     }
 
     private static T? FindInnerException<T>(Exception exception) where T : Exception

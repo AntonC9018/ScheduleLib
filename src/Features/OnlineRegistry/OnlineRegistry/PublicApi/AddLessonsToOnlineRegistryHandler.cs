@@ -270,8 +270,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 foreach (var command in equationCommands)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!explicitApply && (config.CommandProcessingConfig.HasLog(command.Type)
-                        || config.CommandProcessingConfig.HasDryRun(command.Type)))
+                    if (config.CommandProcessingConfig.HasLog(command.Type)
+                        || config.CommandProcessingConfig.HasDryRun(command.Type))
                     {
                         LogCommandBeforeExecution(command.Type.ToString(),
                             (command.HasAll ? command.Local.DateTime : command.Remote.DateTime).ToString("dd.MM.yy"),

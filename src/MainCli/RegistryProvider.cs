@@ -62,6 +62,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         {
             var services = CliRuntime.CreateServices(source, AppConfiguration.ConfigureServices, resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
+            if (CliAmbient.Current is { Jsonl: true } ambient) CliLogging.ReplaceWithJsonl(services, ambient);
             provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(token);
             scope = provider.CreateAsyncScope();

@@ -22,14 +22,23 @@ public partial class ExportCommands
     protected virtual void ConfigureServices(IServiceCollection services) => AppConfiguration.ConfigureServices(services);
 
     [Command("teachers-excel", Description = "Generate the all-teacher workbook for the latest period. No teacher profile is required; a profile does not filter teachers.")]
-    public async Task<int> TeachersExcel(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
+    public async Task<int> TeachersExcel(SourceArguments source, OutputArguments destination, ResultArguments resultArgs, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         const string command = "export teachers-excel";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         var warnings = new List<string>();
         var lessonCount = 0;
         var teacherCount = 0;
+        var streamed = 0;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -40,6 +49,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
@@ -68,7 +79,9 @@ public partial class ExportCommands
                 if (workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.Count != 1 || !workbook.WorkbookPart.WorksheetParts.Any())
                     throw new InvalidDataException("Generated teacher workbook has no usable worksheet.");
             }, cancellation.Token);
+            StreamNew();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNew();
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
@@ -92,7 +105,19 @@ public partial class ExportCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             output?.Dispose();
+        }
+
+        void StreamNew()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var path = output.PublishedPaths[streamed++];
+                cli.WriteHuman(path);
+                cli.EmitItem("artifact:" + path, "completed", new { path });
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
@@ -102,16 +127,27 @@ public partial class ExportCommands
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
+                StreamNew();
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (result.Json)
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in warnings) cli.WriteWarning(warning);
+            var jsonStatus = exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
+            if (resultArgs.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<TeachersExcelResult>(1, command, runId,
-                    exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                    jsonStatus, exit, paths, [], warnings.ToArray(), errors,
                     new(output?.DirectoryPath, lessonCount, teacherCount)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                cli.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    lessonCount,
+                    teacherCount,
+                    artifactCount = paths.Length,
+                });
             else
-                foreach (var path in paths) Console.WriteLine(path);
+                cli.WriteHuman($"{jsonlStatus}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.");
             return exit;
         }
     }

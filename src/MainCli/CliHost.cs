@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
 using CommandDotNet;
@@ -18,7 +19,21 @@ public static class CliHost
     {
         var invoked = false;
         var inputFailure = false;
+        string? parseDetail = null;
         var runner = new AppRunner<Commands>(new AppSettings { Help = { PrintHelpOption = true, UsageAppName = "schedulelib" }, DisableDirectives = true });
+        // When --jsonl is selected (without --json and without explicit --help), capture
+        // CommandDotNet's own human parse-error output so neither stdout nor stderr
+        // mixes human text into JSONL. Command results use System.Console directly and
+        // are unaffected; explicit --help keeps the ordinary text console.
+        var hasJson = args.Contains("--json");
+        var hasJsonl = args.Contains("--jsonl");
+        var hasHelp = args.Contains("--help") || args.Contains("-h");
+        CapturingConsole? capture = null;
+        if (hasJsonl && !hasJson && !hasHelp)
+        {
+            capture = new();
+            runner.Configure(builder => builder.Console = capture);
+        }
         runner.Configure(builder => builder.UseMiddleware((context, next) =>
         {
             invoked = true;
@@ -28,7 +43,9 @@ public static class CliHost
         {
             var exit = await next(context);
             inputFailure = !invoked && (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
-            if (exit != 0 && !invoked && args.Contains("--json")) context.ShowHelpOnExit = false;
+            if (!invoked && context.ParseResult?.ParseError is not null)
+                parseDetail = context.ParseResult.ParseError.ToString();
+            if (exit != 0 && !invoked && (args.Contains("--json") || args.Contains("--jsonl"))) context.ShowHelpOnExit = false;
             return exit;
         }, MiddlewareSteps.Help.PrintHelpOnExit + 1));
         try
@@ -36,21 +53,109 @@ public static class CliHost
             configure?.Invoke(runner);
             var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
             if (result == 0 || invoked) return result;
+            hasJson = args.Contains("--json");
+            hasJsonl = args.Contains("--jsonl");
+            if (hasJson && hasJsonl)
+            {
+                Console.Error.WriteLine("Only one of --json and --jsonl may be specified.");
+                return 2;
+            }
             var exit = inputFailure ? 2 : 1;
-            WriteStartupResult(exit, inputFailure ? "Invalid command or arguments. See stderr for details." : "Unexpected CLI startup failure. See stderr for details.");
+            // Preserve actionable parser diagnostics on stderr without dumping argv
+            // or credentials: CommandDotNet's captured human error plus ParseError.
+            var details = new List<string>();
+            if (capture is not null)
+            {
+                foreach (var line in capture.GetError().Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.Length > 0) details.Add(trimmed);
+                }
+                foreach (var line in capture.GetOut().Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.Length > 0) details.Add(trimmed);
+                }
+            }
+            if (parseDetail is { Length: > 0 } parsed && !details.Contains(parsed))
+                details.Add(parsed);
+            var summary = inputFailure ? "Invalid command or arguments. See stderr for details." : "Unexpected CLI startup failure. See stderr for details.";
+            if (details.Count == 0) details.Add(summary);
+            WriteStartupResult(exit, summary, details.ToArray());
             return exit;
         }
         catch (Exception e)
         {
+            hasJson = args.Contains("--json");
+            hasJsonl = args.Contains("--jsonl");
+            if (hasJson && hasJsonl)
+            {
+                Console.Error.WriteLine("Only one of --json and --jsonl may be specified.");
+                return 2;
+            }
+            if (hasJsonl && !hasJson)
+            {
+                var output = new CliOutput("cli", Guid.NewGuid().ToString("N"), false, true);
+                output.EmitStart();
+                output.WriteError(e.Message);
+                output.EmitFinal("failed", 1, [], ["Unexpected CLI startup failure. See stderr for details."], null);
+                return 1;
+            }
             Console.Error.WriteLine(e.Message);
-            WriteStartupResult(1, "Unexpected CLI startup failure. See stderr for details.");
+            WriteStartupResult(1, "Unexpected CLI startup failure. See stderr for details.", [e.Message]);
             return 1;
         }
 
-        void WriteStartupResult(int exit, string error)
+        void WriteStartupResult(int exit, string error, string[] details)
         {
-            if (args.Contains("--json"))
+            hasJson = args.Contains("--json");
+            hasJsonl = args.Contains("--jsonl");
+            if (hasJson && hasJsonl) return;
+            if (hasJsonl)
+            {
+                var output = new CliOutput("cli", Guid.NewGuid().ToString("N"), false, true);
+                output.EmitStart();
+                foreach (var detail in details) output.WriteError(detail);
+                output.EmitFinal("failed", exit, [], [error], null);
+            }
+            else if (hasJson)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object?>(1, "cli", Guid.NewGuid().ToString("N"), "failed", exit, [], [], [], [error], null), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        }
+    }
+
+    private sealed class CapturingConsole : CommandDotNet.Rendering.SystemConsole
+    {
+        private readonly StringBuilder _out = new();
+        private readonly StringBuilder _error = new();
+        private readonly object _gate = new();
+        private sealed class CaptureWriter(StringBuilder builder, object gate) : TextWriter
+        {
+            public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
+            public override void WriteLine(string? value)
+            {
+                lock (gate) builder.AppendLine(value);
+            }
+            public override void Write(char value)
+            {
+                lock (gate) builder.Append(value);
+            }
+            public override void Write(string? value)
+            {
+                if (value is null) return;
+                lock (gate) builder.Append(value);
+            }
+        }
+        public override TextWriter Out => new CaptureWriter(_out, _gate);
+        public override TextWriter Error => new CaptureWriter(_error, _gate);
+        public override bool IsOutputRedirected => true;
+        public override bool IsErrorRedirected => true;
+        public string GetOut()
+        {
+            lock (_gate) return _out.ToString();
+        }
+        public string GetError()
+        {
+            lock (_gate) return _error.ToString();
         }
     }
 }
@@ -70,9 +175,20 @@ public partial class QueryCommands
     protected virtual void ConfigureServices(IServiceCollection services) => AppConfiguration.ConfigureServices(services);
 
     [Command("lessons", Description = "List latest-period weekly lessons. All predicates are optional; parity includes lessons held every week. No teacher profile is required.")]
-    public async Task<int> Lessons(QueryArguments query, SourceArguments source, ResultArguments output, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
+    public async Task<int> Lessons(QueryArguments query, SourceArguments source, ResultArguments outputArgs, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
+        const string command = "query lessons";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
+        if (output.Jsonl) CliAmbient.Current = output;
+        var lessons = new List<LessonResult>();
+        var streamed = 0;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -85,6 +201,7 @@ public partial class QueryCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (output.Jsonl) CliLogging.ReplaceWithJsonl(services, output);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -92,7 +209,6 @@ public partial class QueryCommands
             if (query.Room is { } room && !schedule.EnumerateWeeklyLessons().Any(x => x.Lesson.Room.Id == room))
                 return Finish(2, [], [$"Unknown room: {room}"]);
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            var lessons = new List<LessonResult>();
             foreach (var lesson in schedule.Filter(FilterHelper.Builder().WithLatestPeriod(schedule)).EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
@@ -102,39 +218,57 @@ public partial class QueryCommands
                     || query.BeforeSlot is { } slot && lesson.Date.TimeSlot.Index + 1 > slot)
                     continue;
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
-                lessons.Add(new(lesson.Date.DayOfWeek.ToString(), lesson.Date.Parity.ToString(),
+                var item = new LessonResult(lesson.Date.DayOfWeek.ToString(), lesson.Date.Parity.ToString(),
                     lesson.Date.TimeSlot.Index + 1, interval.Start.ToString("HH:mm"), interval.End.ToString("HH:mm"),
                     lesson.Lesson.Room.Id, schedule.Get(lesson.Lesson.Course).FullName,
-                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray()));
+                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray());
+                lessons.Add(item);
+                try
+                {
+                    output.WriteHuman($"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
+                    output.EmitItem(streamed.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", item);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new CliOutputStreamingException("Output streaming failed.", ex);
+                }
+                streamed++;
             }
             return Finish(0, lessons, []);
         }
+        catch (CliOutputStreamingException) { return Finish(1, lessons, ["Output streaming failed."]); }
         catch (ArgumentException e) { return Finish(2, [], [e.Message]); }
         catch (ScheduleLib.Application.Config.AuthenticationRequiredException e) { return Finish(4, [], [e.Message]); }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, [], ["Cancelled."]); }
-        catch (OperationCanceledException) { return Finish(5, [], ["Schedule provider request timed out."]); }
-        catch (HttpRequestException e) { return Finish(5, [], [e.Message]); }
-        catch (PlatformNotSupportedException e) { return Finish(8, [], [e.Message]); }
-        catch (InvalidScheduleSourceException e) { return Finish(3, [], [e.Message]); }
-        catch (JsonException e) { return Finish(3, [], [e.Message]); }
-        catch (ScheduleBuildException e) { return Finish(3, [], [e.Message]); }
-        catch (FileNotFoundException e) { return Finish(3, [], [e.Message]); }
-        catch (DirectoryNotFoundException e) { return Finish(3, [], [e.Message]); }
-        catch (LocalOperationBusyException e) { return Finish(7, [], [e.Message]); }
-        catch (UnauthorizedAccessException e) { return Finish(5, [], [e.Message]); }
-        catch (IOException e) { return Finish(5, [], [e.Message]); }
-        catch (Exception e) { return Finish(1, [], [e.Message]); }
-        finally { Console.CancelKeyPress -= cancel; }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, lessons, ["Cancelled."]); }
+        catch (OperationCanceledException) { return Finish(5, lessons, ["Schedule provider request timed out."]); }
+        catch (HttpRequestException e) { return Finish(5, lessons, [e.Message]); }
+        catch (PlatformNotSupportedException e) { return Finish(8, lessons, [e.Message]); }
+        catch (InvalidScheduleSourceException e) { return Finish(3, lessons, [e.Message]); }
+        catch (JsonException e) { return Finish(3, lessons, [e.Message]); }
+        catch (ScheduleBuildException e) { return Finish(3, lessons, [e.Message]); }
+        catch (FileNotFoundException e) { return Finish(3, lessons, [e.Message]); }
+        catch (DirectoryNotFoundException e) { return Finish(3, lessons, [e.Message]); }
+        catch (LocalOperationBusyException e) { return Finish(7, lessons, [e.Message]); }
+        catch (UnauthorizedAccessException e) { return Finish(5, lessons, [e.Message]); }
+        catch (IOException e) { return Finish(5, lessons, [e.Message]); }
+        catch (Exception e) { return Finish(1, lessons, [e.Message]); }
+        finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; }
 
-        int Finish(int exit, IReadOnlyList<LessonResult> lessons, string[] errors)
+        int Finish(int exit, IReadOnlyList<LessonResult> lessonsForJson, string[] errors)
         {
-            foreach (var error in errors) Console.Error.WriteLine(error);
+            foreach (var error in errors) output.WriteError(error);
             var publicExit = exit;
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<IReadOnlyList<LessonResult>>(1, "query lessons", runId, publicExit == 0 ? "succeeded" : "failed", publicExit, [], [], [], errors, lessons), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            var jsonStatus = publicExit == 0 ? "succeeded" : "failed";
+            var jsonlStatus = publicExit == 0 ? "succeeded" : publicExit == 130 ? "cancelled" : "failed";
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<IReadOnlyList<LessonResult>>(1, command, runId, jsonStatus, publicExit, [], [], [], errors, lessonsForJson), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (output.Jsonl)
+                output.EmitFinal(jsonlStatus, publicExit, [], errors, new { count = streamed });
             else
-                foreach (var lesson in lessons)
-                    Console.WriteLine($"{lesson.Day} {lesson.Start}-{lesson.End} ({lesson.Parity}) room {lesson.Room}: {lesson.Course}; {string.Join(", ", lesson.Teachers)}");
+            {
+                var humanStatus = publicExit == 0 ? "succeeded" : publicExit == 130 ? "cancelled" : "failed";
+                output.WriteHuman($"{humanStatus}: {streamed} lessons.");
+            }
             return exit;
         }
     }
@@ -166,6 +300,8 @@ public sealed class ResultArguments : IArgumentModel
 {
     [Option("json", Description = "Emit one versioned JSON result on stdout; diagnostics use stderr.")]
     public bool Json { get; set; }
+    [Option("jsonl", Description = "Stream newline-delimited JSON records on stdout (start, items as available, final summary); stderr is JSONL. Mutually exclusive with --json.")]
+    public bool Jsonl { get; set; }
 }
 
 public sealed record LessonResult(string Day, string Parity, int Slot, string Start, string End,

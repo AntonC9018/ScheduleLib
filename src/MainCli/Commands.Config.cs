@@ -34,10 +34,18 @@ public sealed partial class ConfigCommands
     public Task<int> Profiles(SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) =>
         Execute("profiles", settings, new(), output, resolved => resolved.Profiles, cancellationToken);
 
-    private static async Task<int> Execute(string verb, SettingsArguments settings, ConfigOverrideArguments overrides, ResultArguments output,
+    private static async Task<int> Execute(string verb, SettingsArguments settings, ConfigOverrideArguments overrides, ResultArguments outputArgs,
         Func<ResolvedSettings, object> inspect, CancellationToken cancellationToken)
     {
+        var command = "config " + verb;
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -57,12 +65,34 @@ public sealed partial class ConfigCommands
 
         int Finish(int exit, object? data, string[] errors)
         {
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = !output.Json };
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object?>(1, "config " + verb, runId,
-                    exit == 0 ? "succeeded" : "failed", exit, [], [], [], errors, data), json));
-            else if (data is not null) Console.WriteLine(JsonSerializer.Serialize(data, json));
+            foreach (var error in errors) output.WriteError(error);
+            var jsonStatus = exit == 0 ? "succeeded" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
+            var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = !outputArgs.Json };
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object?>(1, command, runId,
+                    jsonStatus, exit, [], [], [], errors, data), json));
+            else if (output.Jsonl)
+            {
+                if (exit == 0 && verb == "profiles" && data is IReadOnlyList<string> profiles)
+                {
+                    for (var index = 0; index < profiles.Count; index++)
+                    {
+                        output.EmitItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", new { profile = profiles[index] });
+                    }
+                    output.EmitFinal(jsonlStatus, exit, [], errors, new { profileCount = profiles.Count });
+                }
+                else
+                {
+                    output.EmitFinal(jsonlStatus, exit, [], errors, data);
+                }
+            }
+            else if (exit == 0 && verb == "profiles" && data is IReadOnlyList<string> profiles)
+            {
+                foreach (var profile in profiles) output.WriteHuman(profile);
+                output.WriteHuman($"succeeded: {profiles.Count} profiles.");
+            }
+            else if (data is not null) output.WriteHuman(JsonSerializer.Serialize(data, json));
             return exit;
         }
     }

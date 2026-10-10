@@ -18,23 +18,32 @@ public sealed record TeacherExportResult(string? OutputDirectory, string? Teache
 public partial class ExportCommands
 {
     [Command("lab-deadlines", Description = "Generate the selected teacher's laboratory deadlines using coded academic dates and resolved teacher settings, across all periods. Requires --profile. Existing shared/mixed-partition laboratory combinations are unsupported.")]
-    public Task<int> LabDeadlines(SourceArguments source, OutputArguments destination, ResultArguments result,
+    public Task<int> LabDeadlines(SourceArguments source, OutputArguments destination, ResultArguments resultArgs,
         SettingsArguments settings, CancellationToken cancellationToken = default)
-        => TeacherExport(source, destination, result, settings, false, cancellationToken);
+        => TeacherExport(source, destination, resultArgs, settings, false, cancellationToken);
 
     [Command("pre-defense", Description = "Generate year-thesis (An) commission workbooks from the existing coded commission configuration and thesis source. Missing commissions are a prerequisite error. A selected profile does not filter commissions; this command does not discover commissions or publish remotely.")]
-    public Task<int> PreDefense(OutputArguments destination, ResultArguments result,
+    public Task<int> PreDefense(OutputArguments destination, ResultArguments resultArgs,
         SettingsArguments settings, CancellationToken cancellationToken = default)
-        => TeacherExport(null, destination, result, settings, true, cancellationToken);
+        => TeacherExport(null, destination, resultArgs, settings, true, cancellationToken);
 
-    private async Task<int> TeacherExport(SourceArguments? source, OutputArguments destination, ResultArguments result,
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
+    private async Task<int> TeacherExport(SourceArguments? source, OutputArguments destination, ResultArguments resultArgs,
         SettingsArguments settings, bool preDefense, CancellationToken cancellationToken)
     {
         var command = preDefense ? "export pre-defense" : "export lab-deadlines";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         var warnings = new List<string>();
         var workbookCount = 0;
+        var streamed = 0;
         string? teacher = null;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
@@ -50,6 +59,8 @@ public partial class ExportCommands
             var services = preDefense ? new ServiceCollection() : CliRuntime.CreateServices(source!, ConfigureServices, resolvedSettings.ProjectDirectory);
             if (preDefense) ConfigureServices(services);
             resolvedSettings.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await using var scope = provider.CreateAsyncScope();
             if (!preDefense)
@@ -84,6 +95,7 @@ public partial class ExportCommands
                         VerifyTeacherWorkbook(stream, token);
                     }, cancellation.Token);
                     workbookCount++;
+                    StreamNew();
                 }
             }
             else
@@ -111,8 +123,11 @@ public partial class ExportCommands
                     VerifyTeacherWorkbook(stream, token);
                 }, cancellation.Token);
                 workbookCount++;
+                StreamNew();
             }
+            StreamNew();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNew();
             cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(0, []);
         }
@@ -138,7 +153,19 @@ public partial class ExportCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             output?.Dispose();
+        }
+
+        void StreamNew()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var streamedPath = output.PublishedPaths[streamed++];
+                cli.WriteHuman(streamedPath);
+                cli.EmitItem("artifact:" + streamedPath, "completed", new { path = streamedPath });
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
@@ -148,16 +175,26 @@ public partial class ExportCommands
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
+                StreamNew();
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (result.Json)
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in warnings) cli.WriteWarning(warning);
+            var status = exit == 130 ? "cancelled" : exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
+            if (resultArgs.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<TeacherExportResult>(1, command, runId,
-                    exit == 130 ? "cancelled" : exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                    status, exit, paths, [], warnings.ToArray(), errors,
                     new(output?.DirectoryPath, teacher, workbookCount)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                cli.EmitFinal(status, exit, warnings.ToArray(), errors, new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    teacher,
+                    workbookCount,
+                    artifactCount = paths.Length,
+                });
             else
-                foreach (var path in paths) Console.WriteLine(path);
+                cli.WriteHuman($"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.");
             return exit;
         }
     }

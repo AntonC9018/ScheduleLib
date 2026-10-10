@@ -231,3 +231,37 @@ When a configured scope has no imported regular topics, a date override flows
 the existing registry regular topics around the new assessment dates. If an
 imported sequence runs out at an occurrence freed by a moved assessment, planning
 stops rather than retaining a duplicate assessment there.
+
+### CLI streaming output (--jsonl)
+
+All CLI commands share `CliOutput` (`src/MainCli/CliOutput.cs`) for the
+`--json`/`--jsonl` contract. `--json` keeps its single complete versioned
+envelope with the original status strings; `--jsonl` streams `start`, `item`
+and `final` records on stdout plus JSONL `log` records on stderr, with
+independent per-stream `seq` counters and shared `command`/`runId`.
+`--json` and `--jsonl` together exit 2. Explicit `--help` stays text;
+`CliHost` uses a silent CommandDotNet console for `--jsonl` startup failures
+so no human text mixes into JSONL, while `--json` keeps the existing human
+stderr. Human result lines stream as produced and the final summary does not
+repeat them. Export artifacts publish as produced; registry sync/grades stream
+plan-order indexed outcomes (`planned`/`not-attempted` then terminal states
+under the same id, recorded before rendering so a rendering failure cannot be
+misclassified as provider uncertainty); calendar/drive stream their stable
+plan-order actions the same way plus read-selection items (calendar
+`deleted-N` identities and `desired-N` payloads, drive planned actions) while
+finals keep counts only; `config profiles`, auth accounts and history
+years/candidates stream as items with scalar-count finals, and the remaining
+config/auth/history shapes stay atomic start/final batches. `CliAmbient`
+carries the active `CliOutput` into `ConfiguredRegistryProvider.Open` so
+`Plan` information logs render as stderr JSONL under `--jsonl`; history
+providers keep `NullLoggerFactory`. `AddLessonsToOnlineRegistryHandler` logs
+per-command entries whenever configured `HasLog`/`HasDryRun` holds, including
+under explicit apply. `CalendarStreamingException`/`DriveStreamingException`
+carry the partial result so a throwing render callback stops mutations without
+retrying or reclassifying completed outcomes. Synthetic `CliJsonlTests` cover
+blocked-operation early output, schema/sequence/run correlation, concurrent
+per-stream sequencing, structured log/scopes/exception preservation and
+filtering, stderr JSONL isolation, preview/apply log parity, argument
+rejection (every command rejects `--json` with `--jsonl`), early failures,
+cancellation/uncertain transitions with accurate streamed counts, throwing
+render callbacks, final-without-duplicates and `--json` compatibility.

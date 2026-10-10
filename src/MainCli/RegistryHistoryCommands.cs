@@ -62,10 +62,18 @@ public partial class RegistryCommands
     protected virtual IRegistryHistoryProvider CreateHistoryProvider() => new ConfiguredRegistryHistoryProvider();
 
     [Command("history", Description = "Read-only raw course/group discovery for offered academic years. Login plus paced GETs only; private summaries require explicit local storage.")]
-    public async Task<int> History(SettingsArguments settings, RegistryHistoryArguments history, ResultArguments result,
+    public async Task<int> History(SettingsArguments settings, RegistryHistoryArguments history, ResultArguments resultArgs,
         CancellationToken cancellationToken = default)
     {
+        const string command = "registry history";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, resultArgs);
+        output.EmitStart();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -90,6 +98,21 @@ public partial class RegistryCommands
             if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
             await using (var stream = new FileStream(path, options))
                 await JsonSerializer.SerializeAsync(stream, summary, cancellationToken: cancellation.Token);
+            // Stream per-year counts (year values are coordinator-visible; raw
+            // course/group names stay in the private file and never reach stdout).
+            for (var yearIndex = 0; yearIndex < summary.Count; yearIndex++)
+            {
+                var year = summary[yearIndex];
+                var courseCount = year.Courses.Count;
+                var groupCount = year.Courses.Sum((course) => course.Groups.Count);
+                output.WriteHuman($"Year {year.Year}: {courseCount} courses, {groupCount} groups.");
+                output.EmitItem(yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", new
+                {
+                    year = year.Year,
+                    courses = courseCount,
+                    groups = groupCount,
+                });
+            }
             return Finish(0, null, summary.Count, summary.Sum(x => x.Courses.Count), summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, "Cancelled."); }
@@ -105,11 +128,15 @@ public partial class RegistryCommands
 
         int Finish(int exit, string? error, int years = 0, int courses = 0, int groups = 0)
         {
-            if (error is not null) Console.Error.WriteLine(error);
-            if (result.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object>(1, "registry history", runId,
-                    exit == 0 ? "downloaded" : "failed", exit, [], [], [], error is null ? [] : [error], new { years, courses, groups }),
+            if (error is not null) output.WriteError(error);
+            var jsonStatus = exit == 0 ? "downloaded" : "failed";
+            var jsonlStatus = exit == 0 ? "downloaded" : exit == 130 ? "cancelled" : "failed";
+            if (resultArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<object>(1, command, runId,
+                    jsonStatus, exit, [], [], [], error is null ? [] : [error], new { years, courses, groups }),
                     new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                output.EmitFinal(jsonlStatus, exit, [], error is null ? [] : [error], new { years, courses, groups });
             else if (exit == 0) Console.WriteLine($"Saved local summary: {years} years, {courses} courses, {groups} groups.");
             return exit;
         }

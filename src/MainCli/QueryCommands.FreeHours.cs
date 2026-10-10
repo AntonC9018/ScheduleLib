@@ -20,10 +20,18 @@ public sealed record FreeHoursResult(string[] Groups, FreeHoursSectionResult[] S
 public partial class QueryCommands
 {
     [Command("free-hours", Description = "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'WholeGroupAndUnspecializedOptionalLessonsOccupy' - whole-group lessons and lessons with the legacy opțional subgroup marker and no specialization occupy their slot, regardless of alternative; other partitioned lessons leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
-    public async Task<int> FreeHours(FreeHoursArguments groups, SourceArguments source, ResultArguments output,
+    public async Task<int> FreeHours(FreeHoursArguments groups, SourceArguments source, ResultArguments outputArgs,
         CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
+        const string command = "query free-hours";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
         var warnings = new List<string>();
         FreeHoursResult? data = null;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -40,6 +48,8 @@ public partial class QueryCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (output.Jsonl) CliLogging.ReplaceWithJsonl(services, output);
+            CliAmbient.Current = output.Jsonl ? output : null;
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -61,8 +71,26 @@ public partial class QueryCommands
                             time.GetTimeSlotInterval(interval.EndInclusive).End.ToString("HH:mm")))]))]))]);
             cancellation.Token.ThrowIfCancellationRequested();
             data = result;
+            // Sections require full validation, so this batch is atomic; stream each
+            // section as it is reported rather than repeating them in the summary.
+            for (var i = 0; i < data.Sections.Length; i++)
+            {
+                var section = data.Sections[i];
+                try
+                {
+                    output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
+                    foreach (var day in section.Days)
+                        output.WriteHuman($"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}");
+                    output.EmitItem(i.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", section);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new CliOutputStreamingException("Output streaming failed.", ex);
+                }
+            }
             return Finish(0, []);
         }
+        catch (CliOutputStreamingException) { return Finish(1, ["Output streaming failed."]); }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return Finish(130, ["Cancelled."]); }
         catch (OperationCanceledException) { return Finish(5, ["Schedule provider request timed out."]); }
         catch (HttpRequestException e) { return Finish(5, [e.Message]); }
@@ -77,23 +105,26 @@ public partial class QueryCommands
         catch (UnauthorizedAccessException e) { return Finish(5, [e.Message]); }
         catch (IOException e) { return Finish(5, [e.Message]); }
         catch (Exception e) { return Finish(1, [e.Message]); }
-        finally { Console.CancelKeyPress -= cancel; }
+        finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; }
 
         int Finish(int exit, string[] errors)
         {
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<FreeHoursResult?>(1, "query free-hours", runId,
-                    exit == 0 ? "succeeded" : "failed", exit, [], [], warnings.ToArray(), errors, data),
+            foreach (var error in errors) output.WriteError(error);
+            foreach (var warning in warnings) output.WriteWarning(warning);
+            var jsonStatus = exit == 0 ? "succeeded" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<FreeHoursResult?>(1, command, runId,
+                    jsonStatus, exit, [], [], warnings.ToArray(), errors, data),
                     new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-            else if (data is not null)
-                foreach (var section in data.Sections)
+            else if (output.Jsonl)
+                output.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, data is null ? null : new
                 {
-                    Console.WriteLine($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
-                    foreach (var day in section.Days)
-                        Console.WriteLine($"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}");
-                }
+                    groups = data.Groups,
+                    sectionCount = data.Sections.Length,
+                });
+            // Sections already streamed above as produced; the human result is
+            // those complete per-group blocks with no repeated summary line.
             return exit;
         }
 

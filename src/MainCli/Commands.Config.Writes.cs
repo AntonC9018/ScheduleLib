@@ -29,9 +29,17 @@ public sealed partial class ConfigCommands
         Write("unset", key.Key, null, scope, settings, output, cancellationToken);
 
     private static async Task<int> Write(string verb, string key, string? value, ConfigScopeArguments scope, SettingsArguments settings,
-        ResultArguments output, CancellationToken cancellationToken, string? item = null)
+        ResultArguments outputArgs, CancellationToken cancellationToken, string? item = null)
     {
+        var command = "config " + verb;
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -54,11 +62,15 @@ public sealed partial class ConfigCommands
 
         int Finish(int exit, SettingsEdit? data, string[] errors)
         {
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = !output.Json };
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<SettingsEdit?>(1, "config " + verb, runId,
-                    exit == 0 ? "succeeded" : "failed", exit, [], [], [], errors, data), json));
+            foreach (var error in errors) output.WriteError(error);
+            var jsonStatus = exit == 0 ? "succeeded" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
+            var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = !outputArgs.Json };
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<SettingsEdit?>(1, command, runId,
+                    jsonStatus, exit, [], [], [], errors, data), json));
+            else if (output.Jsonl)
+                output.EmitFinal(jsonlStatus, exit, [], errors, data);
             else if (data is not null) Console.WriteLine(JsonSerializer.Serialize(data, json));
             return exit;
         }

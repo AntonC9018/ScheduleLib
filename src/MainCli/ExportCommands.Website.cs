@@ -23,13 +23,22 @@ public sealed record WebsiteThesesResult(string? OutputDirectory, int FileCount,
 public partial class ExportCommands
 {
     [Command("website-schedules", Description = "Generate per-teacher website schedule JSON files and a ZIP locally for the latest period. Teacher enrichment and slug mapping keep their existing behavior. Nothing is published to the website.")]
-    public async Task<int> WebsiteSchedules(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
+    public async Task<int> WebsiteSchedules(SourceArguments source, OutputArguments destination, ResultArguments resultArgs, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         const string command = "export website-schedules";
         const string zipName = "orar.zip";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         var warnings = new List<string>();
+        var streamed = 0;
         var missingSlugs = new List<string>();
         var omittedEmpty = new List<string>();
         var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -44,6 +53,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
@@ -84,10 +95,16 @@ public partial class ExportCommands
                     throw new IOException($"Duplicate website artifact name: {slug}.json");
             }
             foreach (var (name, bytes) in files.OrderBy(x => x.Key, StringComparer.Ordinal))
+            {
                 await PublishJson(output, name, bytes, cancellation.Token);
+                StreamNew();
+            }
             zipPath = await PublishZip(output, zipName, files, cancellation.Token);
+            StreamNew();
             if (files.Count == 0) warnings.Add("No website schedule files were generated.");
+            StreamNew();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNew();
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
@@ -112,7 +129,19 @@ public partial class ExportCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             output?.Dispose();
+        }
+
+        void StreamNew()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var streamedPath = output.PublishedPaths[streamed++];
+                cli.WriteHuman(streamedPath);
+                cli.EmitItem("artifact:" + streamedPath, "completed", new { path = streamedPath });
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
@@ -122,30 +151,52 @@ public partial class ExportCommands
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
+                StreamNew();
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (result.Json)
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in warnings) cli.WriteWarning(warning);
+            var jsonStatus = exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
+            if (resultArgs.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<WebsiteSchedulesResult>(1, command, runId,
-                    exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                    jsonStatus, exit, paths, [], warnings.ToArray(), errors,
                     new(output?.DirectoryPath, files.Count, zipPath,
                         missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
                         omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray())), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                cli.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    fileCount = files.Count,
+                    zipPath,
+                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    omittedEmpty = omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    artifactCount = paths.Length,
+                });
             else
-                foreach (var path in paths) Console.WriteLine(path);
+                cli.WriteHuman($"{jsonlStatus}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.");
             return exit;
         }
     }
 
     [Command("website-theses", Description = "Generate per-teacher website thesis JSON files and a ZIP locally from the configured thesis input. Teacher slug mapping keeps its existing behavior. Nothing is published to the website.")]
-    public async Task<int> WebsiteTheses(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
+    public async Task<int> WebsiteTheses(SourceArguments source, OutputArguments destination, ResultArguments resultArgs, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         const string command = "export website-theses";
         const string zipName = "theses.zip";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         var warnings = new List<string>();
+        var streamed = 0;
         var missingSlugs = new List<string>();
         var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         string? zipPath = null;
@@ -159,6 +210,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             var thesisWarnings = new ThesisWarningCollector();
             services.AddSingleton(thesisWarnings);
             services.AddSingleton<ILoggerProvider, ThesisWarningLoggerProvider>();
@@ -194,10 +247,16 @@ public partial class ExportCommands
             }
             ValidateWebsiteArtifactNames(files.Keys);
             foreach (var (name, bytes) in files)
+            {
                 await PublishJson(output, name, bytes, cancellation.Token);
+                StreamNew();
+            }
             zipPath = await PublishZip(output, zipName, files, cancellation.Token);
+            StreamNew();
             if (files.Count == 0) warnings.Add("No website thesis files were generated.");
+            StreamNew();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNew();
             return await Finish(0, []);
         }
         catch (ArgumentException e) { return await Finish(2, [e.Message]); }
@@ -222,7 +281,19 @@ public partial class ExportCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             output?.Dispose();
+        }
+
+        void StreamNew()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var streamedPath = output.PublishedPaths[streamed++];
+                cli.WriteHuman(streamedPath);
+                cli.EmitItem("artifact:" + streamedPath, "completed", new { path = streamedPath });
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
@@ -232,17 +303,29 @@ public partial class ExportCommands
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
+                StreamNew();
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (result.Json)
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in warnings) cli.WriteWarning(warning);
+            var jsonStatus = exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
+            if (resultArgs.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<WebsiteThesesResult>(1, command, runId,
-                    exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                    jsonStatus, exit, paths, [], warnings.ToArray(), errors,
                     new(output?.DirectoryPath, files.Count, zipPath,
                         missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray())), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                cli.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    fileCount = files.Count,
+                    zipPath,
+                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    artifactCount = paths.Length,
+                });
             else
-                foreach (var path in paths) Console.WriteLine(path);
+                cli.WriteHuman($"{jsonlStatus}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.");
             return exit;
         }
     }

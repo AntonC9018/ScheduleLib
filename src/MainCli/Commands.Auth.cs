@@ -33,9 +33,17 @@ public partial class AuthCommands
     private Task<int> Route(string verb, AuthProvider provider, SettingsArguments settings, ResultArguments output, CancellationToken token)
         => provider == AuthProvider.microsoft ? ExecuteMicrosoft(verb, settings, output, token) : Execute(verb, settings, output, token);
 
-    private static async Task<int> Execute(string verb, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken)
+    private static async Task<int> Execute(string verb, SettingsArguments settings, ResultArguments outputArgs, CancellationToken cancellationToken)
     {
+        var command = "auth " + verb + " google";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, outputArgs);
+        output.EmitStart();
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -74,14 +82,37 @@ public partial class AuthCommands
 
         int Finish(int exit, AuthStatus? data, string[] errors)
         {
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            if (output.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<AuthStatus?>(1, "auth " + verb + " google", runId,
-                    exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed", exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            foreach (var error in errors) output.WriteError(error);
+            var status = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
+            if (outputArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<AuthStatus?>(1, command, runId,
+                    status, exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (output.Jsonl)
+            {
+                if (data is not null)
+                {
+                    for (var index = 0; index < data.Accounts.Count; index++)
+                    {
+                        var account = data.Accounts[index];
+                        output.EmitItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", account);
+                    }
+                    output.EmitFinal(status, exit, [], errors, new
+                    {
+                        data.Provider,
+                        data.Profile,
+                        accountCount = data.Accounts.Count,
+                        provisioned = data.Accounts.Count != 0,
+                    });
+                }
+                else
+                {
+                    output.EmitFinal(status, exit, [], errors, data);
+                }
+            }
             else if (data is not null)
             {
-                Console.WriteLine($"Google authorization for {data.Profile}: {(data.Accounts.Count == 0 ? "not provisioned" : "provisioned")}");
-                foreach (var account in data.Accounts) Console.WriteLine($"{account.AccountId}: {account.State}");
+                foreach (var account in data.Accounts) output.WriteHuman($"{account.AccountId}: {account.State}");
+                output.WriteHuman($"Google authorization for {data.Profile}: {(data.Accounts.Count == 0 ? "not provisioned" : "provisioned")}");
             }
             return exit;
         }

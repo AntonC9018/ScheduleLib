@@ -23,14 +23,23 @@ public class DriveCommands
 
     [Command("publish", Description = "Generate all-teacher XLSX, free-room XLSX, group/partition/teacher PDF and ICS files. Workbook/PDF/ICS use the latest period; free rooms use all weekly periods. Preview actual Drive account/folder and all creates/updates/deletes by default. --apply recomputes under a local account/folder lock. Matching names are always updated; unmatched remote files are deleted. Requires a teacher --profile and provisioned auth login google; no consent is opened.")]
     public async Task<int> Publish(SourceArguments source, SettingsArguments settings, OutputArguments destination,
-        ResultArguments result, ApplyArguments apply, CancellationToken cancellationToken = default)
+        ResultArguments resultArgs, ApplyArguments apply, CancellationToken cancellationToken = default)
     {
+        const string command = "drive publish";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         RunOutput? outputLease = null;
         DriveSyncResult? data = null;
         var warnings = new List<string>();
         var bundleGenerated = false;
+        var streamedArtifacts = new HashSet<string>(StringComparer.Ordinal);
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -54,6 +63,8 @@ public class DriveCommands
                 return await Finish(3, ["Google Drive credentials and folder name are required for this profile."]);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
@@ -63,12 +74,18 @@ public class DriveCommands
             outputLease = await RunOutput.Create(outputDirectory, "drive publish", runId, cancellation.Token, resolved.ProjectDirectory);
             output = outputLease;
             var artifacts = await DriveBundle.Generate(scope.ServiceProvider, output, warnings, cancellation.Token);
+            StreamNewArtifacts();
             await output.Complete("generated", cancellation.Token);
+            StreamNewArtifacts();
             bundleGenerated = true;
-            data = await DriveSync.Run(provider, config.DriveFolderName, artifacts, apply.Apply, cancellation.Token);
+            data = await DriveSync.Run(provider, config.DriveFolderName, artifacts, apply.Apply, cancellation.Token,
+                onOutcome: StreamUpdate);
+            // Outcomes already streamed via callback; ensure any trailing not-attempted are visible.
             return await Finish(data.ExitCode, data.ExitCode == 4
                 ? [new AuthenticationRequiredException("google", resolved.Profile).Message] : data.Errors);
         }
+        catch (DriveStreamingException ex) { data = ex.PartialResult; return await Finish(data.ExitCode, data.Errors); }
+        catch (CliOutputStreamingException) { return await Finish(1, ["Output streaming failed."]); }
         catch (AuthenticationRequiredException e) { return await Finish(4, [e.Message]); }
         catch (Exception error) when (cancellation.IsCancellationRequested
             && error is OperationCanceledException or GooglePreSendTransportException) { return await Finish(130, ["Cancelled."]); }
@@ -91,30 +108,73 @@ public class DriveCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             outputLease?.Dispose();
+        }
+
+        void StreamNewArtifacts()
+        {
+            if (output is null) return;
+            foreach (var path in output.PublishedPaths)
+            {
+                if (streamedArtifacts.Add(path))
+                {
+                    cli.WriteHuman(path);
+                    cli.EmitItem("artifact:" + path, "completed", new { path });
+                }
+            }
+        }
+
+        void StreamUpdate((string Id, string Status, object? Item, string Human) update)
+        {
+            try
+            {
+                cli.WriteHuman(update.Human);
+                cli.EmitItem(update.Id, update.Status, update.Item);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new CliOutputStreamingException("Output streaming failed.", ex);
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
         {
+            StreamNewArtifacts();
             if (output is not null && output.PublishedPaths.Count > 0 && !output.PublishedPaths.Contains(output.ManifestPath))
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception) { warnings.Add("Could not publish partial bundle manifest."); }
+                StreamNewArtifacts();
             }
             var allWarnings = warnings.Concat(data?.Warnings ?? []).ToArray();
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in allWarnings) Console.Error.WriteLine(warning);
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in allWarnings) cli.WriteWarning(warning);
             var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}").ToArray() ?? [];
             var status = exit == 130 ? "cancelled" : exit == 0 ? apply.Apply ? "applied" : "preview" : exit == 6 ? "partial" : "failed";
-            if (result.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<DriveSyncResult?>(1, "drive publish", runId, status, exit,
+            if (resultArgs.Json)
+                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<DriveSyncResult?>(1, command, runId, status, exit,
                     output?.PublishedPaths.ToArray() ?? [], actions, allWarnings, errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+            {
+                cli.EmitFinal(status, exit, allWarnings, errors, data is null ? new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    artifactCount = output?.PublishedPaths.Count ?? 0,
+                } : new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    artifactCount = output?.PublishedPaths.Count ?? 0,
+                    data.Account,
+                    data.AccountEmail,
+                    folder = new { data.Folder.Id, data.Folder.Name },
+                    actionCount = data.Actions.Count,
+                    outcomeCount = data.Outcomes.Count,
+                });
+            }
             else
             {
-                if (data is not null) Console.WriteLine($"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
-                foreach (var action in actions) Console.WriteLine(action);
-                foreach (var outcome in data?.Outcomes ?? []) Console.WriteLine($"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}");
-                foreach (var path in output?.PublishedPaths ?? []) Console.WriteLine(path);
+                if (data is not null) cli.WriteHuman($"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
             }
             return exit;
         }

@@ -28,6 +28,14 @@ public partial class RegistryCommands
     {
         const string command = "registry sync";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(result) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var output = new CliOutput(command, runId, result);
+        output.EmitStart();
+        CliAmbient.Current = output;
         RegistryDestination? target = null;
         var outcomes = new List<RegistryActionOutcome>();
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
@@ -55,51 +63,75 @@ public partial class RegistryCommands
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
-                    outcomes.Add(ToOutcome(action, !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned", action.Omission));
+                    var initial = ToOutcome(action, !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned", action.Omission);
+                    outcomes.Add(initial);
+                    StreamOutcome(outcomes.Count - 1, initial);
                 }
                 foreach (var action in plan)
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
-                    if (!action.Enabled) { Record(action, "omitted", action.Omission); continue; }
-                    if (!apply.Apply) { Record(action, "planned", null); continue; }
+                    if (!action.Enabled) continue;
+                    if (!apply.Apply) continue;
+                    string status;
+                    string? detail = null;
+                    var terminal = false;
+                    var terminalExit = 0;
+                    string[] terminalErrors = [];
+                    var propagateCancel = false;
                     try
                     {
                         await action.Execute(cancellation.Token);
                         attempted = true;
-                        Record(action, "completed", null);
+                        status = "completed";
                     }
                     catch (RegistryActionCancelledException error)
                     {
                         attempted |= error.SubmissionStarted;
-                        Record(action, error.SubmissionStarted ? "uncertain" : "cancelled", error.SubmissionStarted
+                        status = error.SubmissionStarted ? "uncertain" : "cancelled";
+                        detail = error.SubmissionStarted
                             ? "Cancelled during submission; inspect the registry before retrying. Creates are never automatically retried."
-                            : "Cancelled before form submission.");
-                        throw;
+                            : "Cancelled before form submission.";
+                        terminal = true;
+                        propagateCancel = true;
                     }
                     catch (OperationCanceledException)
                     {
                         attempted = true;
-                        Record(action, "uncertain", "Cancelled during execution; inspect the registry before retrying. Creates are never automatically retried.");
-                        throw;
+                        status = "uncertain";
+                        detail = "Cancelled during execution; inspect the registry before retrying. Creates are never automatically retried.";
+                        terminal = true;
+                        propagateCancel = true;
                     }
                     catch (RegistryActionExecutionException error)
                     {
                         attempted |= error.SubmissionStarted;
                         var rejected = error.InnerException is RegistrySubmissionRejectedException;
-                        Record(action, rejected || !error.SubmissionStarted ? "failed" : "uncertain",
-                            rejected ? "Registry rejected the submission; no automatic retry was performed."
+                        status = rejected || !error.SubmissionStarted ? "failed" : "uncertain";
+                        detail = rejected ? "Registry rejected the submission; no automatic retry was performed."
                             : !error.SubmissionStarted ? "Action failed before form submission."
-                            : "Submission result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
-                        Finish(attempted ? 6 : 5, ["Registry application stopped after an action failure."]);
-                        stopped = true;
-                        return false;
+                            : "Submission result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.";
+                        terminal = true;
+                        terminalExit = attempted ? 6 : 5;
+                        terminalErrors = ["Registry application stopped after an action failure."];
                     }
                     catch (Exception)
                     {
                         // Form validation failures and transport failures are both explicit. No credentials/student details in diagnostics.
                         attempted = true;
-                        Record(action, "uncertain", "Submission failed or its result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
-                        Finish(6, ["Registry application stopped after a submission failure."]);
+                        status = "uncertain";
+                        detail = "Submission failed or its result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.";
+                        terminal = true;
+                        terminalExit = 6;
+                        terminalErrors = ["Registry application stopped after a submission failure."];
+                    }
+                    // The recorded remote outcome is rendered outside the mutation
+                    // try above, so a rendering failure cannot be misclassified as
+                    // provider uncertainty or trigger another mutation.
+                    Record(action, status, detail);
+                    if (propagateCancel) throw new OperationCanceledException();
+                    if (terminal)
+                    {
+                        Finish(terminalExit, terminalErrors);
                         stopped = true;
                         return false;
                     }
@@ -107,6 +139,7 @@ public partial class RegistryCommands
                 return true;
             }
         }
+        catch (CliOutputStreamingException) { return Finish(attempted ? 6 : 1, ["Output streaming failed. Completed actions remain applied; inspect the registry before retrying."]); }
         catch (OperationCanceledException) { return Finish(130, ["Cancelled."]); }
         catch (RegistryAuthenticationException e) { return Finish(4, [e.Message]); }
         catch (LocalOperationBusyException e) { return Finish(7, [e.Message]); }
@@ -118,11 +151,29 @@ public partial class RegistryCommands
         catch (ArgumentException e) { return Finish(2, [e.Message]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [e.Message]); }
         catch (Exception) { return Finish(attempted ? 6 : 5, ["Registry operation failed. No automatic retry was performed."]); }
-        finally { Console.CancelKeyPress -= cancel; WriteResult(); }
+        finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; WriteResult(); }
 
         static RegistryActionOutcome ToOutcome(RegistrySyncAction action, string status, string? detail) => new(action.Kind,
             action.Destination, action.Course, action.Groups, action.Date, action.Topic, action.AttendanceCount, status, detail);
-        void Record(RegistrySyncAction action, string status, string? detail) => outcomes[actionIndexes[action]] = ToOutcome(action, status, detail);
+        void Record(RegistrySyncAction action, string status, string? detail)
+        {
+            var index = actionIndexes[action];
+            var outcome = ToOutcome(action, status, detail);
+            outcomes[index] = outcome;
+            StreamOutcome(index, outcome);
+        }
+        void StreamOutcome(int index, RegistryActionOutcome outcome)
+        {
+            try
+            {
+                output.WriteHuman($"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}");
+                output.EmitItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture), outcome.Status, outcome);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new CliOutputStreamingException("Output streaming failed.", ex);
+            }
+        }
         int Finish(int exit, string[] errors)
         {
             finalExit = attempted && exit is not (0 or 130) ? 6 : exit;
@@ -133,17 +184,27 @@ public partial class RegistryCommands
         {
             var exit = finalExit;
             var errors = finalErrors;
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            foreach (var error in errors) Console.Error.WriteLine(error);
+            foreach (var warning in warnings) output.WriteWarning(warning);
+            foreach (var error in errors) output.WriteError(error);
             var status = exit == 130 ? "cancelled" : exit == 0 ? apply.Apply ? "applied" : "preview" : attempted ? "partial" : "failed";
             if (result.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<RegistrySyncResult>(1, command, runId,
                     status, exit, [], outcomes.Select(x => $"{x.Kind}: {x.Status}").ToArray(), warnings.ToArray(), errors,
                     new(target, outcomes)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (result.Jsonl)
+            {
+                var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+                output.EmitFinal(status, exit, warnings.ToArray(), errors, new
+                {
+                    target,
+                    total = outcomes.Count,
+                    counts,
+                });
+            }
             else
             {
-                if (target is not null) Console.WriteLine($"{status}: {target.Destination} (account {target.Account})");
-                foreach (var action in outcomes) Console.WriteLine($"{action.Kind} {action.Date:yyyy-MM-dd HH:mm} {action.Course} ({action.Groups}): {action.Status} {action.Detail}");
+                // Items already streamed above; the final summary does not repeat them.
+                if (target is not null) output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
             }
         }
     }

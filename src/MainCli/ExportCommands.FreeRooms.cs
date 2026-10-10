@@ -13,15 +13,24 @@ public sealed record FreeRoomsResult(string? OutputDirectory, int LessonCount, s
 public partial class ExportCommands
 {
     [Command("free-rooms", Description = "Generate the existing free-room workbook: one worksheet per parity, each day that has lessons as a header row, and one row per time slot listing the rooms free in that slot. Existing defaults are preserved and always apply: rooms and occupancy come from every weekly period rather than only the latest one, room identifiers without a block suffix are written as '<room>/4', and days without lessons are skipped. No teacher profile is required; a profile does not filter anything.")]
-    public async Task<int> FreeRooms(SourceArguments source, OutputArguments destination, ResultArguments result,
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
+    public async Task<int> FreeRooms(SourceArguments source, OutputArguments destination, ResultArguments resultArgs,
         CancellationToken cancellationToken = default, SettingsArguments? settings = null)
     {
         const string command = "export free-rooms";
         var runId = Guid.NewGuid().ToString("N");
+        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        {
+            Console.Error.WriteLine(exclusive);
+            return 2;
+        }
+        var cli = new CliOutput(command, runId, resultArgs);
+        cli.EmitStart();
         RunOutput? output = null;
         var warnings = new List<string>();
         var worksheets = new List<string>();
         var lessonCount = 0;
+        var streamed = 0;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -32,6 +41,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
             var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
             resolvedSettings.ConfigureServices(services);
+            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
+            CliAmbient.Current = cli.Jsonl ? cli : null;
             output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
@@ -52,7 +63,9 @@ public partial class ExportCommands
                     throw new InvalidDataException("Generated free-room workbook has no usable worksheet.");
                 worksheets.AddRange(sheets.Select(x => x.Name?.Value ?? ""));
             }, cancellation.Token);
+            StreamNew();
             await output.Complete("succeeded", cancellation.Token);
+            StreamNew();
             cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(0, []);
         }
@@ -76,7 +89,19 @@ public partial class ExportCommands
         finally
         {
             Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
             output?.Dispose();
+        }
+
+        void StreamNew()
+        {
+            if (output is null) return;
+            while (streamed < output.PublishedPaths.Count)
+            {
+                var path = output.PublishedPaths[streamed++];
+                cli.WriteHuman(path);
+                cli.EmitItem("artifact:" + path, "completed", new { path });
+            }
         }
 
         async Task<int> Finish(int exit, string[] errors)
@@ -86,16 +111,27 @@ public partial class ExportCommands
             {
                 try { await output.Complete("partial", CancellationToken.None); }
                 catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
+                StreamNew();
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) Console.Error.WriteLine(error);
-            foreach (var warning in warnings) Console.Error.WriteLine(warning);
-            if (result.Json)
+            foreach (var error in errors) cli.WriteError(error);
+            foreach (var warning in warnings) cli.WriteWarning(warning);
+            var jsonStatus = exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
+            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
+            if (resultArgs.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<FreeRoomsResult>(1, command, runId,
-                    exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed", exit, paths, [], warnings.ToArray(), errors,
+                    jsonStatus, exit, paths, [], warnings.ToArray(), errors,
                     new(output?.DirectoryPath, lessonCount, worksheets.ToArray())), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            else if (resultArgs.Jsonl)
+                cli.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, new
+                {
+                    outputDirectory = output?.DirectoryPath,
+                    lessonCount,
+                    worksheets = worksheets.ToArray(),
+                    artifactCount = paths.Length,
+                });
             else
-                foreach (var path in paths) Console.WriteLine(path);
+                cli.WriteHuman($"{jsonlStatus}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.");
             return exit;
         }
     }
