@@ -46,6 +46,57 @@ public sealed class RegistryTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task RealGroupPlanIsDeliveredBeforeNextGroupScan(bool continueScanning)
+    {
+        using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
+        var services = CliRuntime.CreateServices(new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") }, AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<StudyYearOptions>(x => { x.StudyYear = new(2025); x.Semester = Semester.Sem2; });
+        await using var provider = AppConfiguration.BuildServiceProvider(services);
+        await provider.InitializeSchedule(default);
+        await using var scope = provider.CreateAsyncScope();
+        var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
+        var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
+        {
+            IsWildcard = true, Value = lesson.Lesson.Groups,
+        }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation"))) { TwoGroups = true };
+        var delivered = 0;
+        await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(new()
+        {
+            Navigator = navigator, Attendance = new([]), LessonTopics = NoLessonTopics.Instance, Semester = Semester.Sem2,
+        }, actions =>
+        {
+            Assert.NotEmpty(actions);
+            Assert.Equal(++delivered, navigator.GroupReads);
+            return Task.FromResult(continueScanning);
+        }, explicitApply: true);
+        Assert.Equal(continueScanning ? 2 : 1, delivered);
+        Assert.Equal(delivered, navigator.GroupReads);
+        Assert.Equal(0, navigator.Submissions);
+    }
+
+    [Theory]
+    [InlineData(false, false, 3, "preview")]
+    [InlineData(true, false, 6, "completed")]
+    [InlineData(true, true, 6, "uncertain")]
+    public async Task IncrementalApplyRetainsWritesAndStopsScanningOnFailure(bool apply, bool failSubmission, int exit, string actionStatus)
+    {
+        await using var fake = new IncrementalProvider { FailSubmission = failSubmission };
+        using var capture = new Capture();
+        Assert.Equal(exit, await new TestCommands(fake).Sync(new(), new() { Profile = "teacher" }, new() { Json = true }, new() { Apply = apply }));
+        Assert.Equal(apply ? 1 : 0, fake.Submissions);
+        Assert.Equal(!failSubmission, fake.LaterScanStarted);
+        var result = capture.Result();
+        Assert.Equal(apply ? "partial" : "failed", result.GetProperty("status").GetString());
+        var outcomes = result.GetProperty("data").GetProperty("outcomes");
+        Assert.Equal(1, outcomes.GetArrayLength());
+        Assert.Equal(actionStatus == "preview" ? "planned" : actionStatus, outcomes[0].GetProperty("status").GetString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task LegacyContinuesOnlyLocalInvalidFormsWhileStrictApplyStops(bool strict)
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
@@ -225,6 +276,28 @@ public sealed class RegistryTests
         public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token) { Target = target; return Task.FromResult<IAsyncDisposable>(this); }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
+    private sealed class IncrementalProvider : IRegistryProvider, IRegistrySession
+    {
+        public bool FailSubmission;
+        public int Submissions;
+        public bool LaterScanStarted;
+        public RegistryDestination Target { get; } = new("test", "https://registry.test/");
+        public Task<IRegistrySession> Open(SourceArguments source, SettingsArguments settings, CancellationToken token) => Task.FromResult<IRegistrySession>(this);
+        public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token) => throw new InvalidOperationException("Whole-account planning must not be used.");
+        public async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
+        {
+            var action = new RegistrySyncAction("create", Target.Destination, "course", "group", new(2026, 1, 1), "topic", 0, true, null, _ =>
+            {
+                Submissions++;
+                if (FailSubmission) throw new RegistryActionExecutionException(true, new IOException("lost response"));
+                return Task.CompletedTask;
+            });
+            if (!await onGroupPlanned([action])) return;
+            LaterScanStarted = true;
+            throw new JsonException("Later group planning failed.");
+        }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
     private sealed class PlannedProvider(IReadOnlyList<RegistrySyncAction> actions) : IRegistryProvider, IRegistrySession
     {
         public RegistryDestination Target { get; } = new("test", "https://registry.test/");
@@ -275,11 +348,19 @@ public sealed class RegistryTests
     private sealed class FixtureNavigator(CourseId course, GroupLink group) : IRegistrySyncNavigator
     {
         public int Submissions;
+        public int GroupReads;
+        public bool TwoGroups;
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
-        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>([group]);
-        public async Task<IDocument> GetHtml(Uri uri) => await new HtmlParser().ParseDocumentAsync(uri.AbsolutePath == "/group"
-            ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
-            : "<html></html>");
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>(TwoGroups
+            ? [group, new(group.Groups, group.GroupPartition, new("https://registry.test/group2"), group.EvaluationUri)] : [group]);
+        public async Task<IDocument> GetHtml(Uri uri)
+        {
+            var isGroup = uri.AbsolutePath.StartsWith("/group", StringComparison.Ordinal);
+            if (isGroup) GroupReads++;
+            return await new HtmlParser().ParseDocumentAsync(isGroup
+                ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
+                : "<html></html>");
+        }
         public Task SubmitLesson(IDocument document) { Submissions++; throw new InvalidOperationException("Preview submitted a lesson."); }
         public Task SubmitDelete(IDocument document) { Submissions++; throw new InvalidOperationException("Preview submitted a deletion."); }
     }

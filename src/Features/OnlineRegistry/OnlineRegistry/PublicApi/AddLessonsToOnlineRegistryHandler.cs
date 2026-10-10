@@ -52,6 +52,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     public async Task<IReadOnlyList<RegistrySyncAction>> Plan(RunParams p, CancellationToken cancellationToken = default, bool explicitApply = false)
     {
         var actions = new List<RegistrySyncAction>();
+        await PlanGroups(p, group =>
+        {
+            actions.AddRange(group);
+            return Task.FromResult(true);
+        }, cancellationToken, explicitApply);
+        return actions;
+    }
+
+    /// <summary>Reconciles one course/group at a time; false stops before scanning another group.</summary>
+    public async Task PlanGroups(RunParams p, Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken = default, bool explicitApply = false)
+    {
         var notFoundStudents = new List<Name>();
 
         var config = _configProvider.Get();
@@ -254,6 +266,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     schedule: _schedule,
                     remoteLessons: arranged.Remote,
                     localLessons: arranged.Local));
+                var actions = new List<RegistrySyncAction>();
                 foreach (var command in equationCommands)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -294,9 +307,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
                         }));
                 }
+                if (!await onGroupPlanned(actions)) return;
             }
         }
-        return actions;
 
         async ValueTask HandleCommand(
             LessonEquationCommand command,

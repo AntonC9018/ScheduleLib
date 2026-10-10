@@ -45,57 +45,67 @@ public partial class RegistryCommands
             await using var session = await CreateProvider().Open(source, settings, cancellation.Token);
             target = session.Target;
             await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
-            // Every invocation derives current remote state; no preview transaction is replayed.
-            var plan = await session.Plan(cancellation.Token);
-            foreach (var action in plan)
+            // Scan and apply each completed course/group before scanning the next.
+            var stopped = false;
+            await session.PlanGroups(ProcessGroup, cancellation.Token);
+            return stopped ? finalExit : Finish(0, []);
+
+            async Task<bool> ProcessGroup(IReadOnlyList<RegistrySyncAction> plan)
             {
-                actionIndexes.Add(action, outcomes.Count);
-                outcomes.Add(ToOutcome(action, !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned", action.Omission));
+                foreach (var action in plan)
+                {
+                    actionIndexes.Add(action, outcomes.Count);
+                    outcomes.Add(ToOutcome(action, !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned", action.Omission));
+                }
+                foreach (var action in plan)
+                {
+                    cancellation.Token.ThrowIfCancellationRequested();
+                    if (!action.Enabled) { Record(action, "omitted", action.Omission); continue; }
+                    if (!apply.Apply) { Record(action, "planned", null); continue; }
+                    try
+                    {
+                        await action.Execute(cancellation.Token);
+                        attempted = true;
+                        Record(action, "completed", null);
+                    }
+                    catch (RegistryActionCancelledException error)
+                    {
+                        attempted |= error.SubmissionStarted;
+                        Record(action, error.SubmissionStarted ? "uncertain" : "cancelled", error.SubmissionStarted
+                            ? "Cancelled during submission; inspect the registry before retrying. Creates are never automatically retried."
+                            : "Cancelled before form submission.");
+                        throw;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        attempted = true;
+                        Record(action, "uncertain", "Cancelled during execution; inspect the registry before retrying. Creates are never automatically retried.");
+                        throw;
+                    }
+                    catch (RegistryActionExecutionException error)
+                    {
+                        attempted |= error.SubmissionStarted;
+                        var rejected = error.InnerException is RegistrySubmissionRejectedException;
+                        Record(action, rejected || !error.SubmissionStarted ? "failed" : "uncertain",
+                            rejected ? "Registry rejected the submission; no automatic retry was performed."
+                            : !error.SubmissionStarted ? "Action failed before form submission."
+                            : "Submission result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
+                        Finish(attempted ? 6 : 5, ["Registry application stopped after an action failure."]);
+                        stopped = true;
+                        return false;
+                    }
+                    catch (Exception)
+                    {
+                        // Form validation failures and transport failures are both explicit. No credentials/student details in diagnostics.
+                        attempted = true;
+                        Record(action, "uncertain", "Submission failed or its result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
+                        Finish(6, ["Registry application stopped after a submission failure."]);
+                        stopped = true;
+                        return false;
+                    }
+                }
+                return true;
             }
-            foreach (var action in plan)
-            {
-                cancellation.Token.ThrowIfCancellationRequested();
-                if (!action.Enabled) { Record(action, "omitted", action.Omission); continue; }
-                if (!apply.Apply) { Record(action, "planned", null); continue; }
-                try
-                {
-                    await action.Execute(cancellation.Token);
-                    attempted = true;
-                    Record(action, "completed", null);
-                }
-                catch (RegistryActionCancelledException error)
-                {
-                    attempted |= error.SubmissionStarted;
-                    Record(action, error.SubmissionStarted ? "uncertain" : "cancelled", error.SubmissionStarted
-                        ? "Cancelled during submission; inspect the registry before retrying. Creates are never automatically retried."
-                        : "Cancelled before form submission.");
-                    throw;
-                }
-                catch (OperationCanceledException)
-                {
-                    attempted = true;
-                    Record(action, "uncertain", "Cancelled during execution; inspect the registry before retrying. Creates are never automatically retried.");
-                    throw;
-                }
-                catch (RegistryActionExecutionException error)
-                {
-                    attempted |= error.SubmissionStarted;
-                    var rejected = error.InnerException is RegistrySubmissionRejectedException;
-                    Record(action, rejected || !error.SubmissionStarted ? "failed" : "uncertain",
-                        rejected ? "Registry rejected the submission; no automatic retry was performed."
-                        : !error.SubmissionStarted ? "Action failed before form submission."
-                        : "Submission result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
-                    return Finish(attempted ? 6 : 5, ["Registry application stopped after an action failure."]);
-                }
-                catch (Exception)
-                {
-                    // Form validation failures and transport failures are both explicit. No credentials/student details in diagnostics.
-                    attempted = true;
-                    Record(action, "uncertain", "Submission failed or its result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.");
-                    return Finish(6, ["Registry application stopped after a submission failure."]);
-                }
-            }
-            return Finish(0, []);
         }
         catch (OperationCanceledException) { return Finish(130, ["Cancelled."]); }
         catch (RegistryAuthenticationException e) { return Finish(4, [e.Message]); }
@@ -115,9 +125,9 @@ public partial class RegistryCommands
         void Record(RegistrySyncAction action, string status, string? detail) => outcomes[actionIndexes[action]] = ToOutcome(action, status, detail);
         int Finish(int exit, string[] errors)
         {
-            finalExit = exit;
+            finalExit = attempted && exit is not (0 or 130) ? 6 : exit;
             finalErrors = errors;
-            return exit;
+            return finalExit;
         }
         void WriteResult()
         {

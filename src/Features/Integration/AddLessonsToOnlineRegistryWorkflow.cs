@@ -35,6 +35,19 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         }, cancellationToken, explicitApply: true);
     }
 
+    public async Task PlanGroups(IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
+    {
+        await _handler.PlanGroups(new()
+        {
+            Navigator = navigator,
+            Attendance = _attendanceLoader.Load(),
+            LessonTopics = await _topicsLoader.Load(cancellationToken),
+            Semester = _studyYear.Value.Semester,
+            LessonFilter = _lessonFilterProvider.Get(),
+        }, onGroupPlanned, cancellationToken, explicitApply: true);
+    }
+
     public async ValueTask Execute(CancellationToken cancellationToken)
     {
         var attendance = _attendanceLoader.Load();

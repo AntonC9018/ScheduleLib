@@ -190,11 +190,12 @@ artifact through the same owned-output contract and never launch Explorer or an
 editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
 synchronous PDF render finishes before cancellation is observed.
 
-`registry sync --profile TEACHER` scans all selected courses/groups and builds a
-complete reconciliation plan before writing anything. With `--apply`, it builds
-a fresh plan under the account lock, then submits actions sequentially. This
-keeps planning errors ahead of the first write; submission failures can still
-leave a partially applied plan. A normal lesson 302/303 redirect is confirmed by
+`registry sync --profile TEACHER` previews reconciliation without writes. With
+`--apply`, it scans and reconciles each course/group, then submits that group's
+actions before scanning the next. The account lock covers the entire run. A later
+scan, planning or submission failure leaves earlier writes applied and returns a
+partial result (exit 6). Outcomes cover scanned groups only; unscanned groups are
+not counted as planned actions. A normal lesson 302/303 redirect is confirmed by
 reading the saved lesson values, without replaying the POST. An `uncertain`
 outcome means the write may have succeeded: inspect the registry before retrying.
 

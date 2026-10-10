@@ -36,19 +36,21 @@ unverified real-consent/Windows behavior.
 ## Registry CLI synchronization (#197)
 
 `registry sync --profile "Curmanschii Anton"` builds a read-only reconciliation
-plan; `--apply` builds a fresh plan while holding a local lock for the configured
-registry login and registry base URL. The CLI's preview/apply switch controls
+plan; `--apply` reconciles and applies one course/group at a time under a local
+lock for the configured registry login and registry base URL. The CLI's preview/apply switch controls
 processing flags, while the existing positional derivation, teacher filters,
 topics, attendance mapping and extra-lesson policy remain configured in C#.
 Extra lessons left alone (or requiring unsupported lossless deletion) appear as
 omitted actions. Plans do not submit forms. Application stops on the first failed
 submission, reports completed and unattempted actions, and never retries creates.
 
-Planning scans every selected course/group before application starts. This keeps
-schedule, topic, attendance and remote-layout planning failures ahead of the first
-write and provides the complete action list. Application is sequential, not an
-atomic registry transaction: a later submission failure leaves earlier writes
-applied.
+Apply scans and reconciles each selected course/group, then executes that group's
+completed plan before scanning the next group. Local attendance/topic prerequisites
+still load first. A later scan or planning failure leaves earlier writes applied
+and returns a partial result (exit 6). Submission failures retain the current
+group's planned but unattempted actions; groups not yet reconciled have no outcomes.
+Preview visits the same groups without submissions. The account lock spans all scans and
+writes, and application still stops on the first failed submission.
 
 Lesson POSTs can succeed with an HTTP 302/303 redirect (#206). The transport blocks
 automatic redirect navigation to prevent POST replay. The lesson adapter confirms

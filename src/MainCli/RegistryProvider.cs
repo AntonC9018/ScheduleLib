@@ -15,6 +15,10 @@ public interface IRegistrySession : IAsyncDisposable
 {
     RegistryDestination Target { get; }
     Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token);
+    async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
+    {
+        await onGroupPlanned(await Plan(token));
+    }
 }
 
 /// <summary>Configured runtime access for additional registry operations; ownership remains with the session.</summary>
@@ -97,6 +101,9 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token) =>
             scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
                 .Plan(CreateNavigator(token), token);
+        public Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token) =>
+            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
+                .PlanGroups(CreateNavigator(token), onGroupPlanned, token);
         public async ValueTask DisposeAsync()
         {
             context.Dispose();
