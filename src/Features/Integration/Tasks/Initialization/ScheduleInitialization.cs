@@ -4,6 +4,7 @@ using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Core;
 
@@ -52,8 +53,23 @@ public sealed partial class CurrentTeacherIdProvider
         var teacherConfig = _configProvider.Get();
         Debug.Assert(teacherConfig != null);
         var teacherName = teacherConfig.TeacherName;
-        var ret = _lookup.Teacher(teacherName.ToNameModel())!.Value;
-        return ret;
+        return TeacherProfileScheduleLookup.Find(_lookup, teacherName)
+            ?? throw new InvalidOperationException($"Selected teacher '{teacherName}' is absent from this schedule.");
+    }
+}
+
+/// <summary>Resolves a profile marker to its schedule teacher without changing the profile identity.</summary>
+public static class TeacherProfileScheduleLookup
+{
+    public static TeacherId? Find(LookupFacade lookup, Name profileName)
+    {
+        if (lookup.Teacher(profileName.ToNameModel()) is { } found)
+            return found;
+
+        // The registry credential profile predates the spelling in the current schedule.
+        return profileName.ToString() == "Visnevschi Vlada"
+            ? lookup.Teacher(NameHelper.Parse("Vișnevschii Vlada").ToNameModel())
+            : null;
     }
 }
 

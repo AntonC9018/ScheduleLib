@@ -89,7 +89,7 @@ public partial class ExportCommands
             else
             {
                 var teacherConfig = scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
-                if (scope.ServiceProvider.GetRequiredService<LookupFacade>().Teacher(teacherConfig.TeacherName.ToNameModel()) is not { } teacherId)
+                if (TeacherProfileScheduleLookup.Find(scope.ServiceProvider.GetRequiredService<LookupFacade>(), teacherConfig.TeacherName) is not { } teacherId)
                     return await Finish(3, [$"Selected teacher '{teacher}' is absent from this schedule."]);
                 var schedule = scope.ServiceProvider.GetRequiredService<Schedule>().Filter(
                     FilterHelper.Builder().WithTeacher(teacherId).WithLessonType(LessonType.Lab));

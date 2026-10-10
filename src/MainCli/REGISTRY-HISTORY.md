@@ -46,8 +46,9 @@ and raw group names. Errors are generic and do not print provider exceptions.
 Failures distinguish markup contracts, access rejection, unconfirmed authentication,
 unavailable years and ignored year selection using fixed codes. When an HTTP
 response is rejected, diagnostics also print only its fixed phase (`Login`,
-`Index`, `Groups`, or `Lessons`) and numeric status code. Other failures show `Unknown`
-and `HTTP unknown`. These fields describe the request that stopped the current
+`Index`, `Groups`, or `Lessons`) and numeric status code. Structural checks also report a fixed `RegistryHistoryDiagnostic` code such as
+`CourseLayout`, `GroupRowLinks`, or `TopicTable`, without exception text.
+Failures without a known request phase show `Unknown` and `HTTP unknown`. These fields describe the request that stopped the current
 run; they do not identify earlier requests or establish why another account's
 past request failed. Exception text, response content, request addresses, headers,
 and credentials are never printed. Existing Unix output directories are
@@ -78,7 +79,9 @@ to guess another route.
 
 `registry history-topics --profile "configured teacher" --local-directory "$PWD/.registry-history" --json`
 adds topic acquisition after the coordinator authorizes resuming live requests.
-No live validation has been performed for this topic extraction implementation.
+Serial live validation succeeded for seven configured accounts in October 2026,
+producing 72 private CSV candidates and seven inventories. Repeated current
+course titles still require group mapping before activating downloaded sources.
 Do not invoke it during an access-rejection pause. It shares configured credential
 resolution, the destination-wide global lease, and the five-second request gate
 with `history`; it has no apply switch.
@@ -90,8 +93,12 @@ snapshots and previous-year courses matching a current course in the same
 semester. Matching ignores letter case, surrounding whitespace and trailing
 commas. Diacritics, spelling and semantic aliases remain distinct. The latest
 previous-year snapshot containing a nonempty topic is selected independently
-for each course. Duplicate matching courses remain unresolved, including a
-duplicate in a newer year even when an older year appears unambiguous.
+for each course. Older group/topic requests stop once that course has a usable
+latest snapshot or a newer ambiguity. Repeated current course titles remain
+unresolved, but all matching historical snapshots from the newest year with
+topics are retained for private review. A blank newest year falls back to older
+years. Duplicate matching courses remain unresolved, including a duplicate in
+a newer year even when an older year appears unambiguous.
 
 Topic extraction validates the first table's `Data`, `Tema`, `Redactare` header
 and reads only the first two cells of each lesson row. The observed registry
@@ -103,7 +110,9 @@ links are never extracted or requested. The guard allows only numeric
 `groupId` query parameter.
 
 Downloads create unique private CSV files with the existing `name,lessonType`
-columns, separately for every raw source group and lesson type. Rows retain
+columns, separately for every raw source group and lesson type. Unresolved
+repeated titles also export the latest historical snapshots as candidates marked
+`courseMapping: "ambiguous-course"`; this does not authorize importing them. Rows retain
 chronological ordering, repeated topics and blank topic positions. A separate
 private candidate inventory records year/course/raw-group/source-URI/date
 provenance, current topic snapshots and unresolved course matches. It explicitly
@@ -113,3 +122,46 @@ files and earlier downloads remain untouched. Semantic group mapping and a
 reviewed import manifest remain coordinator decisions. Console output contains
 only counts and fixed failure diagnostics. Synthetic tests verify extraction,
 matching, CSV import compatibility, private permissions and blocked routes.
+
+### Atestare dates and regular topics
+
+Topic CSV exports and imports exclude Romanian `Atestare`/`Atestări` labels.
+The registry sync preserves existing assessment topics and does not consume a
+regular topic for those timetable occurrences. Attendance continues to use the
+original lesson occurrence index.
+
+A teacher profile can override dates separately for each course, parent group,
+and lesson type, with multiple assessments:
+
+```json
+{
+  "RegistryConfig": {
+    "assessments": [
+      {
+        "course": "Synthetic course",
+        "group": "IA2601",
+        "lessonType": "Curs",
+        "dates": ["2026-10-12", "2026-11-23"]
+      }
+    ]
+  }
+}
+```
+
+Place this data inside the teacher profile's existing data node. Course and
+group names must match the selected schedule. Rules default to whole-group
+lessons; set `subGroup`, `specialization`, or `alternative` for an exact partition. Dates must identify exactly one
+scheduled lesson of the configured type. Existing assessments and configured
+dates are paired chronologically. Extra existing assessments remain in place;
+extra configured dates create numbered `Atestare` topics. Changing a date moves
+the assessment topic to that occurrence and lets regular topics fill the freed
+occurrence; attendance stays on its original dates. With no matching rule,
+existing assessments retain their date and text, including entries outside the
+selected timetable. Moving an assessment whose original lesson is outside the
+selected timetable stops with an error rather than leaving an orphaned entry.
+Use `registry sync` without `--apply` to review the resulting plan first.
+
+When a configured scope has no imported regular topics, a date override flows
+the existing registry regular topics around the new assessment dates. If an
+imported sequence runs out at an occurrence freed by a moved assessment, planning
+stops rather than retaining a duplicate assessment there.

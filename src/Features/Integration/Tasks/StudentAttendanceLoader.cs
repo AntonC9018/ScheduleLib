@@ -19,6 +19,7 @@ public sealed partial class StudentAttendanceLoader
     private readonly DataProvider<LessonAttendanceConfig> _configProvider;
     private readonly ScopeFilteredScheduleProvider _scheduleProvider;
     private readonly AttendanceListsExcelParser _parser;
+    private readonly DataProvider<RegistryConfig> _registryConfig;
 
     public StudentAttendanceList Load()
     {
@@ -36,7 +37,10 @@ public sealed partial class StudentAttendanceLoader
             {
                 throw new InvalidOperationException("Misconfigured source with a null path.");
             }
-            var parseParams = new WorksheetParseParameters();
+            var parseParams = new WorksheetParseParameters
+            {
+                LabMerges = _registryConfig.Get()?.LabMerges ?? [],
+            };
             {
                 if (source.RepeatedCourseBehavior is { } x)
                 {

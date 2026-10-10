@@ -8,7 +8,8 @@ namespace ScheduleLib.Cli;
 public sealed record RegistryHistoryTopicFilesResult(string InventoryFile, IReadOnlyList<string> CsvFiles);
 public sealed record RegistryHistoryTopicFileSource(
     string File, string CurrentCourse, int Semester, string HistoricalCourse, string Year,
-    string RawGroup, Uri SourceUri, LessonType LessonType, IReadOnlyList<DateTime> Dates);
+    string RawGroup, Uri SourceUri, LessonType LessonType, IReadOnlyList<DateTime> Dates,
+    string CourseMapping = "requires-group-mapping");
 
 /// <summary>Private download candidates in existing topic CSV syntax. Group/faculty/language mappings remain unresolved, so no import manifest is emitted.</summary>
 public static class RegistryHistoryTopicFiles
@@ -35,11 +36,29 @@ public static class RegistryHistoryTopicFiles
         var runId = Guid.NewGuid().ToString("N");
         var files = new List<string>();
         var sources = new List<RegistryHistoryTopicFileSource>();
-        foreach (var candidate in selection.Candidates)
+        var exports = new List<(RegistryHistoryCourse CurrentCourse, RegistryHistoryCourseTopics Historical, string CourseMapping)>();
+        exports.AddRange(selection.Candidates.Select(candidate => (candidate.CurrentCourse, candidate.Historical, "requires-group-mapping")));
+        if (historical is not null)
+        {
+            var ambiguous = selection.Unresolved.Where(item => item.Reason == RegistryHistoryTopicMappingFailure.AmbiguousCourse)
+                .DistinctBy(item => $"{item.CurrentCourse.Semester}\0{RegistryHistoryTopicSelection.NormalizeCourseName(item.CurrentCourse.Name)}", StringComparer.OrdinalIgnoreCase);
+            foreach (var item in ambiguous)
+            {
+                var matches = historical.Where(snapshot => RegistryHistoryTopicSelection.Matches(item.CurrentCourse, snapshot.Course)).ToArray();
+                var latest = matches.Where(HasTopics).OrderByDescending(snapshot => RegistryHistoryTopicSelection.AcademicYearStart(snapshot.Year))
+                    .FirstOrDefault()?.Year;
+                if (latest is null) continue;
+                exports.AddRange(matches.Where(snapshot => snapshot.Year == latest)
+                    .Select(snapshot => (item.CurrentCourse, snapshot, "ambiguous-course")));
+            }
+        }
+        foreach (var candidate in exports)
         foreach (var group in candidate.Historical.Groups)
         foreach (var lessons in group.Lessons.GroupBy(x => x.LessonType))
         {
-            var ordered = lessons.OrderBy(x => x.Date).ToArray();
+            var ordered = lessons.Where(x => !string.IsNullOrWhiteSpace(x.Topic)
+                && !RegistryAssessmentTopics.IsAssessment(x.Topic)).OrderBy(x => x.Date).ToArray();
+            if (ordered.Length == 0) continue;
             var name = $"topics-{runId}-{files.Count + 1}.csv";
             await using (var stream = NewPrivateFile(Path.Combine(directory, name)))
             await using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
@@ -54,7 +73,7 @@ public static class RegistryHistoryTopicFiles
             files.Add(name);
             sources.Add(new(name, candidate.CurrentCourse.Name, candidate.CurrentCourse.Semester,
                 candidate.Historical.Course.Name, candidate.Historical.Year, group.Name, group.Uri,
-                lessons.Key, ordered.Select(x => x.Date).ToArray()));
+                lessons.Key, ordered.Select(x => x.Date).ToArray(), candidate.CourseMapping));
         }
         var inventory = $"topics-candidates-{runId}.json";
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
@@ -67,6 +86,9 @@ public static class RegistryHistoryTopicFiles
             }, options, token);
         return new(inventory, files);
     }
+
+    private static bool HasTopics(RegistryHistoryCourseTopics snapshot) =>
+        snapshot.Groups.Any(group => group.Lessons.Any(lesson => !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic)));
 
     private static FileStream NewPrivateFile(string path)
     {

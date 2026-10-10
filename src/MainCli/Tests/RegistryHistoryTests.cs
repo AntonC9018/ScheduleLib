@@ -18,6 +18,28 @@ public sealed class RegistryHistoryTests
         """;
 
     [Fact]
+    public void TokenOnlyHistoricalLessonFormHasNoAssignedGroups()
+    {
+        using var document = new HtmlParser().ParseDocument("""
+            <h1>Synthetic course</h1><h3>Groups</h3>
+            <form name='lesson'><input type='hidden' name='__RequestVerificationToken' value='canary-token'></form>
+            """);
+        Assert.Empty(RegistryHistoryHtml.Groups(document, Index));
+    }
+
+    [Theory]
+    [InlineData("<form name='lesson'></form>")]
+    [InlineData("<form name='lesson'><input type='hidden' name='unknown' value='canary-token'></form>")]
+    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'><div>Changed group structure</div></form>")]
+    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='/studregistry/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
+    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='https://foreign.test/other/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
+    public void UnrecognizedEmptyOrMovedGroupLayoutStillFails(string html)
+    {
+        using var document = new HtmlParser().ParseDocument(html);
+        Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Groups(document, Index));
+    }
+
+    [Fact]
     public async Task HistoricalNavigationReselectsCurrentBeforeReadingItsGroups()
     {
         var activeYear = "2025/26";
@@ -65,25 +87,37 @@ public sealed class RegistryHistoryTests
     }
 
     [Theory]
-    [InlineData("<form method='post'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>")]
-    [InlineData("<form action='https://other.test/'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>")]
-    [InlineData("<form><input name='token' value='private'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>")]
-    [InlineData("<select id='AnUniv' name='AnUniv'><option>2024/25</option></select>")]
-    [InlineData("<html>no year selector</html>")]
-    public void UnsupportedYearMarkupFailsExplicitly(string html) =>
-        Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index));
+    [InlineData("<form method='post'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData("<form action='https://other.test/'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Unknown, RegistryHistoryDiagnostic.RequestPolicy)]
+    [InlineData("<form><input name='token' value='private'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData("<select id='AnUniv' name='AnUniv'><option>2024/25</option></select>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData("<html>no year selector</html>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
+    public void UnsupportedYearMarkupFailsExplicitly(string html, RegistryHistoryPhase phase, RegistryHistoryDiagnostic diagnostic)
+    {
+        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index));
+        Assert.Equal(phase, error.Phase);
+        Assert.Equal(diagnostic, error.Diagnostic);
+    }
 
     [Theory]
     [InlineData("<form name='lesson'></form>")]
     [InlineData("<form name='lesson'><div class='row'></div><div class='row'><div class='col'><a href='/studregistry/LessonAttendance/LessonsList/1'>changed layout</a></div></div></form>")]
-    public void ChangedGroupContainerDoesNotSilentlyProduceAnEmptySummary(string html) =>
-        Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index));
+    public void ChangedGroupContainerDoesNotSilentlyProduceAnEmptySummary(string html)
+    {
+        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index));
+        Assert.Equal(RegistryHistoryPhase.Groups, error.Phase);
+        Assert.Contains(error.Diagnostic, new[] { RegistryHistoryDiagnostic.GroupContainer, RegistryHistoryDiagnostic.GroupLayout });
+    }
 
     [Fact]
-    public void ChangedCourseContainerDoesNotSilentlyProduceAnEmptySummary() =>
-        Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(new HtmlParser().ParseDocument("""
+    public void ChangedCourseContainerDoesNotSilentlyProduceAnEmptySummary()
+    {
+        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(new HtmlParser().ParseDocument("""
             <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
             """), Index));
+        Assert.Equal(RegistryHistoryPhase.Index, error.Phase);
+        Assert.Equal(RegistryHistoryDiagnostic.CourseLayout, error.Diagnostic);
+    }
 
     [Fact]
     public void RawHistoricalNamesSurviveWithoutScheduleMatchingAndUnsafeLinksFail()

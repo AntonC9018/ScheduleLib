@@ -179,12 +179,15 @@ public sealed class CombinedGroupMatchingTests
         Assert.Throws<GroupParsingException>(() => Parse(value));
     }
 
-    [Fact]
-    public void UnknownHistoricalSPartitionIsSkippedBeforeSearchingParents()
+    [Theory]
+    [InlineData("IA2202r(S)")]
+    [InlineData("IA2101(D)")]
+    [InlineData("IA2201(D)")]
+    public void UnknownHistoricalPartitionIsSkippedBeforeSearchingParents(string label)
     {
-        var document = new HtmlParser().ParseDocument("""
+        var document = new HtmlParser().ParseDocument($"""
             <form name="lesson"><div class="row"></div><div class="row"><div class="col">
-            <div class="row"><a href="https://registry.test/group">IA2202r(S)</a><a href="https://registry.test/evaluation">Grades</a></div>
+            <div class="row"><a href="https://registry.test/group">{label}</a><a href="https://registry.test/evaluation">Grades</a></div>
             </div></div></form>
             """);
         int searches = 0;

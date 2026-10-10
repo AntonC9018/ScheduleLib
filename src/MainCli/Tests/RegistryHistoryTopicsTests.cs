@@ -51,6 +51,8 @@ public sealed class RegistryHistoryTopicsTests
     public void ChangedLessonMarkupFailsWithGenericDiagnostics(string html)
     {
         var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html)));
+        Assert.Equal(RegistryHistoryPhase.Lessons, error.Phase);
+        Assert.Equal(RegistryHistoryDiagnostic.TopicTable, error.Diagnostic);
         Assert.DoesNotContain("canary", error.Message);
         Assert.DoesNotContain("private topic", error.Message);
     }
@@ -125,6 +127,9 @@ public sealed class RegistryHistoryTopicsTests
             Assert.DoesNotContain("language", csv);
             Assert.DoesNotContain("faculty", original);
             Assert.Contains("raw ambiguous group", original);
+            using var inventory = JsonDocument.Parse(original);
+            Assert.All(inventory.RootElement.GetProperty("sources").EnumerateArray(), source =>
+                Assert.Equal("requires-group-mapping", source.GetProperty("courseMapping").GetString()));
             Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
         }
         finally { Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true); }
@@ -177,6 +182,161 @@ public sealed class RegistryHistoryTopicsTests
     }
 
     [Fact]
+    public async Task ReaderStopsBeforeOlderYearWhenLatestTopicsResolveCourse()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory();
+        Assert.Equal("2024/25", Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        Assert.Single(analysis.Current);
+        Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.EndsWith("/groups/5", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ReaderFallsBackAfterBlankLatestTopics()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory(latestBlank: true);
+        Assert.Equal("2023/24", Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        Assert.Equal(2, analysis.Historical!.Count);
+        Assert.Contains(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
+        Assert.Contains(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ReaderSkipsResolvedCourseWhileAnotherCourseFallsBack()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory(secondCourseFallsBack: true);
+        Assert.Equal(2, analysis.Current.Count);
+        Assert.Equal(2, analysis.Selection.Candidates.Count);
+        Assert.Contains(analysis.Selection.Candidates, candidate => candidate.CurrentCourse.Name == "Systems" && candidate.Historical.Year == "2024/25");
+        Assert.Contains(analysis.Selection.Candidates, candidate => candidate.CurrentCourse.Name == "Other" && candidate.Historical.Year == "2023/24");
+        Assert.Contains(requests, path => path.EndsWith("/LessonsList/8", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.EndsWith("/groups/5", StringComparison.Ordinal)
+            || path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ReaderKeepsAmbiguousHistoricalSnapshotsButSkipsOlderYears()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory(latestDuplicate: true);
+        Assert.Empty(analysis.Selection.Candidates);
+        Assert.Equal(RegistryHistoryTopicMappingFailure.AmbiguousCourse, Assert.Single(analysis.Selection.Unresolved).Reason);
+        Assert.Equal(2, analysis.Historical!.Count);
+        Assert.Contains(requests, path => path.EndsWith("/groups/3", StringComparison.Ordinal));
+        Assert.Contains(requests, path => path.EndsWith("/groups/4", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task DuplicateCurrentCoursesStopAfterNewestUsableHistoricalSnapshots()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory(duplicateCurrent: true);
+        Assert.Equal(2, analysis.Current.Count);
+        Assert.Equal(2, analysis.Selection.Unresolved.Count);
+        Assert.All(analysis.Selection.Unresolved, item => Assert.Equal(RegistryHistoryTopicMappingFailure.AmbiguousCourse, item.Reason));
+        Assert.Single(analysis.Historical!);
+        Assert.Contains(requests, path => path.EndsWith("/LessonsList/3", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
+        Assert.DoesNotContain(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task DuplicateCurrentCoursesFallBackWhenNewestTopicsAreBlank()
+    {
+        var (analysis, requests) = await ReadThreeYearHistory(duplicateCurrent: true, latestBlank: true);
+        Assert.Equal(2, analysis.Historical!.Count);
+        Assert.Contains(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+        Assert.All(analysis.Selection.Unresolved, item => Assert.Equal(RegistryHistoryTopicMappingFailure.AmbiguousCourse, item.Reason));
+    }
+
+    [Fact]
+    public async Task AmbiguousCurrentCourseExportsPrivateCsvCandidatesAndKeepsUnresolvedStatus()
+    {
+        var (analysis, _) = await ReadThreeYearHistory(duplicateCurrent: true);
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), ".registry-history");
+        try
+        {
+            var result = await RegistryHistoryTopicFiles.Save(directory, analysis, default);
+            Assert.Equal(2, result.CsvFiles.Count);
+            using var inventory = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
+            Assert.Equal(2, inventory.RootElement.GetProperty("unresolved").GetArrayLength());
+            Assert.Equal(1, inventory.RootElement.GetProperty("historical").GetArrayLength());
+            var sources = inventory.RootElement.GetProperty("sources");
+            Assert.Equal(2, sources.GetArrayLength());
+            Assert.All(sources.EnumerateArray(), source =>
+            {
+                Assert.Equal("ambiguous-course", source.GetProperty("courseMapping").GetString());
+                Assert.Equal("2024/25", source.GetProperty("year").GetString());
+            });
+            Assert.Contains("Synthetic first", await File.ReadAllTextAsync(Path.Combine(directory, result.CsvFiles[0])));
+            Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true); }
+    }
+
+    [Fact]
+    public async Task AmbiguousHistoricalYearExportsEveryMatchingSnapshot()
+    {
+        var (analysis, _) = await ReadThreeYearHistory(latestDuplicate: true);
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), ".registry-history");
+        try
+        {
+            var result = await RegistryHistoryTopicFiles.Save(directory, analysis, default);
+            Assert.Equal(4, result.CsvFiles.Count);
+            using var inventory = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
+            var sources = inventory.RootElement.GetProperty("sources");
+            Assert.Equal(4, sources.GetArrayLength());
+            Assert.All(sources.EnumerateArray(), source => Assert.Equal("ambiguous-course", source.GetProperty("courseMapping").GetString()));
+            Assert.Equal(1, inventory.RootElement.GetProperty("unresolved").GetArrayLength());
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true); }
+    }
+
+    private static async Task<(RegistryHistoryTopicsAnalysis Analysis, List<string> Requests)> ReadThreeYearHistory(
+        bool latestBlank = false, bool latestDuplicate = false, bool duplicateCurrent = false, bool secondCourseFallsBack = false)
+    {
+        var requests = new List<string>();
+        const string logout = "<a href='/studregistry/Account/Logout'>Exit</a>";
+        using var inner = new FakeHandler(request =>
+        {
+            var uri = request.RequestUri!;
+            requests.Add(uri.PathAndQuery);
+            string html;
+            if (uri.AbsolutePath == Index.AbsolutePath)
+            {
+                var year = uri.Query.Contains("2024%2F25", StringComparison.Ordinal) ? "2024/25"
+                    : uri.Query.Contains("2023%2F24", StringComparison.Ordinal) ? "2023/24" : "2025/26";
+                var courseIds = year == "2025/26" ? duplicateCurrent ? new[] { 1, 2 } : secondCourseFallsBack ? [1, 6] : [1]
+                    : year == "2024/25" ? latestDuplicate ? new[] { 3, 4 } : secondCourseFallsBack ? [3, 7] : [3]
+                    : secondCourseFallsBack ? [5, 8] : [5];
+                html = "<form><select id='AnUniv' name='AnUniv'>" +
+                    string.Concat(new[] { "2025/26", "2024/25", "2023/24" }.Select(value =>
+                        $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>")) +
+                    "</select></form><div id='nav-1'>" + string.Concat(courseIds.Select(id =>
+                        $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>")) +
+                    "</div><div id='nav-2'></div>";
+            }
+            else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
+            {
+                var id = uri.AbsolutePath.Split('/').Last();
+                html = "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
+                    $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>" +
+                    "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+            }
+            else html = (latestBlank && uri.AbsolutePath.EndsWith("/LessonsList/3", StringComparison.Ordinal)
+                || secondCourseFallsBack && uri.AbsolutePath.EndsWith("/LessonsList/7", StringComparison.Ordinal))
+                ? "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>" +
+                  "<tr><td><a>01.10.2024 08:00</a> curs</td><td>1 </td><td></td></tr></table>"
+                : Lessons;
+            return new(HttpStatusCode.OK) { Content = new StringContent(logout + html) };
+        });
+        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        guard.CompleteAuthentication();
+        using var client = new HttpClient(guard);
+        return (await new RegistryHistoryTopicsReader(client, Index).Discover(default), requests);
+    }
+
+    [Fact]
     public void EmptyLessonTableDoesNotRequestStudentOrCreateData()
     {
         var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(
@@ -193,6 +353,31 @@ public sealed class RegistryHistoryTopicsTests
             [empty, Snapshot("2023/24", "Systems", 1, "older")]);
         Assert.Equal("2023/24", Assert.Single(selection.Candidates).Historical.Year);
         Assert.Equal(2, Assert.Single(selection.Unresolved).CurrentCourse.Semester);
+    }
+
+    [Fact]
+    public async Task ExportKeepsOnlyRegularTopicsAndTheirDates()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), ".registry-history");
+        try
+        {
+            var course = Course("Synthetic course", 1, "current");
+            var date = new DateTime(2024, 10, 7, 9, 45, 0);
+            var historical = new RegistryHistoryCourseTopics("2024/25", course,
+                [new("IA2401", new(Index, "LessonsList/1"),
+                    [new(date, LessonType.Curs, "Synthetic first"), new(date.AddDays(7), LessonType.Curs, "Atestare 1"),
+                        new(date.AddDays(14), LessonType.Curs, "Synthetic second")])]);
+            var selection = new RegistryHistoryTopicSelectionResult("2025/26", [new(course, historical)], []);
+            var result = await RegistryHistoryTopicFiles.Save(directory, selection, default);
+            var csv = await File.ReadAllTextAsync(Path.Combine(directory, Assert.Single(result.CsvFiles)));
+            Assert.DoesNotContain("Atestare", csv);
+            Assert.Contains("Synthetic first", csv);
+            Assert.Contains("Synthetic second", csv);
+            using var inventory = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
+            var dates = Assert.Single(inventory.RootElement.GetProperty("sources").EnumerateArray()).GetProperty("dates");
+            Assert.Equal(new[] { date, date.AddDays(14) }, dates.EnumerateArray().Select(x => x.GetDateTime()));
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true); }
     }
 
     private static RegistryHistoryCourse Course(string name, int semester, string id) => new(name, semester, new(Index, "groups/" + id));

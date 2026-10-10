@@ -17,10 +17,16 @@ public sealed class RegistryConfig :
     public ExtraLessonInstanceAction? ExtraLessonInstanceAction { get; set; }
     public IEquationCommandsDerivation? EquationCommandsDerivation { get; set; }
     public CommandProcessingConfig? CommandProcessingConfig { get; set; }
+    public List<RegistryLabMergeRule> LabMerges { get; set; } = [];
+    public List<RegistryAssessmentRule> Assessments { get; set; } = [];
 
     public static void Register(IServiceCollection services)
     {
+        services.SetImmutable<List<DateOnly>>();
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
+        services.AddKeyEqualityComparer((RegistryLabMergeRule rule) => (Course: rule.Course, Group: rule.Group));
+        services.AddKeyEqualityComparer((RegistryAssessmentRule rule) => (Course: rule.Course, Group: rule.Group, Type: rule.LessonType, SubGroup: rule.SubGroup, Specialization: rule.Specialization, Alternative: rule.Alternative));
+        services.AddConfigProvider(RegistryConfig.Key);
         services.AddConfigProvider(BuiltRegistryConfig.Key);
         services.AddMapper<RegistryConfigMapper>();
         services.ConfigureNodeDataJsonSerialization(
@@ -36,6 +42,8 @@ public sealed class BuiltRegistryConfig
     public required ExtraLessonInstanceAction ExtraLessonInstanceAction { get; set; }
     public required IEquationCommandsDerivation EquationCommandsDerivation { get; set; }
     public required CommandProcessingConfig CommandProcessingConfig { get; set; }
+    public IReadOnlyList<RegistryLabMergeRule> LabMerges { get; set; } = [];
+    public IReadOnlyList<RegistryAssessmentRule> Assessments { get; set; } = [];
 }
 
 public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegistryConfig>
@@ -44,6 +52,8 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
     {
         return new()
         {
+            LabMerges = input.LabMerges,
+            Assessments = input.Assessments,
             ExtraLessonInstanceAction = input.ExtraLessonInstanceAction ?? ExtraLessonInstanceAction.LeaveAlone,
             CommandProcessingConfig = input.CommandProcessingConfig ?? CommandProcessingConfig.DryRun,
             Credentials = input.Credentials ?? throw new InvalidOperationException("No credentials configured"),

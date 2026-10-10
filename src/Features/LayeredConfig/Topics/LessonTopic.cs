@@ -65,7 +65,7 @@ public static class LessonTopicCsvSerializer
             {
                 x.Language = lang;
             }
-            yield return x;
+            if (!RegistryAssessmentTopics.IsAssessment(x.Name)) yield return x;
         }
     }
 }
@@ -228,8 +228,7 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
             {
                 continue;
             }
-            var provider = it.Providers[key.LessonType];
-            if (provider is null)
+            if (!it.Providers.TryGet(key.LessonType, out var provider) || provider is null)
             {
                 return null;
             }
@@ -390,6 +389,7 @@ public readonly record struct TopicsBuilderKey
 
 public sealed class LessonTopicsBuilder
 {
+    internal bool AllowMissingLessonTypes;
     internal readonly TopicsBuilderKey Key;
     internal readonly Dictionary<LessonType, List<string>> _lists = new();
 
@@ -413,6 +413,7 @@ public sealed class LessonTopicsBuilder
 
 public sealed partial class AllLessonTopicsDatabaseBuilder
 {
+    public int? Semester { get; set; }
     private readonly List<LessonTopicsBuilder> _items = new();
     private readonly SparseArray<LessonType, ILessonNameProviderFactory> _defaultProviders;
     // Only includes the relevant lessons.
@@ -465,7 +466,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 p.Providers,
                 p.LessonTypesToProcess.Required,
                 it.Key.CourseKey,
-                it.Key.Language);
+                it.Key.Language,
+                it.AllowMissingLessonTypes);
 
             var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
             b.Add(new(builtKey, p.Providers));
@@ -493,6 +495,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
         foreach (var document in m.Manifest.Documents)
         {
+            if (document.Semester is { } semester && semester != Semester) continue;
             var documentFilePath = Path.Combine(m.DirectoryPath ?? "", document.Path);
             await using var documentStream = File.OpenRead(documentFilePath);
 
@@ -542,7 +545,10 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             foreach (var (lang, groups) in lessonGroups)
             {
-                bylang.SetupBuilder(this, lang, groups);
+                bylang.SetupBuilder(this, lang, groups,
+                    document.WholeGroupOnly || document.SubGroup is not null || document.Specialization is not null || document.Alternative is not null
+                        ? new GroupPartitionKey(new SubGroup(document.SubGroup), new Specialization(document.Specialization), new Alternative(document.Alternative)) : null,
+                    document.AllowMissingLessonTypes);
             }
 
             await foreach (var lessonTopic in e)
@@ -568,6 +574,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         foreach (var groupId in filteredSchedule.Groups)
         {
             var group = filteredSchedule.Source.Get(groupId);
+            if (document.Groups is { } names
+                && !names.Contains(group.Name, StringComparer.OrdinalIgnoreCase)) continue;
             if (!IsFacultyMatch())
             {
                 continue;
@@ -710,7 +718,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         SparseArray<LessonType, ILessonNameProvider> providers,
         EnumBitArray<LessonType> typesToProcess,
         CourseKey courseKey,
-        Language language)
+        Language language,
+        bool allowMissingLessonTypes)
     {
         foreach (var lessonType in typesToProcess.SetValues())
         {
@@ -734,6 +743,12 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     providers[lessonType] = provider.Get(language);
                     continue;
                 }
+            }
+
+            if (allowMissingLessonTypes)
+            {
+                providers[lessonType] = new NoNameProvider();
+                continue;
             }
 
             {
@@ -826,6 +841,7 @@ file struct TopicsByLanguage()
     private readonly SparseArray<Language, LessonTopicsBuilder> _arr = new();
     private readonly HashSet<GroupId> _set = new();
     private LessonTopicsBuilder? _fallback;
+    private GroupPartitionKey? _partition;
 
     public void Begin(CourseKey courseKey)
     {
@@ -833,17 +849,22 @@ file struct TopicsByLanguage()
         _set.Clear();
         _arr.Clear();
         _fallback = null;
+        _partition = null;
     }
 
     public void SetupBuilder(
         AllLessonTopicsDatabaseBuilder self,
         Language language,
-        in LessonGroups groups)
+        in LessonGroups groups,
+        GroupPartitionKey? partition,
+        bool allowMissingLessonTypes)
     {
+        _partition = partition;
         var topics = self.Topics(new(
             courseKey: _courseKey,
-            groupsKey: new(groups, null),
+            groupsKey: new(groups, partition),
             language: language));
+        topics.AllowMissingLessonTypes |= allowMissingLessonTypes;
         _arr[language] = topics;
     }
 
@@ -867,12 +888,13 @@ file struct TopicsByLanguage()
                 }
             }
 
+            foreach (var group in _set) allGroups.Add(group);
+
             _fallback = self.Topics(new(
                 courseKey: _courseKey,
-                groupsKey: new(allGroups, null),
+                groupsKey: new(allGroups, _partition),
                 language: Language.None));
         }
         return _fallback;
     }
 }
-

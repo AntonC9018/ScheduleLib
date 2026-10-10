@@ -88,6 +88,7 @@ public sealed class ContextProvider(IServiceProvider sp) : IDisposable
 [AutoConstructor]
 public sealed partial class LessonTopicsOfCurrentTeacherLoader
 {
+    private readonly IOptions<StudyYearOptions> _studyYear;
     private readonly IServiceProvider _sp;
     private readonly DataProvider<LessonTopicsConfig> _lessonTopicsConfig;
     private readonly ScopeFilteredScheduleProvider _scheduleProvider;
@@ -102,6 +103,7 @@ public sealed partial class LessonTopicsOfCurrentTeacherLoader
 
         var filteredSchedule = _scheduleProvider.Get();
         var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(_sp, filteredSchedule);
+        builder.Semester = _studyYear.Value.Semester.AsOrdinal();
         foreach (var x in config1.Sources)
         {
             var source = x.Create(_sp);

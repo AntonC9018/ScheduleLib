@@ -318,7 +318,7 @@ public readonly struct AllStudentAttendanceListBuilder()
                     perLessonBuilder.Add(attendanceList);
                 }
 
-                foreach (var lessonType in lessonTypes)
+                foreach (var lessonType in lessonTypes.Distinct())
                 {
                     var perLessonBuilder = perLessonTypeBuilders[lessonType];
                     Debug.Assert(perLessonBuilder != null);

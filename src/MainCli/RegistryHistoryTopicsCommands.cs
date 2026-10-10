@@ -49,7 +49,7 @@ public partial class RegistryCommands
         catch (RegistryHistoryException error)
         {
             var status = error.StatusCode is { } code ? code.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unknown";
-            return Finish(5, $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; HTTP {status}.");
+            return Finish(5, $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.");
         }
         catch (LocalOperationBusyException) { return Finish(7, "Another local registry history operation is active."); }
         catch (Exception) { return Finish(5, "Registry history topic discovery failed or stopped."); }

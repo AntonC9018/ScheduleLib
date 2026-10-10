@@ -45,7 +45,7 @@ public class CalendarCommands
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>().Get();
             if (config is null) return Finish(3, ["Google Calendar configuration is missing for this profile."]);
             var teacher = scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
-            if (scope.ServiceProvider.GetRequiredService<LookupFacade>().Teacher(teacher.TeacherName.ToNameModel()) is null)
+            if (TeacherProfileScheduleLookup.Find(scope.ServiceProvider.GetRequiredService<LookupFacade>(), teacher.TeacherName) is null)
                 return Finish(3, [$"Selected teacher {resolved.Profile} is absent from this schedule."]);
             var desired = scope.ServiceProvider.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>().BuildDesiredEvents(cancellation.Token);
             using var provider = await Connect(scope.ServiceProvider, config, cancellation.Token);

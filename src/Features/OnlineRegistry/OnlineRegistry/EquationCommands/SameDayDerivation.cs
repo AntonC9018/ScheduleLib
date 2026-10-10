@@ -29,6 +29,7 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
                 break;
             }
 
+            lists.Clear();
             var all = allEnumerator.Current;
             var existing = existingEnumerator.Current;
 

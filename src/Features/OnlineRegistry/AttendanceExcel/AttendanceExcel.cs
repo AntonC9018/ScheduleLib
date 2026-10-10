@@ -76,7 +76,7 @@ public sealed partial class AttendanceListsExcelParser
                     throw Unreachable();
                 }
             }
-            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields) is not { } lesson)
+            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields, p.ParseParameters.LabMerges) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
@@ -355,7 +355,8 @@ public sealed partial class AttendanceListsExcelParser
 
         public LookedUpLesson? LookupLessonByExcelName(
             string excelName,
-            LessonModelDiffMask additionallyIgnoredFields)
+            LessonModelDiffMask additionallyIgnoredFields,
+            IReadOnlyList<RegistryLabMergeRule> labMerges)
         {
             _nameE.Reset(excelName.AsMemory());
             _lexer.Reset(_nameE);
@@ -393,7 +394,17 @@ public sealed partial class AttendanceListsExcelParser
                 LessonType = parsedName.LessonType,
                 GroupPartition = parsedName.GroupPartition,
             };
-            var ret = LookupLesson(key, _schedule, additionallyIgnoredFields);
+            var merge = key.LessonType == LessonType.Lab
+                ? RegistryLabMerges.Find(labMerges, _schedule.Source, key.CourseId, key.Groups, key.GroupPartition)
+                : null;
+            var lookupKey = key;
+            var lookupIgnoredFields = additionallyIgnoredFields;
+            if (merge is not null)
+            {
+                lookupKey.GroupPartition = new(new SubGroup(merge.SourceSubGroup), Specialization.All);
+                lookupIgnoredFields.LessonType = false;
+            }
+            var ret = LookupLesson(lookupKey, _schedule, lookupIgnoredFields);
             if (ret == null)
             {
                 var schedule = _schedule;
@@ -414,7 +425,7 @@ public sealed partial class AttendanceListsExcelParser
             return new(
                 l.Type,
                 l.Groups,
-                l.GroupPartitionKey,
+                merge is null ? l.GroupPartitionKey : GroupPartitionKey.All,
                 l.Course);
         }
 
@@ -614,7 +625,7 @@ public sealed partial class AttendanceListsExcelParser
         HeaderDeps headerDeps,
         HeaderFormat headerFormat)
     {
-        IXLRow? row = sheet.Rows().FirstOrDefault();
+        IXLRow? row = sheet.FirstRowUsed(XLCellsUsedOptions.Contents);
         if (headerFormat.FormatType == HeaderFormatType.Nothing)
         {
             return default;
@@ -719,7 +730,10 @@ public sealed partial class AttendanceListsExcelParser
         in WorksheetParseParameters p)
     {
         // ReSharper disable once GenericEnumeratorNotDisposed
-        using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
+        var firstRow = sheet.FirstRowUsed(XLCellsUsedOptions.Contents);
+        if (firstRow is null) return;
+        using var rowE = sheet.Rows().SkipWhile(row => row.RowNumber() < firstRow.RowNumber())
+            .GetEnumerator().RememberIsDone();
         if (header.HeaderType != HeaderType.None)
         {
             var x = rowE.MoveNext();
@@ -779,18 +793,18 @@ public sealed partial class AttendanceListsExcelParser
                     throw new InvalidOperationException("Expecting a string in cell");
                 }
 
-                if (attendanceStr != ""
-                    && header.IsApplicable)
+                if (header.IsApplicable)
                 {
-                    var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
-                    var restoredIndex = header.Offset.GetUnOffsetIndex(columnNumber);
+                    var columnNumber = cells.Current!.Address.ColumnNumber;
+                    // The header offset points at the name column, before lesson zero.
+                    var restoredIndex = header.Offset.GetUnOffsetIndex(columnNumber - 1);
                     if (restoredIndex.Value < 0 || restoredIndex.Value >= header.Len)
                     {
                         if (p.HeaderFormat.IgnoreValuesOutsideHeader)
                         {
                             continue;
                         }
-                        throw cell.Exception("The given cell is not within the range of the table ");
+                        throw cells.Current!.Exception("The given cell is not within the range of the table ");
                     }
                 }
 
@@ -836,7 +850,7 @@ public sealed partial class AttendanceListsExcelParser
             rowE.MoveNext();
         }
 
-        list.HintMaxCount(maxLen);
+        list.HintMaxCount(header.IsApplicable ? header.Len : maxLen);
         return;
     }
 
@@ -948,6 +962,7 @@ public enum CellValueFormat
 
 public struct WorksheetParseParameters()
 {
+    public IReadOnlyList<RegistryLabMergeRule> LabMerges = [];
     public HeaderFormat HeaderFormat = new();
     public CellValueFormat CellValueFormat = CellValueFormat.NotAttendanceIsError;
     public RepeatedCourseBehavior RepeatedCourseBehavior = RepeatedCourseBehavior.Error;

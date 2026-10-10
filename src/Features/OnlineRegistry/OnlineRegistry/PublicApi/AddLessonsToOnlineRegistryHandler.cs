@@ -73,17 +73,16 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     courseLink.CourseId,
                     group.Groups,
                     group.GroupPartition);
-                var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
+                var selection = RegistryLabMerges.Select(config.LabMerges, new(
                         lookup: _lookup.LessonsByCourse,
                         schedule: _schedule,
-                        filter: filter))
-                    .ToList();
+                        filter: filter));
+                var lessons = selection.Lessons;
                 if (lessons.Count == 0)
                 {
                     continue;
                 }
-                var matchedGroupPartition =
-                    _schedule.Get(lessons[0]).Lesson.GroupPartitionKey;
+                var matchedGroupPartition = selection.AttendancePartition;
 
                 var decision = p.LessonFilter.Filter(new(
                     filter: filter,
@@ -229,28 +228,32 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance.AsArray());
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);
 
-                    // Note: the index used here is per lesson type as well.
-                    var topic = p.LessonTopics.Get(key with
-                    {
-                        LessonType = dbLessonType,
-                    });
 
                     return new LessonInstance
                     {
                         DateTime = x.DateTime,
                         LessonId = x.LessonId,
                         Attendance = attendanceForHtml,
-                        Topic = topic,
+                        Topic = null,
                         RegistryLessonType = registryLessonType,
                     };
                 }
 
-                // Update
+                var assessmentRules = RegistryAssessments.Find(config.Assessments, _schedule,
+                    courseLink.CourseId, group.Groups.Value, matchedGroupPartition);
+                var arranged = RegistryAssessments.Arrange(outputBuilder.Complete().ToArray(),
+                    scanResult.Lessons.OrderBy(x => x.DateTime).ToArray(), assessmentRules,
+                    (lesson, topicIndex) => p.LessonTopics.Get(new AttendanceLookupKey(
+                        groups: group.Groups,
+                        groupPartition: matchedGroupPartition,
+                        courseId: courseLink.CourseId,
+                        lessonType: _schedule.Get(lesson.LessonId).Lesson.Type,
+                        dayIndex: topicIndex,
+                        dateTime: lesson.DateTime)));
                 var equationCommands = config.EquationCommandsDerivation.DeriveCommands(new(
                     schedule: _schedule,
-                    remoteLessons: scanResult.Lessons.OrderBy(x => x.DateTime),
-                    // Need to copy to be able to enumerate
-                    localLessons: outputBuilder.Complete().ToArray()));
+                    remoteLessons: arranged.Remote,
+                    localLessons: arranged.Local));
                 foreach (var command in equationCommands)
                 {
                     cancellationToken.ThrowIfCancellationRequested();

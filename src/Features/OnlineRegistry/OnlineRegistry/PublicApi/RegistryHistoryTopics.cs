@@ -60,7 +60,8 @@ public static class RegistryHistoryTopicsHtml
         return result;
     }
 
-    private static RegistryHistoryException InvalidMarkup() => new("Lesson topic table layout is unsupported; inspection is required.");
+    private static RegistryHistoryException InvalidMarkup() => new("Lesson topic table layout is unsupported; inspection is required.",
+        phase: RegistryHistoryPhase.Lessons, diagnostic: RegistryHistoryDiagnostic.TopicTable);
 }
 
 /// <summary>Exact course-name matching except surrounding whitespace, a trailing comma and letter case. Raw names remain in provenance.</summary>
@@ -108,7 +109,7 @@ public static class RegistryHistoryTopicSelection
                     resolved = true;
                     break;
                 }
-                if (!matches[0].Groups.Any(g => g.Lessons.Any(l => !string.IsNullOrWhiteSpace(l.Topic)))) continue;
+                if (!matches[0].Groups.Any(g => g.Lessons.Any(l => !string.IsNullOrWhiteSpace(l.Topic) && !RegistryAssessmentTopics.IsAssessment(l.Topic)))) continue;
                 candidates.Add(new(course, matches[0]));
                 resolved = true;
                 break;
@@ -136,16 +137,33 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
         var current = new List<RegistryHistoryCourseTopics>();
         foreach (var course in currentCourses) current.Add(await ReadCourse(currentYear, course));
         var historical = new List<RegistryHistoryCourseTopics>();
+        var pending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(course, other)) == 1).ToList();
+        var ambiguousPending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(course, other)) > 1)
+            .DistinctBy(course => $"{course.Semester}\0{RegistryHistoryTopicSelection.NormalizeCourseName(course.Name)}", StringComparer.OrdinalIgnoreCase).ToList();
         foreach (var year in previous)
         {
+            if (pending.Count == 0 && ambiguousPending.Count == 0) break;
             using var document = await reader.Read(year.Year.Uri, token);
             if (!RegistryHistoryHtml.Years(document, index).Any(x => x.Selected && x.Value == year.Year.Value))
-                throw new RegistryHistoryException("Registry did not confirm the requested academic year; topic discovery stopped.", RegistryHistoryFailure.YearNotConfirmed);
-            foreach (var course in RegistryHistoryHtml.Courses(document, index))
+                throw new RegistryHistoryException("Registry did not confirm the requested academic year; topic discovery stopped.", RegistryHistoryFailure.YearNotConfirmed,
+                    RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelectionNotConfirmed);
+            var yearCourses = RegistryHistoryHtml.Courses(document, index);
+            var matching = yearCourses.Where(course => pending.Any(currentCourse => RegistryHistoryTopicSelection.Matches(currentCourse, course))
+                || ambiguousPending.Any(currentCourse => RegistryHistoryTopicSelection.Matches(currentCourse, course))).ToArray();
+            var snapshots = new List<RegistryHistoryCourseTopics>();
+            foreach (var course in matching)
             {
-                if (!currentCourses.Any(x => RegistryHistoryTopicSelection.Matches(x, course))) continue;
-                historical.Add(await ReadCourse(year.Year.Value, course));
+                var snapshot = await ReadCourse(year.Year.Value, course);
+                historical.Add(snapshot);
+                snapshots.Add(snapshot);
             }
+            pending.RemoveAll(course =>
+            {
+                var matches = snapshots.Where(snapshot => RegistryHistoryTopicSelection.Matches(course, snapshot.Course)).ToArray();
+                return matches.Length > 1 || matches.Any(snapshot => snapshot.Groups.Any(group => group.Lessons.Any(lesson => !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic))));
+            });
+            ambiguousPending.RemoveAll(course => snapshots.Any(snapshot => RegistryHistoryTopicSelection.Matches(course, snapshot.Course)
+                && snapshot.Groups.Any(group => group.Lessons.Any(lesson => !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic)))));
         }
         var offered = years.Select(x => x.Value).ToArray();
         return new(offered, current, RegistryHistoryTopicSelection.Select(currentYear, offered, currentCourses, historical), historical);

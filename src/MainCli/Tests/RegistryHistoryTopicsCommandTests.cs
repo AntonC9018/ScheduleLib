@@ -73,15 +73,44 @@ public sealed class RegistryHistoryTopicsCommandTests
         finally { Console.SetError(original); }
     }
 
+    [Fact]
+    public async Task UnsupportedTopicLayoutReportsFixedDiagnosticWithoutPrivateContent()
+    {
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Console.SetError(error);
+            Assert.Equal(5, await new Commands(new Provider { Diagnostic = RegistryHistoryDiagnostic.TopicTable })
+                .HistoryTopics(new() { Profile = "synthetic" },
+                    new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") }, new() { Json = true }));
+            Assert.Contains("MarkupContract; phase Lessons; diagnostic TopicTable; HTTP unknown", error.ToString());
+            using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
+            var errors = result.RootElement.GetProperty("errors");
+            Assert.Equal(1, errors.GetArrayLength());
+            Assert.Contains("diagnostic TopicTable", errors[0].GetString());
+            Assert.DoesNotContain("canary", output.ToString() + error);
+            Assert.DoesNotContain("https://", output.ToString() + error);
+        }
+        finally { Console.SetOut(originalOut); Console.SetError(originalError); }
+    }
+
     private sealed class Commands(Provider provider) : RegistryCommands
     { protected override IRegistryHistoryTopicsProvider CreateHistoryTopicsProvider() => provider; }
     private sealed class Provider : IRegistryHistoryTopicsProvider
     {
         public int Calls { get; private set; }
         public bool Fail { get; init; }
+        public RegistryHistoryDiagnostic Diagnostic { get; init; } = RegistryHistoryDiagnostic.None;
         public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
         {
             Calls++;
+            if (Diagnostic != RegistryHistoryDiagnostic.None)
+                throw new RegistryHistoryException("canary-student https://private.test/?token=canary", phase: RegistryHistoryPhase.Lessons,
+                    diagnostic: Diagnostic);
             if (Fail) throw new Exception("canary-password canary-student canary-topic");
             var course = new RegistryHistoryCourse("canary-course", 1, new("https://private.test/groups/1"));
             var group = new RegistryHistoryGroupTopics("canary-group", new("https://private.test/LessonsList/1"),

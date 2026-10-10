@@ -151,9 +151,10 @@ internal static class HtmlSearch
                 }
 
                 if (groupForSearch.IsRepeat
-                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase))
+                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase)
+                    || groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Repeats and the unconfirmed historical (S) marker are skipped
+                    // Repeats and unconfirmed historical (S)/(D) markers are skipped
                     // before producing navigable links or accessing remote lessons.
                     continue;
                 }
