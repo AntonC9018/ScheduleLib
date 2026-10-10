@@ -99,6 +99,73 @@ public sealed class RegistryLessonAdapterTests
         Assert.Equal(0, handler.Posts);
     }
 
+    [Theory]
+    [InlineData(302, "match")]
+    [InlineData(303, "match")]
+    [InlineData(302, "date")]
+    [InlineData(302, "mode")]
+    [InlineData(302, "topic")]
+    [InlineData(302, "attendance")]
+    [InlineData(302, "missing")]
+    [InlineData(302, "duplicate")]
+    [InlineData(302, "foreign")]
+    [InlineData(302, "list-login")]
+    [InlineData(302, "edit-login")]
+    [InlineData(302, "edit-failure")]
+    public async Task SavedLessonRedirectRequiresUniqueMatchingValuesWithoutReplayingPost(int status, string scenario)
+    {
+        const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
+        const string edit = "/studregistry/LessonAttendance/Edit/3";
+        const string fields = "<input id='LessonDate' name='LessonDate' value='2026-09-03T13:15'>"
+            + "<select id='LessonMode' name='LessonMode'><option selected value='curs'>curs</option></select>"
+            + "<textarea id='LessonTopic' name='LessonTopic'>Synthetic topic</textarea>"
+            + "<input name='StudentList[1].NotaStr' value='a'>";
+        var form = $"<a href='{list}'>Back</a><form method='post' action='/save'>{fields}</form>";
+        var auth = new Auth();
+        using var handler = new Handler(request =>
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                var response = Response((HttpStatusCode)status, "");
+                response.Headers.Location = scenario == "foreign" ? new Uri("https://elsewhere.test" + list) : new Uri(list, UriKind.Relative);
+                return response;
+            }
+            if (request.RequestUri!.AbsolutePath.Contains("LessonsList"))
+            {
+                if (scenario == "list-login") return Response(HttpStatusCode.OK, "<input type='password'>");
+                var row = $"<tr><td>03.09.2026 13:15 curs</td><td>Synthetic topic</td><td><a href='{edit}'>Edit</a></td></tr>";
+                return Response(HttpStatusCode.OK, "<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>"
+                    + (scenario == "missing" ? "" : row)
+                    + (scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "") + "</table>");
+            }
+            if (request.RequestUri.AbsolutePath.Contains("/Edit/"))
+            {
+                if (scenario == "edit-login") return Response(HttpStatusCode.OK, "<input type='password'>");
+                if (scenario == "edit-failure") return Response(HttpStatusCode.InternalServerError, "failed");
+                return Response(HttpStatusCode.OK, scenario switch
+                {
+                    "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
+                    "mode" => form.Replace("value='curs'", "value='laborator'"),
+                    "topic" => form.Replace("Synthetic topic", "Different topic"),
+                    "attendance" => form.Replace("value='a'", "value='am'"),
+                    _ => form,
+                });
+            }
+            return Response(HttpStatusCode.OK, form);
+        });
+        using var client = new HttpClient(handler);
+        using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
+        using var context = ScrapingContext.Create(transport, auth);
+        using var services = new ServiceCollection().BuildServiceProvider();
+        var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
+        var document = await navigator.GetHtml(new("https://registry.test/create"));
+        if (scenario == "match") await navigator.SubmitLesson(document);
+        else await Assert.ThrowsAsync<IOException>(() => navigator.SubmitLesson(document));
+        Assert.Equal(1, handler.Posts);
+        Assert.Equal(scenario == "foreign" ? 1 : scenario is "missing" or "list-login" ? 2 : scenario == "duplicate" ? 4 : 3, handler.Reads);
+        Assert.Equal(0, auth.Calls);
+    }
+
     private static Task Submit(OnlineRegistryNavigator navigator, IDocument document, string kind, Action started) =>
         kind == "delete" ? navigator.SubmitDelete(document, started) : navigator.SubmitLesson(document, started);
     private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)

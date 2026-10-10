@@ -44,6 +44,19 @@ Extra lessons left alone (or requiring unsupported lossless deletion) appear as
 omitted actions. Plans do not submit forms. Application stops on the first failed
 submission, reports completed and unattempted actions, and never retries creates.
 
+Planning scans every selected course/group before application starts. This keeps
+schedule, topic, attendance and remote-layout planning failures ahead of the first
+write and provides the complete action list. Application is sequential, not an
+atomic registry transaction: a later submission failure leaves earlier writes
+applied.
+
+Lesson POSTs can succeed with an HTTP 302/303 redirect (#206). The transport blocks
+automatic redirect navigation to prevent POST replay. The lesson adapter confirms
+these redirects with GETs only: the destination must match the form's same-origin
+lesson-list backlink, and exactly one saved edit form must match the submitted
+date, type, topic and attendance values. Unexpected redirects, ambiguous/mismatched
+saved values and failed confirmation reads remain uncertain; no POST is retried.
+
 `IRegistrySyncNavigator` separates reads from submissions. The configured CLI
 session owns its settings, initialized service scope and authenticated registry
 context. `IConfiguredRegistrySession` exposes that scoped service provider and

@@ -190,6 +190,14 @@ artifact through the same owned-output contract and never launch Explorer or an
 editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
 synchronous PDF render finishes before cancellation is observed.
 
+`registry sync --profile TEACHER` scans all selected courses/groups and builds a
+complete reconciliation plan before writing anything. With `--apply`, it builds
+a fresh plan under the account lock, then submits actions sequentially. This
+keeps planning errors ahead of the first write; submission failures can still
+leave a partially applied plan. A normal lesson 302/303 redirect is confirmed by
+reading the saved lesson values, without replaying the POST. An `uncertain`
+outcome means the write may have succeeded: inspect the registry before retrying.
+
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each
 planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).

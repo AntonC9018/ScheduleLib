@@ -241,8 +241,82 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Courses().Get(semester);
     public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) => Groups().Get(course);
     public Task SubmitLesson(IDocument document) => SubmitLesson(document, null);
-    public Task SubmitLesson(IDocument document, Action? onSubmissionStarted) =>
-        SubmitMutation(HtmlSearch.GetLessonForm(document), "lesson submission", onSubmissionStarted);
+    public async Task SubmitLesson(IDocument document, Action? onSubmissionStarted)
+    {
+        var form = HtmlSearch.GetLessonForm(document);
+        try
+        {
+            await SubmitMutation(form, "lesson submission", onSubmissionStarted);
+        }
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+        {
+            // POST/redirect/GET is normal registry behavior. Confirm persisted values
+            // through reads, without allowing AngleSharp to replay the mutation.
+            await ConfirmSavedLesson(document, form, error);
+        }
+    }
+
+    private async Task ConfirmSavedLesson(IDocument document, IHtmlFormElement form, FormSubmissionRedirectException redirect)
+    {
+        var origin = new Uri(document.Url);
+        var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+            .Select(anchor => new Uri(anchor.Href))
+            .Where(uri => SameOrigin(origin, uri) && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+            .Distinct().ToArray();
+        if (redirect.Location is null || listLinks.Length != 1)
+            throw new IOException("Registry lesson confirmation destination is unavailable.");
+        var destination = new Uri(origin, redirect.Location);
+        if (destination != listLinks[0])
+            throw new IOException("Registry lesson confirmation destination is unexpected.");
+
+        var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
+        var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
+        var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
+        if (!DateTime.TryParse(expectedDate, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var date) || expectedMode is null || expectedTopic is null)
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        var expectedAttendance = form.QuerySelectorAll<IHtmlInputElement>("input[name]")
+            .Where(input => input.Name?.EndsWith(".NotaStr", StringComparison.Ordinal) == true)
+            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+
+        var list = await GetHtml(destination);
+        RequireConfirmationPage(list);
+        var table = list.QuerySelector<IHtmlTableElement>("table")
+            ?? throw new IOException("Registry lesson confirmation table is missing.");
+        var dateText = date.ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        var editLinks = table.Rows.Where(row => row.Cells.Length >= 3 && row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))
+            .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
+            .Select(anchor => new Uri(anchor.Href))
+            .Where(uri => SameOrigin(origin, uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
+            .Distinct().ToArray();
+        var matches = 0;
+        foreach (var edit in editLinks)
+        {
+            var saved = await GetHtml(edit);
+            RequireConfirmationPage(saved);
+            var savedForm = HtmlSearch.GetLessonForm(saved);
+            var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
+            if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
+                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate)
+                && savedDate == date
+                && savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode
+                && savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value == expectedTopic
+                && expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
+                    && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                matches++;
+        }
+        if (matches != 1)
+            throw new IOException("Registry saved lesson values could not be uniquely confirmed.");
+
+        static bool SameOrigin(Uri first, Uri second) => first.Scheme == second.Scheme && first.Host == second.Host && first.Port == second.Port;
+        static void RequireConfirmationPage(IDocument page)
+        {
+            // A failed read cannot prove rejection of the already-attempted POST.
+            if (page.StatusCode != HttpStatusCode.OK || IsLoginAddress(page.Url)
+                || page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                throw new IOException("Registry lesson confirmation read failed.");
+        }
+    }
 
     public Task SubmitDelete(IDocument document) => SubmitDelete(document, null);
     public Task SubmitDelete(IDocument document, Action? onSubmissionStarted)
