@@ -67,6 +67,18 @@ internal static class MatchLessonHelper
         }
     }
 
+    internal static bool MatchesPartition(Schedule schedule, LessonData lesson, GroupPartitionKey partition)
+    {
+        if (lesson.GroupPartitionKey == partition) return true;
+        if (partition != GroupPartitionKey.All || lesson.Specialization != Specialization.All
+            || lesson.Alternative != Alternative.All || lesson.Groups.IsEmpty) return false;
+        // The ordinary registry destination represents the parent's teaching language;
+        // another language subgroup has its own destination.
+        return lesson.SubGroup.IsLanguageSubGroup()
+            && lesson.Groups.All(group => schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup);
+    }
+
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
         LessonMatchParams p,
         GroupPartitionKey groupPartition)
@@ -75,7 +87,8 @@ internal static class MatchLessonHelper
         foreach (var lessonId in lessonsOfCourse)
         {
             var lesson = p.Schedule.Get(lessonId);
-            if (lesson.Lesson.GroupPartitionKey != groupPartition)
+            if (p.Filter.Groups.IsCombined ? lesson.Lesson.GroupPartitionKey != groupPartition
+                : !MatchesPartition(p.Schedule, lesson.Lesson, groupPartition))
             {
                 continue;
             }

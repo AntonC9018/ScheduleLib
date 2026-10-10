@@ -23,6 +23,14 @@ public static class DefaultConfig
                     .WithLog(LessonEquationCommandTypes.All);
                 x.ProcessingFlags(f);
                 x.Credentials().FromConfig();
+                x.Value().GroupMatchRules.Add(new()
+                {
+                    Faculty = "DJ",
+                    SubGroup = SpecialSubGroups.Eng.Value!,
+                    Language = Language.En,
+                    MatchByLanguage = true,
+                    AllowParentGroup = true,
+                });
             });
 
             defaults.LessonTopics().Manifest(topics =>

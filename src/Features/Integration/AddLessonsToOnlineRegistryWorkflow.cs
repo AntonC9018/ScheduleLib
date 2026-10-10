@@ -14,6 +14,7 @@ namespace ScheduleLib.Application.Core;
 public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler
 {
     private readonly ContextProvider _context;
+    private readonly RegistrySyncDiagnostics _diagnostics;
     private readonly IOptions<StudyYearOptions> _studyYear;
     private readonly AddLessonsToOnlineRegistryTaskHandler _handler;
     private readonly StudentAttendanceLoader _attendanceLoader;
@@ -28,6 +29,7 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         return await _handler.Plan(new()
         {
             Navigator = navigator,
+            Diagnostics = _diagnostics,
             Attendance = _attendanceLoader.Load(),
             LessonTopics = await _topicsLoader.Load(cancellationToken),
             Semester = _studyYear.Value.Semester,
@@ -41,6 +43,7 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         await _handler.PlanGroups(new()
         {
             Navigator = navigator,
+            Diagnostics = _diagnostics,
             Attendance = _attendanceLoader.Load(),
             LessonTopics = await _topicsLoader.Load(cancellationToken),
             Semester = _studyYear.Value.Semester,
@@ -62,6 +65,7 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         await handler.Run(new()
         {
             Navigator = navigator,
+            Diagnostics = _diagnostics,
             Attendance = attendance,
             LessonTopics = topics,
             Semester = semester,

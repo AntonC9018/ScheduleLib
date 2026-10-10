@@ -167,7 +167,7 @@ public sealed class StudentAttendanceListBuilder()
     public Result Build(
         Attendance? missingDaysFiller)
     {
-        var maxDayCount = _students.Max(x => x.Attendances.Count);
+        var maxDayCount = _students.Select(x => x.Attendances.Count).DefaultIfEmpty(0).Max();
         maxDayCount = Math.Max(maxDayCount, _maxCountHint);
         if (missingDaysFiller is { } f)
         {

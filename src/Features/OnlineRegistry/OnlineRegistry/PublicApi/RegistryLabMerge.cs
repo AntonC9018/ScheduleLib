@@ -9,7 +9,7 @@ public sealed class RegistryLabMergeRule
 }
 
 internal readonly record struct RegistryLessonSelection(
-    List<AnyLessonId> Lessons, GroupPartitionKey AttendancePartition);
+    List<AnyLessonId> Lessons, GroupPartitionKey AttendancePartition, bool IsLabMerge = false);
 
 internal static class RegistryLabMerges
 {
@@ -54,6 +54,6 @@ internal static class RegistryLabMerges
         // A registry course can contain lectures as well as the merged labs.
         lessons.AddRange(MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .Where(id => parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab));
-        return new(lessons, GroupPartitionKey.All);
+        return new(lessons, GroupPartitionKey.All, IsLabMerge: true);
     }
 }

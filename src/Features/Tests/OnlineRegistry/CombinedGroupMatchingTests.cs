@@ -262,6 +262,157 @@ public sealed class CombinedGroupMatchingTests
         Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor), link.GroupPartition);
     }
 
+    [Theory]
+    [InlineData("IA2401", Language.Ro)]
+    [InlineData("IA2401ru", Language.Ru)]
+    public void WholeGroupRegistryIncludesParentLanguageLabsButExcludesEnglishSubgroup(string label, Language language)
+    {
+        var fixture = new Fixture();
+        fixture.Add(language == Language.Ru ? "IA2401(ru)" : "IA2401", specialization: Specialization.All);
+        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(language);
+        fixture.Builder.RegularLesson(lesson =>
+        {
+            lesson.Group(new GroupId(0));
+            lesson.Course(fixture.Course);
+            lesson.DayOfWeek(DayOfWeek.Tuesday);
+            lesson.TimeSlot(TimeSlot.First);
+            lesson.Type(LessonType.Lab);
+            lesson.SubGroup(SpecialSubGroups.Eng);
+        });
+        var schedule = fixture.Build();
+        var parsed = Parse(label);
+        var parents = GroupsNavigator.FindGroupMatch(schedule, parsed);
+        var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
+            new LessonSearchFilter(fixture.Course, new FoundGroups { Value = parents, IsWildcard = false }, Resolver.Resolve(parsed)),
+            fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
+        var lesson = Assert.Single(lessons);
+        Assert.Equal(SpecialSubGroups.FromLanguage(language), schedule.Get(lesson).Lesson.SubGroup);
+    }
+
+    [Theory]
+    [InlineData("IA2401(en)", true)]
+    [InlineData("IA2401(ru)", false)]
+    [InlineData("IA2401", false)]
+    public void EnglishRegistryMarkerMatchesWholeGroupOnlyForEnglishLanguageParents(string name, bool wholeGroup)
+    {
+        var fixture = new Fixture();
+        fixture.Add(name, specialization: Specialization.All);
+        var english = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
+        var partition = GroupsNavigator.NormalizePartition(fixture.Build(), new LessonGroups { new GroupId(0) }, english);
+        Assert.Equal(wholeGroup ? GroupPartitionKey.All : english, partition);
+    }
+
+    private static readonly RegistryGroupMatchRule EnglishRule = new()
+    {
+        Faculty = "DJ", SubGroup = SpecialSubGroups.Eng.Value!, Language = Language.En,
+        MatchByLanguage = true, AllowParentGroup = true,
+    };
+
+    [Theory]
+    [InlineData("DJ2501(en)")]
+    [InlineData("DJ2501(en)ru")]
+    public void ConfiguredLanguageRuleSelectsUniqueEnglishParentAcrossNumbers(string registryName)
+    {
+        var fixture = new Fixture();
+        fixture.Add("DJ2501", specialization: Specialization.All);
+        fixture.Add("DJ2502(ru)", specialization: Specialization.All);
+        fixture.Add("DJ2503(en)", specialization: Specialization.All);
+        fixture.Add("DJ2404(en)", specialization: Specialization.All);
+        fixture.Add("IA2504(en)", specialization: Specialization.All);
+        var group = Parse(registryName);
+        var schedule = fixture.Build();
+        var strict = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, Resolver.Resolve(group), group);
+        if (registryName.EndsWith("ru", StringComparison.Ordinal))
+            Assert.Empty(strict);
+        else
+            Assert.Equal(new[] { new GroupId(0) }, strict.ToArray());
+        var matched = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, Resolver.Resolve(group), group, [EnglishRule]);
+        Assert.Equal(new[] { new GroupId(2) }, matched.ToArray());
+        Assert.Equal(GroupPartitionKey.All, GroupsNavigator.NormalizePartition(schedule, matched, Resolver.Resolve(group)));
+    }
+
+    [Theory]
+    [InlineData("DJ2504(en)")]
+    [InlineData("DJ2504(ru)")]
+    [InlineData("DJ2504")]
+    public void AmbiguousIntakeRequiresStrictMatching(string extraParent)
+    {
+        var fixture = new Fixture();
+        fixture.Add("DJ2501", specialization: Specialization.All);
+        fixture.Add("DJ2502(ru)", specialization: Specialization.All);
+        fixture.Add("DJ2503(en)", specialization: Specialization.All);
+        fixture.Add(extraParent, specialization: Specialization.All);
+        var group = Parse("DJ2501(en)");
+        Assert.Equal(new[] { new GroupId(0) }, GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course,
+            Resolver.Resolve(group), group, [EnglishRule]).ToArray());
+    }
+
+    [Fact]
+    public void LanguageFallbackRequiresCourseEvidenceAndParentPermission()
+    {
+        var fixture = new Fixture();
+        fixture.Add("DJ2501", specialization: Specialization.All);
+        fixture.Add("DJ2503(en)", specialization: Specialization.All, otherCourse: true);
+        var group = Parse("DJ2502(en)");
+        Assert.Empty(GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course, Resolver.Resolve(group), group, [EnglishRule]));
+
+        var other = new Fixture();
+        other.Add("DJ2503(en)", specialization: Specialization.All);
+        var rule = new RegistryGroupMatchRule
+        {
+            Faculty = "DJ", SubGroup = SpecialSubGroups.Eng.Value!, Language = Language.En, MatchByLanguage = true,
+        };
+        Assert.Empty(GroupsNavigator.FindGroupMatch(other.Build(), other.Course, Resolver.Resolve(group), group, [rule]));
+        var explicitSubgroup = new Fixture();
+        explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
+        explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
+        explicitSubgroup.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.Eng;
+        explicitSubgroup.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(Language.Ru);
+        Assert.Equal(new[] { new GroupId(0) }, GroupsNavigator.FindGroupMatch(explicitSubgroup.Build(), explicitSubgroup.Course,
+            Resolver.Resolve(group), group, [rule]).ToArray());
+    }
+
+    [Fact]
+    public void MultipleEnglishAudiencesRequireStrictMatchingEvenWithDistinctParentLanguages()
+    {
+        var fixture = new Fixture();
+        fixture.Add("DJ2501", specialization: Specialization.All);
+        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.Eng;
+        fixture.Add("DJ2501", specialization: Specialization.All);
+        fixture.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(Language.Ro);
+        fixture.Add("DJ2503(en)", specialization: Specialization.All);
+        var group = Parse("DJ2502(en)");
+        Assert.Empty(GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course, Resolver.Resolve(group), group, [EnglishRule]));
+    }
+
+    [Fact]
+    public void MultipleRegistryEnglishLinksDisableLanguageFallback()
+    {
+        var target = Parse("DJ2501(en)");
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2502ru")], target, EnglishRule, Resolver));
+        Assert.False(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2503(en)")], target, EnglishRule, Resolver));
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2403(en)")], target, EnglishRule, Resolver));
+    }
+
+    [Fact]
+    public void ConfiguredRulesSupportOtherLanguagesWithoutHardcodedFacultyMatching()
+    {
+        var fixture = new Fixture();
+        fixture.Add("IA2501(ru)", specialization: Specialization.All);
+        fixture.Add("IA2502", specialization: Specialization.All);
+        var rule = new RegistryGroupMatchRule
+        {
+            Faculty = "IA", SubGroup = SpecialSubGroups.FromLanguage(Language.Ro).Value!, Language = Language.Ro,
+            MatchByLanguage = true, AllowParentGroup = true,
+        };
+        var group = Parse("IA2501");
+        var partition = new GroupPartitionKey(SpecialSubGroups.FromLanguage(Language.Ro), Specialization.All);
+        var schedule = fixture.Build();
+        var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, partition, group, [rule]);
+        Assert.Equal(new[] { new GroupId(1) }, parents.ToArray());
+        Assert.Equal(GroupPartitionKey.All, GroupsNavigator.NormalizePartition(schedule, parents, partition, [rule]));
+    }
+
     private static readonly GroupPartitionResolver Resolver = new(null);
     private static GroupForSearch Parse(string value)
     {

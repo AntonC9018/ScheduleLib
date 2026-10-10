@@ -254,6 +254,17 @@ not counted as planned actions. A normal lesson 302/303 redirect is confirmed by
 reading the saved lesson values, without replaying the POST. An `uncertain`
 outcome means the write may have succeeded: inspect the registry before retrying.
 
+Sync collects missing registry courses/partitions, unmapped registry labels,
+assignment mismatches, missing lesson topics, and missing attendance rows into a final report. JSON and
+JSONL include these in `data.diagnostics`; human output gives the course/group
+and the correction needed. A missing assignment does not prevent other matched
+groups from being processed. Whole-group destinations include lessons restricted
+to the parent group's teaching language, while other language subgroups retain
+separate destinations. Attendance is looked up by each lesson's actual partition;
+explicit lab merges retain their configured whole-group attendance projection.
+Topic text is copied as configured, so Romanian topics can be explicitly scoped
+to an English subgroup without translation.
+
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each
 planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).
@@ -282,3 +293,28 @@ owned-output/manifests and cancellation contracts as the other exports.
 
 Synthetic teacher/commission tests inspect workbook contents and preserve real
 source data; they do not establish that operational commission data is present.
+
+Registry group aliases can be configured globally in `RegistryConfig.groupMatchRules`:
+
+```json
+{
+  "faculty": "DJ",
+  "subGroup": "eng",
+  "language": "En",
+  "matchByLanguage": true,
+  "allowParentGroup": true
+}
+```
+
+The default DJ English rule matches across parent numbers within the same intake,
+attendance mode, and qualification. It requires one matching registry subgroup,
+one course audience, and at most one schedule parent per language in that intake.
+`allowParentGroup` includes whole-group lessons in an English-language parent.
+If these checks fail, matching uses the strict parent identity. Other faculties and
+partitions retain strict matching. Set `matchByLanguage` to `false` in a higher
+configuration layer to disable a rule; rules merge by faculty and subgroup.
+Topic text is copied from configured sources without translation.
+
+Attendance workbooks accept lesson-type headers and date headers (text day/month
+or native Excel dates). Date columns retain their workbook order. Empty sheets
+are reported as missing attendance without stopping other worksheet imports.

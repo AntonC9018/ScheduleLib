@@ -1,4 +1,5 @@
 using System.Net;
+using Anton.LayeredData.Retrieval;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -74,25 +75,43 @@ public sealed class GroupsNavigator
     private readonly GroupParseContext _groupParseContext;
     private readonly SubGroupNameRemapper _remapper;
     private readonly SpecializationRegistry _specializationRegistry;
+    private readonly DataProvider<BuiltRegistryConfig> _registryConfig;
 
     public GroupsNavigator(
         OnlineRegistryNavigator navigator,
         Schedule schedule,
         GroupParseContext groupParseContext,
         SubGroupNameRemapper remapper,
-        SpecializationRegistry specializationRegistry)
+        SpecializationRegistry specializationRegistry,
+        DataProvider<BuiltRegistryConfig> registryConfig)
     {
         _navigator = navigator;
         _schedule = schedule;
         _groupParseContext = groupParseContext;
         _remapper = remapper;
         _specializationRegistry = specializationRegistry;
+        _registryConfig = registryConfig;
     }
 
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
     {
         var doc = await _navigator.GetHtml(courseLink.Url);
         var partitionResolver = new GroupPartitionResolver(_specializationRegistry);
+        var registryGroups = new List<GroupForSearch>();
+        _ = HtmlSearch.ScanGroupsDocumentForLinks(new()
+        {
+            Document = doc,
+            GroupParseContext = _groupParseContext,
+            GroupPartitionResolver = partitionResolver,
+            SearchGroupId = (ref GroupForSearch group) =>
+            {
+                group.SubGroupName = _remapper.RemapName(group.SubGroupName);
+                registryGroups.Add(group);
+                return new LessonGroups();
+            },
+            ParseErrorHandler = _ => { },
+        }).ToArray();
+        var rules = _registryConfig.Get()?.GroupMatchRules ?? [];
         var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = doc,
@@ -101,31 +120,75 @@ public sealed class GroupsNavigator
             SearchGroupId = (ref GroupForSearch group) =>
             {
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
-                var ids = FindGroupMatch(_schedule, courseLink.CourseId, partitionResolver.Resolve(group), group);
+                var target = group;
+                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups, target, rule, partitionResolver)).ToArray();
+                var ids = FindGroupMatch(_schedule, courseLink.CourseId, partitionResolver.Resolve(group), group, applicableRules);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
                     // TODO: Do this better
-                    _navigator.ErrorHandler.GroupNotFound(RegistryFacultyLabels.IsCombined(group.FacultyName)
-                        ? "Combined registry group unresolved: no eligible schedule parents or ambiguous parent language."
-                        : group.UnparsedName.Trim());
+                    _navigator.ErrorHandler.GroupNotFound(_schedule.Get(courseLink.CourseId).FullName,
+                        group.UnparsedName.Trim());
+                }
+                if (!group.SubGroupName.IsEmpty && NormalizePartition(_schedule, ids, partitionResolver.Resolve(group), applicableRules) == GroupPartitionKey.All)
+                {
+                    // The selected parent already represents this language audience as a whole group.
+                    group.SubGroupName = ReadOnlyMemory<char>.Empty;
                 }
                 return ids;
             },
-            ParseErrorHandler = c => _navigator.ErrorHandler.GroupParsingError(c),
+            ParseErrorHandler = c => _navigator.ErrorHandler.GroupParsingError(_schedule.Get(courseLink.CourseId).FullName, c),
         });
         return ret;
+    }
+
+    internal static bool HasUniqueRegistryAudience(
+        IReadOnlyList<GroupForSearch> groups, GroupForSearch target,
+        RegistryGroupMatchRule rule, GroupPartitionResolver resolver)
+    {
+        var partition = new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
+        return groups.Count(group => group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)
+            && group.Grade == target.Grade && group.AttendanceMode == target.AttendanceMode
+            && group.QualificationType == target.QualificationType && group.IsDual == target.IsDual
+            && resolver.Resolve(group) == partition) == 1;
+    }
+
+    internal static GroupPartitionKey NormalizePartition(Schedule schedule, in LessonGroups parents, GroupPartitionKey partition,
+        IReadOnlyList<RegistryGroupMatchRule>? rules = null)
+    {
+        if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All)
+            && parents.Count != 0 && parents.All(id => schedule.Get(id).Language == Language.En))
+            return GroupPartitionKey.All;
+        if (rules is not null && parents.Count != 0)
+        {
+            foreach (var rule in rules)
+            {
+                if (rule.MatchByLanguage && rule.AllowParentGroup
+                    && partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All)
+                    && parents.All(id => schedule.Get(id).Language == rule.Language
+                        && schedule.Get(id).Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)))
+                    return GroupPartitionKey.All;
+            }
+        }
+        return partition;
     }
 
     internal static LessonGroups FindGroupMatch(
         Schedule schedule,
         CourseId course,
         GroupPartitionKey partition,
-        in GroupForSearch group)
+        in GroupForSearch group,
+        IReadOnlyList<RegistryGroupMatchRule>? rules = null)
     {
         bool combined = RegistryFacultyLabels.IsCombined(group.FacultyName);
         if (!combined)
         {
+            if (rules is not null)
+            {
+                var relaxed = FindLanguageMatch(schedule, course, partition, group, rules);
+                if (relaxed.Count != 0)
+                    return relaxed;
+            }
             return FindGroupMatch(schedule, group);
         }
 
@@ -181,6 +244,46 @@ public sealed class GroupsNavigator
             }
         }
         return ret;
+    }
+
+    private static LessonGroups FindLanguageMatch(
+        Schedule schedule, CourseId course, GroupPartitionKey partition,
+        in GroupForSearch group, IReadOnlyList<RegistryGroupMatchRule> rules)
+    {
+        foreach (var rule in rules)
+        {
+            if (!rule.MatchByLanguage || !group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)
+                || partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All))
+                continue;
+
+            var cohortSearch = group;
+            cohortSearch.GroupNumber = null;
+            cohortSearch.Language = null;
+            var cohort = schedule.EnumerateGroups().Where(candidate => IsMatch(candidate.Item, cohortSearch)).ToArray();
+            // Do not infer shared audiences when an intake has multiple parents of one language.
+            if (cohort.Any(candidate => candidate.Item.Language == Language.None)
+                || cohort.GroupBy(candidate => candidate.Item.Language).Any(parents => parents.Count() > 1))
+                continue;
+
+            var eligible = new HashSet<GroupId>();
+            foreach (var lesson in schedule.EnumerateAllLessons())
+            {
+                if (lesson.Lesson.Course != course)
+                    continue;
+                foreach (var parent in cohort)
+                {
+                    if (!lesson.Lesson.Groups.Contains(parent.Id))
+                        continue;
+                    if (lesson.Lesson.GroupPartitionKey == partition
+                        || rule.AllowParentGroup && parent.Item.Language == rule.Language
+                        && lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
+                        eligible.Add(parent.Id);
+                }
+            }
+            if (eligible.Count == 1)
+                return new LessonGroups { eligible.Single() };
+        }
+        return new LessonGroups();
     }
 
     private static bool IsMatch(Group a, in GroupForSearch b)

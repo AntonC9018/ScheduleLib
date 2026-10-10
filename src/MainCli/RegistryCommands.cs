@@ -14,7 +14,8 @@ public sealed class ApplyArguments : IArgumentModel
 
 public sealed record RegistryActionOutcome(string Kind, string Destination, string Course, string Groups,
     DateTime Date, string? Topic, int? AttendanceCount, string Status, string? Detail);
-public sealed record RegistrySyncResult(RegistryDestination? Target, IReadOnlyList<RegistryActionOutcome> Outcomes);
+public sealed record RegistrySyncResult(RegistryDestination? Target, IReadOnlyList<RegistryActionOutcome> Outcomes,
+    IReadOnlyList<RegistrySyncDiagnostic> Diagnostics);
 
 [Command("registry")]
 public partial class RegistryCommands
@@ -38,6 +39,7 @@ public partial class RegistryCommands
         CliAmbient.Current = output;
         RegistryDestination? target = null;
         var outcomes = new List<RegistryActionOutcome>();
+        IReadOnlyList<RegistrySyncDiagnostic> diagnostics = [];
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = new List<string> { "Existing positional matching is used; updates are not a semantic minimum patch." };
         var attempted = false;
@@ -52,6 +54,7 @@ public partial class RegistryCommands
             if (string.IsNullOrWhiteSpace(settings.Profile)) return Finish(3, ["Select a teacher with --profile. Use config profiles to list supported teachers."]);
             await using var session = await CreateProvider().Open(source, settings, cancellation.Token);
             target = session.Target;
+            diagnostics = session.Diagnostics;
             await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
             // Scan and apply each completed course/group before scanning the next.
             var stopped = false;
@@ -184,19 +187,25 @@ public partial class RegistryCommands
         {
             var exit = finalExit;
             var errors = finalErrors;
+            foreach (var diagnostic in diagnostics)
+            {
+                var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
+                warnings.Add(text);
+            }
             foreach (var warning in warnings) output.WriteWarning(warning);
             foreach (var error in errors) output.WriteError(error);
             var status = exit == 130 ? "cancelled" : exit == 0 ? apply.Apply ? "applied" : "preview" : attempted ? "partial" : "failed";
             if (result.Json)
                 Console.WriteLine(JsonSerializer.Serialize(new CommandResult<RegistrySyncResult>(1, command, runId,
                     status, exit, [], outcomes.Select(x => $"{x.Kind}: {x.Status}").ToArray(), warnings.ToArray(), errors,
-                    new(target, outcomes)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                    new(target, outcomes, diagnostics)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             else if (result.Jsonl)
             {
                 var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
                 output.EmitFinal(status, exit, warnings.ToArray(), errors, new
                 {
                     target,
+                    diagnostics,
                     total = outcomes.Count,
                     counts,
                 });

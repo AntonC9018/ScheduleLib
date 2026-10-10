@@ -17,8 +17,10 @@ public sealed class RegistryTests
     [InlineData(new[] { "registry", "sync", "--output", "/tmp/unused" }, 2)]
     public async Task RoutingRejectsIrrelevantArguments(string[] args, int exit) => Assert.Equal(exit, await CliHost.Run(args));
 
-    [Fact]
-    public async Task RealReconciliationPlanDoesNotSubmitThroughFakeNavigator()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RealReconciliationPlanDoesNotSubmitThroughFakeNavigator(bool singleDestination)
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") }, AppConfiguration.ConfigureServices);
@@ -29,18 +31,28 @@ public sealed class RegistryTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First();
+        var lesson = singleDestination ? schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.Count > 1)
+            : schedule.EnumerateWeeklyLessons().First();
         var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = true, Value = lesson.Lesson.Groups,
+            IsWildcard = !singleDestination, Value = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")));
+        var diagnostics = new RegistrySyncDiagnostics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
         {
             Navigator = navigator, Attendance = new([]), LessonTopics = NoLessonTopics.Instance, Semester = Semester.Sem2,
+            Diagnostics = diagnostics,
         }, explicitApply: true);
         Assert.NotEmpty(plan);
         Assert.Contains(plan, action => action.Kind == "create");
         Assert.Equal(0, navigator.Submissions);
+        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
+        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-attendance-sheet");
+        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
+        if (singleDestination)
+            Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-group"
+                && item.Course == schedule.Get(lesson.Lesson.Course).FullName
+                && item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
     }
 
     [Theory]
@@ -265,6 +277,24 @@ public sealed class RegistryTests
         await Assert.ThrowsAsync<ScheduleLib.Application.Core.LocalOperationBusyException>(() => locks.Acquire(account, default));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MissingTargetsAreIncludedInFinalJsonAndJsonl(bool jsonl)
+    {
+        await using var fake = new FakeProvider();
+        fake.DiagnosticItems.Add(new("missing-registry-group", "Synthetic course", "IA2502",
+            "Ask the registry administrator to add the English subgroup."));
+        using var capture = new Capture();
+        Assert.Equal(0, await new TestCommands(fake).Sync(new(), new() { Profile = "teacher" },
+            new() { Json = !jsonl, Jsonl = jsonl }, new()));
+        var final = jsonl ? capture.FinalRecord() : capture.Result();
+        var data = final.GetProperty("data");
+        Assert.Equal("IA2502", data.GetProperty("diagnostics")[0].GetProperty("group").GetString());
+        Assert.Contains("English subgroup", final.GetProperty("warnings")[1].GetString());
+        Assert.Equal(0, fake.Navigator.Submissions);
+    }
+
     private sealed class TestCommands(IRegistryProvider provider, FakeLock? accountLock = null) : RegistryCommands
     {
         protected override IRegistryProvider CreateProvider() => provider;
@@ -314,6 +344,8 @@ public sealed class RegistryTests
         public bool DisposeFailure;
         public Exception? BeforePlanFailure;
         public Exception? ActionFailure;
+        public List<RegistrySyncDiagnostic> DiagnosticItems { get; } = [];
+        public IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => DiagnosticItems;
         public RegistryDestination Target { get; } = new("actual-account", "https://registry.test/");
         public Task<IRegistrySession> Open(SourceArguments source, SettingsArguments settings, CancellationToken token) => Task.FromResult<IRegistrySession>(this);
         public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token)
@@ -402,6 +434,7 @@ public sealed class RegistryTests
         private readonly StringWriter _text = new();
         public Capture() => Console.SetOut(_text);
         public JsonElement Result() { using var doc = JsonDocument.Parse(_text.ToString()); return doc.RootElement.Clone(); }
+        public JsonElement FinalRecord() { using var doc = JsonDocument.Parse(_text.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries).Last()); return doc.RootElement.Clone(); }
         public void Dispose() { Console.SetOut(_original); _text.Dispose(); }
     }
 }

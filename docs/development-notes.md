@@ -265,3 +265,32 @@ filtering, stderr JSONL isolation, preview/apply log parity, argument
 rejection (every command rejects `--json` with `--jsonl`), early failures,
 cancellation/uncertain transitions with accurate streamed counts, throwing
 render callbacks, final-without-duplicates and `--json` compatibility.
+
+### Registry synchronization gaps (#209)
+
+Sync diagnostics compare the selected teacher's dated schedule with registry
+course and partition coverage. Duplicate links for one course are accumulated
+before reporting missing destinations; a link for one parent does not cover the
+other parents of a shared lecture. Missing date ranges, attendance sheets,
+unmatched student counts, and assignment/partition mismatches are reported with
+course/group context, without student names or credentials.
+
+Ordinary whole-group registry links include parent-language lessons while other
+language subgroups retain separate destinations. An English marker for a group
+whose primary language is English resolves to its normalized whole-group lessons.
+Attendance lookup and day indexes use each lesson's actual partition; explicit
+lab merges project only their labs to whole-group attendance. Missing attendance
+is left unchanged rather than inferred. Topic text is copied as configured.
+
+- `RegistryConfig.GroupMatchRules` provides opt-in language matching across parent
+  numbers. Global defaults enable DJ `eng` with whole English-language parents.
+  Relaxation requires one registry subgroup on the course page, one eligible
+  schedule audience for the course, and no repeated parent language in the intake.
+  Faculty, grade, qualification, and attendance mode remain strict. Ambiguity
+  falls back to the original matching path. Layered rules merge by faculty/subgroup.
+
+- Attendance spreadsheets with text dates (`dd.MM`, optionally with a year) or
+  native Excel dates in the header are recognized automatically. Date headers
+  bound the attendance columns and are skipped before reading student names;
+  attendance still follows lesson order. Empty worksheets produce an empty roster
+  instead of failing the entire import.

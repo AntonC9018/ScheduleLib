@@ -17,6 +17,7 @@ public sealed class RegistryConfig :
     public ExtraLessonInstanceAction? ExtraLessonInstanceAction { get; set; }
     public IEquationCommandsDerivation? EquationCommandsDerivation { get; set; }
     public CommandProcessingConfig? CommandProcessingConfig { get; set; }
+    public List<RegistryGroupMatchRule> GroupMatchRules { get; set; } = [];
     public List<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public List<RegistryAssessmentRule> Assessments { get; set; } = [];
 
@@ -24,6 +25,7 @@ public sealed class RegistryConfig :
     {
         services.SetImmutable<List<DateOnly>>();
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
+        services.AddKeyEqualityComparer((RegistryGroupMatchRule rule) => (Faculty: rule.Faculty, SubGroup: rule.SubGroup));
         services.AddKeyEqualityComparer((RegistryLabMergeRule rule) => (Course: rule.Course, Group: rule.Group));
         services.AddKeyEqualityComparer((RegistryAssessmentRule rule) => (Course: rule.Course, Group: rule.Group, Type: rule.LessonType, SubGroup: rule.SubGroup, Specialization: rule.Specialization, Alternative: rule.Alternative));
         services.AddConfigProvider(RegistryConfig.Key);
@@ -42,6 +44,7 @@ public sealed class BuiltRegistryConfig
     public required ExtraLessonInstanceAction ExtraLessonInstanceAction { get; set; }
     public required IEquationCommandsDerivation EquationCommandsDerivation { get; set; }
     public required CommandProcessingConfig CommandProcessingConfig { get; set; }
+    public IReadOnlyList<RegistryGroupMatchRule> GroupMatchRules { get; set; } = [];
     public IReadOnlyList<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public IReadOnlyList<RegistryAssessmentRule> Assessments { get; set; } = [];
 }
@@ -52,6 +55,7 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
     {
         return new()
         {
+            GroupMatchRules = input.GroupMatchRules,
             LabMerges = input.LabMerges,
             Assessments = input.Assessments,
             ExtraLessonInstanceAction = input.ExtraLessonInstanceAction ?? ExtraLessonInstanceAction.LeaveAlone,
@@ -88,6 +92,7 @@ public static class ConfigExtensions
                 return ret;
             });
 
+            services.AddScoped<RegistrySyncDiagnostics>();
             AttendanceListsExcelParser.Register(services);
         }
     }

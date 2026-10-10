@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,6 +69,7 @@ public sealed partial class AttendanceListsExcelParser
                     break;
                 }
                 case HeaderType.None:
+                case HeaderType.Date:
                 {
                     break;
                 }
@@ -516,7 +518,7 @@ public sealed partial class AttendanceListsExcelParser
         private readonly RentedBuffer<LessonType> _lessons;
         public readonly ColumnOffset Offset { get; }
         public bool IsApplicable => HeaderType != HeaderType.None;
-        public int Len => _lessons.Len;
+        public int Len { get; }
         public readonly HeaderType HeaderType = HeaderType.None;
 
         public ReadOnlySpan<LessonType> LessonTypes => _lessons.Span;
@@ -524,8 +526,10 @@ public sealed partial class AttendanceListsExcelParser
         public ParsedHeaderInfo(
             RentedBuffer<LessonType> lessons,
             ColumnOffset offset,
-            HeaderType headerType)
+            HeaderType headerType,
+            int len)
         {
+            Len = len;
             _lessons = lessons;
             Offset = offset;
             HeaderType = headerType;
@@ -549,7 +553,7 @@ public sealed partial class AttendanceListsExcelParser
     {
         None,
         LessonType,
-        // ...
+        Date,
     }
 
     private struct ParsedHeaderInfoBuilder() : IDisposable
@@ -591,6 +595,13 @@ public sealed partial class AttendanceListsExcelParser
             _count++;
         }
 
+        public void AddDate()
+        {
+            Debug.Assert(_headerType is HeaderType.None or HeaderType.Date);
+            _headerType = HeaderType.Date;
+            _count++;
+        }
+
         public void Dispose()
         {
             if (_lessons.IsValid)
@@ -606,9 +617,10 @@ public sealed partial class AttendanceListsExcelParser
             _built = true;
             #endif
             var ret = new ParsedHeaderInfo(
-                _lessons.WithLen(_count),
+                _headerType == HeaderType.LessonType ? _lessons.WithLen(_count) : default,
                 columnOffset,
-                _headerType);
+                _headerType,
+                _count);
             // Move into info so it can be disposed.
             _lessons = default;
             return ret;
@@ -644,7 +656,7 @@ public sealed partial class AttendanceListsExcelParser
             return default;
         }
 
-        Debug.Assert(headerFormat.FormatType is HeaderFormatType.LessonType or HeaderFormatType.Auto,
+        Debug.Assert(headerFormat.FormatType is HeaderFormatType.LessonType or HeaderFormatType.Auto or HeaderFormatType.Date,
             $"Not implemented: {headerFormat.FormatType}");
 
         var context = new HeaderParsingContext(headerFormat.FormatType);
@@ -672,6 +684,16 @@ public sealed partial class AttendanceListsExcelParser
             {
                 return default;
             }
+
+            if (context.Format is HeaderFormatType.Auto or HeaderFormatType.Date
+                && IsAttendanceDate(cell))
+            {
+                builder.AddDate();
+                context.Format = HeaderFormatType.Date;
+                continue;
+            }
+            if (context.Format == HeaderFormatType.Date)
+                throw cell.Exception("Expected a date in every attendance header column");
 
             if (!cell.Value.TryGetText(out string strValue))
             {
@@ -722,6 +744,15 @@ public sealed partial class AttendanceListsExcelParser
         return builder.Build(context.FirstOffset ?? default);
     }
 
+    private static bool IsAttendanceDate(IXLCell cell)
+    {
+        if (cell.Value.IsDateTime)
+            return true;
+        return cell.Value.TryGetText(out var text)
+            && DateTime.TryParseExact(text, ["d.M", "dd.MM", "d.M.yyyy", "dd.MM.yyyy", "yyyy-MM-dd"],
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    }
+
     // TODO: reuse the list
     private static void BuildList(
         IXLWorksheet sheet,
@@ -748,6 +779,7 @@ public sealed partial class AttendanceListsExcelParser
                 break;
             }
             case HeaderType.None:
+            case HeaderType.Date:
             {
                 break;
             }
@@ -878,13 +910,13 @@ public sealed partial class AttendanceListsExcelParser
             var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
             if (columnNumber == 1)
             {
-                if (!value.IsBlank)
+                if (!value.IsBlank && !IsNameColumnHeader(value))
                 {
                     if (c.Format == HeaderFormatType.Auto)
                     {
                         return HeaderColumnValidationResult.NotAHeader;
                     }
-                    throw cell.Exception("First column of the header row must be empty");
+                    throw cell.Exception("First column of the header row must be empty or identify student names");
                 }
                 c.FirstOffset = new(columnNumber);
                 c.PreviousOffset = new(columnNumber);
@@ -929,6 +961,15 @@ public sealed partial class AttendanceListsExcelParser
         return HeaderColumnValidationResult.Value;
     }
 
+    private static bool IsNameColumnHeader(XLCellValue value)
+    {
+        if (!value.TryGetText(out var text))
+            return false;
+        return text.Trim().ToLowerInvariant() is "name" or "student" or "student name"
+            or "nume" or "nume prenume" or "nume și prenume" or "nume si prenume"
+            or "фио" or "ф.и.о." or "имя";
+    }
+
     private struct HeaderParsingContext(HeaderFormatType format)
     {
         public HeaderFormatType Format = format;
@@ -946,6 +987,7 @@ public enum HeaderFormatType
     LessonType,
     IgnoreHeader,
     Auto,
+    Date,
 }
 
 public struct HeaderFormat()
