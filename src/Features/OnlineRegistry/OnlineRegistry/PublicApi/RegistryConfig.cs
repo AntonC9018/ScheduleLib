@@ -21,10 +21,15 @@ public sealed class RegistryConfig :
     public List<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public List<RegistryAssessmentRule> Assessments { get; set; } = [];
     public TimeSpan? HttpCallDelay { get; set; }
+    public Dictionary<string, string>? CourseNames { get; set; }
+    public Dictionary<string, string>? StudentNames { get; set; }
+    public int? CourseNameMaxDistance { get; set; }
+    public AttendanceMode? SkipAttendance { get; set; }
 
     public static void Register(IServiceCollection services)
     {
         services.SetImmutable<List<DateOnly>>();
+        services.SetImmutable<Dictionary<string, string>>();
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
         services.AddKeyEqualityComparer((RegistryGroupMatchRule rule) => (Faculty: rule.Faculty, SubGroup: rule.SubGroup));
         services.AddKeyEqualityComparer((RegistryLabMergeRule rule) => (Course: rule.Course, Group: rule.Group));
@@ -52,6 +57,10 @@ public sealed class BuiltRegistryConfig
     public IReadOnlyList<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public IReadOnlyList<RegistryAssessmentRule> Assessments { get; set; } = [];
     public TimeSpan HttpCallDelay { get; set; } = DefaultHttpCallDelay;
+    public IReadOnlyDictionary<string, string> CourseNames { get; set; } = new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, string> StudentNames { get; set; } = new Dictionary<string, string>();
+    public int CourseNameMaxDistance { get; set; } = 2;
+    public AttendanceMode? SkipAttendance { get; set; }
 }
 
 public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegistryConfig>
@@ -61,6 +70,8 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
         var delay = input.HttpCallDelay ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         if (delay < TimeSpan.Zero)
             throw new InvalidOperationException("Registry HttpCallDelay must be nonnegative.");
+        if (input.CourseNameMaxDistance is < 0)
+            throw new InvalidOperationException("Registry CourseNameMaxDistance must be nonnegative.");
         return new()
         {
             GroupMatchRules = input.GroupMatchRules,
@@ -71,6 +82,10 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
             Credentials = input.Credentials ?? throw new InvalidOperationException("No credentials configured"),
             EquationCommandsDerivation = input.EquationCommandsDerivation ?? throw new InvalidOperationException("No command derivation configured"),
             HttpCallDelay = delay,
+            CourseNames = input.CourseNames ?? new Dictionary<string, string>(),
+            StudentNames = input.StudentNames ?? new Dictionary<string, string>(),
+            CourseNameMaxDistance = input.CourseNameMaxDistance ?? 2,
+            SkipAttendance = input.SkipAttendance,
         };
     }
 }

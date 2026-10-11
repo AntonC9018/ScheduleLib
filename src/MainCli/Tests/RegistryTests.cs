@@ -11,6 +11,35 @@ using Xunit;
 
 public sealed class RegistryTests
 {
+    [Fact]
+    public async Task MissingDestinationDateRangeIsReportedWithoutAbortingPlan()
+    {
+        using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
+        var services = CliRuntime.CreateServices(new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") }, AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleBuilderInitializerOptions>(options => options.EnrichWithFullNames = false);
+        services.Configure<StudyYearOptions>(options => { options.StudyYear = new(2025); options.Semester = Semester.Sem2; });
+        await using var provider = AppConfiguration.BuildServiceProvider(services);
+        await provider.InitializeSchedule(default);
+        await using var scope = provider.CreateAsyncScope();
+        var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
+        var lesson = schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.IsSingleGroup);
+        schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.Dual;
+        var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
+        {
+            Value = lesson.Lesson.Groups, IsWildcard = false,
+        }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")));
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
+        {
+            Navigator = navigator, Attendance = new([]), LessonTopics = NoLessonTopics.Instance,
+            Semester = Semester.Sem2, Diagnostics = diagnostics,
+        });
+        Assert.Empty(plan);
+        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-schedule-dates");
+        Assert.Equal(0, navigator.Submissions);
+    }
+
     [Theory]
     [InlineData(new[] { "registry", "sync", "--help" }, 0)]
     [InlineData(new[] { "registry", "sync", "--quiz-id", "1" }, 2)]

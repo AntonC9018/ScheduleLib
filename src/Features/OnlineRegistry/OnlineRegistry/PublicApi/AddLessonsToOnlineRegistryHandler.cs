@@ -141,13 +141,23 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
 
                 // Figure out the exact dates the lessons will occur on.
-                using var lessonsWithTimes = _dateTimeProvider
-                    .GetSorted(new()
+                LessonWithDate[] datedLessons;
+                try
+                {
+                    datedLessons = _dateTimeProvider.GetSorted(new()
                     {
                         Lessons = lessons,
                         Semester = p.Semester,
-                    })
-                    .ToRentedBuffer();
+                    }).ToArray();
+                }
+                catch (MissingSemesterDateRangeException)
+                {
+                    p.Diagnostics?.Add("missing-schedule-dates", _schedule.Get(courseLink.CourseId).FullName,
+                        group.Groups.Value.ToString(_schedule),
+                        "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
+                    continue;
+                }
+                using var lessonsWithTimes = datedLessons.ToRentedBuffer();
 
                 var remapHelpers = new Dictionary<(LessonType Type, GroupPartitionKey Partition), StudentNameRemapHelper>();
                 var attendanceIndexes = new Dictionary<(LessonType Type, GroupPartitionKey Partition), int>();
@@ -165,7 +175,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         p.Diagnostics?.Add("missing-attendance-sheet", _schedule.Get(courseLink.CourseId).FullName,
                             group.Groups.Value.ToString(_schedule),
                             $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
-                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, notFoundStudents);
+                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, notFoundStudents, config.StudentNames);
                     if (notFoundStudents.Count != 0)
                     {
                         _errorHandler.StudentsNotInDbButInRegistry(new(notFoundStudents, _schedule, group.Groups, x.LessonId));
@@ -228,7 +238,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         lessonType: dbLessonType,
                         dayIndex: attendanceIndex,
                         dateTime: x.DateTime);
-                    var attendance = p.Attendance.Get(key);
+                    var attendance = p.Attendance.Get(key with { ActiveGroups = lesson.Lesson.Groups });
 
                     var attendanceForHtml = remapHelper.RemapToHtml(attendance.AsArray());
                     UpdateAttendanceForRegistry(attendanceForHtml, scanResult.Students);

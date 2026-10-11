@@ -9,6 +9,23 @@ namespace ScheduleLib.Tests.OnlineRegistry;
 public sealed class CombinedGroupMatchingTests
 {
     [Fact]
+    public void OrdinarySpecializationWildcardIncludesSeparateParentLabs()
+    {
+        var fixture = new Fixture();
+        fixture.Add("IA2403(ru)");
+        fixture.Add("IA2404(ru)");
+        fixture.Add("IA2405(ru)", specialization: Specialization.GA2D);
+        var schedule = fixture.Build();
+        var parsed = Parse("IA24(SAWM)ru");
+        var groups = new FoundGroups { IsWildcard = true, Value = [new GroupId(0), new GroupId(1)] };
+        var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
+            new LessonSearchFilter(fixture.Course, groups, Resolver.Resolve(parsed)),
+            fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
+        Assert.Equal(2, lessons.Length);
+        Assert.All(lessons, id => Assert.Contains(schedule.Get(id).Lesson.Groups[0], groups.Value));
+    }
+
+    [Fact]
     public void ConfirmedCombinedLabelPreservesIntakeWildcardAndMissingLanguage()
     {
         var group = Parse("I_IA24(SAWM)");

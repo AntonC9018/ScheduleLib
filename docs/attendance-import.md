@@ -60,3 +60,48 @@ motivated absence, and `na` for not applicable. Existing `cellValueFormat` and
 The regression fixture `src/Features/Tests/OnlineRegistry/data/numbered-attendance.xlsx`
 preserves a 13-sheet numbered workbook's dates, styles, blank rows, and mixed
 headers, with synthetic student names and cleared document metadata.
+
+Registry course labels can be mapped separately from worksheet names using
+`RegistryConfig.courseNames`. This map runs before automatic registry course
+lookup and can be scoped to one teacher. For example:
+
+```sh
+schedulelib config set RegistryConfig.courseNames '{"Registry label":"Schedule course name"}' --scope user --profile '<teacher>'
+```
+
+An explicit alias with an unknown schedule target is reported as unmatched;
+it does not fall back to the original label. Supplying a map replaces the map
+from earlier layers; omitting it inherits the earlier map. Course aliases do not
+change group or specialization matching, or override teacher assignments.
+
+Registry course matching parses trailing `(BaDe)`, `(FrDe)`, and `(BaDe&FrDe)`
+elective classifications separately from the course name. Exact configured
+aliases take precedence; otherwise course lookup falls back to punctuation,
+spacing, case, and diacritic normalization. Longer names (at least 12 normalized
+characters) may differ by at most `RegistryConfig.courseNameMaxDistance`
+characters (default 2), capped at 10% of the input length. Matching requires one
+unique course within the tolerance, including all its known aliases. Set the
+maximum distance to zero to disable edit-distance matching. Unknown annotations
+are not discarded by fuzzy matching.
+
+Calibration against the current schedule's 110 aliases for 66 courses found no
+cross-course pairs inside that tolerance. The observed UI/UX spelling difference
+has normalized distance zero; the Node.js/server-side wording differs by eight
+characters and requires an explicit semantic alias. These measurements support
+the conservative tolerance, not unrestricted similarity matching.
+
+`RegistryConfig.skipAttendance` can exclude a registry audience such as
+`FrecventaRedusa` before its lesson list is fetched. Configure
+`RegistryLessonFilterConfig.skipAttendance` as well to retain the lesson-level
+filter.
+
+Shared registry audiences can include labs held separately for their parent
+groups. If no combined attendance sheet exists, attendance names and dated
+columns are composed from the individual parent sheets. A missing or ambiguous
+date leaves that parent's attendance unchanged; separate headerless sheets do
+not provide enough information for shared-audience ordinal matching.
+
+`RegistryConfig.studentNames` maps explicit registry student-name spellings to
+attendance-sheet names for the selected teacher. Matching still uses the existing
+name comparer; unlisted students and aliases whose target has no attendance row
+remain unchanged. Supplied maps replace earlier-layer maps, as with course aliases.

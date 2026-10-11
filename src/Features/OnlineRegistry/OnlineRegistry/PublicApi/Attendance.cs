@@ -428,7 +428,15 @@ public readonly struct StudentAttendanceList
         {
             return list.StudentNames;
         }
-        return NamesInDb.Empty;
+        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty) return NamesInDb.Empty;
+        return NamesInDb.Create([.. ParentLists(key).SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
+            .Select(student => student.Key))]);
+    }
+
+    private IEnumerable<(GroupId Parent, BetterAttendances Attendance)> ParentLists(StudentsLookupKey key)
+    {
+        foreach (var parent in key.Groups.Ordered())
+            if (_map.TryGetValue(key.WithGroups(new LessonGroups { parent }), out var list)) yield return (parent, list);
     }
 
     public DayAttendanceList Get(AttendanceLookupKey key)
@@ -438,11 +446,22 @@ public readonly struct StudentAttendanceList
             groups: key.Groups.Value.Ordered(),
             groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
-        // TODO: Should work for any subset of the groups, currently it does not.
-        if (!_map.TryGetValue(attendanceKey, out var list))
+        if (_map.TryGetValue(attendanceKey, out var list)) return GetDay(key, list);
+        if (attendanceKey.Groups.IsSingleGroup || attendanceKey.Groups.IsEmpty) return new([]);
+        var attendance = ImmutableArray.CreateBuilder<Attendance>();
+        foreach (var parent in ParentLists(attendanceKey))
         {
-            return new([]);
+            // Separate sheets require dates: a shared audience's ordinal does not identify a parent's day.
+            var active = key.ActiveGroups is not { } activeGroups || activeGroups.Contains(parent.Parent);
+            var day = active && parent.Attendance.Dates is not null ? GetDay(key, parent.Attendance).AsArray() : [];
+            if (day.Length == parent.Attendance.StudentNames.Count) attendance.AddRange(day);
+            else attendance.AddRange(Enumerable.Repeat(Attendance.None, parent.Attendance.StudentNames.Count));
         }
+        return new(attendance.ToImmutable());
+    }
+
+    private static DayAttendanceList GetDay(AttendanceLookupKey key, BetterAttendances list)
+    {
         if (list.Dates is { } dates)
         {
             // Date-bound sheet: bind by scheduled occurrence date, never by column order.
@@ -545,8 +564,12 @@ internal readonly struct StudentNameRemapHelper
     internal static StudentNameRemapHelper Create(
         HtmlStudent[] namesInHtml,
         NamesInDb namesInDb,
-        List<Name> outNotFoundIndices)
+        List<Name> outNotFoundIndices,
+        IReadOnlyDictionary<string, string>? studentNames = null)
     {
+        var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
+        foreach (var alias in studentNames ?? new Dictionary<string, string>())
+            aliases.Add(NameHelper.Parse(alias.Key), NameHelper.Parse(alias.Value));
         var dbToHtmlIndexMap = new OptionalIndex[namesInDb.Count];
         var count = namesInHtml.Length;
         Array.Fill(dbToHtmlIndexMap, OptionalIndex.Invalid);
@@ -555,7 +578,7 @@ internal readonly struct StudentNameRemapHelper
         {
             var parser = new SequenceReader(namesInHtml[i].Name);
             var name = NameHelper.Parse(ref parser);
-            var remappedIndex = namesInDb.NameToIndex(name);
+            var remappedIndex = namesInDb.NameToIndex(aliases.GetValueOrDefault(name, name));
             if (!remappedIndex.IsInvalid)
             {
                 dbToHtmlIndexMap[remappedIndex.Value] = new(i);

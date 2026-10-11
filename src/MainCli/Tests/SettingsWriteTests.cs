@@ -7,6 +7,17 @@ using Xunit;
 public sealed class SettingsWriteTests
 {
     [Fact]
+    public async Task RegistryCourseAliasesAreScopedToSelectedTeacher()
+    {
+        using var files = new Fixture();
+        const string aliases = """{"Registry course":"Schedule course"}""";
+        await files.Success("set", "RegistryConfig.courseNames", aliases, "--scope", "user", "--profile", "Visnevschi Vlada");
+        using var configured = JsonDocument.Parse(await files.Get("RegistryConfig.courseNames", "--profile", "Visnevschi Vlada"));
+        Assert.Equal("Schedule course", configured.RootElement.GetProperty("Registry course").GetString());
+        Assert.Empty(await files.Get("RegistryConfig.courseNames", "--profile", "Curmanschii Anton"));
+    }
+
+    [Fact]
     public async Task FreshProcessesSetOnlySelectedScopeAndUnsetRestoresInheritance()
     {
         using var files = new Fixture();

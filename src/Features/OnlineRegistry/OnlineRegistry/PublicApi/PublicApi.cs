@@ -36,11 +36,13 @@ public sealed partial class CoursesNavigator
 {
     private readonly OnlineRegistryNavigator _navigator;
     private readonly LookupFacade _lookup;
+    private readonly DataProvider<BuiltRegistryConfig> _registryConfig;
 
     public async Task<IEnumerable<CourseLink>> Get(Semester semester)
     {
         var lessonAttendanceUrl = new Uri($"{RegistryScraping.BaseUrl}LessonAttendance");
         var doc = await _navigator.GetHtml(lessonAttendanceUrl);
+        var courseNames = _registryConfig.Get()?.CourseNames ?? new Dictionary<string, string>();
         var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
         {
             Document = doc,
@@ -52,10 +54,8 @@ public sealed partial class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = _lookup.Course(courseName.AsMemory(), new()
-                {
-                    IgnorePunctuation = true,
-                });
+                var maybeCourseId = RegistryCourseNameLookup.Find(_lookup, courseName, courseNames,
+                    _registryConfig.Get()?.CourseNameMaxDistance ?? 2);
                 if (maybeCourseId is not { } courseId)
                 {
                     _navigator.ErrorHandler.CourseNotFound(courseName);
@@ -96,6 +96,7 @@ public sealed class GroupsNavigator
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
     {
         var doc = await _navigator.GetHtml(courseLink.Url);
+        var config = _registryConfig.Get();
         var partitionResolver = new GroupPartitionResolver(_specializationRegistry);
         var registryGroups = new List<GroupForSearch>();
         _ = HtmlSearch.ScanGroupsDocumentForLinks(new()
@@ -105,13 +106,14 @@ public sealed class GroupsNavigator
             GroupPartitionResolver = partitionResolver,
             SearchGroupId = (ref GroupForSearch group) =>
             {
+                if (config?.SkipAttendance == group.AttendanceMode) return new LessonGroups();
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 registryGroups.Add(group);
                 return new LessonGroups();
             },
             ParseErrorHandler = _ => { },
         }).ToArray();
-        var rules = _registryConfig.Get()?.GroupMatchRules ?? [];
+        var rules = config?.GroupMatchRules ?? [];
         var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = doc,
@@ -119,6 +121,7 @@ public sealed class GroupsNavigator
             GroupPartitionResolver = partitionResolver,
             SearchGroupId = (ref GroupForSearch group) =>
             {
+                if (config?.SkipAttendance == group.AttendanceMode) return new LessonGroups();
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 var target = group;
                 var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups, target, rule, partitionResolver)).ToArray();
@@ -684,6 +687,7 @@ public readonly record struct AttendanceLookupKey
 
     // The program may use any of this info to get the right data.
     public int DayIndex { get; init; }
+    public LessonGroups? ActiveGroups { get; init; }
     public readonly DateTime DateTime;
 
     public AttendanceLookupKey(

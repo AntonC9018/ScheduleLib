@@ -106,7 +106,8 @@ internal static class MatchLessonHelper
             }
             else if (g.IsWildcard)
             {
-                if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
+                if (lesson.Lesson.Groups.IsEmpty
+                    || !g.Value.IsSubSetOf(lesson.Lesson.Groups) && !lesson.Lesson.Groups.IsSubSetOf(g.Value))
                 {
                     continue;
                 }
