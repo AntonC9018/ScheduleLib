@@ -21,10 +21,12 @@ public sealed partial class StudentAttendanceLoader
     private readonly AttendanceListsExcelParser _parser;
     private readonly DataProvider<RegistryConfig> _registryConfig;
 
+    public bool HasSources => _configProvider.Get()?.Sources.Count > 0;
+
     public StudentAttendanceList Load()
     {
         var attendanceConfig = _configProvider.Get();
-        if (attendanceConfig is null)
+        if (attendanceConfig is null || attendanceConfig.Sources.Count == 0)
         {
             return new([]);
         }

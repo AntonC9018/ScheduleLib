@@ -50,6 +50,56 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
 
     public void Cover(RegistryExpectedTarget target) => _remaining.Remove(target);
 
+    public void CoverLesson(AnyLessonId lessonId, GroupId parent, GroupPartitionKey partition,
+        IReadOnlyList<RegistryGroupMatchRule> rules)
+    {
+        var source = schedule.Get(lessonId);
+        Cover(new(source.Lesson.Course, parent, partition));
+        if (source.Lesson.Type is not (LessonType.Curs or LessonType.Prelegere)
+            || partition != GroupPartitionKey.All || !source.Lesson.Groups.IsSingleGroup)
+            return;
+
+        var host = schedule.Get(parent);
+        if (host.Language is not (Language.Ro or Language.Ru)) return;
+        var intake = schedule.EnumerateGroups().Where(group => SameIntake(host, group.Item)).ToArray();
+        if (intake.Any(group => group.Item.Language == Language.None)
+            || intake.GroupBy(group => group.Item.Language).Any(groups => groups.Count() > 1)) return;
+
+        foreach (var target in _remaining.Where(target => target.Course == source.Lesson.Course).ToArray())
+        {
+            var audience = schedule.Get(target.Group);
+            if (!SameIntake(host, audience)
+                || target.Partition != new GroupPartitionKey(SpecialSubGroups.FromLanguage(host.Language), Specialization.All)
+                || !rules.Any(rule => rule.MatchByLanguage && rule.AllowParentGroup
+                    && rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase)
+                    && rule.Language == audience.Language && rule.Language != host.Language
+                    && rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)) continue;
+
+            // Language partitions in a separate parent can attend the exact same lecture.
+            // Its existing parent-language destination already synchronizes that event.
+            var shared = schedule.EnumerateAllLessons().Any(candidate =>
+                candidate.Lesson.Groups.IsSingleGroup && candidate.Lesson.Groups[0] == target.Group
+                && candidate.Lesson.GroupPartitionKey == target.Partition
+                && (candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }) == source.Lesson
+                && SameDate(source, candidate));
+            if (shared) Cover(target);
+        }
+    }
+
+    private static bool SameIntake(Group first, Group second) =>
+        first.Faculty.Name.Equals(second.Faculty.Name, StringComparison.OrdinalIgnoreCase)
+        && first.Grade == second.Grade && first.AttendanceMode == second.AttendanceMode
+        && first.QualificationType == second.QualificationType;
+
+    private static bool SameDate(AnyLessonAccessor first, AnyLessonAccessor second)
+    {
+        if (first.Weekly is { } weekly && second.Weekly is { } otherWeekly)
+            return weekly.Date == otherWeekly.Date;
+        if (first.OneTime is { } oneTime && second.OneTime is { } otherOneTime)
+            return oneTime.Date == otherOneTime.Date;
+        return false;
+    }
+
     public void ReportMissingGroups(CourseId course)
     {
         foreach (var target in _remaining.Where(target => target.Course == course).ToArray())

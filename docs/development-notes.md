@@ -312,6 +312,17 @@ is left unchanged rather than inferred. Topic text is copied as configured.
   attendance still follows lesson order. Empty worksheets produce an empty roster
   instead of failing the entire import.
 
+- A language audience in its own parent can attend a lecture shared with a
+  different parent-language group. Coverage recognizes that existing registry
+  destination under the configured language rule only when course, teacher,
+  room, lesson type, date/period, and intake match exactly. Ambiguous intakes
+  retain separate missing-target diagnostics. The shared event is synchronized
+  once; this coverage rule does not combine attendance worksheets.
+
+- The attendance loader exposes whether any sources are configured. Registry
+  planning suppresses missing-sheet and missing-student reports when attendance
+  is disabled, while an enabled source with missing rows still reports its gaps.
+
 ### Numbered attendance workbooks and registry spacing
 
 Attendance sources expose `studentNameColumn`, `headerFormat`, `dateMode`, and

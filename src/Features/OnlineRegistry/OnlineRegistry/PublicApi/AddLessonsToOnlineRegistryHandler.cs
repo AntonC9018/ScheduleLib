@@ -30,6 +30,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     {
         public required IRegistrySyncNavigator Navigator { get; init; }
         public required StudentAttendanceList Attendance { get; init; }
+        public bool HasAttendanceSources { get; init; } = true;
         public required ILessonTopics LessonTopics { get; init; }
         public required Semester Semester { get; init; }
         public RegistrySyncDiagnostics? Diagnostics { get; init; }
@@ -142,7 +143,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     var lesson = _schedule.Get(lessonId).Lesson;
                     foreach (var parent in lesson.Groups.Where(parent => group.Groups.Value.Contains(parent)))
-                        coverage?.Cover(new(courseLink.CourseId, parent, ProjectPartition(lesson, parent)));
+                        coverage?.CoverLesson(lessonId, parent, ProjectPartition(lesson, parent), config.GroupMatchRules);
                 }
 
                 // Figure out the exact dates the lessons will occur on.
@@ -176,19 +177,19 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var studentNames = p.Attendance.StudentNames(new(
                         courseId: courseLink.CourseId, groups: group.Groups.Value,
                         groupPartition: key.Partition, lessonType: key.Type));
-                    if (studentNames.Count == 0)
+                    if (p.HasAttendanceSources && studentNames.Count == 0)
                         p.Diagnostics?.Add("missing-attendance-sheet", _schedule.Get(courseLink.CourseId).FullName,
                             group.Groups.Value.ToString(_schedule),
                             $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
                     remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, notFoundStudents, config.StudentNames);
-                    if (notFoundStudents.Count != 0)
+                    if (p.HasAttendanceSources && notFoundStudents.Count != 0)
                     {
                         _errorHandler.StudentsNotInDbButInRegistry(new(notFoundStudents, _schedule, group.Groups, x.LessonId));
                         if (studentNames.Count != 0) p.Diagnostics?.Add("unmatched-attendance-students", _schedule.Get(courseLink.CourseId).FullName,
                             group.Groups.Value.ToString(_schedule),
                             $"{notFoundStudents.Count} registry students have no matching attendance row for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Check the attendance sheet and name mappings.");
-                        notFoundStudents.Clear();
                     }
+                    notFoundStudents.Clear();
                 }
 
                 GroupPartitionKey AttendancePartition(LessonData lesson) => selection.IsLabMerge && lesson.Type == LessonType.Lab

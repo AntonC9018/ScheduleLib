@@ -47,9 +47,11 @@ public sealed class RegistryTests
     public async Task RoutingRejectsIrrelevantArguments(string[] args, int exit) => Assert.Equal(exit, await CliHost.Run(args));
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RealReconciliationPlanDoesNotSubmitThroughFakeNavigator(bool singleDestination)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task RealReconciliationPlanDoesNotSubmitThroughFakeNavigator(bool singleDestination, bool hasAttendanceSources)
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") }, AppConfiguration.ConfigureServices);
@@ -72,13 +74,13 @@ public sealed class RegistryTests
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
         {
             Navigator = navigator, Attendance = new([]), LessonTopics = topics, Semester = Semester.Sem2,
-            Diagnostics = diagnostics,
+            Diagnostics = diagnostics, HasAttendanceSources = hasAttendanceSources,
         }, explicitApply: true);
         Assert.NotEmpty(plan);
         Assert.Contains(plan, action => action.Kind == "create");
         Assert.Equal(0, navigator.Submissions);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
-        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-attendance-sheet");
+        Assert.Equal(hasAttendanceSources, diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
         Assert.NotEmpty(topics.Keys);
         Assert.All(topics.Keys, key => Assert.True(key.Groups.Value.IsSubSetOf(destinationGroups)));

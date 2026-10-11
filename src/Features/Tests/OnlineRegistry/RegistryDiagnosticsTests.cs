@@ -2,11 +2,75 @@ using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using Tests.ScheduleCommon;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
 
 public sealed class RegistryDiagnosticsTests
 {
+    [Theory]
+    [InlineData(true, "ru", DayOfWeek.Monday, "same", true)]
+    [InlineData(false, "ru", DayOfWeek.Monday, "same", false)]
+    [InlineData(true, "ro", DayOfWeek.Monday, "same", false)]
+    [InlineData(true, "ru", DayOfWeek.Tuesday, "same", false)]
+    [InlineData(true, "ru", DayOfWeek.Monday, "teacher", false)]
+    [InlineData(true, "ru", DayOfWeek.Monday, "room", false)]
+    [InlineData(true, "ru", DayOfWeek.Monday, "lab", false)]
+    [InlineData(true, "ru", DayOfWeek.Monday, "intake", false)]
+    [InlineData(true, "ru", DayOfWeek.Monday, "ambiguous", false)]
+    public void SharedEnglishLectureUsesTheParentLanguageRegistryDestination(
+        bool enableRule, string subgroup, DayOfWeek day, string difference, bool covered)
+    {
+        var builder = new ScheduleBuilder();
+        builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var course = builder.Course("Synthetic course");
+        var parent = builder.Group("DJ2602(ru)");
+        var english = builder.Group(difference == "intake" ? "DJ2503(en)" : "DJ2603(en)");
+        if (difference == "ambiguous") builder.Group("DJ2604(ru)");
+        var teacher = builder.Teacher("Synthetic Teacher");
+        var otherTeacher = builder.Teacher("Another Teacher");
+        builder.RegularLesson(lesson =>
+        {
+            lesson.Course(course);
+            lesson.Group(parent);
+            lesson.Type(LessonType.Curs);
+            lesson.DayOfWeek(DayOfWeek.Monday);
+            lesson.TimeSlot(TimeSlot.First);
+            lesson.Teacher(teacher);
+        });
+        builder.RegularLesson(lesson =>
+        {
+            lesson.Course(course);
+            lesson.Group(english);
+            lesson.SubGroup(new(subgroup));
+            lesson.Type(difference == "lab" ? LessonType.Lab : LessonType.Curs);
+            lesson.DayOfWeek(day);
+            lesson.TimeSlot(TimeSlot.First);
+            lesson.Teacher(difference == "teacher" ? otherTeacher : teacher);
+            if (difference == "room") lesson.Room(new("222/4"));
+        });
+        builder.RegularLesson(lesson =>
+        {
+            lesson.Course(course);
+            lesson.Group(english);
+            lesson.SubGroup(new(subgroup == "ru" ? "ro" : "ru"));
+            lesson.Type(LessonType.Curs);
+            lesson.DayOfWeek(DayOfWeek.Friday);
+            lesson.TimeSlot(TimeSlot.First);
+        });
+        var diagnostics = new RegistrySyncDiagnostics();
+        var partition = new GroupPartitionKey(new SubGroup(subgroup), Specialization.All);
+        var schedule = builder.Build();
+        var coverage = new RegistryTargetCoverage(schedule,
+            [new(course, parent, GroupPartitionKey.All), new(course, english, partition)], diagnostics);
+        coverage.CoverLesson(new WeeklyLessonId(0).AsAny(), parent, GroupPartitionKey.All,
+            enableRule ? [new() { Faculty = "DJ", SubGroup = "eng", Language = Language.En,
+                MatchByLanguage = true, AllowParentGroup = true }] : []);
+        coverage.ReportMissingGroups(course);
+        if (covered) Assert.Empty(diagnostics.Items);
+        else Assert.Equal(schedule.Get(english).Name, Assert.Single(diagnostics.Items).Group);
+    }
+
     [Fact]
     public void MissingGroupDiagnosticIdentifiesTheGroupToFix()
     {
