@@ -43,6 +43,14 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         foreach (var action in plan)
         {
             try { await action.Execute(CancellationToken.None); }
+            catch (RegistryActionExecutionException error) when (action.Kind == "delete"
+                && error.InnerException is RegistryDeletionRefusedException)
+            {
+                _logger.LogWarning("Registry refused deletion of {Course} ({Groups}) on {Date}; skipped without retrying.",
+                    action.Course, action.Groups, action.Date);
+                p.Diagnostics?.Add("registry-deletion-refused", action.Course, action.Groups,
+                    $"Skipped deletion on {action.Date:yyyy-MM-dd HH:mm}: the lesson remains unchanged. No retry was performed.");
+            }
             catch (RegistryActionExecutionException error) when (!error.SubmissionStarted
                 && error.InnerException is RegistryFormPreparationException)
             {

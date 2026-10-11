@@ -52,6 +52,7 @@ public sealed class RegistryLessonAdapterTests
         var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
         var document = await navigator.GetHtml(new("https://registry.test" + detail));
         if (scenario == "absent") await navigator.SubmitDelete(document);
+        else if (scenario == "present") await Assert.ThrowsAsync<RegistryDeletionRefusedException>(() => navigator.SubmitDelete(document));
         else await Assert.ThrowsAsync<IOException>(() => navigator.SubmitDelete(document));
         Assert.Equal(1, handler.Posts);
         Assert.Equal(scenario is "unexpected" or "identity" ? 1 : 2, handler.Reads);

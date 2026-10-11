@@ -97,6 +97,7 @@ public partial class RegistryCommands
                     var terminalExit = 0;
                     string[] terminalErrors = [];
                     var propagateCancel = false;
+                    var deletionRefused = false;
                     try
                     {
                         await action.Execute(cancellation.Token);
@@ -120,6 +121,14 @@ public partial class RegistryCommands
                         detail = "Cancelled during execution; inspect the registry before retrying. Creates are never automatically retried.";
                         terminal = true;
                         propagateCancel = true;
+                    }
+                    catch (RegistryActionExecutionException error) when (action.Kind == "delete"
+                        && error.InnerException is RegistryDeletionRefusedException)
+                    {
+                        attempted |= error.SubmissionStarted;
+                        status = "omitted";
+                        detail = "Registry refused deletion; the lesson remains unchanged. Skipped without retrying.";
+                        deletionRefused = true;
                     }
                     catch (RegistryActionExecutionException error)
                     {
@@ -147,6 +156,12 @@ public partial class RegistryCommands
                     // try above, so a rendering failure cannot be misclassified as
                     // provider uncertainty or trigger another mutation.
                     Record(action, status, detail);
+                    if (deletionRefused)
+                    {
+                        var warning = $"{action.Course} ({action.Groups}), {action.Date:yyyy-MM-dd HH:mm}, {action.Destination}: {detail}";
+                        warnings.Add(warning);
+                        StreamWarning(warning);
+                    }
                     if (propagateCancel) throw new OperationCanceledException();
                     if (terminal)
                     {
@@ -202,6 +217,10 @@ public partial class RegistryCommands
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
         {
             var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
+            StreamWarning(text);
+        }
+        void StreamWarning(string text)
+        {
             if (!streamedWarnings.Add(text)) return;
             try
             {

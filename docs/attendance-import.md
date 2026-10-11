@@ -118,10 +118,12 @@ schedulelib registry cleanup-intake-labs --profile "Teacher Name" --apply --json
 
 The preview lists every deletion and counts recorded attendance marks that it
 would remove. Apply rereads each lab's date, type, topic, and attendance before
-deleting it and confirms that its column disappeared. Changed columns and failed
-or uncertain submissions stop cleanup; successful earlier deletions remain
-applied. Cleanup uses the same registry account lock as synchronization and never
-retries a deletion automatically. It does not recreate labs in corrected sections.
+deleting it and confirms that its column disappeared. If the registry leaves the
+column unchanged, cleanup reports the refused deletion as omitted and continues.
+Changed columns or failed confirmation reads stop cleanup; successful earlier
+deletions remain applied. Cleanup uses the same registry account lock as
+synchronization and never retries a deletion automatically. It does not recreate
+labs in corrected sections.
 
 `RegistryConfig.extraLessonInstanceAction = "Delete"` is the existing policy for
 surplus lessons after ordinary positional reconciliation. Its default is

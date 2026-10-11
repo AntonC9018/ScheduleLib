@@ -38,15 +38,22 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         token.ThrowIfCancellationRequested();
                         // A changed date, type, topic or attendance requires a fresh preview.
                         var current = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
-                        if (current.Length != 1 || current[0].LessonType != LessonType.Lab
-                            || current[0].DateTime != lesson.DateTime || current[0].Topic != lesson.Topic
-                            || !current[0].Attendance.SequenceEqual(lesson.Attendance))
+                        if (current.Length != 1 || !Unchanged(lesson, current[0]))
                             throw new InvalidOperationException("Registry lab changed after cleanup planning; preview again before deleting it.");
                         var document = await navigator.GetHtml(lesson.ViewUri);
                         token.ThrowIfCancellationRequested();
-                        await navigator.SubmitDelete(document, () => submissionStarted = true);
-                        if ((await ReadLessons(group.Uri)).Any(candidate => candidate.ViewUri == lesson.ViewUri))
-                            throw new IOException("Registry lab deletion could not be confirmed; inspect the destination before retrying.");
+                        Exception? submissionError = null;
+                        try { await navigator.SubmitDelete(document, () => submissionStarted = true); }
+                        catch (Exception error) when (error is IOException or RegistrySubmissionRejectedException or RegistryDeletionRefusedException)
+                        {
+                            // A refused or unconfirmed response must be resolved through reads, never another POST.
+                            submissionError = error;
+                        }
+                        var after = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
+                        if (after.Length == 1 && Unchanged(lesson, after[0]))
+                            throw new RegistryDeletionRefusedException();
+                        if (after.Length != 0)
+                            throw new IOException("Registry lab changed during deletion; inspect the destination before retrying.", submissionError);
                     }
                     catch (OperationCanceledException error) { throw new RegistryActionCancelledException(submissionStarted, error); }
                     catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
@@ -67,5 +74,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
         static bool IsRecordedMark(Attendance attendance)
             => attendance is Attendance.NotPresent or Attendance.MotivatedAbsent or Attendance.NotApplicable or Attendance.Grade;
+
+        static bool Unchanged(RemoteLessonInstance expected, RemoteLessonInstance actual)
+            => actual.LessonType == expected.LessonType && actual.DateTime == expected.DateTime
+                && actual.Topic == expected.Topic && actual.Attendance.SequenceEqual(expected.Attendance);
     }
 }

@@ -111,16 +111,18 @@ public sealed class RegistryLabDestinationTests
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task CleanupSelectsOnlyUnsafeLabColumnsAndUsesTheCliApplyBoundary(bool apply, bool failDelete)
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public async Task CleanupSelectsOnlyUnsafeLabColumnsAndUsesTheCliApplyBoundary(bool apply, bool failDelete, bool uncertainSuccessfulResponse)
     {
         await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(wildcard: true, combined: false, includeExplicitDestination: true);
         navigator.AddMixedLessons();
         navigator.AllowDeletes = true;
         navigator.FailDelete = failDelete;
+        navigator.UncertainSuccessfulResponse = uncertainSuccessfulResponse;
         var diagnostics = new RegistrySyncDiagnostics();
         await using var provider = new Provider(fixture, navigator, diagnostics);
         using var output = new StringWriter();
@@ -161,6 +163,39 @@ public sealed class RegistryLabDestinationTests
         }, default);
         Assert.Equal(0, navigator.Reads);
         Assert.Empty(diagnostics.Items);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CleanupSkipsAConfirmedRefusalAndContinuesWithTheNextLab(bool uncertainResponse)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined: false);
+        navigator.AddMixedLessons();
+        navigator.AllowDeletes = true;
+        navigator.RefusedLessonId = 2;
+        navigator.UncertainRefusalResponse = uncertainResponse;
+        await using var provider = new Provider(fixture, navigator, new());
+        using var output = new StringWriter();
+        var original = Console.Out;
+        Console.SetOut(output);
+        try
+        {
+            var exit = await new Commands(provider).CleanupIntakeLabs(new(), new() { Profile = "teacher" },
+                new() { Json = true }, new() { Apply = true });
+            Assert.Equal(0, exit);
+            using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
+            var actions = result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+            Assert.Equal("omitted", actions[0].GetProperty("status").GetString());
+            Assert.Contains("refused", actions[0].GetProperty("detail").GetString());
+            Assert.Equal("completed", actions[1].GetProperty("status").GetString());
+            Assert.Equal(2, navigator.DeleteCalls);
+            Assert.Equal(3, navigator.Lessons.Count);
+            Assert.Contains(result.RootElement.GetProperty("warnings").EnumerateArray(),
+                warning => warning.GetString()!.Contains("refused", StringComparison.Ordinal));
+        }
+        finally { Console.SetOut(original); }
     }
 
     [Fact]
@@ -317,6 +352,9 @@ public sealed class RegistryLabDestinationTests
         public List<Lesson> Lessons { get; } = [];
         public bool AllowDeletes { get; set; }
         public bool FailDelete { get; set; }
+        public int? RefusedLessonId { get; set; }
+        public bool UncertainRefusalResponse { get; set; }
+        public bool UncertainSuccessfulResponse { get; set; }
         public int DeleteCalls { get; private set; }
         public void AddMixedLessons() => Lessons.AddRange([
             new(1, "01.09.2026 15:00", "01.09.26 15:00", "curs", "lecture", ""),
@@ -335,6 +373,8 @@ public sealed class RegistryLabDestinationTests
         {
             Reads++;
             ReadUris.Add(uri);
+            if (FailDelete && DeleteCalls != 0 && uri == group.Uri)
+                throw new IOException("Synthetic confirmation read failure.");
             if (Lessons.Count != 0 && uri == group.Uri)
             {
                 var rows = string.Join("", Lessons.Select(lesson => $"<tr><td><a href='https://registry.test/details/{lesson.Id}'>{lesson.Date}</a> {lesson.Mode}</td><td>1 {lesson.Topic}</td><td><a href='https://registry.test/edit/{lesson.Id}'>edit</a></td></tr>"));
@@ -355,7 +395,13 @@ public sealed class RegistryLabDestinationTests
             DeleteCalls++;
             if (FailDelete) throw new IOException("Synthetic uncertain deletion.");
             var id = int.Parse(document.QuerySelector("input")!.GetAttribute("value")!, System.Globalization.CultureInfo.InvariantCulture);
+            if (id == RefusedLessonId)
+            {
+                if (UncertainRefusalResponse) throw new IOException("Synthetic unconfirmed response.");
+                return Task.CompletedTask;
+            }
             Lessons.RemoveAll(lesson => lesson.Id == id);
+            if (UncertainSuccessfulResponse) throw new IOException("Synthetic unconfirmed successful deletion.");
             return Task.CompletedTask;
         }
     }

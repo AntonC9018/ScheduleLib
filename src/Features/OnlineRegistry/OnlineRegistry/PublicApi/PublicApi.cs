@@ -464,7 +464,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                         new Uri(anchor.Href).AbsolutePath is var path
                         && (path.EndsWith("/LessonDetail/" + lessonId, StringComparison.Ordinal)
                             || path.EndsWith("/Edit/" + lessonId, StringComparison.Ordinal))))
-                    throw new IOException("Registry lesson deletion could not be confirmed.");
+                    throw new RegistryDeletionRefusedException();
             }
         }
     }

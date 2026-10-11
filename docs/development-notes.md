@@ -196,9 +196,13 @@ destinations are preserved. Every deletion rereads the selected column and refus
 changes to its date, type, topic or attendance; deletion is confirmed by absence
 from a fresh lesson list. The normal synchronization guard remains unchanged.
 Deletion redirects are confirmed at the delete form's known same-origin list
-backlink, using its `lessonId`, through GETs only. Account locking, cancellation,
-partial outcomes and stopping on the first uncertain submission reuse the sync
-CLI path. No deletion is automatically retried.
+backlink, using its `lessonId`, through GETs only. A fresh read confirming an
+unchanged column classifies the deletion as refused: the CLI reports an omitted
+outcome and a warning, then continues. If an unconfirmed submission response is
+followed by a read proving the column absent, the deletion is completed. Changed
+columns and failed confirmation reads still stop cleanup. Account locking,
+cancellation and partial outcomes reuse the sync CLI path. No deletion is
+automatically retried.
 
 Merged worksheet columns must be aligned by confirmed lesson occurrence before
 loading; this projection does not reconcile differing source dates automatically.
