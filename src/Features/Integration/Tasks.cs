@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Anton.LayeredData;
@@ -63,7 +64,7 @@ public static class TasksHelper
     }
 
     public static async Task ParseDocumentDirIntoSchedule(
-        DocParseContext context,
+        ScheduleImportContext context,
         string dirName,
         CancellationToken cancellationToken)
     {
@@ -110,7 +111,7 @@ public static class TasksHelper
         return;
 
         static async Task ParseDirectoryToSchedule(
-            DocParseContext context,
+            ScheduleImportContext context,
             string dirName,
             CancellationToken cancellationToken,
             PeriodBeginning? period = null)

@@ -1,0 +1,5042 @@
+[
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Fundam. progr.\n(curs)\nV.Grigorcea 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Fundam. progr.\n(lab)\nV.Grigorcea 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "Educ. fizică (imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Logica și teor. mulț.\n(curs)\nI.Cucu 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Logica și teor. mulț.\n(sem)\nI.Cucu 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Secur. ciber. (lab)\nD.Semeniuc 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)",
+      "IA2601(ro)",
+      "IA2602(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Sisteme de operare (curs)\nE.Seiciuc 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)",
+      "IA2601(ro)",
+      "IA2602(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Matematică (curs)\nS.Coșeru 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Educ. fizică (imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Matem. (sem, par)\nS.Coșeru 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Fund. progr. (lab)\nI: Cr.Crudu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Fund.progr. (lab)\nII: Cr.Crudu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "Secur. ciber. (lab)\nI: I.Tican 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Matem. (sem, imp)\nS.Coșeru 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Educ. fizică (par)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Secur. ciber. (lab)\nD.Semeniuc 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "15:00 Matem. (sem, par)\nS.Coșeru 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Educ. fizică (imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Sist.de oper. (lab, par)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Fund. progr. (curs)\nCr. Crudu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "PSI (lab, par)\nN.Pleșca 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "PSI (curs)\nN.Pleșca 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Educ. fizică (imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "HTML (lab, par)\nV.Vișnevschi 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Calcul difer.și integral\n(curs)\nG.Râbacova 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Calcul difer.și integral\n(sem)\nG.Râbacova 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Algebra liniară (curs)\nP.Sârbu 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Algebra liniară (sem)\nP.Sârbu 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Calc. difer.și int. (sem, imp)\nG.Râbacova 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Matematică (sem)\nS.Coșeru 218/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Fundam. progr.\n(sem)\nE.Seiciuc 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 Fund.progr. (lab)\nA.Donu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Sist.de oper. (lab)\nN.Lupu 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)",
+      "IA2601(ro)",
+      "IA2602(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Fundamentele programării (curs)\nA.Donu 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "I2601(ro)",
+      "IA2601(ro)",
+      "IA2602(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Securitatea cibernetică (curs)\nL.Novac 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Limba straina\n(începători)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Fundam.progr.\n(sem)\nE.Seiciuc 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Sist.de oper. (lab, imp)\nI: N.Lupu 218/4a"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Matematică (sem)\nS.Coșeru 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 HTML (lab)\nI: J.Isac 237/4\n15:00 Sist.de oper. (lab)\nII: N.Lupu 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "9:45 Limba straina\nG.Ciudin 222/4\n16:45 HTML (lab)\nII: J.Isac 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Limba str. (încep)\nG.Ciudin 222/4\n8:00 Fund.progr. (sem)\nE.Seiciuc 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Matematică (sem)\nS.Coșeru 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "HTML (lab)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Sist.de oper. (lab)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Limba str.(încep)\nG.Ciudin 222/4\n8:00 Sec.ciber.(lab, imp)\nI.Tican 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Matematică (curs)\nG.Sprinceanu 412/c"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Matematică (sem)\nG.Sprinceanu 412/c"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Secur.ciber. (curs)\nI.Tican 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Sist.de oper. (curs)\nE.Seiciuc 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Sist.de oper. (lab)\nN.Lupu 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Fund. progr. (lab)\nCr.Crudu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L.str. (încep, imp)\nG.Ciudin 222/4\n8:00 Limba str. (par)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Geometrie analitică\n(curs)\nF.Damian 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Geometrie analitică\n(sem)\nF.Damian 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Geom. analit. (sem, imp)\nF.Damian 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "M2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Algebra liniară (sem, par)\nP.Sârbu 415/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L.str. (încep, imp)\nG.Ciudin 222/4\n8:00 Limba str.(par)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "I2601(ro)",
+      "IA2601(ro)",
+      "IA2602(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "HTML și CSS (curs)\nT.Pașa 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "HTML (lab)\nN.Pleșca 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "I2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Sist.de oper. (lab, par)\nN.Lupu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L.str. (încep, imp)\nG.Ciudin 222/4\n8:00 Secur.ciber. (lab)\nII: I.Tican 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Sist.de oper. (lab)\nI: N.Lupu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Sist.de oper. (lab, imp)\nII: N.Lupu 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Limba straina (par)\nG.Ciudin 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L.str. (încep, imp)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Fund.progr. (lab)\nA.Donu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "IA2602(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Limba str. (imp)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L.str. (încep, imp)\nG.Ciudin 222/4\n8:00 HTML și CSS (curs)\nT.Pașa 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Rețele de calcul. (curs)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Rețele de calcul. (lab)\nM.Capcelea 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Limba str. (imp)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Rețele de calcul. (lab, par)\nM.Capcelea 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "8:00 L. str. (încep.)\nG.Ciudin 222/4\n15:00 Limba straina\nO.Bașirov 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Matematică (sem)\nL.Solovei 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)",
+      "IA2603(ru)",
+      "IA2604(ru)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "Sisteme de operare (curs)\nE.Seiciuc 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Fundam.progr.\n(sem)\nV.Grigorcea 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)",
+      "IA2603(ru)",
+      "IA2604(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Fundamentele programării (curs)\nGh.Latul 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Sist.de oper.(lab, imp)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Limba straina(par)\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "8:00 L. str. (încep.)\nG.Ciudin 222/4\n15.00 Secur.ciber. (lab)\nI: D.Borș 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Matematică (sem)\nL.Solovei 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Fund.progr. (sem)\nGh.Latul 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Fund.progr. (lab)\nI: D.Borș 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Sist.de oper. (lab)\nI: M.Butnaru 251/4\nII: D.Borș 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "HTML (lab)\nI: B.Vișnevschi 251/4\nII: V.Vișnevschi 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "8:00 L. str. (încep.)\nG.Ciudin 222/4\n8:00 Secur.ciber. (lab)\nI: D.Borș 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Fund.progr. (sem)\nGh.Latul 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Secur.ciber. (lab)\nII: D.Borș 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Matematică (sem)\nF.Damian 113/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Limba straina\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Sist.de oper.(lab, imp)\nI: M.Butnaru 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Sist.de oper.(lab, par)\nII: D.Borș 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "8:00 L. str. (încep.)\nG.Ciudin 222/4\n15:00 GA2D (curs)\nA.Șchiopu 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Fund.progr. (lab)\nM.Pavel 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Fund.progr. (curs)\nM.Pavel 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Fund.progr. (sem)\nM.Pavel 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "8:00 L. str. (încep.)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "Design nar. (sem)\nA.Coliban 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Design nar. (curs)\nA.Coliban 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Limba straina\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Limba straina(imp)\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "VSDG (lab, par)\nII: D.Lefter 350/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "15:00 GA2D (curs, ro)\nA.Șchiopu 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Fund.progr. (curs, ro)\nM.Pavel 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Fund.progr. (sem, ro)\nM.Pavel 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Design nar. (curs, ru)\nA.Coliban 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Limba straina (ru)\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Limba straina(ru, imp)\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep.)\nG.Ciudin 222/4\n15:00 Limba straina\nO.Bașirov 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)",
+      "IA2603(ru)",
+      "IA2604(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Securitatea cibernetică (curs)\nL.Novac 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "HTML (lab)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "8:00 Ed.fizică (imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 Limba rom.(par)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Fund.progr.(lab)\nC.Crudu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Sist.de oper. (lab)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Secur.ciber. (lab)\nN.Lupu 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep.)\nG.Ciudin 222/4\n8:00 L. străină\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Fund.progr. (lab)\nII: D.Borș 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Secur.ciber.(lab)\nII: D.Borș 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Educația fizică(imp)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Sist.de oper. (lab, par)\nI: M.Butnaru 350/4\nII: D.Borș 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Limba rom.\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Limba rom.(imp)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Limba straina (par)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep.)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Limba straina\nO.Bașirov 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "HTML(lab)\nI: B.Vișnevschi 218/4a\nII: V.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Fund.progr.(lab)\nI: C.Crudu 251/4\nSist.de oper.(lab)\nII: D.Borș 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Limba rom.\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Sist.de oper.(lab)\nI: M.Butnaru 237/4\nFund.progr.(lab)\nII: C.Crudu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Limba straina (imp)\nO.Basirov 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Educația fizică (par)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep.)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "GA2D (lab)\nA.Șchiopu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "GA2D (lab, imp)\nA.Șchiopu 251/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 VSDG(lab)\nT.Capcelea 145/4\n16:45 VSDG(lab, imp)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Educația fizică( par)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "VSDG (curs)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep.)\nG.Ciudin 222/4\n8:00 Fund.progr.(sem)\nD.Negură 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Limba straina\nO.Bașirov 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Fund.progr.(lab)\nI: D.Negură 145a/4\nVSDG(lab)\nII: D.Lefter 350/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "VSDG (lab)\nI: D.Lefter 350/4\nFund.progr. (lab)\nII: D.Negură 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "GA2D (lab, imp)\nI: T.Iațîșina 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Educația fizică (par)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "GA2D(lab)\nI: T.Iațîșina 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "GA 2D(curs)\nT.Iațîșina 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "VSDG (lab, imp)\nI: D.Lefter 350/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Limba rom.(par)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "Fund.progr. (sem, ru)\nD.Negură 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Limba straina (ru)\nO.Bașirov 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Designul narativ\n(sem, en)\nA.Coliban 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Fund.progr.(lab, en)\nN.Nartea 145/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Educația fizică(par, ru)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "VSDG(lab, imp, en)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Educația fizică(par, ro)"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Limba straina (ro)\nG.Ciudin 222/4\nGA2D (curs, ru)\nT.Iațîșina 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "VSDG (curs, ro)\nT.Capcelea 145/4\nLimba rom.(par, ru)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep., imp)\nG.Ciudin 222/4\n8:00 Matem. (sem, imp)\nL.Solovei 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "I2602(ru)",
+      "IA2603(ru)",
+      "IA2604(ru)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Matematica (curs)\nL.Solovei 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "I2602(ru)",
+      "IA2603(ru)",
+      "IA2604(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "HTML și CSS (curs)\nT.Pașa 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "I2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Limba rom.\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "IA2603(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep., imp)\nG.Ciudin 222/4\n8:00 Matem. (sem, par)\nL.Solovei 214/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep., imp)\nG.Ciudin 222/4\n15:00 Limba rom. (par)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "IA2604(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Matematica (sem, par)\nF.Damian 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep., imp)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Limba straina (par)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Limba straina\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Proiect.JV (curs)\nA.Coliban 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "Proiect.JV (lab)\nA.Coliban 143/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "Design narat. (sem)\nA.Coliban 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2601(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "Design narat. (curs)\nA.Coliban 419/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 L. str.(încep., imp)\nG.Ciudin 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Fund.progr. (curs)\nN.Nartea 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Limba rom.\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "VSDG (curs)\nD.Lefter 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "GA2D (lab, par)\nII: D.Sirotiuc 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "Proiect.JV (lab)\nII: E.Tretiacova 145a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "Proiect.JV (curs)\nE.Tretiacova 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2602(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "13:15",
+    "text": "Proiect.JV (lab)\nI: E.Tretiacova 145a/4\nGA2D (lab)\nII: D.Sirotiuc 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 VSDG (lab, en)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Limba straina(par, ro)\nG.Ciudin 222/4\nFund.progr.(curs, ru)\nN.Nartea 404/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Limba straina(ro)\nG.Ciudin 222/4\nLimba rom.(ru)\nA.Boicenco 401/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Proiect.JV (curs, ro)\nA.Coliban 419/4\nVSDG (curs, ru)\nD.Lefter 213a/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "GA2D (lab, imp, en)\nD.Sirotiuc 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "GA2D (lab, en)\nD.Sirotiuc 237/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "Design narat. (curs, ro)\nA.Coliban 214/4\nProiect.JV (curs, ru)\nE.Tretiacova 222/4"
+  },
+  {
+    "source": "orar1.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2603(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "13:15",
+    "text": "Proiect.JV (lab, en)\nA.Coliban 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "8:00 Teor.probab.(curs)\nV.Popa 222/4\n15:00 Opț. ped. (curs, imp)\nV.Clichici 407/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Teor.probab.(sem)\nV.Popa 222/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "POO (curs)\nV.Grigorcea 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "M2501(ro)",
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)",
+      "DU-IA2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (curs), I. Dobrovolschi 127/3\nPsihologie (curs), A.Chetraru 217/ 2"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Tehnologii de programare (curs)\nI.Anghelova 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "GA 2D (curs)\nA.Șchiopu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "GA 2D (lab)\nA.Șchiopu 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "15:00 Dezv.WEB.(lab)\nV.Visnevschi 145a/4\n15:00 Opț. ped. (curs, imp)\nV.Clichici 407/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Criptografie și securitatea informației (curs, imp)\nT.Capcelea 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Baze de date (lab, par)\nD.Semeniuc 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Grafică și animație 2D (curs)\nGA2D: A.Schiopu 404/4\nDesignul UI/UX(curs)\nUI: E.Mîndru 419/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Grafică și animație 2D (lab)\nGA2D: A.Schiopu 251/4\nDesignul UI/UX (curs)\nUI: E.Mîndru 145a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Baze de date (lab)\nD.Semeniuc 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Tehnol.progr. (curs)\nI.Anghelova 218/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Intel.artif. (curs)\nV.Grigorcea 218/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Cript. și SI (lab, imp)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 1,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Baze de date (lab, imp)\nD.Semeniuc 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Opț. ped. (sem)\nM.Valic 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Metode de optim.\n(curs)\nA.Tkacenko 415/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Metode de optim.\n(sem)\nA.Tkacenko 415/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)",
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)",
+      "DU-IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem), L.Nepotu 401/4\nPsihologie (sem), A.Vrabii 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "8:00 Pedagogie (curs)\nN.Bîrnaz 433/3\n13:15 Ped. (sem)\nN.Bîrnaz 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "15:00 Ped. (sem, imp)\nN.Butnari 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "9:45 Geom.dif.(curs)\nP.Efros 214/4\n11:30 Geom.dif.(sem)\nP.Efros 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "M2501(ro)",
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)",
+      "DU-IA2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem, par), L.Nepotu 214/4\nPsihologie (sem, par), A.Vrabii 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Opț. ped. (sem)\nM.Valic 433/3\n8:00 GA2D (lab, imp)\nA.Șchiopu 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Baze de date (lab)\nD.Semeniuc 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Cript. și SI (lab, par)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "8:00 Pedagogie (curs)\nN.Bîrnaz 433/3\n13:15 Ped. (sem)\nN.Bîrnaz 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "15:00 Ped. (sem, imp)\nN.Butnari 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "9:45 Baze de date (curs), L.Novac 404/4\n11:30 Dezvoltarea WEB avansată (curs), N.Pleșca 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "Grafică și animație 2D (lab, imp)\nGA2D: A.Schiopu 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "Baze de date (lab, par)\nN.Lupu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Baze de date (lab)\nN.Lupu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Cript. și SI (lab, imp)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Tehnol.progr.(lab, par)\nN.Lupu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "8:00 Designul UI/UX (lab, imp)\nE.Mîndru 145a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Cript. și SI (lab, imp)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Dezv.WEB.(lab)\nV.Visnevschi 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "Intel.artif. (lab)\nE.Tretiacova 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Cript. și SI (lab, par)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Tehnol.progr.(lab)\nI.Anghelova 216a/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "Baze de date (curs)\nL.Novac 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Cript. și SI (curs)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 2,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Cript. și SI (lab)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "Teor.probab.(lab, imp)\nV.Popa 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "POO (lab)\nV.Grigorcea 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Ecuații difer. (curs)\nV.Guțu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Ecuații difer. (sem)\nV.Guțu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "Analiza funcț. (curs)\nG.Rusu 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "Analiza funcț. (sem)\nG.Rusu 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "M2501(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "Analiza funcț. (sem)\nG.Rusu 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 Tehnol.progr.(lab)\nJ.Isac 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "16:45 Tehnol.progr.(lab, imp)\nJ.Isac 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "I2501(ro)",
+      "IA2501(ro)",
+      "IA2502(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Criptografie și securitatea informației (curs)\nT.Capcelea 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "I2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Cript. și SI (lab)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 Cript. și SI (lab)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Tehnol.progr.(lab)\nN.Lupu 237/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Dezv.WEB.(lab)\nV.Visnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 Baze de date (lab, imp)\nD.Semeniuc 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 Tehn.progr. (lab, par)\nD.Semeniuc 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "16:45 Cript. și SI (lab)\nT.Capcelea 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "IA2502(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Tehnol.progr.(lab)\nD.Semeniuc 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "Intel.artif.(lab)\nE.Tretiacova 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Dezv.WEB avan.(curs)\nN.Pleșca 419/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Baze de date(lab)\nD.Semeniuc 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 3,
+    "groups": [
+      "DU-IA2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Dezv.WEB avan.(lab)\nN.Pleșca 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "GA2D (lab)\nT.Iațîșina 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "GA2D (curs)\nT.Iațîșina 213a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Dezv.WEB. (lab)\nB.Visnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "15:00 Psihologie (curs), D.Anțibor 401/4\n15:00 Opț. ped. (curs, imp)\nV.Clichici 407/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "9:45 Tehnologii de programare (curs)\nGh.Latul 213a/4\n16:45 Psihologie (sem)\nD.Anțibor 401/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "GA2D (lab, imp)\nT.Iațîșina 251/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (curs)\nN.Nazar 528/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "15:00 Designul UI/UX (lab, par)\nIA2504: V.Vișnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "Grafica și animație 2D (curs)\nT.Iațîșina 213a/4\nDesignul UI/UX (lab)\nIA2503: V.Vișnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Grafica și animație 2D (lab)\nT.Iațîșina 218/4a\nDesignul UI/UX (curs)\nV.Vișnevschi 213a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Grafica și animație 2D (lab, par)\nT.Iațîșina 218/4a\nDesignul UI/UX (lab)\nIA2504:V.Vișnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Tehnol.progr. (lab)\nI.Anghelova 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Baze de date (lab)\nB.Vișnevschi 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "15:00 DCMIMJ(lab, imp)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "15:00 Intel.artif.(lab, par)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Intel.artif.(lab)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "DCMIMJ(lab)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Progr.C++(lab, imp)\nM.Croitor 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Progr.C++ (lab)\nM.Croitor 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Cult.comun. (curs)\nA.Popa 301/3\nPsihologie (curs)\nA.Chetraru 217/2"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "8:00",
+    "text": "Progr.C++(lab)\nI: A.Curmanscii 143/4\nIntel.artif. (lab, imp)\nII: E.Tretiacova 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "9:45",
+    "text": "DCMIMJ(lab)\nI: D.Lefter 350/4\nIntel.artif.(lab)\nII: E.Tretiacova 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Intel.artif.(lab)\nI: E.Tretiacova 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Intel.artif. (lab, par)\nI: E.Tretiacova 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "15:00 Psihologie (curs)\nD.Anțibor 401/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "DCMIMJ (lab)\nII: D.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Progr.C++(lab)\nII: A.Curmanscii 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Marţi",
+    "start": "8:00",
+    "text": "15:00 Psihol.(curs, ru)\nD.Anțibor 401/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "Progr.C++(lab, imp, en)\nA.Curmanscii 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Marţi",
+    "start": "9:45",
+    "text": "DCMIMJ (lab, par, en)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Progr.C++ (lab, en)\nA.Curmanscii 143/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Cult.comun.(ro)\nA.Popa 301/3\nPsihologie (ro)\nA.Chetraru 217/2"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Opț. ped.(sem)\nM.Valic 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "Criptografie și securitatea informației (curs)\nO.Cerbu 401/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Dezvoltarea WEB avansată (curs)\nN.Nartea 213a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem)\nD.Stoler 214/4",
+    "alternative": "Antreprenoriat Gr.1"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem)\nL.Costoglo 218/4",
+    "alternative": "Antreprenoriat Gr.2"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "8:00 Pedagogie (curs)\nN.Bîrnaz 433/3\n13:15 Ped. (sem)\nN.Bîrnaz 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "15:00 Ped. (sem, imp)\nN.Butnari 433/3"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Tehnol.progr.(lab)\nI.Anghelova 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem, par)\nD.Stoler 415/4",
+    "alternative": "Antreprenoriat Gr.1"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Antreprenoriat inovativ (sem, par)\nL.Costoglo 419/4",
+    "alternative": "Antreprenoriat Gr.2"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Psihologie (sem, imp), D.Anțibor 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Desig.UI/UX(lab, imp)\nV.Vișnevschi 219/4a\n15:00 Criptogr.(lab, par)\nI.Jelascov 145/4\n16:45 Criptogr.(lab)\nI.Jelascov 145/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Dezv.WEB.(lab)\nB.Vișnevschi 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Baze de date(lab, imp)\nB.Vișnevschi 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 Criptogr.(lab)\nI.Jelascov 326/4\n16:45 Criptogr.(lab, imp)\nI.Jelascov 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "Tehnol.progr.(lab)\nI.Anghelova 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Dezv.WEB.(lab)\nB.Vișnevschi 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 DCMIMJ(curs)\nD.Lefter 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "IA pentru JV (curs)\nV.Grigorcea 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Progr.C++ (curs)\nM.Croitor 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Cult.comun.(sem)\nA.Popa 429/c\nPsihologie(sem)\nA.Vrabii 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "DJ3DU(lab)\nV.Jelihovschi 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "DJ3DU(lab)\nV.Jelihovschi 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "DJ3DU(curs)\nV.Jelihovschi 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Cult.comun.(sem, par)\nA.Popa 429/c\nPsihologie(sem, par)\nA.Vrabii 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 Antrepren.(curs)\nL.Șargu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "16:45 Antrepren.(sem)\nL.Șargu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "IA pentru JV (curs)\nV.Grigorcea 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "DJ3DU (lab)\nI: D.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 Psihologie(sem)\nD.Antibor 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "16:45 Psihol.(sem, imp)\nD.Antibor 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Progr.C++ (lab, I-imp, II-par)\nA.Curmanscii 143/4\nDCMIMJ(lab, II-imp, I-par)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Progr.C++ (curs)\nA.Curmanscii 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Miercuri",
+    "start": "8:00",
+    "text": "15:00 DCMIMJ(curs, ro)\nD.Lefter 113/4\n15:00 Antrepren.(curs, ru)\nL.Șargu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Miercuri",
+    "start": "9:45",
+    "text": "9:45 IA p/u JV(curs, ro)\nV.Grigorcea 113/4\n16:45 Antrepren.(sem, ru)\nL.Șargu 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Progr.C++(curs, ro)\nM.Croitor 423/4\nIA pentru JV(curs, ru)\nV.Grigorcea 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Cult.comun.(ro)\nA.Popa 429/c\nPsihologie(ro)\nA.Vrabii 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Joi",
+    "start": "8:00",
+    "text": "15:00 Psihol.(sem, ru)\nD.Antibor 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Joi",
+    "start": "9:45",
+    "text": "16:45 Ps.(sem, imp, ru)\nD.Antibor 404/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "DJ 3DU(curs, ro)\nV.Jelihovschi 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Cult.comun.(ro, par) 429/c\nPsihologie(ro, par) 404/4\nProgr.C++(curs, ru)\nA.Curmanscii 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "15:00 Criptogr.(lab, imp)\nI.Jelascov 326/4\n15:00 BD (lab, par)\nCr.Ulmanu 218/4a\n16:45 Criptogr.(lab)\nI.Jelascov 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Criptografie și securitatea informației (curs, imp)\nO.Cerbu 401/4\nBaze de date (curs, par)\nCr.Ulmanu 401/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Baze de date(lab, imp)\nCr.Ulmanu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Tehnol.progr.(lab, par)\nI.Anghelova 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)",
+      "IA2503(ru)",
+      "IA2504(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Baze de date (curs, imp)\nCr.Ulmanu 113/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "I2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Baze de date(lab, par)\nCr.Ulmanu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "Baze de date(lab)\nCr.Ulmanu 326/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Baze de date(lab, par)\nCr.Ulmanu 218/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "IA2503(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Tehnol.progr.(lab, par)\nI.Anghelova 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "IA2504(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Tehnol.progr.(lab, imp)\nI.Anghelova 219/4a"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Antrepren.(curs)\nA.Mulic 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2501(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Antrepren.(sem)\nA.Mulic 214/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "8:00 DJ3DU (lab)\nI: D.Pugaci 423/4\n15:00 DJ3DU (lab)\nII: D.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "DJ3DU (curs)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "DCIMJ (curs)\nD.Lefter 419/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2502(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "DJ3DU (lab)\nII: D.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Vineri",
+    "start": "8:00",
+    "text": "DCMIMJ(lab, en)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Vineri",
+    "start": "9:45",
+    "text": "Antrepren.(curs, ro)\nA.Mulic 214/4\nDJ3DU (curs, ru)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Antrepren.(sem, ro)\nA.Mulic 214/4\nDCIMJ (curs, ru)\nD.Lefter 419/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Intel.artif.(lab, imp, en)\nE.Tretiacova 145a/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "Intel.artif.(lab, en)\nE.Tretiacova 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "DJ3DU (lab, en)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar2.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2503(en)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "DJ3DU (lab, en)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Pachet opțional\nA.Perjan 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Pachet opțional\nP.Sîrbu 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "Pachet opțional (imp)\nP.Sîrbu 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "9:45 Calc.var (curs)\nA.Perjan 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Calc.var (lab)\nV.Pațiuc 239/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Pachet opțional\nV.Popa 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "Pachet opțional (curs)\nI.Verlan 415/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "Pachet opțional (lab, imp)\nI.Verlan 145/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "I2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Autom. și script (lab)\nD.Semeniuc 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "I2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "Cloud (lab)\nL.Prepeliță 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "16:45 Cloud Computing (curs), A.Prepeliță 113/4\n18:30 Modele de design software (curs), G.Stănescu 113/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "I2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "IA (lab)\nG.Marin 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "I2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "16:45 IA (lab, imp)\nG.Marin 143/4\n16:45 Cloud (lab, par)\nL.Prepeliță 145/4\n18:30 Design soft (lab)\nG.Stănescu 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Cloud (lab, imp)\nL.Prepeliță 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "Design audio și efecte vizuale (curs)\nM.Bacalov 401/4\nDezvoltarea aplicațiilor mobile (curs)\nC.Crudu 404/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "IA (lab)\nG.Marin 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Cloud (lab)\nL.Prepeliță 237/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "9:45 IA (lab, imp)\nG.Marin 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2402(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Cloud (lab, par)\nL.Prepeliță 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2402(ro)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "Cloud (lab)\nL.Prepeliță 237/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 1,
+    "groups": [
+      "IA2402(ro)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "IA (lab, par)\nG.Marin 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Cerc.oper. (curs)\nA.Tkacenko 419/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "Cerc.oper. (sem)\nA.Tkacenko 419/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Mod. matem. (curs)\nI.Băț 218/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Pachet opțional (curs)\nI.Băț 218/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "15:00",
+    "text": "Mod. matem. (lab)\nI.Băț 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "Pachet opțion. (lab, imp)\nI.Băț 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Inteligența artificială (curs)\nV.Grigorcea 113/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "I2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Autom. și script (curs)\nM.Croitor 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "Fotogrametrie și scanare 3D (lab)\nG.Rusu 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "16:45 Fotogrametrie și scanare 3D (curs)\nV.Sprîncean 429/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "18:30 Design soft (lab)\nG.Stănescu 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2402(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "9:45 IA (lab)\nG.Marin 145a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Realitate virtuală și augmentată (curs)\nN.Pleșca 237/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Joi",
+    "start": "15:00",
+    "text": "Realitate virtuală și augmentată (lab)\nE.Arseni 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "Realitate virtuală și augmentată (lab, imp)\nE.Arseni 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 2,
+    "groups": [
+      "IA2402(ro)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "18:30 Design soft (lab)\nG.Stănescu 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Vineri",
+    "start": "15:00",
+    "text": "Pachet opțional\nV.Guțu 404/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "M2401(ro)"
+    ],
+    "day": "Vineri",
+    "start": "16:45",
+    "text": "Pachet opțional\nV.Guțu 404/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Vineri",
+    "start": "15:00",
+    "text": "15:00 Securitatea aplicațiilor web și mobile (curs)\nN.Pleșca 214/4\n16:45 Securitatea aplicațiilor web și mobile (lab)\nN.Pleșca 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Vineri",
+    "start": "16:45",
+    "text": "18:30 Securitatea aplicațiilor web și mobile (lab, imp)\nN.Pleșca 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "11:30 Securitatea rețelelor (curs), I.Tican 145/4\n13:15 Securitatea rețelelor (lab), I.Tican 145/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "I2401(ro)",
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "13:15",
+    "text": "15:00 Securitatea rețelelor (lab, imp), I.Tican 145/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Design audio și efecte vizuale (lab, imp)\nG.Rusu 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Dezvoltarea aplicațiilor mobile (lab, par)\nC.Crudu 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Design audio și efecte vizuale (lab)\nG.Rusu 350/4\nDezvoltarea aplicațiilor mobile (lab)\nC.Crudu 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "Dezvoltarea de aplicații server-side (curs)\nC.Bragaru 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 3,
+    "groups": [
+      "IA2401(ro)",
+      "IA2402(ro)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "Dezvoltarea de aplicații server-side (lab)\nA.Gligor 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Autom. și script (lab)\nM.Croitor 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)",
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Modele de design software (curs)\nA.Curmanschii 213a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "9:45 SMAI (lab)\nD.Borș 143/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "SMAI (curs)\nD.Borș 419/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Cloud (lab)\nS.Ciobanu 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)",
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "Cloud Computing (curs)\nN.Nartea 213a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "8:00 Design soft (lab)\nA.Curmanschii 251/4\n9:45 SAWM (lab)\nV.Vișnevschi 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "RVA (lab, par)\nM.Corjan 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "15:00 Fot&Scan 3D (curs), V.Sprîncean 429/4\n15:00 Server-side (curs, imp), V.Vișnevschi 213a/4\n16:45 Fot&Scan 3D (lab), V.Sprîncean 429/4\n16:45 Server-side (curs, imp), V.Vișnevschi 213a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "9:45 Design soft (lab)\nA.Curmanschii 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "Cloud (lab)\nN.Nartea 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "RVA (lab)\nM.Corjan 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "SAWM (lab, par)\nV.Vișnevschi 145a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Luni",
+    "start": "11:30",
+    "text": "Design soft (lab)\nA.Curmanschii 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "RVA (lab, imp)\nE.Arseni 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "RVA (lab)\nE.Arseni 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "SAWM (lab, imp)\nV.Vișnevschi 145a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "DA&EV (curs)\nM.Bacalov 401/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "DA&EV (lab)\nG.Rusu 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "DA&EV (lab, imp)\nG.Rusu 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "U&Vuforia (lab, par)\nD.Lefter 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Java (lab)\nI.Anghelov 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "RA U&Vuforia (lab)\nD.Lefter 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Marţi",
+    "start": "16:45",
+    "text": "T&O jocurilor (curs)\nD.Pugaci 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Luni",
+    "start": "13:15",
+    "text": "Java (lab)\nI.Anghelov 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Luni",
+    "start": "15:00",
+    "text": "DA&EV (lab)\nA.Coliban 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Luni",
+    "start": "16:45",
+    "text": "DA&EV (lab, imp)\nA.Coliban 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "11:30",
+    "text": "PSI (curs)\nM.Butnaru 218/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "13:15",
+    "text": "Java (curs)\nGh.Latul 419/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 4,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Marţi",
+    "start": "15:00",
+    "text": "PSI (lab)\nM.Butnaru 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "IA (lab)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "SAWM (lab, imp)\nV.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "IA (lab, par)\nG.Marin 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Autom. și script (curs)\nM.Croitor 254/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)",
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Inteligența artificială (curs)\nV.Grigorcea 113/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)",
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Joi",
+    "start": "15:00",
+    "text": "Securitatea aplicațiilor web și mobile (curs)\nN.Pleșca 113/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "9:45 SMAI (lab, imp)\nD.Borș 237/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "Design audio și efecte vizuale (curs)\nM.Bacalov 254/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "13:15 Design audio și efecte vizuale (lab)\nM.Bacalov 216a/4a\n15:00 Design audio și efecte vizuale (lab, imp)\nM.Bacalov 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "DA S-S (lab, par)\nV.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "DA S-S (lab, par)\nV.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "Realitate virtuală și augmentată (curs)\nN.Pleșca 113/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "9:45 DA S-S (lab)\nV.Vișnevschi 219/4a\n11:30 Des. audio și e.v.(curs)\nM.Bacalov 254/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Joi",
+    "start": "11:30",
+    "text": "Cloud (lab)\nN.Nartea 216a/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "Java (curs)\nI.Anghelov 254/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "PJ Python (curs)\nN.Pleșca 401/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Miercuri",
+    "start": "16:45",
+    "text": "RA U&Vuforia (curs)\nD.Lefter 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Java (lab, imp)\nI.Anghelov 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "PJ Python (lab, par)\nF.Caliman 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "15:00",
+    "text": "T&O jocurilor (lab)\nD.Pugaci 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "PJ Python (lab)\nF.Caliman 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "11:30",
+    "text": "DA&EV (curs)\nM.Bacalov 254/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "13:15",
+    "text": "PJ Python (curs)\nN.Pleșca 213a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Miercuri",
+    "start": "15:00",
+    "text": "T&O jocurilor (curs)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "PJ Python (lab, imp)\nF.Caliman 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "13:15",
+    "text": "Java (lab, par)\nI.Anghelov 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "15:00",
+    "text": "PJ Python (lab)\nF.Caliman 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 5,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Joi",
+    "start": "16:45",
+    "text": "T&O jocurilor (lab)\nD.Pugaci 350/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "I2402(ru)"
+    ],
+    "day": "Vineri",
+    "start": "13:15",
+    "text": "Cloud (lab, imp)\nS.Ciobanu 218/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Cloud (lab, imp)\nN.Nartea 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "IA (lab, par)\nV.Trebiș 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Vineri",
+    "start": "15:00",
+    "text": "SAWM (lab)\nV.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)"
+    ],
+    "day": "Vineri",
+    "start": "16:45",
+    "text": "9:45 IA (lab)\nV.Trebiș 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "Securitatea aplicațiilor enterprise (curs)\nD.Negura 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "Securitatea aplicațiilor enterprise (lab)\nD.Negura 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "11:30",
+    "text": "Securitatea aplicațiilor enterprise (lab, imp)\nD.Negura 251/4\nDezvoltarea aplicațiilor mobile (lab, par)\nD.Negura 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2403(ru)",
+      "IA2404(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "13:15",
+    "text": "13:15 Dezvoltarea aplicațiilor mobile (curs)\nD.Negura 251/4\n15:00 Dezvoltarea aplicațiilor mobile (lab)\nD.Negura 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "IA (lab, imp)\nE.Tretiacova 326/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Vineri",
+    "start": "11:30",
+    "text": "Cloud (lab, par)\nN.Nartea 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Vineri",
+    "start": "15:00",
+    "text": "IA (lab)\nE.Tretiacova 145a/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "IA2404(ru)"
+    ],
+    "day": "Vineri",
+    "start": "16:45",
+    "text": "SAWM (lab)\nV.Vișnevschi 219/4a"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Vineri",
+    "start": "15:00",
+    "text": "8:00 PSI (curs)\nM.Butnaru 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2401(ro)"
+    ],
+    "day": "Vineri",
+    "start": "16:45",
+    "text": "9:45 PSI (lab)\nM.Butnaru 251/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "8:00",
+    "text": "15:00 U&Vuforia (lab)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "9:45",
+    "text": "16:45 U&Vuforia (lab, imp)\nD.Pugaci 423/4"
+  },
+  {
+    "source": "orar3.pdf",
+    "page": 6,
+    "groups": [
+      "DJ2402(ru)"
+    ],
+    "day": "Sâmbătă",
+    "start": "13:15",
+    "text": "RA U&Vuforia (curs)\nD.Pugaci 423/4"
+  }
+]
