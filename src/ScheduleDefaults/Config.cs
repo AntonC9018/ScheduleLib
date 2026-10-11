@@ -108,6 +108,15 @@ public static class Config
         StudyYear = new(2026),
         Allowlist =
         [
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Dezv. WEB.",
+                GroupName = "I2501",
+                Day = DayOfWeek.Tuesday,
+                TimeSlot = new(4),
+                Reason = "Known website PDF source conflict at 15:00; retained without changing either lesson. See the 2026-10-11 capture.",
+            },
             // Elective courses students choose between: parallel alternatives sharing
             // slots by design. Separated by the grade-2 Alternative assignments
             // above; the entries stay as a safety net for lessons whose groups
@@ -496,4 +505,3 @@ public static class Config
         }
     }
 }
-

@@ -22,12 +22,12 @@ public static partial class CliSettings
             foreach (var entry in map)
             {
                 if (!teachers.Contains(entry.Key)) throw new JsonException($"Unknown teacher profile '{entry.Key}' in {file}.");
-                ReadActions(entry.Value);
+                ReadActions(entry.Value, isProfile: true);
             }
         }
         return operations;
 
-        void ReadActions(JsonNode? actions)
+        void ReadActions(JsonNode? actions, bool isProfile = false)
         {
             if (actions is not JsonArray array) throw new JsonException($"Operations must be an array in {file}.");
             foreach (var entry in array)
@@ -35,6 +35,8 @@ public static partial class CliSettings
                 if (entry is not JsonObject action) throw new JsonException($"Expected operation object in {file}.");
                 CheckKeys(action, ["operation", "key", "item"], file);
                 ValidateOperation(action, json);
+                if (isProfile && action["key"]!.GetValue<string>().Split('.')[0] == "ScheduleDerivationConfig")
+                    throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 RejectSecrets(action["item"], file);
                 ResolvePaths(action["item"], Path.GetDirectoryName(Path.GetFullPath(file))!);
             }

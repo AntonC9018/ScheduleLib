@@ -18,6 +18,12 @@ public sealed class Schedule
     public required ImmutableArray<Teacher> Teachers { get; init; }
     public required ImmutableArray<Course> Courses { get; init; }
     public required ImmutableArray<Period> Periods { get; init; }
+    public ImmutableArray<DetectedLabSubGroupMerge> AutomaticLabSubGroupMerges { get; init; } = [];
+    public ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics { get; init; } = [];
+    public ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons { get; init; } = [];
+
+    public bool IsLessonActive(AnyLessonId id) => id.Regularity != LessonRegularity.Weekly
+        || !SuppressedWeeklyLessons.Contains(new(id.Id));
 
     public static readonly Schedule Empty = new()
     {
@@ -297,6 +303,11 @@ public readonly record struct AllLessonsEnumerable
 
                 if (_index < len)
                 {
+                    if (!_arrays.IsLessonActive(new(_regularity, _index)))
+                    {
+                        _index++;
+                        continue;
+                    }
                     return true;
                 }
                 _regularity++;
@@ -1098,9 +1109,11 @@ public static class ScheduleAccessorHelper
     {
         return new(schedule.Periods);
     }
-    public static ScheduleObjectEnumerable<WeeklyLesson, WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
+    public static IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
     {
-        return new(schedule.WeeklyLessons);
+        for (var index = 0; index < schedule.WeeklyLessons.Length; index++)
+            if (schedule.IsLessonActive(new(LessonRegularity.Weekly, index)))
+                yield return WeeklyLessonAccessor.Create(index, schedule.WeeklyLessons);
     }
     public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(this Schedule schedule)
     {
@@ -1199,4 +1212,3 @@ public readonly partial struct OneTimeLessonAccessor : IAccessor<OneTimeLessonAc
         return new(r);
     }
 }
-

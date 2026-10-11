@@ -2,6 +2,8 @@ using System.Diagnostics;
 using AutoConstructor.Attributes;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
@@ -11,15 +13,37 @@ namespace ScheduleLib.Application.Core;
 public sealed class ScheduleProvider
 {
     private readonly ScheduleBuilder _builder;
+    private readonly IOptions<ScheduleDerivationOptions> _options;
+    private readonly ILogger<ScheduleProvider> _logger;
+    private readonly Lazy<Schedule> _schedule;
 
-    public ScheduleProvider(ScheduleBuilder builder)
+    public ScheduleProvider(ScheduleBuilder builder, IOptions<ScheduleDerivationOptions> options,
+        ILogger<ScheduleProvider> logger)
     {
         _builder = builder;
+        _options = options;
+        _logger = logger;
+        _schedule = new(Build);
     }
 
     public Schedule Get()
     {
-        var schedule = _builder.Build();
+        return _schedule.Value;
+    }
+
+    private Schedule Build()
+    {
+        var raw = _builder.Build();
+        // Implicit partition assignments can append lessons during Build. Refresh
+        // their raw IDs before any registry consumer uses the course lookup.
+        _builder.RefreshLookup();
+        var schedule = LabSubGroupMerges.Project(raw, _options.Value.AutoMergeLabSubGroups);
+        foreach (var diagnostic in schedule.LabSubGroupMergeDiagnostics)
+            _logger.LogWarning("Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
+                schedule.Get(diagnostic.Course).FullName, schedule.Get(diagnostic.Group).Name,
+                diagnostic.Specialization.Value, diagnostic.Alternative.Value, diagnostic.Reason);
+        if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
+            _logger.LogInformation("Derived {Count} automatic lab subgroup merges for the semester", schedule.AutomaticLabSubGroupMerges.Length);
         return schedule;
     }
 }

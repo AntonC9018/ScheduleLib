@@ -358,3 +358,26 @@ other topic content remains significant. Confirmation still checks the date,
 lesson mode, attendance, and unique saved record without replaying the POST.
 Reconciliation uses the same normalization to avoid repeatedly updating an
 otherwise unchanged topic.
+
+### Global numeric lab subgroup merging (#219)
+
+`ScheduleDerivationConfig.autoMergeLabSubGroups` defaults to false and accepts
+only global defaults, with ordinary user/project precedence. The singleton
+schedule provider projects raw history after fresh or cached loading and before
+teacher/output filtering. Numeric lab partitions that converge to one surviving
+subgroup or an explicit whole-group timetable in a newer applicable period use
+the latest timetable for the entire semester. Other partition dimensions stay
+intact; inconclusive period evidence produces a diagnostic.
+
+Raw lookup IDs remain stable. The derived schedule excludes obsolete lab IDs
+from lesson enumeration, common date/event iteration, and registry matching;
+retained labs target `SubGroup.All` with an unspecified period so the semester
+interval applies. Raw cache serialization precedes projection. Conclusive
+automatic evidence supersedes a registry `labMerges` rule; legacy manual rules
+remain available otherwise.
+
+The shared dated-directory loader now reads website PDFs as well as Word
+sources, using PR #68's existing entrepreneurship cohort adaptation. The
+2026-10-11 capture follows the 2026-09-01 Word period; its folder date records
+capture time rather than claiming an official upload date. I2501's documented
+Tuesday 15:00 pedagogy/Web conflict is retained under an exact overlap allowance.

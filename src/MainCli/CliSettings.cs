@@ -41,6 +41,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     private readonly ServiceProvider _provider;
     private readonly JsonSerializerOptions _json;
     private readonly IReadOnlyDictionary<string, NodePath> _profilePaths;
+    private readonly NodePath _globalPath;
     internal JsonSerializerOptions Json => _json;
     internal IServiceProvider Services => _provider;
     public TreeBuilder Tree { get; }
@@ -52,18 +53,22 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
 
     internal ResolvedSettings(ServiceProvider provider, TreeBuilder tree, NodePath path, JsonSerializerOptions json,
         string? projectDirectory, string? profile, IReadOnlyList<string> profiles, IReadOnlyList<SettingsSource> sources,
-        IReadOnlyDictionary<string, NodePath> profilePaths)
+        IReadOnlyDictionary<string, NodePath> profilePaths, NodePath globalPath)
     {
         _provider = provider; Tree = tree; Path = path; _json = json;
         ProjectDirectory = projectDirectory; Profile = profile; Profiles = profiles; Sources = sources; _profilePaths = profilePaths;
+        _globalPath = globalPath;
     }
 
     public T? Get<T>(NodeDataKey<T> key) where T : class => Path.ConstructValue(key, _provider);
+    public T? GetGlobal<T>(NodeDataKey<T> key) where T : class => _globalPath.ConstructValue(key, _provider);
 
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton(Tree);
         services.AddSingleton<IMarkerDataHelper>(this);
+        services.Configure<ScheduleDerivationOptions>(options =>
+            options.AutoMergeLabSubGroups = GetGlobal(ScheduleDerivationConfig.Key)?.AutoMergeLabSubGroups ?? false);
         if (Profile is { } teacher)
             services.AddScoped(_ => new TeacherLayerConfig { TeacherName = NameHelper.Parse(teacher) });
     }
@@ -139,6 +144,7 @@ public static partial class CliSettings
     {
         "GoogleCalendarConfig", "GoogleDriveConfig", "MoodleConfig", "RegistryConfig", "RegistryLessonFilterConfig",
         "DeadlinesExcelConfig", "LessonAttendanceConfig", "LessonTopicsConfig", "LabTasksDatabaseConfig",
+        "ScheduleDerivationConfig",
     };
     public static string UserFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ScheduleLib", FileName);
 
@@ -202,7 +208,7 @@ public static partial class CliSettings
                 selectedPath = path.ToImmutable();
             }
             var resolved = new ResolvedSettings(provider, tree, new(selectedPath), json, project, arguments.Profile,
-                codeProfiles.Keys.Order().ToArray(), selectedSources, profilePaths);
+                codeProfiles.Keys.Order().ToArray(), selectedSources, profilePaths, new(defaultsPath.ToImmutable()));
             resolved.Validate();
             return resolved;
 
@@ -299,6 +305,8 @@ public static partial class CliSettings
             if (block is not JsonObject values) throw new JsonException($"{location} must be an object in {path}.");
             foreach (var setting in values)
             {
+                if (location.StartsWith("profiles.", StringComparison.Ordinal) && setting.Key == "ScheduleDerivationConfig")
+                    throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 var key = new NodeDataKey(setting.Key);
                 var type = NodeDataKey.Registry.TryGetTypeFromKey(key);
                 if (type is null || !SupportedBlocks.Contains(setting.Key))

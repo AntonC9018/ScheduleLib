@@ -77,7 +77,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             loader.Components.Add(l);
         }
 
-var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
+        var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
         loader.ConfigurationIdentity = string.Join("|", "cache-v2",
@@ -96,4 +96,3 @@ var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, build
         _logger.LogInformation("Schedule built");
     }
 }
-

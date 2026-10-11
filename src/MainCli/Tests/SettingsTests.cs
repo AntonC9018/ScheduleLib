@@ -14,6 +14,39 @@ using Xunit;
 public sealed class SettingsTests
 {
     [Fact]
+    public async Task LabSubGroupMergeSettingIsOptInGlobalAndUsesUserProjectLayering()
+    {
+        using var files = new SettingsFixture();
+        using (var defaults = await files.Load(new()))
+            Assert.False(defaults.GetGlobal(ScheduleDerivationConfig.Key)!.AutoMergeLabSubGroups);
+        await files.User("""{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":true}}}""");
+        await files.Project("""{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":null}}}""");
+        using (var settings = await files.Load(new() { Profile = "Curmanschii Anton" }))
+        {
+            Assert.True(settings.GetGlobal(ScheduleDerivationConfig.Key)!.AutoMergeLabSubGroups);
+            var services = new ServiceCollection();
+            services.AddConfigsServices();
+            settings.ConfigureServices(services);
+            using var provider = services.BuildServiceProvider();
+            Assert.True(provider.GetRequiredService<IOptions<ScheduleDerivationOptions>>().Value.AutoMergeLabSubGroups);
+        }
+        await files.Project("""{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":false}}}""");
+        using var overridden = await files.Load(new() { Profile = "Nartea Nichita" });
+        Assert.False(overridden.GetGlobal(ScheduleDerivationConfig.Key)!.AutoMergeLabSubGroups);
+    }
+
+    [Theory]
+    [InlineData("{\"schemaVersion\":1,\"profiles\":{\"Curmanschii Anton\":{\"ScheduleDerivationConfig\":{\"autoMergeLabSubGroups\":true}}}}")]
+    [InlineData("{\"schemaVersion\":1,\"operations\":{\"profiles\":{\"Curmanschii Anton\":[{\"operation\":\"reset\",\"key\":\"ScheduleDerivationConfig\"}]}}}")]
+    public async Task GlobalLabMergeSettingRejectsProfileOverrides(string document)
+    {
+        using var files = new SettingsFixture();
+        await files.Project(document);
+        var error = await Assert.ThrowsAsync<JsonException>(() => files.Load(new()));
+        Assert.Contains("global", error.Message);
+    }
+
+    [Fact]
     public async Task AttendanceWorkbookComesFromProfileInsteadOfPersonalCodedPath()
     {
         using var files = new SettingsFixture();

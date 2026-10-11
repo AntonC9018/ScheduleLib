@@ -64,5 +64,11 @@ and 194 PDFs across 209 pages. FMI changed the third-year PDF since September 21
 IA2402's Cloud lab now occupies an odd-week Monday slot and an even-week Tuesday
 slot. A second run detected identical hashes and skipped generation.
 
+The shared Integration loader also accepts PDFs in its dated schedule source
+directories. A website capture alongside an older Word period supplies evidence
+for `ScheduleDerivationConfig.autoMergeLabSubGroups`; ordinary MainCli consumers
+use that shared derived schedule. The standalone updater below still performs
+its own download/export workflow.
+
 One source conflict remains: I2501 has Web development and optional pedagogy
 at 15:00 on odd Tuesdays. It is preserved and reported by default.

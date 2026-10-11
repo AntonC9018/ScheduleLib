@@ -17,6 +17,9 @@ internal static class RegistryLabMerges
         Schedule schedule, CourseId course, in LessonGroups groups, GroupPartitionKey partition)
     {
         if (!groups.IsSingleGroup || course.IsInvalid || partition != GroupPartitionKey.All) return null;
+        var group = groups[0];
+        if (schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == course && merge.Group == group
+            && merge.Specialization == partition.Specialization && merge.Alternative == partition.Alternative)) return null;
         RegistryLabMergeRule? found = null;
         foreach (var rule in rules)
         {
@@ -46,6 +49,7 @@ internal static class RegistryLabMerges
         // Exact surviving lab partition; no elective fallback or cross-parent lesson.
         var lessons = parameters.Lookup[filter.CourseId].Where(id =>
         {
+            if (!parameters.Schedule.IsLessonActive(id)) return false;
             var lesson = parameters.Schedule.Get(id).Lesson;
             return lesson.Type == LessonType.Lab && lesson.GroupPartitionKey == survivingPartition
                 && lesson.Groups.IsSingleGroup && lesson.Groups[0] == filter.Groups.Value[0];

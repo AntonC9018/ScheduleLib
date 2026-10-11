@@ -12,6 +12,7 @@ public static class DefaultConfig
 {
     public static void AddDefaultConfig(this TreeBuilder b)
     {
+        b.BaseNode.GetOrAdd(ScheduleDerivationConfig.Key).SetValue(new() { AutoMergeLabSubGroups = false });
         b.Defaults.Configure(defaults =>
         {
             defaults.Registry().Configure(x =>

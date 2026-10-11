@@ -86,6 +86,7 @@ internal static class MatchLessonHelper
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
+            if (!p.Schedule.IsLessonActive(lessonId)) continue;
             var lesson = p.Schedule.Get(lessonId);
             if (p.Filter.Groups.IsCombined ? lesson.Lesson.GroupPartitionKey != groupPartition
                 : !MatchesPartition(p.Schedule, lesson.Lesson, groupPartition))

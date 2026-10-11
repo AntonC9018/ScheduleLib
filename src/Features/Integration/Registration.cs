@@ -82,6 +82,7 @@ public static class Registration
             DeadlinesExcelConfig.Register(services);
             LabTasksDatabaseConfig.Register(services);
             RegistryLessonFilterConfig.Register(services);
+            ScheduleDerivationConfig.Register(services);
 
             // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Teachers;
+using FmiScheduleImport;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -67,6 +68,12 @@ public sealed class ScheduleLoader
             if (model is not null && model.Hash == hashHex)
             {
                 ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
+                // Cache models already contain the explicit PDF cohort assignments;
+                // reuse the same import policy before the builder validates them.
+                if (Components.OfType<DirectoryScheduleLoaderComponent>().Any(component =>
+                    Directory.EnumerateFiles(component.DirectoryPath.Value, "*.pdf", SearchOption.AllDirectories).Any()))
+                    context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
+                        context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
                 return;
             }
         }

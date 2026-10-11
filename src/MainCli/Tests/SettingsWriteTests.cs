@@ -7,6 +7,21 @@ using Xunit;
 public sealed class SettingsWriteTests
 {
     [Fact]
+    public async Task LabSubGroupSettingWritesGloballyAndRejectsProfileWritesAtomically()
+    {
+        using var files = new Fixture();
+        await files.Success("set", "ScheduleDerivationConfig.autoMergeLabSubGroups", "true", "--scope", "user");
+        Assert.True(bool.Parse(await files.Get("ScheduleDerivationConfig.autoMergeLabSubGroups", "--profile", "Curmanschii Anton")));
+        var original = await File.ReadAllTextAsync(files.UserFile);
+        File.Delete(files.UserFile + ".lock");
+        var result = await files.Run("set", "ScheduleDerivationConfig.autoMergeLabSubGroups", "false", "--scope", "user", "--profile", "Curmanschii Anton");
+        Assert.Equal(3, result.Exit);
+        Assert.Contains("global", result.Error);
+        Assert.Equal(original, await File.ReadAllTextAsync(files.UserFile));
+        Assert.False(File.Exists(files.UserFile + ".lock"));
+    }
+
+    [Fact]
     public async Task RegistryCourseAliasesAreScopedToSelectedTeacher()
     {
         using var files = new Fixture();

@@ -36,8 +36,13 @@ public sealed class ElectiveCohorts
                 alternatives.Add(new(cell.Alternative!));
             }
         }
+        SplitConfig = CreateSplitConfig(context.Schedule.ImplicitSplitConfig ?? Config.ImplicitSplitConfig);
+    }
+
+    public static ImplicitSplitConfig CreateSplitConfig(ImplicitSplitConfig original)
+    {
         var config = new ImplicitSplitConfigBuilder();
-        foreach (var scope in Config.ImplicitSplitConfig.Scopes)
+        foreach (var scope in original.Scopes)
         {
             config.Scope(copy =>
             {
@@ -59,7 +64,7 @@ public sealed class ElectiveCohorts
                 }
             });
         }
-        SplitConfig = config.Build();
+        return config.Build();
     }
 
     public ImplicitSplitConfig SplitConfig { get; }
