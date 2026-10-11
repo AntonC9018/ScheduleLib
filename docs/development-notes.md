@@ -378,6 +378,7 @@ remain available otherwise.
 
 The shared dated-directory loader now reads website PDFs as well as Word
 sources, using PR #68's existing entrepreneurship cohort adaptation. The
-2026-10-11 capture follows the 2026-09-01 Word period; its folder date records
-capture time rather than claiming an official upload date. I2501's documented
+2026-09-21 snapshot from PR #68's original PDF fixtures and the 2026-10-11
+capture follow the 2026-09-01 Word period; their folder dates record capture
+time rather than claiming official upload dates. I2501's documented
 Tuesday 15:00 pedagogy/Web conflict is retained under an exact overlap allowance.

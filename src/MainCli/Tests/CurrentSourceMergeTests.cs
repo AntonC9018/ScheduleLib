@@ -18,7 +18,15 @@ public sealed class CurrentSourceMergeTests
         {
             var sources = Path.Combine(AppContext.BaseDirectory, "data");
             var raw = await Load(sources, cacheDirectory, enabled: false);
-            Assert.Equal(new[] { new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 11) }, raw.Periods.Select(x => x.Start));
+            Assert.Equal(new[] { new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), new DateOnly(2026, 10, 11) },
+                raw.Periods.Select(x => x.Start));
+            var cloudLabs = raw.EnumerateWeeklyLessons().Where(x => x.Lesson.Type == LessonType.Lab
+                && x.Lesson.Groups.IsSingleGroup && raw.Get(x.Lesson.Group).Name == "IA2402"
+                && raw.Get(x.Lesson.Course).Names.Any(name => name.Contains("Cloud", StringComparison.OrdinalIgnoreCase))).ToArray();
+            Assert.Contains(cloudLabs, x => x.Date.Period == new PeriodId(1)
+                && x.Date.DayOfWeek == DayOfWeek.Tuesday && x.Date.Parity == Parity.EveryWeek);
+            Assert.DoesNotContain(cloudLabs, x => x.Date.Period == new PeriodId(2)
+                && x.Date.DayOfWeek == DayOfWeek.Tuesday && x.Date.Parity == Parity.EveryWeek);
             var cache = Assert.Single(Directory.EnumerateFiles(cacheDirectory, "*.json"));
             var originalCache = await File.ReadAllBytesAsync(cache);
             var cacheWriteTime = File.GetLastWriteTimeUtc(cache);

@@ -2,7 +2,8 @@
 
 Captured from the official FMI timetable page on 2026-10-11.
 The directory date records this capture, not an asserted publication date.
-The September Word sources are retained as the preceding schedule period.
+The September 1 Word sources and September 21 PDFs from PR #68 are retained
+as the preceding schedule periods.
 The shared loader preserves the known I2501 Tuesday 15:00 conflict between
 optional pedagogy and Web development with an exact overlap-validation allowance.
 
