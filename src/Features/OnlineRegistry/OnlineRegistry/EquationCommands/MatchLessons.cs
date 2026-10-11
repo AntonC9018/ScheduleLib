@@ -40,6 +40,18 @@ internal readonly record struct LessonMatchParams
 internal static class MatchLessonHelper
 {
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
+        => MatchLessonCandidates(p)
+            .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
+
+    internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
+        => MatchLessonCandidates(p)
+            .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
+            .ToList();
+
+    private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
+        => lesson.Type == LessonType.Lab && (groups.IsWildcard || !groups.Value.IsSingleGroup);
+
+    private static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
     {
         {
             bool yielded = false;

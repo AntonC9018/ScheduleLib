@@ -177,6 +177,17 @@ whole-group lab sheet against the surviving scheduled partition, then stores its
 attendance under the whole-group key. Missing surviving labs stop planning.
 No merge is inferred for other courses, groups, or combined registry labels.
 
+Intake-wide wildcard and multi-parent combined registry destinations cannot
+receive labs (#220). The earlier widening in #214 incorrectly treated separate
+parent labs as a shared audience. Matching now excludes them, and planning emits an
+`unsafe-registry-lab-destination` warning when the selected teacher has matching
+labs. It leaves the entire destination untouched and continues with other
+destinations. Checking lecturer ownership after broad matching was insufficient:
+the teacher filter kept their labs while removing
+another lecturer's shared lecture. Skipping the destination also prevents the
+positional reconciler from rewriting existing columns after those labs are removed.
+Explicit parent/partition destinations and shared lectures remain eligible.
+
 Merged worksheet columns must be aligned by confirmed lesson occurrence before
 loading; this projection does not reconcile differing source dates automatically.
 For typed headers, attendance cell boundaries use the current cell's column and

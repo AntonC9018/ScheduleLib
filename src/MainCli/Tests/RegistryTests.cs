@@ -67,7 +67,7 @@ public sealed class RegistryTests
         var destinationGroups = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups;
         var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = !singleDestination, Value = destinationGroups,
+            IsWildcard = !singleDestination && !destinationGroups.IsSingleGroup, Value = destinationGroups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
@@ -106,7 +106,7 @@ public sealed class RegistryTests
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
         var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = true, Value = lesson.Lesson.Groups,
+            IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation"))) { TwoGroups = true };
         var delivered = 0;
         await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(new()
@@ -158,7 +158,7 @@ public sealed class RegistryTests
         var lesson = schedule.EnumerateWeeklyLessons().First();
         var navigator = new PreparationNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = true, Value = lesson.Lesson.Groups,
+            IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")));
         var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
         var parameters = new AddLessonsToOnlineRegistryTaskHandler.RunParams
@@ -203,7 +203,7 @@ public sealed class RegistryTests
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
         var navigator = new PreparationNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = true, Value = lesson.Lesson.Groups,
+            IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")))
         {
             InvalidFirstForm = false, ReadFailure = !submitted, SubmissionFailure = submitted,

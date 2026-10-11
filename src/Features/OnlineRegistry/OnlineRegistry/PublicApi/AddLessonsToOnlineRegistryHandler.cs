@@ -88,10 +88,29 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     courseLink.CourseId,
                     group.Groups,
                     group.GroupPartition);
-                var selection = RegistryLabMerges.Select(config.LabMerges, new(
+                var matchParams = new LessonMatchParams(
                         lookup: _lookup.LessonsByCourse,
                         schedule: _schedule,
-                        filter: filter));
+                        filter: filter);
+                var unsafeLabs = MatchLessonHelper.FindUnsafeIntakeLabs(matchParams);
+                if (unsafeLabs.Count != 0)
+                {
+                    var labDecision = p.LessonFilter.Filter(new(filter, _schedule, unsafeLabs));
+                    if (labDecision.Decision is not (LessonValidityDecision.Skip or LessonValidityDecision.Error)
+                        && unsafeLabs.Count != 0)
+                    {
+                        var courseName = _schedule.Get(courseLink.CourseId).FullName;
+                        var groupNames = group.Groups.Value.ToString(_schedule);
+                        var detail = $"Skipped intake-wide registry destination {group.Uri}: laboratory sessions require explicit parent-group and partition destinations. Correct the registry assignment; this entire destination was left unchanged. Synchronization continues with other destinations.";
+                        _logger.LogWarning("Unsafe registry lab destination for {Course}, {Groups}: {Detail}",
+                            courseName, groupNames, detail);
+                        p.Diagnostics?.Add("unsafe-registry-lab-destination", courseName, groupNames, detail);
+                        // Positional reconciliation could rewrite old lab columns as lectures.
+                        // Leave this entire destination untouched until its assignment is corrected.
+                        continue;
+                    }
+                }
+                var selection = RegistryLabMerges.Select(config.LabMerges, matchParams);
                 var lessons = selection.Lessons;
                 if (lessons.Count == 0)
                 {

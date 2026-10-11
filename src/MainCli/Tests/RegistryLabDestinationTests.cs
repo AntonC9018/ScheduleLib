@@ -1,0 +1,256 @@
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
+using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib;
+using ScheduleLib.Application.Config;
+using ScheduleLib.Application.Core;
+using ScheduleLib.Builders;
+using ScheduleLib.Cli;
+using ScheduleLib.Dates;
+using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.GroupParser;
+using Xunit;
+
+public sealed class RegistryLabDestinationTests
+{
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public async Task IntakeLabsWarnAndSkipBeforeReadingOrPlanningTheDestination(bool combined, bool ownLecture, bool explicitApply)
+    {
+        await using var fixture = new Fixture(ownLecture, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined);
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, explicitApply);
+
+        Assert.Empty(plan);
+        var warning = Assert.Single(diagnostics.Items.Where(item => item.Kind == "unsafe-registry-lab-destination"));
+        Assert.Contains("explicit parent-group and partition", warning.Detail);
+        Assert.Contains(navigator.Group.Uri.ToString(), warning.Detail);
+        Assert.Contains("Synchronization continues", warning.Detail);
+        Assert.Equal(0, navigator.Reads);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CliReportsAWarningAndNoActionsForUnsafeLabs(bool apply)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined: false);
+        var diagnostics = new RegistrySyncDiagnostics();
+        using var output = new StringWriter();
+        var original = Console.Out;
+        Console.SetOut(output);
+        try
+        {
+            await using var provider = new Provider(fixture, navigator, diagnostics);
+            var command = new Commands(provider);
+            Assert.Equal(0, await command.Sync(new(), new() { Profile = "teacher" }, new() { Json = true }, new() { Apply = apply }));
+            using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
+            Assert.Equal(apply ? "applied" : "preview", result.RootElement.GetProperty("status").GetString());
+            Assert.Equal(0, result.RootElement.GetProperty("errors").GetArrayLength());
+            Assert.Contains(result.RootElement.GetProperty("warnings").EnumerateArray(),
+                warning => warning.GetString()!.Contains("laboratory sessions require explicit parent-group", StringComparison.Ordinal));
+            Assert.Equal(0, result.RootElement.GetProperty("data").GetProperty("outcomes").GetArrayLength());
+            Assert.Equal(0, navigator.Reads);
+        }
+        finally { Console.SetOut(original); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnsafeDestinationDoesNotStopPlanningTheNextExplicitDestination(bool explicitApply)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined: false, includeExplicitDestination: true);
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, explicitApply);
+
+        Assert.NotEmpty(plan);
+        Assert.All(plan, action => Assert.Equal("IA2403", action.Groups));
+        Assert.All(plan, action => Assert.Equal("lab", action.Topic));
+        Assert.DoesNotContain(navigator.Group.Uri, navigator.ReadUris);
+        Assert.Contains(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
+        Assert.Single(diagnostics.Items.Where(item => item.Kind == "unsafe-registry-lab-destination"));
+    }
+
+    private sealed class Commands(Provider provider) : RegistryCommands
+    {
+        protected override IRegistryProvider CreateProvider() => provider;
+        protected override IRegistryAccountLock CreateAccountLock() => new NoopLock();
+    }
+
+    private sealed class NoopLock : IRegistryAccountLock, IAsyncDisposable
+    {
+        public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token)
+            => Task.FromResult<IAsyncDisposable>(this);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class Provider(Fixture fixture, Navigator navigator, RegistrySyncDiagnostics diagnostics) : IRegistryProvider, IRegistrySession
+    {
+        public RegistryDestination Target => new("synthetic-teacher", "https://registry.test/");
+        public IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => diagnostics.Items;
+        public RegistrySyncDiagnostics LiveDiagnostics => diagnostics;
+        public Task<IRegistrySession> Open(SourceArguments source, SettingsArguments settings, CancellationToken token)
+            => Task.FromResult<IRegistrySession>(this);
+        public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token)
+            => fixture.Plan(navigator, diagnostics, explicitApply: true);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExplicitParentDestinationStillPlansOnlyThatParentsLabs(bool combined)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: false, combined);
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, explicitApply: true);
+
+        Assert.NotEmpty(plan);
+        Assert.All(plan, action => Assert.Equal("create", action.Kind));
+        Assert.All(plan, action => Assert.Equal("lab", action.Topic));
+        Assert.All(plan, action => Assert.Equal("IA2403", action.Groups));
+        Assert.All(plan, action => Assert.Equal(DayOfWeek.Tuesday, action.Date.DayOfWeek));
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedLecturesRemainUsableWhenSeparateLabsBelongToAnotherTeacher(bool ownLecture)
+    {
+        await using var fixture = new Fixture(ownLecture, ownLabs: false);
+        var navigator = fixture.Navigator(wildcard: true, combined: false);
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, explicitApply: true);
+
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+        if (ownLecture)
+        {
+            Assert.NotEmpty(plan);
+            Assert.All(plan, action => Assert.Equal("lecture", action.Topic));
+        }
+        else
+        {
+            Assert.Empty(plan);
+            Assert.Contains(diagnostics.Items, item => item.Kind == "registry-assignment-mismatch");
+            Assert.Equal(0, navigator.Reads);
+        }
+    }
+
+    private sealed class Fixture : IAsyncDisposable
+    {
+        private readonly ServiceProvider _provider;
+        private readonly AsyncServiceScope _scope;
+        private readonly CourseId _course;
+        private readonly LessonGroups _parents;
+        private readonly GroupPartitionKey _partition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+
+        public Fixture(bool ownLecture, bool ownLabs)
+        {
+            var builder = new ScheduleBuilder();
+            builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+            builder.EnableLookupModule();
+            _course = builder.Course("Synthetic elective");
+            _parents = [builder.Group("IA2403(ru)"), builder.Group("IA2404(ru)")];
+            var teacher = builder.Teacher("Anton Curmanschii");
+            var other = builder.Teacher("Another Lecturer");
+            builder.RegularLesson(lesson =>
+            {
+                lesson.Course(_course);
+                foreach (var group in _parents) lesson.Group(group);
+                lesson.Specialization(_partition.Specialization);
+                lesson.Type(LessonType.Curs);
+                lesson.DayOfWeek(DayOfWeek.Tuesday);
+                lesson.TimeSlot(TimeSlot.First);
+                lesson.Teacher(ownLecture ? teacher : other);
+            });
+            foreach (var group in _parents)
+            {
+                builder.RegularLesson(lesson =>
+                {
+                    lesson.Course(_course);
+                    lesson.Group(group);
+                    lesson.Specialization(_partition.Specialization);
+                    lesson.Type(LessonType.Lab);
+                    lesson.DayOfWeek(group == _parents[0] ? DayOfWeek.Tuesday : DayOfWeek.Friday);
+                    lesson.TimeSlot(new(1));
+                    lesson.Teacher(ownLabs ? teacher : other);
+                });
+            }
+            var schedule = builder.Build();
+            builder.RefreshLookup();
+            var services = new ServiceCollection();
+            AppConfiguration.ConfigureServices(services);
+            services.AddSingleton(builder);
+            services.AddSingleton(schedule);
+            _provider = AppConfiguration.BuildServiceProvider(services);
+            AppConfiguration.ConfigureLayeredConfig(_provider);
+            _scope = _provider.CreateMarkerScope(marker => marker.TeacherName = NameHelper.Parse("Curmanschii Anton"));
+        }
+
+        public Navigator Navigator(bool wildcard, bool combined, bool includeExplicitDestination = false)
+        {
+            var group = new GroupLink(
+                new FoundGroups { Value = wildcard ? _parents : [_parents[0]], IsWildcard = wildcard, IsCombined = combined },
+                _partition, new("https://registry.test/group"), new("https://registry.test/evaluation"));
+            GroupLink[] additional = includeExplicitDestination
+                ? [new(new FoundGroups { Value = [_parents[0]], IsWildcard = false }, _partition,
+                    new("https://registry.test/explicit-group"), new("https://registry.test/explicit-evaluation"))]
+                : [];
+            return new(_course, group, additional);
+        }
+
+        public Task<IReadOnlyList<RegistrySyncAction>> Plan(Navigator navigator, RegistrySyncDiagnostics diagnostics, bool explicitApply)
+            => _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
+            {
+                Navigator = navigator, Attendance = new([]), HasAttendanceSources = false,
+                LessonTopics = new Topics(), Semester = Semester.Sem1, Diagnostics = diagnostics,
+                LessonFilter = _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+            }, explicitApply: explicitApply);
+
+        public async ValueTask DisposeAsync()
+        {
+            await _scope.DisposeAsync();
+            await _provider.DisposeAsync();
+        }
+    }
+
+    private sealed class Topics : ILessonTopics
+    {
+        public string? Get(in AttendanceLookupKey key) => key.LessonType == LessonType.Lab ? "lab" : "lecture";
+    }
+
+    private sealed class Navigator(CourseId course, GroupLink group, params GroupLink[] additionalGroups) : IRegistrySyncNavigator
+    {
+        public GroupLink Group => group;
+        public int Reads { get; private set; }
+        public List<Uri> ReadUris { get; } = [];
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+            => Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
+            => Task.FromResult<IEnumerable<GroupLink>>([group, .. additionalGroups]);
+        public async Task<IDocument> GetHtml(Uri uri)
+        {
+            Reads++;
+            ReadUris.Add(uri);
+            return await new HtmlParser().ParseDocumentAsync(uri == group.Uri || additionalGroups.Any(item => item.Uri == uri)
+                ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
+                : "<html></html>");
+        }
+        public Task SubmitLesson(IDocument document) => throw new InvalidOperationException("Unexpected submission.");
+        public Task SubmitDelete(IDocument document) => throw new InvalidOperationException("Unexpected deletion.");
+    }
+}

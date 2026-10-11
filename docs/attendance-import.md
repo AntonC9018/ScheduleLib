@@ -95,11 +95,21 @@ the conservative tolerance, not unrestricted similarity matching.
 `RegistryLessonFilterConfig.skipAttendance` as well to retain the lesson-level
 filter.
 
-Shared registry audiences can include labs held separately for their parent
-groups. If no combined attendance sheet exists, attendance names and dated
-columns are composed from the individual parent sheets. A missing or ambiguous
-date leaves that parent's attendance unchanged; separate headerless sheets do
-not provide enough information for shared-audience ordinal matching.
+Intake-wide registry audiences must not collect laboratory sessions. Labs require
+an explicit parent-group destination and its subgroup/specialization partition,
+even when an intake label currently resolves to only one parent. If such a
+destination would receive the selected teacher's labs, synchronization emits an
+actionable warning and skips that entire destination before reading or reconciling
+its lesson columns, including under explicit apply. Other destinations continue
+synchronizing normally; this warning alone does not cause a failed exit code.
+This also prevents positional reconciliation from rewriting existing lab columns
+as lectures. Correct the registry assignments before retrying; existing records
+are left unchanged. Explicit per-group lab projections remain supported.
+
+Genuinely shared lectures can compose dated attendance from individual parent
+sheets when no combined sheet exists. A missing or ambiguous date leaves that
+parent's attendance unchanged; separate headerless sheets do not provide enough
+information for shared-audience ordinal matching.
 
 `RegistryConfig.studentNames` maps explicit registry student-name spellings to
 attendance-sheet names for the selected teacher. Matching still uses the existing

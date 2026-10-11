@@ -9,7 +9,7 @@ namespace ScheduleLib.Tests.OnlineRegistry;
 public sealed class CombinedGroupMatchingTests
 {
     [Fact]
-    public void OrdinarySpecializationWildcardIncludesSeparateParentLabs()
+    public void OrdinarySpecializationWildcardRejectsSeparateParentLabs()
     {
         var fixture = new Fixture();
         fixture.Add("IA2403(ru)");
@@ -21,8 +21,45 @@ public sealed class CombinedGroupMatchingTests
         var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
             new LessonSearchFilter(fixture.Course, groups, Resolver.Resolve(parsed)),
             fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
-        Assert.Equal(2, lessons.Length);
-        Assert.All(lessons, id => Assert.Contains(schedule.Get(id).Lesson.Groups[0], groups.Value));
+        Assert.Empty(lessons);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void IntakeLabRejectionDoesNotDependOnResolvedParentCount(bool combined, bool sharedLab)
+    {
+        var fixture = new Fixture();
+        fixture.Add("IA2403(ru)");
+        fixture.Add("IA2404(ru)");
+        if (sharedLab)
+            fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.Groups.Add(new GroupId(1));
+        var schedule = fixture.Build();
+        var groups = new FoundGroups { IsWildcard = true, IsCombined = combined, Value = [new GroupId(0)] };
+        var parameters = new LessonMatchParams(
+            new LessonSearchFilter(fixture.Course, groups, new(SubGroup.All, Specialization.DezvoltareaAplicatiilor)),
+            fixture.Builder.LookupModule!.LessonsByCourse, schedule);
+        Assert.Empty(MatchLessonHelper.MatchLessonsInSchedule(parameters));
+        Assert.Equal(combined && sharedLab ? 0 : 1, MatchLessonHelper.FindUnsafeIntakeLabs(parameters).Count);
+    }
+
+    [Fact]
+    public void RejectingIntakeLabsDoesNotActivateAnUnrelatedElectiveFallback()
+    {
+        var fixture = new Fixture();
+        fixture.Add("IA2403(ru)");
+        fixture.Add("IA2403(ru)", specialization: Specialization.All);
+        fixture.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.Optional;
+        fixture.Builder.WeeklyLessons.Ref(1).Data.Base.General.Type = LessonType.Curs;
+        var schedule = fixture.Build();
+        var parameters = new LessonMatchParams(
+            new LessonSearchFilter(fixture.Course, new FoundGroups { IsWildcard = true, Value = [new GroupId(0)] },
+                new(SubGroup.All, Specialization.DezvoltareaAplicatiilor)),
+            fixture.Builder.LookupModule!.LessonsByCourse, schedule);
+        Assert.Empty(MatchLessonHelper.MatchLessonsInSchedule(parameters));
+        Assert.Single(MatchLessonHelper.FindUnsafeIntakeLabs(parameters));
     }
 
     [Fact]
@@ -124,6 +161,7 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("IA2401(ru)", specialization: Specialization.All);
         fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.Optional;
+        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.General.Type = LessonType.Curs;
         var schedule = fixture.Build();
         var group = Parse("IA24(GA2D)ru");
         var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, Resolver.Resolve(group), group);
@@ -221,7 +259,7 @@ public sealed class CombinedGroupMatchingTests
     }
 
     [Fact]
-    public void CombinedResolvedParentsMatchSeparateLessonsAndExcludeOtherCohorts()
+    public void CombinedResolvedParentsRejectSeparateLabs()
     {
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
@@ -234,8 +272,7 @@ public sealed class CombinedGroupMatchingTests
         var result = MatchLessonHelper.MatchLessonsInSchedule(new(
             new LessonSearchFilter(fixture.Course, groups, Resolver.Resolve(group)),
             fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
-        Assert.Equal(2, result.Length);
-        Assert.All(result, lesson => Assert.True(schedule.Get(lesson).Lesson.Groups.IsSubSetOf(parents)));
+        Assert.Empty(result);
     }
 
     [Fact]
