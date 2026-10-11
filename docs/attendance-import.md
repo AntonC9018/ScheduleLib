@@ -106,6 +106,28 @@ This also prevents positional reconciliation from rewriting existing lab columns
 as lectures. Correct the registry assignments before retrying; existing records
 are left unchanged. Explicit per-group lab projections remain supported.
 
+To remove labs previously published into these destinations, use the separate
+cleanup operation. It selects the current semester's unsafe destinations with
+matching labs for the selected teacher, preserves other lesson types and explicit
+group destinations, and does not load attendance workbooks or topic sources:
+
+```bash
+schedulelib registry cleanup-intake-labs --profile "Teacher Name" --json
+schedulelib registry cleanup-intake-labs --profile "Teacher Name" --apply --json
+```
+
+The preview lists every deletion and counts recorded attendance marks that it
+would remove. Apply rereads each lab's date, type, topic, and attendance before
+deleting it and confirms that its column disappeared. Changed columns and failed
+or uncertain submissions stop cleanup; successful earlier deletions remain
+applied. Cleanup uses the same registry account lock as synchronization and never
+retries a deletion automatically. It does not recreate labs in corrected sections.
+
+`RegistryConfig.extraLessonInstanceAction = "Delete"` is the existing policy for
+surplus lessons after ordinary positional reconciliation. Its default is
+`"LeaveAlone"`; `"DeleteWithoutDataLoss"` is unsupported. This policy does not
+clean skipped intake destinations and is unnecessary for the targeted command.
+
 Genuinely shared lectures can compose dated attendance from individual parent
 sheets when no combined sheet exists. A missing or ambiguous date leaves that
 parent's attendance unchanged; separate headerless sheets do not provide enough

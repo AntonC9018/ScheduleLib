@@ -188,6 +188,18 @@ another lecturer's shared lecture. Skipping the destination also prevents the
 positional reconciler from rewriting existing columns after those labs are removed.
 Explicit parent/partition destinations and shared lectures remain eligible.
 
+`registry cleanup-intake-labs` (#221) is a separate preview/apply path for the
+guard's affected destinations. It uses current teacher/semester matching without
+loading topic or attendance sources, selects only remote `Lab` columns, and counts
+nonblank attendance marks in its outcomes. Other lesson types and explicit group
+destinations are preserved. Every deletion rereads the selected column and refuses
+changes to its date, type, topic or attendance; deletion is confirmed by absence
+from a fresh lesson list. The normal synchronization guard remains unchanged.
+Deletion redirects are confirmed at the delete form's known same-origin list
+backlink, using its `lessonId`, through GETs only. Account locking, cancellation,
+partial outcomes and stopping on the first uncertain submission reuse the sync
+CLI path. No deletion is automatically retried.
+
 Merged worksheet columns must be aligned by confirmed lesson occurrence before
 loading; this projection does not reconcile differing source dates automatically.
 For typed headers, attendance cell boundaries use the current cell's column and

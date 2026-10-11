@@ -12,6 +12,51 @@ public sealed class RegistryLessonAdapterTests
     private const string LessonForm = "<form method='post' action='/save'><input id='LessonDate' name='LessonDate' value='2026-01-01'></form>";
     private const string DeleteForm = "<form name='deleteLessonForm' method='post' action='/delete'><input name='id' value='1'></form>";
 
+    [Theory]
+    [InlineData(302, "absent")]
+    [InlineData(303, "absent")]
+    [InlineData(302, "present")]
+    [InlineData(303, "present")]
+    [InlineData(302, "unexpected")]
+    [InlineData(303, "unexpected")]
+    [InlineData(302, "identity")]
+    [InlineData(303, "identity")]
+    [InlineData(302, "login")]
+    [InlineData(303, "login")]
+    [InlineData(302, "read-failure")]
+    [InlineData(303, "read-failure")]
+    [InlineData(302, "unrecognized")]
+    [InlineData(303, "unrecognized")]
+    public async Task DeletionRedirectRequiresAReadConfirmingTheKnownLessonIsAbsent(int status, string scenario)
+    {
+        const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
+        const string detail = "/studregistry/LessonAttendance/LessonDetail/42";
+        var details = $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{(scenario == "identity" ? "43" : "42")}'></form>";
+        var saved = $"<a href='/studregistry/LessonAttendance/CreateLesson/1'>Adaugare</a><table><tr><th>lesson</th></tr>{(scenario == "present" ? $"<tr><td><a href='{detail}'>lesson</a></td></tr>" : "")}</table>";
+        using var handler = new Handler(request =>
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                var redirect = Response((HttpStatusCode)status, "redirect");
+                redirect.Headers.Location = new(scenario == "unexpected" ? "/other" : list, UriKind.Relative);
+                return redirect;
+            }
+            if (request.RequestUri!.AbsolutePath == detail) return Response(HttpStatusCode.OK, details);
+            return Response(scenario == "read-failure" ? HttpStatusCode.InternalServerError : HttpStatusCode.OK,
+                scenario == "login" ? "<input type='password'>" : scenario == "unrecognized" ? "<table><tr><th>other</th></tr></table>" : saved);
+        });
+        using var client = new HttpClient(handler);
+        using var transport = new HttpClientContext(new MemoryCookieProvider(), client, handler);
+        using var context = ScrapingContext.Create(transport, new Auth());
+        using var services = new ServiceCollection().BuildServiceProvider();
+        var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
+        var document = await navigator.GetHtml(new("https://registry.test" + detail));
+        if (scenario == "absent") await navigator.SubmitDelete(document);
+        else await Assert.ThrowsAsync<IOException>(() => navigator.SubmitDelete(document));
+        Assert.Equal(1, handler.Posts);
+        Assert.Equal(scenario is "unexpected" or "identity" ? 1 : 2, handler.Reads);
+    }
+
     public static IEnumerable<object[]> FailedResponses()
     {
         foreach (var kind in new[] { "create", "update", "delete" })

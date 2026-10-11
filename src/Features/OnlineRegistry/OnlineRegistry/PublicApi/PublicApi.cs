@@ -429,7 +429,44 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     {
         var form = document.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")
             ?? throw new InvalidOperationException("Registry delete form is missing.");
-        return SubmitMutation(form, "deletion", onSubmissionStarted);
+        return SubmitDeletion();
+
+        async Task SubmitDeletion()
+        {
+            try { await SubmitMutation(form, "deletion", onSubmissionStarted); }
+            catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+            {
+                var origin = new Uri(document.Url);
+                var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Select(anchor => new Uri(anchor.Href))
+                    .Where(uri => uri.Scheme == origin.Scheme && uri.Host == origin.Host && uri.Port == origin.Port
+                        && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+                    .Distinct().ToArray();
+                var lessonId = form.QuerySelector<IHtmlInputElement>("input[name=lessonId]")?.Value;
+                if (error.Location is null || listLinks.Length != 1
+                    || string.IsNullOrWhiteSpace(lessonId) || !lessonId.All(char.IsAsciiDigit)
+                    || !origin.AbsolutePath.EndsWith("/LessonAttendance/LessonDetail/" + lessonId, StringComparison.Ordinal))
+                    throw new IOException("Registry deletion confirmation identity is unavailable.");
+                var destination = new Uri(origin, error.Location);
+                if (destination != listLinks[0])
+                    throw new IOException("Registry deletion confirmation destination is unexpected.");
+                var list = await GetHtml(destination);
+                if (list.StatusCode != HttpStatusCode.OK || IsLoginAddress(list.Url)
+                    || list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                    throw new IOException("Registry deletion confirmation read failed.");
+                var table = list.QuerySelector<IHtmlTableElement>("table")
+                    ?? throw new IOException("Registry deletion confirmation table is missing.");
+                if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]").All(anchor =>
+                        !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
+                    || table.Rows.Length == 0)
+                    throw new IOException("Registry deletion confirmation page is unrecognized.");
+                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]").Any(anchor =>
+                        new Uri(anchor.Href).AbsolutePath is var path
+                        && (path.EndsWith("/LessonDetail/" + lessonId, StringComparison.Ordinal)
+                            || path.EndsWith("/Edit/" + lessonId, StringComparison.Ordinal))))
+                    throw new IOException("Registry lesson deletion could not be confirmed.");
+            }
+        }
     }
 
     private async Task SubmitMutation(IHtmlFormElement form, string operation, Action? onSubmissionStarted)

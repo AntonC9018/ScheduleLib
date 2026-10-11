@@ -17,6 +17,8 @@ public interface IRegistrySession : IAsyncDisposable
     IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => [];
     RegistrySyncDiagnostics? LiveDiagnostics => null;
     Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token);
+    Task PlanIntakeLabCleanup(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
+        => throw new NotSupportedException("Intake lab cleanup is not supported by this registry session.");
     async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
     {
         await onGroupPlanned(await Plan(token));
@@ -109,6 +111,9 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         public Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token) =>
             scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
                 .PlanGroups(CreateNavigator(token), onGroupPlanned, token);
+        public Task PlanIntakeLabCleanup(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token) =>
+            Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
+                .PlanIntakeLabCleanup(CreateNavigator(token), onGroupPlanned, token);
         public async ValueTask DisposeAsync()
         {
             context.Dispose();

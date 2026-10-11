@@ -105,7 +105,79 @@ public sealed class RegistryLabDestinationTests
             => Task.FromResult<IRegistrySession>(this);
         public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token)
             => fixture.Plan(navigator, diagnostics, explicitApply: true);
+        public Task PlanIntakeLabCleanup(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
+            => fixture.Cleanup(navigator, diagnostics, onGroupPlanned, token);
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task CleanupSelectsOnlyUnsafeLabColumnsAndUsesTheCliApplyBoundary(bool apply, bool failDelete)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined: false, includeExplicitDestination: true);
+        navigator.AddMixedLessons();
+        navigator.AllowDeletes = true;
+        navigator.FailDelete = failDelete;
+        var diagnostics = new RegistrySyncDiagnostics();
+        await using var provider = new Provider(fixture, navigator, diagnostics);
+        using var output = new StringWriter();
+        var original = Console.Out;
+        Console.SetOut(output);
+        try
+        {
+            var exit = await new Commands(provider).CleanupIntakeLabs(new(), new() { Profile = "teacher" },
+                new() { Json = true }, new() { Apply = apply });
+            Assert.Equal(failDelete ? 6 : 0, exit);
+            using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
+            var outcomes = result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+            Assert.Equal(2, outcomes.Length);
+            Assert.All(outcomes, action => Assert.Equal("delete", action.GetProperty("kind").GetString()));
+            Assert.All(outcomes, action => Assert.Equal(navigator.Group.Uri.ToString(), action.GetProperty("destination").GetString()));
+            Assert.Equal(1, outcomes[0].GetProperty("attendanceCount").GetInt32());
+            Assert.Equal(apply ? failDelete ? "uncertain" : "completed" : "planned", outcomes[0].GetProperty("status").GetString());
+            Assert.Equal(failDelete ? "not-attempted" : apply ? "completed" : "planned", outcomes[1].GetProperty("status").GetString());
+            Assert.Equal(apply ? failDelete ? 1 : 2 : 0, navigator.DeleteCalls);
+            Assert.Equal(apply && !failDelete ? 2 : 4, navigator.Lessons.Count);
+            Assert.DoesNotContain(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
+        }
+        finally { Console.SetOut(original); }
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task CleanupDoesNotReadExplicitDestinationsOrAnotherTeachersLabs(bool wildcard, bool ownLabs)
+    {
+        await using var fixture = new Fixture(ownLecture: true, ownLabs);
+        var navigator = fixture.Navigator(wildcard, combined: false);
+        var diagnostics = new RegistrySyncDiagnostics();
+        await fixture.Cleanup(navigator, diagnostics, actions =>
+        {
+            Assert.Fail("An ineligible destination must not produce cleanup actions.");
+            return Task.FromResult(true);
+        }, default);
+        Assert.Equal(0, navigator.Reads);
+        Assert.Empty(diagnostics.Items);
+    }
+
+    [Fact]
+    public async Task CleanupRefusesToDeleteAColumnChangedAfterPlanning()
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: true, combined: false);
+        navigator.AddMixedLessons();
+        navigator.AllowDeletes = true;
+        await fixture.Cleanup(navigator, new(), async actions =>
+        {
+            navigator.Lessons[1] = navigator.Lessons[1] with { Mark = "am" };
+            var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(() => actions[0].Execute(default));
+            Assert.False(error.SubmissionStarted);
+            Assert.Equal(0, navigator.DeleteCalls);
+            return true;
+        }, default);
     }
 
     [Theory]
@@ -221,6 +293,12 @@ public sealed class RegistryLabDestinationTests
                 LessonFilter = _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
             }, explicitApply: explicitApply);
 
+        public Task Cleanup(Navigator navigator, RegistrySyncDiagnostics diagnostics,
+            Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
+            => _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanIntakeLabCleanup(
+                navigator, Semester.Sem1, _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+                diagnostics, onGroupPlanned, token);
+
         public async ValueTask DisposeAsync()
         {
             await _scope.DisposeAsync();
@@ -235,6 +313,17 @@ public sealed class RegistryLabDestinationTests
 
     private sealed class Navigator(CourseId course, GroupLink group, params GroupLink[] additionalGroups) : IRegistrySyncNavigator
     {
+        public sealed record Lesson(int Id, string Date, string ShortDate, string Mode, string Topic, string Mark);
+        public List<Lesson> Lessons { get; } = [];
+        public bool AllowDeletes { get; set; }
+        public bool FailDelete { get; set; }
+        public int DeleteCalls { get; private set; }
+        public void AddMixedLessons() => Lessons.AddRange([
+            new(1, "01.09.2026 15:00", "01.09.26 15:00", "curs", "lecture", ""),
+            new(2, "04.09.2026 15:00", "04.09.26 15:00", "laborator", "lab one", "a"),
+            new(3, "08.09.2026 15:00", "08.09.26 15:00", "seminar", "seminar", "am"),
+            new(4, "11.09.2026 15:00", "11.09.26 15:00", "laborator", "lab two", ""),
+        ]);
         public GroupLink Group => group;
         public int Reads { get; private set; }
         public List<Uri> ReadUris { get; } = [];
@@ -246,11 +335,28 @@ public sealed class RegistryLabDestinationTests
         {
             Reads++;
             ReadUris.Add(uri);
+            if (Lessons.Count != 0 && uri == group.Uri)
+            {
+                var rows = string.Join("", Lessons.Select(lesson => $"<tr><td><a href='https://registry.test/details/{lesson.Id}'>{lesson.Date}</a> {lesson.Mode}</td><td>1 {lesson.Topic}</td><td><a href='https://registry.test/edit/{lesson.Id}'>edit</a></td></tr>"));
+                var headers = string.Join("", Lessons.Select(lesson => $"<th>{lesson.ShortDate}, {lesson.Mode}</th>"));
+                var marks = string.Join("", Lessons.Select(lesson => $"<td>{lesson.Mark}</td>"));
+                return await new HtmlParser().ParseDocumentAsync($"<table><tr><th>lesson</th></tr>{rows}</table><table><tr><th>NN</th><th>Name</th><th>Spec</th>{headers}</tr><tr><td>1</td><td>Synthetic Student</td><td>spec</td>{marks}</tr></table>");
+            }
+            if (uri.AbsolutePath.StartsWith("/details/", StringComparison.Ordinal))
+                return await new HtmlParser().ParseDocumentAsync($"<input name='id' value='{uri.Segments[^1]}'>");
             return await new HtmlParser().ParseDocumentAsync(uri == group.Uri || additionalGroups.Any(item => item.Uri == uri)
                 ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
                 : "<html></html>");
         }
         public Task SubmitLesson(IDocument document) => throw new InvalidOperationException("Unexpected submission.");
-        public Task SubmitDelete(IDocument document) => throw new InvalidOperationException("Unexpected deletion.");
+        public Task SubmitDelete(IDocument document)
+        {
+            if (!AllowDeletes) throw new InvalidOperationException("Unexpected deletion.");
+            DeleteCalls++;
+            if (FailDelete) throw new IOException("Synthetic uncertain deletion.");
+            var id = int.Parse(document.QuerySelector("input")!.GetAttribute("value")!, System.Globalization.CultureInfo.InvariantCulture);
+            Lessons.RemoveAll(lesson => lesson.Id == id);
+            return Task.CompletedTask;
+        }
     }
 }

@@ -24,10 +24,19 @@ public partial class RegistryCommands
     protected virtual IRegistryAccountLock CreateAccountLock() => new RegistryAccountLock();
 
     [Command("sync", Description = "Preview existing positional lesson/topic/attendance reconciliation for a teacher. Apply recomputes; configured extra-lesson policy is preserved. No speculative create retries.")]
-    public async Task<int> Sync(SourceArguments source, SettingsArguments settings, ResultArguments result,
+    public Task<int> Sync(SourceArguments source, SettingsArguments settings, ResultArguments result,
         ApplyArguments apply, CancellationToken cancellationToken = default)
+        => RunLessonActions(source, settings, result, apply, cleanupIntakeLabs: false, cancellationToken);
+
+    [Command("cleanup-intake-labs", Description = "Preview deletion of laboratory columns from unsafe intake-wide destinations for the selected teacher and semester. Apply deletes those labs and their attendance; other lesson types and explicit group destinations are preserved.")]
+    public Task<int> CleanupIntakeLabs(SourceArguments source, SettingsArguments settings, ResultArguments result,
+        ApplyArguments apply, CancellationToken cancellationToken = default)
+        => RunLessonActions(source, settings, result, apply, cleanupIntakeLabs: true, cancellationToken);
+
+    private async Task<int> RunLessonActions(SourceArguments source, SettingsArguments settings, ResultArguments result,
+        ApplyArguments apply, bool cleanupIntakeLabs, CancellationToken cancellationToken)
     {
-        const string command = "registry sync";
+        var command = cleanupIntakeLabs ? "registry cleanup-intake-labs" : "registry sync";
         var runId = Guid.NewGuid().ToString("N");
         if (CliOutput.ExclusiveError(result) is { } exclusive)
         {
@@ -43,7 +52,9 @@ public partial class RegistryCommands
         RegistrySyncDiagnostics? liveDiagnostics = null;
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
-        var warnings = new List<string> { "Existing positional matching is used; updates are not a semantic minimum patch." };
+        var warnings = new List<string> { cleanupIntakeLabs
+            ? "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected."
+            : "Existing positional matching is used; updates are not a semantic minimum patch." };
         var attempted = false;
         var finalExit = 1;
         string[] finalErrors = ["Unexpected registry failure."];
@@ -62,7 +73,8 @@ public partial class RegistryCommands
             await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
             // Scan and apply each completed course/group before scanning the next.
             var stopped = false;
-            await session.PlanGroups(ProcessGroup, cancellation.Token);
+            if (cleanupIntakeLabs) await session.PlanIntakeLabCleanup(ProcessGroup, cancellation.Token);
+            else await session.PlanGroups(ProcessGroup, cancellation.Token);
             return stopped ? finalExit : Finish(0, []);
 
             async Task<bool> ProcessGroup(IReadOnlyList<RegistrySyncAction> plan)
