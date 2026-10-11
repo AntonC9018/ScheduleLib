@@ -65,6 +65,7 @@ public sealed partial class AttendanceListsExcelParser
                     .Where(cell => IsIrrelevantColumnHeader(cell.Value))
                     .Select(cell => cell.Address.ColumnNumber));
             }
+            if (contentColumns.Count == 0) continue;
             var studentNameColumn = p.ParseParameters.StudentNameColumn
                 ?? FindStudentNameColumn(sheet, contentColumns, p.ParseParameters.HeaderFormat.FormatType);
 

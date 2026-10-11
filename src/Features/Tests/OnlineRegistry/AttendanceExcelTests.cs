@@ -540,4 +540,67 @@ public sealed class AttendanceExcelTests
         Assert.Single(Assert.Single(attendance.Build(Attendance.Present)).Value.StudentNames);
     }
 
+    [Theory]
+    [InlineData(HeaderFormatType.Auto)]
+    [InlineData(HeaderFormatType.Date)]
+    [InlineData(HeaderFormatType.LessonType)]
+    [InlineData(HeaderFormatType.IgnoreHeader)]
+    [InlineData(HeaderFormatType.Nothing)]
+    public void EmptyWorksheetsAreSkippedBeforeHeaderValidationAndLessonLookup(HeaderFormatType format)
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        workbook.AddWorksheet("Unmatched empty sheet");
+        var formatted = workbook.AddWorksheet("Unmatched formatted sheet");
+        formatted.Range("A1:Z100").Style.Fill.BackgroundColor = XLColor.Yellow;
+        formatted.Column(1).Width = 30;
+        var whitespace = workbook.AddWorksheet("Unmatched whitespace sheet");
+        whitespace.Cell(1, 1).Value = "   ";
+        whitespace.Cell(2, 3).Value = "\t";
+        var emptyTable = workbook.AddWorksheet("Unmatched empty table");
+        emptyTable.Range("A1:C3").CreateTable();
+        var valid = workbook.AddWorksheet("Synthetic course IA2601");
+        int studentRow = format == HeaderFormatType.Nothing ? 1 : 2;
+        if (studentRow == 2)
+        {
+            valid.Cell(1, 1).Value = "Name";
+            valid.Cell(1, 2).Value = format switch
+            {
+                HeaderFormatType.LessonType => "lab",
+                HeaderFormatType.IgnoreHeader => "ignored title",
+                _ => "02.09",
+            };
+        }
+        valid.Cell(studentRow, 1).Value = "Synthetic Student";
+        valid.Cell(studentRow, 2).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new()
+            {
+                HeaderFormat = new() { FormatType = format },
+                DateMode = format is HeaderFormatType.Auto or HeaderFormatType.Date
+                    ? AttendanceDateMode.ValidateAndBind : AttendanceDateMode.Ignore,
+            }, attendance, filtered, workbook));
+        var lists = attendance.Build(Attendance.Present);
+        Assert.Single(lists);
+        Assert.Equal(Attendance.NotPresent, lists.Get(DateKey(course, group, new(2026, 9, 2))).Student(0));
+    }
+
+    [Fact]
+    public void EntirelyEmptyWorkbookProducesNoAttendanceListsEvenWithStrictDateHeaders()
+    {
+        var (builder, filtered, _, _) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        workbook.AddWorksheet("Unmatched empty sheet");
+        workbook.AddWorksheet("Unmatched formatted sheet").Range("A1:D50").Style.Font.Bold = true;
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new()
+            {
+                HeaderFormat = new() { FormatType = HeaderFormatType.Date },
+                DateMode = AttendanceDateMode.ValidateAndBind,
+            }, attendance, filtered, workbook));
+        Assert.Empty(attendance.Build(Attendance.Present));
+    }
+
 }

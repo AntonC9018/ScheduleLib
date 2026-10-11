@@ -31,6 +31,10 @@ Worksheet aliases must identify an unambiguous lesson in the selected schedule.
 Group-only sheet names can remain unmapped when the group identifies one lesson;
 course/subgroup shorthand can use aliases without renaming the workbook.
 
+Worksheets with no meaningful content are skipped before header validation or
+lesson lookup, including formatting-only, whitespace-only, and empty table
+worksheets. Worksheets with attendance headers still retain their header data.
+
 Dates may be native Excel dates or text such as `02.09`, `02.09.2026`,
 `02/09/2026`, or `2026-09-02`. Native dates and dates with a year match exactly;
 text without a year matches month and day. `07.09 curs` and `curs 05.10` also
