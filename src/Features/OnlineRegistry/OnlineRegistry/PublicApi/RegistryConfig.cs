@@ -47,7 +47,7 @@ public sealed class BuiltRegistryConfig
     public static NodeDataKey<BuiltRegistryConfig> Key => new(RegistryConfig.Key.Value);
 
     /// <summary>Minimum spacing between registry HTTP requests. Zero disables throttling for experiments.</summary>
-    public static readonly TimeSpan DefaultHttpCallDelay = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan DefaultHttpCallDelay = TimeSpan.FromSeconds(0.5);
 
     public required CredentialsSource Credentials { get; set; }
     public required ExtraLessonInstanceAction ExtraLessonInstanceAction { get; set; }

@@ -32,6 +32,8 @@ public static class Config
         (From: "Dezvoltare WEB PHP", To: "PHP"),
         (From: "DA S-S", To: "Server-side"),
         (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
+        (From: "Cloud", To: "Cloud Computing"),
+        (From: "RA U&Vuforia", To: "U&Vuforia"),
         // "UI/UX" is mis-tokenized into "U X" by one of the docs.
         (From: "Designul UI/U X", To: "Designul UI/UX"),
     };
