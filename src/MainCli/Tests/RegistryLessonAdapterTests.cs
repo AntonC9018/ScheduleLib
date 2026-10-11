@@ -105,6 +105,8 @@ public sealed class RegistryLessonAdapterTests
     [InlineData(302, "date")]
     [InlineData(302, "mode")]
     [InlineData(302, "topic")]
+    [InlineData(302, "topic-line-endings")]
+    [InlineData(302, "topic-different-multiline")]
     [InlineData(302, "attendance")]
     [InlineData(302, "missing")]
     [InlineData(302, "duplicate")]
@@ -121,6 +123,8 @@ public sealed class RegistryLessonAdapterTests
             + "<textarea id='LessonTopic' name='LessonTopic'>Synthetic topic</textarea>"
             + "<input name='StudentList[1].NotaStr' value='a'>";
         var form = $"<a href='{list}'>Back</a><form method='post' action='/save'>{fields}</form>";
+        if (scenario is "topic-line-endings" or "topic-different-multiline")
+            form = form.Replace("Synthetic topic", "Synthetic first line\nsecond line");
         var auth = new Auth();
         using var handler = new Handler(request =>
         {
@@ -147,6 +151,8 @@ public sealed class RegistryLessonAdapterTests
                     "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
                     "mode" => form.Replace("value='curs'", "value='laborator'"),
                     "topic" => form.Replace("Synthetic topic", "Different topic"),
+                    "topic-line-endings" => form.Replace("\n", "&#13;&#10;"),
+                    "topic-different-multiline" => form.Replace("second line", "Different line").Replace("\n", "&#13;&#10;"),
                     "attendance" => form.Replace("value='a'", "value='am'"),
                     _ => form,
                 });
@@ -159,7 +165,7 @@ public sealed class RegistryLessonAdapterTests
         using var services = new ServiceCollection().BuildServiceProvider();
         var navigator = new OnlineRegistryNavigator(null!, new(context), services, default);
         var document = await navigator.GetHtml(new("https://registry.test/create"));
-        if (scenario == "match") await navigator.SubmitLesson(document);
+        if (scenario is "match" or "topic-line-endings") await navigator.SubmitLesson(document);
         else await Assert.ThrowsAsync<IOException>(() => navigator.SubmitLesson(document));
         Assert.Equal(1, handler.Posts);
         Assert.Equal(scenario == "foreign" ? 1 : scenario is "missing" or "list-login" ? 2 : scenario == "duplicate" ? 4 : 3, handler.Reads);

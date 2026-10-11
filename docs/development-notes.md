@@ -335,3 +335,12 @@ its generic scraping delay must be zero to avoid an additional five-second gate
 when experimenting with smaller values. Short read-only discovery probes at
 2, 1, and 0.5 seconds succeeded in October 2026; this does not establish sustained
 batch limits or guarantee the absence of later access blocks.
+
+### Saved lesson topic line endings (#216)
+
+The registry can return CRLF for a multiline topic submitted with LF. Saved-form
+confirmation and topic reconciliation normalize line endings before comparison;
+other topic content remains significant. Confirmation still checks the date,
+lesson mode, attendance, and unique saved record without replaying the POST.
+Reconciliation uses the same normalization to avoid repeatedly updating an
+otherwise unchanged topic.

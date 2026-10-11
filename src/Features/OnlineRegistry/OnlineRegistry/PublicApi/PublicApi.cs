@@ -406,7 +406,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate)
                 && savedDate == date
                 && savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode
-                && savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value == expectedTopic
+                && savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n")
                 && expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
                     && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
                 matches++;

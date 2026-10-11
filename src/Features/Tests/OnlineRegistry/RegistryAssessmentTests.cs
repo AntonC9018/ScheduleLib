@@ -1,5 +1,6 @@
 using Anton.LayeredData;
 using Microsoft.Extensions.DependencyInjection;
+using global::OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry.Impl;
 
@@ -7,6 +8,19 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class RegistryAssessmentTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LineEndingNormalizationDoesNotCauseRepeatedTopicUpdates(bool changedText)
+    {
+        var lesson = Lessons()[0] with { Topic = "First line\nSecond line" };
+        var saved = Remote(lesson, changedText ? "First line\r\nChanged line" : "First line\r\nSecond line");
+        var schedule = new ScheduleBuilder().Build();
+        var commands = new AnyDayDerivation().DeriveCommands(new(schedule, [saved], [lesson])).ToArray();
+        if (changedText) Assert.Equal(LessonEquationCommandType.Update, Assert.Single(commands).Type);
+        else Assert.Empty(commands);
+    }
+
     [Theory]
     [InlineData("Atestare 1", true)]
     [InlineData("Atestarea a II-a", true)]
