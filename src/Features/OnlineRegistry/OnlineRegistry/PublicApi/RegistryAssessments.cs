@@ -54,7 +54,8 @@ internal static class RegistryAssessments
     // Attendance stays tied to the timetable occurrence. Only regular topics use the compacted index.
     internal static (LessonInstance[] Local, RemoteLessonInstance[] Remote) Arrange(
         LessonInstance[] local, RemoteLessonInstance[] remote, IReadOnlyList<RegistryAssessmentRule> rules,
-        Func<LessonInstance, int, string?> getTopic)
+        Func<LessonInstance, int, string?> getTopic,
+        Func<LessonInstance, LessonGroups>? getTopicGroups = null)
     {
         remote = remote.Select(assessment =>
         {
@@ -109,7 +110,8 @@ internal static class RegistryAssessments
             if (configuredTypes.Contains(assessment.LessonType)) continue;
             if (!ReserveExisting(assessment)) protectedRemote.Add(i);
         }
-        var indexes = new Dictionary<LessonType, int>();
+        var indexes = new Dictionary<(LessonType Type, LessonGroups Groups), int>();
+        var registryIndexes = new Dictionary<LessonType, int>();
         var useRegistryTopics = new HashSet<LessonType>();
         var registryTopics = remote.Where(lesson => !string.IsNullOrWhiteSpace(lesson.Topic)
                 && !RegistryAssessmentTopics.IsAssessment(lesson.Topic))
@@ -121,18 +123,22 @@ internal static class RegistryAssessments
             if (reserved.TryGetValue(i, out var topic)) local[i] = lesson with { Topic = topic };
             else
             {
-                var index = indexes.GetValueOrDefault(lesson.RegistryLessonType);
+                var topicGroups = getTopicGroups is null ? new LessonGroups() : getTopicGroups(lesson).Ordered();
+                var topicKey = (Type: lesson.RegistryLessonType, Groups: topicGroups);
+                var index = indexes.GetValueOrDefault(topicKey);
+                var registryIndex = registryIndexes.GetValueOrDefault(lesson.RegistryLessonType);
                 var regularTopic = getTopic(lesson, index);
-                if (index == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
+                if (registryIndex == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
                     useRegistryTopics.Add(lesson.RegistryLessonType);
                 if (useRegistryTopics.Contains(lesson.RegistryLessonType))
-                    regularTopic = registryTopics.GetValueOrDefault(lesson.RegistryLessonType)?.ElementAtOrDefault(index) ?? "";
+                    regularTopic = registryTopics.GetValueOrDefault(lesson.RegistryLessonType)?.ElementAtOrDefault(registryIndex) ?? "";
                 if (regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType)
                     && remote.Any(existing => existing.DateTime.Date == lesson.DateTime.Date
                         && existing.LessonType == lesson.RegistryLessonType && RegistryAssessmentTopics.IsAssessment(existing.Topic)))
                     throw new InvalidOperationException("Moving an assessment requires a regular topic for the freed occurrence.");
                 local[i] = lesson with { Topic = regularTopic };
-                indexes[lesson.RegistryLessonType] = index + 1;
+                indexes[topicKey] = index + 1;
+                registryIndexes[lesson.RegistryLessonType] = registryIndex + 1;
             }
         }
         return (local, remote.Where((_, index) => !protectedRemote.Contains(index)).ToArray());

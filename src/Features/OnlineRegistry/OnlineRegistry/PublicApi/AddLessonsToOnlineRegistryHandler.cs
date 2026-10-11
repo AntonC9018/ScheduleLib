@@ -256,15 +256,23 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 var assessmentRules = RegistryAssessments.Find(config.Assessments, _schedule,
                     courseLink.CourseId, group.Groups.Value, matchedGroupPartition);
+                LessonGroups TopicGroups(LessonInstance lesson)
+                {
+                    var audience = new LessonGroups();
+                    foreach (var parent in _schedule.Get(lesson.LessonId).Lesson.Groups)
+                        if (group.Groups.Value.Contains(parent)) audience.Add(parent);
+                    return audience;
+                }
                 var arranged = RegistryAssessments.Arrange(outputBuilder.Complete().ToArray(),
                     scanResult.Lessons.OrderBy(x => x.DateTime).ToArray(), assessmentRules,
                     (lesson, topicIndex) => p.LessonTopics.Get(new AttendanceLookupKey(
-                        groups: group.Groups,
+                        groups: new FoundGroups { Value = TopicGroups(lesson), IsWildcard = false },
                         groupPartition: AttendancePartition(_schedule.Get(lesson.LessonId).Lesson),
                         courseId: courseLink.CourseId,
                         lessonType: _schedule.Get(lesson.LessonId).Lesson.Type,
                         dayIndex: topicIndex,
-                        dateTime: lesson.DateTime)));
+                        dateTime: lesson.DateTime)),
+                    TopicGroups);
                 var missingTopics = arranged.Local.Count(lesson => string.IsNullOrWhiteSpace(lesson.Topic));
                 if (missingTopics != 0)
                     p.Diagnostics?.Add("missing-lesson-topics", _schedule.Get(courseLink.CourseId).FullName,

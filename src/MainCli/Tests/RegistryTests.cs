@@ -62,14 +62,16 @@ public sealed class RegistryTests
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = singleDestination ? schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.Count > 1)
             : schedule.EnumerateWeeklyLessons().First();
+        var destinationGroups = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups;
         var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
-            IsWildcard = !singleDestination, Value = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups,
+            IsWildcard = !singleDestination, Value = destinationGroups,
         }, lesson.Lesson.GroupPartitionKey, new("https://registry.test/group"), new("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
+        var topics = new RecordingTopics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
         {
-            Navigator = navigator, Attendance = new([]), LessonTopics = NoLessonTopics.Instance, Semester = Semester.Sem2,
+            Navigator = navigator, Attendance = new([]), LessonTopics = topics, Semester = Semester.Sem2,
             Diagnostics = diagnostics,
         }, explicitApply: true);
         Assert.NotEmpty(plan);
@@ -78,6 +80,8 @@ public sealed class RegistryTests
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-attendance-sheet");
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
+        Assert.NotEmpty(topics.Keys);
+        Assert.All(topics.Keys, key => Assert.True(key.Groups.Value.IsSubSetOf(destinationGroups)));
         if (singleDestination)
             Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-group"
                 && item.Course == schedule.Get(lesson.Lesson.Course).FullName
@@ -406,6 +410,16 @@ public sealed class RegistryTests
         public Task SubmitLesson(IDocument document) { Submissions++; return Task.CompletedTask; }
         public Task SubmitDelete(IDocument document) { Submissions++; return Task.CompletedTask; }
     }
+    private sealed class RecordingTopics : ILessonTopics
+    {
+        public List<AttendanceLookupKey> Keys { get; } = [];
+        public string? Get(in AttendanceLookupKey key)
+        {
+            Keys.Add(key);
+            return null;
+        }
+    }
+
     private sealed class FixtureNavigator(CourseId course, GroupLink group) : IRegistrySyncNavigator
     {
         public int Submissions;

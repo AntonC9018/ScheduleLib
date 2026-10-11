@@ -203,6 +203,20 @@ evidence; conflicting sequences remain inactive. Newer supplied topics and
 authoritative current registry topics retain precedence. Topic files and local
 settings remain outside the repository.
 
+Identical topic sequences share one course CSV and manifest scopes covering all
+matching groups. When a shorter sequence is included in a longer one in the same
+order, reuse the longest sequence. Different content stays separate; repeated
+topics within a sequence remain intact. A course CSV can contain lectures and
+labs together using `lessonType`, with `series` for distinct variants.
+
+For a registry destination with separate parent-group sessions, regular topic
+indexes advance independently for each scheduled audience and lesson type.
+Topic lookup uses the actual lesson audience, so a shared source can serve each
+parent from its first topic. Shared sessions retain one sequence, regardless of
+group ordering. Assessment occurrences do not consume regular topics; fallback
+to existing registry topics retains destination order. Attendance still uses
+the registry roster and original lesson dates. See #215.
+
 ### Registry assessments (#204)
 
 `RegistryConfig.assessments` is keyed by course, group, lesson type, and optional

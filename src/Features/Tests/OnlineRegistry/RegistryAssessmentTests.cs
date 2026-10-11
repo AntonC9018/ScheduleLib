@@ -18,6 +18,63 @@ public sealed class RegistryAssessmentTests
         Assert.Equal(expected, RegistryAssessmentTopics.IsAssessment(topic));
 
     [Fact]
+    public void SharedDestinationUsesIndependentParentTopicSequences()
+    {
+        var lessons = Lessons().Select((lesson, index) => lesson with
+        {
+            LessonId = new WeeklyLessonId(index).AsAny(),
+        }).ToArray();
+        var result = RegistryAssessments.Arrange(lessons, [], [], Topic,
+            lesson => [new GroupId(lesson.LessonId.Id % 2)]);
+        Assert.Equal(new[] { "Topic 1", "Topic 1", "Topic 2", "Topic 2" }, result.Local.Select(lesson => lesson.Topic));
+    }
+
+    [Fact]
+    public void AssessmentCompactsOnlyItsParentSequence()
+    {
+        var lessons = Lessons().Select((lesson, index) => lesson with
+        {
+            LessonId = new WeeklyLessonId(index).AsAny(),
+        }).ToArray();
+        var result = RegistryAssessments.Arrange(lessons, [Remote(lessons[1], "Atestare 1")], [], Topic,
+            lesson => [new GroupId(lesson.LessonId.Id % 2)]);
+        Assert.Equal(new[] { "Topic 1", "Atestare 1", "Topic 2", "Topic 1" }, result.Local.Select(lesson => lesson.Topic));
+        Assert.Equal(lessons.Select(lesson => lesson.Attendance), result.Local.Select(lesson => lesson.Attendance));
+    }
+
+    [Fact]
+    public void SharedAudienceOrderDoesNotSplitItsTopicSequence()
+    {
+        var lessons = Lessons().Select((lesson, index) => lesson with
+        {
+            LessonId = new WeeklyLessonId(index).AsAny(),
+        }).ToArray();
+        var result = RegistryAssessments.Arrange(lessons, [], [], Topic, lesson => lesson.LessonId.Id switch
+        {
+            0 => [new GroupId(1), new GroupId(0)],
+            1 => [new GroupId(0), new GroupId(1)],
+            2 => [new GroupId(0)],
+            _ => [new GroupId(1)],
+        });
+        Assert.Equal(new[] { "Topic 1", "Topic 2", "Topic 1", "Topic 1" }, result.Local.Select(lesson => lesson.Topic));
+    }
+
+    [Fact]
+    public void ExistingRegistryFallbackRetainsDestinationOrderAcrossParents()
+    {
+        var lessons = Lessons().Select((lesson, index) => lesson with
+        {
+            LessonId = new WeeklyLessonId(index).AsAny(),
+        }).ToArray();
+        var remote = lessons.Select((lesson, index) => Remote(lesson,
+            index == 0 ? "Atestare 1" : "Existing topic " + index)).ToArray();
+        var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[3])], (_, _) => null,
+            lesson => [new GroupId(lesson.LessonId.Id % 2)]);
+        Assert.Equal(new[] { "Existing topic 1", "Existing topic 2", "Existing topic 3", "Atestare 1" },
+            result.Local.Select(lesson => lesson.Topic));
+    }
+
+    [Fact]
     public void ExistingAssessmentDoesNotConsumeTopicOrAlterAttendance()
     {
         var lessons = Lessons();
