@@ -150,7 +150,7 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
 
     public RegistryHistoryRequestHandler(HttpMessageHandler inner, Uri index, Uri login, TimeSpan spacing) : base(inner)
     {
-        if (spacing <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(spacing));
+        if (spacing < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(spacing));
         _index = index; _login = login; _spacing = spacing;
     }
 

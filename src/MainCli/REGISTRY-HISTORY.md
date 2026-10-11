@@ -27,13 +27,25 @@ create, delete, and reconciliation routes remain blocked. There is no apply swit
 
 A destination-wide local file lock covers the whole operation across accounts
 and cooperating CLI processes. A shared process gate spaces complete responses
-by at least five seconds, including login, the first request of a new session,
-and retries. Reads of HTTP 502/503/504 retry at most once; all other failures,
+by at least the configured `RegistryConfig.httpCallDelay` (default five
+seconds), including login, the first request of a new session,
+and retries. Zero disables spacing; negative values are rejected when the
+registry configuration is built. Reads of HTTP 502/503/504 retry at most once; all other failures,
 401/403/429, redirects, and returned login pages stop the operation. Authentication
 is never replayed. Do not run other legacy registry operations during a history
 probe: those commands do not participate in this history-specific global lease.
 After an access block, halt subsequent account probes as well; stopping one
 session is not permission to immediately retry with another account.
+
+Set the delay through the existing layered settings command, for example:
+
+```bash
+schedulelib config set RegistryConfig.httpCallDelay '"00:00:02"' --scope user --profile '<teacher>'
+```
+
+The value uses the .NET `TimeSpan` JSON format. `"00:00:00.5000000"` selects
+half a second. An unset value inherits, falling back to five seconds. The same
+setting applies to synchronization, history discovery, and history topic reads.
 
 Private JSON summaries go into the explicitly supplied directory whose final
 component must be `.registry-history`; that directory is ignored by Git. Each
@@ -83,7 +95,8 @@ Serial live validation succeeded for seven configured accounts in October 2026,
 producing 72 private CSV candidates and seven inventories. Repeated current
 course titles still require group mapping before activating downloaded sources.
 Do not invoke it during an access-rejection pause. It shares configured credential
-resolution, the destination-wide global lease, and the five-second request gate
+resolution, the destination-wide global lease, and the configured
+`RegistryConfig.httpCallDelay` request gate
 with `history`; it has no apply switch.
 
 The registry-selected year determines current courses. Previous offered years

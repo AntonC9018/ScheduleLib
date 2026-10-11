@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anton.LayeredData.Retrieval;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -52,7 +53,9 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
             throw new RegistryAuthenticationException("Registry credentials are missing; configure the selected teacher's existing credential source.");
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
-        using var context = await RegistryScraping.CreateHistoryContext(credentials, token);
+        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()?.HttpCallDelay
+            ?? BuiltRegistryConfig.DefaultHttpCallDelay;
+        using var context = await RegistryScraping.CreateHistoryContext(credentials, token, delay);
         return await read(context.HttpClient);
     }
 }

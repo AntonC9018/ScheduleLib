@@ -28,6 +28,29 @@ public sealed class SettingsWriteTests
         Assert.Equal(Path.Combine(files.ProjectDirectory, "tokens"), await files.Get("GoogleCalendarConfig.credentials.credentialsPath"));
     }
 
+    [Fact]
+    public async Task AttendanceSourceLayoutSettingsRoundTripThroughConfiguration()
+    {
+        using var files = new Fixture();
+        const string sources = """[{"filePath":"attendance.xlsx","studentNameColumn":2,"headerFormat":"Date","dateMode":"ValidateAndBind","worksheetNames":{"group shorthand":"Synthetic course IA2601 (lab)"}}]""";
+        await files.Success("set", "LessonAttendanceConfig.sources", sources, "--scope", "project");
+        var result = await files.Get("LessonAttendanceConfig.sources");
+        using var document = JsonDocument.Parse(result);
+        var source = document.RootElement[0];
+        Assert.Equal(2, source.GetProperty("studentNameColumn").GetInt32());
+        Assert.Equal("Date", source.GetProperty("headerFormat").GetString());
+        Assert.Equal("ValidateAndBind", source.GetProperty("dateMode").GetString());
+        Assert.Equal("Synthetic course IA2601 (lab)", source.GetProperty("worksheetNames").GetProperty("group shorthand").GetString());
+    }
+
+    [Fact]
+    public async Task RegistryHttpDelaySupportsFractionalSecondsInSettings()
+    {
+        using var files = new Fixture();
+        await files.Success("set", "RegistryConfig.httpCallDelay", "\"00:00:00.5000000\"", "--scope", "project");
+        Assert.Equal("00:00:00.5000000", await files.Get("RegistryConfig.httpCallDelay"));
+    }
+
     [Theory]
     [InlineData("GoogleCalendarConfig.calendarName", "123")]
     [InlineData("GoogleCalendarConfig.unknown", "null")]

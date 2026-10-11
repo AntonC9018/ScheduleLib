@@ -19,6 +19,32 @@ public enum Attendance
     Grade, // left alone if this is found
 }
 
+/// <summary>How attendance-column dates in the header row are used.</summary>
+public enum AttendanceDateMode
+{
+    /// <summary>Dates only bound the attendance columns; lessons map by column order.</summary>
+    Ignore,
+    /// <summary>Every attendance column must carry a date; lessons bind by date, never by order.</summary>
+    ValidateAndBind,
+}
+
+/// <summary>An attendance-column date. Year-less dates (dd.MM) match by month/day.</summary>
+public readonly record struct AttendanceDate
+{
+    public required int Month { get; init; }
+    public required int Day { get; init; }
+    public int? Year { get; init; }
+
+    public bool Matches(DateTime dateTime)
+    {
+        if (dateTime.Month != Month || dateTime.Day != Day)
+        {
+            return false;
+        }
+        return Year is null || dateTime.Year == Year;
+    }
+}
+
 public static class AttendanceHelper
 {
     public static Attendance Parse(ReadOnlySpan<char> value)
@@ -107,6 +133,7 @@ public sealed class StudentAttendanceListBuilder()
     private readonly List<StudentAttendanceBuilder> _students = new();
     private readonly HashSet<Name> _allNames = new();
     private List<LessonType>? _lessonTypesPerDay = null;
+    private List<AttendanceDate>? _datesPerDay = null;
 
     private const int NoMaxCount = -1;
     private int _maxCountHint = NoMaxCount;
@@ -114,14 +141,22 @@ public sealed class StudentAttendanceListBuilder()
     public void Clear()
     {
         _lessonTypesPerDay = null;
+        _datesPerDay = null;
         _allNames.Clear();
         _students.Clear();
+        _maxCountHint = NoMaxCount;
     }
 
     public void AddLessonTypes(ReadOnlySpan<LessonType> lessonTypes)
     {
         _lessonTypesPerDay ??= new();
         _lessonTypesPerDay.AddRange(lessonTypes);
+    }
+
+    public void AddAttendanceDates(ReadOnlySpan<AttendanceDate> dates)
+    {
+        _datesPerDay ??= new();
+        _datesPerDay.AddRange(dates.ToArray());
     }
 
     public StudentAttendanceBuilder Student(Name name)
@@ -146,21 +181,28 @@ public sealed class StudentAttendanceListBuilder()
         public readonly ImmutableArray<Name> Names;
         public readonly AttendanceLists Attendance;
         public readonly ImmutableArray<LessonType>? LessonTypes;
+        public readonly ImmutableArray<AttendanceDate>? Dates;
 
         internal Result(
             ImmutableArray<Name> Names,
             AttendanceLists Attendance,
-            ImmutableArray<LessonType>? LessonTypes)
+            ImmutableArray<LessonType>? LessonTypes,
+            ImmutableArray<AttendanceDate>? Dates)
         {
             Debug.Assert(Names.Length == Attendance.StudentCount);
             if (LessonTypes is { } lt)
             {
                 Debug.Assert(lt.Length == Attendance.DayCount);
             }
+            if (Dates is { } dates)
+            {
+                Debug.Assert(dates.Length == Attendance.DayCount);
+            }
 
             this.Names = Names;
             this.Attendance = Attendance;
             this.LessonTypes = LessonTypes;
+            this.Dates = Dates;
         }
     }
 
@@ -188,6 +230,14 @@ public sealed class StudentAttendanceListBuilder()
             if (maxDayCount > _lessonTypesPerDay.Count)
             {
                 throw new InvalidOperationException("If LessonTypes are specified, there must not be more attendances than that.");
+            }
+        }
+
+        if (_datesPerDay != null)
+        {
+            if (maxDayCount > _datesPerDay.Count)
+            {
+                throw new InvalidOperationException("If attendance dates are specified, there must not be more attendances than that.");
             }
         }
 
@@ -242,11 +292,14 @@ public sealed class StudentAttendanceListBuilder()
         ImmutableArray<LessonType>? lessonTypes = _lessonTypesPerDay is { } t
             ? [.. t]
             : null;
+        ImmutableArray<AttendanceDate>? dates = _datesPerDay is { } d
+            ? [.. d]
+            : null;
         {
 
             var n = names.MoveToImmutable();
             var a = new AttendanceLists(attendance.MoveToImmutable());
-            var ret = new Result(n, a, lessonTypes);
+            var ret = new Result(n, a, lessonTypes, dates);
             return ret;
         }
     }
@@ -330,7 +383,12 @@ public readonly struct AllStudentAttendanceListBuilder()
 
                     var value = new StudentAttendanceList.BetterAttendances(
                         Attendance: new(perLessonBuilder.DrainToImmutable()),
-                        StudentNames: namesDb);
+                        StudentNames: namesDb,
+                        Dates: x.Dates is { } dates
+                            ? lessonTypes.Select((type, index) => (Type: type, Index: index))
+                                .Where(column => column.Type == lessonType)
+                                .Select(column => dates[column.Index]).ToImmutableArray()
+                            : null);
                     map.Add(key1, value);
                 }
             }
@@ -338,7 +396,8 @@ public readonly struct AllStudentAttendanceListBuilder()
             {
                 var value = new StudentAttendanceList.BetterAttendances(
                     Attendance: x.Attendance,
-                    StudentNames: namesDb);
+                    StudentNames: namesDb,
+                    Dates: x.Dates);
                 map.Add(key, value);
             }
         }
@@ -351,7 +410,8 @@ public readonly struct StudentAttendanceList
 {
     public readonly record struct BetterAttendances(
         AttendanceLists Attendance,
-        NamesInDb StudentNames);
+        NamesInDb StudentNames,
+        ImmutableArray<AttendanceDate>? Dates = null);
 
     private readonly Dictionary<StudentsLookupKey, BetterAttendances> _map;
 
@@ -379,8 +439,36 @@ public readonly struct StudentAttendanceList
             groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
         // TODO: Should work for any subset of the groups, currently it does not.
-        if (_map.TryGetValue(attendanceKey, out var list)
-            && key.DayIndex < list.Attendance.DayCount)
+        if (!_map.TryGetValue(attendanceKey, out var list))
+        {
+            return new([]);
+        }
+        if (list.Dates is { } dates)
+        {
+            // Date-bound sheet: bind by scheduled occurrence date, never by column order.
+            int found = -1;
+            for (int i = 0; i < dates.Length; i++)
+            {
+                if (!dates[i].Matches(key.DateTime))
+                {
+                    continue;
+                }
+                if (found >= 0)
+                {
+                    // Ambiguous: the same date appears twice. Leave unchanged
+                    // rather than writing attendance to the wrong occurrence.
+                    return new([]);
+                }
+                found = i;
+            }
+            if (found < 0 || found >= list.Attendance.DayCount)
+            {
+                // No attendance column for this scheduled date: leave unchanged.
+                return new([]);
+            }
+            return list.Attendance.Day(found);
+        }
+        if (key.DayIndex < list.Attendance.DayCount)
         {
             return list.Attendance.Day(key.DayIndex);
         }

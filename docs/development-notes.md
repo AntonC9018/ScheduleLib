@@ -294,3 +294,30 @@ is left unchanged rather than inferred. Topic text is copied as configured.
   bound the attendance columns and are skipped before reading student names;
   attendance still follows lesson order. Empty worksheets produce an empty roster
   instead of failing the entire import.
+
+### Numbered attendance workbooks and registry spacing
+
+Attendance sources expose `studentNameColumn`, `headerFormat`, `dateMode`, and
+`worksheetNames`; see [attendance-import.md](attendance-import.md). Date binding
+is opt-in (`ValidateAndBind`) to preserve legacy column-order imports. With
+headers enabled, the name column is inferred from recognized name headers,
+skipping number headers and fully empty columns; without a recognized header,
+the first populated column is used. `studentNameColumn` remains an override.
+Attendance columns retain physical column identifiers so empty gaps do not
+shift marks or header dates. Mixed
+headers such as `07.09 curs` retain both the date and lesson type; unannotated
+columns use the worksheet's matched type. Date arrays must be partitioned with
+attendance when splitting lecture/lab lists. Missing or ambiguous dates leave
+registry attendance unchanged.
+
+ClosedXML can populate blank cells in the first row of an Excel table with
+`ColumnN`, even when the table's header row is hidden. Header parsing treats
+matching generated table-field names as blank, without treating arbitrary
+`ColumnN` text outside a table as a header boundary.
+
+`RegistryConfig.httpCallDelay` is a nullable `TimeSpan` override, defaulting to
+five seconds. History uses its guarded transport as the sole spacing mechanism;
+its generic scraping delay must be zero to avoid an additional five-second gate
+when experimenting with smaller values. Short read-only discovery probes at
+2, 1, and 0.5 seconds succeeded in October 2026; this does not establish sustained
+batch limits or guarantee the absence of later access blocks.

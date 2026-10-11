@@ -39,6 +39,8 @@ public sealed partial class StudentAttendanceLoader
             }
             var parseParams = new WorksheetParseParameters
             {
+                StudentNameColumn = source.StudentNameColumn,
+                WorksheetNames = source.WorksheetNames ?? new Dictionary<string, string>(),
                 LabMerges = _registryConfig.Get()?.LabMerges ?? [],
             };
             {
@@ -51,6 +53,18 @@ public sealed partial class StudentAttendanceLoader
                 if (source.CellValueFormat is { } x)
                 {
                     parseParams.CellValueFormat = x;
+                }
+            }
+            {
+                if (source.HeaderFormat is { } x)
+                {
+                    parseParams.HeaderFormat.FormatType = x;
+                }
+            }
+            {
+                if (source.DateMode is { } x)
+                {
+                    parseParams.DateMode = x;
                 }
             }
 

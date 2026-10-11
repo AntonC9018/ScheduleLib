@@ -9,8 +9,12 @@ namespace ScheduleLib.Application.Config;
 public sealed class LessonAttendanceSource
 {
     public string? FilePath { get; set; }
+    public int? StudentNameColumn { get; set; }
+    public Dictionary<string, string>? WorksheetNames { get; set; }
     public RepeatedCourseBehavior? RepeatedCourseBehavior { get; set; }
     public CellValueFormat? CellValueFormat { get; set; }
+    public HeaderFormatType? HeaderFormat { get; set; }
+    public AttendanceDateMode? DateMode { get; set; }
 }
 
 public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>
@@ -22,6 +26,7 @@ public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>
 
     public static void Register(IServiceCollection services)
     {
+        services.SetImmutable<Dictionary<string, string>>();
         services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
         services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
         services.AddConfigProvider(LessonAttendanceConfig.Key);

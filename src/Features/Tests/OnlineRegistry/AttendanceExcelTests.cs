@@ -236,4 +236,308 @@ public sealed class AttendanceExcelTests
     }
 
     // TODO: Add test for header format
+
+    private static (ScheduleBuilder Builder, FilteredSchedule Filtered, CourseId Course, GroupId Group) CreateDateBindingFixture()
+    {
+        var builder = new ScheduleBuilder();
+        builder.SetStudyYear(2026);
+        builder.EnableLookupModule();
+        var group = builder.Group("IA2601");
+        var course = builder.Course("Synthetic course");
+        builder.RegularLesson(lesson =>
+        {
+            lesson.Group(group);
+            lesson.Course(course);
+            lesson.DayOfWeek(DayOfWeek.Monday);
+            lesson.TimeSlot(TimeSlot.First);
+            lesson.Type(LessonType.Lab);
+        });
+        builder.RefreshLookup();
+        var schedule = builder.Build();
+        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
+        unifier.Refresh(builder);
+        return (builder, schedule.Filter(new()), course, group);
+    }
+
+    private static AttendanceListsExcelParser CreateParser(ScheduleBuilder builder)
+    {
+        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
+        unifier.Refresh(builder);
+        return new AttendanceListsExcelParser(builder.GroupParseContext!,
+            builder.Lookup(unifier), LessonTypeParser.Instance,
+            new SubGroupNameRemapper(builder), SpecializationRegistry.Empty);
+    }
+
+    private static AttendanceLookupKey DateKey(CourseId course, GroupId group, DateTime dateTime, int dayIndex = 0) => new(
+        new FoundGroups { IsWildcard = true, Value = [group] }, GroupPartitionKey.All,
+        course, LessonType.Lab, dayIndex: dayIndex, dateTime: dateTime);
+
+    [Fact]
+    public void DateValidationBindsByDateRatherThanColumnOrder()
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "09.09";
+        sheet.Cell(1, 3).Value = "02.09";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        sheet.Cell(2, 3).Value = "na";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { DateMode = AttendanceDateMode.ValidateAndBind },
+            attendance, filtered, workbook));
+        var list = attendance.Build(Attendance.Present);
+        // Columns are deliberately out of order: binding follows the header dates.
+        Assert.Equal(Attendance.NotPresent, list.Get(DateKey(course, group, new(2026, 9, 9))).Student(0));
+        Assert.Equal(Attendance.NotApplicable, list.Get(DateKey(course, group, new(2026, 9, 2))).Student(0));
+        // A scheduled date with no attendance column leaves attendance unchanged.
+        Assert.Equal(0, list.Get(DateKey(course, group, new(2026, 9, 16))).StudentCount);
+    }
+
+    [Fact]
+    public void DateValidationMatchesFullDatesExactly()
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "02.09.2026";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { DateMode = AttendanceDateMode.ValidateAndBind },
+            attendance, filtered, workbook));
+        var list = attendance.Build(Attendance.Present);
+        Assert.Equal(Attendance.NotPresent, list.Get(DateKey(course, group, new(2026, 9, 2))).Student(0));
+        Assert.Equal(0, list.Get(DateKey(course, group, new(2025, 9, 2))).StudentCount);
+    }
+
+    [Fact]
+    public void DateValidationRequiresADateInEveryColumn()
+    {
+        var (builder, filtered, _, _) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "02.09";
+        sheet.Cell(1, 3).Value = "not-a-date";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        var error = Assert.ThrowsAny<Exception>(() =>
+            CreateParser(builder).Parse(new(
+                new() { DateMode = AttendanceDateMode.ValidateAndBind },
+                attendance, filtered, workbook)));
+        Assert.Contains("Synthetic course IA2601", error.Message);
+    }
+
+    [Fact]
+    public void DateValidationRejectsNonDateHeaders()
+    {
+        var (builder, filtered, _, _) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "lab";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        Assert.ThrowsAny<Exception>(() =>
+            CreateParser(builder).Parse(new(
+                new() { DateMode = AttendanceDateMode.ValidateAndBind },
+                attendance, filtered, workbook)));
+    }
+
+    [Fact]
+    public void ExplicitDateHeaderFormatIsHonored()
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "02.09";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { HeaderFormat = new() { FormatType = HeaderFormatType.Date } },
+            attendance, filtered, workbook));
+        var list = attendance.Build(Attendance.Present);
+        // Default date mode keeps order-based binding for compatibility.
+        Assert.Equal(Attendance.NotPresent, list.Get(DateKey(course, group, new(2026, 10, 12))).Student(0));
+    }
+    [Fact]
+    public void NumberedWorkbookLayoutImportsEverySheetAndMixedDateHeaders()
+    {
+        using var workbook = new XLWorkbook("data/numbered-attendance.xlsx");
+        var builder = new ScheduleBuilder();
+        builder.SetStudyYear(2026);
+        builder.EnableLookupModule();
+        var group = builder.Group("IA2601");
+        var aliases = new Dictionary<string, string>();
+        foreach (var sheet in workbook.Worksheets)
+        {
+            var courseName = $"Synthetic course {sheet.Position}";
+            var course = builder.Course(courseName);
+            builder.RegularLesson(lesson =>
+            {
+                lesson.Group(group);
+                lesson.Course(course);
+                lesson.DayOfWeek(DayOfWeek.Monday);
+                lesson.TimeSlot(TimeSlot.First);
+                lesson.Type(LessonType.Lab);
+            });
+            aliases.Add(sheet.Name, $"{courseName} IA2601 (lab)");
+        }
+        builder.RefreshLookup();
+        var filtered = builder.Build().Filter(new());
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new()
+            {
+                WorksheetNames = aliases,
+                HeaderFormat = new() { FormatType = HeaderFormatType.Date },
+                DateMode = AttendanceDateMode.ValidateAndBind,
+            }, attendance, filtered, workbook));
+        var lists = attendance.Build(Attendance.Present).ToArray();
+        // Two sheets include both lecture and lab columns; all 13 sheets import.
+        Assert.Equal(15, lists.Length);
+        Assert.All(lists, list => Assert.True(list.Value.StudentNames.Count > 0));
+        Assert.All(lists, list => Assert.Equal(list.Value.Attendance.DayCount, list.Value.Dates!.Value.Length));
+        Assert.Equal(2, lists.Count(list => list.Key.LessonType == LessonType.Curs));
+        Assert.Equal(13, lists.Count(list => list.Key.LessonType == LessonType.Lab));
+        Assert.Contains(lists, list => list.Value.Attendance.Values.Any(day => day.AsArray().Contains(Attendance.NotPresent)));
+    }
+
+    [Fact]
+    public void NumberedColumnsBindNativeDatesAndSeparateLectureFromLab()
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("group shorthand");
+        sheet.Cell(1, 1).Value = "Nr.";
+        sheet.Cell(1, 2).Value = "Nume, Prenume";
+        sheet.Cell(1, 3).Value = new DateTime(2026, 9, 9);
+        sheet.Cell(1, 4).Value = "02.09 curs";
+        sheet.Cell(1, 5).Value = "curs 09.09";
+        sheet.Cell(2, 1).Value = 1;
+        sheet.Cell(2, 2).Value = "Synthetic Student";
+        sheet.Cell(2, 3).Value = "a";
+        sheet.Cell(2, 4).Value = "am";
+        sheet.Cell(2, 5).Value = "na";
+        sheet.Cell(2, 6).Value = "ignored outside header";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new()
+            {
+                StudentNameColumn = 2,
+                WorksheetNames = new Dictionary<string, string> { [sheet.Name] = "Synthetic course IA2601 (lab)" },
+                DateMode = AttendanceDateMode.ValidateAndBind,
+            }, attendance, filtered, workbook));
+        var lists = attendance.Build(Attendance.Present);
+        Assert.Equal(Attendance.NotPresent, lists.Get(DateKey(course, group, new(2026, 9, 9))).Student(0));
+        var lecture = new AttendanceLookupKey(
+            new FoundGroups { IsWildcard = true, Value = [group] }, GroupPartitionKey.All,
+            course, LessonType.Curs, dayIndex: 0, dateTime: new(2026, 9, 2));
+        Assert.Equal(Attendance.MotivatedAbsent, lists.Get(lecture).Student(0));
+        var laterLecture = new AttendanceLookupKey(
+            new FoundGroups { IsWildcard = true, Value = [group] }, GroupPartitionKey.All,
+            course, LessonType.Curs, dayIndex: 0, dateTime: new(2026, 9, 9));
+        Assert.Equal(Attendance.NotApplicable, lists.Get(laterLecture).Student(0));
+        Assert.Equal(0, lists.Get(DateKey(course, group, new(2025, 9, 9))).StudentCount);
+    }
+
+    [Fact]
+    public void DuplicateDatesLeaveAttendanceUnchanged()
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 2).Value = "02.09";
+        sheet.Cell(1, 3).Value = "02.09";
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "a";
+        sheet.Cell(2, 3).Value = "am";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { DateMode = AttendanceDateMode.ValidateAndBind }, attendance, filtered, workbook));
+        Assert.Equal(0, attendance.Build(Attendance.Present).Get(DateKey(course, group, new(2026, 9, 2))).StudentCount);
+    }
+
+    [Theory]
+    [InlineData(1, false, false, true)]
+    [InlineData(3, true, false, true)]
+    [InlineData(4, false, true, true)]
+    [InlineData(3, false, false, false)]
+    [InlineData(2, true, false, false)]
+    public void AutomaticNameColumnSkipsMetadataAndEmptyColumns(
+        int nameColumn, bool numbering, bool strayTextBeforeNameHeader, bool hasHeader)
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Column(1).Width = 20; // Formatting does not make an empty column populated.
+        int firstStudentRow = hasHeader ? 2 : 1;
+        if (hasHeader)
+        {
+            if (strayTextBeforeNameHeader) sheet.Cell(1, 1).Value = "Other metadata";
+            if (numbering) sheet.Cell(1, 1).Value = "Nr.";
+            sheet.Cell(1, nameColumn).Value = "Nume, Prenume";
+            sheet.Cell(1, nameColumn + 2).Value = "02.09";
+            sheet.Cell(1, nameColumn + 4).Value = "09.09";
+        }
+        else if (numbering)
+        {
+            sheet.Cell(1, 1).Value = "Nr.";
+        }
+        if (numbering) sheet.Cell(firstStudentRow + 1, 1).Value = 2;
+        sheet.Cell(firstStudentRow, nameColumn).Value = "Synthetic Alpha";
+        sheet.Cell(firstStudentRow + 1, nameColumn).Value = "Synthetic Beta";
+        sheet.Cell(firstStudentRow, nameColumn + (hasHeader ? 2 : 1)).Value = "a";
+        sheet.Cell(firstStudentRow + 1, nameColumn + (hasHeader ? 4 : 2)).Value = "am";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(new(), attendance, filtered, workbook));
+        var list = Assert.Single(attendance.Build(Attendance.Present));
+        Assert.Equal(2, list.Value.StudentNames.Count);
+        Assert.Equal(2, list.Value.Attendance.DayCount);
+        Assert.Equal(Attendance.NotPresent, list.Value.Attendance.Day(0).Student(0));
+        Assert.Equal(Attendance.Present, list.Value.Attendance.Day(0).Student(1));
+        Assert.Equal(Attendance.MotivatedAbsent, list.Value.Attendance.Day(1).Student(1));
+    }
+
+    [Fact]
+    public void ExplicitNameColumnOverridesHeaderDetection()
+    {
+        var (builder, filtered, _, _) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 1).Value = "Name";
+        sheet.Cell(1, 3).Value = "Nume";
+        sheet.Cell(1, 4).Value = "lab";
+        sheet.Cell(2, 1).Value = "Ignored Student";
+        sheet.Cell(2, 3).Value = "Synthetic Student";
+        sheet.Cell(2, 4).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { StudentNameColumn = 3 }, attendance, filtered, workbook));
+        Assert.Single(Assert.Single(attendance.Build(Attendance.Present)).Value.StudentNames);
+    }
+
+    [Fact]
+    public void IgnoredHeaderStillDetectsAndSkipsNameAndNumberHeaders()
+    {
+        var (builder, filtered, _, _) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        sheet.Cell(1, 1).Value = "Nr.";
+        sheet.Cell(1, 2).Value = "Name";
+        sheet.Cell(1, 3).Value = "arbitrary header";
+        sheet.Cell(2, 1).Value = 1;
+        sheet.Cell(2, 2).Value = "Synthetic Student";
+        sheet.Cell(2, 3).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(
+            new() { HeaderFormat = new() { FormatType = HeaderFormatType.IgnoreHeader } },
+            attendance, filtered, workbook));
+        Assert.Single(Assert.Single(attendance.Build(Attendance.Present)).Value.StudentNames);
+    }
+
 }

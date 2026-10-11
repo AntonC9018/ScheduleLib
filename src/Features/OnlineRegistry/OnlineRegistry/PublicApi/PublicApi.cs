@@ -537,7 +537,7 @@ public readonly record struct RegistryScrapingContext(
         CancellationToken cancellationToken)
     {
         var builder = new ScrapingContextBuilder();
-        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        RegistryScraping.AddDefaultConfigWithoutHandlers(builder, ResolveHttpCallDelay(sp));
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         builder.TokenAuth(x =>
         {
@@ -547,16 +547,28 @@ public readonly record struct RegistryScrapingContext(
         var ret = await builder.Build(cancellationToken);
         return new(ret);
     }
+
+    private static TimeSpan ResolveHttpCallDelay(IServiceProvider sp)
+    {
+        var provider = sp.GetService(typeof(DataProvider<BuiltRegistryConfig>)) as DataProvider<BuiltRegistryConfig>;
+        if (provider is null)
+            return BuiltRegistryConfig.DefaultHttpCallDelay;
+        // Null means registry not enabled at this path; mapping errors (e.g. negative delay) propagate.
+        return provider.Get()?.HttpCallDelay ?? BuiltRegistryConfig.DefaultHttpCallDelay;
+    }
 }
 
 public static partial class RegistryScraping
 {
-    private static readonly TimeSpan RegistryRequestSpacing = TimeSpan.FromSeconds(5);
+    internal static readonly TimeSpan RegistryRequestSpacing = BuiltRegistryConfig.DefaultHttpCallDelay;
 
     /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
-    public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token)
+    public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token, TimeSpan? delay = null)
     {
+        var spacing = delay ?? RegistryRequestSpacing;
+        if (spacing < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(delay));
         HttpMessageHandler? handler = null;
         HttpClient? client = null;
         HttpClientContext? transport = null;
@@ -565,12 +577,13 @@ public static partial class RegistryScraping
             var cookieProvider = new AngleSharp.Io.MemoryCookieProvider();
             handler = new HttpClientHandler { CookieContainer = cookieProvider.Container, AllowAutoRedirect = false };
             var guard = new RegistryHistoryRequestHandler(handler, new(BaseUrl + "LessonAttendance"),
-                DefaultTokenNames.LoginUrl, RegistryRequestSpacing);
+                DefaultTokenNames.LoginUrl, spacing);
             handler = guard;
             client = new HttpClient(guard);
             transport = new HttpClientContext(cookieProvider, client, guard);
             var builder = new ScrapingContextBuilder();
-            AddDefaultConfigWithoutHandlers(builder);
+            // The history transport applies spacing to every request, including login.
+            AddDefaultConfigWithoutHandlers(builder, TimeSpan.Zero);
             builder.AddLogging(Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
             builder.TokenAuth(x => x.PasswordLoginCall(credentials));
             var context = await builder.Build(token, transport);
@@ -602,7 +615,14 @@ public static partial class RegistryScraping
 
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
     {
-        b.Delay(RegistryRequestSpacing);
+        AddDefaultConfigWithoutHandlers(b, RegistryRequestSpacing);
+    }
+
+    internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b, TimeSpan delay)
+    {
+        if (delay < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(delay));
+        b.Delay(delay);
         b.AddConfig(DefaultTokensStorageConfig);
         b.AddConfig(DefaultPasswordLoginFieldNames);
         b.AddConfig(DefaultTokenNames);

@@ -20,6 +20,7 @@ public sealed class RegistryConfig :
     public List<RegistryGroupMatchRule> GroupMatchRules { get; set; } = [];
     public List<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public List<RegistryAssessmentRule> Assessments { get; set; } = [];
+    public TimeSpan? HttpCallDelay { get; set; }
 
     public static void Register(IServiceCollection services)
     {
@@ -40,6 +41,9 @@ public sealed class BuiltRegistryConfig
 {
     public static NodeDataKey<BuiltRegistryConfig> Key => new(RegistryConfig.Key.Value);
 
+    /// <summary>Minimum spacing between registry HTTP requests. Zero disables throttling for experiments.</summary>
+    public static readonly TimeSpan DefaultHttpCallDelay = TimeSpan.FromSeconds(5);
+
     public required CredentialsSource Credentials { get; set; }
     public required ExtraLessonInstanceAction ExtraLessonInstanceAction { get; set; }
     public required IEquationCommandsDerivation EquationCommandsDerivation { get; set; }
@@ -47,12 +51,16 @@ public sealed class BuiltRegistryConfig
     public IReadOnlyList<RegistryGroupMatchRule> GroupMatchRules { get; set; } = [];
     public IReadOnlyList<RegistryLabMergeRule> LabMerges { get; set; } = [];
     public IReadOnlyList<RegistryAssessmentRule> Assessments { get; set; } = [];
+    public TimeSpan HttpCallDelay { get; set; } = DefaultHttpCallDelay;
 }
 
 public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegistryConfig>
 {
     public BuiltRegistryConfig Map(RegistryConfig input)
     {
+        var delay = input.HttpCallDelay ?? BuiltRegistryConfig.DefaultHttpCallDelay;
+        if (delay < TimeSpan.Zero)
+            throw new InvalidOperationException("Registry HttpCallDelay must be nonnegative.");
         return new()
         {
             GroupMatchRules = input.GroupMatchRules,
@@ -62,6 +70,7 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
             CommandProcessingConfig = input.CommandProcessingConfig ?? CommandProcessingConfig.DryRun,
             Credentials = input.Credentials ?? throw new InvalidOperationException("No credentials configured"),
             EquationCommandsDerivation = input.EquationCommandsDerivation ?? throw new InvalidOperationException("No command derivation configured"),
+            HttpCallDelay = delay,
         };
     }
 }
@@ -115,6 +124,11 @@ public static class ConfigExtensions
         public void ProcessingFlags(CommandProcessingConfig flags)
         {
             builder.Value().CommandProcessingConfig = flags;
+        }
+
+        public void HttpCallDelay(TimeSpan delay)
+        {
+            builder.Value().HttpCallDelay = delay;
         }
     }
 }
