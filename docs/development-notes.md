@@ -207,7 +207,10 @@ Identical topic sequences share one course CSV and manifest scopes covering all
 matching groups. When a shorter sequence is included in a longer one in the same
 order, reuse the longest sequence. Different content stays separate; repeated
 topics within a sequence remain intact. A course CSV can contain lectures and
-labs together using `lessonType`, with `series` for distinct variants.
+labs together using `lessonType`. Manifest lesson type and language values filter
+rows when those CSV columns exist and supply defaults when they do not. Use
+`series` only to select distinct variants that type and language alone cannot
+distinguish.
 
 For a registry destination with separate parent-group sessions, regular topic
 indexes advance independently for each scheduled audience and lesson type.

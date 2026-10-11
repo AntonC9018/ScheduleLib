@@ -266,10 +266,12 @@ Topic text is copied as configured, so Romanian topics can be explicitly scoped
 to an English subgroup without translation.
 
 Topic CSVs can combine lecture, lab, and language sequences in one file using
-`name,lessonType,language,series` columns. Set a manifest document's `series`
-to select that named sequence while retaining its group, partition, type, and
-language scope. Rows can be interleaved; each selected sequence keeps its own
-row order. Documents without `series` retain the existing behavior.
+`name,lessonType,language,series` columns. Manifest `lessonType` and `language`
+select matching rows when the CSV contains those columns; otherwise they supply
+defaults. Set a manifest document's `series` to select a distinct variant while
+retaining its group and partition scope. Rows can be interleaved; each selected
+sequence keeps its own row order. Documents without `series` read all rows
+matching their manifest type and language.
 
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each

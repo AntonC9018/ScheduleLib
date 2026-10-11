@@ -54,51 +54,63 @@ public static class LessonTopicCsvSerializer
             config = c(config);
         }
         using var csvReader = new CsvReader(input, config);
-        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults));
+        if (!await csvReader.ReadAsync()) yield break;
+        csvReader.ReadHeader();
+        var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
+        var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
+        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults, hasLessonType, hasLanguage));
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
         await foreach (var x in ret)
         {
-            if (defaults.LessonType is { } lessonType)
+            if (!hasLessonType && defaults.LessonType is { } lessonType)
             {
                 x.LessonType = lessonType;
             }
-            if (defaults.Language is { } lang)
+            if (!hasLanguage)
             {
-                x.Language = lang;
+                x.Language = defaults.Language ?? Language.None;
             }
             if (!RegistryAssessmentTopics.IsAssessment(x.Name)) yield return x;
         }
     }
 }
 
-// Custom mapping for when Age column is missing entirely
 public sealed class LessonTopicMap : ClassMap<LessonTopic>
 {
-    public LessonTopicMap(LessonTopicDefaults defaults)
+    public LessonTopicMap(LessonTopicDefaults defaults, bool hasLessonType = true, bool hasLanguage = true)
     {
         Map(m => m.Name).Name("name");
         Map(m => m.Series).Name("series").Optional();
 
-        var lessonTypeMap = Map(m => m.LessonType).Name("lessonType");
-        lessonTypeMap.EnumConverter(opts =>
+        if (hasLessonType)
         {
-            opts.Include(LessonType.Curs);
-            opts.Include(LessonType.Seminar);
-            opts.Include(LessonType.Lab);
-            opts.Include(LessonType.Prelegere);
-        });
-        if (defaults.LessonType is { })
+            var lessonTypeMap = Map(m => m.LessonType).Name("lessonType").Optional();
+            lessonTypeMap.EnumConverter(opts =>
+            {
+                opts.Include(LessonType.Curs);
+                opts.Include(LessonType.Seminar);
+                opts.Include(LessonType.Lab);
+                opts.Include(LessonType.Prelegere);
+            });
+            if (defaults.LessonType is { } lessonType)
+            {
+                lessonTypeMap.Default(lessonType);
+            }
+        }
+        else
         {
-            lessonTypeMap.Ignore();
+            Map(m => m.LessonType).Ignore();
         }
 
-        var languageMap = Map(m => m.Language).Name("language");
-        languageMap.EnumConverter();
-        languageMap.Default(Language.None);
-        languageMap.Optional();
-        if (defaults.Language is { })
+        if (hasLanguage)
         {
-            languageMap.Ignore();
+            var languageMap = Map(m => m.Language).Name("language").Optional();
+            languageMap.EnumConverter();
+            languageMap.Default(defaults.Language ?? Language.None);
+        }
+        else
+        {
+            Map(m => m.Language).Ignore();
         }
     }
 }
@@ -556,13 +568,16 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             await foreach (var lessonTopic in e)
             {
                 if (document.Series is { } series && lessonTopic.Series != series) continue;
+                if (document.LessonType is { } lessonType && lessonTopic.LessonType != lessonType) continue;
+                if (document.Language is { } language && lessonTopic.Language != language) continue;
                 if (lessonTopic.Language == Language.None)
                 {
                     // Must have been checked earlier at CSV binding.
                     Debug.Assert(defaults.Language == null);
                 }
 
-                var builder = bylang.GetBuilder(this, lessonTopic.Language);
+                var builder = bylang.FindBuilder(this, lessonTopic.Language);
+                if (builder is null) continue;
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
 
@@ -899,5 +914,16 @@ file struct TopicsByLanguage()
                 language: Language.None));
         }
         return _fallback;
+    }
+
+    public LessonTopicsBuilder? FindBuilder(
+        AllLessonTopicsDatabaseBuilder self,
+        Language language)
+    {
+        if (language == Language.None)
+        {
+            return GetBuilder(self, language);
+        }
+        return _arr.TryGet(language, out var builder) ? builder : null;
     }
 }
