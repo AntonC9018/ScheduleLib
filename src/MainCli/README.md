@@ -254,11 +254,14 @@ not counted as planned actions. A normal lesson 302/303 redirect is confirmed by
 reading the saved lesson values, without replaying the POST. An `uncertain`
 outcome means the write may have succeeded: inspect the registry before retrying.
 
-Sync collects missing registry courses/partitions, unmapped registry labels,
-assignment mismatches, missing lesson topics, and missing attendance rows into a final report. JSON and
-JSONL include these in `data.diagnostics`; human output gives the course/group
-and the correction needed. A missing assignment does not prevent other matched
-groups from being processed. Whole-group destinations include lessons restricted
+Sync reports missing registry courses/partitions, unmapped registry labels,
+assignment mismatches, missing lesson topics, and missing attendance rows as
+they are detected and retains them in the final report. JSON and JSONL include
+these in `data.diagnostics`; human output gives the course/group and the
+correction needed. Assignment mismatches name the teachers assigned in the
+schedule and skip that destination before fetching its roster or lessons;
+other matched groups continue. Streamed warnings are not printed again at the
+end. Whole-group destinations include lessons restricted
 to the parent group's teaching language, while other language subgroups retain
 separate destinations. Attendance is looked up by each lesson's actual partition;
 explicit lab merges retain their configured whole-group attendance projection.

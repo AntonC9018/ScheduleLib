@@ -83,8 +83,6 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             foreach (var group in groups)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
-
                 var filter = new LessonSearchFilter(
                     courseLink.CourseId,
                     group.Groups,
@@ -118,9 +116,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     case LessonValidityDecision.Error:
                     {
                         _errorHandler.LessonsDecidedErroneous(new(decision.ErrorContext));
+                        var assignedTeachers = lessons
+                            .SelectMany(lessonId => _schedule.Get(lessonId).Lesson.Teachers)
+                            .Distinct()
+                            .Select(teacherId => _schedule.Get(teacherId).PersonName.ToString())
+                            .Order(StringComparer.Ordinal)
+                            .ToArray();
                         p.Diagnostics?.Add("registry-assignment-mismatch", _schedule.Get(courseLink.CourseId).FullName,
                             group.Groups.Value.ToString(_schedule),
-                            "The registry destination matches schedule lessons assigned to another teacher. Check its course/group assignment before applying.");
+                            $"Skipped this registry destination: schedule lessons are assigned to {string.Join(", ", assignedTeachers)}. Check its course/group assignment.");
                         continue;
                     }
                     case LessonValidityDecision.Skip:
@@ -129,6 +133,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
                 }
 
+                var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 if (scanResult.Students.Length == 0)
                     p.Diagnostics?.Add("empty-registry-roster", _schedule.Get(courseLink.CourseId).FullName,
                         group.Groups.Value.ToString(_schedule),

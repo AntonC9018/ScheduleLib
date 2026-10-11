@@ -40,6 +40,8 @@ public partial class RegistryCommands
         RegistryDestination? target = null;
         var outcomes = new List<RegistryActionOutcome>();
         IReadOnlyList<RegistrySyncDiagnostic> diagnostics = [];
+        RegistrySyncDiagnostics? liveDiagnostics = null;
+        var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = new List<string> { "Existing positional matching is used; updates are not a semantic minimum patch." };
         var attempted = false;
@@ -55,6 +57,8 @@ public partial class RegistryCommands
             await using var session = await CreateProvider().Open(source, settings, cancellation.Token);
             target = session.Target;
             diagnostics = session.Diagnostics;
+            liveDiagnostics = session.LiveDiagnostics;
+            if (liveDiagnostics is not null) liveDiagnostics.Reported += StreamDiagnostic;
             await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
             // Scan and apply each completed course/group before scanning the next.
             var stopped = false;
@@ -154,7 +158,13 @@ public partial class RegistryCommands
         catch (ArgumentException e) { return Finish(2, [e.Message]); }
         catch (PlatformNotSupportedException e) { return Finish(8, [e.Message]); }
         catch (Exception) { return Finish(attempted ? 6 : 5, ["Registry operation failed. No automatic retry was performed."]); }
-        finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; WriteResult(); }
+        finally
+        {
+            if (liveDiagnostics is not null) liveDiagnostics.Reported -= StreamDiagnostic;
+            Console.CancelKeyPress -= cancel;
+            CliAmbient.Current = null;
+            WriteResult();
+        }
 
         static RegistryActionOutcome ToOutcome(RegistrySyncAction action, string status, string? detail) => new(action.Kind,
             action.Destination, action.Course, action.Groups, action.Date, action.Topic, action.AttendanceCount, status, detail);
@@ -177,6 +187,19 @@ public partial class RegistryCommands
                 throw new CliOutputStreamingException("Output streaming failed.", ex);
             }
         }
+        void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
+        {
+            var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
+            if (!streamedWarnings.Add(text)) return;
+            try
+            {
+                output.WriteWarning(text);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new CliOutputStreamingException("Output streaming failed.", ex);
+            }
+        }
         int Finish(int exit, string[] errors)
         {
             finalExit = attempted && exit is not (0 or 130) ? 6 : exit;
@@ -192,7 +215,8 @@ public partial class RegistryCommands
                 var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
                 warnings.Add(text);
             }
-            foreach (var warning in warnings) output.WriteWarning(warning);
+            foreach (var warning in warnings)
+                if (!streamedWarnings.Contains(warning)) output.WriteWarning(warning);
             foreach (var error in errors) output.WriteError(error);
             var status = exit == 130 ? "cancelled" : exit == 0 ? apply.Apply ? "applied" : "preview" : attempted ? "partial" : "failed";
             if (result.Json)

@@ -8,6 +8,7 @@ public sealed class RegistrySyncDiagnostics
     private readonly List<RegistrySyncDiagnostic> _items = [];
     private readonly HashSet<RegistrySyncDiagnostic> _seen = [];
     public IReadOnlyList<RegistrySyncDiagnostic> Items => _items;
+    public event Action<RegistrySyncDiagnostic>? Reported;
 
     public static string DescribePartition(GroupPartitionKey partition)
     {
@@ -22,7 +23,11 @@ public sealed class RegistrySyncDiagnostics
     public void Add(string kind, string? course, string? group, string detail)
     {
         var item = new RegistrySyncDiagnostic(kind, course, group, detail);
-        if (_seen.Add(item)) _items.Add(item);
+        if (_seen.Add(item))
+        {
+            _items.Add(item);
+            Reported?.Invoke(item);
+        }
     }
 }
 

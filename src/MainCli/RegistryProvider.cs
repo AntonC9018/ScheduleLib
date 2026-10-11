@@ -15,6 +15,7 @@ public interface IRegistrySession : IAsyncDisposable
 {
     RegistryDestination Target { get; }
     IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => [];
+    RegistrySyncDiagnostics? LiveDiagnostics => null;
     Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token);
     async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
     {
@@ -99,6 +100,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
     {
         public RegistryDestination Target => target;
         public IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => Services.GetRequiredService<RegistrySyncDiagnostics>().Items;
+        public RegistrySyncDiagnostics LiveDiagnostics => Services.GetRequiredService<RegistrySyncDiagnostics>();
         public IServiceProvider Services => scope.ServiceProvider;
         public OnlineRegistryNavigator CreateNavigator(CancellationToken token) => context.Navigator(Services, token);
         public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token) =>
