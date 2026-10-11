@@ -136,6 +136,7 @@ public sealed class Document
     public string? Alternative { get; set; }
     public bool AllowMissingLessonTypes { get; set; }
     public required string Path { get; set; }
+    public string? Series { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public required List<string> Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]

@@ -22,6 +22,7 @@ public sealed class LessonTopic
     public required string Name { get; set; }
     public LessonType LessonType { get; set; }
     public Language Language { get; set; }
+    public string? Series { get; set; }
 }
 
 public sealed class LessonTopicDefaults
@@ -76,6 +77,7 @@ public sealed class LessonTopicMap : ClassMap<LessonTopic>
     public LessonTopicMap(LessonTopicDefaults defaults)
     {
         Map(m => m.Name).Name("name");
+        Map(m => m.Series).Name("series").Optional();
 
         var lessonTypeMap = Map(m => m.LessonType).Name("lessonType");
         lessonTypeMap.EnumConverter(opts =>
@@ -553,6 +555,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             await foreach (var lessonTopic in e)
             {
+                if (document.Series is { } series && lessonTopic.Series != series) continue;
                 if (lessonTopic.Language == Language.None)
                 {
                     // Must have been checked earlier at CSV binding.

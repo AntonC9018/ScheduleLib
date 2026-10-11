@@ -265,6 +265,12 @@ explicit lab merges retain their configured whole-group attendance projection.
 Topic text is copied as configured, so Romanian topics can be explicitly scoped
 to an English subgroup without translation.
 
+Topic CSVs can combine lecture, lab, and language sequences in one file using
+`name,lessonType,language,series` columns. Set a manifest document's `series`
+to select that named sequence while retaining its group, partition, type, and
+language scope. Rows can be interleaved; each selected sequence keeps its own
+row order. Documents without `series` retain the existing behavior.
+
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each
 planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).
