@@ -178,6 +178,59 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(GroupPartitionKey.All, Assert.Single(attendance.Build(Attendance.Present)).Key.GroupPartition);
     }
 
+    [Theory]
+    [InlineData("I")]
+    [InlineData("II")]
+    [InlineData(null)]
+    public void CanonicalSubgroupSheetsRemainReadableAfterAutomaticMerge(string? survivor)
+    {
+        var fixture = new Fixture();
+        fixture.Add(survivor, fixture.Latest, DayOfWeek.Monday);
+        var schedule = LabSubGroupMerges.Project(fixture.Build(), true);
+        using var workbook = new XLWorkbook();
+        foreach (var subgroup in new[] { "I", "II" })
+        {
+            var sheet = workbook.AddWorksheet($"IA2601 {subgroup}");
+            sheet.Cell(1, 2).Value = "lab";
+            sheet.Cell(2, 1).Value = subgroup == "I" ? "Synthetic Alpha" : "Synthetic Beta";
+            sheet.Cell(2, 2).Value = subgroup == "I" ? "a" : "am";
+        }
+        var builder = new AllStudentAttendanceListBuilder();
+        var parser = new AttendanceListsExcelParser(fixture.Builder.GroupParseContext!, fixture.Lookup,
+            LessonTypeParser.Instance, new SubGroupNameRemapper(fixture.Builder), SpecializationRegistry.Empty);
+        parser.Parse(new(new() { WorksheetNames = new Dictionary<string, string>
+        { ["IA2601 I"] = "Synthetic course IA2601 I (lab)", ["IA2601 II"] = "Synthetic course IA2601 II (lab)" } }, builder, schedule.Filter(new()), workbook));
+        var attendance = builder.Build(Attendance.Present);
+        Assert.Equal(2, attendance.Count());
+        Assert.All(attendance, entry => Assert.NotEqual(SubGroup.All, entry.Key.GroupPartition.SubGroup));
+        var projected = AttendanceLabMerges.Project(attendance, schedule, []);
+        var merged = Assert.Single(projected.Where(entry => entry.Key.GroupPartition.SubGroup == SubGroup.All));
+        Assert.Equal(2, merged.Value.StudentNames.Count);
+        Assert.Equal(new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, merged.Value.Attendance.Day(0).AsArray());
+    }
+
+    [Theory]
+    [InlineData("III", true)]
+    [InlineData("II", false)]
+    public void UnprovenSubgroupsAndOtherTeacherDestinationsRemainUnmatched(string subgroup, bool selectedTeacher)
+    {
+        var fixture = new Fixture();
+        fixture.Add("I", fixture.Latest, DayOfWeek.Monday, fixture.NewTeacher);
+        var schedule = LabSubGroupMerges.Project(fixture.Build(), true);
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet($"IA2601 {subgroup}");
+        sheet.Cell(1, 2).Value = "lab";
+        sheet.Cell(2, 1).Value = "Synthetic Alpha";
+        sheet.Cell(2, 2).Value = "a";
+        var parser = new AttendanceListsExcelParser(fixture.Builder.GroupParseContext!, fixture.Lookup,
+            LessonTypeParser.Instance, new SubGroupNameRemapper(fixture.Builder), SpecializationRegistry.Empty);
+        var filtered = selectedTeacher ? schedule.Filter(new()) : schedule.Filter(FilterHelper.Builder().WithTeacher(fixture.OldTeacher));
+        Assert.Throws<InvalidOperationException>(() => parser.Parse(new(new()
+        {
+            WorksheetNames = new Dictionary<string, string> { [sheet.Name] = $"Synthetic course IA2601 {subgroup} (lab)" },
+        }, new AllStudentAttendanceListBuilder(), filtered, workbook)));
+    }
+
     private sealed class Fixture
     {
         internal readonly ScheduleBuilder Builder = new();

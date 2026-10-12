@@ -34,6 +34,7 @@ public readonly record struct AttendanceDate
     public required int Month { get; init; }
     public required int Day { get; init; }
     public int? Year { get; init; }
+    public TimeOnly? Time { get; init; }
 
     public bool Matches(DateTime dateTime)
     {
@@ -41,7 +42,8 @@ public readonly record struct AttendanceDate
         {
             return false;
         }
-        return Year is null || dateTime.Year == Year;
+        return (Year is null || dateTime.Year == Year)
+            && (Time is null || TimeOnly.FromDateTime(dateTime) == Time);
     }
 }
 

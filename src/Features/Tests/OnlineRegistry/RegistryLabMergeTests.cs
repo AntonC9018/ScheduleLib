@@ -76,11 +76,87 @@ public sealed class RegistryLabMergeTests
         Assert.All(result.Value.Attendance.Values, day => Assert.All(day.AsArray(), mark => Assert.Equal(Attendance.NotPresent,mark)));
     }
 
+    [Fact]
+    public void CanonicalSheetsComposeRowsByLessonOrdinalOnlyForConfiguredLabs()
+    {
+        var fixture = new Fixture();
+        var builder = new AllStudentAttendanceListBuilder();
+        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
+        first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
+        first.HintMaxCount(1);
+        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
+        var student = second.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta"));
+        student.Day(Attendance.MotivatedAbsent);
+        student.Day(Attendance.NotPresent);
+        var canonical = builder.Build(Attendance.Present);
+        Assert.Equal(2, AttendanceLabMerges.Project(canonical, fixture.Schedule, []).Count());
+        var result = AttendanceLabMerges.Project(canonical, fixture.Schedule, fixture.Rules);
+        var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
+        Assert.Equal(new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, merged.Value.Attendance.Day(0).AsArray());
+        Assert.Equal(new[] { Attendance.None, Attendance.NotPresent }, merged.Value.Attendance.Day(1).AsArray());
+        Assert.Equal(2, merged.Value.StudentNames.Count);
+    }
+
+    [Fact]
+    public void DatedCanonicalSheetsPreserveDifferentDatesAndAmbiguousSourceColumns()
+    {
+        var fixture = new Fixture();
+        var builder = new AllStudentAttendanceListBuilder();
+        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
+        first.AddAttendanceDates([new() { Month = 9, Day = 1 }, new() { Month = 9, Day = 8 }]);
+        var alpha = first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha"));
+        alpha.Day(Attendance.NotPresent);
+        alpha.Day(Attendance.MotivatedAbsent);
+        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
+        second.AddAttendanceDates([new() { Month = 9, Day = 2 }, new() { Month = 9, Day = 8 }, new() { Month = 9, Day = 8 }]);
+        var beta = second.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta"));
+        beta.Day(Attendance.MotivatedAbsent);
+        beta.Day(Attendance.NotPresent);
+        beta.Day(Attendance.NotPresent);
+        var result = AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules);
+        var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
+        Assert.Equal(3, merged.Value.Dates!.Value.Length);
+        Assert.Equal(new[] { Attendance.NotPresent, Attendance.None }, merged.Value.Attendance.Day(0).AsArray());
+        Assert.Equal(new[] { Attendance.None, Attendance.MotivatedAbsent }, merged.Value.Attendance.Day(1).AsArray());
+        Assert.Equal(new[] { Attendance.MotivatedAbsent, Attendance.None }, merged.Value.Attendance.Day(2).AsArray());
+    }
+
+    [Fact]
+    public void ExistingWholeGroupSheetTakesPrecedenceOverCanonicalSheets()
+    {
+        var fixture = new Fixture();
+        var builder = new AllStudentAttendanceListBuilder();
+        builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab))
+            .Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
+        builder.List(new([fixture.Group], GroupPartitionKey.All, fixture.Course, LessonType.Lab))
+            .Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.MotivatedAbsent);
+        var result = AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules);
+        var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
+        Assert.Equal(Attendance.MotivatedAbsent, Assert.Single(merged.Value.Attendance.Day(0).AsArray()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConflictingSubgroupSourcesAreRejected(bool duplicateName)
+    {
+        var fixture = new Fixture();
+        var builder = new AllStudentAttendanceListBuilder();
+        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
+        first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
+        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
+        second.Student(ScheduleLib.Parsing.NameHelper.Parse(duplicateName ? "Synthetic Alpha" : "Synthetic Beta")).Day(Attendance.MotivatedAbsent);
+        if (!duplicateName) second.AddAttendanceDates([new() { Month = 9, Day = 1 }]);
+        Assert.Throws<InvalidOperationException>(() => AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules));
+    }
+
     private sealed class Fixture
     {
         internal readonly ScheduleBuilder Builder = new();
         internal readonly Schedule Schedule;
         internal readonly LookupFacade Lookup;
+        internal CourseId Course => _course;
+        internal GroupId Group => _group;
         private readonly CourseId _course;
         private readonly GroupId _group;
         internal readonly RegistryLabMergeRule[] Rules = [new(){Course="Synthetic course",Group="IA2601"}];

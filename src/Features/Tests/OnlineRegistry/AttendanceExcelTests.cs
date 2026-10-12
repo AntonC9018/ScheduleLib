@@ -445,6 +445,38 @@ public sealed class AttendanceExcelTests
         Assert.Equal(0, lists.Get(DateKey(course, group, new(2025, 9, 9))).StudentCount);
     }
 
+    [Theory]
+    [InlineData("text")]
+    [InlineData("full-year")]
+    [InlineData("native")]
+    [InlineData("typed")]
+    public void DateValidationDistinguishesTwoLabsOnTheSameDayByTime(string format)
+    {
+        var (builder, filtered, course, group) = CreateDateBindingFixture();
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.AddWorksheet("Synthetic course IA2601");
+        if (format == "native")
+        {
+            sheet.Cell(1, 2).Value = new DateTime(2026, 9, 2, 11, 30, 0);
+            sheet.Cell(1, 3).Value = new DateTime(2026, 9, 2, 9, 45, 0);
+        }
+        else
+        {
+            var date = format == "full-year" ? "02.09.2026" : "02.09";
+            sheet.Cell(1, 2).Value = $"{date} 11:30" + (format == "typed" ? " lab" : "");
+            sheet.Cell(1, 3).Value = (format == "typed" ? "lab " : "") + $"{date} 09:45";
+        }
+        sheet.Cell(2, 1).Value = "Synthetic Student";
+        sheet.Cell(2, 2).Value = "am";
+        sheet.Cell(2, 3).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        CreateParser(builder).Parse(new(new() { DateMode = AttendanceDateMode.ValidateAndBind }, attendance, filtered, workbook));
+        var list = attendance.Build(Attendance.Present);
+        Assert.Equal(Attendance.NotPresent, list.Get(DateKey(course, group, new(2026, 9, 2, 9, 45, 0))).Student(0));
+        Assert.Equal(Attendance.MotivatedAbsent, list.Get(DateKey(course, group, new(2026, 9, 2, 11, 30, 0))).Student(0));
+        Assert.Equal(0, list.Get(DateKey(course, group, new(2026, 9, 2, 13, 15, 0))).StudentCount);
+    }
+
     [Fact]
     public void DuplicateDatesLeaveAttendanceUnchanged()
     {

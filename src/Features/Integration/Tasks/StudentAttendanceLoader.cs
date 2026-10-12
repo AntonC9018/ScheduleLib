@@ -83,6 +83,6 @@ public sealed partial class StudentAttendanceLoader
         // Maybe configure this per workbook.
         var ret = builder.Build(missingDaysFiller:
             attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return ret;
+        return AttendanceLabMerges.Project(ret, filteredSchedule.Source, _registryConfig.Get()?.LabMerges ?? []);
     }
 }

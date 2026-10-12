@@ -430,13 +430,38 @@ public sealed partial class AttendanceListsExcelParser
                 lookupIgnoredFields.LessonType = false;
             }
             var ret = LookupLesson(lookupKey, _schedule, lookupIgnoredFields);
-            if (ret == null)
+            if (ret is null && key.Groups.IsSingleGroup && key.GroupPartition.SubGroup != SubGroup.All
+                && key.LessonType is LessonType.None or LessonType.Lab)
             {
+                // Source subgroup sheets remain meaningful after their labs are projected away.
+                // Match the active destination, but keep the source key for row composition.
                 var schedule = _schedule;
-                _ = schedule;
-                var lessons = _schedule.EnumerateLessons().ToArray();
-                _ = lessons;
-                Debugger.Break();
+                var candidates = schedule.EnumerateLessons().Where(item => item.Lesson.Type == LessonType.Lab
+                    && (key.CourseId.IsInvalid || item.Lesson.Course == key.CourseId)
+                    && item.Lesson.Groups == key.Groups
+                    && item.Lesson.Specialization == key.GroupPartition.Specialization
+                    && item.Lesson.Alternative == key.GroupPartition.Alternative
+                    && AttendanceLabMerges.TryDestination(schedule.Source, labMerges,
+                        new(item.Lesson.Groups, key.GroupPartition, item.Lesson.Course, LessonType.Lab), out _))
+                    .Select(item => item.Lesson.Course).Distinct().ToArray();
+                if (candidates.Length > 1)
+                    throw new InvalidOperationException($"Multiple merged lab courses match worksheet '{excelName}'. Specify its course.");
+                if (candidates.Length == 1)
+                {
+                    var sourceKey = new StudentsLookupKey(key.Groups, key.GroupPartition, candidates[0], LessonType.Lab);
+                    AttendanceLabMerges.TryDestination(_schedule.Source, labMerges, sourceKey, out var destination);
+                    var rule = RegistryLabMerges.Find(labMerges, _schedule.Source, candidates[0], key.Groups, destination);
+                    var target = key;
+                    target.CourseId = candidates[0];
+                    target.LessonType = LessonType.Lab;
+                    target.GroupPartition = rule is null ? destination
+                        : destination with { SubGroup = new(rule.SourceSubGroup) };
+                    var ignored = additionallyIgnoredFields;
+                    ignored.LessonType = false;
+                    if (LookupLesson(target, _schedule, ignored, target.GroupPartition) is { } projected)
+                        return new(additionallyIgnoredFields.LessonType ? LessonType.None : LessonType.Lab,
+                            projected.Lesson.Groups, key.GroupPartition, candidates[0]);
+                }
             }
             if (ret is not { } r)
             {
@@ -457,7 +482,8 @@ public sealed partial class AttendanceListsExcelParser
         private static AnyLessonAccessor? LookupLesson(
             Key key,
             FilteredSchedule schedule,
-            LessonModelDiffMask additionallyIgnoredFields)
+            LessonModelDiffMask additionallyIgnoredFields,
+            GroupPartitionKey? requiredPartition = null)
         {
             var diffLesson = default(LessonData);
             var diffMask = new LessonModelDiffMask();
@@ -501,6 +527,7 @@ public sealed partial class AttendanceListsExcelParser
 
             foreach (var lesson in schedule.EnumerateLessons())
             {
+                if (requiredPartition is { } partition && lesson.Lesson.GroupPartitionKey != partition) continue;
                 if (result != default)
                 {
                     var differences = LessonBuilderHelper.Diff(lesson.Lesson, result, resultDiffMask);
@@ -817,11 +844,11 @@ public sealed partial class AttendanceListsExcelParser
         if (TryParseAttendanceDate(cell, out date)) return true;
         if (!cell.Value.TryGetText(out var text)) return false;
         var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 2) return false;
-        for (int i = 0; i < 2; i++)
+        if (parts.Length is not (2 or 3)) return false;
+        foreach (var index in new[] { 0, parts.Length - 1 })
         {
-            if (lessonParser.Parse(parts[1 - i]) is not { } parsedType) continue;
-            if (!TryParseDateText(parts[i], out date)) continue;
+            if (lessonParser.Parse(parts[index]) is not { } parsedType) continue;
+            if (!TryParseDateText(string.Join(' ', parts.Where((_, position) => position != index)), out date)) continue;
             lessonType = parsedType;
             return true;
         }
@@ -833,7 +860,11 @@ public sealed partial class AttendanceListsExcelParser
         if (cell.Value.IsDateTime)
         {
             var value = cell.Value.GetDateTime();
-            date = new() { Month = value.Month, Day = value.Day, Year = value.Year };
+            date = new()
+            {
+                Month = value.Month, Day = value.Day, Year = value.Year,
+                Time = value.TimeOfDay == TimeSpan.Zero ? null : TimeOnly.FromDateTime(value),
+            };
             return true;
         }
         date = default;
@@ -852,6 +883,15 @@ public sealed partial class AttendanceListsExcelParser
         {
             return false;
         }
+        TimeOnly? time = null;
+        var separator = text.LastIndexOf(' ');
+        if (separator >= 0)
+        {
+            if (!TimeOnly.TryParseExact(text.AsSpan(separator + 1), ["H:mm", "HH:mm"],
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedTime)) return false;
+            time = parsedTime;
+            text = text[..separator].TrimEnd();
+        }
         if (DateTime.TryParseExact(text,
                 ["d.M", "dd.MM", "d.M.yyyy", "dd.MM.yyyy", "d.M.yy", "dd.MM.yy",
                     "d/M", "dd/MM", "d/M/yyyy", "dd/MM/yyyy", "d/M/yy", "dd/MM/yy",
@@ -866,6 +906,7 @@ public sealed partial class AttendanceListsExcelParser
                 Month = parsed.Month,
                 Day = parsed.Day,
                 Year = hasYear ? parsed.Year : null,
+                Time = time,
             };
             return true;
         }

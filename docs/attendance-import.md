@@ -38,8 +38,11 @@ worksheets. Worksheets with attendance headers still retain their header data.
 Dates may be native Excel dates or text such as `02.09`, `02.09.2026`,
 `02/09/2026`, or `2026-09-02`. Native dates and dates with a year match exactly;
 text without a year matches month and day. `07.09 curs` and `curs 05.10` also
-specify the lesson type. Unannotated date columns use the worksheet's matched
-lesson type. Mixed lecture/lab columns are separated by lesson type before date
+specify the lesson type. Append a start time when the same lesson type occurs
+twice on one day, for example `08.09 09:45` and `08.09 11:30`. Native Excel
+date/time values and typed headers such as `08.09 09:45 lab` are also supported.
+Times bind to the scheduled start time; date-only headers still match the whole
+day. Unannotated date columns use the worksheet's matched lesson type. Mixed lecture/lab columns are separated by lesson type before date
 matching, so a lecture and lab on the same date can have distinct attendance.
 
 `ValidateAndBind` requires dates throughout the attendance header. Leading
@@ -60,6 +63,24 @@ motivated absence, and `na` for not applicable. Existing `cellValueFormat` and
 The regression fixture `src/Features/Tests/OnlineRegistry/data/numbered-attendance.xlsx`
 preserves a 13-sheet numbered workbook's dates, styles, blank rows, and mixed
 headers, with synthetic student names and cleared document metadata.
+
+Keep editing one canonical workbook, including its original subgroup sheets. When
+`ScheduleDerivationConfig.autoMergeLabSubGroups` proves a whole-group lab merge,
+the reader resolves the old numeric subgroup sheets against the active lab and
+combines their student rows in memory. Configured `RegistryConfig.labMerges`
+receive the same attendance projection. No generated or merged workbook is
+needed, and the source workbook is opened read-only on each run.
+
+The projection preserves course, parent group, specialization, alternative, and
+lesson type. With the default `dateMode = "Ignore"`, each subgroup's nth lab
+column maps to the nth merged lab. With `ValidateAndBind`, each subgroup keeps
+its own dates; missing or ambiguous columns leave those students' registry marks
+unchanged. Dated and ordinal sheets cannot be combined in the same lab audience.
+A missing trailing source column leaves attendance unchanged instead of assuming
+present. Duplicate students across subgroup sheets are rejected. An explicitly
+provided whole-group sheet takes precedence for compatibility with older setups.
+Worksheet aliases can retain shorthand sheet names without modifying the Excel
+file. Source lists should contain only the canonical workbook for new setups.
 
 Registry course labels can be mapped separately from worksheet names using
 `RegistryConfig.courseNames`. This map runs before automatic registry course

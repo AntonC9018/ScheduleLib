@@ -350,6 +350,24 @@ is left unchanged rather than inferred. Topic text is copied as configured.
   planning suppresses missing-sheet and missing-student reports when attendance
   is disabled, while an enabled source with missing rows still reports its gaps.
 
+### Canonical attendance through lab merges (#223)
+
+Automatic lab projection can remove numeric subgroup lessons from the active
+teacher schedule while canonical attendance sheets still refer to them. The
+reader now resolves those sheets through confirmed automatic/manual lab merges
+and retains their source partition keys. `StudentAttendanceLoader` then adds
+whole-group lab lists in memory, joining student rows by each source's configured
+ordinal or date mode. Missing/ambiguous columns produce `Attendance.None`, which
+preserves remote marks. Whole-group sheets take precedence; duplicate students
+and mixed date modes are rejected. No source Excel file is modified or generated.
+Course/group aliases and workbook paths belong in private profile configuration.
+
+Date binding supports an optional start time in text/native headers to distinguish
+same-type lessons held on the same day. Repeated date-only headers remain
+ambiguous. Date/time precision survives in-memory subgroup composition; genuine
+historical subgroup dates are retained rather than relabeled to the retroactive
+whole-group timetable.
+
 ### Numbered attendance workbooks and registry spacing
 
 Attendance sources expose `studentNameColumn`, `headerFormat`, `dateMode`, and

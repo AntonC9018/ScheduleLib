@@ -90,7 +90,9 @@ With at least two applicable dated schedule periods, a newer lab timetable
 containing one surviving numeric subgroup (I, II, etc.), or explicit whole-group
 labs replacing an earlier split, becomes the whole group's timetable for the
 entire semester. Earlier split labs are excluded from dates, calendar events,
-registry matching, and attendance imports. Specializations, alternatives, and
+registry matching. Canonical attendance subgroup sheets remain readable and
+compose student rows for the merged lab in memory; no merged workbook is required.
+Specializations, alternatives, and
 other subgroup categories retain their restrictions. Uncertain evidence leaves
 the course partition unchanged and logs a diagnostic. Existing registry
 `labMerges` remain a compatibility fallback; conclusive automatic merges take
