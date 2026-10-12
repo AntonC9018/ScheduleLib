@@ -24,7 +24,7 @@ public sealed class RegistryTests
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.IsSingleGroup);
-        schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualZi;
+        schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualFr;
         var navigator = new FixtureNavigator(lesson.Lesson.Course, new GroupLink(new FoundGroups
         {
             Value = lesson.Lesson.Groups, IsWildcard = false,

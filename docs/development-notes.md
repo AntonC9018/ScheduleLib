@@ -56,9 +56,11 @@ shared lessons permit ordinary and dual groups of the same attendance form.
 The observed legacy schedule code `DU2501` is explicitly aliased to `DU-IA2501`
 in schedule defaults, preserving language; `DU` does not generally imply IA.
 
-No exact dual teaching ranges or parity were established from the published
-2026–2027 calendars. Missing dual ranges remain diagnostic, without ordinary
-attendance fallback. See [dual schedule date sources](dual-schedule-dates.md).
+The maintainer confirmed that current DU dates use the frecvență zi range.
+Defaults explicitly register `DualZi` alongside Zi with identical grade-specific
+semester boundaries; shared study weeks and holidays remain in use. `DualFr`
+remains unconfigured, and custom providers do not implicitly substitute modes.
+See [dual schedule date sources](dual-schedule-dates.md).
 
 ## .NET 11 preview definite assignment
 
@@ -445,8 +447,8 @@ matching generated table-field names as blank, without treating arbitrary
 `ColumnN` text outside a table as a header boundary.
 
 `RegistryConfig.httpCallDelay` is a nullable `TimeSpan` override, defaulting to
-five seconds. History uses its guarded transport as the sole spacing mechanism;
-its generic scraping delay must be zero to avoid an additional five-second gate
+0.5 seconds. History uses its guarded transport as the sole spacing mechanism;
+its generic scraping delay must be zero to avoid an additional delay gate
 when experimenting with smaller values. Short read-only discovery probes at
 2, 1, and 0.5 seconds succeeded in October 2026; this does not establish sustained
 batch limits or guarantee the absence of later access blocks.

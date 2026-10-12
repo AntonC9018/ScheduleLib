@@ -44,7 +44,7 @@ schedulelib config set RegistryConfig.httpCallDelay '"00:00:02"' --scope user --
 ```
 
 The value uses the .NET `TimeSpan` JSON format. `"00:00:00.5000000"` selects
-half a second. An unset value inherits, falling back to five seconds. The same
+half a second. An unset value inherits, falling back to half a second. The same
 setting applies to synchronization, history discovery, and history topic reads.
 
 Private JSON summaries go into the explicitly supplied directory whose final

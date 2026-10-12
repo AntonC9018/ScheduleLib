@@ -386,50 +386,52 @@ public static class Config
     // Source: https://usm.md/?page_id=731
     public static CurrentYearSemesterIntervalProvider SemesterIntervalProvider()
     {
-        // DualZi and DualFr need confirmed teaching ranges of their own. The
-        // published FMI Zi calendar does not explicitly establish dual dates;
-        // the dual study plan specifies months only. Missing ranges stay diagnostic.
+        // Confirmed DU teaching dates use the frecvență zi calendar. Register
+        // both identities explicitly; DualFr remains unconfigured.
         var s = new CurrentYearSemesterIntervalBuilder();
-        s.Scope(x =>
+        foreach (var mode in new[] { AttendanceMode.Zi, AttendanceMode.DualZi })
         {
-            x.AttendanceMode(AttendanceMode.Zi);
-            x.QualificationType(QualificationType.Licenta);
-
+            s.Scope(x =>
             {
-                x.Year(2026);
-                x.Semester(Semester.Sem1);
-                x.LessonsStart(month: 9, day: 1);
-                x.LessonsEndInclusive(month: 12, day: 13);
-                for (int i = 1; i <= 3; i++)
+                x.AttendanceMode(mode);
+                x.QualificationType(QualificationType.Licenta);
+
                 {
-                    var r = x.Range();
-                    r.Grade(new(i));
+                    x.Year(2026);
+                    x.Semester(Semester.Sem1);
+                    x.LessonsStart(month: 9, day: 1);
+                    x.LessonsEndInclusive(month: 12, day: 13);
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        var r = x.Range();
+                        r.Grade(new(i));
+                    }
                 }
-            }
-            {
-                x.Year(2027);
-                x.Semester(Semester.Sem2);
+                {
+                    x.Year(2027);
+                    x.Semester(Semester.Sem2);
 
-                x.LessonsStart(month: 2, day: 1);
-                x.Range(r =>
-                {
-                    r.LessonsEndInclusive(month: 5, day: 1);
-                    r.Grade(new(2));
-                });
-                x.Range(r =>
-                {
-                    r.LessonsEndInclusive(month: 5, day: 1);
-                    r.Grade(new(1));
-                });
+                    x.LessonsStart(month: 2, day: 1);
+                    x.Range(r =>
+                    {
+                        r.LessonsEndInclusive(month: 5, day: 1);
+                        r.Grade(new(2));
+                    });
+                    x.Range(r =>
+                    {
+                        r.LessonsEndInclusive(month: 5, day: 1);
+                        r.Grade(new(1));
+                    });
 
-                x.Range(r =>
-                {
-                    r.Grade(new(3));
-                    r.LessonsStart(month: 2, day: 22);
-                    r.LessonsEndInclusive(month: 4, day: 11);
-                });
-            }
-        });
+                    x.Range(r =>
+                    {
+                        r.Grade(new(3));
+                        r.LessonsStart(month: 2, day: 22);
+                        r.LessonsEndInclusive(month: 4, day: 11);
+                    });
+                }
+            });
+        }
 
         s.Scope(x =>
         {

@@ -50,6 +50,40 @@ public sealed class DateProviderTests
         }));
     }
 
+    [Theory]
+    [InlineData(1, Semester.Sem1)]
+    [InlineData(2, Semester.Sem1)]
+    [InlineData(3, Semester.Sem1)]
+    [InlineData(1, Semester.Sem2)]
+    [InlineData(2, Semester.Sem2)]
+    [InlineData(3, Semester.Sem2)]
+    public void DefaultDualZiDatesMatchZiForEachGradeAndSemester(int grade, Semester semester)
+    {
+        var builder = new ScheduleBuilder();
+        var zi = builder.Groups.New();
+        zi.Value = GroupFor(AttendanceMode.Zi);
+        var dual = builder.Groups.New();
+        dual.Value = GroupFor(AttendanceMode.DualZi);
+        var schedule = builder.Build();
+        var intervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
+        var ordinaryRange = intervals.GetSemesterInterval(new()
+        {
+            Schedule = schedule, GroupId = new(zi.Id), Semester = semester,
+        });
+        var dualRange = intervals.GetSemesterInterval(new()
+        {
+            Schedule = schedule, GroupId = new(dual.Id), Semester = semester,
+        });
+        Assert.Equal(ordinaryRange, dualRange);
+
+        Group GroupFor(AttendanceMode mode) => new()
+        {
+            Name = mode == AttendanceMode.Zi ? $"IA-{grade}" : $"DU-IA-{grade}",
+            Grade = new(grade), GroupNumber = 1, QualificationType = QualificationType.Licenta,
+            Faculty = new("IA"), AttendanceMode = mode, Language = Language.Ro,
+        };
+    }
+
     [Fact]
     public void AcademicCalendar2026_2027MatchesPublishedDates()
     {

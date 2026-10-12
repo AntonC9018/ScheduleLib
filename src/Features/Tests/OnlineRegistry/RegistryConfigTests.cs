@@ -31,12 +31,6 @@ public sealed class RegistryConfigTests
     }
 
     [Fact]
-    public void DefaultHttpCallDelayPreservesFiveSecondSpacing()
-    {
-        Assert.Equal(TimeSpan.FromSeconds(5), BuiltRegistryConfig.DefaultHttpCallDelay);
-    }
-
-    [Fact]
     public void MapperUsesDefaultDelayWhenUnset()
     {
         var mapped = new RegistryConfigMapper().Map(ValidConfig());
