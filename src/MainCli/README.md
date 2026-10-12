@@ -246,8 +246,9 @@ editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
 synchronous PDF render finishes before cancellation is observed.
 
 `registry sync --profile TEACHER` previews reconciliation without writes. With
-`--apply`, it scans and reconciles each course/group, then submits that group's
-actions before scanning the next. The account lock covers the entire run. A later
+`--apply`, it first discovers all assignments for the canonical course, including
+repeated course-title links, then reconciles and submits each group's actions
+before reading the next group's lessons. The account lock covers the entire run. A later
 scan, planning or submission failure leaves earlier writes applied and returns a
 partial result (exit 6). Outcomes cover scanned groups only; unscanned groups are
 not counted as planned actions. A normal lesson 302/303 redirect is confirmed by
@@ -267,6 +268,33 @@ separate destinations. Attendance is looked up by each lesson's actual partition
 explicit lab merges retain their configured whole-group attendance projection.
 Topic text is copied as configured, so Romanian topics can be explicitly scoped
 to an English subgroup without translation.
+
+Labs use the most specific available destination for their scheduled audience:
+subgroup, parent group, then combined/intake list. Each audience falls back
+independently, so one subgroup's separate list does not hide another subgroup's
+labs. Equally specific competing assignments produce a diagnostic. Whole-parent
+lists can contain numeric or language lab partitions without changing the schedule.
+
+Fallback topics receive a readable audience suffix, for example
+`Tema (DJ2502 (ru) /I)` or `Tema (DJ2503 (en))`. Shared lectures in these lists
+name their participating groups. Scope format v1 uses `/I` and `/II` for numeric
+subgroups, `/ro`, `/ru`, `/en` for language subgroups, and `/spec:VALUE` and
+`/alt:VALUE` for specialization and alternative restrictions. The parser accepts
+earlier spacing, `eng`, and numeric spellings, and only recognizes known scheduled
+audiences. It preserves ordinary topic parentheses; repeated synchronization
+replaces a recognized suffix rather than appending another.
+
+Topic and attendance sequences stay independent by actual scheduled audience,
+partition, and lesson type. Reconciliation respects the scope and type of existing
+entries; ordinary duplicates retain the configured reconciliation and extra-entry
+policy. Students from other audiences stay blank on new entries, while their
+existing marks remain unchanged. Assessments without enough audience evidence
+produce a diagnostic and preserve the affected sequence.
+
+`registry cleanup-intake-labs` preserves any list still needed for fallback labs,
+and refuses cleanup when audience routing is unresolved. Only a list whose labs
+are all covered by more specific destinations remains eligible for its explicit
+preview/apply deletion workflow.
 
 Topic CSVs can combine lecture, lab, and language sequences in one file using
 `name,lessonType,language,series` columns. Manifest `lessonType` and `language`

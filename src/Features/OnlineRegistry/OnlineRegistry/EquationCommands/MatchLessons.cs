@@ -51,7 +51,7 @@ internal static class MatchLessonHelper
     private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
         => lesson.Type == LessonType.Lab && (groups.IsWildcard || !groups.Value.IsSingleGroup);
 
-    private static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
+    internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
     {
         {
             bool yielded = false;

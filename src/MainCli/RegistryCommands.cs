@@ -28,7 +28,7 @@ public partial class RegistryCommands
         ApplyArguments apply, CancellationToken cancellationToken = default)
         => RunLessonActions(source, settings, result, apply, cleanupIntakeLabs: false, cancellationToken);
 
-    [Command("cleanup-intake-labs", Description = "Preview deletion of laboratory columns from unsafe intake-wide destinations for the selected teacher and semester. Apply deletes those labs and their attendance; other lesson types and explicit group destinations are preserved.")]
+    [Command("cleanup-intake-labs", Description = "Preview deletion of obsolete intake laboratory columns only after every scheduled lab audience has a more specific destination. Lists needed for scoped fallback are preserved. Apply deletes selected labs and their attendance.")]
     public Task<int> CleanupIntakeLabs(SourceArguments source, SettingsArguments settings, ResultArguments result,
         ApplyArguments apply, CancellationToken cancellationToken = default)
         => RunLessonActions(source, settings, result, apply, cleanupIntakeLabs: true, cancellationToken);
@@ -71,7 +71,7 @@ public partial class RegistryCommands
             liveDiagnostics = session.LiveDiagnostics;
             if (liveDiagnostics is not null) liveDiagnostics.Reported += StreamDiagnostic;
             await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
-            // Scan and apply each completed course/group before scanning the next.
+            // The planner discovers a course's assignments before applying its groups in sequence.
             var stopped = false;
             if (cleanupIntakeLabs) await session.PlanIntakeLabCleanup(ProcessGroup, cancellation.Token);
             else await session.PlanGroups(ProcessGroup, cancellation.Token);

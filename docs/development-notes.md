@@ -4,6 +4,37 @@ Keep durable technical findings here or in the document for the affected domain.
 Tasks, decisions awaiting resolution, and implementation follow-ups belong in
 GitHub Issues; see [task-management.md](task-management.md).
 
+## Registry scoped fallback lists (#224)
+
+The administrator's shared-list workflow supersedes the blanket intake-lab
+rejection described below for #220/#221. `RegistryLessonRouting` discovers all
+assignments for a canonical course before choosing each lab audience's subgroup,
+parent, or combined destination. Teacher filters run before priority selection;
+missing individual subgroup destinations fall back independently. Competing
+destinations at the same specificity remain diagnostics, including `SE` labels
+that the current group domain does not distinguish.
+
+`RegistryTopicScope` emits validated v1 `(scope)` suffixes and retains spelling
+aliases for older outputs. Topic/assessment arrangement uses actual parent sets
+and partitions; display scopes must not split a shared/solo lecture topic sequence.
+`RegistryScopeReconciliation` assigns existing rows once, then derives commands
+within scope and lesson type. Legacy unlabelled duplicates use ordinary configured
+matching. Existing assessment ambiguity protects the entire affected sequence,
+including ordinary rows that would otherwise become deletion candidates.
+
+Attendance uses each scheduled audience's own source and index. Known students
+of another audience are not missing-name errors. `Attendance.None` continues to
+preserve existing marks and leaves new nonmember fields blank. Exact shared
+lecture evidence can combine separately represented parent occurrences and their
+nonconflicting attendance; numeric lab merges remain governed by existing
+confirmed schedule/manual projections.
+
+The explicit intake cleanup checks coverage of every candidate parent audience
+and leaves lists needed for valid fallback labs untouched. Normal synchronization
+protects historical labs demonstrably routed to a more specific destination.
+Credentials, account inventories and live preview results stay in ignored local
+storage. See the registry section of `src/MainCli/README.md` for scope syntax.
+
 ## .NET 11 preview definite assignment
 
 SDK `11.0.100-preview.4` ignores `[DoesNotReturn]` for definite assignment. For
