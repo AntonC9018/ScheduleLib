@@ -47,6 +47,19 @@ protects historical labs demonstrably routed to a more specific destination.
 Credentials, account inventories and live preview results stay in ignored local
 storage. See the registry section of `src/MainCli/README.md` for scope syntax.
 
+## Dual attendance identity (#225)
+
+`DualZi` preserves the former `Dual` numeric value; `DualFr` has its own value.
+Attendance form and dual modality have independent `IsZi()`, `IsFr()` and
+`IsDual()` checks. Registry matching retains exact attendance identity, while
+shared lessons permit ordinary and dual groups of the same attendance form.
+The observed legacy schedule code `DU2501` is explicitly aliased to `DU-IA2501`
+in schedule defaults, preserving language; `DU` does not generally imply IA.
+
+No exact dual teaching ranges or parity were established from the published
+2026–2027 calendars. Missing dual ranges remain diagnostic, without ordinary
+attendance fallback. See [dual schedule date sources](dual-schedule-dates.md).
+
 ## .NET 11 preview definite assignment
 
 SDK `11.0.100-preview.4` ignores `[DoesNotReturn]` for definite assignment. For
