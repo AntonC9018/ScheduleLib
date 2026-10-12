@@ -42,6 +42,12 @@ public static class GroupBuilderHelper
         }
 
         var ret = context.Parse(fullName.AsMemory());
+        if (s.Remappings.GroupNameRemappings.TryGetValue(ret.Name, out var name))
+        {
+            var language = ret.Language;
+            ret = context.Parse(name.AsMemory());
+            ret.Language = language;
+        }
         return ret;
     }
 

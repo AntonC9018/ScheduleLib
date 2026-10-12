@@ -650,7 +650,7 @@ public sealed class GroupCombinationTests
             GroupNumber = 1,
             QualificationType = QualificationType.Licenta,
             Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Dual,
+            AttendanceMode = AttendanceMode.DualZi,
             Language = Language.Ro,
         };
 

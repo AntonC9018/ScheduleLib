@@ -297,7 +297,7 @@ public sealed class GroupsNavigator
             return false;
         }
 
-        if (b.IsDual != (a.AttendanceMode == AttendanceMode.Dual))
+        if (b.IsDual != a.AttendanceMode.IsDual())
         {
             return false;
         }

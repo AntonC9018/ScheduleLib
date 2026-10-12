@@ -12,11 +12,6 @@ public sealed class InvalidGroupNameException : ScheduleBuildException
     {
     }
 
-    public static InvalidGroupNameException ForFrenchAndDual()
-    {
-        return new("Both FR and DUAL parsed, not allowed.");
-    }
-
     public static InvalidGroupNameException ForUnrecognizedLanguage(char value)
     {
         return new($"Unrecognized language: {value}");

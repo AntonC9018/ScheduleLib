@@ -28,7 +28,7 @@ public static class ExcelScheduleParser
 
     public static Config FrConfig => new()
     {
-        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa),
+        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
         AllowedQualificationTypes = new(QualificationType.Licenta),
         AddLessonHandler = FrScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeekAndDate,
@@ -36,7 +36,7 @@ public static class ExcelScheduleParser
     };
     public static Config MasterConfig => new()
     {
-        AllowedAttendanceModes = new(AttendanceMode.Zi),
+        AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
         AllowedQualificationTypes = new(QualificationType.Master),
         AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeek,
@@ -918,4 +918,3 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
         return AddLessonResult.Ok;
     }
 }
-

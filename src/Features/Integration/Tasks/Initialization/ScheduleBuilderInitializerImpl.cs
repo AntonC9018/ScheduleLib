@@ -87,6 +87,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             studyYear.StudyYear, studyYear.Semester, opts.EnrichWithFullNames, opts.LoadConsultations,
             System.Text.Json.JsonSerializer.Serialize(context.TimeConfig, new System.Text.Json.JsonSerializerOptions { IncludeFields = true }),
             System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings),
+            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings),
             string.Join(";", builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString()).Select(x => $"{x.Key}={x.Value}")));
         await loader.Load(
             context,

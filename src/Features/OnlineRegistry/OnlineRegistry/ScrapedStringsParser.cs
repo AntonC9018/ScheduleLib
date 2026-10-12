@@ -48,10 +48,6 @@ public static partial class RegistryScraping
         var subGroup = ParseSubGroup(ref mainParser);
         if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
         {
-            if (suffixes.ReducedAttendance)
-            {
-                JustThrow("conflicting attendance");
-            }
             suffixes.Dual = true;
         }
         else if (!subGroup.IsEmpty)
@@ -79,9 +75,9 @@ public static partial class RegistryScraping
                 }
                 else if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (suffixes.Dual || suffixes.ReducedAttendance)
+                    if (suffixes.Dual)
                     {
-                        JustThrow("duplicate or conflicting attendance");
+                        JustThrow("duplicate dual marker");
                     }
                     suffixes.Dual = true;
                     subGroup = ReadOnlyMemory<char>.Empty;
@@ -111,8 +107,7 @@ public static partial class RegistryScraping
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
             QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
-            AttendanceMode = suffixes.Dual ? AttendanceMode.Dual
-                : suffixes.ReducedAttendance ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
+            AttendanceMode = AttendanceModeHelper.FromFlags(suffixes.ReducedAttendance, suffixes.Dual),
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
@@ -172,17 +167,17 @@ public static partial class RegistryScraping
             {
                 if (ParseFR(ref reader))
                 {
-                    if (suffixes.ReducedAttendance || suffixes.Dual)
+                    if (suffixes.ReducedAttendance)
                     {
-                        JustThrow("duplicate or conflicting attendance");
+                        JustThrow("duplicate FR marker");
                     }
                     suffixes.ReducedAttendance = true;
                 }
-                else if (reader.ConsumeExactString("DU"))
+                else if (ConsumeMarker(ref reader, "DU"))
                 {
-                    if (suffixes.Dual || suffixes.ReducedAttendance)
+                    if (suffixes.Dual)
                     {
-                        JustThrow("duplicate or conflicting attendance");
+                        JustThrow("duplicate dual marker");
                     }
                     suffixes.Dual = true;
                 }

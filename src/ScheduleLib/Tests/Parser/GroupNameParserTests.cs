@@ -1,4 +1,6 @@
 using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Builders;
+using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;
 
@@ -10,6 +12,50 @@ public sealed class GroupNameParserTests
     });
 
     private Group Parse(string s) => _context.Parse(s.AsMemory());
+
+    [Theory]
+    [InlineData("DU-IA2401(ro)", "IA", AttendanceMode.DualZi, Language.Ro)]
+    [InlineData("DU-DJ2401(ru)", "DJ", AttendanceMode.DualZi, Language.Ru)]
+    [InlineData("DU-IAFR2401(ru)", "IA", AttendanceMode.DualFr, Language.Ru)]
+    public void DualPrefixPreservesProgramAndAttendanceForm(string name, string faculty, AttendanceMode mode, Language language)
+    {
+        var group = Parse(name);
+        Assert.Equal(faculty, group.Faculty.Name);
+        Assert.Equal(mode, group.AttendanceMode);
+        Assert.Equal(language, group.Language);
+        Assert.Equal(1, group.Grade.Value);
+        Assert.Equal(1, group.GroupNumber);
+        Assert.StartsWith("DU-", group.Name);
+    }
+
+    [Fact]
+    public void LegacyDualCodeNeedsAnExplicitProgramAlias()
+    {
+        var builder = new ScheduleBuilder { GroupParseContext = _context };
+        var unmapped = builder.ParseGroup("DU2501(ru)");
+        Assert.Equal("DU", unmapped.Faculty.Name);
+        Assert.Equal(AttendanceMode.Zi, unmapped.AttendanceMode);
+
+        Config.ConfigureRemappings(builder.Remappings);
+        var mapped = builder.ParseGroup("DU2501(ru)");
+        Assert.Equal("DU-IA2501", mapped.Name);
+        Assert.Equal("IA", mapped.Faculty.Name);
+        Assert.Equal(AttendanceMode.DualZi, mapped.AttendanceMode);
+        Assert.Equal(Language.Ru, mapped.Language);
+        Assert.Equal("DU", builder.ParseGroup("DU2601").Faculty.Name);
+    }
+
+    [Fact]
+    public void AliasAndCanonicalCodeResolveToOneGroup()
+    {
+        var builder = new ScheduleBuilder { GroupParseContext = _context };
+        builder.EnableLookupModule();
+        Config.ConfigureRemappings(builder.Remappings);
+        var alias = builder.Group("DU2501(ro)");
+        var canonical = builder.Group("DU-IA2501(ro)");
+        Assert.Equal(alias.Id, canonical.Id);
+        Assert.Equal(1, builder.Groups.Count);
+    }
 
     [Fact]
     public void RegularWithSpace()

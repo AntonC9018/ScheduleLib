@@ -946,15 +946,38 @@ public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
-    Dual,
+    DualZi,
+    DualFr,
     Count,
     Invalid = -1,
+}
+
+public static class AttendanceModeHelper
+{
+    public static bool IsZi(this AttendanceMode mode) =>
+        mode is AttendanceMode.Zi or AttendanceMode.DualZi;
+
+    public static bool IsFr(this AttendanceMode mode) =>
+        mode is AttendanceMode.FrecventaRedusa or AttendanceMode.DualFr;
+
+    public static bool IsDual(this AttendanceMode mode) =>
+        mode is AttendanceMode.DualZi or AttendanceMode.DualFr;
+
+    public static AttendanceMode FromFlags(bool isFr, bool isDual) => (isFr, isDual) switch
+    {
+        (false, false) => AttendanceMode.Zi,
+        (true, false) => AttendanceMode.FrecventaRedusa,
+        (false, true) => AttendanceMode.DualZi,
+        (true, true) => AttendanceMode.DualFr,
+    };
 }
 
 public record struct OneForEachAttendanceMode<T>
 {
     public required T Zi;
     public required T FrecventaRedusa;
+    public T DualZi;
+    public T DualFr;
 
     public T this[AttendanceMode mode]
     {
@@ -964,6 +987,8 @@ public record struct OneForEachAttendanceMode<T>
             {
                 AttendanceMode.Zi => Zi,
                 AttendanceMode.FrecventaRedusa => FrecventaRedusa,
+                AttendanceMode.DualZi => DualZi,
+                AttendanceMode.DualFr => DualFr,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode)),
             };
         }
@@ -981,6 +1006,16 @@ public record struct OneForEachAttendanceMode<T>
                     FrecventaRedusa = value;
                     break;
                 }
+                case AttendanceMode.DualZi:
+                {
+                    DualZi = value;
+                    break;
+                }
+                case AttendanceMode.DualFr:
+                {
+                    DualFr = value;
+                    break;
+                }
                 default:
                 {
                     throw new ArgumentOutOfRangeException(nameof(mode));
@@ -996,13 +1031,16 @@ public enum AttendanceModeFlags
     None,
     Zi = 1 << AttendanceMode.Zi,
     FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
+    DualZi = 1 << AttendanceMode.DualZi,
+    DualFr = 1 << AttendanceMode.DualFr,
 }
 
 public static class AttendanceModeFlagsHelper
 {
     public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
     {
-        return (flags & (AttendanceModeFlags) mode) != 0;
+        return mode >= AttendanceMode.Zi && mode < AttendanceMode.Count
+            && (flags & (AttendanceModeFlags)(1 << (int)mode)) != 0;
     }
 }
 

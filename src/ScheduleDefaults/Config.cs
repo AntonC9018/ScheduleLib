@@ -214,7 +214,7 @@ public static class Config
             {
                 x.Grade = new(1);
                 x.Faculty = new("IA");
-                x.AttendanceMode = AttendanceMode.Dual;
+                x.AttendanceMode = AttendanceMode.DualZi;
                 x.Qualification = QualificationType.Licenta;
             });
         b.Set([Specialization.Spring])
@@ -295,6 +295,9 @@ public static class Config
 
     public static void ConfigureRemappings(Remappings remap)
     {
+        // The 2025 first-semester source calls this group DU2501; its later
+        // schedules identify it as DU-IA2501. DU alone does not identify a program.
+        remap.GroupNameRemappings.Add("DU2501", "DU-IA2501");
         var teach = remap.TeacherLastNameRemappings;
         teach.Add("Curmanschi", "Curmanschii");
         teach.Add("Curmanscii", "Curmanschii");
@@ -383,6 +386,9 @@ public static class Config
     // Source: https://usm.md/?page_id=731
     public static CurrentYearSemesterIntervalProvider SemesterIntervalProvider()
     {
+        // DualZi and DualFr need confirmed teaching ranges of their own. The
+        // published FMI Zi calendar does not explicitly establish dual dates;
+        // the dual study plan specifies months only. Missing ranges stay diagnostic.
         var s = new CurrentYearSemesterIntervalBuilder();
         s.Scope(x =>
         {

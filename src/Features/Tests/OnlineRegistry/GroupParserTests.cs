@@ -223,7 +223,7 @@ public class RegistryScrapingTests
         Assert.Equal("IA", result.FacultyName.ToString());
         Assert.Equal(1, result.GroupNumber);
         Assert.Equal(1, result.Grade.Value);
-        Assert.Equal(AttendanceMode.Dual, result.AttendanceMode);
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
@@ -246,7 +246,7 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA2501(Dual)");
         Assert.Equal(1, result.GroupNumber);
-        Assert.Equal(AttendanceMode.Dual, result.AttendanceMode);
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
@@ -261,15 +261,10 @@ public class RegistryScrapingTests
     [InlineData("IA2603frfr")]
     [InlineData("IA2603fr(I)fr")]
     [InlineData("IA2603DUDU")]
-    [InlineData("IA2603DUfr")]
-    [InlineData("IAFR2603DU")]
-    [InlineData("IA2603frDU")]
-    [InlineData("IAFR26(Dual)")]
     [InlineData("IA26(Dual)DU")]
     [InlineData("IA2501(Dual)DU")]
     [InlineData("IA2501DU(Dual)")]
-    [InlineData("IAFR2501(Dual)")]
-    public void DuplicateOrConflictingMarkersAreRejected(string name)
+    public void DuplicateMarkersAreRejected(string name)
     {
         var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
         Assert.Throws<GroupParsingException>(() => RegistryScraping.ParseGroupFromOnlineRegistry(context, name));
@@ -318,7 +313,7 @@ public class RegistryScrapingTests
     public void ExistingDualWildcardSetsConsistentMatchingFields()
     {
         var result = Parse("IA25(Dual)ru");
-        Assert.Equal(AttendanceMode.Dual, result.AttendanceMode);
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.Null(result.GroupNumber);
         Assert.True(result.SubGroupName.IsEmpty);
