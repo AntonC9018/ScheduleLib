@@ -435,6 +435,19 @@ public readonly struct StudentAttendanceList
             .Select(student => student.Key))]);
     }
 
+    internal IEnumerable<(StudentsLookupKey Key, NamesInDb Names)> StudentNameSources(StudentsLookupKey key)
+    {
+        key = key.WithGroups(key.Groups.Ordered());
+        if (_map.TryGetValue(key, out var list))
+        {
+            yield return (key, list.StudentNames);
+            yield break;
+        }
+        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty) yield break;
+        foreach (var parent in ParentLists(key))
+            yield return (key.WithGroups(new LessonGroups { parent.Parent }), parent.Attendance.StudentNames);
+    }
+
     private IEnumerable<(GroupId Parent, BetterAttendances Attendance)> ParentLists(StudentsLookupKey key)
     {
         foreach (var parent in key.Groups.Ordered())
@@ -567,7 +580,8 @@ internal readonly struct StudentNameRemapHelper
         HtmlStudent[] namesInHtml,
         NamesInDb namesInDb,
         List<Name> outNotFoundIndices,
-        IReadOnlyDictionary<string, string>? studentNames = null)
+        IReadOnlyDictionary<string, string>? studentNames = null,
+        ISet<Name>? matchedNames = null)
     {
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
@@ -580,10 +594,12 @@ internal readonly struct StudentNameRemapHelper
         {
             var parser = new SequenceReader(namesInHtml[i].Name);
             var name = NameHelper.Parse(ref parser);
-            var remappedIndex = namesInDb.NameToIndex(aliases.GetValueOrDefault(name, name));
+            var sourceName = aliases.GetValueOrDefault(name, name);
+            var remappedIndex = namesInDb.NameToIndex(sourceName);
             if (!remappedIndex.IsInvalid)
             {
                 dbToHtmlIndexMap[remappedIndex.Value] = new(i);
+                matchedNames?.Add(sourceName);
             }
 
             if (remappedIndex.IsInvalid
@@ -591,7 +607,7 @@ internal readonly struct StudentNameRemapHelper
                 // If no students are given, just ignore this completely.
                 && namesInDb.Count != 0)
             {
-                outNotFoundIndices.Add(name);
+                outNotFoundIndices.Add(sourceName);
             }
         }
         return new(count, dbToHtmlIndexMap);

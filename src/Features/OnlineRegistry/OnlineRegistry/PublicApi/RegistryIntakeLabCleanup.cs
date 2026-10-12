@@ -34,7 +34,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 if (!destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab)) continue;
                 if (destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab
                     && _schedule.Get(id).Lesson.Groups.Where(group.Groups.Value.Contains).Any(parent =>
-                        !routed.Values.Any(audiences => audiences.TryGetValue(id, out var covered) && covered.Contains(parent)))))
+                        !destinations.Where(candidate => candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
+                            .Any(candidate => routed[candidate.Group.Uri].TryGetValue(id, out var covered) && covered.Contains(parent)))))
                 {
                     diagnostics.Add("registry-lab-routing-unresolved", _schedule.Get(course.CourseId).FullName,
                         group.Groups.Value.ToString(_schedule), "Unresolved lab routing prevents intake cleanup.");

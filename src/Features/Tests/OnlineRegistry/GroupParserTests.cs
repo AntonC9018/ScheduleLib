@@ -129,7 +129,7 @@ public class RegistryScrapingTests
     }
 
     [Fact]
-    public void EducationSciencesMarkerIsConsumedWithoutAddingDomainMeaning()
+    public void EducationSciencesMarkerIsRetainedAsAdditionalCourses()
     {
         var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "I2402SEru");
@@ -138,6 +138,7 @@ public class RegistryScrapingTests
         Assert.Equal(Language.Ru, result.Language);
         Assert.Equal(3, result.Grade.Value);
         Assert.True(result.SubGroupName.IsEmpty);
+        Assert.True(result.IsAdditionalCourses);
     }
 
     [Theory]
@@ -150,8 +151,37 @@ public class RegistryScrapingTests
         Assert.Equal(SpecialSubGroups.Eng.Value, result.SubGroupName.ToString());
         Assert.Equal(language, result.Language);
         Assert.False(result.IsWildcard);
+        Assert.False(result.IsAdditionalCourses);
         var partition = new GroupPartitionResolver(null).Resolve(result);
         Assert.Equal(SpecialSubGroups.Eng, partition.SubGroup);
+    }
+
+    [Theory]
+    [InlineData("IA2501", false)]
+    [InlineData("IA2501SE", true)]
+    [InlineData("I2402SEru", true)]
+    [InlineData("I2302SEr", true)]
+    [InlineData("I2302se(II)", true)]
+    [InlineData("DJ2502(I)SE", true)]
+    [InlineData("DJ2502SE(I)", true)]
+    public void AdditionalCoursesMarkerIsRetainedAcrossPositions(string name, bool expected)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal(expected, result.IsAdditionalCourses);
+    }
+
+    [Fact]
+    public void AdditionalCoursesMarkerDoesNotChangeScheduledPartition()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var ordinary = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601(I)");
+        var additional = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601SE(I)");
+        Assert.False(ordinary.IsAdditionalCourses);
+        Assert.True(additional.IsAdditionalCourses);
+        var resolver = new GroupPartitionResolver(null);
+        Assert.Equal(resolver.Resolve(ordinary), resolver.Resolve(additional));
+        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), resolver.Resolve(additional));
     }
 
     [Fact]
@@ -169,7 +199,7 @@ public class RegistryScrapingTests
     }
 
     [Fact]
-    public void WithSE_IgnoresSE()
+    public void WithSE_RetainsAdditionalCoursesMarker()
     {
         var result = Parse("IA2501SE");
 
@@ -177,6 +207,7 @@ public class RegistryScrapingTests
         Assert.Equal(1, result.GroupNumber);
         Assert.Null(result.Language);
         Assert.Equal(1, result.Grade.Value);
+        Assert.True(result.IsAdditionalCourses);
     }
 
     [Theory]

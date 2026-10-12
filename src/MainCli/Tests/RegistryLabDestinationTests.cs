@@ -335,6 +335,85 @@ public sealed class RegistryLabDestinationTests
         public string? Get(in AttendanceLookupKey key) => "Topic " + (key.DayIndex + 1);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AdditionalCoursesRostersShareSourceAndReceiveTheirOwnAttendance(bool overlap)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: false, combined: false, includeAdditionalCourses: true);
+        navigator.UseSyntheticRoster = true;
+        navigator.Rosters[navigator.Group.Uri] = overlap ? ["Synthetic Alpha", "Synthetic Beta"] : ["Synthetic Alpha"];
+        navigator.Rosters[new("https://registry.test/se-group")] = overlap ? ["Synthetic Alpha", "Synthetic Beta"] : ["Synthetic Beta"];
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, true, fixture.Attendance(sameAudience: true));
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind is "ambiguous-registry-destination" or "unmatched-attendance-students" or "attendance-students-not-in-registry");
+        var first = plan.Where(action => action.Destination == navigator.Group.Uri.ToString()).OrderBy(action => action.Date).First();
+        var se = plan.Where(action => action.Destination == "https://registry.test/se-group").OrderBy(action => action.Date).First();
+        Assert.Equal(first.Date, se.Date);
+        Assert.Equal(first.Topic, se.Topic);
+        await first.Execute(default);
+        await se.Execute(default);
+        Assert.Equal(overlap ? new[] { "a", "am" } : new[] { "a" }, navigator.SubmittedMarks[0]);
+        Assert.Equal(overlap ? new[] { "a", "am" } : new[] { "am" }, navigator.SubmittedMarks[1]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncompleteCourseDoesNotReportStudentsAbsentFromUnscannedAdditionalRoster(bool failRead)
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: false, combined: false, includeAdditionalCourses: true);
+        navigator.Rosters[navigator.Group.Uri] = ["Synthetic Alpha"];
+        navigator.Rosters[new("https://registry.test/se-group")] = ["Synthetic Beta"];
+        if (failRead) navigator.FailReadUri = new("https://registry.test/se-group");
+        var diagnostics = new RegistrySyncDiagnostics();
+        var task = fixture.PlanIncrementally(navigator, diagnostics, fixture.Attendance(sameAudience: true), _ => Task.FromResult(failRead));
+        if (failRead) await Assert.ThrowsAsync<IOException>(() => task);
+        else await task;
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+        if (!failRead) Assert.DoesNotContain(new Uri("https://registry.test/se-group"), navigator.ReadUris);
+    }
+
+    [Fact]
+    public async Task OrdinaryCoverageCannotAuthorizeCleanupOfUnresolvedAdditionalCoursesLabs()
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: false, combined: false, includeAllExplicitDestinations: true);
+        var broad = fixture.Navigator(wildcard: true, combined: false).Group;
+        navigator.ExtraGroups.Add(new(broad.Groups, broad.GroupPartition,
+            new("https://registry.test/se-fallback"), broad.EvaluationUri, isAdditionalCourses: true));
+        for (var parentIndex = 0; parentIndex < broad.Groups.Value.Count; parentIndex++)
+        for (var duplicate = 0; duplicate < 2; duplicate++)
+            navigator.ExtraGroups.Add(new(new FoundGroups { Value = [broad.Groups.Value[parentIndex]], IsWildcard = false }, broad.GroupPartition,
+                new($"https://registry.test/se-{parentIndex}-{duplicate}"), broad.EvaluationUri, isAdditionalCourses: true));
+        var diagnostics = new RegistrySyncDiagnostics();
+        await fixture.Cleanup(navigator, diagnostics, _ => throw new InvalidOperationException("Unexpected cleanup"), default);
+        Assert.Equal(0, navigator.Reads);
+        Assert.Contains(diagnostics.Items, item => item.Kind == "registry-lab-routing-unresolved");
+    }
+
+    [Fact]
+    public async Task UnresolvedRosterVariantDefersCourseStudentAbsenceReports()
+    {
+        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        var navigator = fixture.Navigator(wildcard: false, combined: false, includeAdditionalCourses: true);
+        var ordinary = navigator.Group;
+        navigator.ExtraGroups.Add(new(ordinary.Groups, ordinary.GroupPartition,
+            new("https://registry.test/ordinary-duplicate"), ordinary.EvaluationUri));
+        navigator.Rosters[new("https://registry.test/se-group")] = ["Synthetic Alpha"];
+        var diagnostics = new RegistrySyncDiagnostics();
+        var plan = await fixture.Plan(navigator, diagnostics, true, fixture.Attendance(sameAudience: true));
+        Assert.NotEmpty(plan);
+        Assert.Contains(diagnostics.Items, item => item.Kind == "ambiguous-registry-destination");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+        Assert.DoesNotContain(ordinary.Uri, navigator.ReadUris);
+        // Reusing a diagnostic collector must not make a repeated unresolved route look complete.
+        _ = await fixture.Plan(navigator, diagnostics, true, fixture.Attendance(sameAudience: true));
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly ServiceProvider _provider;
@@ -396,7 +475,7 @@ public sealed class RegistryLabDestinationTests
             _scope = _provider.CreateMarkerScope(marker => marker.TeacherName = NameHelper.Parse("Curmanschii Anton"));
         }
 
-        public Navigator Navigator(bool wildcard, bool combined, bool includeExplicitDestination = false, bool includeAllExplicitDestinations = false)
+        public Navigator Navigator(bool wildcard, bool combined, bool includeExplicitDestination = false, bool includeAllExplicitDestinations = false, bool includeAdditionalCourses = false)
         {
             var group = new GroupLink(
                 new FoundGroups { Value = wildcard ? _parents : [_parents[0]], IsWildcard = wildcard, IsCombined = combined },
@@ -408,6 +487,9 @@ public sealed class RegistryLabDestinationTests
             if (includeAllExplicitDestinations)
                 additional = [.. additional, new(new FoundGroups { Value = [_parents[1]], IsWildcard = false }, _partition,
                     new("https://registry.test/other-explicit-group"), new("https://registry.test/other-explicit-evaluation"))];
+            if (includeAdditionalCourses)
+                additional = [.. additional, new(group.Groups, group.GroupPartition,
+                    new("https://registry.test/se-group"), new("https://registry.test/se-evaluation"), isAdditionalCourses: true)];
             return new(_course, group, additional);
         }
 
@@ -418,6 +500,15 @@ public sealed class RegistryLabDestinationTests
                 LessonTopics = topics ?? new Topics(), Semester = Semester.Sem1, Diagnostics = diagnostics,
                 LessonFilter = _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
             }, explicitApply: explicitApply);
+
+        public Task PlanIncrementally(Navigator navigator, RegistrySyncDiagnostics diagnostics, StudentAttendanceList attendance,
+            Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> callback)
+            => _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(new()
+            {
+                Navigator = navigator, Attendance = attendance, HasAttendanceSources = true,
+                LessonTopics = new Topics(), Semester = Semester.Sem1, Diagnostics = diagnostics,
+                LessonFilter = _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+            }, callback);
 
         public void ConfigureDeletePolicy()
         {
@@ -435,14 +526,14 @@ public sealed class RegistryLabDestinationTests
             Assert.Single(_scope.ServiceProvider.GetRequiredService<Anton.LayeredData.Retrieval.DataProvider<BuiltRegistryConfig>>().Get()!.Assessments);
         }
 
-        public StudentAttendanceList Attendance()
+        public StudentAttendanceList Attendance(bool sameAudience = false)
         {
             var builder = new AllStudentAttendanceListBuilder();
             var first = builder.List(new([_parents[0]], _partition, _course, LessonType.Lab));
             var alpha = first.Student(NameHelper.Parse("Synthetic Alpha"));
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.Present);
-            var second = builder.List(new([_parents[1]], _partition, _course, LessonType.Lab));
+            var second = sameAudience ? first : builder.List(new([_parents[1]], _partition, _course, LessonType.Lab));
             var beta = second.Student(NameHelper.Parse("Synthetic Beta"));
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.MotivatedAbsent);
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
@@ -472,6 +563,9 @@ public sealed class RegistryLabDestinationTests
         public sealed record Lesson(int Id, string Date, string ShortDate, string Mode, string Topic, string Mark);
         public List<Lesson> Lessons { get; } = [];
         public bool UseSyntheticRoster { get; set; }
+        public Dictionary<Uri, string[]> Rosters { get; } = [];
+        public List<GroupLink> ExtraGroups { get; } = [];
+        public Uri? FailReadUri { get; set; }
         public string OtherAudienceMark { get; set; } = "";
         public List<string[]> SubmittedMarks { get; } = [];
         public bool AllowDeletes { get; set; }
@@ -492,11 +586,20 @@ public sealed class RegistryLabDestinationTests
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
             => Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
-            => Task.FromResult<IEnumerable<GroupLink>>([group, .. additionalGroups]);
+            => Task.FromResult<IEnumerable<GroupLink>>([group, .. additionalGroups, .. ExtraGroups]);
         public async Task<IDocument> GetHtml(Uri uri)
         {
             Reads++;
             ReadUris.Add(uri);
+            if (uri == FailReadUri) throw new IOException("Synthetic roster read failure.");
+            if (Rosters.TryGetValue(uri, out _))
+                return await new HtmlParser().ParseDocumentAsync($"<div><a href='https://registry.test/roster-add?list={Uri.EscapeDataString(uri.ToString())}'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>");
+            if (uri.AbsolutePath == "/roster-add")
+            {
+                var roster = Rosters[new Uri(Uri.UnescapeDataString(uri.Query[6..]))];
+                var rows = string.Join("", roster.Select((name, index) => $"<tr><td>{index + 1}</td><td>{name}</td><td>spec</td><td><input name='student-{index}'></td></tr>"));
+                return await new HtmlParser().ParseDocumentAsync($"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr>{rows}</table></form>");
+            }
             if (FailDelete && DeleteCalls != 0 && uri == group.Uri)
                 throw new IOException("Synthetic confirmation read failure.");
             if (Lessons.Count != 0 && uri == group.Uri)
@@ -517,6 +620,11 @@ public sealed class RegistryLabDestinationTests
         public Task SubmitLesson(IDocument document)
         {
             if (!UseSyntheticRoster) throw new InvalidOperationException("Unexpected submission.");
+            if (document.QuerySelector("input[name^=student-]") is not null)
+            {
+                SubmittedMarks.Add(document.QuerySelectorAll<IHtmlInputElement>("input[name^=student-]").Select(input => input.Value).ToArray());
+                return Task.CompletedTask;
+            }
             SubmittedMarks.Add([document.QuerySelector<IHtmlInputElement>("input[name=alpha]")!.Value,
                 document.QuerySelector<IHtmlInputElement>("input[name=beta]")!.Value]);
             return Task.CompletedTask;

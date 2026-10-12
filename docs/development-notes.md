@@ -11,8 +11,12 @@ rejection described below for #220/#221. `RegistryLessonRouting` discovers all
 assignments for a canonical course before choosing each lab audience's subgroup,
 parent, or combined destination. Teacher filters run before priority selection;
 missing individual subgroup destinations fall back independently. Competing
-destinations at the same specificity remain diagnostics, including `SE` labels
-that the current group domain does not distinguish.
+destinations at the same specificity remain diagnostics within each roster variant.
+The registry's `SE` marker denotes an additional-course roster, sharing the
+ordinary group's schedule identity and attendance source. Specificity is selected
+independently for ordinary and SE lists: a separate ordinary subgroup list and
+an SE parent list both receive that subgroup's labs. The marker stays out of
+scheduled partitions and topic scopes.
 
 `RegistryTopicScope` emits validated v1 `(scope)` suffixes and retains spelling
 aliases for older outputs. Topic/assessment arrangement uses actual parent sets
@@ -23,7 +27,15 @@ matching. Existing assessment ambiguity protects the entire affected sequence,
 including ordinary rows that would otherwise become deletion candidates.
 
 Attendance uses each scheduled audience's own source and index. Known students
-of another audience are not missing-name errors. `Attendance.None` continues to
+of another audience are not missing-name errors. Student matching is accumulated
+across related ordinary and SE rosters before reporting either registry students
+without attendance rows or attendance students absent from every relevant list.
+Enrollment warnings remain separate for lectures and labs; a successful lab
+match cannot hide missing lecture enrollment. Actual source groups and partitions
+keep unrelated audiences from masking missing enrollment. Interrupted course scans do not finalize student coverage, and
+unavailable membership sources defer registry-to-attendance warnings.
+Diagnostics contain counts and course/group context, without student names.
+`Attendance.None` continues to
 preserve existing marks and leaves new nonmember fields blank. Exact shared
 lecture evidence can combine separately represented parent occurrences and their
 nonconflicting attendance; numeric lab merges remain governed by existing

@@ -118,6 +118,7 @@ public static partial class RegistryScraping
             IsWildcard = isWildcard,
             Language = suffixes.Language,
             IsDual = suffixes.Dual,
+            IsAdditionalCourses = suffixes.IsAdditionalCourses,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref SequenceReader reader)
@@ -188,7 +189,9 @@ public static partial class RegistryScraping
                 }
                 else if (ConsumeMarker(ref reader, "SE"))
                 {
-                    // Științele Educației: accepted but not represented in the current domain.
+                    // SE marks an additional-courses roster.
+                    // Same schedule audience and attendance source as the ordinary list.
+                    suffixes.IsAdditionalCourses = true;
                 }
                 else if (LanguageHelper.ParseName(ref reader) is { } language)
                 {
@@ -282,6 +285,7 @@ file record struct GroupSuffixes
     public Language? Language;
     public bool ReducedAttendance;
     public bool Dual;
+    public bool IsAdditionalCourses;
 }
 
 internal struct GroupForSearch
@@ -297,6 +301,7 @@ internal struct GroupForSearch
     public required bool IsRepeat;
     public required bool IsWildcard;
     public required bool IsDual;
+    public bool IsAdditionalCourses;
 }
 
 /// <summary>Confirmed registry-only combined label, matched to existing faculties.</summary>

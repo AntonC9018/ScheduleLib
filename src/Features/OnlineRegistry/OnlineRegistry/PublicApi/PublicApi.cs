@@ -153,6 +153,7 @@ public sealed class GroupsNavigator
         return groups.Count(group => group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)
             && group.Grade == target.Grade && group.AttendanceMode == target.AttendanceMode
             && group.QualificationType == target.QualificationType && group.IsDual == target.IsDual
+            && group.IsAdditionalCourses == target.IsAdditionalCourses
             && resolver.Resolve(group) == partition) == 1;
     }
 

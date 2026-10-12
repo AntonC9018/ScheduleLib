@@ -272,8 +272,22 @@ to an English subgroup without translation.
 Labs use the most specific available destination for their scheduled audience:
 subgroup, parent group, then combined/intake list. Each audience falls back
 independently, so one subgroup's separate list does not hide another subgroup's
-labs. Equally specific competing assignments produce a diagnostic. Whole-parent
-lists can contain numeric or language lab partitions without changing the schedule.
+labs. The `SE` marker identifies an additional-course roster for the same scheduled
+audience. Ordinary and SE destinations are prioritized independently, and both
+receive lessons when available; a separate ordinary subgroup list does not
+suppress an SE parent list. Equally specific competing assignments within the
+same variant produce a diagnostic. Whole-parent lists can contain numeric or
+language lab partitions without changing the schedule.
+
+Attendance is mapped separately to each roster from the common source, including
+students present in both lists. Student mismatch diagnostics are finalized only
+after all relevant lists for the course have been considered. They separately
+report registry students with no attendance row and attendance students absent
+from every relevant registry roster, using counts without student names.
+Lecture and lab enrollment warnings remain separate; ordinary and SE rosters
+are considered together for each lesson type and scheduled audience. An
+interrupted course scan defers these reports; unrelated audiences do not hide
+missing enrollment.
 
 Fallback topics receive a readable audience suffix, for example
 `Tema (DJ2502 (ru) /I)` or `Tema (DJ2503 (en))`. Shared lectures in these lists

@@ -92,8 +92,6 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     public async Task PlanGroups(RunParams p, Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
         CancellationToken cancellationToken = default, bool explicitApply = false)
     {
-        var notFoundStudents = new List<Name>();
-
         var config = _configProvider.Get();
         if (config is null)
         {
@@ -129,7 +127,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 if (validity.Decision == LessonValidityDecision.Skip) continue;
                 destinations.Add((Group: group, Selection: candidates));
             }
-            var routed = RegistryLessonRouting.Prioritize(_schedule, destinations, p.Diagnostics);
+            var routed = RegistryLessonRouting.Prioritize(_schedule, destinations, p.Diagnostics, out var hasUnresolvedAudience);
+            var studentCoverage = new RegistryStudentCoverage(p.Attendance, config.StudentNames);
+            var studentCoverageComplete = !hasUnresolvedAudience;
             foreach (var destination in destinations)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -172,20 +172,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 catch (MissingSemesterDateRangeException)
                 {
+                    studentCoverageComplete = false;
                     p.Diagnostics?.Add("missing-schedule-dates", _schedule.Get(courseLink.CourseId).FullName,
                         group.Groups.Value.ToString(_schedule),
                         "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
                     continue;
                 }
                 using var lessonsWithTimes = datedLessons.ToRentedBuffer();
-
-                var courseStudentNames = NamesInDb.Create([.. p.Attendance
-                    .Where(source => source.Key.CourseId == courseLink.CourseId)
-                    .SelectMany(source => source.Value.StudentNames.Select(student => student.Key))
-                    .Distinct(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)]);
-                var unknownRegistryStudents = new List<Name>();
-                _ = StudentNameRemapHelper.Create(scanResult.Students, courseStudentNames,
-                    unknownRegistryStudents, config.StudentNames);
 
                 var remapHelpers = new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience), StudentNameRemapHelper>();
                 var attendanceIndexes = new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience), int>();
@@ -203,18 +196,20 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         p.Diagnostics?.Add("missing-attendance-sheet", _schedule.Get(courseLink.CourseId).FullName,
                             group.Groups.Value.ToString(_schedule),
                             $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
-                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, notFoundStudents, config.StudentNames);
-                    // Known students of another session are intentionally blank, not missing source rows.
-                    notFoundStudents.RemoveAll(name => !unknownRegistryStudents.Contains(name,
-                        Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance));
-                    if (p.HasAttendanceSources && notFoundStudents.Count != 0)
+                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, [], config.StudentNames);
+                }
+
+                if (p.HasAttendanceSources && remapHelpers.Count != 0)
+                {
+                    var membershipKeys = selection.Lessons.Select(id =>
                     {
-                        _errorHandler.StudentsNotInDbButInRegistry(new(notFoundStudents, _schedule, group.Groups, x.LessonId));
-                        if (studentNames.Count != 0) p.Diagnostics?.Add("unmatched-attendance-students", _schedule.Get(courseLink.CourseId).FullName,
-                            group.Groups.Value.ToString(_schedule),
-                            $"{notFoundStudents.Count} registry students have no matching attendance row for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Check the attendance sheet and name mappings.");
-                    }
-                    notFoundStudents.Clear();
+                        var lesson = _schedule.Get(id).Lesson;
+                        var audience = new LessonGroups();
+                        foreach (var parent in lesson.Groups.Where(group.Groups.Value.Contains)) audience.Add(parent);
+                        return new StudentsLookupKey(audience.Ordered(), AttendancePartition(lesson), courseLink.CourseId, lesson.Type);
+                    });
+                    studentCoverage.Observe(scanResult.Students, remapHelpers.Keys.Select(key =>
+                        new StudentsLookupKey(key.Audience, key.Partition, courseLink.CourseId, key.Type)), membershipKeys);
                 }
 
                 GroupPartitionKey AttendancePartition(LessonData lesson) => RegistryLessonRouting.ProjectPartition(config, _schedule, lesson);
@@ -421,6 +416,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 if (!await onGroupPlanned(actions)) return;
             }
+            if (p.HasAttendanceSources && studentCoverageComplete)
+                studentCoverage.Report(_schedule, courseLink.CourseId, p.Diagnostics);
             coverage?.ReportMissingGroups(courseLink.CourseId);
         }
 

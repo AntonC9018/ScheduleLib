@@ -56,7 +56,13 @@ internal static class RegistryLessonRouting
     internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(Schedule schedule,
         IReadOnlyList<(GroupLink Group, RegistryLessonSelection Selection)> destinations,
         RegistrySyncDiagnostics? diagnostics)
+        => Prioritize(schedule, destinations, diagnostics, out _);
+
+    internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(Schedule schedule,
+        IReadOnlyList<(GroupLink Group, RegistryLessonSelection Selection)> destinations,
+        RegistrySyncDiagnostics? diagnostics, out bool hasUnresolvedAudience)
     {
+        hasUnresolvedAudience = false;
         var result = destinations.ToDictionary(destination => destination.Group.Uri,
             _ => new Dictionary<AnyLessonId, LessonGroups>());
         foreach (var id in destinations.SelectMany(destination => destination.Selection.Lessons).Distinct())
@@ -67,27 +73,50 @@ internal static class RegistryLessonRouting
                 var eligible = destinations.Where(destination => destination.Selection.Lessons.Contains(id)
                     && destination.Group.Groups.Value.Contains(parent)).ToArray();
                 if (eligible.Length == 0) continue;
-                if (lesson.Type == LessonType.Lab)
+                if (lesson.Type != LessonType.Lab)
                 {
-                    var best = eligible.Max(destination => Specificity(destination.Group));
-                    eligible = eligible.Where(destination => Specificity(destination.Group) == best).ToArray();
-                    if (eligible.Length > 1)
+                    foreach (var destination in eligible)
                     {
+                        AddAudience(result, destination, id, parent);
+                    }
+                    continue;
+                }
+                // Ordinary and additional-courses (SE) rosters share the same schedule
+                // audience and attendance source, but lab specificity competes only
+                // within each variant. A normal subgroup and an SE parent therefore
+                // both receive the same lab; equal specificity ties within one
+                // variant remain ambiguous while ordinary-vs-SE never tie.
+                foreach (var variant in eligible.GroupBy(destination => destination.Group.IsAdditionalCourses))
+                {
+                    var best = variant.Max(destination => Specificity(destination.Group));
+                    var winners = variant.Where(destination => Specificity(destination.Group) == best).ToArray();
+                    if (winners.Length > 1)
+                    {
+                        hasUnresolvedAudience = true;
                         diagnostics?.Add("ambiguous-registry-destination", schedule.Get(lesson.Course).FullName,
                             schedule.Get(parent).Name,
                             "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
                         continue;
                     }
-                }
-                foreach (var destination in eligible)
-                {
-                    if (!result[destination.Group.Uri].TryGetValue(id, out var audience)) audience = new LessonGroups();
-                    audience.Add(parent);
-                    result[destination.Group.Uri][id] = audience;
+                    foreach (var destination in winners)
+                    {
+                        AddAudience(result, destination, id, parent);
+                    }
                 }
             }
         }
         return result;
+
+        static void AddAudience(
+            Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> result,
+            (GroupLink Group, RegistryLessonSelection Selection) destination,
+            AnyLessonId id,
+            GroupId parent)
+        {
+            if (!result[destination.Group.Uri].TryGetValue(id, out var audience)) audience = new LessonGroups();
+            audience.Add(parent);
+            result[destination.Group.Uri][id] = audience;
+        }
     }
 
     private static int Specificity(GroupLink group)

@@ -212,18 +212,19 @@ public sealed class CombinedGroupMatchingTests
     }
 
     [Theory]
-    [InlineData("DJ2204r(II)", "DJ", 4, "II", Language.Ru)]
-    [InlineData("I2202rse", "I", 2, "", Language.Ru)]
-    [InlineData("I2302se(II)", "I", 2, "II", null)]
-    [InlineData("I2302SEr", "I", 2, "", Language.Ru)]
+    [InlineData("DJ2204r(II)", "DJ", 4, "II", Language.Ru, false)]
+    [InlineData("I2202rse", "I", 2, "", Language.Ru, true)]
+    [InlineData("I2302se(II)", "I", 2, "II", null, true)]
+    [InlineData("I2302SEr", "I", 2, "", Language.Ru, true)]
     public void HistoricalMarkersPreserveLanguageAndNumericSubgroup(string value, string faculty,
-        int number, string subgroup, Language? language)
+        int number, string subgroup, Language? language, bool isAdditionalCourses)
     {
         var group = Parse(value);
         Assert.Equal(faculty, group.FacultyName.ToString());
         Assert.Equal(number, group.GroupNumber);
         Assert.Equal(subgroup, group.SubGroupName.ToString());
         Assert.Equal(language, group.Language);
+        Assert.Equal(isAdditionalCourses, group.IsAdditionalCourses);
     }
 
     [Theory]
@@ -446,6 +447,47 @@ public sealed class CombinedGroupMatchingTests
         Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2502ru")], target, EnglishRule, Resolver));
         Assert.False(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2503(en)")], target, EnglishRule, Resolver));
         Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2403(en)")], target, EnglishRule, Resolver));
+    }
+
+    [Fact]
+    public void AdditionalCoursesVariantDoesNotDisableLanguageRuleMatching()
+    {
+        var ordinary = Parse("DJ2501(en)");
+        var additionalSamePartition = Parse("DJ2503SE(en)");
+        Assert.True(ordinary.IsAdditionalCourses == false);
+        Assert.True(additionalSamePartition.IsAdditionalCourses);
+        // Same Eng partition but different variant still counts as unique within each variant.
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition], ordinary, EnglishRule, Resolver));
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition], additionalSamePartition, EnglishRule, Resolver));
+        // Same-variant duplicates still disable the language fallback.
+        var additionalDuplicate = Parse("DJ2504SE(en)");
+        Assert.False(GroupsNavigator.HasUniqueRegistryAudience([additionalSamePartition, additionalDuplicate], additionalSamePartition, EnglishRule, Resolver));
+    }
+
+    [Fact]
+    public void GroupLinkCarriesAdditionalCoursesMarkerThroughHtmlNavigation()
+    {
+        var document = new HtmlParser().ParseDocument("""
+            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+            <div class="row"><a href="https://registry.test/ordinary">DJ2501(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
+            <div class="row"><a href="https://registry.test/additional">DJ2501SE(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
+            </div></div></form>
+            """);
+        var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
+        {
+            Document = document,
+            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupPartitionResolver = Resolver,
+            SearchGroupId = (ref GroupForSearch group) => [new GroupId(0)],
+            ParseErrorHandler = _ => Assert.Fail("SE markers should parse."),
+        }).ToArray();
+        Assert.Equal(2, result.Length);
+        var ordinary = Assert.Single(result, link => link.Uri.ToString() == "https://registry.test/ordinary");
+        var additional = Assert.Single(result, link => link.Uri.ToString() == "https://registry.test/additional");
+        Assert.False(ordinary.IsAdditionalCourses);
+        Assert.True(additional.IsAdditionalCourses);
+        // SE never changes the scheduled partition.
+        Assert.Equal(ordinary.GroupPartition, additional.GroupPartition);
     }
 
     [Fact]

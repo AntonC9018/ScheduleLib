@@ -22,17 +22,20 @@ public readonly record struct GroupLink
     public readonly GroupPartitionKey GroupPartition;
     public readonly Uri Uri;
     public readonly Uri EvaluationUri;
+    public readonly bool IsAdditionalCourses;
 
     public GroupLink(
         in FoundGroups groups,
         GroupPartitionKey groupPartition,
         Uri uri,
-        Uri evaluationUri)
+        Uri evaluationUri,
+        bool isAdditionalCourses = false)
     {
         Groups = groups;
         GroupPartition = groupPartition;
         Uri = uri;
         EvaluationUri = evaluationUri;
+        IsAdditionalCourses = isAdditionalCourses;
     }
 }
 
@@ -135,6 +138,7 @@ internal static class HtmlSearch
             Uri groupUri;
             GroupPartitionKey groupPartition;
             FoundGroups foundGroups;
+            bool isAdditionalCourses;
             {
                 var anchor = urls[0];
                 var url = anchor.Href;
@@ -169,6 +173,7 @@ internal static class HtmlSearch
                 }
                 groupPartition = p.GroupPartitionResolver.Resolve(in groupForSearch);
                 groupUri = new Uri(url);
+                isAdditionalCourses = groupForSearch.IsAdditionalCourses;
                 foundGroups = new()
                 {
                     Value = groups,
@@ -189,7 +194,8 @@ internal static class HtmlSearch
                 uri: groupUri,
                 evaluationUri: evaluationUri,
                 groups: foundGroups,
-                groupPartition: groupPartition);
+                groupPartition: groupPartition,
+                isAdditionalCourses: isAdditionalCourses);
         }
     }
 
