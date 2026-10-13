@@ -196,7 +196,7 @@ public sealed class FreeHoursTests
         await using var scope = provider.CreateAsyncScope();
         var builder = new StringBuilder();
         scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>()
-            .Run(new() { Groups = ["IA2301", "M2301"], StringBuilder = builder, });
+            .Run(new() { Groups = ["IA2301", "M2301"], StringBuilder = builder });
         string[] everyWeek =
         [
             "Luni:8:00-13:00", "Marţi:8:00-14:45,18:30-20:00", "Miercuri:8:00-9:30,13:15-20:00", "Joi:8:00-20:00",

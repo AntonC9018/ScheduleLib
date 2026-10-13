@@ -254,7 +254,7 @@ public sealed class RegistryGradeTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = false, Value = lesson.Lesson.Groups, },
+                new FoundGroups { IsWildcard = false, Value = lesson.Lesson.Groups },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));

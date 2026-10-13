@@ -91,7 +91,7 @@ public partial class RegistryCommands
                 cli.EmitItem(
                     "year-" + yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { year = offeredYear, });
+                    new { year = offeredYear });
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
             {
@@ -103,7 +103,7 @@ public partial class RegistryCommands
                 cli.EmitItem(
                     "candidate-" + candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { historicalYear = candidate.Historical.Year, groups = groupCount, lessons = lessonCount, });
+                    new { historicalYear = candidate.Historical.Year, groups = groupCount, lessons = lessonCount });
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
@@ -112,7 +112,7 @@ public partial class RegistryCommands
                 cli.EmitItem(
                     "unresolved-" + unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { reason = unresolved.Reason.ToString(), });
+                    new { reason = unresolved.Reason.ToString() });
             }
             return Finish(
                 CliExit.Success,

@@ -33,7 +33,7 @@ public sealed class RegistryTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { Value = lesson.Lesson.Groups, IsWildcard = false, },
+                new FoundGroups { Value = lesson.Lesson.Groups, IsWildcard = false },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));
@@ -174,7 +174,7 @@ public sealed class RegistryTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups, },
+                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation"))) { TwoGroups = true };
@@ -265,7 +265,7 @@ public sealed class RegistryTests
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups, },
+                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));
@@ -327,7 +327,7 @@ public sealed class RegistryTests
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups, },
+                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")))

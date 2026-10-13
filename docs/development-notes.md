@@ -498,5 +498,7 @@ their domain results; rendering failures must not trigger remote retries.
 
 Public command parameters use CommandDotNet argument models. Internal config
 edits and exports use request records rather than long scalar/Boolean parameter
-lists. See [formatting](formatting.md) for the automatic utility and
+lists. The formatter uses JetBrains CleanupCode with a restricted formatting, braces
+and commas profile rather than a custom syntax rewriter. See
+[formatting](formatting.md) for the automatic utility and
 [analyzer decisions](analyzer-review.md) for the accepted initializer policy.

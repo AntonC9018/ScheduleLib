@@ -118,7 +118,7 @@ public sealed class CurrentSourceMergeTests
                 LessonTimeConfig.CreateDefault(),
                 ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider());
             var dates = new ScheduledDateTimeProvider(weekly, helper)
-                .Get(new() { Lessons = labs.Select(x => x.Id.AsAny()), Semester = Semester.Sem1, }).ToArray();
+                .Get(new() { Lessons = labs.Select(x => x.Id.AsAny()), Semester = Semester.Sem1 }).ToArray();
             Assert.NotEmpty(dates);
             Assert.True(
                 dates.Min(x => x.DateTime) <

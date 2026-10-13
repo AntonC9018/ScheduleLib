@@ -50,7 +50,7 @@ public static class AppTasks
             {
                 x.TeacherName = remapper.RemapName(context.TeacherName);
             });
-            await ExecuteTask(new() { Context = context, AppTask = option, Services = scope.ServiceProvider, });
+            await ExecuteTask(new() { Context = context, AppTask = option, Services = scope.ServiceProvider });
         }
     }
 
@@ -124,7 +124,7 @@ public static class AppTasks
             {
                 var sb = new StringBuilder();
                 var handler = c.Services.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
-                handler.Run(new() { Groups = ["IA2401", "I2301"], StringBuilder = sb, });
+                handler.Run(new() { Groups = ["IA2401", "I2301"], StringBuilder = sb });
                 Console.WriteLine(sb.ToStringAndClear());
                 break;
             }
@@ -138,7 +138,7 @@ public static class AppTasks
                     FileShare.ReadWrite);
 
                 var handler = c.Services.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
-                await handler.Run(new() { CancellationToken = c.CancellationToken, OutputStream = outputStream, });
+                await handler.Run(new() { CancellationToken = c.CancellationToken, OutputStream = outputStream });
                 outputFile.TryOpenInExplorer();
                 break;
             }
@@ -303,7 +303,7 @@ public static class AppTasks
         {
             var handler = c.Services.GetRequiredService<GenerateFreeRoomsTaskHandler>();
             await using var outputStream = c.FreeRoomsFile.Open(FileMode.Create, FileAccess.Write);
-            await handler.Run(new() { CancellationToken = c.CancellationToken, OutputStream = outputStream, });
+            await handler.Run(new() { CancellationToken = c.CancellationToken, OutputStream = outputStream });
         });
     }
 
@@ -312,7 +312,7 @@ public static class AppTasks
         return Task.Run(async () =>
         {
             var handler = c.Services.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>();
-            await handler.Run(new() { CancellationToken = c.CancellationToken, OutputDirectory = c.OutputDirectory, });
+            await handler.Run(new() { CancellationToken = c.CancellationToken, OutputDirectory = c.OutputDirectory });
         });
     }
 
@@ -321,7 +321,7 @@ public static class AppTasks
         return Task.Run(() =>
         {
             var handler = c.Services.GetRequiredService<GenerateIcsCalendarsTaskHandler>();
-            handler.Run(new() { OutputDirectory = c.OutputDirectory, });
+            handler.Run(new() { OutputDirectory = c.OutputDirectory });
         });
     }
 

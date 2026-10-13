@@ -169,7 +169,7 @@ public partial class QueryCommands
                     errors,
                     data)
                 {
-                    Summary = data is null ? null : new { groups = data.Groups, sectionCount = data.Sections.Length, },
+                    Summary = data is null ? null : new { groups = data.Groups, sectionCount = data.Sections.Length },
                     Status = status,
                     JsonStatus = jsonStatus,
                 });

@@ -21,25 +21,32 @@ formatting changes stay reviewable.
 
 The utility needs Bash, Python 3.9+ and the repository's .NET SDK. It restores
 JetBrains.ReSharper.GlobalTools 2026.2.3.1 from `dotnet-tools.json` automatically.
-It applies the IDE0011 brace fix and IDE0005 redundant-using fix, formats selected
-C# files with JetBrains, and arranges multiline trailing commas with a Roslyn
-syntax rewriter. Both standard and ReSharper layout settings in EditorConfig are
-used, together with the shared `All.sln.DotSettings`. The newer MainCli slice also
-enforces Roslyn code style in builds. IDE0005 requires XML documentation output;
-the CLI generates it without imposing a new API-documentation requirement
-(CS1591).
+The `ScheduleLib Formatting` cleanup profile in `All.sln.DotSettings` enables
+only C# reformatting, control-statement braces, and trailing commas. CleanupCode
+implements those operations using standard and ReSharper EditorConfig settings;
+there is no custom syntax rewriter. It does not run Anton.CodingRules fixes,
+reorder members, change declarations, or perform general code cleanup.
 
-JetBrains runs in [file formatting mode](https://www.jetbrains.com/help/resharper/CleanupCode.html),
-which performs no semantic cleanup. The comma rewriter only changes separators
-in multiline initializer, collection, enum, switch and pattern lists; comments
-stay attached. Neither pass applies Anton.CodingRules fixes.
+The newer MainCli slice also enforces Roslyn code style in builds. IDE0005
+requires XML documentation output; the CLI generates it without imposing a new
+API-documentation requirement (CS1591). Redundant usings are checked by builds;
+the formatting profile leaves them unchanged.
 
-Layout checking runs on temporary copies of compiled source files and their
-EditorConfig files. `--check` never rewrites source; tool caches and ignored build
-outputs may be created. Missing paths and empty selections fail explicitly.
-The formatter refuses to overwrite a source file changed during its layout pass.
-Layout and comma passes repeat to a stable result, with a bounded failure if the
-formatters cannot agree.
+The wrapper selects compiled C# files using MSBuild and copies them and their
+EditorConfig files to a temporary formatting-only solution. CleanupCode requires
+a solution to apply syntax styles; file-only mode applies layout alone. The
+temporary project targets .NET Standard 2.1 with preview language syntax and no
+application dependencies or analyzers. Its role is formatting, not compilation.
+See the [CleanupCode documentation](https://www.jetbrains.com/help/resharper/CleanupCode.html).
+
+`--check` compares the temporary output and never rewrites source. Apply mode
+copies only changed source back, after checking that it has not changed during
+formatting. Tool caches and ignored build outputs may be created. Empty selections
+fail explicitly. The wrapper supplies file selection and checking; CleanupCode
+owns all formatting and EditorConfig interpretation.
+
+Run the wrapper's source-preservation regression check with
+`python3 -m unittest discover -s build/tests`.
 
 Anton.CodingRules 0.1.0 is referenced centrally with `PrivateAssets="all"`.
 CR warnings remain visible through `WarningsNotAsErrors` while legacy findings

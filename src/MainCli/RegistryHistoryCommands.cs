@@ -196,7 +196,7 @@ public partial class RegistryCommands
                 output.EmitItem(
                     yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { year = year.Year, courses = courseCount, groups = groupCount, });
+                    new { year = year.Year, courses = courseCount, groups = groupCount });
             }
             return Finish(
                 CliExit.Success,
