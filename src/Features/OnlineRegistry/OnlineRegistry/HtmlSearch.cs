@@ -22,17 +22,20 @@ public readonly record struct GroupLink
     public readonly GroupPartitionKey GroupPartition;
     public readonly Uri Uri;
     public readonly Uri EvaluationUri;
+    public readonly bool IsAdditionalCourses;
 
     public GroupLink(
         in FoundGroups groups,
         GroupPartitionKey groupPartition,
         Uri uri,
-        Uri evaluationUri)
+        Uri evaluationUri,
+        bool isAdditionalCourses = false)
     {
         Groups = groups;
         GroupPartition = groupPartition;
         Uri = uri;
         EvaluationUri = evaluationUri;
+        IsAdditionalCourses = isAdditionalCourses;
     }
 }
 
@@ -135,6 +138,7 @@ internal static class HtmlSearch
             Uri groupUri;
             GroupPartitionKey groupPartition;
             FoundGroups foundGroups;
+            bool isAdditionalCourses;
             {
                 var anchor = urls[0];
                 var url = anchor.Href;
@@ -150,9 +154,12 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                if (groupForSearch.IsRepeat)
+                if (groupForSearch.IsRepeat
+                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase)
+                    || groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Not handling this yet.
+                    // Repeats and unconfirmed historical (S)/(D) markers are skipped
+                    // before producing navigable links or accessing remote lessons.
                     continue;
                 }
                 var groups = p.SearchGroupId(ref groupForSearch);
@@ -166,10 +173,12 @@ internal static class HtmlSearch
                 }
                 groupPartition = p.GroupPartitionResolver.Resolve(in groupForSearch);
                 groupUri = new Uri(url);
+                isAdditionalCourses = groupForSearch.IsAdditionalCourses;
                 foundGroups = new()
                 {
                     Value = groups,
                     IsWildcard = groupForSearch.IsWildcard,
+                    IsCombined = RegistryFacultyLabels.IsCombined(groupForSearch.FacultyName),
                 };
 
             }
@@ -185,7 +194,8 @@ internal static class HtmlSearch
                 uri: groupUri,
                 evaluationUri: evaluationUri,
                 groups: foundGroups,
-                groupPartition: groupPartition);
+                groupPartition: groupPartition,
+                isAdditionalCourses: isAdditionalCourses);
         }
     }
 
@@ -683,7 +693,7 @@ internal static class HtmlSearch
                         if (expected1 != actual1
                             || expected.IsExpelled != actual.IsExpelled)
                         {
-                            return $"Student mismatch at index {i}: expected {expected}, got {actual}";
+                            return $"Student mismatch at index {i}.";
                         }
                         return null;
                     }
@@ -729,7 +739,7 @@ internal static class HtmlSearch
             .ToArray();
         if (validationErrors.Length != 0)
         {
-            throw new RegistrySubmissionRejectedException($"Validation errors: {string.Concat("\n", validationErrors)}");
+            throw new RegistrySubmissionRejectedException("Registry form validation failed.");
         }
     }
 
@@ -855,4 +865,3 @@ internal readonly struct SendUpdatedFormParams
     public required Schedule Schedule { get; init; }
     public required HtmlStudent[]? ExpectedStudents { get; init; }
 }
-

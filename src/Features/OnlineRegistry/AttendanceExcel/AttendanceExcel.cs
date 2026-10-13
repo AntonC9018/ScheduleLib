@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using AutoConstructor.Attributes;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,8 @@ public sealed partial class AttendanceListsExcelParser
 
     public void Parse(ParseAttendanceListsExcelParams p)
     {
+        if (p.ParseParameters.StudentNameColumn is < 1)
+            throw new ArgumentOutOfRangeException(nameof(p), "Student name column must be positive.");
         var lexer = new Lexer(NameTokenReader.Instance);
         var helper = new ParseNameHelper(
             schedule: p.Schedule,
@@ -52,13 +55,29 @@ public sealed partial class AttendanceListsExcelParser
 
         foreach (var sheet in p.Workbook.Worksheets)
         {
+            var contentColumns = sheet.CellsUsed(XLCellsUsedOptions.Contents)
+                .Where(cell => !IsEmptyCell(cell))
+                .Select(cell => cell.Address.ColumnNumber).ToHashSet();
+            if (p.ParseParameters.HeaderFormat.FormatType != HeaderFormatType.Nothing
+                && sheet.FirstRowUsed(XLCellsUsedOptions.Contents) is { } firstRow)
+            {
+                contentColumns.ExceptWith(firstRow.CellsUsed(XLCellsUsedOptions.Contents)
+                    .Where(cell => IsIrrelevantColumnHeader(cell.Value))
+                    .Select(cell => cell.Address.ColumnNumber));
+            }
+            if (contentColumns.Count == 0) continue;
+            var studentNameColumn = p.ParseParameters.StudentNameColumn
+                ?? FindStudentNameColumn(sheet, contentColumns, p.ParseParameters.HeaderFormat.FormatType);
+
             using var header = ParseHeaderInfo(
                 sheet,
                 headerDeps: new()
                 {
                     LessonTypeParser = _lessonTypeParser,
                 },
-                p.ParseParameters.HeaderFormat);
+                p.ParseParameters.HeaderFormat,
+                studentNameColumn,
+                contentColumns);
             var additionallyIgnoredFields = new LessonModelDiffMask();
             switch (header.HeaderType)
             {
@@ -68,6 +87,7 @@ public sealed partial class AttendanceListsExcelParser
                     break;
                 }
                 case HeaderType.None:
+                case HeaderType.Date:
                 {
                     break;
                 }
@@ -76,7 +96,9 @@ public sealed partial class AttendanceListsExcelParser
                     throw Unreachable();
                 }
             }
-            if (helper.LookupLessonByExcelName(sheet.Name, additionallyIgnoredFields) is not { } lesson)
+            var lessonName = p.ParseParameters.WorksheetNames.TryGetValue(sheet.Name, out var mappedName)
+                ? mappedName : sheet.Name;
+            if (helper.LookupLessonByExcelName(lessonName, additionallyIgnoredFields, p.ParseParameters.LabMerges) is not { } lesson)
             {
                 throw new InvalidOperationException($"Not found lesson for string {sheet.Name}");
             }
@@ -97,7 +119,7 @@ public sealed partial class AttendanceListsExcelParser
                     courseId: lesson.Course,
                     groups: groups,
                     groupPartition: lesson.GroupPartition,
-                    lessonType: lesson.Type);
+                    lessonType: header.HasDateLessonTypes ? LessonType.None : lesson.Type);
             }
 
             void Add(in LessonGroups groups)
@@ -111,7 +133,10 @@ public sealed partial class AttendanceListsExcelParser
                         sheet: sheet,
                         list: l.Builder,
                         header,
-                        p: p.ParseParameters);
+                        p: p.ParseParameters,
+                        defaultLessonType: lesson.Type,
+                        studentNameColumn: studentNameColumn,
+                        contentColumns: contentColumns);
                 }
 
                 if (!l.Existed)
@@ -355,7 +380,8 @@ public sealed partial class AttendanceListsExcelParser
 
         public LookedUpLesson? LookupLessonByExcelName(
             string excelName,
-            LessonModelDiffMask additionallyIgnoredFields)
+            LessonModelDiffMask additionallyIgnoredFields,
+            IReadOnlyList<RegistryLabMergeRule> labMerges)
         {
             _nameE.Reset(excelName.AsMemory());
             _lexer.Reset(_nameE);
@@ -393,14 +419,49 @@ public sealed partial class AttendanceListsExcelParser
                 LessonType = parsedName.LessonType,
                 GroupPartition = parsedName.GroupPartition,
             };
-            var ret = LookupLesson(key, _schedule, additionallyIgnoredFields);
-            if (ret == null)
+            var merge = key.LessonType == LessonType.Lab
+                ? RegistryLabMerges.Find(labMerges, _schedule.Source, key.CourseId, key.Groups, key.GroupPartition)
+                : null;
+            var lookupKey = key;
+            var lookupIgnoredFields = additionallyIgnoredFields;
+            if (merge is not null)
             {
+                lookupKey.GroupPartition = new(new SubGroup(merge.SourceSubGroup), Specialization.All);
+                lookupIgnoredFields.LessonType = false;
+            }
+            var ret = LookupLesson(lookupKey, _schedule, lookupIgnoredFields);
+            if (ret is null && key.Groups.IsSingleGroup && key.GroupPartition.SubGroup != SubGroup.All
+                && key.LessonType is LessonType.None or LessonType.Lab)
+            {
+                // Source subgroup sheets remain meaningful after their labs are projected away.
+                // Match the active destination, but keep the source key for row composition.
                 var schedule = _schedule;
-                _ = schedule;
-                var lessons = _schedule.EnumerateLessons().ToArray();
-                _ = lessons;
-                Debugger.Break();
+                var candidates = schedule.EnumerateLessons().Where(item => item.Lesson.Type == LessonType.Lab
+                    && (key.CourseId.IsInvalid || item.Lesson.Course == key.CourseId)
+                    && item.Lesson.Groups == key.Groups
+                    && item.Lesson.Specialization == key.GroupPartition.Specialization
+                    && item.Lesson.Alternative == key.GroupPartition.Alternative
+                    && AttendanceLabMerges.TryDestination(schedule.Source, labMerges,
+                        new(item.Lesson.Groups, key.GroupPartition, item.Lesson.Course, LessonType.Lab), out _))
+                    .Select(item => item.Lesson.Course).Distinct().ToArray();
+                if (candidates.Length > 1)
+                    throw new InvalidOperationException($"Multiple merged lab courses match worksheet '{excelName}'. Specify its course.");
+                if (candidates.Length == 1)
+                {
+                    var sourceKey = new StudentsLookupKey(key.Groups, key.GroupPartition, candidates[0], LessonType.Lab);
+                    AttendanceLabMerges.TryDestination(_schedule.Source, labMerges, sourceKey, out var destination);
+                    var rule = RegistryLabMerges.Find(labMerges, _schedule.Source, candidates[0], key.Groups, destination);
+                    var target = key;
+                    target.CourseId = candidates[0];
+                    target.LessonType = LessonType.Lab;
+                    target.GroupPartition = rule is null ? destination
+                        : destination with { SubGroup = new(rule.SourceSubGroup) };
+                    var ignored = additionallyIgnoredFields;
+                    ignored.LessonType = false;
+                    if (LookupLesson(target, _schedule, ignored, target.GroupPartition) is { } projected)
+                        return new(additionallyIgnoredFields.LessonType ? LessonType.None : LessonType.Lab,
+                            projected.Lesson.Groups, key.GroupPartition, candidates[0]);
+                }
             }
             if (ret is not { } r)
             {
@@ -414,14 +475,15 @@ public sealed partial class AttendanceListsExcelParser
             return new(
                 l.Type,
                 l.Groups,
-                l.GroupPartitionKey,
+                merge is null ? l.GroupPartitionKey : GroupPartitionKey.All,
                 l.Course);
         }
 
         private static AnyLessonAccessor? LookupLesson(
             Key key,
             FilteredSchedule schedule,
-            LessonModelDiffMask additionallyIgnoredFields)
+            LessonModelDiffMask additionallyIgnoredFields,
+            GroupPartitionKey? requiredPartition = null)
         {
             var diffLesson = default(LessonData);
             var diffMask = new LessonModelDiffMask();
@@ -465,6 +527,7 @@ public sealed partial class AttendanceListsExcelParser
 
             foreach (var lesson in schedule.EnumerateLessons())
             {
+                if (requiredPartition is { } partition && lesson.Lesson.GroupPartitionKey != partition) continue;
                 if (result != default)
                 {
                     var differences = LessonBuilderHelper.Diff(lesson.Lesson, result, resultDiffMask);
@@ -503,22 +566,34 @@ public sealed partial class AttendanceListsExcelParser
     private readonly struct ParsedHeaderInfo : IDisposable
     {
         private readonly RentedBuffer<LessonType> _lessons;
+        private readonly RentedBuffer<AttendanceDate> _dates;
+        private readonly int[] _columns;
         public readonly ColumnOffset Offset { get; }
         public bool IsApplicable => HeaderType != HeaderType.None;
-        public int Len => _lessons.Len;
+        public int Len { get; }
         public readonly HeaderType HeaderType = HeaderType.None;
 
         public ReadOnlySpan<LessonType> LessonTypes => _lessons.Span;
+        public ReadOnlySpan<AttendanceDate> Dates => _dates.Span;
+        public bool HasDateLessonTypes => HeaderType == HeaderType.Date && LessonTypes.ContainsAnyExcept(LessonType.None);
 
         public ParsedHeaderInfo(
             RentedBuffer<LessonType> lessons,
+            RentedBuffer<AttendanceDate> dates,
             ColumnOffset offset,
-            HeaderType headerType)
+            HeaderType headerType,
+            int len,
+            int[] columns)
         {
+            _columns = columns;
+            Len = len;
             _lessons = lessons;
+            _dates = dates;
             Offset = offset;
             HeaderType = headerType;
         }
+
+        public bool ContainsColumn(int column) => Array.IndexOf(_columns, column) >= 0;
 
         public LessonType GetLesson(RestoredIndex index)
         {
@@ -531,6 +606,10 @@ public sealed partial class AttendanceListsExcelParser
             {
                 _lessons.Dispose();
             }
+            if (_dates.IsValid)
+            {
+                _dates.Dispose();
+            }
         }
     }
 
@@ -538,7 +617,7 @@ public sealed partial class AttendanceListsExcelParser
     {
         None,
         LessonType,
-        // ...
+        Date,
     }
 
     private struct ParsedHeaderInfoBuilder() : IDisposable
@@ -547,7 +626,9 @@ public sealed partial class AttendanceListsExcelParser
         private HeaderType _headerType = HeaderType.None;
         private int _len = UnspecifiedLen;
         private RentedBuffer<LessonType> _lessons;
+        private RentedBuffer<AttendanceDate> _dates;
         private int _count = 0;
+        private readonly List<int> _columns = [];
         #if DEBUG
         private bool _built = false;
         #endif
@@ -569,14 +650,38 @@ public sealed partial class AttendanceListsExcelParser
             }
         }
 
+        public void DeclareIsDate()
+        {
+            Debug.Assert(_headerType is HeaderType.None or HeaderType.Date);
+            Debug.Assert(_len != UnspecifiedLen);
+            if (_headerType == HeaderType.None)
+            {
+                _headerType = HeaderType.Date;
+                _dates = new RentedBuffer<AttendanceDate>(_len);
+                _lessons = new RentedBuffer<LessonType>(_len);
+            }
+        }
+
         public bool IsEmpty => _count == 0;
 
-        public void AddLesson(LessonType t)
+        public void AddLesson(LessonType t, int column)
         {
             DeclareIsLesson();
             int i = _count;
             Debug.Assert(i <= _len);
+            _columns.Add(column);
             _lessons.Span[i] = t;
+            _count++;
+        }
+
+        public void AddDate(AttendanceDate date, LessonType lessonType, int column)
+        {
+            DeclareIsDate();
+            int i = _count;
+            Debug.Assert(i <= _len);
+            _columns.Add(column);
+            _dates.Span[i] = date;
+            _lessons.Span[i] = lessonType;
             _count++;
         }
 
@@ -585,6 +690,10 @@ public sealed partial class AttendanceListsExcelParser
             if (_lessons.IsValid)
             {
                 _lessons.Dispose();
+            }
+            if (_dates.IsValid)
+            {
+                _dates.Dispose();
             }
         }
 
@@ -595,11 +704,15 @@ public sealed partial class AttendanceListsExcelParser
             _built = true;
             #endif
             var ret = new ParsedHeaderInfo(
-                _lessons.WithLen(_count),
+                _lessons.IsValid ? _lessons.WithLen(_count) : default,
+                _headerType == HeaderType.Date ? _dates.WithLen(_count) : default,
                 columnOffset,
-                _headerType);
+                _headerType,
+                _count,
+                _columns.ToArray());
             // Move into info so it can be disposed.
             _lessons = default;
+            _dates = default;
             return ret;
         }
     }
@@ -612,9 +725,11 @@ public sealed partial class AttendanceListsExcelParser
     private static ParsedHeaderInfo ParseHeaderInfo(
         IXLWorksheet sheet,
         HeaderDeps headerDeps,
-        HeaderFormat headerFormat)
+        HeaderFormat headerFormat,
+        int studentNameColumn,
+        HashSet<int> contentColumns)
     {
-        IXLRow? row = sheet.Rows().FirstOrDefault();
+        IXLRow? row = sheet.FirstRowUsed(XLCellsUsedOptions.Contents);
         if (headerFormat.FormatType == HeaderFormatType.Nothing)
         {
             return default;
@@ -633,10 +748,10 @@ public sealed partial class AttendanceListsExcelParser
             return default;
         }
 
-        Debug.Assert(headerFormat.FormatType is HeaderFormatType.LessonType or HeaderFormatType.Auto,
+        Debug.Assert(headerFormat.FormatType is HeaderFormatType.LessonType or HeaderFormatType.Auto or HeaderFormatType.Date,
             $"Not implemented: {headerFormat.FormatType}");
 
-        var context = new HeaderParsingContext(headerFormat.FormatType);
+        var context = new HeaderParsingContext(headerFormat.FormatType, studentNameColumn);
         using var builder = new ParsedHeaderInfoBuilder();
         {
             var cellCount = row.CellCount();
@@ -651,6 +766,7 @@ public sealed partial class AttendanceListsExcelParser
                 break;
             }
             var cell = cellE.Current!;
+            if (!contentColumns.Contains(cell.Address.ColumnNumber)) continue;
 
             var action = HeaderValidateAndMaybeSkipEmptyOrValidateFormat(cell, ref context);
             if (action == HeaderColumnValidationResult.SkipEmpty)
@@ -661,6 +777,16 @@ public sealed partial class AttendanceListsExcelParser
             {
                 return default;
             }
+
+            if (context.Format is HeaderFormatType.Auto or HeaderFormatType.Date
+                && TryParseDateHeader(cell, headerDeps.LessonTypeParser, out var attendanceDate, out var dateLessonType))
+            {
+                builder.AddDate(attendanceDate, dateLessonType, cell.Address.ColumnNumber);
+                context.Format = HeaderFormatType.Date;
+                continue;
+            }
+            if (context.Format == HeaderFormatType.Date)
+                throw cell.Exception($"Sheet '{sheet.Name}': expected a date (dd.MM or dd.MM.yyyy) in every attendance header column; got '{cell.Value}' ({cell.DataType})");
 
             if (!cell.Value.TryGetText(out string strValue))
             {
@@ -704,11 +830,87 @@ public sealed partial class AttendanceListsExcelParser
                 {
                     return false;
                 }
-                builder.AddLesson(lessonType);
+                builder.AddLesson(lessonType, cell.Address.ColumnNumber);
                 return true;
             }
         }
         return builder.Build(context.FirstOffset ?? default);
+    }
+
+    private static bool TryParseDateHeader(
+        IXLCell cell, LessonTypeParser lessonParser, out AttendanceDate date, out LessonType lessonType)
+    {
+        lessonType = LessonType.None;
+        if (TryParseAttendanceDate(cell, out date)) return true;
+        if (!cell.Value.TryGetText(out var text)) return false;
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length is not (2 or 3)) return false;
+        foreach (var index in new[] { 0, parts.Length - 1 })
+        {
+            if (lessonParser.Parse(parts[index]) is not { } parsedType) continue;
+            if (!TryParseDateText(string.Join(' ', parts.Where((_, position) => position != index)), out date)) continue;
+            lessonType = parsedType;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryParseAttendanceDate(IXLCell cell, out AttendanceDate date)
+    {
+        if (cell.Value.IsDateTime)
+        {
+            var value = cell.Value.GetDateTime();
+            date = new()
+            {
+                Month = value.Month, Day = value.Day, Year = value.Year,
+                Time = value.TimeOfDay == TimeSpan.Zero ? null : TimeOnly.FromDateTime(value),
+            };
+            return true;
+        }
+        date = default;
+        if (!cell.Value.TryGetText(out var text))
+        {
+            return false;
+        }
+        return TryParseDateText(text, out date);
+    }
+
+    private static bool TryParseDateText(string text, out AttendanceDate date)
+    {
+        date = default;
+        text = text.Trim();
+        if (text.Length == 0)
+        {
+            return false;
+        }
+        TimeOnly? time = null;
+        var separator = text.LastIndexOf(' ');
+        if (separator >= 0)
+        {
+            if (!TimeOnly.TryParseExact(text.AsSpan(separator + 1), ["H:mm", "HH:mm"],
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedTime)) return false;
+            time = parsedTime;
+            text = text[..separator].TrimEnd();
+        }
+        if (DateTime.TryParseExact(text,
+                ["d.M", "dd.MM", "d.M.yyyy", "dd.MM.yyyy", "d.M.yy", "dd.MM.yy",
+                    "d/M", "dd/MM", "d/M/yyyy", "dd/MM/yyyy", "d/M/yy", "dd/MM/yy",
+                    "yyyy-MM-dd", "yyyy-M-d"],
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            // Year-less formats (d.M, dd.MM, d/M, dd/MM) parse with the current
+            // year; treat them as year-less so they match by month/day.
+            bool hasYear = text.Contains('-') || text.Count(c => c is '.' or '/') >= 2;
+            date = new()
+            {
+                Month = parsed.Month,
+                Day = parsed.Day,
+                Year = hasYear ? parsed.Year : null,
+                Time = time,
+            };
+            return true;
+        }
+        return false;
     }
 
     // TODO: reuse the list
@@ -716,11 +918,17 @@ public sealed partial class AttendanceListsExcelParser
         IXLWorksheet sheet,
         StudentAttendanceListBuilder list,
         in ParsedHeaderInfo header,
-        in WorksheetParseParameters p)
+        in WorksheetParseParameters p,
+        LessonType defaultLessonType,
+        int studentNameColumn,
+        HashSet<int> contentColumns)
     {
         // ReSharper disable once GenericEnumeratorNotDisposed
-        using var rowE = sheet.Rows().GetEnumerator().RememberIsDone();
-        if (header.HeaderType != HeaderType.None)
+        var firstRow = sheet.FirstRowUsed(XLCellsUsedOptions.Contents);
+        if (firstRow is null) return;
+        using var rowE = sheet.Rows().SkipWhile(row => row.RowNumber() < firstRow.RowNumber())
+            .GetEnumerator().RememberIsDone();
+        if (header.HeaderType != HeaderType.None || p.HeaderFormat.FormatType == HeaderFormatType.IgnoreHeader)
         {
             var x = rowE.MoveNext();
             Debug.Assert(x);
@@ -730,11 +938,36 @@ public sealed partial class AttendanceListsExcelParser
         {
             case HeaderType.LessonType:
             {
+                if (p.DateMode == AttendanceDateMode.ValidateAndBind)
+                {
+                    throw new InvalidOperationException(
+                        $"Sheet '{sheet.Name}': date validation requires a date header row, but the header holds lesson types.");
+                }
                 list.AddLessonTypes(header.LessonTypes);
+                break;
+            }
+            case HeaderType.Date:
+            {
+                if (header.HasDateLessonTypes)
+                {
+                    var types = header.LessonTypes.ToArray();
+                    for (int i = 0; i < types.Length; i++)
+                        if (types[i] == LessonType.None) types[i] = defaultLessonType;
+                    list.AddLessonTypes(types);
+                }
+                if (p.DateMode == AttendanceDateMode.ValidateAndBind)
+                {
+                    list.AddAttendanceDates(header.Dates);
+                }
                 break;
             }
             case HeaderType.None:
             {
+                if (p.DateMode == AttendanceDateMode.ValidateAndBind)
+                {
+                    throw new InvalidOperationException(
+                        $"Sheet '{sheet.Name}': date validation is enabled but no header row was recognized. Declare a date in every attendance column of the top row.");
+                }
                 break;
             }
             default:
@@ -751,7 +984,8 @@ public sealed partial class AttendanceListsExcelParser
             }
             var row = rowE.Current;
 
-            using var cells = row.Cells(usedCellsOnly: false).GetEnumerator();
+            var lastColumn = Math.Max(studentNameColumn, row.LastCellUsed()?.Address.ColumnNumber ?? studentNameColumn);
+            using var cells = row.Cells(studentNameColumn, lastColumn).GetEnumerator();
             if (!cells.MoveNext())
             {
                 break;
@@ -774,23 +1008,23 @@ public sealed partial class AttendanceListsExcelParser
 
             while (cells.MoveNext())
             {
+                if ((header.IsApplicable || p.HeaderFormat.FormatType == HeaderFormatType.IgnoreHeader)
+                    && !contentColumns.Contains(cells.Current!.Address.ColumnNumber)) continue;
                 if (!cells.Current!.TryGetValue(out string attendanceStr))
                 {
                     throw new InvalidOperationException("Expecting a string in cell");
                 }
 
-                if (attendanceStr != ""
-                    && header.IsApplicable)
+                if (header.IsApplicable)
                 {
-                    var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
-                    var restoredIndex = header.Offset.GetUnOffsetIndex(columnNumber);
-                    if (restoredIndex.Value < 0 || restoredIndex.Value >= header.Len)
+                    var columnNumber = cells.Current!.Address.ColumnNumber;
+                    if (!header.ContainsColumn(columnNumber))
                     {
                         if (p.HeaderFormat.IgnoreValuesOutsideHeader)
                         {
                             continue;
                         }
-                        throw cell.Exception("The given cell is not within the range of the table ");
+                        throw cells.Current!.Exception("The given cell is not within the range of the table ");
                     }
                 }
 
@@ -836,7 +1070,7 @@ public sealed partial class AttendanceListsExcelParser
             rowE.MoveNext();
         }
 
-        list.HintMaxCount(maxLen);
+        list.HintMaxCount(header.IsApplicable ? header.Len : maxLen);
         return;
     }
 
@@ -858,25 +1092,28 @@ public sealed partial class AttendanceListsExcelParser
         }
 
         var value = cell.Value;
+        var isBlank = IsEmptyCell(cell);
         // Handle empty cells
         if (c.FirstOffset is null)
         {
             var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
-            if (columnNumber == 1)
+            if (columnNumber < c.StudentNameColumn)
+                return HeaderColumnValidationResult.SkipEmpty;
+            if (columnNumber == c.StudentNameColumn)
             {
-                if (!value.IsBlank)
+                if (!isBlank && !IsNameColumnHeader(value))
                 {
                     if (c.Format == HeaderFormatType.Auto)
                     {
                         return HeaderColumnValidationResult.NotAHeader;
                     }
-                    throw cell.Exception("First column of the header row must be empty");
+                    throw cell.Exception("First column of the header row must be empty or identify student names");
                 }
                 c.FirstOffset = new(columnNumber);
                 c.PreviousOffset = new(columnNumber);
                 return HeaderColumnValidationResult.SkipEmpty;
             }
-            else if (columnNumber == 2)
+            else if (columnNumber == c.StudentNameColumn + 1)
             {
                 c.FirstOffset = new(columnNumber - 1);
                 c.PreviousOffset = new(columnNumber - 1);
@@ -885,7 +1122,7 @@ public sealed partial class AttendanceListsExcelParser
 
         if (c.IsInEmptyStreak)
         {
-            if (!value.IsBlank)
+            if (!isBlank)
             {
                 throw cell.Exception("Cannot have a non-empty value after an empty streak");
             }
@@ -893,7 +1130,7 @@ public sealed partial class AttendanceListsExcelParser
         }
         else
         {
-            if (value.IsBlank)
+            if (isBlank)
             {
                 c.IsInEmptyStreak = true;
                 return HeaderColumnValidationResult.SkipEmpty;
@@ -904,19 +1141,71 @@ public sealed partial class AttendanceListsExcelParser
             // Some sanity checks.
             Debug.Assert(!c.IsInEmptyStreak);
             Debug.Assert(c.FirstOffset.HasValue);
-            var expectedOffset = c.PreviousOffset.Value + 1;
             var colNumber = range.FirstColumn().ColumnNumber();
-            if (expectedOffset != colNumber)
-            {
-                throw cell.Exception("Unexpected column number");
-            }
+            Debug.Assert(colNumber > c.PreviousOffset.Value);
             c.PreviousOffset = new(colNumber);
         }
         return HeaderColumnValidationResult.Value;
     }
 
-    private struct HeaderParsingContext(HeaderFormatType format)
+    private static int FindStudentNameColumn(
+        IXLWorksheet sheet, HashSet<int> contentColumns, HeaderFormatType format)
     {
+        if (format == HeaderFormatType.Nothing) return 1;
+        var firstRow = sheet.FirstRowUsed(XLCellsUsedOptions.Contents);
+        if (firstRow is null) return 1;
+        foreach (var cell in firstRow.CellsUsed(XLCellsUsedOptions.Contents))
+            if (IsNameColumnHeader(cell.Value)) return cell.Address.ColumnNumber;
+        foreach (var column in contentColumns.Order())
+        {
+            if (IsIrrelevantColumnHeader(firstRow.Cell(column).Value)) continue;
+            return column;
+        }
+        return 1;
+    }
+
+    private static bool IsIrrelevantColumnHeader(XLCellValue value)
+    {
+        return value.TryGetText(out var text) && text.Trim().ToLowerInvariant()
+            is "nr." or "nr" or "no." or "no" or "№" or "#" or "număr" or "numar" or "number";
+    }
+
+    private static bool IsEmptyCell(IXLCell cell)
+    {
+        var value = cell.Value;
+        return value.IsBlank || (value.TryGetText(out var text) && string.IsNullOrWhiteSpace(text))
+            || IsGeneratedTableHeader(cell);
+    }
+
+    private static bool IsGeneratedTableHeader(IXLCell cell)
+    {
+        // ClosedXML fills empty Excel table header cells with ColumnN on load.
+        if (!cell.Value.TryGetText(out var text) || !text.StartsWith("Column", StringComparison.Ordinal)
+            || !int.TryParse(text.AsSpan(6), out var number)) return false;
+        foreach (var table in cell.Worksheet.Tables)
+        {
+            if (table.RangeAddress.FirstAddress.RowNumber != cell.Address.RowNumber)
+                continue;
+            int fieldIndex = cell.Address.ColumnNumber - table.RangeAddress.FirstAddress.ColumnNumber;
+            if (fieldIndex >= 0 && fieldIndex < table.Fields.Count()
+                && number == fieldIndex + 1 && table.Field(fieldIndex).Name == text)
+                return true;
+        }
+        return false;
+    }
+
+    private static bool IsNameColumnHeader(XLCellValue value)
+    {
+        if (!value.TryGetText(out var text))
+            return false;
+        return text.Trim().ToLowerInvariant() is "name" or "student" or "student name"
+            or "nume" or "nume, prenume" or "nume prenume" or "nume și prenume" or "nume si prenume"
+            or "фио" or "ф.и.о." or "имя";
+    }
+
+    private struct HeaderParsingContext(HeaderFormatType format, int studentNameColumn)
+    {
+        public int StudentNameColumn = studentNameColumn;
         public HeaderFormatType Format = format;
         public ColumnOffset? FirstOffset = null;
         public ColumnOffset PreviousOffset = default;
@@ -932,6 +1221,7 @@ public enum HeaderFormatType
     LessonType,
     IgnoreHeader,
     Auto,
+    Date,
 }
 
 public struct HeaderFormat()
@@ -948,9 +1238,13 @@ public enum CellValueFormat
 
 public struct WorksheetParseParameters()
 {
+    public int? StudentNameColumn = null;
+    public IReadOnlyDictionary<string, string> WorksheetNames = new Dictionary<string, string>();
+    public IReadOnlyList<RegistryLabMergeRule> LabMerges = [];
     public HeaderFormat HeaderFormat = new();
     public CellValueFormat CellValueFormat = CellValueFormat.NotAttendanceIsError;
     public RepeatedCourseBehavior RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+    public AttendanceDateMode DateMode = AttendanceDateMode.Ignore;
 }
 
 

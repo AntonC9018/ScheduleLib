@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
@@ -15,7 +16,7 @@ public static class ExcelScheduleParser
     public readonly struct Params
     {
         public required Stream InputFile { get; init; }
-        public required DocParseContext Context { get; init; }
+        public required ScheduleImportContext Context { get; init; }
         public required StringBuilder StringBuilder { get; init; }
 
         public StringBuilder GetCleanStringBuilder()
@@ -27,7 +28,7 @@ public static class ExcelScheduleParser
 
     public static Config FrConfig => new()
     {
-        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa),
+        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
         AllowedQualificationTypes = new(QualificationType.Licenta),
         AddLessonHandler = FrScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeekAndDate,
@@ -35,7 +36,7 @@ public static class ExcelScheduleParser
     };
     public static Config MasterConfig => new()
     {
-        AllowedAttendanceModes = new(AttendanceMode.Zi),
+        AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
         AllowedQualificationTypes = new(QualificationType.Master),
         AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
         DayParseMode = DayParseMode.DayOfWeek,
@@ -821,14 +822,14 @@ public readonly record struct AddLessonResult(string? ErrorString)
 
 public readonly ref struct AddLessonParams
 {
-    public readonly DocParseContext Context;
+    public readonly ScheduleImportContext Context;
     public readonly ref readonly ParsedLesson ParsedLesson;
     public readonly ReadOnlySpan<GroupId> Groups;
     public readonly TimeSlot TimeSlot;
     public readonly Day Day;
 
     public AddLessonParams(
-        DocParseContext context,
+        ScheduleImportContext context,
         in ParsedLesson parsedLesson,
         ReadOnlySpan<GroupId> groups,
         TimeSlot timeSlot,
@@ -917,4 +918,3 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
         return AddLessonResult.Ok;
     }
 }
-

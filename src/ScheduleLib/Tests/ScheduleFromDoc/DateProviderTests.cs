@@ -6,6 +6,84 @@ namespace ScheduleFromDoc.Tests;
 
 public sealed class DateProviderTests
 {
+    [Theory]
+    [InlineData(AttendanceMode.DualZi, Semester.Sem1)]
+    [InlineData(AttendanceMode.DualZi, Semester.Sem2)]
+    [InlineData(AttendanceMode.DualFr, Semester.Sem1)]
+    [InlineData(AttendanceMode.DualFr, Semester.Sem2)]
+    public void DualDatesDoNotFallBackToOrdinaryAttendance(AttendanceMode mode, Semester semester)
+    {
+        var builder = new ScheduleBuilder();
+        var groupSlot = builder.Groups.New();
+        groupSlot.Value = new Group
+        {
+            Name = "DU-IA2601",
+            Grade = new(1),
+            GroupNumber = 1,
+            QualificationType = QualificationType.Licenta,
+            Faculty = new("IA"),
+            AttendanceMode = mode,
+            Language = Language.Ro,
+        };
+        var groupId = new GroupId(groupSlot.Id);
+        var schedule = builder.Build();
+        var ranges = new CurrentYearSemesterIntervalBuilder();
+        foreach (var ordinaryMode in new[] { AttendanceMode.Zi, AttendanceMode.FrecventaRedusa })
+        {
+            ranges.Scope(scope =>
+            {
+                scope.AttendanceMode(ordinaryMode);
+                scope.QualificationType(QualificationType.Licenta);
+                scope.Year(2026);
+                scope.Semester(semester);
+                scope.LessonsStart(9, 1);
+                scope.LessonsEndInclusive(12, 13);
+                scope.Range(range => range.Grade(new(1)));
+            });
+        }
+        var intervals = ranges.Build();
+        Assert.Throws<MissingSemesterDateRangeException>(() => intervals.GetSemesterInterval(new()
+        {
+            Schedule = schedule,
+            GroupId = groupId,
+            Semester = semester,
+        }));
+    }
+
+    [Theory]
+    [InlineData(1, Semester.Sem1)]
+    [InlineData(2, Semester.Sem1)]
+    [InlineData(3, Semester.Sem1)]
+    [InlineData(1, Semester.Sem2)]
+    [InlineData(2, Semester.Sem2)]
+    [InlineData(3, Semester.Sem2)]
+    public void DefaultDualZiDatesMatchZiForEachGradeAndSemester(int grade, Semester semester)
+    {
+        var builder = new ScheduleBuilder();
+        var zi = builder.Groups.New();
+        zi.Value = GroupFor(AttendanceMode.Zi);
+        var dual = builder.Groups.New();
+        dual.Value = GroupFor(AttendanceMode.DualZi);
+        var schedule = builder.Build();
+        var intervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
+        var ordinaryRange = intervals.GetSemesterInterval(new()
+        {
+            Schedule = schedule, GroupId = new(zi.Id), Semester = semester,
+        });
+        var dualRange = intervals.GetSemesterInterval(new()
+        {
+            Schedule = schedule, GroupId = new(dual.Id), Semester = semester,
+        });
+        Assert.Equal(ordinaryRange, dualRange);
+
+        Group GroupFor(AttendanceMode mode) => new()
+        {
+            Name = mode == AttendanceMode.Zi ? $"IA-{grade}" : $"DU-IA-{grade}",
+            Grade = new(grade), GroupNumber = 1, QualificationType = QualificationType.Licenta,
+            Faculty = new("IA"), AttendanceMode = mode, Language = Language.Ro,
+        };
+    }
+
     [Fact]
     public void AcademicCalendar2026_2027MatchesPublishedDates()
     {

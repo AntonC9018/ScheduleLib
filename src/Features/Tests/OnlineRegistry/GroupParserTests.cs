@@ -1,4 +1,7 @@
+using System.Collections.ObjectModel;
+using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.ScheduleDefaults;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
@@ -105,6 +108,82 @@ public class RegistryScrapingTests
         Assert.Equal(1, result.Grade.Value);
     }
 
+    [Theory]
+    [InlineData("DJ2502(I)ru", "I")]
+    [InlineData("DJ2502(II)ru", "II")]
+    public void LanguageAfterNumericSubgroupUsesRequestedAcademicYear(string name, string subgroup)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal("DJ", result.FacultyName.Span);
+        Assert.Equal(2, result.GroupNumber);
+        Assert.Equal(subgroup, result.SubGroupName.ToString());
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(2, result.Grade.Value);
+    }
+
+    [Fact]
+    public void DuplicateLanguageAroundNumericSubgroupIsRejected()
+    {
+        Assert.Throws<GroupParsingException>(() => Parse("DJ2502ru(I)ru"));
+    }
+
+    [Fact]
+    public void EducationSciencesMarkerIsRetainedAsAdditionalCourses()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "I2402SEru");
+        Assert.Equal("I", result.FacultyName.Span);
+        Assert.Equal(2, result.GroupNumber);
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(3, result.Grade.Value);
+        Assert.True(result.SubGroupName.IsEmpty);
+        Assert.True(result.IsAdditionalCourses);
+    }
+
+    [Theory]
+    [InlineData("DJ2501(en)", null)]
+    [InlineData("DJ2501ru(en)", Language.Ru)]
+    public void EnglishLabPartitionPreservesParentGroupLanguage(string name, Language? language)
+    {
+        var result = Parse(name);
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(SpecialSubGroups.Eng.Value, result.SubGroupName.ToString());
+        Assert.Equal(language, result.Language);
+        Assert.False(result.IsWildcard);
+        Assert.False(result.IsAdditionalCourses);
+        var partition = new GroupPartitionResolver(null).Resolve(result);
+        Assert.Equal(SpecialSubGroups.Eng, partition.SubGroup);
+    }
+
+    [Theory]
+    [InlineData("IA2501", false)]
+    [InlineData("IA2501SE", true)]
+    [InlineData("I2402SEru", true)]
+    [InlineData("I2302SEr", true)]
+    [InlineData("I2302se(II)", true)]
+    [InlineData("DJ2502(I)SE", true)]
+    [InlineData("DJ2502SE(I)", true)]
+    public void AdditionalCoursesMarkerIsRetainedAcrossPositions(string name, bool expected)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal(expected, result.IsAdditionalCourses);
+    }
+
+    [Fact]
+    public void AdditionalCoursesMarkerDoesNotChangeScheduledPartition()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var ordinary = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601(I)");
+        var additional = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601SE(I)");
+        Assert.False(ordinary.IsAdditionalCourses);
+        Assert.True(additional.IsAdditionalCourses);
+        var resolver = new GroupPartitionResolver(null);
+        Assert.Equal(resolver.Resolve(ordinary), resolver.Resolve(additional));
+        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), resolver.Resolve(additional));
+    }
+
     [Fact]
     public void WildcardFormat_ParsesCorrectly()
     {
@@ -120,7 +199,7 @@ public class RegistryScrapingTests
     }
 
     [Fact]
-    public void WithSE_IgnoresSE()
+    public void WithSE_RetainsAdditionalCoursesMarker()
     {
         var result = Parse("IA2501SE");
 
@@ -128,5 +207,166 @@ public class RegistryScrapingTests
         Assert.Equal(1, result.GroupNumber);
         Assert.Null(result.Language);
         Assert.Equal(1, result.Grade.Value);
+        Assert.True(result.IsAdditionalCourses);
     }
+
+    [Theory]
+    [InlineData("IAFR2603(ru)", "IA", 3, Language.Ru, 1, false)]
+    [InlineData("IAFR2403ru", "IA", 3, Language.Ru, 3, false)]
+    [InlineData("MFR2501", "M", 1, null, 2, true)]
+    public void FacultyAttendanceSuffixIsSeparatedBeforeResolvingQualification(
+        string name, string faculty, int number, Language? language, int grade, bool master)
+    {
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+            GroupLabelsThatAreMaster = new ReadOnlySet<string>(new HashSet<string> { "M" }),
+        });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal(faculty, result.FacultyName.ToString());
+        Assert.Equal(number, result.GroupNumber);
+        Assert.Equal(language, result.Language);
+        Assert.Equal(grade, result.Grade.Value);
+        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(master ? QualificationType.Master : QualificationType.Licenta, result.QualificationType);
+        Assert.False(result.IsDual);
+        Assert.False(result.IsWildcard);
+        Assert.True(result.SubGroupName.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData("IA2603(ru)", Language.Ru)]
+    [InlineData("IA2603(ro)", Language.Ro)]
+    public void ParenthesizedWholeGroupLanguageDoesNotCreatePartition(string name, Language language)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
+        Assert.Equal(language, result.Language);
+        Assert.True(result.SubGroupName.IsEmpty);
+        Assert.Equal(GroupPartitionKey.All, new GroupPartitionResolver(null).Resolve(result));
+    }
+
+    [Fact]
+    public void DualSuffixSetsBothAttendanceAndDualMatchingFlag()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601DU");
+        Assert.Equal("IA", result.FacultyName.ToString());
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.True(result.IsDual);
+        Assert.False(result.IsWildcard);
+        Assert.True(result.SubGroupName.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData("IA_2001fr", 1, null)]
+    [InlineData("IA_2002Rfr", 2, Language.Ru)]
+    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(string name, int number, Language? language)
+    {
+        var result = Parse(name);
+        Assert.Equal("IA", result.FacultyName.ToString());
+        Assert.Equal(number, result.GroupNumber);
+        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(language, result.Language);
+    }
+
+    [Fact]
+    public void ParenthesizedDualAfterNumberSelectsAttendanceInsteadOfPartition()
+    {
+        var result = Parse("IA2501(Dual)");
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.True(result.IsDual);
+        Assert.False(result.IsWildcard);
+        Assert.True(result.SubGroupName.IsEmpty);
+        Assert.Equal(GroupPartitionKey.All, new GroupPartitionResolver(null).Resolve(result));
+    }
+
+    [Theory]
+    [InlineData("IA2603ru(ru)")]
+    [InlineData("IA2603ro(ru)")]
+    [InlineData("IA2603(ru)ro")]
+    [InlineData("IAFR2603fr")]
+    [InlineData("IA2603frfr")]
+    [InlineData("IA2603fr(I)fr")]
+    [InlineData("IA2603DUDU")]
+    [InlineData("IA26(Dual)DU")]
+    [InlineData("IA2501(Dual)DU")]
+    [InlineData("IA2501DU(Dual)")]
+    public void DuplicateMarkersAreRejected(string name)
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        Assert.Throws<GroupParsingException>(() => RegistryScraping.ParseGroupFromOnlineRegistry(context, name));
+    }
+
+    [Theory]
+    [InlineData("SAWM")]
+    [InlineData("DAS-S")]
+    [InlineData("UI/UX")]
+    [InlineData("RVA")]
+    public void ConfirmedSpecializationAliasesUseConfiguredRemappings(string alias)
+    {
+        var remappings = new Remappings();
+        Config.ConfigureRemappings(remappings);
+        var specialization = alias switch
+        {
+            "UI/UX" => Specialization.UI,
+            "RVA" => Specialization.DJ,
+            _ => Specialization.DezvoltareaAplicatiilor,
+        };
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, $"IA25({alias})ru");
+        result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!.AsMemory();
+        Assert.True(result.IsWildcard);
+        Assert.Null(result.GroupNumber);
+        Assert.Equal(2, result.Grade.Value);
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(new GroupPartitionKey(SubGroup.All, specialization), new GroupPartitionResolver(null).Resolve(result));
+    }
+
+
+    [Fact]
+    public void HistoricalWildcardPreservesSpecializationAndAcademicYear()
+    {
+        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA25(GA2D)ru");
+        Assert.Equal("IA", result.FacultyName.ToString());
+        Assert.Null(result.GroupNumber);
+        Assert.True(result.IsWildcard);
+        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(2, result.Grade.Value);
+        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.GA2D), new GroupPartitionResolver(null).Resolve(result));
+    }
+
+    [Fact]
+    public void ExistingDualWildcardSetsConsistentMatchingFields()
+    {
+        var result = Parse("IA25(Dual)ru");
+        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.True(result.IsDual);
+        Assert.Null(result.GroupNumber);
+        Assert.True(result.SubGroupName.IsEmpty);
+        Assert.False(result.IsWildcard);
+        Assert.Equal(Language.Ru, result.Language);
+    }
+
+
+    [Fact]
+    public void AppliedInformaticsMasterUsesConfiguredQualificationLabels()
+    {
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+            GroupLabelsThatAreMaster = Config.GroupLabelsThatAreMaster,
+        });
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "MIA2501");
+        Assert.Equal("MIA", result.FacultyName.ToString());
+        Assert.Equal(QualificationType.Master, result.QualificationType);
+        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(2, result.Grade.Value);
+        Assert.Equal(AttendanceMode.Zi, result.AttendanceMode);
+    }
+
 }

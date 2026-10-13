@@ -65,8 +65,8 @@ public sealed class CourseNameUnifierConfig
         var remappedNames = ImmutableArray.CreateBuilder<FullyRenamedCourse>(fullyRenamedNames.Length);
         foreach (var (from, to) in fullyRenamedNames)
         {
-            var fromParsed = config.Parse(from.AsMemory());
-            var toParsed = config.Parse(to.AsMemory());
+            var fromParsed = config.Parse(from.AsMemory(), new() { IgnorePunctuation = true });
+            var toParsed = config.Parse(to.AsMemory(), new() { IgnorePunctuation = true });
             remappedNames.Add(new FullyRenamedCourse(fromParsed, toParsed));
         }
         return new CourseNameUnifierConfig

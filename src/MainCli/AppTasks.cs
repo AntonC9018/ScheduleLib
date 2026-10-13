@@ -65,7 +65,8 @@ public static class AppTasks
         {
             case AppTask.UploadDocsToDrive:
             {
-                Task[] tasks = [
+                Task[] tasks =
+                [
                     GenerateAllTeacherExcel(c),
                     GenerateFreeRoomsExcel(c),
                     GeneratePdfsForGroupsAndTeachers(c),
@@ -129,7 +130,7 @@ public static class AppTasks
                 var handler = c.Services.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
                 handler.Run(new()
                 {
-                    Groups = [ "IA2401", "I2301" ],
+                    Groups = ["IA2401", "I2301"],
                     StringBuilder = sb,
                 });
                 Console.WriteLine(sb.ToStringAndClear());
@@ -139,7 +140,10 @@ public static class AppTasks
             case AppTask.TableOfAllLabLessons:
             {
                 var outputFile = c.OutputDirectory.File("deadlines.xlsx");
-                await using var outputStream = outputFile.Open(FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+                await using var outputStream = outputFile.Open(
+                    FileMode.Create,
+                    FileAccess.ReadWrite,
+                    FileShare.ReadWrite);
 
                 var handler = c.Services.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
                 await handler.Run(new()
@@ -164,7 +168,8 @@ public static class AppTasks
                     .WithLatestPeriod(schedule);
                 var grouping = schedule.TeacherGrouping(baseFilter);
                 var outputDir = c.OutputDirectory.CreateSubDir("orar");
-                var slugLookup = await c.Services.GetRequiredService<ISlugProvider>().SlugMap(cancellationToken: c.CancellationToken);
+                var slugLookup = await c.Services.GetRequiredService<ISlugProvider>()
+                    .SlugMap(cancellationToken: c.CancellationToken);
                 foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
                 {
                     var name = new Name(teacher.Item.PersonName.AsNameFields());
@@ -182,7 +187,10 @@ public static class AppTasks
                         continue;
                     }
                     var fileName = $"{slug}.json";
-                    await using var outputFile = outputDir.OpenFile(fileName, FileMode.Create, FileAccess.Write);
+                    await using var outputFile = outputDir.OpenFile(
+                        fileName,
+                        FileMode.Create,
+                        FileAccess.Write);
                     await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
                 }
 
@@ -334,10 +342,7 @@ public static class AppTasks
         return Task.Run(() =>
         {
             var handler = c.Services.GetRequiredService<GenerateIcsCalendarsTaskHandler>();
-            handler.Run(new()
-            {
-                OutputDirectory = c.OutputDirectory,
-            });
+            handler.Run(new() { OutputDirectory = c.OutputDirectory });
         });
     }
 
@@ -356,19 +361,57 @@ public static class AppTasks
             });
         });
     }
-
 }
 
 public sealed class AppTasksExecutionContext
 {
-    public required AppTask[] SelectedOptions { get; init; }
-    public required OutputDirectory OutputDirectory { get; init; }
-    public required string FreeRoomsExcelOutputFileName { get; init; }
-    public required string AllTeachersOutputFileName { get; init; }
-    public required Name TeacherName { get; init; }
-    public required ServiceProvider RootServiceProvider { get; init; }
-    public required CancellationToken CancellationToken { get; init; }
-    public required string MoodleQuizId { get; set; }
+    public required AppTask[] SelectedOptions
+    {
+        get;
+        init;
+    }
+
+    public required OutputDirectory OutputDirectory
+    {
+        get;
+        init;
+    }
+
+    public required string FreeRoomsExcelOutputFileName
+    {
+        get;
+        init;
+    }
+
+    public required string AllTeachersOutputFileName
+    {
+        get;
+        init;
+    }
+
+    public required Name TeacherName
+    {
+        get;
+        init;
+    }
+
+    public required ServiceProvider RootServiceProvider
+    {
+        get;
+        init;
+    }
+
+    public required CancellationToken CancellationToken
+    {
+        get;
+        init;
+    }
+
+    public required string MoodleQuizId
+    {
+        get;
+        set;
+    }
 
     public FileInDirectory FreeRoomsFile => OutputDirectory.File(FreeRoomsExcelOutputFileName);
     public FileInDirectory AllTeachersFile => OutputDirectory.File(AllTeachersOutputFileName);
@@ -376,9 +419,24 @@ public sealed class AppTasksExecutionContext
 
 public readonly struct TaskExecutionContext
 {
-    public required AppTasksExecutionContext Context { get; init; }
-    public required IServiceProvider Services { get; init; }
-    public required AppTask AppTask { get; init; }
+    public required AppTasksExecutionContext Context
+    {
+        get;
+        init;
+    }
+
+    public required IServiceProvider Services
+    {
+        get;
+        init;
+    }
+
+    public required AppTask AppTask
+    {
+        get;
+        init;
+    }
+
     public OutputDirectory OutputDirectory => Context.OutputDirectory;
     public FileInDirectory FreeRoomsFile => Context.FreeRoomsFile;
     public FileInDirectory AllTeachersFile => Context.AllTeachersFile;

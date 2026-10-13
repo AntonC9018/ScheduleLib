@@ -48,6 +48,10 @@ public sealed class RegistryActionExecutionException(bool submissionStarted, Exc
 
 public sealed class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
 
+/// <summary>A fresh registry read confirms that the requested deletion was not applied.</summary>
+public sealed class RegistryDeletionRefusedException()
+    : InvalidOperationException("Registry refused deletion; the lesson remains unchanged.");
+
 public sealed class RegistryActionCancelledException(bool submissionStarted, OperationCanceledException inner)
     : OperationCanceledException("Registry action cancelled.", inner, inner.CancellationToken)
 {

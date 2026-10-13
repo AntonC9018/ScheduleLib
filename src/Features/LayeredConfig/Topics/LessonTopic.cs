@@ -22,6 +22,7 @@ public sealed class LessonTopic
     public required string Name { get; set; }
     public LessonType LessonType { get; set; }
     public Language Language { get; set; }
+    public string? Series { get; set; }
 }
 
 public sealed class LessonTopicDefaults
@@ -53,50 +54,63 @@ public static class LessonTopicCsvSerializer
             config = c(config);
         }
         using var csvReader = new CsvReader(input, config);
-        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults));
+        if (!await csvReader.ReadAsync()) yield break;
+        csvReader.ReadHeader();
+        var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
+        var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
+        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults, hasLessonType, hasLanguage));
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
         await foreach (var x in ret)
         {
-            if (defaults.LessonType is { } lessonType)
+            if (!hasLessonType && defaults.LessonType is { } lessonType)
             {
                 x.LessonType = lessonType;
             }
-            if (defaults.Language is { } lang)
+            if (!hasLanguage)
             {
-                x.Language = lang;
+                x.Language = defaults.Language ?? Language.None;
             }
-            yield return x;
+            if (!RegistryAssessmentTopics.IsAssessment(x.Name)) yield return x;
         }
     }
 }
 
-// Custom mapping for when Age column is missing entirely
 public sealed class LessonTopicMap : ClassMap<LessonTopic>
 {
-    public LessonTopicMap(LessonTopicDefaults defaults)
+    public LessonTopicMap(LessonTopicDefaults defaults, bool hasLessonType = true, bool hasLanguage = true)
     {
         Map(m => m.Name).Name("name");
+        Map(m => m.Series).Name("series").Optional();
 
-        var lessonTypeMap = Map(m => m.LessonType).Name("lessonType");
-        lessonTypeMap.EnumConverter(opts =>
+        if (hasLessonType)
         {
-            opts.Include(LessonType.Curs);
-            opts.Include(LessonType.Seminar);
-            opts.Include(LessonType.Lab);
-            opts.Include(LessonType.Prelegere);
-        });
-        if (defaults.LessonType is { })
+            var lessonTypeMap = Map(m => m.LessonType).Name("lessonType").Optional();
+            lessonTypeMap.EnumConverter(opts =>
+            {
+                opts.Include(LessonType.Curs);
+                opts.Include(LessonType.Seminar);
+                opts.Include(LessonType.Lab);
+                opts.Include(LessonType.Prelegere);
+            });
+            if (defaults.LessonType is { } lessonType)
+            {
+                lessonTypeMap.Default(lessonType);
+            }
+        }
+        else
         {
-            lessonTypeMap.Ignore();
+            Map(m => m.LessonType).Ignore();
         }
 
-        var languageMap = Map(m => m.Language).Name("language");
-        languageMap.EnumConverter();
-        languageMap.Default(Language.None);
-        languageMap.Optional();
-        if (defaults.Language is { })
+        if (hasLanguage)
         {
-            languageMap.Ignore();
+            var languageMap = Map(m => m.Language).Name("language").Optional();
+            languageMap.EnumConverter();
+            languageMap.Default(defaults.Language ?? Language.None);
+        }
+        else
+        {
+            Map(m => m.Language).Ignore();
         }
     }
 }
@@ -228,8 +242,7 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
             {
                 continue;
             }
-            var provider = it.Providers[key.LessonType];
-            if (provider is null)
+            if (!it.Providers.TryGet(key.LessonType, out var provider) || provider is null)
             {
                 return null;
             }
@@ -390,6 +403,7 @@ public readonly record struct TopicsBuilderKey
 
 public sealed class LessonTopicsBuilder
 {
+    internal bool AllowMissingLessonTypes;
     internal readonly TopicsBuilderKey Key;
     internal readonly Dictionary<LessonType, List<string>> _lists = new();
 
@@ -413,6 +427,7 @@ public sealed class LessonTopicsBuilder
 
 public sealed partial class AllLessonTopicsDatabaseBuilder
 {
+    public int? Semester { get; set; }
     private readonly List<LessonTopicsBuilder> _items = new();
     private readonly SparseArray<LessonType, ILessonNameProviderFactory> _defaultProviders;
     // Only includes the relevant lessons.
@@ -465,7 +480,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 p.Providers,
                 p.LessonTypesToProcess.Required,
                 it.Key.CourseKey,
-                it.Key.Language);
+                it.Key.Language,
+                it.AllowMissingLessonTypes);
 
             var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
             b.Add(new(builtKey, p.Providers));
@@ -493,6 +509,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
         foreach (var document in m.Manifest.Documents)
         {
+            if (document.Semester is { } semester && semester != Semester) continue;
             var documentFilePath = Path.Combine(m.DirectoryPath ?? "", document.Path);
             await using var documentStream = File.OpenRead(documentFilePath);
 
@@ -542,18 +559,25 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             foreach (var (lang, groups) in lessonGroups)
             {
-                bylang.SetupBuilder(this, lang, groups);
+                bylang.SetupBuilder(this, lang, groups,
+                    document.WholeGroupOnly || document.SubGroup is not null || document.Specialization is not null || document.Alternative is not null
+                        ? new GroupPartitionKey(new SubGroup(document.SubGroup), new Specialization(document.Specialization), new Alternative(document.Alternative)) : null,
+                    document.AllowMissingLessonTypes);
             }
 
             await foreach (var lessonTopic in e)
             {
+                if (document.Series is { } series && lessonTopic.Series != series) continue;
+                if (document.LessonType is { } lessonType && lessonTopic.LessonType != lessonType) continue;
+                if (document.Language is { } language && lessonTopic.Language != language) continue;
                 if (lessonTopic.Language == Language.None)
                 {
                     // Must have been checked earlier at CSV binding.
                     Debug.Assert(defaults.Language == null);
                 }
 
-                var builder = bylang.GetBuilder(this, lessonTopic.Language);
+                var builder = bylang.FindBuilder(this, lessonTopic.Language);
+                if (builder is null) continue;
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
 
@@ -568,6 +592,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         foreach (var groupId in filteredSchedule.Groups)
         {
             var group = filteredSchedule.Source.Get(groupId);
+            if (document.Groups is { } names
+                && !names.Contains(group.Name, StringComparer.OrdinalIgnoreCase)) continue;
             if (!IsFacultyMatch())
             {
                 continue;
@@ -710,7 +736,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         SparseArray<LessonType, ILessonNameProvider> providers,
         EnumBitArray<LessonType> typesToProcess,
         CourseKey courseKey,
-        Language language)
+        Language language,
+        bool allowMissingLessonTypes)
     {
         foreach (var lessonType in typesToProcess.SetValues())
         {
@@ -734,6 +761,12 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     providers[lessonType] = provider.Get(language);
                     continue;
                 }
+            }
+
+            if (allowMissingLessonTypes)
+            {
+                providers[lessonType] = new NoNameProvider();
+                continue;
             }
 
             {
@@ -826,6 +859,7 @@ file struct TopicsByLanguage()
     private readonly SparseArray<Language, LessonTopicsBuilder> _arr = new();
     private readonly HashSet<GroupId> _set = new();
     private LessonTopicsBuilder? _fallback;
+    private GroupPartitionKey? _partition;
 
     public void Begin(CourseKey courseKey)
     {
@@ -833,17 +867,22 @@ file struct TopicsByLanguage()
         _set.Clear();
         _arr.Clear();
         _fallback = null;
+        _partition = null;
     }
 
     public void SetupBuilder(
         AllLessonTopicsDatabaseBuilder self,
         Language language,
-        in LessonGroups groups)
+        in LessonGroups groups,
+        GroupPartitionKey? partition,
+        bool allowMissingLessonTypes)
     {
+        _partition = partition;
         var topics = self.Topics(new(
             courseKey: _courseKey,
-            groupsKey: new(groups, null),
+            groupsKey: new(groups, partition),
             language: language));
+        topics.AllowMissingLessonTypes |= allowMissingLessonTypes;
         _arr[language] = topics;
     }
 
@@ -867,12 +906,24 @@ file struct TopicsByLanguage()
                 }
             }
 
+            foreach (var group in _set) allGroups.Add(group);
+
             _fallback = self.Topics(new(
                 courseKey: _courseKey,
-                groupsKey: new(allGroups, null),
+                groupsKey: new(allGroups, _partition),
                 language: Language.None));
         }
         return _fallback;
     }
-}
 
+    public LessonTopicsBuilder? FindBuilder(
+        AllLessonTopicsDatabaseBuilder self,
+        Language language)
+    {
+        if (language == Language.None)
+        {
+            return GetBuilder(self, language);
+        }
+        return _arr.TryGet(language, out var builder) ? builder : null;
+    }
+}

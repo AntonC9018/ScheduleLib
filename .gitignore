@@ -12,3 +12,7 @@ obj
 
 # Local databases
 *.db
+
+# Private registry summaries and any future local history downloads
+**/.registry-history/
+tokens.json

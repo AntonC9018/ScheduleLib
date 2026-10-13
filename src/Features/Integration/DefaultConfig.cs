@@ -1,6 +1,5 @@
 using System.Drawing;
 using Anton.LayeredData;
-using OnlineRegistry.AttendanceExcel;
 using OnlineRegistry.OnlineRegistry.Impl;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core.Topics;
@@ -13,6 +12,7 @@ public static class DefaultConfig
 {
     public static void AddDefaultConfig(this TreeBuilder b)
     {
+        b.BaseNode.GetOrAdd(ScheduleDerivationConfig.Key).SetValue(new() { AutoMergeLabSubGroups = false });
         b.Defaults.Configure(defaults =>
         {
             defaults.Registry().Configure(x =>
@@ -24,6 +24,14 @@ public static class DefaultConfig
                     .WithLog(LessonEquationCommandTypes.All);
                 x.ProcessingFlags(f);
                 x.Credentials().FromConfig();
+                x.Value().GroupMatchRules.Add(new()
+                {
+                    Faculty = "DJ",
+                    SubGroup = SpecialSubGroups.Eng.Value!,
+                    Language = Language.En,
+                    MatchByLanguage = true,
+                    AllowParentGroup = true,
+                });
             });
 
             defaults.LessonTopics().Manifest(topics =>
@@ -75,11 +83,6 @@ public static class DefaultConfig
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
             });
 
-            t.LessonAttendance().Source(@"C:\Users\Anton\Desktop\lipse_2.xlsx", attendance =>
-            {
-                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                attendance.CellValueFormat = CellValueFormat.IgnoreGrade;
-            });
             t.LabTasks().ConfigureValue(x =>
             {
                 const string baseUrl = "https://github.com/AntonC9018/uniCourse_dataStructuresAndAlgorithms/blob/master/ru/labs/";
@@ -136,5 +139,11 @@ public static class DefaultConfig
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);
             });
         });
+
+        foreach (var teacher in new[] { "Visnevschi Vlada", "Pugaci Diana", "Tretiacova Elizaveta", "Plesca Natalia" })
+        {
+            b.Defaults.TeacherLayer(teacher, t =>
+                t.Registry().ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone));
+        }
     }
 }

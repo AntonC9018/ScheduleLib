@@ -471,22 +471,12 @@ public static class LessonBuilderHelper
                 }
 
                 var g0 = Group1(lesson, 0);
-                var allowedModes = EnumBitArray<AttendanceMode>.Empty;
-                if (g0.AttendanceMode is AttendanceMode.Dual or AttendanceMode.Zi)
-                {
-                    allowedModes.Set(AttendanceMode.Dual);
-                    allowedModes.Set(AttendanceMode.Zi);
-                }
-                else
-                {
-                    allowedModes.Set(g0.AttendanceMode);
-                }
-
                 for (int i = 1; i < lesson.Group.Groups.Count; i++)
                 {
                     var gi = Group1(lesson, i);
                     var ami = gi.AttendanceMode;
-                    if (!allowedModes.Contains(ami))
+                    if (g0.AttendanceMode.IsZi() != ami.IsZi()
+                        || g0.AttendanceMode.IsFr() != ami.IsFr())
                     {
                         throw InvalidLessonGroupsException.ForMixedAttendanceModes(g0.AttendanceMode, gi.AttendanceMode, g0.Name, gi.Name);
                     }

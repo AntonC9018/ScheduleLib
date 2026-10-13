@@ -60,6 +60,8 @@ public static class ManifestSerializer
         }
         foreach (var d in manifest.Documents)
         {
+            if (d.Semester is { } semester && semester is not (1 or 2))
+                throw new InvalidDataException("Topic document semester must be 1 or 2.");
             if (d.Course.IsEmpty)
             {
                 throw new InvalidDataException("Expecting the courses to not be empty");
@@ -125,7 +127,16 @@ public sealed class Manifest
 
 public sealed class Document
 {
+    [JsonConverter(typeof(SingleValueOrArrayConverter))]
+    public List<string>? Groups { get; set; }
+    public int? Semester { get; set; }
+    public bool WholeGroupOnly { get; set; }
+    public string? SubGroup { get; set; }
+    public string? Specialization { get; set; }
+    public string? Alternative { get; set; }
+    public bool AllowMissingLessonTypes { get; set; }
     public required string Path { get; set; }
+    public string? Series { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public required List<string> Course { get; set; }
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
