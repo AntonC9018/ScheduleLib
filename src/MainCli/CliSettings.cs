@@ -430,13 +430,12 @@ public static partial class CliSettings
                     }
                 }
 
-                sources.Add(
-                    new(
-                        name,
-                        file.Path,
-                        LeafKeys(values).Concat(
-                                actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [])
-                            .ToArray()));
+                sources.Add(new(
+                    name,
+                    file.Path,
+                    LeafKeys(values).Concat(
+                            actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [])
+                        .ToArray()));
             }
 
             void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
@@ -449,11 +448,10 @@ public static partial class CliSettings
                 var node = new MutableNode();
                 new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x => x.CalendarName = calendar);
                 path.Add(node);
-                sources.Add(
-                    new(
-                        "CLI arguments",
-                        null,
-                        ["GoogleCalendarConfig.calendarName"]));
+                sources.Add(new(
+                    "CLI arguments",
+                    null,
+                    ["GoogleCalendarConfig.calendarName"]));
             }
         }
         catch

@@ -640,28 +640,26 @@ public sealed class RegistryLabDestinationTests
             combined: false,
             includeAllExplicitDestinations: true);
         var broad = fixture.Navigator(wildcard: true, combined: false).Group;
-        navigator.ExtraGroups.Add(
-            new(
-                broad.Groups,
-                broad.GroupPartition,
-                new("https://registry.test/se-fallback"),
-                broad.EvaluationUri,
-                isAdditionalCourses: true));
+        navigator.ExtraGroups.Add(new(
+            broad.Groups,
+            broad.GroupPartition,
+            new("https://registry.test/se-fallback"),
+            broad.EvaluationUri,
+            isAdditionalCourses: true));
         for (var parentIndex = 0; parentIndex < broad.Groups.Value.Count; parentIndex++)
         {
             for (var duplicate = 0; duplicate < 2; duplicate++)
             {
-                navigator.ExtraGroups.Add(
-                    new(
-                        new FoundGroups
-                        {
-                            Value = [broad.Groups.Value[parentIndex]],
-                            IsWildcard = false,
-                        },
-                        broad.GroupPartition,
-                        new($"https://registry.test/se-{parentIndex}-{duplicate}"),
-                        broad.EvaluationUri,
-                        isAdditionalCourses: true));
+                navigator.ExtraGroups.Add(new(
+                    new FoundGroups
+                    {
+                        Value = [broad.Groups.Value[parentIndex]],
+                        IsWildcard = false,
+                    },
+                    broad.GroupPartition,
+                    new($"https://registry.test/se-{parentIndex}-{duplicate}"),
+                    broad.EvaluationUri,
+                    isAdditionalCourses: true));
             }
         }
 
@@ -684,12 +682,11 @@ public sealed class RegistryLabDestinationTests
             combined: false,
             includeAdditionalCourses: true);
         var ordinary = navigator.Group;
-        navigator.ExtraGroups.Add(
-            new(
-                ordinary.Groups,
-                ordinary.GroupPartition,
-                new("https://registry.test/ordinary-duplicate"),
-                ordinary.EvaluationUri));
+        navigator.ExtraGroups.Add(new(
+            ordinary.Groups,
+            ordinary.GroupPartition,
+            new("https://registry.test/ordinary-duplicate"),
+            ordinary.EvaluationUri));
         navigator.Rosters[new("https://registry.test/se-group")] = ["Synthetic Alpha"];
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await fixture.Plan(
@@ -946,23 +943,21 @@ public sealed class RegistryLabDestinationTests
         public StudentAttendanceList Attendance(bool sameAudience = false)
         {
             var builder = new AllStudentAttendanceListBuilder();
-            var first = builder.List(
-                new(
-                    [_parents[0]],
-                    _partition,
-                    _course,
-                    LessonType.Lab));
+            var first = builder.List(new(
+                [_parents[0]],
+                _partition,
+                _course,
+                LessonType.Lab));
             var alpha = first.Student(NameHelper.Parse("Synthetic Alpha"));
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.Present);
             var second = sameAudience
                 ? first
-                : builder.List(
-                    new(
-                        [_parents[1]],
-                        _partition,
-                        _course,
-                        LessonType.Lab));
+                : builder.List(new(
+                    [_parents[1]],
+                    _partition,
+                    _course,
+                    LessonType.Lab));
             var beta = second.Student(NameHelper.Parse("Synthetic Beta"));
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.MotivatedAbsent);
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);

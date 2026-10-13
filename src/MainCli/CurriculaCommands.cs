@@ -47,8 +47,7 @@ public class CurriculaCommands
         var provider = new HttpProvider();
         try
         {
-            var client = new GraphServiceClient(
-                new DelegateAuthenticationProvider(async request =>
+            var client = new GraphServiceClient(new DelegateAuthenticationProvider(async request =>
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue(
                         "Bearer",
@@ -348,23 +347,22 @@ public class CurriculaCommands
             documentCount = count,
             artifactCount = paths.Length,
         };
-        return context.Finish(
-            new CliCompletion<CurriculaDownloadResult>(
-                exit,
-                errors,
-                data)
+        return context.Finish(new CliCompletion<CurriculaDownloadResult>(
+            exit,
+            errors,
+            data)
+        {
+            Summary = summary,
+            Paths = paths,
+            Status = status,
+            WarningsFirst = true,
+            RenderHuman = status =>
             {
-                Summary = summary,
-                Paths = paths,
-                Status = status,
-                WarningsFirst = true,
-                RenderHuman = status =>
-                {
-                    cli.WriteHuman($"Curricula source: {source.Owner}/{source.Path}");
-                    cli.WriteHuman(
-                        $"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.");
-                },
-            });
+                cli.WriteHuman($"Curricula source: {source.Owner}/{source.Path}");
+                cli.WriteHuman(
+                    $"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.");
+            },
+        });
 
         void StreamNewLocal() => context.StreamArtifacts();
     }

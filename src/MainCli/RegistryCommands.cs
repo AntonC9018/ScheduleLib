@@ -327,25 +327,24 @@ public partial class RegistryCommands
                 target,
                 outcomes,
                 diagnostics);
-            context.Finish(
-                new CliCompletion<RegistrySyncResult>(
-                    exit,
-                    errors,
-                    data)
+            context.Finish(new CliCompletion<RegistrySyncResult>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = summary,
+                Actions = actions,
+                Status = status,
+                WarningsFirst = true,
+                ShouldWriteWarning = warning => !streamedWarnings.Contains(warning),
+                RenderHuman = status =>
                 {
-                    Summary = summary,
-                    Actions = actions,
-                    Status = status,
-                    WarningsFirst = true,
-                    ShouldWriteWarning = warning => !streamedWarnings.Contains(warning),
-                    RenderHuman = status =>
+                    if (target is not null)
                     {
-                        if (target is not null)
-                        {
-                            output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
-                        }
-                    },
-                });
+                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                    }
+                },
+            });
         }
     }
 }

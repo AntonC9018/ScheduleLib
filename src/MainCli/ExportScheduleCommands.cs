@@ -123,22 +123,20 @@ public partial class ExportCommands
 
             if (calendar)
             {
-                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(
-                    new()
-                    {
-                        CancellationToken = cancellation.Token,
-                        PublishArtifact = PublishStreaming,
-                        ReportOmission = warnings.Add,
-                    });
+                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
+                {
+                    CancellationToken = cancellation.Token,
+                    PublishArtifact = PublishStreaming,
+                    ReportOmission = warnings.Add,
+                });
             }
             else
             {
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(
-                    new()
-                    {
-                        CancellationToken = cancellation.Token,
-                        PublishArtifact = PublishStreaming,
-                    });
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
+                {
+                    CancellationToken = cancellation.Token,
+                    PublishArtifact = PublishStreaming,
+                });
             }
 
             StreamNew();
@@ -170,28 +168,27 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<ScheduleExportResult>(
-                    exit,
-                    errors,
-                    new(
-                        output?.DirectoryPath,
-                        lessonCount,
-                        teacherCount))
+            return context.Finish(new CliCompletion<ScheduleExportResult>(
+                exit,
+                errors,
+                new(
+                    output?.DirectoryPath,
+                    lessonCount,
+                    teacherCount))
+            {
+                Summary = new
                 {
-                    Summary = new
-                    {
-                        outputDirectory = output?.DirectoryPath,
-                        lessonCount,
-                        teacherCount,
-                        artifactCount = paths.Length,
-                    },
-                    Paths = paths,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => cli.WriteHuman(
-                        $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}."),
-                });
+                    outputDirectory = output?.DirectoryPath,
+                    lessonCount,
+                    teacherCount,
+                    artifactCount = paths.Length,
+                },
+                Paths = paths,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => cli.WriteHuman(
+                    $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}."),
+            });
         }
     }
 }

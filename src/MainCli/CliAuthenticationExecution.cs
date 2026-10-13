@@ -48,16 +48,15 @@ internal static class CliAuthenticationExecution
 
         if (data is null)
         {
-            return context.Finish(
-                new CliCompletion<AuthStatus?>(
-                    exit,
-                    errors,
-                    data)
-                {
-                    Summary = data,
-                    Status = status,
-                    JsonStatus = status,
-                });
+            return context.Finish(new CliCompletion<AuthStatus?>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = data,
+                Status = status,
+                JsonStatus = status,
+            });
         }
 
         for (var index = 0; index < data.Accounts.Count; index++)
@@ -69,35 +68,34 @@ internal static class CliAuthenticationExecution
                 account);
         }
 
-        return context.Finish(
-            new CliCompletion<AuthStatus?>(
-                exit,
-                errors,
-                data)
+        return context.Finish(new CliCompletion<AuthStatus?>(
+            exit,
+            errors,
+            data)
+        {
+            Summary = new
             {
-                Summary = new
+                data.Provider,
+                data.Profile,
+                accountCount = data.Accounts.Count,
+                provisioned = data.Accounts.Count != 0,
+            },
+            Status = status,
+            JsonStatus = status,
+            RenderHuman = _ =>
+            {
+                foreach (var account in data.Accounts)
                 {
-                    data.Provider,
-                    data.Profile,
-                    accountCount = data.Accounts.Count,
-                    provisioned = data.Accounts.Count != 0,
-                },
-                Status = status,
-                JsonStatus = status,
-                RenderHuman = _ =>
-                {
-                    foreach (var account in data.Accounts)
-                    {
-                        cli.WriteHuman($"{account.AccountId}: {account.State}");
-                    }
+                    cli.WriteHuman($"{account.AccountId}: {account.State}");
+                }
 
-                    var provisioned = "provisioned";
-                    if (data.Accounts.Count == 0)
-                    {
-                        provisioned = "not provisioned";
-                    }
-                    cli.WriteHuman($"{providerDisplay} authorization for {data.Profile}: {provisioned}");
-                },
-            });
+                var provisioned = "provisioned";
+                if (data.Accounts.Count == 0)
+                {
+                    provisioned = "not provisioned";
+                }
+                cli.WriteHuman($"{providerDisplay} authorization for {data.Profile}: {provisioned}");
+            },
+        });
     }
 }

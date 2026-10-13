@@ -416,10 +416,9 @@ public sealed class DriveSyncTests
             Task.FromResult(new DriveAccount("actual-account", "actual@example.test"));
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
-            => Task.FromResult(
-                new DriveDestination(
-                    ChangeFolder && ++_folderCalls > 1 ? "changed-folder" : "actual-folder",
-                    "Actual folder"));
+            => Task.FromResult(new DriveDestination(
+                ChangeFolder && ++_folderCalls > 1 ? "changed-folder" : "actual-folder",
+                "Actual folder"));
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
         {

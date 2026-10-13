@@ -175,24 +175,23 @@ public class CalendarCommands
                     outcomeCount = data.Outcomes.Count,
                 };
             }
-            return context.Finish(
-                new CliCompletion<CalendarSyncResult?>(
-                    exit,
-                    errors,
-                    data)
+            return context.Finish(new CliCompletion<CalendarSyncResult?>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = summary,
+                Actions = actions,
+                Warnings = warnings,
+                Status = status,
+                RenderHuman = status =>
                 {
-                    Summary = summary,
-                    Actions = actions,
-                    Warnings = warnings,
-                    Status = status,
-                    RenderHuman = status =>
+                    if (data is not null)
                     {
-                        if (data is not null)
-                        {
-                            output.WriteHuman($"{status}: {data.Account} / {data.CalendarName}");
-                        }
-                    },
-                });
+                        output.WriteHuman($"{status}: {data.Account} / {data.CalendarName}");
+                    }
+                },
+            });
         }
     }
 

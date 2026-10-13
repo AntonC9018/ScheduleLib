@@ -40,15 +40,14 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ResultArguments output,
         CancellationToken cancellationToken = default) =>
-        Write(
-            new(
-                "set",
-                edit.Key,
-                edit.Value,
-                scope,
-                settings,
-                output,
-                cancellationToken));
+        Write(new(
+            "set",
+            edit.Key,
+            edit.Value,
+            scope,
+            settings,
+            output,
+            cancellationToken));
 
     [Command("unset", Description = "Remove the chosen scope's override and restore inheritance.")]
     public Task<int> Unset(
@@ -57,15 +56,14 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ResultArguments output,
         CancellationToken cancellationToken = default) =>
-        Write(
-            new(
-                "unset",
-                key.Key,
-                null,
-                scope,
-                settings,
-                output,
-                cancellationToken));
+        Write(new(
+            "unset",
+            key.Key,
+            null,
+            scope,
+            settings,
+            output,
+            cancellationToken));
 
     internal static async Task<int> Write(ConfigEditRequest request)
     {

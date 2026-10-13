@@ -63,43 +63,41 @@ internal static class CliConfigExecution
                     new { profile = profiles[index] });
             }
 
-            return context.Finish(
-                new CliCompletion<T>(
-                    exit,
-                    errors,
-                    data)
-                {
-                    Summary = new { profileCount = profiles.Count },
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = _ =>
-                    {
-                        foreach (var profile in profiles)
-                        {
-                            cli.WriteHuman(profile);
-                        }
-
-                        cli.WriteHuman($"succeeded: {profiles.Count} profiles.");
-                    },
-                });
-        }
-
-        return context.Finish(
-            new CliCompletion<T>(
+            return context.Finish(new CliCompletion<T>(
                 exit,
                 errors,
                 data)
             {
-                Summary = data,
+                Summary = new { profileCount = profiles.Count },
                 Status = status,
                 JsonStatus = jsonStatus,
                 RenderHuman = _ =>
                 {
-                    if (data is not null)
+                    foreach (var profile in profiles)
                     {
-                        cli.WriteHuman(JsonSerializer.Serialize(data, HumanJson));
+                        cli.WriteHuman(profile);
                     }
+
+                    cli.WriteHuman($"succeeded: {profiles.Count} profiles.");
                 },
             });
+        }
+
+        return context.Finish(new CliCompletion<T>(
+            exit,
+            errors,
+            data)
+        {
+            Summary = data,
+            Status = status,
+            JsonStatus = jsonStatus,
+            RenderHuman = _ =>
+            {
+                if (data is not null)
+                {
+                    cli.WriteHuman(JsonSerializer.Serialize(data, HumanJson));
+                }
+            },
+        });
     }
 }

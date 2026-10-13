@@ -265,12 +265,11 @@ public static class CalendarSync
                 token.ThrowIfCancellationRequested();
                 attempted = true;
                 await provider.DeleteCalendar(existing.Id, token);
-                AddOutcome(
-                    new(
-                        action,
-                        existing.Id,
-                        null,
-                        "completed"));
+                AddOutcome(new(
+                    action,
+                    existing.Id,
+                    null,
+                    "completed"));
             }
             action = "create calendar";
             attempted = false;
@@ -282,12 +281,11 @@ public static class CalendarSync
                 throw new IOException("Calendar create returned no identity.");
             }
 
-            AddOutcome(
-                new(
-                    action,
-                    created,
-                    null,
-                    "completed"));
+            AddOutcome(new(
+                action,
+                created,
+                null,
+                "completed"));
             for (var index = 0; index < desired.Count; index++)
             {
                 var ev = desired[index];
@@ -306,13 +304,12 @@ public static class CalendarSync
                     throw new IOException("Event create returned no identity.");
                 }
 
-                AddOutcome(
-                    new(
-                        action,
-                        created,
-                        eventId,
-                        "completed",
-                        desiredIndex));
+                AddOutcome(new(
+                    action,
+                    created,
+                    eventId,
+                    "completed",
+                    desiredIndex));
             }
             return Result(0, []);
         }
@@ -327,13 +324,12 @@ public static class CalendarSync
         {
             if (attempted)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        action == "delete calendar" ? existing?.Id : created,
-                        eventId,
-                        "uncertain",
-                        desiredIndex));
+                AddOutcome(new(
+                    action,
+                    action == "delete calendar" ? existing?.Id : created,
+                    eventId,
+                    "uncertain",
+                    desiredIndex));
             }
 
             return Result(
@@ -345,13 +341,12 @@ public static class CalendarSync
         catch (GooglePreSendTransportException)
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(
-                new(
-                    action,
-                    action == "delete calendar" ? existing?.Id : created,
-                    eventId,
-                    "failed",
-                    desiredIndex));
+            AddOutcome(new(
+                action,
+                action == "delete calendar" ? existing?.Id : created,
+                eventId,
+                "failed",
+                desiredIndex));
             return Result(
                 partial ? 6 : 5,
                 [
@@ -373,13 +368,12 @@ public static class CalendarSync
         catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400 or 403 or 404 or 409 or 412 or 422)
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(
-                new(
-                    action,
-                    action == "delete calendar" ? existing?.Id : created,
-                    eventId,
-                    "failed",
-                    desiredIndex));
+            AddOutcome(new(
+                action,
+                action == "delete calendar" ? existing?.Id : created,
+                eventId,
+                "failed",
+                desiredIndex));
             return Result(
                 partial ? 6 : 5,
                 ["Google Calendar rejected the action; it was not retried. Completed actions remain applied."]);
@@ -388,13 +382,12 @@ public static class CalendarSync
         {
             if (attempted)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        action == "delete calendar" ? existing?.Id : created,
-                        eventId,
-                        "uncertain",
-                        desiredIndex));
+                AddOutcome(new(
+                    action,
+                    action == "delete calendar" ? existing?.Id : created,
+                    eventId,
+                    "uncertain",
+                    desiredIndex));
             }
 
             return Result(
@@ -407,13 +400,12 @@ public static class CalendarSync
         CalendarSyncResult AuthenticationFailure()
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(
-                new(
-                    action,
-                    action == "delete calendar" ? existing?.Id : created,
-                    eventId,
-                    "failed",
-                    desiredIndex));
+            AddOutcome(new(
+                action,
+                action == "delete calendar" ? existing?.Id : created,
+                eventId,
+                "failed",
+                desiredIndex));
             return Result(partial ? 6 : 4, [new AuthenticationRequiredException("google", profile ?? "").Message]);
         }
 

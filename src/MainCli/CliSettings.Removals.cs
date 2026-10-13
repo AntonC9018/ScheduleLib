@@ -272,46 +272,45 @@ public static partial class CliSettings
             updates.Add(operation == "remove" ? RemoveValueUpdater<T>.Instance : ResetValueUpdater<T>.Instance);
             return;
         }
-        updates.Add(
-            new DelegateUpdater<T>((sp, value) =>
+        updates.Add(new DelegateUpdater<T>((sp, value) =>
+        {
+            object? current = value;
+            foreach (var member in members)
             {
-                object? current = value;
-                foreach (var member in members)
-                {
-                    current = current is null ? null : member.GetValue(current);
-                }
+                current = current is null ? null : member.GetValue(current);
+            }
 
-                if (current is not IList list)
-                {
-                    return value;
-                }
+            if (current is not IList list)
+            {
+                return value;
+            }
 
-                if (operation == "clear")
+            if (operation == "clear")
+            {
+                // The registered basic operation defines collection reset semantics.
+                var basic = sp.GetRequiredService(
+                    typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType));
+                basic.GetType().GetMethod("Reset")!.Invoke(basic, [list]);
+            }
+            else
+            {
+                var element = members[^1].PropertyType.GetGenericArguments()[0];
+                var comparer = sp.GetRequiredService(typeof(IKeyEqualityComparer<>).MakeGenericType(element));
+                var item = action["item"]!.Deserialize(element, json)!;
+                for (var i = list.Count - 1; i >= 0; i--)
                 {
-                    // The registered basic operation defines collection reset semantics.
-                    var basic = sp.GetRequiredService(
-                        typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType));
-                    basic.GetType().GetMethod("Reset")!.Invoke(basic, [list]);
-                }
-                else
-                {
-                    var element = members[^1].PropertyType.GetGenericArguments()[0];
-                    var comparer = sp.GetRequiredService(typeof(IKeyEqualityComparer<>).MakeGenericType(element));
-                    var item = action["item"]!.Deserialize(element, json)!;
-                    for (var i = list.Count - 1; i >= 0; i--)
+                    if (KeyMatches(
+                            element,
+                            comparer,
+                            item,
+                            list[i]!))
                     {
-                        if (KeyMatches(
-                                element,
-                                comparer,
-                                item,
-                                list[i]!))
-                        {
-                            list.RemoveAt(i);
-                        }
+                        list.RemoveAt(i);
                     }
                 }
-                return value;
-            }));
+            }
+            return value;
+        }));
     }
 
     private static void ApplyOperation(

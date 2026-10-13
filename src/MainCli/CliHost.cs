@@ -19,16 +19,15 @@ public static class CliHost
         var invoked = false;
         var inputFailure = false;
         string? parseDetail = null;
-        var runner = new AppRunner<Commands>(
-            new AppSettings
+        var runner = new AppRunner<Commands>(new AppSettings
+        {
+            Help =
             {
-                Help =
-                {
-                    PrintHelpOption = true,
-                    UsageAppName = "schedulelib",
-                },
-                DisableDirectives = true,
-            });
+                PrintHelpOption = true,
+                UsageAppName = "schedulelib",
+            },
+            DisableDirectives = true,
+        });
         // When --jsonl is selected (without --json and without explicit --help), capture
         // CommandDotNet's own human parse-error output so neither stdout nor stderr
         // mixes human text into JSONL. Command results use System.Console directly and
@@ -419,17 +418,16 @@ public partial class QueryCommands
         {
             var status = CliCommandContext.Status(exit);
             var jsonStatus = CliCommandContext.Status(exit, cancellation: false);
-            return context.Finish(
-                new CliCompletion<IReadOnlyList<LessonResult>>(
-                    exit,
-                    errors,
-                    lessonsForJson)
-                {
-                    Summary = new { count = streamed },
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => output.WriteHuman($"{status}: {streamed} lessons."),
-                });
+            return context.Finish(new CliCompletion<IReadOnlyList<LessonResult>>(
+                exit,
+                errors,
+                lessonsForJson)
+            {
+                Summary = new { count = streamed },
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => output.WriteHuman($"{status}: {streamed} lessons."),
+            });
         }
     }
 }

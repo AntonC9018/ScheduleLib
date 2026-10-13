@@ -240,24 +240,23 @@ public partial class RegistryCommands
                 quiz.QuizId,
                 outcomes,
                 notices);
-            context.Finish(
-                new CliCompletion<RegistryGradeResult>(
-                    exit,
-                    errors,
-                    data)
+            context.Finish(new CliCompletion<RegistryGradeResult>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = summary,
+                Actions = actions,
+                Status = status,
+                WarningsFirst = true,
+                RenderHuman = status =>
                 {
-                    Summary = summary,
-                    Actions = actions,
-                    Status = status,
-                    WarningsFirst = true,
-                    RenderHuman = status =>
+                    if (target is not null)
                     {
-                        if (target is not null)
-                        {
-                            output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
-                        }
-                    },
-                });
+                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                    }
+                },
+            });
         }
     }
 }

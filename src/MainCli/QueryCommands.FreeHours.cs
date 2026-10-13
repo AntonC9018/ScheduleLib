@@ -163,22 +163,21 @@ public partial class QueryCommands
         {
             var status = CliCommandContext.Status(exit);
             var jsonStatus = CliCommandContext.Status(exit, cancellation: false);
-            return context.Finish(
-                new CliCompletion<FreeHoursResult?>(
-                    exit,
-                    errors,
-                    data)
-                {
-                    Summary = data is null
-                        ? null
-                        : new
-                        {
-                            groups = data.Groups,
-                            sectionCount = data.Sections.Length,
-                        },
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                });
+            return context.Finish(new CliCompletion<FreeHoursResult?>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = data is null
+                    ? null
+                    : new
+                    {
+                        groups = data.Groups,
+                        sectionCount = data.Sections.Length,
+                    },
+                Status = status,
+                JsonStatus = jsonStatus,
+            });
         }
 
         static string Describe(string mode) =>

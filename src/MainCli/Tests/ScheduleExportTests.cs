@@ -130,22 +130,20 @@ public sealed class ScheduleExportTests
         if (calendar)
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(
-                    new()
-                    {
-                        CancellationToken = cancellation.Token,
-                        PublishArtifact = Publish,
-                    }));
+                scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
+                {
+                    CancellationToken = cancellation.Token,
+                    PublishArtifact = Publish,
+                }));
         }
         else
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(
-                    new()
-                    {
-                        CancellationToken = cancellation.Token,
-                        PublishArtifact = Publish,
-                    }));
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
+                {
+                    CancellationToken = cancellation.Token,
+                    PublishArtifact = Publish,
+                }));
         }
 
         Assert.Equal(1, count);

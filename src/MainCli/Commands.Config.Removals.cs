@@ -25,16 +25,15 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ResultArguments output,
         CancellationToken cancellationToken = default) =>
-        Write(
-            new(
-                "remove",
-                key.Key,
-                null,
-                scope,
-                settings,
-                output,
-                cancellationToken,
-                item.Item));
+        Write(new(
+            "remove",
+            key.Key,
+            null,
+            scope,
+            settings,
+            output,
+            cancellationToken,
+            item.Item));
 
     [Command("clear", Description = "Explicitly empty an inherited collection in an explicit scope.")]
     public Task<int> Clear(
@@ -43,13 +42,12 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ResultArguments output,
         CancellationToken cancellationToken = default) =>
-        Write(
-            new(
-                "clear",
-                key.Key,
-                null,
-                scope,
-                settings,
-                output,
-                cancellationToken));
+        Write(new(
+            "clear",
+            key.Key,
+            null,
+            scope,
+            settings,
+            output,
+            cancellationToken));
 }

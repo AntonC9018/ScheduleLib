@@ -197,14 +197,13 @@ public sealed class GoogleCalendarProviderTests
             TokenResponse authorization,
             Google.Apis.Util.Store.IDataStore store)
         {
-            var flow = new GoogleAuthorizationCodeFlow(
-                new()
-                {
-                    ClientSecrets = secrets,
-                    Scopes = scopes,
-                    DataStore = store,
-                    HttpClientFactory = new Factory(transport),
-                });
+            var flow = new GoogleAuthorizationCodeFlow(new()
+            {
+                ClientSecrets = secrets,
+                Scopes = scopes,
+                DataStore = store,
+                HttpClientFactory = new Factory(transport),
+            });
             _flows.Add(flow);
             return new(
                 flow,

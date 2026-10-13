@@ -222,11 +222,10 @@ public static class DriveSync
                 {
                     attempted = true;
                     await provider.Delete(action.FileId!, token);
-                    AddOutcome(
-                        new(
-                            action,
-                            "completed",
-                            action.FileId));
+                    AddOutcome(new(
+                        action,
+                        "completed",
+                        action.FileId));
                 }
                 else
                 {
@@ -243,11 +242,10 @@ public static class DriveSync
                             action.FileId!,
                             input,
                             token);
-                    AddOutcome(
-                        new(
-                            action,
-                            "completed",
-                            id));
+                    AddOutcome(new(
+                        action,
+                        "completed",
+                        id));
                 }
             }
             catch (CliOutputStreamingException)
@@ -259,11 +257,10 @@ public static class DriveSync
             catch (Exception error) when (token.IsCancellationRequested
                                           && error is OperationCanceledException or GooglePreSendTransportException)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        attempted ? "uncertain" : "not-attempted",
-                        null));
+                AddOutcome(new(
+                    action,
+                    attempted ? "uncertain" : "not-attempted",
+                    null));
                 AddRemaining();
                 return Result(
                     130,
@@ -273,11 +270,10 @@ public static class DriveSync
             }
             catch (GooglePreSendTransportException)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        "failed",
-                        null));
+                AddOutcome(new(
+                    action,
+                    "failed",
+                    null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State == "completed") ? 6 : 5,
@@ -293,11 +289,10 @@ public static class DriveSync
                                                       or 412
                                                       or 422)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        "failed",
-                        null));
+                AddOutcome(new(
+                    action,
+                    "failed",
+                    null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State == "completed") ? 6 : (int) e.HttpStatusCode == 401 ? 4 : 5,
@@ -305,11 +300,10 @@ public static class DriveSync
             }
             catch (Exception)
             {
-                AddOutcome(
-                    new(
-                        action,
-                        attempted ? "uncertain" : "failed",
-                        null));
+                AddOutcome(new(
+                    action,
+                    attempted ? "uncertain" : "failed",
+                    null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State is "completed" or "uncertain") ? 6 : 5,
@@ -326,11 +320,10 @@ public static class DriveSync
         {
             foreach (var action in actions.Skip(outcomes.Count))
             {
-                AddOutcome(
-                    new(
-                        action,
-                        "not-attempted",
-                        null));
+                AddOutcome(new(
+                    action,
+                    "not-attempted",
+                    null));
             }
         }
 

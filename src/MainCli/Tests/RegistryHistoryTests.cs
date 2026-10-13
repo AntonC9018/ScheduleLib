@@ -74,11 +74,10 @@ public sealed class RegistryHistoryTests
                     + $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>"
                     + "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
             }
-            return Task.FromResult(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent("<a href='/studregistry/Account/Logout'>Exit</a>" + html),
-                });
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<a href='/studregistry/Account/Logout'>Exit</a>" + html),
+            });
         });
         using var client = new HttpClient(inner);
         var summaries = await new RegistryHistoryReader(client, Index).Discover(null, default);
@@ -422,8 +421,8 @@ public sealed class RegistryHistoryTests
                 default,
                 default));
         logger.LessonsDecidedErroneous(new("canary-student canary-password canary-token"));
-        logger.GroupParsingError(
-            new(new GroupParsingException("canary-password canary-student"), "canary-student canary-token"));
+        logger.GroupParsingError(new(new GroupParsingException("canary-password canary-student"),
+            "canary-student canary-token"));
         logger.GroupNotFound("canary-student canary-token");
         Assert.NotEmpty(log.Messages);
         Assert.DoesNotContain("canary", string.Join("\n", log.Messages));
@@ -534,14 +533,13 @@ public sealed class RegistryHistoryTests
     [InlineData(false)]
     public async Task LoginPageOrIgnoredYearStopsBeforeGroupReads(bool loginPage)
     {
-        using var inner = new FakeHandler((request, _) => Task.FromResult(
-            new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    loginPage
-                        ? "<input type='password' value='canary-password'>"
-                        : Years + "<div id='nav-1'></div><div id='nav-2'></div>"),
-            }));
+        using var inner = new FakeHandler((request, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                loginPage
+                    ? "<input type='password' value='canary-password'>"
+                    : Years + "<div id='nav-1'></div><div id='nav-2'></div>"),
+        }));
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             Index,

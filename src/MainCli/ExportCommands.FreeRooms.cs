@@ -72,12 +72,11 @@ public partial class ExportCommands
                 "free-rooms.xlsx",
                 async (stream, token) =>
                 {
-                    await handler.Run(
-                        new()
-                        {
-                            CancellationToken = token,
-                            OutputStream = stream,
-                        });
+                    await handler.Run(new()
+                    {
+                        CancellationToken = token,
+                        OutputStream = stream,
+                    });
                     token.ThrowIfCancellationRequested();
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);
@@ -115,28 +114,27 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<FreeRoomsResult>(
-                    exit,
-                    errors,
-                    new(
-                        output?.DirectoryPath,
-                        lessonCount,
-                        worksheets.ToArray()))
+            return context.Finish(new CliCompletion<FreeRoomsResult>(
+                exit,
+                errors,
+                new(
+                    output?.DirectoryPath,
+                    lessonCount,
+                    worksheets.ToArray()))
+            {
+                Summary = new
                 {
-                    Summary = new
-                    {
-                        outputDirectory = output?.DirectoryPath,
-                        lessonCount,
-                        worksheets = worksheets.ToArray(),
-                        artifactCount = paths.Length,
-                    },
-                    Paths = paths,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => cli.WriteHuman(
-                        $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}."),
-                });
+                    outputDirectory = output?.DirectoryPath,
+                    lessonCount,
+                    worksheets = worksheets.ToArray(),
+                    artifactCount = paths.Length,
+                },
+                Paths = paths,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => cli.WriteHuman(
+                    $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}."),
+            });
         }
     }
 }

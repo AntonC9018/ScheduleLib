@@ -1479,14 +1479,13 @@ public sealed class CliJsonlTests
                 "2025/26",
                 course,
                 [currentGroup]);
-            return Task.FromResult(
-                new RegistryHistoryTopicsAnalysis(
-                    ["2025/26", "2024/25"],
-                    [current],
-                    new(
-                        "2025/26",
-                        [new(course, historical)],
-                        [])));
+            return Task.FromResult(new RegistryHistoryTopicsAnalysis(
+                ["2025/26", "2024/25"],
+                [current],
+                new(
+                    "2025/26",
+                    [new(course, historical)],
+                    [])));
         }
     }
 

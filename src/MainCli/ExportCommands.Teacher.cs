@@ -238,12 +238,11 @@ public partial class ExportCommands
                     "deadlines.xlsx",
                     async (stream, token) =>
                     {
-                        await handler.Run(
-                            new()
-                            {
-                                CancellationToken = token,
-                                OutputStream = stream,
-                            });
+                        await handler.Run(new()
+                        {
+                            CancellationToken = token,
+                            OutputStream = stream,
+                        });
                         VerifyTeacherWorkbook(stream, token);
                     },
                     cancellation.Token);
@@ -275,28 +274,27 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: true);
-            return context.Finish(
-                new CliCompletion<TeacherExportResult>(
-                    exit,
-                    errors,
-                    new(
-                        output?.DirectoryPath,
-                        teacher,
-                        workbookCount))
+            return context.Finish(new CliCompletion<TeacherExportResult>(
+                exit,
+                errors,
+                new(
+                    output?.DirectoryPath,
+                    teacher,
+                    workbookCount))
+            {
+                Summary = new
                 {
-                    Summary = new
-                    {
-                        outputDirectory = output?.DirectoryPath,
-                        teacher,
-                        workbookCount,
-                        artifactCount = paths.Length,
-                    },
-                    Paths = paths,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => cli.WriteHuman(
-                        $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}."),
-                });
+                    outputDirectory = output?.DirectoryPath,
+                    teacher,
+                    workbookCount,
+                    artifactCount = paths.Length,
+                },
+                Paths = paths,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => cli.WriteHuman(
+                    $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}."),
+            });
         }
     }
 

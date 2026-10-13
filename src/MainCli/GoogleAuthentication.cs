@@ -116,14 +116,13 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
         string[] scopes,
         IDataStore? store)
     {
-        return new(
-            new()
-            {
-                ClientSecrets = secrets,
-                Scopes = scopes,
-                DataStore = store,
-                Prompt = "consent",
-            });
+        return new(new()
+        {
+            ClientSecrets = secrets,
+            Scopes = scopes,
+            DataStore = store,
+            Prompt = "consent",
+        });
     }
 }
 
@@ -371,13 +370,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 continue;
             }
 
-            accounts.Add(
-                new(
-                    Path.GetFileNameWithoutExtension(path),
-                    authorization.IsStale
-                        ? string.IsNullOrEmpty(authorization.RefreshToken) ? "expired" : "refreshable"
-                        : "authorized",
-                    authorization.Scope?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? []));
+            accounts.Add(new(
+                Path.GetFileNameWithoutExtension(path),
+                authorization.IsStale
+                    ? string.IsNullOrEmpty(authorization.RefreshToken) ? "expired" : "refreshable"
+                    : "authorized",
+                authorization.Scope?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? []));
         }
         return new(
             "google",

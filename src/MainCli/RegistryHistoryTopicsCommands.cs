@@ -178,24 +178,23 @@ public partial class RegistryCommands
                 exit,
                 success: "downloaded",
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<object>(
-                    exit,
-                    errors,
-                    data)
+            return context.Finish(new CliCompletion<object>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = data,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = _ =>
                 {
-                    Summary = data,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = _ =>
+                    if (exit == CliExit.Success)
                     {
-                        if (exit == CliExit.Success)
-                        {
-                            cli.WriteHuman(
-                                $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.");
-                        }
-                    },
-                });
+                        cli.WriteHuman(
+                            $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.");
+                    }
+                },
+            });
         }
     }
 }

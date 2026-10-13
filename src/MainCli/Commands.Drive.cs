@@ -257,26 +257,25 @@ public class DriveCommands
                 };
             }
             var paths = output?.PublishedPaths.ToArray() ?? [];
-            return context.Finish(
-                new CliCompletion<DriveSyncResult?>(
-                    exit,
-                    errors,
-                    data)
+            return context.Finish(new CliCompletion<DriveSyncResult?>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = summary,
+                Paths = paths,
+                Actions = actions,
+                Warnings = allWarnings,
+                Status = status,
+                RenderHuman = status =>
                 {
-                    Summary = summary,
-                    Paths = paths,
-                    Actions = actions,
-                    Warnings = allWarnings,
-                    Status = status,
-                    RenderHuman = status =>
+                    if (data is not null)
                     {
-                        if (data is not null)
-                        {
-                            cli.WriteHuman(
-                                $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
-                        }
-                    },
-                });
+                        cli.WriteHuman(
+                            $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
+                    }
+                },
+            });
         }
     }
 }

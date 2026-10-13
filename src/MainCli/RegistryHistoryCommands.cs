@@ -263,24 +263,23 @@ public partial class RegistryCommands
                 exit,
                 success: "downloaded",
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<object>(
-                    exit,
-                    errors,
-                    data)
+            return context.Finish(new CliCompletion<object>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = data,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = _ =>
                 {
-                    Summary = data,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = _ =>
+                    if (exit == CliExit.Success)
                     {
-                        if (exit == CliExit.Success)
-                        {
-                            output.WriteHuman(
-                                $"Saved local summary: {years} years, {courses} courses, {groups} groups.");
-                        }
-                    },
-                });
+                        output.WriteHuman(
+                            $"Saved local summary: {years} years, {courses} courses, {groups} groups.");
+                    }
+                },
+            });
         }
     }
 }

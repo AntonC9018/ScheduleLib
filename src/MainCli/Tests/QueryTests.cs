@@ -54,14 +54,13 @@ public sealed class QueryTests
         var room = first.GetProperty("room").GetString()!;
         var day = Enum.Parse<DayOfWeek>(first.GetProperty("day").GetString()!);
         var parity = Enum.Parse<Parity>(first.GetProperty("parity").GetString()!);
-        var filtered = await Execute(
-            new()
-            {
-                Room = room,
-                Day = day,
-                Parity = parity,
-                BeforeSlot = first.GetProperty("slot").GetInt32(),
-            });
+        var filtered = await Execute(new()
+        {
+            Room = room,
+            Day = day,
+            Parity = parity,
+            BeforeSlot = first.GetProperty("slot").GetInt32(),
+        });
         Assert.NotEmpty(filtered.GetProperty("data").EnumerateArray());
         foreach (var lesson in filtered.GetProperty("data").EnumerateArray())
         {

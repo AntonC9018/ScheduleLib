@@ -176,32 +176,31 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<WebsiteSchedulesResult>(
-                    exit,
-                    errors,
-                    new(
-                        output?.DirectoryPath,
-                        files.Count,
-                        zipPath,
-                        missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                        omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+            return context.Finish(new CliCompletion<WebsiteSchedulesResult>(
+                exit,
+                errors,
+                new(
+                    output?.DirectoryPath,
+                    files.Count,
+                    zipPath,
+                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+            {
+                Summary = new
                 {
-                    Summary = new
-                    {
-                        outputDirectory = output?.DirectoryPath,
-                        fileCount = files.Count,
-                        zipPath,
-                        missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                        omittedEmpty = omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                        artifactCount = paths.Length,
-                    },
-                    Paths = paths,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => cli.WriteHuman(
-                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
-                });
+                    outputDirectory = output?.DirectoryPath,
+                    fileCount = files.Count,
+                    zipPath,
+                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    omittedEmpty = omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    artifactCount = paths.Length,
+                },
+                Paths = paths,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => cli.WriteHuman(
+                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+            });
         }
     }
 
@@ -348,30 +347,29 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            return context.Finish(
-                new CliCompletion<WebsiteThesesResult>(
-                    exit,
-                    errors,
-                    new(
-                        output?.DirectoryPath,
-                        files.Count,
-                        zipPath,
-                        missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+            return context.Finish(new CliCompletion<WebsiteThesesResult>(
+                exit,
+                errors,
+                new(
+                    output?.DirectoryPath,
+                    files.Count,
+                    zipPath,
+                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+            {
+                Summary = new
                 {
-                    Summary = new
-                    {
-                        outputDirectory = output?.DirectoryPath,
-                        fileCount = files.Count,
-                        zipPath,
-                        missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                        artifactCount = paths.Length,
-                    },
-                    Paths = paths,
-                    Status = status,
-                    JsonStatus = jsonStatus,
-                    RenderHuman = status => cli.WriteHuman(
-                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
-                });
+                    outputDirectory = output?.DirectoryPath,
+                    fileCount = files.Count,
+                    zipPath,
+                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    artifactCount = paths.Length,
+                },
+                Paths = paths,
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = status => cli.WriteHuman(
+                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+            });
         }
     }
 

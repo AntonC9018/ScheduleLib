@@ -653,12 +653,11 @@ public sealed class WebsiteExportTests
                 services.AddSingleton<ISlugProvider>(new FakeSlugProvider(Slugs));
             }
 #pragma warning disable CA2000 // The service provider owns and disposes the client and handler.
-            services.AddSingleton(
-                new ItUsmWebsiteHttpClient(
-                    new HttpClient(HttpHandlerOverride ?? new FakeWebsiteHttpHandler(WebsiteTeachers))
-                    {
-                        BaseAddress = new Uri("https://it.usm.md/api/"),
-                    }));
+            services.AddSingleton(new ItUsmWebsiteHttpClient(
+                new HttpClient(HttpHandlerOverride ?? new FakeWebsiteHttpHandler(WebsiteTeachers))
+                {
+                    BaseAddress = new Uri("https://it.usm.md/api/"),
+                }));
 #pragma warning restore CA2000
             if (ThesesXlsx is { } xlsx)
             {

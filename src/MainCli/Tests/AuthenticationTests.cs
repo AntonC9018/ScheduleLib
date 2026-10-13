@@ -316,13 +316,12 @@ public sealed class AuthenticationTests
         settings.ConfigureServices(services);
         services.AddScoped<CurrentUserNameProvider>();
         services.AddScoped<GoogleCredentialResolver>();
-        services.AddSingleton<IConfiguration>(
-            new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Google:ClientId"] = "configured-client",
-                    ["Google:ClientSecret"] = "configured-client-secret",
-                }).Build());
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Google:ClientId"] = "configured-client",
+                ["Google:ClientSecret"] = "configured-client-secret",
+            }).Build());
         services.AddSingleton<IGoogleCredentialAuthorization>(_ => fixture.Auth);
         await using var container = services.BuildServiceProvider();
         await using var scope = container.CreateAsyncScope();
@@ -461,15 +460,14 @@ public sealed class AuthenticationTests
                 throw new OperationCanceledException();
             }
 
-            return Task.FromResult(
-                new TokenResponse
-                {
-                    AccessToken = "access-secret",
-                    RefreshToken = "refresh-secret",
-                    Scope = string.Join(' ', scopes),
-                    IssuedUtc = DateTime.UtcNow,
-                    ExpiresInSeconds = 3600,
-                });
+            return Task.FromResult(new TokenResponse
+            {
+                AccessToken = "access-secret",
+                RefreshToken = "refresh-secret",
+                Scope = string.Join(' ', scopes),
+                IssuedUtc = DateTime.UtcNow,
+                ExpiresInSeconds = 3600,
+            });
         }
 
         public Task<TokenResponse?> Refresh(
@@ -485,13 +483,12 @@ public sealed class AuthenticationTests
                 throw new Exception("provider leaked access-secret client-secret");
             }
 
-            return Task.FromResult<TokenResponse?>(
-                new()
-                {
-                    AccessToken = "refreshed-secret",
-                    IssuedUtc = DateTime.UtcNow,
-                    ExpiresInSeconds = 3600,
-                });
+            return Task.FromResult<TokenResponse?>(new()
+            {
+                AccessToken = "refreshed-secret",
+                IssuedUtc = DateTime.UtcNow,
+                ExpiresInSeconds = 3600,
+            });
         }
 
         public UserCredential CreateCredential(
@@ -501,13 +498,12 @@ public sealed class AuthenticationTests
             TokenResponse authorization,
             IDataStore store)
         {
-            var flow = new GoogleAuthorizationCodeFlow(
-                new()
-                {
-                    ClientSecrets = secrets,
-                    Scopes = scopes,
-                    DataStore = store,
-                });
+            var flow = new GoogleAuthorizationCodeFlow(new()
+            {
+                ClientSecrets = secrets,
+                Scopes = scopes,
+                DataStore = store,
+            });
             _flows.Add(flow);
             return new(
                 flow,

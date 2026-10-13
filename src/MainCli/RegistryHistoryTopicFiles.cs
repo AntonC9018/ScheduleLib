@@ -132,18 +132,17 @@ public static class RegistryHistoryTopicFiles
                         }
                     }
                     files.Add(name);
-                    sources.Add(
-                        new(
-                            name,
-                            candidate.CurrentCourse.Name,
-                            candidate.CurrentCourse.Semester,
-                            candidate.Historical.Course.Name,
-                            candidate.Historical.Year,
-                            group.Name,
-                            group.Uri,
-                            lessons.Key,
-                            ordered.Select(x => x.Date).ToArray(),
-                            candidate.CourseMapping));
+                    sources.Add(new(
+                        name,
+                        candidate.CurrentCourse.Name,
+                        candidate.CurrentCourse.Semester,
+                        candidate.Historical.Course.Name,
+                        candidate.Historical.Year,
+                        group.Name,
+                        group.Uri,
+                        lessons.Key,
+                        ordered.Select(x => x.Date).ToArray(),
+                        candidate.CourseMapping));
                 }
             }
         }

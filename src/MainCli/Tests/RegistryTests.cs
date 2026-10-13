@@ -559,12 +559,11 @@ public sealed class RegistryTests
     public async Task MissingTargetsAreIncludedInFinalJsonAndJsonl(bool jsonl)
     {
         await using var fake = new FakeProvider();
-        fake.DiagnosticItems.Add(
-            new(
-                "missing-registry-group",
-                "Synthetic course",
-                "IA2502",
-                "Ask the registry administrator to add the English subgroup."));
+        fake.DiagnosticItems.Add(new(
+            "missing-registry-group",
+            "Synthetic course",
+            "IA2502",
+            "Ask the registry administrator to add the English subgroup."));
         using var capture = new Capture();
         Assert.Equal(
             0,

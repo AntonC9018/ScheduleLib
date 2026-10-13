@@ -87,13 +87,12 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
     {
         return RequireCreatedId(
             (await _service.Calendars
-                .Insert(
-                    new Calendar
-                    {
-                        Summary = summary,
-                        Location = "Chișinău, Moldova",
-                        TimeZone = "Europe/Chisinau",
-                    })
+                .Insert(new Calendar
+                {
+                    Summary = summary,
+                    Location = "Chișinău, Moldova",
+                    TimeZone = "Europe/Chisinau",
+                })
                 .ExecuteAsync(token)).Id);
     }
 
