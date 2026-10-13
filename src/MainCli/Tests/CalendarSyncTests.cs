@@ -1,9 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Dates;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
-using Xunit;
+using ScheduleLib.Dates;
 using Event = Google.Apis.Calendar.v3.Data.Event;
 
 public sealed class CalendarSyncTests
@@ -12,7 +11,12 @@ public sealed class CalendarSyncTests
     public async Task PreviewReportsReplacementAndEventsWithoutWrites()
     {
         using var provider = new Fake();
-        var result = await CalendarSync.Run(provider, "Lessons", [new() { Summary = "Desired" }], false, default);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new() { Summary = "Desired" }],
+            false,
+            default);
         Assert.Equal("actual@example.test", result.Account);
         Assert.Equal("old", result.ReplacedCalendar!.Id);
         Assert.Equal("old-event", Assert.Single(result.DeletedEvents).Id);
@@ -25,10 +29,27 @@ public sealed class CalendarSyncTests
     public async Task ApplyRecomputesRemoteStateAndReportsNewIds()
     {
         using var provider = new Fake();
-        await CalendarSync.Run(provider, "Lessons", [], false, default);
+        await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [],
+            false,
+            default);
         provider.Destination = "changed";
-        var result = await CalendarSync.Run(provider, "Lessons", [new()], true, default);
-        Assert.Equal(new[] { "delete changed", "calendar", "event new" }, provider.Writes);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new()],
+            true,
+            default);
+        Assert.Equal(
+            new[]
+            {
+                "delete changed",
+                "calendar",
+                "event new",
+            },
+            provider.Writes);
         Assert.Equal("new", result.CreatedCalendarId);
         Assert.Equal("event-1", result.Outcomes.Last().EventId);
         Assert.Equal(0, result.ExitCode);
@@ -40,7 +61,12 @@ public sealed class CalendarSyncTests
     public async Task UncertainCreatesAreNotRetriedAndPreserveCompletedOutcomes(string fail, int writes)
     {
         using var provider = new Fake { Fail = fail };
-        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, default);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new(), new()],
+            true,
+            default);
         Assert.Equal(6, result.ExitCode);
         Assert.Equal(writes, provider.Writes.Count);
         Assert.Equal("uncertain", result.Outcomes.Last().State);
@@ -52,7 +78,12 @@ public sealed class CalendarSyncTests
     public async Task RejectedFirstCreateIsFailureBeforePartialApplication()
     {
         using var provider = new Fake { Fail = "rejected", Missing = true };
-        var result = await CalendarSync.Run(provider, "Lessons", [new()], true, default);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new()],
+            true,
+            default);
         Assert.Equal(5, result.ExitCode);
         Assert.Equal("failed", Assert.Single(result.Outcomes).State);
         Assert.Equal("calendar", Assert.Single(provider.Writes));
@@ -63,7 +94,12 @@ public sealed class CalendarSyncTests
     {
         using var cancel = new CancellationTokenSource();
         using var provider = new Fake { Fail = "cancel-second", Cancellation = cancel };
-        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, cancel.Token);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new(), new()],
+            true,
+            cancel.Token);
         Assert.Equal(130, result.ExitCode);
         Assert.Equal("event-1", result.Outcomes[2].EventId);
         Assert.Equal(0, result.Outcomes[2].DesiredEventIndex);
@@ -76,7 +112,12 @@ public sealed class CalendarSyncTests
     {
         using var cancel = new CancellationTokenSource();
         using var provider = new Fake { Fail = "cancel", Cancellation = cancel };
-        var result = await CalendarSync.Run(provider, "Lessons", [new(), new()], true, cancel.Token);
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new(), new()],
+            true,
+            cancel.Token);
         Assert.Equal(130, result.ExitCode);
         Assert.Equal("new", result.CreatedCalendarId);
         Assert.Equal(3, result.Outcomes.Count);
@@ -90,13 +131,27 @@ public sealed class CalendarSyncTests
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
         {
-            await using var lease = await LocalFileLock.Acquire(CalendarSync.LockPath(root, "actual@example.test", "Lessons"), default);
+            await using var lease = await LocalFileLock.Acquire(
+                CalendarSync.LockPath(
+                    root,
+                    "actual@example.test",
+                    "Lessons"),
+                default);
             using var provider = new Fake();
-            await Assert.ThrowsAsync<LocalOperationBusyException>(() => CalendarSync.Run(provider, "Lessons", [], true, default, root));
+            await Assert.ThrowsAsync<LocalOperationBusyException>(() => CalendarSync.Run(
+                provider,
+                "Lessons",
+                [],
+                true,
+                default,
+                root));
             Assert.Equal(0, provider.ListCalls);
             Assert.Empty(provider.Writes);
         }
-        finally { Directory.Delete(root, true); }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
     }
 
     [Theory]
@@ -105,13 +160,33 @@ public sealed class CalendarSyncTests
     public async Task PrimaryNameAndActualPrimaryDestinationAreProhibited(string name, bool primary)
     {
         using var provider = new Fake { Primary = primary };
-        await Assert.ThrowsAsync<ArgumentException>(() => CalendarSync.Run(provider, name, [], true, default));
+        await Assert.ThrowsAsync<ArgumentException>(() => CalendarSync.Run(
+            provider,
+            name,
+            [],
+            true,
+            default));
         Assert.Empty(provider.Writes);
     }
 
     [Theory]
-    [InlineData(new[] { "calendar", "sync", "--help" }, 0)]
-    [InlineData(new[] { "calendar", "sync", "--output", "x" }, 2)]
+    [InlineData(
+        new[]
+        {
+            "calendar",
+            "sync",
+            "--help",
+        },
+        0)]
+    [InlineData(
+        new[]
+        {
+            "calendar",
+            "sync",
+            "--output",
+            "x",
+        },
+        2)]
     public async Task HelpAndIrrelevantOptionsDoNotLoadSchedule(string[] args, int exit)
         => Assert.Equal(exit, await CliHost.Run(args));
 
@@ -123,12 +198,21 @@ public sealed class CalendarSyncTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(3, await new CalendarCommands().Sync(new(), new(), new() { Json = true }, new()));
+            Assert.Equal(
+                3,
+                await new CalendarCommands().Sync(
+                    new(),
+                    new(),
+                    new() { Json = true },
+                    new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
             Assert.Equal("calendar sync", document.RootElement.GetProperty("command").GetString());
             Assert.Equal(3, document.RootElement.GetProperty("exitCode").GetInt32());
         }
-        finally { Console.SetOut(original); }
+        finally
+        {
+            Console.SetOut(original);
+        }
     }
 
     [Fact]
@@ -141,15 +225,23 @@ public sealed class CalendarSyncTests
         {
             Console.SetOut(output);
             var command = new FixtureCalendar(fake);
-            Assert.Equal(0, await command.Sync(new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
-                new() { Profile = "Nartea Nichita" }, new() { Json = true }, new()));
+            Assert.Equal(
+                0,
+                await command.Sync(
+                    new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                    new() { Profile = "Nartea Nichita" },
+                    new() { Json = true },
+                    new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
             var data = document.RootElement.GetProperty("data");
             Assert.Equal("preview", document.RootElement.GetProperty("status").GetString());
             Assert.NotEmpty(data.GetProperty("desiredEvents").EnumerateArray());
             Assert.Empty(fake.Writes);
         }
-        finally { Console.SetOut(original); }
+        finally
+        {
+            Console.SetOut(original);
+        }
     }
 
     private sealed class FixtureCalendar(Fake provider) : CalendarCommands
@@ -158,46 +250,137 @@ public sealed class CalendarSyncTests
         {
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
-            services.Configure<StudyYearOptions>(x => { x.StudyYear = new(2025); x.Semester = Semester.Sem2; });
+            services.Configure<StudyYearOptions>(x =>
+            {
+                x.StudyYear = new(2025);
+                x.Semester = Semester.Sem2;
+            });
         }
-        protected override Task<ICalendarSyncProvider> Connect(IServiceProvider services, BuiltGoogleCalendarConfig config, CancellationToken token)
+
+        protected override Task<ICalendarSyncProvider> Connect(
+            IServiceProvider services,
+            BuiltGoogleCalendarConfig config,
+            CancellationToken token)
             => Task.FromResult<ICalendarSyncProvider>(provider);
     }
 
     private sealed class Fake : ICalendarSyncProvider
     {
-        public List<string> Writes { get; } = [];
-        public string Destination { get; set; } = "old";
-        public string? Fail { get; init; }
-        public CancellationTokenSource? Cancellation { get; init; }
-        public bool Primary { get; init; }
-        public bool Missing { get; init; }
+        public List<string> Writes
+        {
+            get;
+        } = [];
+
+        public string Destination
+        {
+            get;
+            set;
+        } = "old";
+
+        public string? Fail
+        {
+            get;
+            init;
+        }
+
+        public CancellationTokenSource? Cancellation
+        {
+            get;
+            init;
+        }
+
+        public bool Primary
+        {
+            get;
+            init;
+        }
+
+        public bool Missing
+        {
+            get;
+            init;
+        }
+
         private int _events;
-        public int ListCalls { get; private set; }
+
+        public int ListCalls
+        {
+            get;
+            private set;
+        }
+
         public Task<string> GetAccount(CancellationToken token) => Task.FromResult("actual@example.test");
+
         public Task<IReadOnlyList<CalendarDestination>> ListCalendars(CancellationToken token)
         {
             ListCalls++;
-            return Task.FromResult<IReadOnlyList<CalendarDestination>>(Missing ? [] : [new(Destination, "Lessons", Primary)]);
+            return Task.FromResult<IReadOnlyList<CalendarDestination>>(
+                Missing
+                    ? []
+                    :
+                    [
+                        new(
+                            Destination,
+                            "Lessons",
+                            Primary),
+                    ]);
         }
-        public Task<IReadOnlyList<CalendarEventIdentity>> ListEvents(string id, CancellationToken token) => Task.FromResult<IReadOnlyList<CalendarEventIdentity>>([new("old-event", "Old")]);
-        public Task DeleteCalendar(string id, CancellationToken token) { Writes.Add("delete " + id); return Task.CompletedTask; }
+
+        public Task<IReadOnlyList<CalendarEventIdentity>> ListEvents(string id, CancellationToken token) =>
+            Task.FromResult<IReadOnlyList<CalendarEventIdentity>>([new("old-event", "Old")]);
+
+        public Task DeleteCalendar(string id, CancellationToken token)
+        {
+            Writes.Add("delete " + id);
+            return Task.CompletedTask;
+        }
+
         public Task<string> CreateCalendar(string summary, CancellationToken token)
         {
             Writes.Add("calendar");
-            if (Fail == "rejected") throw new Google.GoogleApiException("calendar", "Rejected") { HttpStatusCode = System.Net.HttpStatusCode.BadRequest };
-            if (Fail == "calendar") throw new IOException("Response lost after creating calendar");
+            if (Fail == "rejected")
+            {
+                throw new Google.GoogleApiException("calendar", "Rejected")
+                {
+                    HttpStatusCode = System.Net.HttpStatusCode.BadRequest,
+                };
+            }
+
+            if (Fail == "calendar")
+            {
+                throw new IOException("Response lost after creating calendar");
+            }
+
             return Task.FromResult("new");
         }
-        public Task<string> CreateEvent(string id, Event ev, CancellationToken token)
+
+        public Task<string> CreateEvent(
+            string id,
+            Event ev,
+            CancellationToken token)
         {
             Writes.Add("event " + id);
             _events++;
-            if (Fail == "cancel-second" && _events == 2) { Cancellation!.Cancel(); throw new OperationCanceledException(token); }
-            if (Fail == "event") throw new IOException("Response lost after creating event");
-            if (Fail == "cancel") { Cancellation!.Cancel(); throw new OperationCanceledException(token); }
+            if (Fail == "cancel-second" && _events == 2)
+            {
+                Cancellation!.Cancel();
+                throw new OperationCanceledException(token);
+            }
+            if (Fail == "event")
+            {
+                throw new IOException("Response lost after creating event");
+            }
+
+            if (Fail == "cancel")
+            {
+                Cancellation!.Cancel();
+                throw new OperationCanceledException(token);
+            }
             return Task.FromResult("event-1");
         }
-        public void Dispose() { }
+
+        public void Dispose()
+        {
+        }
     }
 }

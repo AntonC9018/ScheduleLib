@@ -20,20 +20,52 @@ namespace ScheduleLib.Cli;
 /// </summary>
 public sealed class CliOutput
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    public const string ConflictingResultFormatsMessage = "Only one of --json and --jsonl may be specified.";
+
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     private readonly object _gate = new();
     private int _stdoutSeq;
     private int _stderrSeq;
 
-    public string Command { get; }
-    public string RunId { get; }
-    public bool Json { get; }
-    public bool Jsonl { get; }
+    public string Command
+    {
+        get;
+    }
 
-    public CliOutput(string command, string runId, ResultArguments result)
-        : this(command, runId, result.Json, GetJsonl(result)) { }
+    public string RunId
+    {
+        get;
+    }
 
-    public CliOutput(string command, string runId, bool json, bool jsonl)
+    public bool Json
+    {
+        get;
+    }
+
+    public bool Jsonl
+    {
+        get;
+    }
+
+    public CliOutput(
+        string command,
+        string runId,
+        ResultArguments result)
+        : this(
+            command,
+            runId,
+            result.Json,
+            GetJsonl(result))
+    {
+    }
+
+    public CliOutput(
+        string command,
+        string runId,
+        bool json,
+        bool jsonl)
     {
         Command = command;
         RunId = runId;
@@ -44,58 +76,88 @@ public sealed class CliOutput
     public static bool GetJsonl(ResultArguments result) => result.Jsonl;
 
     public static string? ExclusiveError(ResultArguments result) =>
-        result.Json && result.Jsonl ? "Only one of --json and --jsonl may be specified." : null;
+        result.Json && result.Jsonl ? ConflictingResultFormatsMessage : null;
 
     public void EmitStart()
     {
-        if (!Jsonl) return;
-        WriteStdoutRecord((seq) => JsonSerializer.Serialize(new
+        if (!Jsonl)
         {
-            schemaVersion = 1,
-            command = Command,
-            runId = RunId,
-            seq,
-            @event = "start",
-        }, JsonOptions));
+            return;
+        }
+
+        WriteStdoutRecord((seq) => JsonSerializer.Serialize(
+            new
+            {
+                schemaVersion = 1,
+                command = Command,
+                runId = RunId,
+                seq,
+                @event = "start",
+            },
+            JsonOptions));
     }
 
-    public void EmitItem(string id, string status, object? item)
+    public void EmitItem(
+        string id,
+        string status,
+        object? item)
     {
-        if (!Jsonl) return;
-        WriteStdoutRecord((seq) => JsonSerializer.Serialize(new
+        if (!Jsonl)
         {
-            schemaVersion = 1,
-            command = Command,
-            runId = RunId,
-            seq,
-            @event = "item",
-            id,
-            status,
-            item,
-        }, JsonOptions));
+            return;
+        }
+
+        WriteStdoutRecord((seq) => JsonSerializer.Serialize(
+            new
+            {
+                schemaVersion = 1,
+                command = Command,
+                runId = RunId,
+                seq,
+                @event = "item",
+                id,
+                status,
+                item,
+            },
+            JsonOptions));
     }
 
-    public void EmitFinal(string status, int exitCode, string[] warnings, string[] errors, object? data)
+    public void EmitFinal(
+        string status,
+        int exitCode,
+        string[] warnings,
+        string[] errors,
+        object? data)
     {
-        if (!Jsonl) return;
-        WriteStdoutRecord((seq) => JsonSerializer.Serialize(new
+        if (!Jsonl)
         {
-            schemaVersion = 1,
-            command = Command,
-            runId = RunId,
-            seq,
-            @event = "final",
-            status,
-            exitCode,
-            warnings,
-            errors,
-            data,
-        }, JsonOptions));
+            return;
+        }
+
+        WriteStdoutRecord((seq) => JsonSerializer.Serialize(
+            new
+            {
+                schemaVersion = 1,
+                command = Command,
+                runId = RunId,
+                seq,
+                @event = "final",
+                status,
+                exitCode,
+                warnings,
+                errors,
+                data,
+            },
+            JsonOptions));
     }
 
     public void WriteHuman(string line)
     {
-        if (Json || Jsonl) return;
+        if (Json || Jsonl)
+        {
+            return;
+        }
+
         lock (_gate)
         {
             Console.Out.WriteLine(line);
@@ -105,28 +167,54 @@ public sealed class CliOutput
 
     public void WriteWarning(string message)
     {
-        if (Jsonl) WriteStderrLog("Warning", message);
-        else lock (_gate)
+        if (Jsonl)
         {
-            Console.Error.WriteLine(message);
-            Console.Error.Flush();
+            WriteStderrLog("Warning", message);
+        }
+        else
+        {
+            lock (_gate)
+            {
+                Console.Error.WriteLine(message);
+                Console.Error.Flush();
+            }
         }
     }
 
     public void WriteError(string message)
     {
-        if (Jsonl) WriteStderrLog("Error", message);
-        else lock (_gate)
+        if (Jsonl)
         {
-            Console.Error.WriteLine(message);
-            Console.Error.Flush();
+            WriteStderrLog("Error", message);
+        }
+        else
+        {
+            lock (_gate)
+            {
+                Console.Error.WriteLine(message);
+                Console.Error.Flush();
+            }
         }
     }
 
-    public void WriteLog(LogLevel level, string message, string? exception = null)
+    public void WriteLog(
+        LogLevel level,
+        string message,
+        string? exception = null)
     {
-        if (!Jsonl) return;
-        WriteStructuredLog(level, message, exception, null, null, null, DateTimeOffset.UtcNow);
+        if (!Jsonl)
+        {
+            return;
+        }
+
+        WriteStructuredLog(
+            level,
+            message,
+            exception,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow);
     }
 
     public void WriteStructuredLog(
@@ -138,13 +226,34 @@ public sealed class CliOutput
         string? category,
         DateTimeOffset timestamp)
     {
-        if (!Jsonl) return;
-        WriteStderrLog(level.ToString(), message, exception, properties, scopes, category, timestamp);
+        if (!Jsonl)
+        {
+            return;
+        }
+
+        WriteStderrLog(
+            level.ToString(),
+            message,
+            exception,
+            properties,
+            scopes,
+            category,
+            timestamp);
     }
 
-    private void WriteStderrLog(string level, string message, string? exception = null)
+    private void WriteStderrLog(
+        string level,
+        string message,
+        string? exception = null)
     {
-        WriteStderrLog(level, message, exception, null, null, null, DateTimeOffset.UtcNow);
+        WriteStderrLog(
+            level,
+            message,
+            exception,
+            null,
+            null,
+            null,
+            DateTimeOffset.UtcNow);
     }
 
     private void WriteStderrLog(
@@ -156,21 +265,23 @@ public sealed class CliOutput
         string? category,
         DateTimeOffset timestamp)
     {
-        WriteStderrRecord((seq) => JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1,
-            command = Command,
-            runId = RunId,
-            seq,
-            @event = "log",
-            level,
-            message,
-            timestamp = timestamp.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
-            properties,
-            scopes,
-            category,
-            exception,
-        }, JsonOptions));
+        WriteStderrRecord((seq) => JsonSerializer.Serialize(
+            new
+            {
+                schemaVersion = 1,
+                command = Command,
+                runId = RunId,
+                seq,
+                @event = "log",
+                level,
+                message,
+                timestamp = timestamp.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                properties,
+                scopes,
+                category,
+                exception,
+            },
+            JsonOptions));
     }
 
     private void WriteStdoutRecord(Func<int, string> format)
@@ -205,17 +316,27 @@ public sealed class CliOutput
 public class CliOutputStreamingException : Exception
 {
     public CliOutputStreamingException(string message, Exception? inner = null)
-        : base(message, inner) { }
+        : base(message, inner)
+    {
+    }
 }
 
 public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, ISupportExternalScope
 {
     private IExternalScopeProvider _scopes = new LoggerExternalScopeProvider();
     public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopes = scopeProvider;
-    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(output, categoryName, () => _scopes);
-    public void Dispose() { }
 
-    private sealed class Logger(CliOutput output, string category, Func<IExternalScopeProvider> scopeProvider) : Microsoft.Extensions.Logging.ILogger
+    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(
+        output,
+        categoryName,
+        () => _scopes);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class Logger(CliOutput output, string category, Func<IExternalScopeProvider> scopeProvider)
+        : Microsoft.Extensions.Logging.ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => scopeProvider().Push(state);
 
@@ -226,20 +347,39 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
         public bool IsEnabled(LogLevel logLevel) =>
             logLevel is >= LogLevel.Information and <= LogLevel.Critical;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
-            if (!IsEnabled(logLevel)) return;
-            var message = formatter(state, exception);
-            var properties = ExtractProperties(state)?.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)
-                ?? new Dictionary<string, object?>(StringComparer.Ordinal);
-            var scopes = new List<string>();
-            scopeProvider().ForEachScope((scope, collected) =>
+            if (!IsEnabled(logLevel))
             {
-                if (scope is IEnumerable<KeyValuePair<string, object?>> named)
-                    foreach (var pair in named)
-                        properties.TryAdd(pair.Key, pair.Value);
-                collected.Add(scope?.ToString() ?? string.Empty);
-            }, scopes);
+                return;
+            }
+
+            var message = formatter(state, exception);
+            var properties = ExtractProperties(state)?.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value,
+                    StringComparer.Ordinal) ??
+                new Dictionary<string, object?>(StringComparer.Ordinal);
+            var scopes = new List<string>();
+            scopeProvider().ForEachScope(
+                (scope, collected) =>
+                {
+                    if (scope is IEnumerable<KeyValuePair<string, object?>> named)
+                    {
+                        foreach (var pair in named)
+                        {
+                            properties.TryAdd(pair.Key, pair.Value);
+                        }
+                    }
+
+                    collected.Add(scope?.ToString() ?? string.Empty);
+                },
+                scopes);
             output.WriteStructuredLog(
                 logLevel,
                 message,
@@ -260,7 +400,11 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                     // Mirrors the original "{Properties:j}" shape: structured values
                     // without the message template itself. EventId/SourceContext were
                     // stripped by the original Serilog enrichers, so they stay out.
-                    if (key == "{OriginalFormat}") continue;
+                    if (key == "{OriginalFormat}")
+                    {
+                        continue;
+                    }
+
                     collected ??= new(StringComparer.Ordinal);
                     collected[key] = value;
                 }
@@ -285,6 +429,7 @@ public static class CliLogging
 public static class CliAmbient
 {
     private static readonly AsyncLocal<CliOutput?> CurrentValue = new();
+
     public static CliOutput? Current
     {
         get => CurrentValue.Value;

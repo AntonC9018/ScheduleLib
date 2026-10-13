@@ -485,3 +485,20 @@ sources, using PR #68's existing entrepreneurship cohort adaptation. The
 capture follow the 2026-09-01 Word period; their folder dates record capture
 time rather than claiming official upload dates. I2501's documented
 Tuesday 15:00 pedagogy/Web conflict is retained under an exact overlap allowance.
+
+## CLI command infrastructure (#227)
+
+`CliCommandContext` owns invocation identity, cancellation subscription, warning
+collection, result emission, ambient output restoration and export leases.
+`CliCompletion<T>` describes JSON data, the compact JSONL summary and optional
+human rendering; command-specific output stays in its command. `CliExit` defines
+public exit codes, and failure policies preserve input/export, Google and registry
+error distinctions. Providers keep mutation uncertainty and partial outcomes in
+their domain results; rendering failures must not trigger remote retries.
+
+Public command parameters use CommandDotNet argument models. Internal config
+edits and exports use request records rather than long scalar/Boolean parameter
+lists. The formatter uses JetBrains CleanupCode with a restricted formatting, braces
+and commas profile rather than a custom syntax rewriter. See
+[formatting](formatting.md) for the automatic utility and
+[analyzer decisions](analyzer-review.md) for the accepted initializer policy.

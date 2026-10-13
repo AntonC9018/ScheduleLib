@@ -1,78 +1,127 @@
-using System.Text.Json;
 using CommandDotNet;
-using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Cli;
 
 public sealed class ConfigScopeArguments : IArgumentModel
 {
     [Option("scope", Description = "Required destination: user or project.")]
-    public string? Scope { get; set; }
+    public string? Scope
+    {
+        get;
+        set;
+    }
 }
 
 public sealed class ConfigSetArguments : IArgumentModel
 {
     [Operand("key", Description = "Registered block and optional camelCase member path.")]
-    public string Key { get; set; } = null!;
+    public string Key
+    {
+        get;
+        set;
+    } = null!;
+
     [Operand("value", Description = "Typed JSON value, including JSON quotes for strings.")]
-    public string Value { get; set; } = null!;
+    public string Value
+    {
+        get;
+        set;
+    } = null!;
 }
 
 public sealed partial class ConfigCommands
 {
-    [Command("set", Description = "Persist a typed JSON override in an explicit scope; optionally overlay an existing teacher.")]
-    public Task<int> Set(ConfigSetArguments edit, ConfigScopeArguments scope, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) =>
-        Write("set", edit.Key, edit.Value, scope, settings, output, cancellationToken);
+    [Command(
+        "set",
+        Description = "Persist a typed JSON override in an explicit scope; optionally overlay an existing teacher.")]
+    public Task<int> Set(
+        ConfigSetArguments edit,
+        ConfigScopeArguments scope,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken cancellationToken = default) =>
+        Write(
+            new(
+                "set",
+                edit.Key,
+                edit.Value,
+                scope,
+                settings,
+                output,
+                cancellationToken));
 
     [Command("unset", Description = "Remove the chosen scope's override and restore inheritance.")]
-    public Task<int> Unset(ConfigKeyArguments key, ConfigScopeArguments scope, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) =>
-        Write("unset", key.Key, null, scope, settings, output, cancellationToken);
+    public Task<int> Unset(
+        ConfigKeyArguments key,
+        ConfigScopeArguments scope,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken cancellationToken = default) =>
+        Write(
+            new(
+                "unset",
+                key.Key,
+                null,
+                scope,
+                settings,
+                output,
+                cancellationToken));
 
-    private static async Task<int> Write(string verb, string key, string? value, ConfigScopeArguments scope, SettingsArguments settings,
-        ResultArguments outputArgs, CancellationToken cancellationToken, string? item = null)
+    internal static async Task<int> Write(ConfigEditRequest request)
     {
-        var command = "config " + verb;
-        var runId = Guid.NewGuid().ToString("N");
-        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        var command = "config " + request.Verb;
+        using var context = new CliCommandContext(
+            command,
+            request.Output,
+            request.CancellationToken);
+        if (!context.Start())
         {
-            Console.Error.WriteLine(exclusive);
-            return 2;
+            return CliExit.InvalidArguments;
         }
-        var output = new CliOutput(command, runId, outputArgs);
-        output.EmitStart();
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
-        Console.CancelKeyPress += cancel;
+        var cancellation = context.Cancellation;
         try
         {
-            var destination = scope.Scope switch { "user" => SettingsScope.User, "project" => SettingsScope.Project, _ => (SettingsScope?)null };
+            var destination = request.Scope.Scope switch
+            {
+                "user" => SettingsScope.User,
+                "project" => SettingsScope.Project,
+                _ => (SettingsScope?) null,
+            };
             if (destination is null)
-                return Finish(2, null, ["--scope user|project is required."]);
-            var result = await CliSettings.Edit(settings, destination.Value, key, value, verb == "unset", cancellation.Token, operation: verb is "remove" or "clear" ? verb : null, item: item);
-            return Finish(0, result, []);
-        }
-        catch (OperationCanceledException) { return Finish(130, null, ["Cancelled."]); }
-        catch (JsonException e) { return Finish(3, null, [e.Message]); }
-        catch (DirectoryNotFoundException e) { return Finish(3, null, [e.Message]); }
-        catch (LocalOperationBusyException e) { return Finish(7, null, [e.Message]); }
-        catch (IOException e) { return Finish(5, null, [e.Message]); }
-        catch (UnauthorizedAccessException e) { return Finish(5, null, [e.Message]); }
-        catch (Exception e) { return Finish(1, null, [e.Message]); }
-        finally { Console.CancelKeyPress -= cancel; }
+            {
+                return CliConfigExecution.Finish<SettingsEdit?>(
+                    context,
+                    CliExit.InvalidArguments,
+                    ["--scope user|project is required."],
+                    null,
+                    request.Verb);
+            }
 
-        int Finish(int exit, SettingsEdit? data, string[] errors)
+            var result = await CliSettings.Edit(
+                request.Settings,
+                destination.Value,
+                request.Key,
+                request.Value,
+                request.Verb == "unset",
+                cancellation.Token,
+                operation: request.Verb is "remove" or "clear" ? request.Verb : null,
+                item: request.Item);
+            return CliConfigExecution.Finish(
+                context,
+                CliExit.Success,
+                [],
+                result,
+                request.Verb);
+        }
+        catch (Exception error)
         {
-            foreach (var error in errors) output.WriteError(error);
-            var jsonStatus = exit == 0 ? "succeeded" : "failed";
-            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
-            var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = !outputArgs.Json };
-            if (outputArgs.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<SettingsEdit?>(1, command, runId,
-                    jsonStatus, exit, [], [], [], errors, data), json));
-            else if (output.Jsonl)
-                output.EmitFinal(jsonlStatus, exit, [], errors, data);
-            else if (data is not null) Console.WriteLine(JsonSerializer.Serialize(data, json));
-            return exit;
+            var failure = CliConfigExecution.ClassifyWrite(error);
+            return CliConfigExecution.Finish<SettingsEdit?>(
+                context,
+                failure.ExitCode,
+                failure.Errors,
+                null,
+                request.Verb);
         }
     }
 }

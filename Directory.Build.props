@@ -24,6 +24,26 @@
 
     <PropertyGroup>
         <MicrosoftPackagesVersion>10.0.1</MicrosoftPackagesVersion>
+        <AntonCodingRulesVersion>0.1.0</AntonCodingRulesVersion>
     </PropertyGroup>
+
+    <!-- Keep existing CR findings visible while each rule is reviewed against legacy code.
+         Other compiler/analyzer warnings remain errors. PrivateAssets avoids exporting the analyzer. -->
+    <PropertyGroup>
+        <AntonCodingRulesDiagnosticIds>CR0001;CR0003;CR0004;CR0005;CR0006;CR0200;CR0201;CR0202;CR0203;CR0204;CR0300;CR0301;CR0302;CR0400;CR0401;CR0402;CR0500;CR0600;CR0601;CR0700</AntonCodingRulesDiagnosticIds>
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);$(AntonCodingRulesDiagnosticIds)</WarningsNotAsErrors>
+    </PropertyGroup>
+
+    <!-- The newer CLI slice has been formatted; enforce its Roslyn style rules on builds. -->
+    <PropertyGroup Condition="'$(ProjectPathRelativeNorm)' == 'src/MainCli' Or $(ProjectPathRelativeNorm.StartsWith('src/MainCli/Tests'))">
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <!-- IDE0005 requires XML documentation output; this does not impose API documentation rules. -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Anton.CodingRules" Version="$(AntonCodingRulesVersion)" PrivateAssets="all" />
+    </ItemGroup>
 
 </Project>

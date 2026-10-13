@@ -1,26 +1,26 @@
 using System.Net;
 using AngleSharp.Html.Parser;
 using Microsoft.Extensions.Logging;
-using ScheduleLib.Cli;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;
-using Xunit;
 
 public sealed class RegistryHistoryTests
 {
     private static readonly Uri Index = new("https://registry.test/studregistry/LessonAttendance");
+
     private const string Years = """
-        <a href='/studregistry/Account/Logout'>Exit</a>
-        <form id='search'><select name='AnUniv' id='AnUniv'>
-        <option selected value='2025/26'>2025/26</option><option value='2024/25'>2024/25</option>
-        <option value='2024/25'>duplicate</option><option disabled value='2023/24'>disabled</option>
-        </select></form>
-        """;
+                                 <a href='/studregistry/Account/Logout'>Exit</a>
+                                 <form id='search'><select name='AnUniv' id='AnUniv'>
+                                 <option selected value='2025/26'>2025/26</option><option value='2024/25'>2024/25</option>
+                                 <option value='2024/25'>duplicate</option><option disabled value='2023/24'>disabled</option>
+                                 </select></form>
+                                 """;
 
     [Fact]
     public void TokenOnlyHistoricalLessonFormHasNoAssignedGroups()
     {
-        using var document = new HtmlParser().ParseDocument("""
+        using var document = new HtmlParser().ParseDocument(
+            """
             <h1>Synthetic course</h1><h3>Groups</h3>
             <form name='lesson'><input type='hidden' name='__RequestVerificationToken' value='canary-token'></form>
             """);
@@ -30,9 +30,12 @@ public sealed class RegistryHistoryTests
     [Theory]
     [InlineData("<form name='lesson'></form>")]
     [InlineData("<form name='lesson'><input type='hidden' name='unknown' value='canary-token'></form>")]
-    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'><div>Changed group structure</div></form>")]
-    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='/studregistry/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
-    [InlineData("<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='https://foreign.test/other/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
+    [InlineData(
+        "<form name='lesson'><input type='hidden' name='__RequestVerificationToken'><div>Changed group structure</div></form>")]
+    [InlineData(
+        "<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='/studregistry/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
+    [InlineData(
+        "<form name='lesson'><input type='hidden' name='__RequestVerificationToken'></form><a href='https://foreign.test/other/LessonAttendance/LessonsList/1'>Synthetic group</a>")]
     public void UnrecognizedEmptyOrMovedGroupLayoutStillFails(string html)
     {
         using var document = new HtmlParser().ParseDocument(html);
@@ -52,7 +55,11 @@ public sealed class RegistryHistoryTests
             string html;
             if (uri.AbsolutePath == Index.AbsolutePath)
             {
-                if (uri.Query.Length > 0) activeYear = Uri.UnescapeDataString(uri.Query[8..]);
+                if (uri.Query.Length > 0)
+                {
+                    activeYear = Uri.UnescapeDataString(uri.Query[8..]);
+                }
+
                 html = "<form><select id='AnUniv' name='AnUniv'>" +
                     $"<option {(activeYear == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>" +
                     $"<option {(activeYear == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>" +
@@ -62,17 +69,33 @@ public sealed class RegistryHistoryTests
             else
             {
                 groupYears.Add(activeYear);
-                html = "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
+                html =
+                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
                     $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>" +
                     "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
             }
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            { Content = new StringContent("<a href='/studregistry/Account/Logout'>Exit</a>" + html) });
+            return Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("<a href='/studregistry/Account/Logout'>Exit</a>" + html),
+                });
         });
         using var client = new HttpClient(inner);
         var summaries = await new RegistryHistoryReader(client, Index).Discover(null, default);
-        Assert.Equal(new[] { "2024/25", "2025/26" }, groupYears);
-        Assert.Equal(new[] { "2024/25", "2025/26" }, summaries.Select(x => x.Year));
+        Assert.Equal(
+            new[]
+            {
+                "2024/25",
+                "2025/26",
+            },
+            groupYears);
+        Assert.Equal(
+            new[]
+            {
+                "2024/25",
+                "2025/26",
+            },
+            summaries.Select(x => x.Year));
         Assert.Equal("2025/26", Assert.Single(Assert.Single(summaries[1].Courses).Groups));
         Assert.Contains("/studregistry/LessonAttendance?AnUniv=2025%2F26", requests);
     }
@@ -81,40 +104,76 @@ public sealed class RegistryHistoryTests
     public void YearNavigationUsesObservedGetFormAndEncodedValue()
     {
         var years = RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(Years), Index);
-        Assert.Equal(new[] { "2025/26", "2024/25" }, years.Select(x => x.Value));
+        Assert.Equal(
+            new[]
+            {
+                "2025/26",
+                "2024/25",
+            },
+            years.Select(x => x.Value));
         Assert.True(years[0].Selected);
         Assert.Equal("https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F25", years[1].Uri.AbsoluteUri);
     }
 
     [Theory]
-    [InlineData("<form method='post'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
-    [InlineData("<form action='https://other.test/'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Unknown, RegistryHistoryDiagnostic.RequestPolicy)]
-    [InlineData("<form><input name='token' value='private'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
-    [InlineData("<select id='AnUniv' name='AnUniv'><option>2024/25</option></select>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
-    [InlineData("<html>no year selector</html>", RegistryHistoryPhase.Index, RegistryHistoryDiagnostic.YearSelector)]
-    public void UnsupportedYearMarkupFailsExplicitly(string html, RegistryHistoryPhase phase, RegistryHistoryDiagnostic diagnostic)
+    [InlineData(
+        "<form method='post'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>",
+        RegistryHistoryPhase.Index,
+        RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData(
+        "<form action='https://other.test/'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>",
+        RegistryHistoryPhase.Unknown,
+        RegistryHistoryDiagnostic.RequestPolicy)]
+    [InlineData(
+        "<form><input name='token' value='private'><select id='AnUniv' name='AnUniv'><option>2024/25</option></select></form>",
+        RegistryHistoryPhase.Index,
+        RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData(
+        "<select id='AnUniv' name='AnUniv'><option>2024/25</option></select>",
+        RegistryHistoryPhase.Index,
+        RegistryHistoryDiagnostic.YearSelector)]
+    [InlineData(
+        "<html>no year selector</html>",
+        RegistryHistoryPhase.Index,
+        RegistryHistoryDiagnostic.YearSelector)]
+    public void UnsupportedYearMarkupFailsExplicitly(
+        string html,
+        RegistryHistoryPhase phase,
+        RegistryHistoryDiagnostic diagnostic)
     {
-        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index));
+        var error = Assert.Throws<RegistryHistoryException>(() =>
+            RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index));
         Assert.Equal(phase, error.Phase);
         Assert.Equal(diagnostic, error.Diagnostic);
     }
 
     [Theory]
     [InlineData("<form name='lesson'></form>")]
-    [InlineData("<form name='lesson'><div class='row'></div><div class='row'><div class='col'><a href='/studregistry/LessonAttendance/LessonsList/1'>changed layout</a></div></div></form>")]
+    [InlineData(
+        "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><a href='/studregistry/LessonAttendance/LessonsList/1'>changed layout</a></div></div></form>")]
     public void ChangedGroupContainerDoesNotSilentlyProduceAnEmptySummary(string html)
     {
-        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index));
+        var error = Assert.Throws<RegistryHistoryException>(() =>
+            RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index));
         Assert.Equal(RegistryHistoryPhase.Groups, error.Phase);
-        Assert.Contains(error.Diagnostic, new[] { RegistryHistoryDiagnostic.GroupContainer, RegistryHistoryDiagnostic.GroupLayout });
+        Assert.Contains(
+            error.Diagnostic,
+            new[]
+            {
+                RegistryHistoryDiagnostic.GroupContainer,
+                RegistryHistoryDiagnostic.GroupLayout,
+            });
     }
 
     [Fact]
     public void ChangedCourseContainerDoesNotSilentlyProduceAnEmptySummary()
     {
-        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(new HtmlParser().ParseDocument("""
-            <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
-            """), Index));
+        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(
+            new HtmlParser().ParseDocument(
+                """
+                <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
+                """),
+            Index));
         Assert.Equal(RegistryHistoryPhase.Index, error.Phase);
         Assert.Equal(RegistryHistoryDiagnostic.CourseLayout, error.Diagnostic);
     }
@@ -122,22 +181,42 @@ public sealed class RegistryHistoryTests
     [Fact]
     public void RawHistoricalNamesSurviveWithoutScheduleMatchingAndUnsafeLinksFail()
     {
-        var document = new HtmlParser().ParseDocument("""
+        var document = new HtmlParser().ParseDocument(
+            """
             <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'> Old &amp; unmapped, </a></span></div></div>
             <div id='nav-2'><div><span>2</span><span><a href='/studregistry/LessonAttendance/groups/2'>Other,</a></span></div></div>
             """);
         var courses = RegistryHistoryHtml.Courses(document, Index);
-        Assert.Equal(new[] { "Old & unmapped,", "Other," }, courses.Select(x => x.Name));
-        Assert.Equal(new[] { 1, 2 }, courses.Select(x => x.Semester));
-        var groups = RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument("""
-            <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
-            <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
-            <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
-            </div></div></div></form>
-            """), Index);
+        Assert.Equal(
+            new[]
+            {
+                "Old & unmapped,",
+                "Other,",
+            },
+            courses.Select(x => x.Name));
+        Assert.Equal(
+            new[]
+            {
+                1,
+                2,
+            },
+            courses.Select(x => x.Semester));
+        var groups = RegistryHistoryHtml.Groups(
+            new HtmlParser().ParseDocument(
+                """
+                <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
+                <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
+                <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
+                </div></div></div></form>
+                """),
+            Index);
         Assert.Equal("Repeat / unknown notation", Assert.Single(groups).Name);
         Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(
-            new HtmlParser().ParseDocument(document.DocumentElement.OuterHtml.Replace("/studregistry/LessonAttendance/groups/1", "https://other.test/studregistry/LessonAttendance/groups/1")), Index));
+            new HtmlParser().ParseDocument(
+                document.DocumentElement.OuterHtml.Replace(
+                    "/studregistry/LessonAttendance/groups/1",
+                    "https://other.test/studregistry/LessonAttendance/groups/1")),
+            Index));
     }
 
     [Theory]
@@ -162,20 +241,38 @@ public sealed class RegistryHistoryTests
     public async Task OnlyExactIndexAndObservedNumericGroupReadsReachTransport(string address, bool allowed)
     {
         using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
-        if (allowed) { using var response = await client.GetAsync(address); }
-        else await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(address));
+        if (allowed)
+        {
+            using var response = await client.GetAsync(address);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(address));
+        }
+
         Assert.Equal(allowed ? 1 : 0, inner.Calls);
     }
 
     [Theory]
-    [InlineData(401)] [InlineData(403)] [InlineData(429)] [InlineData(302)]
+    [InlineData(401)]
+    [InlineData(403)]
+    [InlineData(429)]
+    [InlineData(302)]
     public async Task RejectionStopsWithoutReplayOrFollowingRedirect(int status)
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)));
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode) status)));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -185,17 +282,39 @@ public sealed class RegistryHistoryTests
     }
 
     [Theory]
-    [InlineData("login", 400, RegistryHistoryPhase.Login)]
-    [InlineData("login", 403, RegistryHistoryPhase.Login)]
-    [InlineData("index", 302, RegistryHistoryPhase.Index)]
-    [InlineData("index", 429, RegistryHistoryPhase.Index)]
-    [InlineData("groups", 403, RegistryHistoryPhase.Groups)]
-    public async Task RejectionCarriesOnlyFixedPhaseAndNumericStatus(string route, int status, RegistryHistoryPhase phase)
+    [InlineData(
+        "login",
+        400,
+        RegistryHistoryPhase.Login)]
+    [InlineData(
+        "login",
+        403,
+        RegistryHistoryPhase.Login)]
+    [InlineData(
+        "index",
+        302,
+        RegistryHistoryPhase.Index)]
+    [InlineData(
+        "index",
+        429,
+        RegistryHistoryPhase.Index)]
+    [InlineData(
+        "groups",
+        403,
+        RegistryHistoryPhase.Groups)]
+    public async Task RejectionCarriesOnlyFixedPhaseAndNumericStatus(
+        string route,
+        int status,
+        RegistryHistoryPhase phase)
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
-        { Content = new StringContent("canary-response-body") }));
+        using var inner = new FakeHandler((_, _) => Task.FromResult(
+            new HttpResponseMessage((HttpStatusCode) status) { Content = new StringContent("canary-response-body") }));
         var login = new Uri("https://registry.test/studregistry/Account/Login");
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, login, TimeSpan.FromMilliseconds(1));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            login,
+            TimeSpan.FromMilliseconds(1));
         using var client = new HttpClient(guard);
         using var content = new StringContent("canary-password");
         Task<HttpResponseMessage> request = route switch
@@ -203,7 +322,7 @@ public sealed class RegistryHistoryTests
             "login" => client.PostAsync(login, content),
             "index" => client.GetAsync(Index),
             "groups" => client.GetAsync(new Uri("https://registry.test/studregistry/LessonAttendance/groups/1")),
-            _ => throw new ArgumentOutOfRangeException(nameof(route))
+            _ => throw new ArgumentOutOfRangeException(nameof(route)),
         };
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => request);
         Assert.Equal(phase, error.Phase);
@@ -215,8 +334,13 @@ public sealed class RegistryHistoryTests
     [Fact]
     public async Task ReadsRetryAtMostOnceAndMutationNeverReachesTransport()
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var inner = new FakeHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -230,13 +354,19 @@ public sealed class RegistryHistoryTests
     public async Task FreshHistorySessionBlocksMutationAndLessonEditRoutes()
     {
         using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         using var content = new StringContent("synthetic");
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.PostAsync(Index, content));
-        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.DeleteAsync(new Uri(Index.AbsoluteUri + "/groups/1")));
-        await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index.AbsoluteUri + "/Edit/1")));
+        await Assert.ThrowsAsync<RegistryHistoryException>(() =>
+            client.DeleteAsync(new Uri(Index.AbsoluteUri + "/groups/1")));
+        await Assert.ThrowsAsync<RegistryHistoryException>(() =>
+            client.GetAsync(new Uri(Index.AbsoluteUri + "/Edit/1")));
         Assert.Equal(0, inner.Calls);
     }
 
@@ -246,6 +376,7 @@ public sealed class RegistryHistoryTests
         var active = 0;
         var maximum = 0;
         var starts = new List<DateTimeOffset>();
+
         async Task<HttpResponseMessage> Respond(HttpRequestMessage request, CancellationToken token)
         {
             var current = Interlocked.Increment(ref active);
@@ -255,10 +386,19 @@ public sealed class RegistryHistoryTests
             Interlocked.Decrement(ref active);
             return new(HttpStatusCode.OK) { Content = new StringContent("safe") };
         }
+
         using var innerA = new FakeHandler(Respond);
         using var innerB = new FakeHandler(Respond);
-        using var guardA = new RegistryHistoryRequestHandler(innerA, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(30));
-        using var guardB = new RegistryHistoryRequestHandler(innerB, Index, new(Index, "../Account/Login"), TimeSpan.FromMilliseconds(30));
+        using var guardA = new RegistryHistoryRequestHandler(
+            innerA,
+            Index,
+            new(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(30));
+        using var guardB = new RegistryHistoryRequestHandler(
+            innerB,
+            Index,
+            new(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(30));
         using var first = new HttpClient(guardA);
         using var second = new HttpClient(guardB);
         // Intentionally race only synthetic transports to prove the shared gate.
@@ -275,14 +415,24 @@ public sealed class RegistryHistoryTests
     {
         var log = new CaptureLogger();
         var logger = new RegistryErrorLogger(log);
-        logger.StudentsNotInDbButInRegistry(new(PrivateStudents(), null!, default, default));
+        logger.StudentsNotInDbButInRegistry(
+            new(
+                PrivateStudents(),
+                null!,
+                default,
+                default));
         logger.LessonsDecidedErroneous(new("canary-student canary-password canary-token"));
-        logger.GroupParsingError(new(new GroupParsingException("canary-password canary-student"), "canary-student canary-token"));
+        logger.GroupParsingError(
+            new(new GroupParsingException("canary-password canary-student"), "canary-student canary-token"));
         logger.GroupNotFound("canary-student canary-token");
         Assert.NotEmpty(log.Messages);
         Assert.DoesNotContain("canary", string.Join("\n", log.Messages));
 
-        static IEnumerable<ScheduleLib.Parsing.Name> PrivateStudents() => new[] { "canary-student" }.Select<string, ScheduleLib.Parsing.Name>(_ => throw new Exception("Private students must not be enumerated by logging."));
+        static IEnumerable<ScheduleLib.Parsing.Name> PrivateStudents() => new[]
+        {
+            "canary-student",
+        }.Select<string, ScheduleLib.Parsing.Name>(_ =>
+            throw new Exception("Private students must not be enumerated by logging."));
     }
 
     [Fact]
@@ -312,49 +462,87 @@ public sealed class RegistryHistoryTests
                 return new(HttpStatusCode.Redirect);
             }
             var historical = request.RequestUri.Query.Contains("2024%2F25", StringComparison.Ordinal);
-            var years = historical ? Years.Replace("selected value='2025/26'", "value='2025/26'").Replace("value='2024/25'>2024/25", "selected value='2024/25'>2024/25") : Years;
+            var years = historical
+                ? Years.Replace("selected value='2025/26'", "value='2025/26'").Replace(
+                    "value='2024/25'>2024/25",
+                    "selected value='2024/25'>2024/25")
+                : Years;
             var html = request.RequestUri.AbsolutePath.EndsWith("/groups/1", StringComparison.Ordinal)
                 ? """
-                    <a href='/studregistry/Account/Logout'>Exit</a>
-                    <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
-                    <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Unknown historical group</a>
-                    <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a></div></div></div></form>
-                    <table><tr><td>canary-student</td><td>private grade</td></tr></table>
-                    """
-                : years + """
-                    <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped historical course,</a></span></div></div><div id='nav-2'></div>
-                    """;
+                  <a href='/studregistry/Account/Logout'>Exit</a>
+                  <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
+                  <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Unknown historical group</a>
+                  <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a></div></div></div></form>
+                  <table><tr><td>canary-student</td><td>private grade</td></tr></table>
+                  """
+                : years +
+                """
+                <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped historical course,</a></span></div></div><div id='nav-2'></div>
+                """;
             return new(HttpStatusCode.OK) { Content = new StringContent(html) };
         });
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, login, TimeSpan.FromMilliseconds(1));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            login,
+            TimeSpan.FromMilliseconds(1));
         using var client = new HttpClient(guard);
-        using var transport = new HttpClientContext(new AngleSharp.Io.MemoryCookieProvider(), client, guard);
+        using var transport = new HttpClientContext(
+            new AngleSharp.Io.MemoryCookieProvider(),
+            client,
+            guard);
         var builder = new ScrapingContextBuilder();
         builder.AddLogging(logs);
-        builder.TokenAuth(new TokenNamesConfig { BaseUrl = new("https://registry.test/studregistry/"), LoginUrl = login, TokenCookieName = "synthetic" },
-            x => x.PasswordLoginCall(new() { Login = "canary-login", Password = "canary-password" }, new() { Login = "UserLogin", Password = "UserPassword" }));
+        builder.TokenAuth(
+            new TokenNamesConfig
+            {
+                BaseUrl = new("https://registry.test/studregistry/"),
+                LoginUrl = login,
+                TokenCookieName = "synthetic",
+            },
+            x => x.PasswordLoginCall(
+                new() { Login = "canary-login", Password = "canary-password" },
+                new() { Login = "UserLogin", Password = "UserPassword" }));
         using var context = await builder.Build(default, transport);
         guard.CompleteAuthentication();
         var summary = await new RegistryHistoryReader(context.HttpClient, Index).Discover("2024/25", default);
         Assert.Equal("2024/25", Assert.Single(summary).Year);
         Assert.Equal("Unknown historical group", Assert.Single(Assert.Single(summary[0].Courses).Groups));
-        Assert.Equal(new[] { "POST /studregistry/Account/Login", "GET /studregistry/LessonAttendance", "GET /studregistry/LessonAttendance?AnUniv=2024%2F25", "GET /studregistry/LessonAttendance/groups/1" }, requests);
+        Assert.Equal(
+            new[]
+            {
+                "POST /studregistry/Account/Login",
+                "GET /studregistry/LessonAttendance",
+                "GET /studregistry/LessonAttendance?AnUniv=2024%2F25",
+                "GET /studregistry/LessonAttendance/groups/1",
+            },
+            requests);
         Assert.DoesNotContain("canary", string.Join("\n", log.Messages));
         Assert.DoesNotContain("canary-student", System.Text.Json.JsonSerializer.Serialize(summary));
     }
 
     [Theory]
-    [InlineData(true)] [InlineData(false)]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task LoginPageOrIgnoredYearStopsBeforeGroupReads(bool loginPage)
     {
-        using var inner = new FakeHandler((request, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(loginPage ? "<input type='password' value='canary-password'>" : Years + "<div id='nav-1'></div><div id='nav-2'></div>")
-        }));
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var inner = new FakeHandler((request, _) => Task.FromResult(
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    loginPage
+                        ? "<input type='password' value='canary-password'>"
+                        : Years + "<div id='nav-1'></div><div id='nav-2'></div>"),
+            }));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
-        var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => new RegistryHistoryReader(client, Index).Discover("2024/25", default));
+        var error = await Assert.ThrowsAsync<RegistryHistoryException>(() =>
+            new RegistryHistoryReader(client, Index).Discover("2024/25", default));
         Assert.DoesNotContain("canary", error.Message);
         Assert.Equal(loginPage ? 1 : 2, inner.Calls);
     }
@@ -368,43 +556,82 @@ public sealed class RegistryHistoryTests
             queries.Add(request.RequestUri!.PathAndQuery);
             var html = request.RequestUri.AbsolutePath.EndsWith("/groups/1", StringComparison.Ordinal)
                 ? """
-                    <a href='/studregistry/Account/Logout'>Exit</a>
-                    <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
-                    <a href='/studregistry/LessonAttendance/LessonsList/1'>Unmapped group</a><a href='/studregistry/Evaluation/Index/1'>grades</a>
-                    </div></div></div></form>
-                    """
-                : Years + """
-                    <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped course</a></span></div></div><div id='nav-2'></div>
-                    """;
+                  <a href='/studregistry/Account/Logout'>Exit</a>
+                  <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
+                  <a href='/studregistry/LessonAttendance/LessonsList/1'>Unmapped group</a><a href='/studregistry/Evaluation/Index/1'>grades</a>
+                  </div></div></div></form>
+                  """
+                : Years +
+                """
+                <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped course</a></span></div></div><div id='nav-2'></div>
+                """;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html) });
         });
-        using var guard = new RegistryHistoryRequestHandler(inner, Index, new("https://registry.test/studregistry/Account/Login"), TimeSpan.FromMilliseconds(1));
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
+            Index,
+            new("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var summary = Assert.Single(await new RegistryHistoryReader(client, Index).Discover("current", default));
         Assert.Equal("2025/26", summary.Year);
         Assert.Equal("Unmapped group", Assert.Single(Assert.Single(summary.Courses).Groups));
-        Assert.Equal(new[] { "/studregistry/LessonAttendance", "/studregistry/LessonAttendance/groups/1" }, queries);
+        Assert.Equal(
+            new[]
+            {
+                "/studregistry/LessonAttendance",
+                "/studregistry/LessonAttendance/groups/1",
+            },
+            queries);
     }
 
     private sealed class CaptureProvider(CaptureLogger logger) : ILoggerProvider
     {
         public ILogger CreateLogger(string categoryName) => logger;
-        public void Dispose() { }
+
+        public void Dispose()
+        {
+        }
     }
 
-    private sealed class FakeHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond) : HttpMessageHandler
+    private sealed class FakeHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond)
+        : HttpMessageHandler
     {
-        public int Calls { get; private set; }
+        public int Calls
+        {
+            get;
+            private set;
+        }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
-        { Calls++; return respond(request, token); }
+        {
+            Calls++;
+            return respond(request, token);
+        }
     }
+
     private sealed class CaptureLogger : ILogger<RegistryErrorLogger>
     {
-        public List<string> Messages { get; } = [];
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull { Messages.Add(state.ToString()!); return null; }
+        public List<string> Messages
+        {
+            get;
+        } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            Messages.Add(state.ToString()!);
+            return null;
+        }
+
         public bool IsEnabled(LogLevel logLevel) => true;
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
             Messages.Add(formatter(state, exception) + exception);
     }
 }

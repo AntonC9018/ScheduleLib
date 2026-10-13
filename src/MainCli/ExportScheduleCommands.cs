@@ -1,9 +1,6 @@
-using System.Text.Json;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Application.Core.Helper;
-using ScheduleLib.Builders;
 
 namespace ScheduleLib.Cli;
 
@@ -11,44 +8,89 @@ public sealed record ScheduleExportResult(string? OutputDirectory, int LessonCou
 
 public partial class ExportCommands
 {
-    [Command("pdf", Description = "Generate all group, partition and teacher PDFs for the latest period. No teacher profile is required.")]
-    public Task<int> Pdf(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
-        => ExportSchedule(false, source, destination, result, cancellationToken, settings);
+    [Command(
+        "pdf",
+        Description =
+            "Generate all group, partition and teacher PDFs for the latest period. No teacher profile is required.")]
+    public Task<int> Pdf(
+        SourceArguments source,
+        OutputArguments destination,
+        ResultArguments result,
+        CancellationToken cancellationToken = default,
+        SettingsArguments? settings = null)
+        => ExportSchedule(
+            new(
+                source,
+                destination,
+                result,
+                settings ?? new()),
+            ScheduleExportKind.Pdf,
+            cancellationToken);
 
-    [Command("ics", Description = "Generate all group, partition and teacher ICS calendars for the latest period; calendars with missing semester dates are reported and skipped. No teacher profile is required.")]
-    public Task<int> Ics(SourceArguments source, OutputArguments destination, ResultArguments result, CancellationToken cancellationToken = default, SettingsArguments? settings = null)
-        => ExportSchedule(true, source, destination, result, cancellationToken, settings);
+    [Command(
+        "ics",
+        Description =
+            "Generate all group, partition and teacher ICS calendars for the latest period; calendars with missing semester dates are reported and skipped. No teacher profile is required.")]
+    public Task<int> Ics(
+        SourceArguments source,
+        OutputArguments destination,
+        ResultArguments result,
+        CancellationToken cancellationToken = default,
+        SettingsArguments? settings = null)
+        => ExportSchedule(
+            new(
+                source,
+                destination,
+                result,
+                settings ?? new()),
+            ScheduleExportKind.Ics,
+            cancellationToken);
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "RunOutput is retained for partial manifest reporting and unconditionally disposed in the finally block.")]
-    private async Task<int> ExportSchedule(bool calendar, SourceArguments source, OutputArguments destination, ResultArguments resultArgs, CancellationToken cancellationToken, SettingsArguments? settings)
+    private async Task<int> ExportSchedule(
+        ExportRequest request,
+        ScheduleExportKind kind,
+        CancellationToken cancellationToken)
     {
-        var command = calendar ? "export ics" : "export pdf";
-        var runId = Guid.NewGuid().ToString("N");
-        if (CliOutput.ExclusiveError(resultArgs) is { } exclusive)
+        var source = request.Source!;
+        var destination = request.Destination;
+        var resultArgs = request.Result;
+        var settings = request.Settings;
+        var calendar = kind == ScheduleExportKind.Ics;
+        using var context = new CliCommandContext(
+            calendar ? "export ics" : "export pdf",
+            resultArgs,
+            cancellationToken);
+        if (!context.Start())
         {
-            Console.Error.WriteLine(exclusive);
-            return 2;
+            return CliExit.InvalidArguments;
         }
-        var cli = new CliOutput(command, runId, resultArgs);
-        cli.EmitStart();
+        var cli = context.Output;
         RunOutput? output = null;
-        var warnings = new List<string>();
+        var warnings = context.Warnings;
         var lessonCount = 0;
         var teacherCount = 0;
-        var streamed = 0;
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
-        Console.CancelKeyPress += cancel;
+        var cancellation = context.Cancellation;
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            if (destination.Directory is { } selectedOutput) CliRuntime.ResolvePath(selectedOutput);
-            using var resolvedSettings = await CliSettings.Load(settings ?? new(), cancellationToken: cancellation.Token);
-            var services = CliRuntime.CreateServices(source, ConfigureServices, resolvedSettings.ProjectDirectory);
-            resolvedSettings.ConfigureServices(services);
-            if (cli.Jsonl) CliLogging.ReplaceWithJsonl(services, cli);
-            CliAmbient.Current = cli.Jsonl ? cli : null;
-            output = await RunOutput.Create(destination.Directory, command, runId, cancellation.Token, resolvedSettings.ProjectDirectory);
+            if (destination.Directory is { } selectedOutput)
+            {
+                CliRuntime.ResolvePath(selectedOutput);
+            }
+
+            using var resolvedSettings = await CliSettings.Load(
+                settings ?? new(),
+                cancellationToken: cancellation.Token);
+            var services = context.CreateServices(
+                source,
+                resolvedSettings,
+                ConfigureServices);
+            output = context.Artifacts = await RunOutput.Create(
+                destination.Directory,
+                context.Command,
+                context.RunId,
+                cancellation.Token,
+                resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -57,96 +99,95 @@ public partial class ExportCommands
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
             var omitted = all.EnumerateWeeklyLessons().Count() - lessonCount;
-            if (omitted > 0) warnings.Add($"Latest-period selection omits {omitted} weekly lessons from other periods.");
-            if (teacherCount == 0) warnings.Add("The latest period contains no teachers.");
-            async Task PublishStreaming(string name, Func<Stream, CancellationToken, Task> generate, CancellationToken token)
+            if (omitted > 0)
             {
-                await output.Publish(name, generate, token);
+                warnings.Add($"Latest-period selection omits {omitted} weekly lessons from other periods.");
+            }
+
+            if (teacherCount == 0)
+            {
+                warnings.Add("The latest period contains no teachers.");
+            }
+
+            async Task PublishStreaming(
+                string name,
+                Func<Stream, CancellationToken, Task> generate,
+                CancellationToken token)
+            {
+                await output.Publish(
+                    name,
+                    generate,
+                    token);
                 StreamNew();
             }
+
             if (calendar)
-                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                    ReportOmission = warnings.Add,
-                });
+            {
+                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(
+                    new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                        ReportOmission = warnings.Add,
+                    });
+            }
             else
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                });
+            {
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(
+                    new() { CancellationToken = cancellation.Token, PublishArtifact = PublishStreaming });
+            }
+
             StreamNew();
-            if (output.PublishedPaths.Count == 0) warnings.Add("No artifacts were generated for the latest period.");
+            if (output.PublishedPaths.Count == 0)
+            {
+                warnings.Add("No artifacts were generated for the latest period.");
+            }
+
             await output.Complete("succeeded", cancellation.Token);
             StreamNew();
-            return await Finish(0, []);
+            return await Finish(CliExit.Success, []);
         }
-        catch (JsonException e) { return await Finish(3, [e.Message]); }
-        catch (ArgumentException e) { return await Finish(2, [e.Message]); }
-        catch (OperationCanceledException)
+        catch (Exception error)
         {
-            if (cancellation.IsCancellationRequested) return await Finish(130, ["Cancelled."]);
-            return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, ["Schedule provider request timed out."]);
-        }
-        catch (HttpRequestException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
-        catch (LocalOperationBusyException e) { return await Finish(7, [e.Message]); }
-        catch (PlatformNotSupportedException e) { return await Finish(8, [e.Message]); }
-        catch (DirectoryNotFoundException e) { return await Finish(3, [e.Message]); }
-        catch (InvalidScheduleSourceException e) { return await Finish(3, [e.Message]); }
-        catch (ScheduleBuildException e) { return await Finish(3, [e.Message]); }
-        catch (FileNotFoundException e) { return await Finish(3, [e.Message]); }
-        catch (UnauthorizedAccessException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
-        catch (IOException e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 5, [e.Message]); }
-        catch (Exception e) { return await Finish(output?.PublishedPaths.Count > 0 ? 6 : 1, [e.Message]); }
-        finally
-        {
-            Console.CancelKeyPress -= cancel;
-            CliAmbient.Current = null;
-            output?.Dispose();
+            var failure = context.ClassifyInputFailure(
+                error,
+                export: true,
+                originalTimeoutMessage: false);
+            return await Finish(failure.ExitCode, failure.Errors);
         }
 
-        void StreamNew()
-        {
-            if (output is null) return;
-            while (streamed < output.PublishedPaths.Count)
-            {
-                var path = output.PublishedPaths[streamed++];
-                cli.WriteHuman(path);
-                cli.EmitItem("artifact:" + path, "completed", new { path });
-            }
-        }
+        void StreamNew() => context.StreamArtifacts();
 
         async Task<int> Finish(int exit, string[] errors)
         {
-            if (exit != 0 && output is not null && output.PublishedPaths.Count > 0
-                && !output.PublishedPaths.Contains(output.ManifestPath))
-            {
-                try { await output.Complete("partial", CancellationToken.None); }
-                catch (Exception e) { warnings.Add($"Could not publish partial output manifest: {e.Message}"); }
-                StreamNew();
-            }
-            var paths = output?.PublishedPaths.ToArray() ?? [];
-            foreach (var error in errors) cli.WriteError(error);
-            foreach (var warning in warnings) cli.WriteWarning(warning);
-            var jsonStatus = exit == 0 ? "succeeded" : paths.Length > 0 ? "partial" : "failed";
-            var jsonlStatus = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : paths.Length > 0 ? "partial" : "failed";
-            if (resultArgs.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<ScheduleExportResult>(1, command, runId,
-                    jsonStatus, exit, paths, [], warnings.ToArray(), errors,
-                    new(output?.DirectoryPath, lessonCount, teacherCount)), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-            else if (resultArgs.Jsonl)
-                cli.EmitFinal(jsonlStatus, exit, warnings.ToArray(), errors, new
+            var paths = await context.CompleteArtifacts(exit);
+            var status = CliCommandContext.Status(exit, partial: paths.Length > 0);
+            var jsonStatus = CliCommandContext.Status(
+                exit,
+                partial: paths.Length > 0,
+                cancellation: false);
+            return context.Finish(
+                new CliCompletion<ScheduleExportResult>(
+                    exit,
+                    errors,
+                    new(
+                        output?.DirectoryPath,
+                        lessonCount,
+                        teacherCount))
                 {
-                    outputDirectory = output?.DirectoryPath,
-                    lessonCount,
-                    teacherCount,
-                    artifactCount = paths.Length,
+                    Summary = new
+                    {
+                        outputDirectory = output?.DirectoryPath,
+                        lessonCount,
+                        teacherCount,
+                        artifactCount = paths.Length,
+                    },
+                    Paths = paths,
+                    Status = status,
+                    JsonStatus = jsonStatus,
+                    RenderHuman = status => cli.WriteHuman(
+                        $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}."),
                 });
-            else
-                cli.WriteHuman($"{jsonlStatus}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.");
-            return exit;
         }
     }
 }
