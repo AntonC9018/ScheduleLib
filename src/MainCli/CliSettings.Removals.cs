@@ -119,8 +119,10 @@ public static partial class CliSettings
             throw new JsonException("Unknown collection item key; no resolved entry matches --item.");
     }
 
-    private static bool KeyMatches(Type element, object comparer, object item, object value) =>
-        (bool)typeof(IEqualityComparer<>).MakeGenericType(element).GetMethod("Equals", [element, element])!.Invoke(comparer, [item, value])!;
+    private static bool KeyMatches(Type element, object comparer, object item, object value)
+    {
+        return (bool)typeof(IEqualityComparer<>).MakeGenericType(element).GetMethod("Equals", [element, element])!.Invoke(comparer, [item, value])!;
+    }
 
     private static void AddOperation(MutableNode node, JsonObject action, IServiceProvider provider, JsonSerializerOptions json)
     {

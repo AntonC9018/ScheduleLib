@@ -146,9 +146,12 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
         catch (JsonException) { throw new IOException("Microsoft authorization state is invalid; log in explicitly to reprovision it."); }
     }
-    private static Task Write<T>(string path, T value, CancellationToken token) => AtomicFile.Publish(path, async (stream, ct) =>
+    private static Task Write<T>(string path, T value, CancellationToken token)
     {
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(((FileStream)stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        await JsonSerializer.SerializeAsync(stream, value, cancellationToken: ct);
-    }, token);
+        return AtomicFile.Publish(path, async (stream, ct) =>
+        {
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(((FileStream)stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            await JsonSerializer.SerializeAsync(stream, value, cancellationToken: ct);
+        }, token);
+    }
 }

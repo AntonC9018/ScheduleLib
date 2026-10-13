@@ -72,7 +72,12 @@ public partial class ExportCommands
             var handler = scope.ServiceProvider.GetRequiredService<GenerateAllTeachersExcelTaskHandler>();
             await output.Publish("all-teachers.xlsx", async (stream, token) =>
             {
-                await handler.Run(new() { Schedule = schedule, CancellationToken = token, OutputDirectory = stream });
+                await handler.Run(new()
+                {
+                    Schedule = schedule,
+                    CancellationToken = token,
+                    OutputDirectory = stream,
+                });
                 token.ThrowIfCancellationRequested();
                 stream.Position = 0;
                 using var workbook = SpreadsheetDocument.Open(stream, false);

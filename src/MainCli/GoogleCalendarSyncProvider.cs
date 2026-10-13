@@ -58,8 +58,15 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
         return result;
     }
     public async Task DeleteCalendar(string calendarId, CancellationToken token) => await _service.Calendars.Delete(calendarId).ExecuteAsync(token);
-    public async Task<string> CreateCalendar(string summary, CancellationToken token) => RequireCreatedId((await _service.Calendars.Insert(new Calendar
-    { Summary = summary, Location = "Chișinău, Moldova", TimeZone = "Europe/Chisinau" }).ExecuteAsync(token)).Id);
+    public async Task<string> CreateCalendar(string summary, CancellationToken token)
+    {
+        return RequireCreatedId((await _service.Calendars.Insert(new Calendar
+        {
+            Summary = summary,
+            Location = "Chișinău, Moldova",
+            TimeZone = "Europe/Chisinau",
+        }).ExecuteAsync(token)).Id);
+    }
     public async Task<string> CreateEvent(string calendarId, Event desired, CancellationToken token) => RequireCreatedId((await _service.Events.Insert(desired, calendarId).ExecuteAsync(token)).Id);
     private static string RequireCreatedId(string? id)
     {

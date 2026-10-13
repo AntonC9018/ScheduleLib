@@ -78,9 +78,12 @@ public static class CalendarSync
             catch (CliOutputStreamingException ex) { throw StreamingFailure(ex); }
             catch (Exception ex) when (ex is not OperationCanceledException) { throw StreamingFailure(new CliOutputStreamingException("Calendar output streaming failed.", ex)); }
         }
-        CalendarStreamingException StreamingFailure(Exception inner) => new(Result(
-            outcomes.Any(x => x.State == "completed") ? 6 : 1,
-            ["Output streaming failed. Completed actions remain applied; inspect the destination before another apply."], reportRemaining: false), inner);
+        CalendarStreamingException StreamingFailure(Exception inner)
+        {
+            return new(Result(
+                outcomes.Any(x => x.State == "completed") ? 6 : 1,
+                ["Output streaming failed. Completed actions remain applied; inspect the destination before another apply."], reportRemaining: false), inner);
+        }
         void ReportPlanned((string Id, string Action, string? CalendarId, int? DesiredEventIndex) step)
         {
             var outcome = new CalendarActionOutcome(step.Action, step.CalendarId, null, "planned", step.DesiredEventIndex);

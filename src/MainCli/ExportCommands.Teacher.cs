@@ -119,7 +119,11 @@ public partial class ExportCommands
                 var handler = scope.ServiceProvider.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
                 await output.Publish("deadlines.xlsx", async (stream, token) =>
                 {
-                    await handler.Run(new() { CancellationToken = token, OutputStream = stream });
+                    await handler.Run(new()
+                    {
+                        CancellationToken = token,
+                        OutputStream = stream,
+                    });
                     VerifyTeacherWorkbook(stream, token);
                 }, cancellation.Token);
                 workbookCount++;

@@ -132,11 +132,13 @@ public partial class QueryCommands
             ? "whole-group lessons and unspecialized optional lessons occupy their slot"
             : "every lesson occupies its slot";
 
-        static string UnknownGroups(string[] unknown, string[] known) =>
-            string.Join(" ", unknown.Select(name =>
+        static string UnknownGroups(string[] unknown, string[] known)
+        {
+            return string.Join(" ", unknown.Select(name =>
             {
                 var suggestion = known.FirstOrDefault(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
                 return $"Unknown group '{name}'." + (suggestion is null ? "" : $" Did you mean '{suggestion}'?");
             }));
+        }
     }
 }

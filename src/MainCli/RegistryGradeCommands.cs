@@ -149,8 +149,10 @@ public partial class RegistryCommands
         catch (Exception) { return Finish(attempted ? 6 : 1, ["Unexpected registry operation failure. No automatic retry was performed."]); }
         finally { Console.CancelKeyPress -= cancel; CliAmbient.Current = null; WriteResult(); }
 
-        static RegistryGradeOutcome ToOutcome(RegistryGradeAction action, string status, string? detail) => new(
-            action.Destination, action.Course, action.Groups, action.TestNumber, action.Grades, status, detail);
+        static RegistryGradeOutcome ToOutcome(RegistryGradeAction action, string status, string? detail)
+        {
+            return new(action.Destination, action.Course, action.Groups, action.TestNumber, action.Grades, status, detail);
+        }
         void Record(RegistryGradeAction action, string status, string? detail)
         {
             var index = actionIndexes[action];

@@ -74,9 +74,12 @@ public static class DriveSync
             catch (CliOutputStreamingException ex) { throw StreamingFailure(ex); }
             catch (Exception ex) when (ex is not OperationCanceledException) { throw StreamingFailure(new CliOutputStreamingException("Drive output streaming failed.", ex)); }
         }
-        DriveStreamingException StreamingFailure(Exception inner) => new(Result(
-            outcomes.Any(x => x.State == "completed") ? 6 : 1,
-            ["Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried."]), inner);
+        DriveStreamingException StreamingFailure(Exception inner)
+        {
+            return new(Result(
+                outcomes.Any(x => x.State == "completed") ? 6 : 1,
+                ["Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried."]), inner);
+        }
         void ReportPlanned(int index, DriveAction action)
         {
             var planned = new DriveOutcome(action, "planned", null);

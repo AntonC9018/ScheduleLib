@@ -35,8 +35,11 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         }
     }
 
-    private Google.GoogleApiException AuthorizationFailure() => new(api, "Google authorization failed.")
+    private Google.GoogleApiException AuthorizationFailure()
+    {
+        return new(api, "Google authorization failed.")
         { HttpStatusCode = System.Net.HttpStatusCode.Unauthorized };
+    }
 
     private bool IsSdkRefreshTimeout(InvalidOperationException error)
     {

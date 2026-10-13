@@ -54,10 +54,16 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
         }
     }
 
-    private static GoogleAuthorizationCodeFlow Flow(ClientSecrets secrets, string[] scopes, IDataStore? store) => new(new()
+    private static GoogleAuthorizationCodeFlow Flow(ClientSecrets secrets, string[] scopes, IDataStore? store)
     {
-        ClientSecrets = secrets, Scopes = scopes, DataStore = store, Prompt = "consent",
-    });
+        return new(new()
+        {
+            ClientSecrets = secrets,
+            Scopes = scopes,
+            DataStore = store,
+            Prompt = "consent",
+        });
+    }
 }
 
 /// <summary>User state is partitioned by teacher and OAuth client (a logical account).

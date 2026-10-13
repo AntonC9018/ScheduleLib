@@ -188,8 +188,9 @@ public sealed class GoogleDriveProviderTests
         {
             // The API HttpClient cancels the interceptor's linked token when its deadline
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
-            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
-                (scenario.EndsWith("real-deadline", StringComparison.Ordinal) || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            if (request.RequestUri!.Host == "oauth2.googleapis.com"
+                && (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
+                || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
             {
                 if (scenario.EndsWith("real-cancel", StringComparison.Ordinal)) cancellation.Cancel();
                 await Task.Delay(Timeout.Infinite, requestToken);

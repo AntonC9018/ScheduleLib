@@ -325,12 +325,17 @@ public static partial class CliSettings
         }
     }
 
-    private static void SetValue(MutableNode node, NodeDataKey key, object value) => typeof(CliSettings)
-        .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
-        .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+    private static void SetValue(MutableNode node, NodeDataKey key, object value)
+    {
+        typeof(CliSettings)
+            .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+    }
 
-    private static void SetTypedValue<T>(MutableNode node, NodeDataKey key, object value) where T : class =>
+    private static void SetTypedValue<T>(MutableNode node, NodeDataKey key, object value) where T : class
+    {
         node.GetOrAdd(new NodeDataKey<T>(key)).SetValue((T)value);
+    }
 
     private static void CheckDuplicates(JsonElement value, string file)
     {

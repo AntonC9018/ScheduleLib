@@ -193,8 +193,10 @@ public partial class RegistryCommands
             WriteResult();
         }
 
-        static RegistryActionOutcome ToOutcome(RegistrySyncAction action, string status, string? detail) => new(action.Kind,
-            action.Destination, action.Course, action.Groups, action.Date, action.Topic, action.AttendanceCount, status, detail);
+        static RegistryActionOutcome ToOutcome(RegistrySyncAction action, string status, string? detail)
+        {
+            return new(action.Kind, action.Destination, action.Course, action.Groups, action.Date, action.Topic, action.AttendanceCount, status, detail);
+        }
         void Record(RegistrySyncAction action, string status, string? detail)
         {
             var index = actionIndexes[action];
