@@ -1,17 +1,37 @@
 using System.Text.Json;
 using ScheduleLib.Cli;
-using Xunit;
 
 public sealed class CommandSurfaceTests
 {
     public static TheoryData<string> Operations => new()
     {
-        "export pdf", "export ics", "export teachers-excel", "export free-rooms",
-        "export lab-deadlines", "export website-schedules", "export website-theses", "export pre-defense",
-        "query lessons", "query free-hours", "drive publish", "calendar sync",
-        "registry sync", "registry import-grades", "registry history", "curricula download",
-        "config show", "config get", "config set", "config unset", "config remove",
-        "config clear", "config validate", "config profiles", "auth login", "auth status", "auth logout",
+        "export pdf",
+        "export ics",
+        "export teachers-excel",
+        "export free-rooms",
+        "export lab-deadlines",
+        "export website-schedules",
+        "export website-theses",
+        "export pre-defense",
+        "query lessons",
+        "query free-hours",
+        "drive publish",
+        "calendar sync",
+        "registry sync",
+        "registry import-grades",
+        "registry history",
+        "curricula download",
+        "config show",
+        "config get",
+        "config set",
+        "config unset",
+        "config remove",
+        "config clear",
+        "config validate",
+        "config profiles",
+        "auth login",
+        "auth status",
+        "auth logout",
     };
 
     [Theory]
@@ -48,11 +68,40 @@ public sealed class CommandSurfaceTests
 
     public static TheoryData<string[]> InvalidOperations => new()
     {
-        new[] { "config", "show", "--data-dir", "/missing" },
-        new[] { "auth", "status", "google", "--output", "/missing" },
-        new[] { "export", "pre-defense", "--no-cache" },
-        new[] { "curricula", "download", "--apply" },
-        new[] { "query", "lessons", "export", "pdf" },
+        new[]
+        {
+            "config",
+            "show",
+            "--data-dir",
+            "/missing",
+        },
+        new[]
+        {
+            "auth",
+            "status",
+            "google",
+            "--output",
+            "/missing",
+        },
+        new[]
+        {
+            "export",
+            "pre-defense",
+            "--no-cache",
+        },
+        new[]
+        {
+            "curricula",
+            "download",
+            "--apply",
+        },
+        new[]
+        {
+            "query",
+            "lessons",
+            "export",
+            "pdf",
+        },
     };
 
     [Theory]

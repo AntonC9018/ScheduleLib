@@ -2,6 +2,9 @@
   <PropertyGroup><OutputType>Exe</OutputType><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../MainCli.csproj" />
+    <ProjectReference Include="../../../build/Formatting/Formatting.csproj" />
+    <Reference Include="Microsoft.CodeAnalysis" HintPath="$(MSBuildToolsPath)/Roslyn/bincore/Microsoft.CodeAnalysis.dll" />
+    <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="$(MSBuildToolsPath)/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll" />
     <None Include="../../Features/Integration/data/2025_sem2/zi/13.02.26/Orar_An_III Lic.docx" Link="fixtures/2025_sem2/zi/13.02.26/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../Features/Integration/data/2025_sem2/zi/master.xlsx" Link="fixtures/2025_sem2/zi/master.xlsx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

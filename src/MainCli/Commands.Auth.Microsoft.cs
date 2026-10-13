@@ -1,6 +1,4 @@
 using System.Text.Json;
-using ScheduleLib.Application.Config;
-using ScheduleLib.Application.Core;
 using ScheduleLib.Curriculum.Download;
 
 namespace ScheduleLib.Cli;
@@ -10,75 +8,61 @@ public partial class AuthCommands
     protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication() => new();
     protected virtual MicrosoftAuthConfig LoadMicrosoftConfig() => MicrosoftCliConfiguration.Load();
 
-    private async Task<int> ExecuteMicrosoft(string verb, SettingsArguments settings, ResultArguments outputArgs, CancellationToken cancellationToken)
+    private async Task<int> ExecuteMicrosoft(
+        string verb,
+        SettingsArguments settings,
+        ResultArguments outputArgs,
+        CancellationToken cancellationToken)
     {
         var command = "auth " + verb + " microsoft";
-        var runId = Guid.NewGuid().ToString("N");
-        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        using var context = new CliCommandContext(
+            command,
+            outputArgs,
+            cancellationToken);
+        if (!context.Start())
         {
-            Console.Error.WriteLine(exclusive);
-            return 2;
+            return CliExit.InvalidArguments;
         }
-        var output = new CliOutput(command, runId, outputArgs);
-        output.EmitStart();
-        AuthStatus? data = null;
-        var exit = 1;
-        string[] errors = [];
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
-        Console.CancelKeyPress += cancel;
+        var cancellation = context.Cancellation;
         try
         {
             using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
-            if (resolved.Profile is not { } profile) throw new JsonException("A teacher --profile is required. Use config profiles to list identities.");
+            if (resolved.Profile is not { } profile)
+            {
+                throw new JsonException("A teacher --profile is required. Use config profiles to list identities.");
+            }
+
             var authentication = CreateMicrosoftAuthentication();
-            if (verb == "login") await authentication.Login(LoadMicrosoftConfig(), profile, cancellation.Token);
-            else if (verb == "logout") await authentication.Logout(profile, cancellation.Token);
-            data = await authentication.Status(profile, cancellation.Token);
-            exit = 0;
-        }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { exit = 130; errors = ["Cancelled."]; }
-        catch (AuthenticationRequiredException e) { exit = 4; errors = [e.Message]; }
-        catch (LocalOperationBusyException) { exit = 7; errors = ["Another Microsoft authentication operation owns this profile's local state."]; }
-        catch (JsonException e) { exit = 3; errors = [e.Message]; }
-        catch (DirectoryNotFoundException e) { exit = 3; errors = [e.Message]; }
-        catch (IOException) { exit = 5; errors = ["Could not read or update local Microsoft authorization state."]; }
-        catch (UnauthorizedAccessException) { exit = 5; errors = ["Local Microsoft authorization state is inaccessible."]; }
-        catch (Exception) { exit = 1; errors = ["Microsoft authentication operation failed unexpectedly."]; }
-        finally { Console.CancelKeyPress -= cancel; }
-        foreach (var error in errors) output.WriteError(error);
-        var status = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
-        if (outputArgs.Json)
-            Console.WriteLine(JsonSerializer.Serialize(new CommandResult<AuthStatus?>(1, command, runId,
-                status, exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        else if (output.Jsonl)
-        {
-            if (data is not null)
+            if (verb == "login")
             {
-                for (var index = 0; index < data.Accounts.Count; index++)
-                {
-                    var account = data.Accounts[index];
-                    output.EmitItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", account);
-                }
-                output.EmitFinal(status, exit, [], errors, new
-                {
-                    data.Provider,
-                    data.Profile,
-                    accountCount = data.Accounts.Count,
-                    provisioned = data.Accounts.Count != 0,
-                });
+                await authentication.Login(
+                    LoadMicrosoftConfig(),
+                    profile,
+                    cancellation.Token);
             }
-            else
+            else if (verb == "logout")
             {
-                output.EmitFinal(status, exit, [], errors, data);
+                await authentication.Logout(profile, cancellation.Token);
             }
+
+            var data = await authentication.Status(profile, cancellation.Token);
+            return CliAuthenticationExecution.Finish(
+                context,
+                CliExit.Success,
+                [],
+                data,
+                "Microsoft");
         }
-        else if (data is not null)
+        catch (Exception error)
         {
-            foreach (var account in data.Accounts) output.WriteHuman($"{account.AccountId}: {account.State}");
-            output.WriteHuman($"Microsoft authorization for {data.Profile}: {(data.Accounts.Count == 0 ? "not provisioned" : "provisioned")}");
+            var failure = CliAuthenticationExecution.ClassifyMicrosoft(error, cancellation.IsCancellationRequested);
+            return CliAuthenticationExecution.Finish(
+                context,
+                failure.ExitCode,
+                failure.Errors,
+                null,
+                "Microsoft");
         }
-        return exit;
     }
 }
 
@@ -86,7 +70,14 @@ public static class MicrosoftCliConfiguration
 {
     public static MicrosoftAuthConfig Load()
     {
-        try { return CredentialHelper.CreateDefaultConfiguration(typeof(Commands).Assembly).GetMicrosoftGraphAuth(); }
-        catch (InvalidOperationException) { throw new JsonException("Microsoft TenantId and ClientId must be configured in the existing Microsoft user-secrets section."); }
+        try
+        {
+            return CredentialHelper.CreateDefaultConfiguration(typeof(Commands).Assembly).GetMicrosoftGraphAuth();
+        }
+        catch (InvalidOperationException)
+        {
+            throw new JsonException(
+                "Microsoft TenantId and ClientId must be configured in the existing Microsoft user-secrets section.");
+        }
     }
 }

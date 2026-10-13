@@ -1,7 +1,6 @@
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
-using Xunit;
 
 public sealed class TeacherProfileScheduleLookupTests
 {

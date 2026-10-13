@@ -11,7 +11,10 @@ rulers = 120
 
 # Microsoft .NET properties
 csharp_new_line_before_members_in_object_initializers = true
-csharp_preserve_single_line_blocks = true
+
+# Roslyn braces rule (IDE0011). Enforced by build/format.sh (`dotnet format style --diagnostics IDE0011`),
+# which owns the rewrite; the ReSharper equivalents below stay aligned with it. See docs/formatting.md.
+csharp_prefer_braces = true:warning
 
 # ReSharper properties
 resharper_csharp_blank_lines_after_block_statements = 0
@@ -112,7 +115,10 @@ csharp_space_between_parentheses = false
 
 # Wrapping options
 csharp_preserve_single_line_statements = false
-csharp_preserve_single_line_blocks = true
+
+# Single-line blocks are not preserved: a brace block always opens on its own line
+# and every statement keeps its own line, so IDE0011 rewrites stay diffable.
+csharp_preserve_single_line_blocks = false
 
 dotnet_style_require_accessibility_modifiers = always
 

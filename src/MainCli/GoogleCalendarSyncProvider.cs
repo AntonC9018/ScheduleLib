@@ -2,7 +2,6 @@ using Google.Apis.Calendar.v3;
 using Google.Apis.Calendar.v3.Data;
 using Google.Apis.Http;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Application.Core;
 using Event = Google.Apis.Calendar.v3.Data.Event;
 
 namespace ScheduleLib.Cli;
@@ -10,25 +9,43 @@ namespace ScheduleLib.Cli;
 public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
 {
     private readonly CalendarService _service;
+
     public GoogleCalendarSyncProvider(CalendarService service)
     {
         _service = service;
         // Keep pre-send refresh, but remove UserCredential's response-triggered 401 replay.
         if (service.HttpClient.MessageHandler.Credential is { } credential)
+        {
             service.HttpClient.MessageHandler.Credential = new GoogleSingleAttemptCredential(credential, "calendar");
+        }
+
         service.HttpClient.MessageHandler.NumTries = 1;
         service.HttpClient.MessageHandler.FollowRedirect = false;
     }
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "Ownership transfers to the returned disposable provider.")]
-    public static async Task<ICalendarSyncProvider> Connect(IServiceProvider services, BuiltGoogleCalendarConfig config, CancellationToken token)
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000",
+        Justification = "Ownership transfers to the returned disposable provider.")]
+    public static async Task<ICalendarSyncProvider> Connect(
+        IServiceProvider services,
+        BuiltGoogleCalendarConfig config,
+        CancellationToken token)
     {
-        var helper = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<GoogleApiHelper>(services);
-        var credential = await helper.CredentialResolver.Resolve(config.Credentials.Build(), [CalendarService.Scope.Calendar], token);
+        var helper = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+            .GetRequiredService<GoogleApiHelper>(services);
+        var credential = await helper.CredentialResolver.Resolve(
+            config.Credentials.Build(),
+            [CalendarService.Scope.Calendar],
+            token);
         var initializer = helper.CreateServiceInitializer(credential);
         initializer.DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None;
         return new GoogleCalendarSyncProvider(new CalendarService(initializer));
     }
-    public async Task<string> GetAccount(CancellationToken token) => (await _service.Calendars.Get("primary").ExecuteAsync(token)).Id;
+
+    public async Task<string> GetAccount(CancellationToken token) =>
+        (await _service.Calendars.Get("primary").ExecuteAsync(token)).Id;
+
     public async Task<IReadOnlyList<CalendarDestination>> ListCalendars(CancellationToken token)
     {
         var result = new List<CalendarDestination>();
@@ -38,11 +55,16 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var request = _service.CalendarList.List();
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            result.AddRange((response.Items ?? []).Select(x => new CalendarDestination(x.Id, x.Summary, x.Primary == true)));
+            result.AddRange(
+                (response.Items ?? []).Select(x => new CalendarDestination(
+                    x.Id,
+                    x.Summary,
+                    x.Primary == true)));
             page = response.NextPageToken;
         } while (page is not null);
         return result;
     }
+
     public async Task<IReadOnlyList<CalendarEventIdentity>> ListEvents(string calendarId, CancellationToken token)
     {
         var result = new List<CalendarEventIdentity>();
@@ -57,13 +79,28 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
         } while (page is not null);
         return result;
     }
-    public async Task DeleteCalendar(string calendarId, CancellationToken token) => await _service.Calendars.Delete(calendarId).ExecuteAsync(token);
-    public async Task<string> CreateCalendar(string summary, CancellationToken token) => RequireCreatedId((await _service.Calendars.Insert(new Calendar
-    { Summary = summary, Location = "Chișinău, Moldova", TimeZone = "Europe/Chisinau" }).ExecuteAsync(token)).Id);
-    public async Task<string> CreateEvent(string calendarId, Event desired, CancellationToken token) => RequireCreatedId((await _service.Events.Insert(desired, calendarId).ExecuteAsync(token)).Id);
+
+    public async Task DeleteCalendar(string calendarId, CancellationToken token) =>
+        await _service.Calendars.Delete(calendarId).ExecuteAsync(token);
+
+    public async Task<string> CreateCalendar(string summary, CancellationToken token) => RequireCreatedId(
+        (await _service.Calendars
+            .Insert(new Calendar { Summary = summary, Location = "Chișinău, Moldova", TimeZone = "Europe/Chisinau" })
+            .ExecuteAsync(token)).Id);
+
+    public async Task<string> CreateEvent(
+        string calendarId,
+        Event desired,
+        CancellationToken token) =>
+        RequireCreatedId((await _service.Events.Insert(desired, calendarId).ExecuteAsync(token)).Id);
+
     private static string RequireCreatedId(string? id)
     {
-        if (string.IsNullOrWhiteSpace(id)) throw new IOException("Calendar create returned no identity; outcome is uncertain.");
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new IOException("Calendar create returned no identity; outcome is uncertain.");
+        }
+
         return id;
     }
 

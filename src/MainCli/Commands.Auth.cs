@@ -1,62 +1,147 @@
-using System.Text.Json;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
     [Subcommand]
-    public AuthCommands Auth { get; set; } = new();
+    public AuthCommands Auth
+    {
+        get;
+        set;
+    } = new();
 }
 
 // Enum names are the public command literals (CommandDotNet matches case exactly).
-public enum AuthProvider { google, microsoft }
+public enum AuthProvider
+{
+    google,
+    microsoft,
+}
+
 public sealed class AuthProviderArguments : IArgumentModel
 {
     [Operand("provider", Description = "Authentication provider: google or microsoft.")]
-    public AuthProvider Provider { get; set; }
+    public AuthProvider Provider
+    {
+        get;
+        set;
+    }
 }
 
 [Command("auth", Description = "Manage local authorization; only login initiates browser consent.")]
 public partial class AuthCommands
 {
-    [Command("login", Description = "Explicitly authorize the selected teacher for the chosen provider using configured client settings.")]
-    public Task<int> Login(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("login", provider.Provider, settings, output, cancellationToken);
-    [Command("status", Description = "Inspect local teacher/client authorization without contacting providers or loading schedules.")]
-    public Task<int> Status(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("status", provider.Provider, settings, output, cancellationToken);
-    [Command("logout", Description = "Delete local authorization for this teacher's accounts. No cloud revocation is performed.")]
-    public Task<int> Logout(AuthProviderArguments provider, SettingsArguments settings, ResultArguments output, CancellationToken cancellationToken = default) => Route("logout", provider.Provider, settings, output, cancellationToken);
+    [Command(
+        "login",
+        Description =
+            "Explicitly authorize the selected teacher for the chosen provider using configured client settings.")]
+    public Task<int> Login(
+        AuthProviderArguments provider,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken cancellationToken = default) => Route(
+        "login",
+        provider.Provider,
+        settings,
+        output,
+        cancellationToken);
 
-    private Task<int> Route(string verb, AuthProvider provider, SettingsArguments settings, ResultArguments output, CancellationToken token)
-        => provider == AuthProvider.microsoft ? ExecuteMicrosoft(verb, settings, output, token) : Execute(verb, settings, output, token);
+    [Command(
+        "status",
+        Description = "Inspect local teacher/client authorization without contacting providers or loading schedules.")]
+    public Task<int> Status(
+        AuthProviderArguments provider,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken cancellationToken = default) => Route(
+        "status",
+        provider.Provider,
+        settings,
+        output,
+        cancellationToken);
 
-    private static async Task<int> Execute(string verb, SettingsArguments settings, ResultArguments outputArgs, CancellationToken cancellationToken)
+    [Command(
+        "logout",
+        Description = "Delete local authorization for this teacher's accounts. No cloud revocation is performed.")]
+    public Task<int> Logout(
+        AuthProviderArguments provider,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken cancellationToken = default) => Route(
+        "logout",
+        provider.Provider,
+        settings,
+        output,
+        cancellationToken);
+
+    private Task<int> Route(
+        string verb,
+        AuthProvider provider,
+        SettingsArguments settings,
+        ResultArguments output,
+        CancellationToken token)
+        => provider == AuthProvider.microsoft
+            ? ExecuteMicrosoft(
+                verb,
+                settings,
+                output,
+                token)
+            : Execute(
+                verb,
+                settings,
+                output,
+                token);
+
+    private static async Task<int> Execute(
+        string verb,
+        SettingsArguments settings,
+        ResultArguments outputArgs,
+        CancellationToken cancellationToken)
     {
         var command = "auth " + verb + " google";
-        var runId = Guid.NewGuid().ToString("N");
-        if (CliOutput.ExclusiveError(outputArgs) is { } exclusive)
+        using var context = new CliCommandContext(
+            command,
+            outputArgs,
+            cancellationToken);
+        if (!context.Start())
         {
-            Console.Error.WriteLine(exclusive);
-            return 2;
+            return CliExit.InvalidArguments;
         }
-        var output = new CliOutput(command, runId, outputArgs);
-        output.EmitStart();
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
-        Console.CancelKeyPress += cancel;
+        var cancellation = context.Cancellation;
         try
         {
             using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
-            if (resolved.Profile is not { } teacher) return Finish(3, null, ["A teacher --profile is required. Use config profiles to list identities."]);
+            if (resolved.Profile is not { } teacher)
+            {
+                return CliAuthenticationExecution.Finish(
+                    context,
+                    CliExit.InvalidConfiguration,
+                    ["A teacher --profile is required. Use config profiles to list identities."],
+                    null,
+                    "Google");
+            }
+
             using var authentication = new GoogleAuthentication();
             if (verb == "login")
             {
-                var credentials = new[] { resolved.Get(GoogleCalendarConfig.Key)?.Credentials, resolved.Get(GoogleDriveConfig.Key)?.Credentials }
+                var credentials = new[]
+                    {
+                        resolved.Get(GoogleCalendarConfig.Key)?.Credentials,
+                        resolved.Get(GoogleDriveConfig.Key)?.Credentials,
+                    }
                     .Where(x => x is not null).Select(x => x!.Build()).ToArray();
-                if (credentials.Length == 0) return Finish(3, null, ["Google client configuration is missing for this profile."]);
+                if (credentials.Length == 0)
+                {
+                    return CliAuthenticationExecution.Finish(
+                        context,
+                        CliExit.InvalidConfiguration,
+                        ["Google client configuration is missing for this profile."],
+                        null,
+                        "Google");
+                }
                 // Only credential binders are registered. No schedule/runtime or unrelated cloud services are created.
                 var services = new ServiceCollection();
                 services.AddConfigsServices();
@@ -65,56 +150,33 @@ public partial class AuthCommands
                 services.AddScoped<CurrentUserNameProvider>();
                 await using var container = services.BuildServiceProvider();
                 await using var scope = container.CreateAsyncScope();
-                await authentication.Login(credentials, teacher, scope.ServiceProvider, cancellation.Token);
+                await authentication.Login(
+                    credentials,
+                    teacher,
+                    scope.ServiceProvider,
+                    cancellation.Token);
             }
-            else if (verb == "logout") await authentication.Logout(teacher, cancellation.Token);
-            return Finish(0, await authentication.Status(teacher, cancellation.Token), []);
-        }
-        catch (OperationCanceledException) { return Finish(130, null, ["Cancelled."]); }
-        catch (AuthenticationRequiredException e) { return Finish(4, null, [e.Message]); }
-        catch (LocalOperationBusyException) { return Finish(7, null, ["Another authentication operation owns this teacher's local state."]); }
-        catch (JsonException e) { return Finish(3, null, [e.Message]); }
-        catch (DirectoryNotFoundException e) { return Finish(3, null, [e.Message]); }
-        catch (IOException) { return Finish(5, null, ["Could not read or update local authorization state."]); }
-        catch (UnauthorizedAccessException) { return Finish(5, null, ["Local authorization state is inaccessible."]); }
-        catch (Exception) { return Finish(1, null, ["Authentication operation failed. Check the configured Google client credentials."]); }
-        finally { Console.CancelKeyPress -= cancel; }
+            else if (verb == "logout")
+            {
+                await authentication.Logout(teacher, cancellation.Token);
+            }
 
-        int Finish(int exit, AuthStatus? data, string[] errors)
+            return CliAuthenticationExecution.Finish(
+                context,
+                CliExit.Success,
+                [],
+                await authentication.Status(teacher, cancellation.Token),
+                "Google");
+        }
+        catch (Exception error)
         {
-            foreach (var error in errors) output.WriteError(error);
-            var status = exit == 0 ? "succeeded" : exit == 130 ? "cancelled" : "failed";
-            if (outputArgs.Json)
-                Console.WriteLine(JsonSerializer.Serialize(new CommandResult<AuthStatus?>(1, command, runId,
-                    status, exit, [], [], [], errors, data), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-            else if (output.Jsonl)
-            {
-                if (data is not null)
-                {
-                    for (var index = 0; index < data.Accounts.Count; index++)
-                    {
-                        var account = data.Accounts[index];
-                        output.EmitItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture), "completed", account);
-                    }
-                    output.EmitFinal(status, exit, [], errors, new
-                    {
-                        data.Provider,
-                        data.Profile,
-                        accountCount = data.Accounts.Count,
-                        provisioned = data.Accounts.Count != 0,
-                    });
-                }
-                else
-                {
-                    output.EmitFinal(status, exit, [], errors, data);
-                }
-            }
-            else if (data is not null)
-            {
-                foreach (var account in data.Accounts) output.WriteHuman($"{account.AccountId}: {account.State}");
-                output.WriteHuman($"Google authorization for {data.Profile}: {(data.Accounts.Count == 0 ? "not provisioned" : "provisioned")}");
-            }
-            return exit;
+            var failure = CliAuthenticationExecution.ClassifyGoogle(error);
+            return CliAuthenticationExecution.Finish(
+                context,
+                failure.ExitCode,
+                failure.Errors,
+                null,
+                "Google");
         }
     }
 }
