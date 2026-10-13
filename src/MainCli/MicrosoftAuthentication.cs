@@ -102,8 +102,8 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
 /// Hold the profile lease through acquisition and atomic publication, including refresh.</summary>
 public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicrosoftTokenProvider? tokens = null)
 {
-    private readonly string _root = stateDirectory ??
-        Path.Combine(
+    private readonly string _root = stateDirectory
+        ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ScheduleLib",
             "auth",
@@ -185,11 +185,11 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         Validate(config, profile);
         await using var lease = await Lease(profile, token);
         var binding = await Read<Binding>(BindingFile(profile), token);
-        if (binding is null ||
-            binding.SchemaVersion != 1 ||
-            binding.TenantId != config.TenantId ||
-            binding.ClientId != config.ClientId ||
-            string.IsNullOrWhiteSpace(binding.AccountId))
+        if (binding is null
+            || binding.SchemaVersion != 1
+            || binding.TenantId != config.TenantId
+            || binding.ClientId != config.ClientId
+            || string.IsNullOrWhiteSpace(binding.AccountId))
         {
             throw new AuthenticationRequiredException("microsoft", profile);
         }
@@ -246,17 +246,17 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                 []);
         }
 
-        if (binding.SchemaVersion != 1 ||
-            string.IsNullOrWhiteSpace(binding.TenantId) ||
-            string.IsNullOrWhiteSpace(binding.ClientId) ||
-            string.IsNullOrWhiteSpace(binding.AccountId))
+        if (binding.SchemaVersion != 1
+            || string.IsNullOrWhiteSpace(binding.TenantId)
+            || string.IsNullOrWhiteSpace(binding.ClientId)
+            || string.IsNullOrWhiteSpace(binding.AccountId))
         {
             throw new IOException("Microsoft authorization binding is invalid; log in explicitly to reprovision it.");
         }
 
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
-        if (cached is not null &&
-            (cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 } || cached.Scopes is null))
+        if (cached is not null
+            && (cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 } || cached.Scopes is null))
         {
             throw new IOException("Microsoft authorization cache is invalid; log in explicitly to reprovision it.");
         }
@@ -299,11 +299,11 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
 
     private static void EnsureUsable(MicrosoftToken authorization, string profile)
     {
-        if (string.IsNullOrWhiteSpace(authorization.AccessToken) ||
-            string.IsNullOrWhiteSpace(authorization.AccountId) ||
-            authorization.Cache.Length == 0 ||
-            authorization.ExpiresOn <= DateTimeOffset.UtcNow ||
-            CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
+        if (string.IsNullOrWhiteSpace(authorization.AccessToken)
+            || string.IsNullOrWhiteSpace(authorization.AccountId)
+            || authorization.Cache.Length == 0
+            || authorization.ExpiresOn <= DateTimeOffset.UtcNow
+            || CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
                 .Any())
         {
             throw new AuthenticationRequiredException("microsoft", profile);
@@ -331,19 +331,22 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
     private static Task Write<T>(
         string path,
         T value,
-        CancellationToken token) => AtomicFile.Publish(
-        path,
-        async (stream, ct) =>
-        {
-            if (!OperatingSystem.IsWindows())
+        CancellationToken token)
+    {
+        return AtomicFile.Publish(
+            path,
+            async (stream, ct) =>
             {
-                File.SetUnixFileMode(((FileStream) stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(((FileStream) stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
 
-            await JsonSerializer.SerializeAsync(
-                stream,
-                value,
-                cancellationToken: ct);
-        },
-        token);
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    value,
+                    cancellationToken: ct);
+            },
+            token);
+    }
 }

@@ -126,9 +126,9 @@ public sealed class SettingsRemovalTests
         using var files = new SettingsWriteTests.Fixture();
         var manifest = Path.Combine(files.Root, "topics.json");
         await files.User(
-            "{\"schemaVersion\":1,\"defaults\":{\"LessonTopicsConfig\":{\"sources\":[{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":" +
-            JsonSerializer.Serialize(manifest) +
-            "}]},\"GoogleCalendarConfig\":{\"calendarName\":\"inherited\"}}}");
+            "{\"schemaVersion\":1,\"defaults\":{\"LessonTopicsConfig\":{\"sources\":[{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":"
+            + JsonSerializer.Serialize(manifest)
+            + "}]},\"GoogleCalendarConfig\":{\"calendarName\":\"inherited\"}}}");
         await files.Success(
             "remove",
             "LessonTopicsConfig.sources",
@@ -184,7 +184,13 @@ public sealed class SettingsRemovalTests
         using var files = new SettingsWriteTests.Fixture();
         const string original = """{"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"valid"}}}""";
         await File.WriteAllTextAsync(files.ProjectFile, original);
-        var args = new List<string> { verb, key, "--scope", "project" };
+        var args = new List<string>
+        {
+            verb,
+            key,
+            "--scope",
+            "project",
+        };
         if (item is not null)
         {
             args.AddRange(["--item", item]);

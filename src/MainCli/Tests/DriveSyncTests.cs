@@ -99,7 +99,11 @@ public sealed class DriveSyncTests
     public async Task RejectedDeleteAndUnauthorizedCreateCannotBecomeSuccess()
     {
         using var temp = new Temp();
-        using var rejectedDelete = new Fake { Remote = [new("old", "old.txt")], FailDelete = true };
+        using var rejectedDelete = new Fake
+        {
+            Remote = [new("old", "old.txt")],
+            FailDelete = true,
+        };
         var deletion = await DriveSync.Run(
             rejectedDelete,
             "Configured",
@@ -128,7 +132,11 @@ public sealed class DriveSyncTests
     public async Task PartialDeletionThenLostCreatePreservesCompletedIdentity()
     {
         using var temp = new Temp();
-        using var fake = new Fake { Remote = [new("removed", "old.txt")], Fail = "lost" };
+        using var fake = new Fake
+        {
+            Remote = [new("removed", "old.txt")],
+            Fail = "lost",
+        };
         var result = await DriveSync.Run(
             fake,
             "Configured",

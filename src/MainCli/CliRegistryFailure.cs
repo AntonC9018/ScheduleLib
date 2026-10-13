@@ -32,11 +32,11 @@ internal static class CliRegistryFailure
             OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
             RegistryAuthenticationException => new(CliExit.AuthenticationRequired, [error.Message]),
             LocalOperationBusyException => new(CliExit.Busy, [error.Message]),
-            JsonException or
-                DirectoryNotFoundException or
-                FileNotFoundException or
-                InvalidScheduleSourceException or
-                ScheduleBuildException => new(CliExit.InvalidConfiguration, [error.Message]),
+            JsonException
+                or DirectoryNotFoundException
+                or FileNotFoundException
+                or InvalidScheduleSourceException
+                or ScheduleBuildException => new(CliExit.InvalidConfiguration, [error.Message]),
             ArgumentException => new(CliExit.InvalidArguments, [error.Message]),
             PlatformNotSupportedException => new(CliExit.Unsupported, [error.Message]),
             IOException when grades => new(

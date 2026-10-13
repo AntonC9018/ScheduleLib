@@ -86,8 +86,8 @@ public static class CalendarSync
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
-                    lockRoot ??
-                    Path.Combine(
+                    lockRoot
+                    ?? Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ScheduleLib",
                         "remote-locks",
@@ -162,14 +162,17 @@ public static class CalendarSync
             }
         }
 
-        CalendarStreamingException StreamingFailure(Exception inner) => new(
-            Result(
-                outcomes.Any(x => x.State == "completed") ? 6 : 1,
-                [
-                    "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
-                ],
-                reportRemaining: false),
-            inner);
+        CalendarStreamingException StreamingFailure(Exception inner)
+        {
+            return new(
+                Result(
+                    outcomes.Any(x => x.State == "completed") ? 6 : 1,
+                    [
+                        "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
+                    ],
+                    reportRemaining: false),
+                inner);
+        }
 
         void ReportPlanned((string Id, string Action, string? CalendarId, int? DesiredEventIndex) step)
         {
@@ -319,8 +322,8 @@ public static class CalendarSync
             // must not be reclassified as uncertain/failed or retried.
             throw;
         }
-        catch (Exception error) when (token.IsCancellationRequested &&
-                                      error is OperationCanceledException or GooglePreSendTransportException)
+        catch (Exception error) when (token.IsCancellationRequested
+                                      && error is OperationCanceledException or GooglePreSendTransportException)
         {
             if (attempted)
             {

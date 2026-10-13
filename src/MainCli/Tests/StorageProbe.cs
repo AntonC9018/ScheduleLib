@@ -10,7 +10,11 @@ public static class StorageProbe
         if (args[0] == "export")
         {
             return await new FixtureExport().TeachersExcel(
-                new() { DataDirectory = args[1], CacheDirectory = args[2] },
+                new()
+                {
+                    DataDirectory = args[1],
+                    CacheDirectory = args[2],
+                },
                 new() { Directory = args[3] == "-" ? null : args[3] },
                 new() { Json = true });
         }
@@ -19,7 +23,12 @@ public static class StorageProbe
         {
             return await new FixtureQuery().Lessons(
                 new(),
-                new() { DataDirectory = args[1], CacheDirectory = args[2], NoCache = args.Length > 3 },
+                new()
+                {
+                    DataDirectory = args[1],
+                    CacheDirectory = args[2],
+                    NoCache = args.Length > 3,
+                },
                 new() { Json = true });
         }
 

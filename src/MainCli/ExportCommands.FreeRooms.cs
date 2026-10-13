@@ -72,7 +72,12 @@ public partial class ExportCommands
                 "free-rooms.xlsx",
                 async (stream, token) =>
                 {
-                    await handler.Run(new() { CancellationToken = token, OutputStream = stream });
+                    await handler.Run(
+                        new()
+                        {
+                            CancellationToken = token,
+                            OutputStream = stream,
+                        });
                     token.ThrowIfCancellationRequested();
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);

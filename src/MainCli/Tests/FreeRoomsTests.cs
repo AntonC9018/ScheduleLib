@@ -35,7 +35,8 @@ public sealed class FreeRoomsTests
     public async Task HelpAndParseErrorsDoNotInitialize(string[] args, int expected)
     {
         // The invocation directory contains no schedule data; these must still succeed/fail as parsing requires.
-        Assert.Equal(expected, await CliHost.Run(args));
+        var exit = await CliHost.Run(args);
+        Assert.Equal(expected, exit);
     }
 
     [Fact]
@@ -301,7 +302,8 @@ public sealed class FreeRoomsTests
                 await new FixtureExport().FreeRooms(
                     new()
                     {
-                        NoCache = true, DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
+                        NoCache = true,
+                        DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
                     },
                     new() { Directory = temp.Path },
                     new() { Json = true }));

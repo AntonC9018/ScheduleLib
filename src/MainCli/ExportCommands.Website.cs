@@ -95,7 +95,9 @@ public partial class ExportCommands
 
             var displays = new WebsiteJsonScheduleHelper.Services
             {
-                ParityDisplay = new(), LessonTypeDisplay = new(), SubGroupNumberDisplay = new(),
+                ParityDisplay = new(),
+                LessonTypeDisplay = new(),
+                SubGroupNumberDisplay = new(),
             };
             foreach (var (teacher, filteredSchedule) in grouping.Filter(full))
             {
@@ -378,17 +380,17 @@ public partial class ExportCommands
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
-            if (string.IsNullOrWhiteSpace(name) ||
-                name != Path.GetFileName(name) ||
-                name is "." or ".." ||
-                name.Contains('\\') ||
-                name.Contains('/') ||
-                name.Contains(':') ||
-                string.Equals(
+            if (string.IsNullOrWhiteSpace(name)
+                || name != Path.GetFileName(name)
+                || name is "." or ".."
+                || name.Contains('\\')
+                || name.Contains('/')
+                || name.Contains(':')
+                || string.Equals(
                     name,
                     "schedulelib-manifest.json",
-                    StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(
+                    StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
                     name,
                     ".schedulelib-output.lock",
                     StringComparison.OrdinalIgnoreCase))

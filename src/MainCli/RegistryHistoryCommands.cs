@@ -78,9 +78,9 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         try
         {
             credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>().Get();
-            if (credentials is null ||
-                string.IsNullOrWhiteSpace(credentials.Login) ||
-                string.IsNullOrWhiteSpace(credentials.Password))
+            if (credentials is null
+                || string.IsNullOrWhiteSpace(credentials.Login)
+                || string.IsNullOrWhiteSpace(credentials.Password))
             {
                 throw new InvalidOperationException();
             }
@@ -91,8 +91,8 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
                 "Registry credentials are missing; configure the selected teacher's existing credential source.");
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
-        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()?.HttpCallDelay ??
-            BuiltRegistryConfig.DefaultHttpCallDelay;
+        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()?.HttpCallDelay
+            ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         using var context = await RegistryScraping.CreateHistoryContext(
             credentials,
             token,
@@ -171,7 +171,9 @@ public partial class RegistryCommands
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
             {
-                Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None,
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
             };
             if (!OperatingSystem.IsWindows())
             {
@@ -196,7 +198,12 @@ public partial class RegistryCommands
                 output.EmitItem(
                     yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { year = year.Year, courses = courseCount, groups = groupCount });
+                    new
+                    {
+                        year = year.Year,
+                        courses = courseCount,
+                        groups = groupCount,
+                    });
             }
             return Finish(
                 CliExit.Success,
@@ -245,7 +252,12 @@ public partial class RegistryCommands
             {
                 errors = [error];
             }
-            var data = new { years, courses, groups };
+            var data = new
+            {
+                years,
+                courses,
+                groups,
+            };
             var status = CliCommandContext.Status(exit, success: "downloaded");
             var jsonStatus = CliCommandContext.Status(
                 exit,

@@ -17,7 +17,8 @@ internal static class CliConfigExecution
 {
     private static readonly JsonSerializerOptions HumanJson = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
     };
 
     internal static CliFailure ClassifyRead(Exception error) => error switch

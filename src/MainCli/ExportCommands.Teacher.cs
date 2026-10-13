@@ -134,8 +134,8 @@ public partial class ExportCommands
                         ]);
                 }
             }
-            if (preDefense &&
-                !ListsForPredzashitaTaskHandler.HasConfiguredCommissions(
+            if (preDefense
+                && !ListsForPredzashitaTaskHandler.HasConfiguredCommissions(
                     provider.GetRequiredService<IOptions<PreDefenseOptions>>().Value))
             {
                 return await Finish(
@@ -238,7 +238,12 @@ public partial class ExportCommands
                     "deadlines.xlsx",
                     async (stream, token) =>
                     {
-                        await handler.Run(new() { CancellationToken = token, OutputStream = stream });
+                        await handler.Run(
+                            new()
+                            {
+                                CancellationToken = token,
+                                OutputStream = stream,
+                            });
                         VerifyTeacherWorkbook(stream, token);
                     },
                     cancellation.Token);
@@ -281,7 +286,10 @@ public partial class ExportCommands
                 {
                     Summary = new
                     {
-                        outputDirectory = output?.DirectoryPath, teacher, workbookCount, artifactCount = paths.Length,
+                        outputDirectory = output?.DirectoryPath,
+                        teacher,
+                        workbookCount,
+                        artifactCount = paths.Length,
                     },
                     Paths = paths,
                     Status = status,

@@ -363,8 +363,8 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
             var properties = ExtractProperties(state)?.ToDictionary(
                     pair => pair.Key,
                     pair => pair.Value,
-                    StringComparer.Ordinal) ??
-                new Dictionary<string, object?>(StringComparer.Ordinal);
+                    StringComparer.Ordinal)
+                ?? new Dictionary<string, object?>(StringComparer.Ordinal);
             var scopes = new List<string>();
             scopeProvider().ForEachScope(
                 (scope, collected) =>

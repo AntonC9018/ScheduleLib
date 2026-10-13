@@ -128,7 +128,11 @@ public sealed class AuthenticationTests
         {
             ApiKeysSource = new ManualGoogleApiKeysSource
             {
-                Value = new() { ClientId = "other-client", ClientSecret = "other-secret" },
+                Value = new()
+                {
+                    ClientId = "other-client",
+                    ClientSecret = "other-secret",
+                },
             },
         };
         await auth.Login(
@@ -316,7 +320,8 @@ public sealed class AuthenticationTests
             new ConfigurationBuilder().AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["Google:ClientId"] = "configured-client", ["Google:ClientSecret"] = "configured-client-secret",
+                    ["Google:ClientId"] = "configured-client",
+                    ["Google:ClientSecret"] = "configured-client-secret",
                 }).Build());
         services.AddSingleton<IGoogleCredentialAuthorization>(_ => fixture.Auth);
         await using var container = services.BuildServiceProvider();
@@ -399,7 +404,11 @@ public sealed class AuthenticationTests
             CredentialsPath = "ignored-project-token-path",
             ApiKeysSource = new ManualGoogleApiKeysSource
             {
-                Value = new() { ClientId = "client", ClientSecret = "client-secret" },
+                Value = new()
+                {
+                    ClientId = "client",
+                    ClientSecret = "client-secret",
+                },
             },
         };
 
@@ -477,7 +486,12 @@ public sealed class AuthenticationTests
             }
 
             return Task.FromResult<TokenResponse?>(
-                new() { AccessToken = "refreshed-secret", IssuedUtc = DateTime.UtcNow, ExpiresInSeconds = 3600 });
+                new()
+                {
+                    AccessToken = "refreshed-secret",
+                    IssuedUtc = DateTime.UtcNow,
+                    ExpiresInSeconds = 3600,
+                });
         }
 
         public UserCredential CreateCredential(
@@ -488,7 +502,12 @@ public sealed class AuthenticationTests
             IDataStore store)
         {
             var flow = new GoogleAuthorizationCodeFlow(
-                new() { ClientSecrets = secrets, Scopes = scopes, DataStore = store });
+                new()
+                {
+                    ClientSecrets = secrets,
+                    Scopes = scopes,
+                    DataStore = store,
+                });
             _flows.Add(flow);
             return new(
                 flow,

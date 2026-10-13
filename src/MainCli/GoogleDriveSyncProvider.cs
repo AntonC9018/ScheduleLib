@@ -117,7 +117,11 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         => Upload(
             HttpMethod.Post,
             null,
-            new DriveFile { Name = name, Parents = [folderId] },
+            new DriveFile
+            {
+                Name = name,
+                Parents = [folderId],
+            },
             input,
             token);
 
@@ -149,9 +153,9 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         using var content = new StreamContent(input);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         multipart.Add(content);
-        var uri = "https://www.googleapis.com/upload/drive/v3/files" +
-            (fileId is null ? "" : "/" + Uri.EscapeDataString(fileId)) +
-            "?uploadType=multipart&fields=id";
+        var uri = "https://www.googleapis.com/upload/drive/v3/files"
+            + (fileId is null ? "" : "/" + Uri.EscapeDataString(fileId))
+            + "?uploadType=multipart&fields=id";
         using var request = new HttpRequestMessage(method, uri) { Content = multipart };
         using var response = await _service.HttpClient.SendAsync(request, token);
         if (!response.IsSuccessStatusCode)

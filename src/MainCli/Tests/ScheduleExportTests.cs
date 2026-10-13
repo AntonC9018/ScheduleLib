@@ -64,7 +64,8 @@ public sealed class ScheduleExportTests
         {
             var info = new ProcessStartInfo("/usr/bin/pdftotext")
             {
-                RedirectStandardOutput = true, RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             };
             info.ArgumentList.Add(pdf);
             info.ArgumentList.Add("-");
@@ -130,13 +131,21 @@ public sealed class ScheduleExportTests
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(
-                    new() { CancellationToken = cancellation.Token, PublishArtifact = Publish }));
+                    new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = Publish,
+                    }));
         }
         else
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(
-                    new() { CancellationToken = cancellation.Token, PublishArtifact = Publish }));
+                    new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = Publish,
+                    }));
         }
 
         Assert.Equal(1, count);
@@ -184,7 +193,8 @@ public sealed class ScheduleExportTests
 
     private static SourceArguments Source() => new()
     {
-        NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        NoCache = true,
+        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
     };
 
     private static Task<int> Execute(

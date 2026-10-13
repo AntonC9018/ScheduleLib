@@ -169,7 +169,13 @@ public partial class QueryCommands
                     errors,
                     data)
                 {
-                    Summary = data is null ? null : new { groups = data.Groups, sectionCount = data.Sections.Length },
+                    Summary = data is null
+                        ? null
+                        : new
+                        {
+                            groups = data.Groups,
+                            sectionCount = data.Sections.Length,
+                        },
                     Status = status,
                     JsonStatus = jsonStatus,
                 });
@@ -180,8 +186,9 @@ public partial class QueryCommands
                 ? "whole-group lessons and unspecialized optional lessons occupy their slot"
                 : "every lesson occupies its slot";
 
-        static string UnknownGroups(string[] unknown, string[] known) =>
-            string.Join(
+        static string UnknownGroups(string[] unknown, string[] known)
+        {
+            return string.Join(
                 " ",
                 unknown.Select(name =>
                 {
@@ -191,5 +198,6 @@ public partial class QueryCommands
                         StringComparison.OrdinalIgnoreCase));
                     return $"Unknown group '{name}'." + (suggestion is null ? "" : $" Did you mean '{suggestion}'?");
                 }));
+        }
     }
 }

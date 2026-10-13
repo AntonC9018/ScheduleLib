@@ -66,7 +66,11 @@ internal static class RegistryMutation
         try
         {
             await request.Submit(request.Token);
-            return new() { Status = "completed", SubmissionStarted = true };
+            return new()
+            {
+                Status = "completed",
+                SubmissionStarted = true,
+            };
         }
         catch (RegistryActionCancelledException error)
         {
@@ -80,7 +84,10 @@ internal static class RegistryMutation
             }
             return new()
             {
-                Status = status, Detail = detail, SubmissionStarted = error.SubmissionStarted, Cancelled = true,
+                Status = status,
+                Detail = detail,
+                SubmissionStarted = error.SubmissionStarted,
+                Cancelled = true,
             };
         }
         catch (OperationCanceledException)
@@ -94,8 +101,9 @@ internal static class RegistryMutation
                 Cancelled = true,
             };
         }
-        catch (RegistryActionExecutionException error) when (request.AllowRefusedDeletion &&
-                                                             error.InnerException is RegistryDeletionRefusedException)
+        catch (RegistryActionExecutionException error) when (request.AllowRefusedDeletion
+                                                             && error.InnerException is
+                                                                 RegistryDeletionRefusedException)
         {
             return new()
             {

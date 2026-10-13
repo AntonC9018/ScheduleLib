@@ -116,10 +116,10 @@ public static partial class CliSettings
 
     private static void ValidateOperation(JsonObject action, JsonSerializerOptions json)
     {
-        if (action["key"] is not JsonValue keyValue ||
-            !keyValue.TryGetValue<string>(out var key) ||
-            action["operation"] is not JsonValue opValue ||
-            !opValue.TryGetValue<string>(out var operation))
+        if (action["key"] is not JsonValue keyValue
+            || !keyValue.TryGetValue<string>(out var key)
+            || action["operation"] is not JsonValue opValue
+            || !opValue.TryGetValue<string>(out var operation))
         {
             throw new JsonException("Operation requires string key and operation members.");
         }
@@ -152,13 +152,13 @@ public static partial class CliSettings
                     path.Value.GetGenericArguments()[0],
                     json,
                     "operation item");
-                _ = item.Deserialize(path.Value.GetGenericArguments()[0], json) ??
-                    throw new JsonException("item cannot be null.");
+                _ = item.Deserialize(path.Value.GetGenericArguments()[0], json)
+                    ?? throw new JsonException("item cannot be null.");
             }
-            catch (Exception error) when (error is JsonException or
-                                              ArgumentException or
-                                              NotSupportedException or
-                                              InvalidOperationException)
+            catch (Exception error) when (error is JsonException
+                                              or ArgumentException
+                                              or NotSupportedException
+                                              or InvalidOperationException)
             {
                 throw new JsonException(
                     $"Invalid typed item for {key}; include its registered identity and any required $type discriminator.",
@@ -173,7 +173,11 @@ public static partial class CliSettings
         string? item,
         ResolvedSettings settings)
     {
-        var action = new JsonObject { ["operation"] = operation, ["key"] = key };
+        var action = new JsonObject
+        {
+            ["operation"] = operation,
+            ["key"] = key,
+        };
         if (item is not null)
         {
             using var document = JsonDocument.Parse(item);
@@ -212,8 +216,8 @@ public static partial class CliSettings
         ResolvePaths(descriptor, Path.GetDirectoryName(file)!);
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
-        if (values is null ||
-            !values.Any(x => KeyMatches(
+        if (values is null
+            || !values.Any(x => KeyMatches(
                 element,
                 comparer,
                 item,
@@ -227,10 +231,13 @@ public static partial class CliSettings
         Type element,
         object comparer,
         object item,
-        object value) =>
-        (bool) typeof(IEqualityComparer<>).MakeGenericType(element).GetMethod("Equals", [element, element])!.Invoke(
-            comparer,
-            [item, value])!;
+        object value)
+    {
+        return (bool) typeof(IEqualityComparer<>).MakeGenericType(element).GetMethod("Equals", [element, element])!
+            .Invoke(
+                comparer,
+                [item, value])!;
+    }
 
     private static void AddOperation(
         MutableNode node,
@@ -239,8 +246,8 @@ public static partial class CliSettings
         JsonSerializerOptions json)
     {
         var path = OperationPath(action["key"]!.GetValue<string>(), json);
-        if (path.Members.Length != 0 &&
-            provider.GetService(
+        if (path.Members.Length != 0
+            && provider.GetService(
                 typeof(IKeyEqualityComparer<>).MakeGenericType(path.Value.GetGenericArguments()[0])) is null)
         {
             throw new JsonException("Collection has no registered item key.");
@@ -347,8 +354,8 @@ public static partial class CliSettings
         string key,
         bool includeAncestors)
     {
-        if (envelope["operations"] is not JsonObject operations ||
-            GetOperations(operations, profile) is not { } actions)
+        if (envelope["operations"] is not JsonObject operations
+            || GetOperations(operations, profile) is not { } actions)
         {
             return;
         }
@@ -356,9 +363,9 @@ public static partial class CliSettings
         foreach (var action in actions.Cast<JsonObject>().ToArray())
         {
             var actionKey = action["key"]!.GetValue<string>();
-            if (actionKey == key ||
-                actionKey.StartsWith(key + ".", StringComparison.Ordinal) ||
-                includeAncestors && key.StartsWith(actionKey + ".", StringComparison.Ordinal))
+            if (actionKey == key
+                || actionKey.StartsWith(key + ".", StringComparison.Ordinal)
+                || includeAncestors && key.StartsWith(actionKey + ".", StringComparison.Ordinal))
             {
                 actions.Remove(action);
             }

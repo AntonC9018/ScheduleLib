@@ -51,8 +51,8 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         string? projectDirectory = null)
     {
         var directory = CliRuntime.ResolvePath(
-            output ??
-            Path.Combine(
+            output
+            ?? Path.Combine(
                 projectDirectory ?? Environment.CurrentDirectory,
                 "output",
                 runId));
@@ -87,10 +87,10 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                 {
                     throw new IOException($"Unrelated or invalid manifest: {manifestPath}", e);
                 }
-                if (manifest is null ||
-                    manifest.SchemaVersion != 1 ||
-                    manifest.Command != command ||
-                    manifest.Artifacts is null)
+                if (manifest is null
+                    || manifest.SchemaVersion != 1
+                    || manifest.Command != command
+                    || manifest.Artifacts is null)
                 {
                     throw new IOException($"Output manifest belongs to another operation: {manifestPath}");
                 }
@@ -130,8 +130,8 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             throw new IOException($"Output collision: {destination}");
         }
 
-        if (File.Exists(destination) &&
-            (!_owned.TryGetValue(name, out var hash) || hash != await Fingerprint(destination, token)))
+        if (File.Exists(destination)
+            && (!_owned.TryGetValue(name, out var hash) || hash != await Fingerprint(destination, token)))
         {
             throw new IOException($"Output collision with an unrelated or modified file: {destination}");
         }
@@ -164,12 +164,12 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
 
     private static void ValidateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name) ||
-            name != Path.GetFileName(name) ||
-            name is "." or ".." ||
-            name.Contains('\\') ||
-            name.Contains('/') ||
-            name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+        if (string.IsNullOrWhiteSpace(name)
+            || name != Path.GetFileName(name)
+            || name is "." or ".."
+            || name.Contains('\\')
+            || name.Contains('/')
+            || name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
         {
             throw new IOException($"Invalid owned artifact name: {name}");
         }

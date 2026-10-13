@@ -46,7 +46,8 @@ public sealed class FreeHoursTests
     public async Task HelpAndParseErrorsDoNotInitialize(string[] args, int expected)
     {
         // The invocation directory contains no schedule data; these must still succeed/fail as parsing requires.
-        Assert.Equal(expected, await CliHost.Run(args));
+        var exit = await CliHost.Run(args);
+        Assert.Equal(expected, exit);
     }
 
     [Fact]
@@ -196,7 +197,12 @@ public sealed class FreeHoursTests
         await using var scope = provider.CreateAsyncScope();
         var builder = new StringBuilder();
         scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>()
-            .Run(new() { Groups = ["IA2301", "M2301"], StringBuilder = builder });
+            .Run(
+                new()
+                {
+                    Groups = ["IA2301", "M2301"],
+                    StringBuilder = builder,
+                });
         string[] everyWeek =
         [
             "Luni:8:00-13:00", "Marţi:8:00-14:45,18:30-20:00", "Miercuri:8:00-9:30,13:15-20:00", "Joi:8:00-20:00",
@@ -342,7 +348,11 @@ public sealed class FreeHoursTests
                 0,
                 await new FixtureQuery().FreeHours(
                     new() { Groups = ["MIA2501"] },
-                    new() { NoCache = true, DataDirectory = temp.Path },
+                    new()
+                    {
+                        NoCache = true,
+                        DataDirectory = temp.Path,
+                    },
                     new() { Json = true }));
             using var result = JsonDocument.Parse(output.ToString());
             var sections = result.RootElement.GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
@@ -444,7 +454,11 @@ public sealed class FreeHoursTests
             Console.SetOut(output);
             var exit = await new FixtureQuery().FreeHours(
                 new() { Groups = ["IA2301"] },
-                new() { NoCache = true, DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()) },
+                new()
+                {
+                    NoCache = true,
+                    DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
+                },
                 new() { Json = true });
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(3, exit);
@@ -456,13 +470,13 @@ public sealed class FreeHoursTests
         }
     }
 
-    private static string Day(JsonElement day) => day.GetProperty("day").GetString() +
-        ": " +
-        string.Join(
+    private static string Day(JsonElement day) => day.GetProperty("day").GetString()
+        + ": "
+        + string.Join(
             ",",
             day.GetProperty("intervals").EnumerateArray()
-                .Select(x => x.GetProperty("start").GetString() + "-" + x.GetProperty("end").GetString())) +
-        " | ";
+                .Select(x => x.GetProperty("start").GetString() + "-" + x.GetProperty("end").GetString()))
+        + " | ";
 
     private static string Day(JsonElement section, string day) => Days(
         section.GetProperty("days").EnumerateArray()
@@ -472,7 +486,11 @@ public sealed class FreeHoursTests
 
     private static string Days(IEnumerable<JsonElement> days) => string.Concat(days.Select(Day));
 
-    private static SourceArguments Source() => new() { NoCache = true, DataDirectory = FixtureDirectory() };
+    private static SourceArguments Source() => new()
+    {
+        NoCache = true,
+        DataDirectory = FixtureDirectory(),
+    };
 
     private static string FixtureDirectory() => Path.Combine(AppContext.BaseDirectory, "fixtures");
 
@@ -521,9 +539,9 @@ public sealed class FreeHoursTests
     }
 
     private static string Name(JsonElement section) =>
-        $"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/" +
-        (section.GetProperty("mode").GetString() ==
-            nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
+        $"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/"
+        + (section.GetProperty("mode").GetString()
+            == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
                 ? "whole"
                 : "every");
 
@@ -578,8 +596,8 @@ public sealed class FreeHoursTests
             // factory again; as a singleton the times would be created only once.
             services.AddTransient<LessonTimeConfig>(sp =>
             {
-                var config = (LessonTimeConfig?) declaredTime.ImplementationInstance ??
-                    throw new InvalidOperationException("The lesson times are no longer registered as an instance.");
+                var config = (LessonTimeConfig?) declaredTime.ImplementationInstance
+                    ?? throw new InvalidOperationException("The lesson times are no longer registered as an instance.");
                 if (_handlerBuilt)
                 {
                     cancellation.Cancel();

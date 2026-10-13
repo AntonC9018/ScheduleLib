@@ -17,17 +17,37 @@ public static class DriveBundle
         await output.Publish(
             "all-teachers.xlsx",
             async (stream, ct) => await services.GetRequiredService<GenerateAllTeachersExcelTaskHandler>().Run(
-                new() { Schedule = schedule, CancellationToken = ct, OutputDirectory = stream }),
+                new()
+                {
+                    Schedule = schedule,
+                    CancellationToken = ct,
+                    OutputDirectory = stream,
+                }),
             token);
         await output.Publish(
             "free-rooms.xlsx",
             async (stream, ct) => await services.GetRequiredService<GenerateFreeRoomsTaskHandler>()
-                .Run(new() { CancellationToken = ct, OutputStream = stream }),
+                .Run(
+                    new()
+                    {
+                        CancellationToken = ct,
+                        OutputStream = stream,
+                    }),
             token);
         await services.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>()
-            .Run(new() { CancellationToken = token, PublishArtifact = output.Publish });
+            .Run(
+                new()
+                {
+                    CancellationToken = token,
+                    PublishArtifact = output.Publish,
+                });
         await services.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(
-            new() { CancellationToken = token, PublishArtifact = output.Publish, ReportOmission = warnings.Add });
+            new()
+            {
+                CancellationToken = token,
+                PublishArtifact = output.Publish,
+                ReportOmission = warnings.Add,
+            });
         token.ThrowIfCancellationRequested();
         // Only this invocation's successfully published schedule artifacts, never directory enumeration or prior manifest entries.
         return output.PublishedPaths.Where(x => DriveSync.IsScheduleArtifact(Path.GetFileName(x)))

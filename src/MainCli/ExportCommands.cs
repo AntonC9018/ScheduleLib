@@ -118,12 +118,17 @@ public partial class ExportCommands
                 async (stream, token) =>
                 {
                     await handler.Run(
-                        new() { Schedule = schedule, CancellationToken = token, OutputDirectory = stream });
+                        new()
+                        {
+                            Schedule = schedule,
+                            CancellationToken = token,
+                            OutputDirectory = stream,
+                        });
                     token.ThrowIfCancellationRequested();
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);
-                    if (workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.Count != 1 ||
-                        !workbook.WorkbookPart.WorksheetParts.Any())
+                    if (workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.Count != 1
+                        || !workbook.WorkbookPart.WorksheetParts.Any())
                     {
                         throw new InvalidDataException("Generated teacher workbook has no usable worksheet.");
                     }

@@ -161,7 +161,8 @@ public sealed class RegistryGradeTests
     {
         await using var fake = new Fake
         {
-            FailAt = 2, Failure = new RegistryActionCancelledException(started, new OperationCanceledException()),
+            FailAt = 2,
+            Failure = new RegistryActionCancelledException(started, new OperationCanceledException()),
         };
         using var capture = new Capture();
         Assert.Equal(
@@ -235,7 +236,11 @@ public sealed class RegistryGradeTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -254,7 +259,11 @@ public sealed class RegistryGradeTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = false, Value = lesson.Lesson.Groups },
+                new FoundGroups
+                {
+                    IsWildcard = false,
+                    Value = lesson.Lesson.Groups,
+                },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));
@@ -272,18 +281,51 @@ public sealed class RegistryGradeTests
             }.Select(x => (Name: x, Href: (string?) null)).ToList(),
             Attempts =
             [
-                new() { UserName = "Ion Popescu", Grade = 6.5f }, new() { UserName = "Ana Ionescu", Grade = 7.5f },
-                new() { UserName = "Ion Popescu", Grade = 8.5f }, new() { UserName = "Pavel Rusu", Grade = null },
-                new() { UserName = "Mihai Munteanu", Grade = 9 },
-                new() { UserName = "Alexandru Avram", Grade = float.NaN },
-                new() { UserName = "Vasile Vasile", Grade = 10 },
+                new()
+                {
+                    UserName = "Ion Popescu",
+                    Grade = 6.5f,
+                },
+                new()
+                {
+                    UserName = "Ana Ionescu",
+                    Grade = 7.5f,
+                },
+                new()
+                {
+                    UserName = "Ion Popescu",
+                    Grade = 8.5f,
+                },
+                new()
+                {
+                    UserName = "Pavel Rusu",
+                    Grade = null,
+                },
+                new()
+                {
+                    UserName = "Mihai Munteanu",
+                    Grade = 9,
+                },
+                new()
+                {
+                    UserName = "Alexandru Avram",
+                    Grade = float.NaN,
+                },
+                new()
+                {
+                    UserName = "Vasile Vasile",
+                    Grade = 10,
+                },
             ],
         };
         var handler = scope.ServiceProvider.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>();
         var plan = await handler.Plan(
             new()
             {
-                Quiz = quiz, RegistryNavigator = navigator, Semester = Semester.Sem2, CancellationToken = default,
+                Quiz = quiz,
+                RegistryNavigator = navigator,
+                Semester = Semester.Sem2,
+                CancellationToken = default,
             });
         var action = Assert.Single(plan.Actions);
         Assert.Equal(
@@ -328,7 +370,10 @@ public sealed class RegistryGradeTests
         var empty = await handler.Plan(
             new()
             {
-                Quiz = quiz, RegistryNavigator = navigator, Semester = Semester.Sem2, CancellationToken = default,
+                Quiz = quiz,
+                RegistryNavigator = navigator,
+                Semester = Semester.Sem2,
+                CancellationToken = default,
             });
         Assert.Empty(empty.Actions);
         Assert.Contains(empty.Notices, x => x.Kind == "omitted" && x.Detail.Contains("No mapped grades"));
@@ -338,7 +383,10 @@ public sealed class RegistryGradeTests
         var unsupported = await handler.Plan(
             new()
             {
-                Quiz = quiz, RegistryNavigator = navigator, Semester = Semester.Sem2, CancellationToken = default,
+                Quiz = quiz,
+                RegistryNavigator = navigator,
+                Semester = Semester.Sem2,
+                CancellationToken = default,
             });
         Assert.Empty(unsupported.Actions);
         Assert.Contains(unsupported.Notices, x => x.Kind == "unsupported");
@@ -414,8 +462,8 @@ public sealed class RegistryGradeTests
                     Assert.True(Held);
                     Executions++;
                     var failure = Executions == FailAt ? Failure : null;
-                    var beforeSubmit = failure is RegistryActionExecutionException { SubmissionStarted: false } or
-                        RegistryActionCancelledException { SubmissionStarted: false };
+                    var beforeSubmit = failure is RegistryActionExecutionException { SubmissionStarted: false }
+                        or RegistryActionCancelledException { SubmissionStarted: false };
                     if (!beforeSubmit)
                     {
                         Submissions++;

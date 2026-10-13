@@ -103,7 +103,12 @@ public partial class RegistryCommands
                 cli.EmitItem(
                     "candidate-" + candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "completed",
-                    new { historicalYear = candidate.Historical.Year, groups = groupCount, lessons = lessonCount });
+                    new
+                    {
+                        historicalYear = candidate.Historical.Year,
+                        groups = groupCount,
+                        lessons = lessonCount,
+                    });
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
@@ -161,7 +166,13 @@ public partial class RegistryCommands
             {
                 errors = [error];
             }
-            var data = new { courses, candidates, unresolved, files };
+            var data = new
+            {
+                courses,
+                candidates,
+                unresolved,
+                files,
+            };
             var status = CliCommandContext.Status(exit, success: "downloaded");
             var jsonStatus = CliCommandContext.Status(
                 exit,

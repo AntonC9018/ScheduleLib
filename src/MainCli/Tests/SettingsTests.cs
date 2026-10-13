@@ -179,8 +179,8 @@ public sealed class SettingsTests
         var attendance = settings.Get(LessonAttendanceConfig.Key)!;
         Assert.Equal(2, attendance.Sources.Count);
         var shared = Assert.Single(
-            attendance.Sources.Where(x => x.FilePath ==
-                Path.Combine(
+            attendance.Sources.Where(x => x.FilePath
+                == Path.Combine(
                     files.Root,
                     "user",
                     "shared.xlsx")));
@@ -188,16 +188,16 @@ public sealed class SettingsTests
         Assert.Equal("Error", shared.RepeatedCourseBehavior.ToString());
         Assert.Contains(
             attendance.Sources,
-            x => x.FilePath ==
-                Path.Combine(
+            x => x.FilePath
+                == Path.Combine(
                     files.Root,
                     "project",
                     "new.xlsx"));
         Assert.Contains(
             settings.Get(LessonTopicsConfig.Key)!.Sources,
-            x => x is ManifestLessonTopicSourceDefinition manifest &&
-                manifest.Path ==
-                Path.Combine(
+            x => x is ManifestLessonTopicSourceDefinition manifest
+                && manifest.Path
+                == Path.Combine(
                     files.Root,
                     "project",
                     "topics"));
@@ -278,7 +278,11 @@ public sealed class SettingsTests
         settings.Tree.Defaults.Moodle().ConfigureValue(x =>
             x.Credentials = new ScheduleLib.Scraping.Common.Config.ValueCredentialsSource
             {
-                Value = new() { Login = "user", Password = "never-print-this" },
+                Value = new()
+                {
+                    Login = "user",
+                    Password = "never-print-this",
+                },
             });
         var inspected = settings.Inspect("MoodleConfig").Value!.ToJsonString();
         Assert.DoesNotContain("never-print-this", inspected);
@@ -429,7 +433,11 @@ public sealed class SettingsTests
             Assert.Equal(
                 0,
                 await new SettingsFixtureExport().TeachersExcel(
-                    new() { DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"), NoCache = true },
+                    new()
+                    {
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                        NoCache = true,
+                    },
                     new(),
                     new() { Json = true },
                     settings: new() { Project = project }));
@@ -457,7 +465,11 @@ public sealed class SettingsTests
         // the path. On Windows this also exercises delete sharing on the open reader.
         var value = new string('x', 1024 * 1024);
         var before = JsonSerializer.Serialize(
-            new { schemaVersion = 1, defaults = new { GoogleCalendarConfig = new { calendarName = value } } });
+            new
+            {
+                schemaVersion = 1,
+                defaults = new { GoogleCalendarConfig = new { calendarName = value } },
+            });
         var after = JsonSerializer.Serialize(
             new
             {

@@ -318,7 +318,9 @@ public sealed class SettingsWriteTests
         {
             var start = new ProcessStartInfo("dotnet")
             {
-                WorkingDirectory = ProjectDirectory, RedirectStandardOutput = true, RedirectStandardError = true,
+                WorkingDirectory = ProjectDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             };
             start.Environment["XDG_CONFIG_HOME"] = Path.Combine(Root, "user");
             start.Environment["APPDATA"] = Path.Combine(Root, "user");

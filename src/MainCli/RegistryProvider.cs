@@ -30,7 +30,8 @@ public interface IRegistrySession : IAsyncDisposable
 
     async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
     {
-        await onGroupPlanned(await Plan(token));
+        var planned = await Plan(token);
+        await onGroupPlanned(planned);
     }
 }
 
@@ -111,9 +112,9 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             {
                 credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>()
                     .Get();
-                if (credentials is null ||
-                    string.IsNullOrWhiteSpace(credentials.Login) ||
-                    string.IsNullOrWhiteSpace(credentials.Password))
+                if (credentials is null
+                    || string.IsNullOrWhiteSpace(credentials.Login)
+                    || string.IsNullOrWhiteSpace(credentials.Password))
                 {
                     throw new InvalidOperationException();
                 }

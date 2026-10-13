@@ -41,7 +41,8 @@ public sealed class QueryTests
     public async Task HelpAndParseErrorsDoNotInitialize(string[] args, int expected)
     {
         // The invocation directory contains no schedule data; these must still succeed/fail as parsing requires.
-        Assert.Equal(expected, await CliHost.Run(args));
+        var exit = await CliHost.Run(args);
+        Assert.Equal(expected, exit);
     }
 
     [Fact]
@@ -54,7 +55,13 @@ public sealed class QueryTests
         var day = Enum.Parse<DayOfWeek>(first.GetProperty("day").GetString()!);
         var parity = Enum.Parse<Parity>(first.GetProperty("parity").GetString()!);
         var filtered = await Execute(
-            new() { Room = room, Day = day, Parity = parity, BeforeSlot = first.GetProperty("slot").GetInt32() });
+            new()
+            {
+                Room = room,
+                Day = day,
+                Parity = parity,
+                BeforeSlot = first.GetProperty("slot").GetInt32(),
+            });
         Assert.NotEmpty(filtered.GetProperty("data").EnumerateArray());
         foreach (var lesson in filtered.GetProperty("data").EnumerateArray())
         {
@@ -200,7 +207,8 @@ public sealed class QueryTests
                 var export = new FailingExport(initializer);
                 var source = new SourceArguments
                 {
-                    NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    NoCache = true,
+                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 };
                 var destination = new OutputArguments { Directory = Path.Combine(directory, command + failure) };
                 var result = new ResultArguments { Json = true };

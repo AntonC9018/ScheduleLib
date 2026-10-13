@@ -114,11 +114,17 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
     private static GoogleAuthorizationCodeFlow Flow(
         ClientSecrets secrets,
         string[] scopes,
-        IDataStore? store) => new(
-        new()
-        {
-            ClientSecrets = secrets, Scopes = scopes, DataStore = store, Prompt = "consent",
-        });
+        IDataStore? store)
+    {
+        return new(
+            new()
+            {
+                ClientSecrets = secrets,
+                Scopes = scopes,
+                DataStore = store,
+                Prompt = "consent",
+            });
+    }
 }
 
 /// <summary>User state is partitioned by teacher and OAuth client (a logical account).
@@ -136,8 +142,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
     public GoogleAuthentication(string? stateDirectory = null, IGoogleTokenProvider? tokens = null)
     {
-        _root = stateDirectory ??
-            Path.Combine(
+        _root = stateDirectory
+            ?? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ScheduleLib",
                 "auth",

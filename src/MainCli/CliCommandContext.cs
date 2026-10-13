@@ -259,10 +259,10 @@ public sealed class CliCommandContext : IDisposable
 
     public async Task<string[]> CompleteArtifacts(int exit)
     {
-        if (exit != CliExit.Success &&
-            Artifacts is { } artifacts &&
-            artifacts.PublishedPaths.Count > 0 &&
-            !artifacts.PublishedPaths.Contains(artifacts.ManifestPath))
+        if (exit != CliExit.Success
+            && Artifacts is { } artifacts
+            && artifacts.PublishedPaths.Count > 0
+            && !artifacts.PublishedPaths.Contains(artifacts.ManifestPath))
         {
             try
             {
@@ -310,11 +310,11 @@ public sealed class CliCommandContext : IDisposable
             ArgumentException => CliExit.InvalidArguments,
             LocalOperationBusyException => CliExit.Busy,
             PlatformNotSupportedException => CliExit.Unsupported,
-            JsonException or
-                DirectoryNotFoundException or
-                FileNotFoundException or
-                InvalidScheduleSourceException or
-                ScheduleBuildException => CliExit.InvalidConfiguration,
+            JsonException
+                or DirectoryNotFoundException
+                or FileNotFoundException
+                or InvalidScheduleSourceException
+                or ScheduleBuildException => CliExit.InvalidConfiguration,
             HttpRequestException or IOException or UnauthorizedAccessException => ioExit,
             _ => unexpectedExit,
         };

@@ -34,7 +34,11 @@ public sealed class CliJsonlTests
                 await commands.Sync(
                     new(),
                     new() { Profile = "synthetic-teacher" },
-                    new() { Json = true, Jsonl = true },
+                    new()
+                    {
+                        Json = true,
+                        Jsonl = true,
+                    },
                     new()));
             Assert.Empty(stdout.ToString());
             Assert.Contains("Only one of --json and --jsonl", stderr.ToString());
@@ -71,10 +75,10 @@ public sealed class CliJsonlTests
             // Wait for early output: start + 3 planned/not-attempted + first completed.
             var early = await WaitFor(
                 () => stdoutCapture.Snapshot(),
-                s => s.Contains("\"event\":\"start\"") &&
-                    s.Contains("\"id\":\"0\"") &&
-                    s.Contains("completed") &&
-                    !s.Contains("\"event\":\"final\""),
+                s => s.Contains("\"event\":\"start\"")
+                    && s.Contains("\"id\":\"0\"")
+                    && s.Contains("completed")
+                    && !s.Contains("\"event\":\"final\""),
                 TimeSpan.FromSeconds(5));
             Assert.Contains("\"event\":\"start\"", early);
             Assert.Contains("\"id\":\"0\"", early);
@@ -210,7 +214,11 @@ public sealed class CliJsonlTests
         {
             using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
             var services = CliRuntime.CreateServices(
-                new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                new()
+                {
+                    NoCache = true,
+                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                },
                 AppConfiguration.ConfigureServices);
             settings.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -233,7 +241,11 @@ public sealed class CliJsonlTests
             var navigator = new FixtureNavigator(
                 lesson.Lesson.Course,
                 new GroupLink(
-                    new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
+                    new FoundGroups
+                    {
+                        IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                        Value = lesson.Lesson.Groups,
+                    },
                     lesson.Lesson.GroupPartitionKey,
                     new("https://registry.test/group"),
                     new("https://registry.test/evaluation")));
@@ -417,7 +429,11 @@ public sealed class CliJsonlTests
                     output.EmitItem(
                         $"w{worker}-i{i}",
                         "completed",
-                        new { worker, i });
+                        new
+                        {
+                            worker,
+                            i,
+                        });
                     output.WriteWarning($"synthetic warning w{worker} i{i}");
                 }
             })).ToArray();
@@ -501,8 +517,8 @@ public sealed class CliJsonlTests
             info.RootElement.GetProperty("scopes").EnumerateArray().Select(x => x.GetString()));
         Assert.Equal("synthetic", info.RootElement.GetProperty("category").GetString());
         Assert.True(
-            info.RootElement.TryGetProperty("timestamp", out var timestamp) &&
-            DateTimeOffset.TryParse(timestamp.GetString(), out _));
+            info.RootElement.TryGetProperty("timestamp", out var timestamp)
+            && DateTimeOffset.TryParse(timestamp.GetString(), out _));
         using var error = JsonDocument.Parse(lines[1]);
         Assert.Equal("Error", error.RootElement.GetProperty("level").GetString());
         Assert.Contains(
@@ -598,7 +614,11 @@ public sealed class CliJsonlTests
             Console.SetError(stderr);
             exit = await new FixtureQuery().Lessons(
                 new(),
-                new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                new()
+                {
+                    NoCache = true,
+                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                },
                 new() { Jsonl = true },
                 cancelled.Token);
         }
@@ -900,7 +920,11 @@ public sealed class CliJsonlTests
 
         var (queryExit, queryStdout, _) = await CaptureJsonl(() => new FixtureQuery().Lessons(
             new(),
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             new() { Jsonl = true },
             default));
         Assert.Equal(0, queryExit);
@@ -939,7 +963,11 @@ public sealed class CliJsonlTests
     {
         using var fake = new CalendarFake();
         var (exit, stdout, _) = await CaptureJsonl(() => new FixtureCalendar(fake).Sync(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             new() { Profile = "Nartea Nichita" },
             new() { Jsonl = true },
             new()));
@@ -975,7 +1003,11 @@ public sealed class CliJsonlTests
         using var output = new TempRoot();
         using var fake = new DriveFake();
         var (exit, stdout, _) = await CaptureJsonl(() => new FixtureDrive(fake).Publish(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             new() { Profile = "Curmanschii Anton" },
             new() { Directory = output.Path },
             new() { Jsonl = true },
@@ -1105,7 +1137,11 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task EveryCommandRejectsJsonTogetherWithJsonl()
     {
-        var both = new ResultArguments { Json = true, Jsonl = true };
+        var both = new ResultArguments
+        {
+            Json = true,
+            Jsonl = true,
+        };
         var cases = new (string Name, Func<Task<int>> Run)[]
         {
             ("query lessons", () => new QueryCommands().Lessons(
@@ -1184,7 +1220,11 @@ public sealed class CliJsonlTests
                 both,
                 default)),
             ("config set", () => new ConfigCommands().Set(
-                new() { Key = "key", Value = "1" },
+                new()
+                {
+                    Key = "key",
+                    Value = "1",
+                },
                 new() { Scope = "user" },
                 new(),
                 both,

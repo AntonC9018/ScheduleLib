@@ -161,14 +161,17 @@ public partial class RegistryCommands
         static RegistryGradeOutcome ToOutcome(
             RegistryGradeAction action,
             string status,
-            string? detail) => new(
-            action.Destination,
-            action.Course,
-            action.Groups,
-            action.TestNumber,
-            action.Grades,
-            status,
-            detail);
+            string? detail)
+        {
+            return new(
+                action.Destination,
+                action.Course,
+                action.Groups,
+                action.TestNumber,
+                action.Grades,
+                status,
+                detail);
+        }
 
         void Record(
             RegistryGradeAction action,

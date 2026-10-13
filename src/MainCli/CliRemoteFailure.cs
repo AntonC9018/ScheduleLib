@@ -66,8 +66,8 @@ internal static class CliRemoteFailure
         GoogleFailureMessages messages,
         bool partialBundle = false)
     {
-        if (context.Cancellation.IsCancellationRequested &&
-            error is OperationCanceledException or GooglePreSendTransportException)
+        if (context.Cancellation.IsCancellationRequested
+            && error is OperationCanceledException or GooglePreSendTransportException)
         {
             return new(CliExit.Cancelled, ["Cancelled."]);
         }
@@ -75,8 +75,8 @@ internal static class CliRemoteFailure
         {
             return new(CliExit.AuthenticationRequired, [authentication.Message]);
         }
-        if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException ||
-            error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
+        if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException
+            || error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
         {
             var authenticationError = new AuthenticationRequiredException("google", profile ?? "");
             return new(CliExit.AuthenticationRequired, [authenticationError.Message]);
@@ -94,12 +94,12 @@ internal static class CliRemoteFailure
             OperationCanceledException => new(CliExit.IoFailure, [messages.Timeout]),
             HttpRequestException => new(CliExit.IoFailure, [messages.Network]),
             LocalOperationBusyException => new(CliExit.Busy, [messages.Busy]),
-            JsonException or
-                ArgumentException or
-                DirectoryNotFoundException or
-                FileNotFoundException or
-                InvalidScheduleSourceException or
-                ScheduleBuildException => new(CliExit.InvalidConfiguration, [error.Message]),
+            JsonException
+                or ArgumentException
+                or DirectoryNotFoundException
+                or FileNotFoundException
+                or InvalidScheduleSourceException
+                or ScheduleBuildException => new(CliExit.InvalidConfiguration, [error.Message]),
             PlatformNotSupportedException => new(CliExit.Unsupported, [error.Message]),
             Google.GoogleApiException => new(CliExit.IoFailure, [messages.Rejected]),
             UnauthorizedAccessException => new(ioExit, [messages.Access]),

@@ -142,7 +142,11 @@ public sealed class RegistryGradePreflightTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var collection = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
         collection.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -224,7 +228,16 @@ public sealed class RegistryGradePreflightTests
             }.Select(x => (Name: x, Href: (string?) null)).ToList(),
             Attempts =
             [
-                new() { UserName = "Ion Popescu", Grade = 8.5f }, new() { UserName = "Ana Ionescu", Grade = 7.5f },
+                new()
+                {
+                    UserName = "Ion Popescu",
+                    Grade = 8.5f,
+                },
+                new()
+                {
+                    UserName = "Ana Ionescu",
+                    Grade = 7.5f,
+                },
             ],
         };
         var planner = new Planner(
@@ -305,7 +318,11 @@ public sealed class RegistryGradePreflightTests
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>(
             Enumerable.Range(1, 2).Select(i => new GroupLink(
-                new FoundGroups { IsWildcard = false, Value = groups },
+                new FoundGroups
+                {
+                    IsWildcard = false,
+                    Value = groups,
+                },
                 partition,
                 new($"https://registry.test/group{i}"),
                 new($"https://registry.test/evaluation{i}"))));
@@ -344,7 +361,10 @@ public sealed class RegistryGradePreflightTests
             var plan = await handler.Plan(
                 new()
                 {
-                    Quiz = quiz, RegistryNavigator = navigator, Semester = Semester.Sem2, CancellationToken = token,
+                    Quiz = quiz,
+                    RegistryNavigator = navigator,
+                    Semester = Semester.Sem2,
+                    CancellationToken = token,
                 });
             Assert.Equal(2, plan.Actions.Count);
             if (defect.StartsWith("mutate", StringComparison.Ordinal))

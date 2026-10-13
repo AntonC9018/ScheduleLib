@@ -113,8 +113,8 @@ public static class RegistryHistoryTopicFiles
                 foreach (var lessons in group.Lessons.GroupBy(x => x.LessonType))
                 {
                     var ordered = lessons
-                        .Where(x => !string.IsNullOrWhiteSpace(x.Topic) &&
-                            !RegistryAssessmentTopics.IsAssessment(x.Topic)).OrderBy(x => x.Date).ToArray();
+                        .Where(x => !string.IsNullOrWhiteSpace(x.Topic)
+                            && !RegistryAssessmentTopics.IsAssessment(x.Topic)).OrderBy(x => x.Date).ToArray();
                     if (ordered.Length == 0)
                     {
                         continue;
@@ -150,7 +150,11 @@ public static class RegistryHistoryTopicFiles
 
         var inventory = $"topics-candidates-{runId}.json";
         var options =
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true,
+            };
         options.Converters.Add(new JsonStringEnumConverter());
         await using (var stream = NewPrivateFile(Path.Combine(directory, inventory)))
         {
@@ -181,7 +185,12 @@ public static class RegistryHistoryTopicFiles
     private static FileStream NewPrivateFile(string path)
     {
         var options =
-            new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
+            new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+            };
         if (!OperatingSystem.IsWindows())
         {
             options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
@@ -205,8 +214,8 @@ public static class RegistryHistoryTopicFiles
     {
         for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
         {
-            if (current.LinkTarget is not null ||
-                current.Exists && (current.Attributes & FileAttributes.ReparsePoint) != 0)
+            if (current.LinkTarget is not null
+                || current.Exists && (current.Attributes & FileAttributes.ReparsePoint) != 0)
             {
                 throw new IOException("Private history output requires regular directories.");
             }

@@ -87,8 +87,8 @@ public static class DriveSync
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
-                    lockRoot ??
-                    Path.Combine(
+                    lockRoot
+                    ?? Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ScheduleLib",
                         "remote-locks",
@@ -161,13 +161,16 @@ public static class DriveSync
             }
         }
 
-        DriveStreamingException StreamingFailure(Exception inner) => new(
-            Result(
-                outcomes.Any(x => x.State == "completed") ? 6 : 1,
-                [
-                    "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
-                ]),
-            inner);
+        DriveStreamingException StreamingFailure(Exception inner)
+        {
+            return new(
+                Result(
+                    outcomes.Any(x => x.State == "completed") ? 6 : 1,
+                    [
+                        "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
+                    ]),
+                inner);
+        }
 
         void ReportPlanned(int index, DriveAction action)
         {
@@ -253,8 +256,8 @@ public static class DriveSync
                 // it must not be reclassified as uncertain/failed or retried.
                 throw;
             }
-            catch (Exception error) when (token.IsCancellationRequested &&
-                                          error is OperationCanceledException or GooglePreSendTransportException)
+            catch (Exception error) when (token.IsCancellationRequested
+                                          && error is OperationCanceledException or GooglePreSendTransportException)
             {
                 AddOutcome(
                     new(
@@ -282,13 +285,13 @@ public static class DriveSync
                         "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
                     ]);
             }
-            catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400 or
-                                                      401 or
-                                                      403 or
-                                                      404 or
-                                                      409 or
-                                                      412 or
-                                                      422)
+            catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400
+                                                      or 401
+                                                      or 403
+                                                      or 404
+                                                      or 409
+                                                      or 412
+                                                      or 422)
             {
                 AddOutcome(
                     new(
@@ -342,8 +345,8 @@ public static class DriveSync
             warnings);
     }
 
-    public static bool IsScheduleArtifact(string name) => name == Path.GetFileName(name) &&
-        new[]
+    public static bool IsScheduleArtifact(string name) => name == Path.GetFileName(name)
+        && new[]
         {
             ".xlsx",
             ".pdf",

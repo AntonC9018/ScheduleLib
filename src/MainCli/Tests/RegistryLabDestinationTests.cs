@@ -553,9 +553,9 @@ public sealed class RegistryLabDestinationTests
             fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is "ambiguous-registry-destination" or
-                "unmatched-attendance-students" or
-                "attendance-students-not-in-registry");
+            item => item.Kind is "ambiguous-registry-destination"
+                or "unmatched-attendance-students"
+                or "attendance-students-not-in-registry");
         var first = plan.Where(action => action.Destination == navigator.Group.Uri.ToString())
             .OrderBy(action => action.Date).First();
         var se = plan.Where(action => action.Destination == "https://registry.test/se-group")
@@ -653,7 +653,11 @@ public sealed class RegistryLabDestinationTests
             {
                 navigator.ExtraGroups.Add(
                     new(
-                        new FoundGroups { Value = [broad.Groups.Value[parentIndex]], IsWildcard = false },
+                        new FoundGroups
+                        {
+                            Value = [broad.Groups.Value[parentIndex]],
+                            IsWildcard = false,
+                        },
                         broad.GroupPartition,
                         new($"https://registry.test/se-{parentIndex}-{duplicate}"),
                         broad.EvaluationUri,
@@ -803,7 +807,9 @@ public sealed class RegistryLabDestinationTests
             var group = new GroupLink(
                 new FoundGroups
                 {
-                    Value = wildcard ? _parents : [_parents[0]], IsWildcard = wildcard, IsCombined = combined,
+                    Value = wildcard ? _parents : [_parents[0]],
+                    IsWildcard = wildcard,
+                    IsCombined = combined,
                 },
                 _partition,
                 new("https://registry.test/group"),
@@ -812,7 +818,11 @@ public sealed class RegistryLabDestinationTests
                 ?
                 [
                     new(
-                        new FoundGroups { Value = [_parents[0]], IsWildcard = false },
+                        new FoundGroups
+                        {
+                            Value = [_parents[0]],
+                            IsWildcard = false,
+                        },
                         _partition,
                         new("https://registry.test/explicit-group"),
                         new("https://registry.test/explicit-evaluation")),
@@ -823,7 +833,11 @@ public sealed class RegistryLabDestinationTests
                 additional =
                 [
                     .. additional, new(
-                        new FoundGroups { Value = [_parents[1]], IsWildcard = false },
+                        new FoundGroups
+                        {
+                            Value = [_parents[1]],
+                            IsWildcard = false,
+                        },
                         _partition,
                         new("https://registry.test/other-explicit-group"),
                         new("https://registry.test/other-explicit-evaluation")),
@@ -1160,9 +1174,9 @@ public sealed class RegistryLabDestinationTests
             if (UseSyntheticRoster && uri.AbsolutePath == "/add")
             {
                 return await new HtmlParser().ParseDocumentAsync(
-                    "<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr><tr><td>1</td><td>Synthetic Alpha</td><td>spec</td><td><input name='alpha' value='" +
-                    OtherAudienceMark +
-                    "'></td></tr><tr><td>2</td><td>Synthetic Beta</td><td>spec</td><td><input name='beta'></td></tr></table></form>");
+                    "<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr><tr><td>1</td><td>Synthetic Alpha</td><td>spec</td><td><input name='alpha' value='"
+                    + OtherAudienceMark
+                    + "'></td></tr><tr><td>2</td><td>Synthetic Beta</td><td>spec</td><td><input name='beta'></td></tr></table></form>");
             }
 
             if (uri.AbsolutePath.StartsWith("/details/", StringComparison.Ordinal))

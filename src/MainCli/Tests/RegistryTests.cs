@@ -15,7 +15,11 @@ public sealed class RegistryTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(options => options.EnrichWithFullNames = false);
@@ -33,7 +37,11 @@ public sealed class RegistryTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { Value = lesson.Lesson.Groups, IsWildcard = false },
+                new FoundGroups
+                {
+                    Value = lesson.Lesson.Groups,
+                    IsWildcard = false,
+                },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));
@@ -93,7 +101,11 @@ public sealed class RegistryTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -115,7 +127,8 @@ public sealed class RegistryTests
             new GroupLink(
                 new FoundGroups
                 {
-                    IsWildcard = !singleDestination && !destinationGroups.IsSingleGroup, Value = destinationGroups,
+                    IsWildcard = !singleDestination && !destinationGroups.IsSingleGroup,
+                    Value = destinationGroups,
                 },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
@@ -145,9 +158,9 @@ public sealed class RegistryTests
         {
             Assert.Contains(
                 diagnostics.Items,
-                item => item.Kind == "missing-registry-group" &&
-                    item.Course == schedule.Get(lesson.Lesson.Course).FullName &&
-                    item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
+                item => item.Kind == "missing-registry-group"
+                    && item.Course == schedule.Get(lesson.Lesson.Course).FullName
+                    && item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
         }
     }
 
@@ -158,7 +171,11 @@ public sealed class RegistryTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -174,7 +191,11 @@ public sealed class RegistryTests
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
+                new FoundGroups
+                {
+                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                    Value = lesson.Lesson.Groups,
+                },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation"))) { TwoGroups = true };
@@ -248,7 +269,11 @@ public sealed class RegistryTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -265,7 +290,11 @@ public sealed class RegistryTests
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
+                new FoundGroups
+                {
+                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                    Value = lesson.Lesson.Groups,
+                },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")));
@@ -311,7 +340,11 @@ public sealed class RegistryTests
     {
         using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
         var services = CliRuntime.CreateServices(
-            new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+            new()
+            {
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
@@ -327,12 +360,18 @@ public sealed class RegistryTests
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
-                new FoundGroups { IsWildcard = !lesson.Lesson.Groups.IsSingleGroup, Value = lesson.Lesson.Groups },
+                new FoundGroups
+                {
+                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                    Value = lesson.Lesson.Groups,
+                },
                 lesson.Lesson.GroupPartitionKey,
                 new("https://registry.test/group"),
                 new("https://registry.test/evaluation")))
         {
-            InvalidFirstForm = false, ReadFailure = !submitted, SubmissionFailure = submitted,
+            InvalidFirstForm = false,
+            ReadFailure = !submitted,
+            SubmissionFailure = submitted,
         };
         var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(() =>
             scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Run(
@@ -532,7 +571,11 @@ public sealed class RegistryTests
             await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
-                new() { Json = !jsonl, Jsonl = jsonl },
+                new()
+                {
+                    Json = !jsonl,
+                    Jsonl = jsonl,
+                },
                 new()));
         var final = jsonl ? capture.FinalRecord() : capture.Result();
         var data = final.GetProperty("data");
@@ -849,9 +892,9 @@ public sealed class RegistryTests
 
             var extraStudent = InvalidFirstForm && FormReads == 1 ? "<tr><td>Extra student</td></tr>" : "";
             return await new HtmlParser().ParseDocumentAsync(
-                "<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>" +
-                extraStudent +
-                "</table></form>");
+                "<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>"
+                + extraStudent
+                + "</table></form>");
         }
 
         public Task SubmitLesson(IDocument document)

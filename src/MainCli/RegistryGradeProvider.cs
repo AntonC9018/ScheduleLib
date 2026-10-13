@@ -50,9 +50,9 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         try
         {
             credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>().Get();
-            if (credentials is null ||
-                string.IsNullOrWhiteSpace(credentials.Login) ||
-                string.IsNullOrWhiteSpace(credentials.Password))
+            if (credentials is null
+                || string.IsNullOrWhiteSpace(credentials.Login)
+                || string.IsNullOrWhiteSpace(credentials.Password))
             {
                 throw new InvalidOperationException();
             }

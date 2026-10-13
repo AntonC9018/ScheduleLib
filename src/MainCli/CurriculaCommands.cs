@@ -149,8 +149,8 @@ public class CurriculaCommands
                     EnsureLegacyCapability();
                 }
 
-                if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase) &&
-                    !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase)
+                    && !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
                     warnings.Add($"Skipping unsupported curriculum document: {file.Group}/{file.Name}");
                     continue;
@@ -171,8 +171,8 @@ public class CurriculaCommands
             {
                 cancellation.Token.ThrowIfCancellationRequested();
                 var extension = Path.GetExtension(file.Name);
-                if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase) &&
-                    !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+                if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase)
+                    && !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -299,13 +299,13 @@ public class CurriculaCommands
             exit = CliExit.AuthenticationRequired;
             errors = [new AuthenticationRequiredException("microsoft", settings.Profile ?? "TEACHER").Message];
         }
-        catch (Exception e) when (e is IOException or
-                                      UnauthorizedAccessException or
-                                      ServiceException or
-                                      HttpRequestException or
-                                      OperationCanceledException or
-                                      OpenXmlPackageException or
-                                      FormatException)
+        catch (Exception e) when (e is IOException
+                                      or UnauthorizedAccessException
+                                      or ServiceException
+                                      or HttpRequestException
+                                      or OperationCanceledException
+                                      or OpenXmlPackageException
+                                      or FormatException)
         {
             exit = output?.PublishedPaths.Count > 0 ? CliExit.Partial : CliExit.IoFailure;
             errors = ["Curricula download or local publication failed."];
@@ -319,9 +319,9 @@ public class CurriculaCommands
         {
             // Once artifacts are published, subsequent capability/authentication failures are partial output failures.
             exit = CliExit.AfterEffects(exit, effects: output?.PublishedPaths.Count > 0);
-            if (exit != CliExit.Success &&
-                output?.PublishedPaths.Count > 0 &&
-                !output.PublishedPaths.Contains(output.ManifestPath))
+            if (exit != CliExit.Success
+                && output?.PublishedPaths.Count > 0
+                && !output.PublishedPaths.Contains(output.ManifestPath))
             {
                 try
                 {
@@ -343,7 +343,10 @@ public class CurriculaCommands
             count);
         var summary = new
         {
-            source, outputDirectory = output?.DirectoryPath, documentCount = count, artifactCount = paths.Length,
+            source,
+            outputDirectory = output?.DirectoryPath,
+            documentCount = count,
+            artifactCount = paths.Length,
         };
         return context.Finish(
             new CliCompletion<CurriculaDownloadResult>(
@@ -384,12 +387,12 @@ public class CurriculaCommands
 
     private static void ValidateComponent(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) ||
-            value is "." or ".." ||
-            value.Any(c => char.IsControl(c) || "/\\:<>\"|?*".Contains(c)) ||
-            value.EndsWith('.') ||
-            value.EndsWith(' ') ||
-            Path.GetFileName(value) != value)
+        if (string.IsNullOrWhiteSpace(value)
+            || value is "." or ".."
+            || value.Any(c => char.IsControl(c) || "/\\:<>\"|?*".Contains(c))
+            || value.EndsWith('.')
+            || value.EndsWith(' ')
+            || Path.GetFileName(value) != value)
         {
             throw new IOException("Unsafe curricula group or document name in provider response.");
         }

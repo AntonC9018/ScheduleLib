@@ -248,10 +248,10 @@ public sealed class RegistryLessonAdapterTests
     {
         const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
         const string edit = "/studregistry/LessonAttendance/Edit/3";
-        const string fields = "<input id='LessonDate' name='LessonDate' value='2026-09-03T13:15'>" +
-            "<select id='LessonMode' name='LessonMode'><option selected value='curs'>curs</option></select>" +
-            "<textarea id='LessonTopic' name='LessonTopic'>Synthetic topic</textarea>" +
-            "<input name='StudentList[1].NotaStr' value='a'>";
+        const string fields = "<input id='LessonDate' name='LessonDate' value='2026-09-03T13:15'>"
+            + "<select id='LessonMode' name='LessonMode'><option selected value='curs'>curs</option></select>"
+            + "<textarea id='LessonTopic' name='LessonTopic'>Synthetic topic</textarea>"
+            + "<input name='StudentList[1].NotaStr' value='a'>";
         var form = $"<a href='{list}'>Back</a><form method='post' action='/save'>{fields}</form>";
         if (scenario is "topic-line-endings" or "topic-different-multiline")
         {
@@ -280,10 +280,10 @@ public sealed class RegistryLessonAdapterTests
                     $"<tr><td>03.09.2026 13:15 curs</td><td>Synthetic topic</td><td><a href='{edit}'>Edit</a></td></tr>";
                 return Response(
                     HttpStatusCode.OK,
-                    "<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>" +
-                    (scenario == "missing" ? "" : row) +
-                    (scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "") +
-                    "</table>");
+                    "<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>"
+                    + (scenario == "missing" ? "" : row)
+                    + (scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")
+                    + "</table>");
             }
             if (request.RequestUri.AbsolutePath.Contains("/Edit/"))
             {

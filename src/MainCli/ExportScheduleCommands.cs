@@ -134,7 +134,11 @@ public partial class ExportCommands
             else
             {
                 await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(
-                    new() { CancellationToken = cancellation.Token, PublishArtifact = PublishStreaming });
+                    new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                    });
             }
 
             StreamNew();

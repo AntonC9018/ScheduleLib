@@ -339,7 +339,9 @@ public sealed class StorageTests
     {
         var info = new ProcessStartInfo("dotnet")
         {
-            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
         };
         if (args.Length > 4)
         {

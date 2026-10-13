@@ -87,7 +87,14 @@ public sealed class GoogleCalendarProviderTests
         {
             CredentialsPath = "unused",
             ApiKeysSource =
-                new ManualGoogleApiKeysSource { Value = new() { ClientId = "fixture", ClientSecret = "fixture" } },
+                new ManualGoogleApiKeysSource
+                {
+                    Value = new()
+                    {
+                        ClientId = "fixture",
+                        ClientSecret = "fixture",
+                    },
+                },
         };
         try
         {
@@ -134,7 +141,11 @@ public sealed class GoogleCalendarProviderTests
     private static GoogleAuthorizationCodeFlow Flow(Transport transport) => new(
         new GoogleAuthorizationCodeFlow.Initializer
         {
-            ClientSecrets = new ClientSecrets { ClientId = "fixture", ClientSecret = "fixture" },
+            ClientSecrets = new ClientSecrets
+            {
+                ClientId = "fixture",
+                ClientSecret = "fixture",
+            },
             HttpClientFactory = new Factory(transport),
         });
 
@@ -534,9 +545,9 @@ public sealed class GoogleCalendarProviderTests
         {
             // The API HttpClient cancels the interceptor's linked token when its deadline
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
-            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
-                (scenario.EndsWith("real-deadline", StringComparison.Ordinal) ||
-                    scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            if (request.RequestUri!.Host == "oauth2.googleapis.com"
+                && (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
+                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
             {
                 if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
                 {
@@ -546,9 +557,9 @@ public sealed class GoogleCalendarProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
-            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
-                scenario.Contains("-refresh-", StringComparison.Ordinal) &&
-                scenario.Contains("expired", StringComparison.Ordinal))
+            if (request.RequestUri!.Host == "oauth2.googleapis.com"
+                && scenario.Contains("-refresh-", StringComparison.Ordinal)
+                && scenario.Contains("expired", StringComparison.Ordinal))
             {
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
@@ -575,8 +586,8 @@ public sealed class GoogleCalendarProviderTests
                     };
             }
 
-            if (scenario == "read-sent-real-deadline" ||
-                scenario == "create-sent-real-deadline" && request.Method == HttpMethod.Post)
+            if (scenario == "read-sent-real-deadline"
+                || scenario == "create-sent-real-deadline" && request.Method == HttpMethod.Post)
             {
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("The sent API request must time out.");
@@ -587,8 +598,8 @@ public sealed class GoogleCalendarProviderTests
                 createAttempts++;
             }
 
-            if (scenario == "read-timeout" ||
-                scenario.StartsWith("create-timeout", StringComparison.Ordinal) && request.Method == HttpMethod.Post)
+            if (scenario == "read-timeout"
+                || scenario.StartsWith("create-timeout", StringComparison.Ordinal) && request.Method == HttpMethod.Post)
             {
                 throw new TaskCanceledException("synthetic-timeout", new TimeoutException());
             }
@@ -603,17 +614,17 @@ public sealed class GoogleCalendarProviderTests
                 throw new HttpRequestException("synthetic-connection-failure");
             }
 
-            if (scenario == "read-cancel" ||
-                scenario == "create-cancel" && request.Method == HttpMethod.Post ||
-                scenario == "event-second-cancel" && createAttempts == 3 && request.Method == HttpMethod.Post)
+            if (scenario == "read-cancel"
+                || scenario == "create-cancel" && request.Method == HttpMethod.Post
+                || scenario == "event-second-cancel" && createAttempts == 3 && request.Method == HttpMethod.Post)
             {
                 cancel.Cancel();
                 throw new OperationCanceledException(cancel.Token);
             }
-            if (scenario.StartsWith("read-401", StringComparison.Ordinal) ||
-                scenario.StartsWith("create-401", StringComparison.Ordinal) &&
-                request.Method == HttpMethod.Post &&
-                createAttempts == 1)
+            if (scenario.StartsWith("read-401", StringComparison.Ordinal)
+                || scenario.StartsWith("create-401", StringComparison.Ordinal)
+                && request.Method == HttpMethod.Post
+                && createAttempts == 1)
             {
                 return Error(HttpStatusCode.Unauthorized);
             }
@@ -623,8 +634,8 @@ public sealed class GoogleCalendarProviderTests
                 return Error(HttpStatusCode.Unauthorized);
             }
 
-            if ((scenario == "create-503" && createAttempts == 1 || scenario == "event-503" && createAttempts == 2) &&
-                request.Method == HttpMethod.Post)
+            if ((scenario == "create-503" && createAttempts == 1 || scenario == "event-503" && createAttempts == 2)
+                && request.Method == HttpMethod.Post)
             {
                 return Error(HttpStatusCode.ServiceUnavailable);
             }
@@ -692,7 +703,14 @@ public sealed class GoogleCalendarProviderTests
         {
             CredentialsPath = "unused",
             ApiKeysSource =
-                new ManualGoogleApiKeysSource { Value = new() { ClientId = "fixture", ClientSecret = "fixture" } },
+                new ManualGoogleApiKeysSource
+                {
+                    Value = new()
+                    {
+                        ClientId = "fixture",
+                        ClientSecret = "fixture",
+                    },
+                },
         };
         try
         {
@@ -735,13 +753,17 @@ public sealed class GoogleCalendarProviderTests
                 Console.SetOut(stdout);
                 Console.SetError(stderr);
                 exit = await new FixtureCalendar(provider).Sync(
-                    new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                    new()
+                    {
+                        NoCache = true,
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    },
                     new() { Profile = "Nartea Nichita" },
                     new() { Json = true },
                     new()
                     {
-                        Apply = !scenario.StartsWith("read-", StringComparison.Ordinal) &&
-                            scenario != "preview-pagination",
+                        Apply = !scenario.StartsWith("read-", StringComparison.Ordinal)
+                            && scenario != "preview-pagination",
                     },
                     cancel.Token);
             }
@@ -801,8 +823,8 @@ public sealed class GoogleCalendarProviderTests
                     }
                 }
             }
-            if (expectedExit == 4 ||
-                scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401")
+            if (expectedExit == 4
+                || scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401")
             {
                 Assert.Contains("auth login google", stderr.ToString());
             }

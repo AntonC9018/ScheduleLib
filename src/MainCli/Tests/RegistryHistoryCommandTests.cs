@@ -33,7 +33,11 @@ public sealed class RegistryHistoryCommandTests
                 0,
                 await new Commands(new Provider()).History(
                     new() { Profile = "synthetic" },
-                    new() { LocalDirectory = directory, Year = "2024/25" },
+                    new()
+                    {
+                        LocalDirectory = directory,
+                        Year = "2024/25",
+                    },
                     new() { Json = true }));
             Assert.DoesNotContain("private-course", output.ToString());
             Assert.DoesNotContain("private-group", output.ToString());

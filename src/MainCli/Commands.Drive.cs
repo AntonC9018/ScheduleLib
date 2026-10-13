@@ -212,9 +212,9 @@ public class DriveCommands
         async Task<int> Finish(int exit, string[] errors)
         {
             StreamNewArtifacts();
-            if (output is not null &&
-                output.PublishedPaths.Count > 0 &&
-                !output.PublishedPaths.Contains(output.ManifestPath))
+            if (output is not null
+                && output.PublishedPaths.Count > 0
+                && !output.PublishedPaths.Contains(output.ManifestPath))
             {
                 try
                 {
@@ -236,7 +236,8 @@ public class DriveCommands
             var status = CliCommandContext.Status(exit, success);
             object summary = new
             {
-                outputDirectory = output?.DirectoryPath, artifactCount = output?.PublishedPaths.Count ?? 0,
+                outputDirectory = output?.DirectoryPath,
+                artifactCount = output?.PublishedPaths.Count ?? 0,
             };
             if (data is not null)
             {
@@ -246,7 +247,11 @@ public class DriveCommands
                     artifactCount = output?.PublishedPaths.Count ?? 0,
                     data.Account,
                     data.AccountEmail,
-                    folder = new { data.Folder.Id, data.Folder.Name },
+                    folder = new
+                    {
+                        data.Folder.Id,
+                        data.Folder.Name,
+                    },
                     actionCount = data.Actions.Count,
                     outcomeCount = data.Outcomes.Count,
                 };

@@ -169,7 +169,8 @@ public partial class RegistryCommands
 
                     var request = new RegistryMutationRequest(action.Execute, cancellation.Token)
                     {
-                        CancellationPolicy = "Creates", AllowRefusedDeletion = action.Kind == "delete",
+                        CancellationPolicy = "Creates",
+                        AllowRefusedDeletion = action.Kind == "delete",
                     };
                     var outcome = await RegistryMutation.Execute(request);
                     attempted |= outcome.SubmissionStarted;
@@ -224,16 +225,19 @@ public partial class RegistryCommands
         static RegistryActionOutcome ToOutcome(
             RegistrySyncAction action,
             string status,
-            string? detail) => new(
-            action.Kind,
-            action.Destination,
-            action.Course,
-            action.Groups,
-            action.Date,
-            action.Topic,
-            action.AttendanceCount,
-            status,
-            detail);
+            string? detail)
+        {
+            return new(
+                action.Kind,
+                action.Destination,
+                action.Course,
+                action.Groups,
+                action.Date,
+                action.Topic,
+                action.AttendanceCount,
+                status,
+                detail);
+        }
 
         void Record(
             RegistrySyncAction action,
@@ -313,7 +317,10 @@ public partial class RegistryCommands
             var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
             var summary = new
             {
-                target, diagnostics, total = outcomes.Count, counts,
+                target,
+                diagnostics,
+                total = outcomes.Count,
+                counts,
             };
             var actions = outcomes.Select(x => $"{x.Kind}: {x.Status}").ToArray();
             var data = new RegistrySyncResult(

@@ -410,9 +410,9 @@ public sealed class GoogleDriveProviderTests
         {
             // The API HttpClient cancels the interceptor's linked token when its deadline
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
-            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
-                (scenario.EndsWith("real-deadline", StringComparison.Ordinal) ||
-                    scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            if (request.RequestUri!.Host == "oauth2.googleapis.com"
+                && (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
+                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
             {
                 if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
                 {
@@ -422,8 +422,8 @@ public sealed class GoogleDriveProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
-            if (request.RequestUri!.Host == "oauth2.googleapis.com" &&
-                scenario.Contains("expired-refresh", StringComparison.Ordinal))
+            if (request.RequestUri!.Host == "oauth2.googleapis.com"
+                && scenario.Contains("expired-refresh", StringComparison.Ordinal))
             {
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
@@ -450,8 +450,8 @@ public sealed class GoogleDriveProviderTests
                     };
             }
 
-            if (scenario == "read-sent-real-deadline" ||
-                scenario == "write-sent-real-deadline" && request.Method == HttpMethod.Post)
+            if (scenario == "read-sent-real-deadline"
+                || scenario == "write-sent-real-deadline" && request.Method == HttpMethod.Post)
             {
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("The sent API request must time out.");
@@ -508,7 +508,11 @@ public sealed class GoogleDriveProviderTests
         using var flow = new GoogleAuthorizationCodeFlow(
             new GoogleAuthorizationCodeFlow.Initializer
             {
-                ClientSecrets = new ClientSecrets { ClientId = "fixture", ClientSecret = "fixture" },
+                ClientSecrets = new ClientSecrets
+                {
+                    ClientId = "fixture",
+                    ClientSecret = "fixture",
+                },
                 HttpClientFactory = new Factory(handler),
             });
         credential = new UserCredential(
@@ -559,21 +563,25 @@ public sealed class GoogleDriveProviderTests
             Console.SetOut(stdout);
             Console.SetError(stderr);
             var actual = await new DriveSyncTests.FixtureDrive(provider).Publish(
-                new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                new()
+                {
+                    NoCache = true,
+                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                },
                 new() { Profile = "Curmanschii Anton" },
                 new() { Directory = directory },
                 new() { Json = true },
                 new()
                 {
-                    Apply = scenario.StartsWith("apply", StringComparison.Ordinal) ||
-                        scenario.StartsWith("write-", StringComparison.Ordinal),
+                    Apply = scenario.StartsWith("apply", StringComparison.Ordinal)
+                        || scenario.StartsWith("write-", StringComparison.Ordinal),
                 },
                 cancellation.Token);
             Assert.Equal(exit, actual);
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
             Assert.Equal(status, json.RootElement.GetProperty("status").GetString());
-            if (scenario.StartsWith("apply", StringComparison.Ordinal) ||
-                scenario.StartsWith("write-", StringComparison.Ordinal))
+            if (scenario.StartsWith("apply", StringComparison.Ordinal)
+                || scenario.StartsWith("write-", StringComparison.Ordinal))
             {
                 var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
                 var completed = scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal) ? 1 : 0;
@@ -581,9 +589,9 @@ public sealed class GoogleDriveProviderTests
                     outcomes.Take(completed),
                     x => Assert.Equal("completed", x.GetProperty("state").GetString()));
                 Assert.Equal(
-                    scenario.StartsWith("write-", StringComparison.Ordinal) ||
-                    (scenario.EndsWith("refresh-cancel", StringComparison.Ordinal) ||
-                        scenario.EndsWith("real-cancel", StringComparison.Ordinal))
+                    scenario.StartsWith("write-", StringComparison.Ordinal)
+                    || (scenario.EndsWith("refresh-cancel", StringComparison.Ordinal)
+                        || scenario.EndsWith("real-cancel", StringComparison.Ordinal))
                         ? "uncertain"
                         : "failed",
                     outcomes[completed].GetProperty("state").GetString());
@@ -606,8 +614,8 @@ public sealed class GoogleDriveProviderTests
             if (scenario.Contains("real-", StringComparison.Ordinal))
             {
                 Assert.Equal(
-                    scenario.StartsWith("apply-after-create", StringComparison.Ordinal) ||
-                    scenario == "write-sent-real-deadline"
+                    scenario.StartsWith("apply-after-create", StringComparison.Ordinal)
+                    || scenario == "write-sent-real-deadline"
                         ? 1
                         : 0,
                     handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com" && x.Method != "GET"));
@@ -670,9 +678,9 @@ public sealed class GoogleDriveProviderTests
         using var handler = new Transport((request, _) => Task.FromResult(
             Json(
                 request.RequestUri!.Host == "oauth2.googleapis.com"
-                    ? "{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"" +
-                    (responseScope is null ? "" : ",\"scope\":\"" + responseScope + "\"") +
-                    "}"
+                    ? "{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\""
+                    + (responseScope is null ? "" : ",\"scope\":\"" + responseScope + "\"")
+                    + "}"
                     : "{\"id\":\"created\"}")));
         using var tokens = new SdkTokens(handler);
         using var auth = new GoogleAuthentication(directory, tokens);
@@ -836,7 +844,11 @@ public sealed class GoogleDriveProviderTests
             Assert.Equal(
                 exit,
                 await new DriveSyncTests.FixtureDrive(provider).Publish(
-                    new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                    new()
+                    {
+                        NoCache = true,
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    },
                     new() { Profile = "Curmanschii Anton" },
                     new() { Directory = Path.Combine(directory, "output") },
                     new() { Json = true },
@@ -878,7 +890,14 @@ public sealed class GoogleDriveProviderTests
     {
         CredentialsPath = "unused",
         ApiKeysSource =
-            new ManualGoogleApiKeysSource { Value = new() { ClientId = "fixture", ClientSecret = "fixture" } },
+            new ManualGoogleApiKeysSource
+            {
+                Value = new()
+                {
+                    ClientId = "fixture",
+                    ClientSecret = "fixture",
+                },
+            },
     };
 
     private static DriveService CredentialService(Transport handler, UserCredential credential) => new(
@@ -983,7 +1002,11 @@ public sealed class GoogleDriveProviderTests
     }
 
     private static DriveService Service(Transport handler) => new(
-        new BaseClientService.Initializer { HttpClientFactory = new Factory(handler), ApplicationName = "fixture" });
+        new BaseClientService.Initializer
+        {
+            HttpClientFactory = new Factory(handler),
+            ApplicationName = "fixture",
+        });
 
     private static HttpResponseMessage Json(string json) =>
         new(HttpStatusCode.OK)

@@ -46,10 +46,10 @@ public sealed class RegistryHistoryTopicsTests
     [InlineData("1 3D geometry", "3D geometry")]
     public void SequenceRemovalPreservesBlankPositionsAndTopicNumbers(string cell, string expected)
     {
-        var html = "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>" +
-            "<tr><td><a>01.10.2024 08:00</a> curs</td><td>" +
-            cell +
-            "</td><td></td></tr></table>";
+        var html = "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>"
+            + "<tr><td><a>01.10.2024 08:00</a> curs</td><td>"
+            + cell
+            + "</td><td></td></tr></table>";
         Assert.Equal(
             expected,
             Assert.Single(RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html))).Topic);
@@ -270,15 +270,15 @@ public sealed class RegistryHistoryTopicsTests
                     year = "2024/25";
                 }
 
-                html = "<form><select id='AnUniv' name='AnUniv'>" +
-                    $"<option {(year == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>" +
-                    $"<option {(year == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>" +
-                    "</select></form><div id='nav-1'><div><span>1</span><span>" +
-                    "<a href='/studregistry/LessonAttendance/groups/1'>Systems,</a></span></div>" +
-                    (year == "2024/25"
+                html = "<form><select id='AnUniv' name='AnUniv'>"
+                    + $"<option {(year == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>"
+                    + $"<option {(year == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>"
+                    + "</select></form><div id='nav-1'><div><span>1</span><span>"
+                    + "<a href='/studregistry/LessonAttendance/groups/1'>Systems,</a></span></div>"
+                    + (year == "2024/25"
                         ? "<div><span>2</span><span><a href='/studregistry/LessonAttendance/groups/99'>Unrelated course</a></span></div>"
-                        : "") +
-                    "</div><div id='nav-2'></div>";
+                        : "")
+                    + "</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.EndsWith("/groups/1", StringComparison.Ordinal))
             {
@@ -356,8 +356,8 @@ public sealed class RegistryHistoryTopicsTests
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/8", StringComparison.Ordinal));
         Assert.DoesNotContain(
             requests,
-            path => path.EndsWith("/groups/5", StringComparison.Ordinal) ||
-                path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
+            path => path.EndsWith("/groups/5", StringComparison.Ordinal)
+                || path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -499,35 +499,35 @@ public sealed class RegistryHistoryTopicsTests
                     } :
                     secondCourseFallsBack ? [3, 7] : [3]
                     : secondCourseFallsBack ? [5, 8] : [5];
-                html = "<form><select id='AnUniv' name='AnUniv'>" +
-                    string.Concat(
+                html = "<form><select id='AnUniv' name='AnUniv'>"
+                    + string.Concat(
                         new[]
                         {
                             "2025/26",
                             "2024/25",
                             "2023/24",
                         }.Select(value =>
-                            $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>")) +
-                    "</select></form><div id='nav-1'>" +
-                    string.Concat(
+                            $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>"))
+                    + "</select></form><div id='nav-1'>"
+                    + string.Concat(
                         courseIds.Select(id =>
-                            $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>")) +
-                    "</div><div id='nav-2'></div>";
+                            $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>"))
+                    + "</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
             {
                 var id = uri.AbsolutePath.Split('/').Last();
                 html =
-                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
-                    $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>" +
-                    "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>"
+                    + $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>"
+                    + "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
             }
             else
             {
-                html = (latestBlank && uri.AbsolutePath.EndsWith("/LessonsList/3", StringComparison.Ordinal) ||
-                    secondCourseFallsBack && uri.AbsolutePath.EndsWith("/LessonsList/7", StringComparison.Ordinal))
-                    ? "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>" +
-                    "<tr><td><a>01.10.2024 08:00</a> curs</td><td>1 </td><td></td></tr></table>"
+                html = (latestBlank && uri.AbsolutePath.EndsWith("/LessonsList/3", StringComparison.Ordinal)
+                    || secondCourseFallsBack && uri.AbsolutePath.EndsWith("/LessonsList/7", StringComparison.Ordinal))
+                    ? "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>"
+                    + "<tr><td><a>01.10.2024 08:00</a> curs</td><td>1 </td><td></td></tr></table>"
                     : Lessons;
             }
 

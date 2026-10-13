@@ -448,7 +448,11 @@ public sealed class RegistryGradeAdapterTests
             handler);
         await Assert.ThrowsAsync<InvalidOperationException>(() => MoodleScrapingContext.Create(
             services,
-            new() { Login = "test", Password = "test" },
+            new()
+            {
+                Login = "test",
+                Password = "test",
+            },
             default,
             transport));
         Assert.Equal(1, handler.Posts);
@@ -481,7 +485,11 @@ public sealed class RegistryGradeAdapterTests
             handler);
         var task = MoodleScrapingContext.Create(
             services,
-            new() { Login = "test", Password = "test" },
+            new()
+            {
+                Login = "test",
+                Password = "test",
+            },
             cancellation.Token,
             transport);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -524,7 +532,11 @@ public sealed class RegistryGradeAdapterTests
         using var settings = await CliSettings.Load(new());
         settings.Tree.Defaults.Moodle().ConfigureValue(x => x.Credentials = new ValueCredentialsSource
         {
-            Value = new() { Login = "test", Password = "test" },
+            Value = new()
+            {
+                Login = "test",
+                Password = "test",
+            },
         });
         var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
@@ -604,7 +616,11 @@ public sealed class RegistryGradeAdapterTests
             .BuildServiceProvider();
         using var context = await MoodleScrapingContext.Create(
             services,
-            new() { Login = "test", Password = "test" },
+            new()
+            {
+                Login = "test",
+                Password = "test",
+            },
             default,
             transport);
         Assert.Equal(1, handler.Posts);

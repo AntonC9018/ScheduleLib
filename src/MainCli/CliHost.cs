@@ -22,7 +22,12 @@ public static class CliHost
         var runner = new AppRunner<Commands>(
             new AppSettings
             {
-                Help = { PrintHelpOption = true, UsageAppName = "schedulelib" }, DisableDirectives = true,
+                Help =
+                {
+                    PrintHelpOption = true,
+                    UsageAppName = "schedulelib",
+                },
+                DisableDirectives = true,
             });
         // When --jsonl is selected (without --json and without explicit --help), capture
         // CommandDotNet's own human parse-error output so neither stdout nor stderr
@@ -48,8 +53,8 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-                inputFailure = !invoked &&
-                    (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
+                inputFailure = !invoked
+                    && (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
                 if (!invoked && context.ParseResult?.ParseError is not null)
                 {
                     parseDetail = context.ParseResult.ParseError.ToString();
@@ -324,9 +329,9 @@ public partial class QueryCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            if (query.BeforeSlot is < 1 or > 7 ||
-                query.Day is { } day && !Enum.IsDefined(day) ||
-                query.Parity is { } parity && !Enum.IsDefined(parity))
+            if (query.BeforeSlot is < 1 or > 7
+                || query.Day is { } day && !Enum.IsDefined(day)
+                || query.Parity is { } parity && !Enum.IsDefined(parity))
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -358,10 +363,10 @@ public partial class QueryCommands
                          .EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
-                if (query.Room is { } r && lesson.Lesson.Room.Id != r ||
-                    query.Day is { } d && lesson.Date.DayOfWeek != d ||
-                    query.Parity is { } p && !lesson.Date.Parity.IsMatch(p) ||
-                    query.BeforeSlot is { } slot && lesson.Date.TimeSlot.Index + 1 > slot)
+                if (query.Room is { } r && lesson.Lesson.Room.Id != r
+                    || query.Day is { } d && lesson.Date.DayOfWeek != d
+                    || query.Parity is { } p && !lesson.Date.Parity.IsMatch(p)
+                    || query.BeforeSlot is { } slot && lesson.Date.TimeSlot.Index + 1 > slot)
                 {
                     continue;
                 }

@@ -18,7 +18,11 @@ public sealed class WebsiteExportTests
 {
     private static string Fixtures => Path.Combine(AppContext.BaseDirectory, "fixtures");
 
-    private static SourceArguments FixtureSource => new() { NoCache = true, DataDirectory = Fixtures };
+    private static SourceArguments FixtureSource => new()
+    {
+        NoCache = true,
+        DataDirectory = Fixtures,
+    };
 
     [Fact]
     public async Task WebsiteSchedulesProducesPerTeacherFilesAndZip()
@@ -242,7 +246,8 @@ public sealed class WebsiteExportTests
     {
         var fixture = new FixtureWebsite
         {
-            UseFakeSlugProvider = false, HttpHandlerOverride = new FakeTimeoutHandler(),
+            UseFakeSlugProvider = false,
+            HttpHandlerOverride = new FakeTimeoutHandler(),
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(teachers.Display1, teachers.Display2);
@@ -413,7 +418,11 @@ public sealed class WebsiteExportTests
     public async Task MissingSourceReturnsConfigurationError()
     {
         var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var source = new SourceArguments { NoCache = true, DataDirectory = missing };
+        var source = new SourceArguments
+        {
+            NoCache = true,
+            DataDirectory = missing,
+        };
         Assert.Equal(
             3,
             await new FixtureWebsite().WebsiteSchedules(
@@ -532,12 +541,20 @@ public sealed class WebsiteExportTests
         {
             var content = teachers.Select((teacher, index) => new
             {
-                userId = index + 1, firstName = teacher.FirstName, lastName = teacher.LastName, slug = teacher.Slug,
+                userId = index + 1,
+                firstName = teacher.FirstName,
+                lastName = teacher.LastName,
+                slug = teacher.Slug,
             }).ToArray();
             var payload = new
             {
                 content,
-                pageable = new { pageNumber = 0, pageSize = 1000, offset = 0 },
+                pageable = new
+                {
+                    pageNumber = 0,
+                    pageSize = 1000,
+                    offset = 0,
+                },
                 totalPages = 1,
                 totalElements = content.Length,
                 numberOfElements = content.Length,

@@ -115,7 +115,15 @@ public sealed class TeacherExportTests
     public async Task ACommissionWithoutMembersIsAlsoAPrerequisite()
     {
         using var files = new Fixture();
-        files.Export.Commissions = [new() { Number = 7, Room = "101", Members = [] }];
+        files.Export.Commissions =
+        [
+            new()
+            {
+                Number = 7,
+                Room = "101",
+                Members = [],
+            },
+        ];
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
             new() { Json = true },
@@ -150,9 +158,24 @@ public sealed class TeacherExportTests
             : "Curmanscii Anton";
         files.Export.Commissions = duplicate switch
         {
-            "number" => [commission, new() { Number = 7, Room = "102", Members = [new() { Name = "Ionescu Maria" }] }],
+            "number" =>
+            [
+                commission, new()
+                {
+                    Number = 7,
+                    Room = "102",
+                    Members = [new() { Name = "Ionescu Maria" }],
+                },
+            ],
             "member-within" or "remapped-within" =>
-                [new() { Number = 7, Room = "101", Members = [.. commission.Members, new() { Name = repeatedName }] }],
+            [
+                new()
+                {
+                    Number = 7,
+                    Room = "101",
+                    Members = [.. commission.Members, new() { Name = repeatedName }],
+                },
+            ],
             "empty-name" or "invalid-name" =>
             [
                 new()
@@ -162,7 +185,15 @@ public sealed class TeacherExportTests
                     Members = [.. commission.Members, new() { Name = duplicate == "empty-name" ? "" : "Invalid" }],
                 },
             ],
-            _ => [commission, new() { Number = 8, Room = "102", Members = [new() { Name = repeatedName }] }],
+            _ =>
+            [
+                commission, new()
+                {
+                    Number = 8,
+                    Room = "102",
+                    Members = [new() { Name = repeatedName }],
+                },
+            ],
         };
         var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
         var settingsFile = Path.Combine(files.Path, "schedulelib.json");
@@ -361,7 +392,11 @@ public sealed class TeacherExportTests
             files.Source,
             files.Output,
             new() { Json = true },
-            new() { Project = files.Path, Profile = "Nartea Nichita" }));
+            new()
+            {
+                Project = files.Path,
+                Profile = "Nartea Nichita",
+            }));
         Assert.Equal(3, absent.Exit);
         Assert.Contains("absent", absent.Stderr);
     }
@@ -388,7 +423,12 @@ public sealed class TeacherExportTests
         files.Export.Commissions =
         [
             .. files.Export.Commissions!,
-            new() { Number = 8, Room = "102", Members = [new() { Name = "Ionescu Maria" }] },
+            new()
+            {
+                Number = 8,
+                Room = "102",
+                Members = [new() { Name = "Ionescu Maria" }],
+            },
         ];
         Directory.CreateDirectory(files.Output.Directory!);
         var collision = Path.Combine(files.Output.Directory!, "comisia_8.xlsx");
@@ -493,9 +533,19 @@ public sealed class TeacherExportTests
             get;
         } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-teacher-{Guid.NewGuid():N}");
 
-        public SourceArguments Source => new() { DataDirectory = System.IO.Path.Combine(Path, "data"), NoCache = true };
+        public SourceArguments Source => new()
+        {
+            DataDirectory = System.IO.Path.Combine(Path, "data"),
+            NoCache = true,
+        };
+
         public OutputArguments Output => new() { Directory = System.IO.Path.Combine(Path, "results") };
-        public SettingsArguments Settings => new() { Project = Path, Profile = "Curmanschii Anton" };
+
+        public SettingsArguments Settings => new()
+        {
+            Project = Path,
+            Profile = "Curmanschii Anton",
+        };
 
         public string SourceFile => System.IO.Path.Combine(
             Path,
@@ -541,7 +591,21 @@ public sealed class TeacherExportTests
         }
 
         public void ConfigureCommission() => Export.Commissions =
-            [new() { Number = 7, Room = "101", Members = [new() { Name = "Curmanscii Anton", IsPresident = true }] }];
+        [
+            new()
+            {
+                Number = 7,
+                Room = "101",
+                Members =
+                [
+                    new()
+                    {
+                        Name = "Curmanscii Anton",
+                        IsPresident = true,
+                    },
+                ],
+            },
+        ];
 
         public void Dispose() => Directory.Delete(Path, recursive: true);
     }

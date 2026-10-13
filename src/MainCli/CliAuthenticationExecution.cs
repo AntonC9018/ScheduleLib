@@ -52,7 +52,12 @@ internal static class CliAuthenticationExecution
                 new CliCompletion<AuthStatus?>(
                     exit,
                     errors,
-                    data) { Summary = data, Status = status, JsonStatus = status });
+                    data)
+                {
+                    Summary = data,
+                    Status = status,
+                    JsonStatus = status,
+                });
         }
 
         for (var index = 0; index < data.Accounts.Count; index++)

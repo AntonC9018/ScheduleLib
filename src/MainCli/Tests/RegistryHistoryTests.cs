@@ -60,19 +60,19 @@ public sealed class RegistryHistoryTests
                     activeYear = Uri.UnescapeDataString(uri.Query[8..]);
                 }
 
-                html = "<form><select id='AnUniv' name='AnUniv'>" +
-                    $"<option {(activeYear == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>" +
-                    $"<option {(activeYear == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>" +
-                    "</select></form><div id='nav-1'><div><span>1</span><span>" +
-                    "<a href='/studregistry/LessonAttendance/groups/1'>Synthetic</a></span></div></div><div id='nav-2'></div>";
+                html = "<form><select id='AnUniv' name='AnUniv'>"
+                    + $"<option {(activeYear == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>"
+                    + $"<option {(activeYear == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>"
+                    + "</select></form><div id='nav-1'><div><span>1</span><span>"
+                    + "<a href='/studregistry/LessonAttendance/groups/1'>Synthetic</a></span></div></div><div id='nav-2'></div>";
             }
             else
             {
                 groupYears.Add(activeYear);
                 html =
-                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>" +
-                    $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>" +
-                    "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>"
+                    + $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>"
+                    + "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
             }
             return Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK)
@@ -475,10 +475,10 @@ public sealed class RegistryHistoryTests
                   <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a></div></div></div></form>
                   <table><tr><td>canary-student</td><td>private grade</td></tr></table>
                   """
-                : years +
-                """
-                <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped historical course,</a></span></div></div><div id='nav-2'></div>
-                """;
+                : years
+                + """
+                  <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped historical course,</a></span></div></div><div id='nav-2'></div>
+                  """;
             return new(HttpStatusCode.OK) { Content = new StringContent(html) };
         });
         using var guard = new RegistryHistoryRequestHandler(
@@ -501,8 +501,16 @@ public sealed class RegistryHistoryTests
                 TokenCookieName = "synthetic",
             },
             x => x.PasswordLoginCall(
-                new() { Login = "canary-login", Password = "canary-password" },
-                new() { Login = "UserLogin", Password = "UserPassword" }));
+                new()
+                {
+                    Login = "canary-login",
+                    Password = "canary-password",
+                },
+                new()
+                {
+                    Login = "UserLogin",
+                    Password = "UserPassword",
+                }));
         using var context = await builder.Build(default, transport);
         guard.CompleteAuthentication();
         var summary = await new RegistryHistoryReader(context.HttpClient, Index).Discover("2024/25", default);
@@ -561,10 +569,10 @@ public sealed class RegistryHistoryTests
                   <a href='/studregistry/LessonAttendance/LessonsList/1'>Unmapped group</a><a href='/studregistry/Evaluation/Index/1'>grades</a>
                   </div></div></div></form>
                   """
-                : Years +
-                """
-                <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped course</a></span></div></div><div id='nav-2'></div>
-                """;
+                : Years
+                + """
+                  <div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped course</a></span></div></div><div id='nav-2'></div>
+                  """;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html) });
         });
         using var guard = new RegistryHistoryRequestHandler(

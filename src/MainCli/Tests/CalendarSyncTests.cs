@@ -77,7 +77,11 @@ public sealed class CalendarSyncTests
     [Fact]
     public async Task RejectedFirstCreateIsFailureBeforePartialApplication()
     {
-        using var provider = new Fake { Fail = "rejected", Missing = true };
+        using var provider = new Fake
+        {
+            Fail = "rejected",
+            Missing = true,
+        };
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
@@ -93,7 +97,11 @@ public sealed class CalendarSyncTests
     public async Task CancellationAfterOneEventKeepsItsIdAndIdentifiesTheNextUncertainEvent()
     {
         using var cancel = new CancellationTokenSource();
-        using var provider = new Fake { Fail = "cancel-second", Cancellation = cancel };
+        using var provider = new Fake
+        {
+            Fail = "cancel-second",
+            Cancellation = cancel,
+        };
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
@@ -111,7 +119,11 @@ public sealed class CalendarSyncTests
     public async Task CancellationDuringCreatePreservesCalendarAndUncertainEvent()
     {
         using var cancel = new CancellationTokenSource();
-        using var provider = new Fake { Fail = "cancel", Cancellation = cancel };
+        using var provider = new Fake
+        {
+            Fail = "cancel",
+            Cancellation = cancel,
+        };
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
@@ -228,7 +240,11 @@ public sealed class CalendarSyncTests
             Assert.Equal(
                 0,
                 await command.Sync(
-                    new() { NoCache = true, DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures") },
+                    new()
+                    {
+                        NoCache = true,
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    },
                     new() { Profile = "Nartea Nichita" },
                     new() { Json = true },
                     new()));

@@ -41,7 +41,12 @@ public sealed partial class ConfigCommands
             settings,
             overrides,
             output,
-            resolved => new { resolved.ProjectDirectory, resolved.Profile, Settings = resolved.Inspect() },
+            resolved => new
+            {
+                resolved.ProjectDirectory,
+                resolved.Profile,
+                Settings = resolved.Inspect(),
+            },
             cancellationToken);
 
     [Command("get", Description = "Read a resolved setting with its contributing sources.")]
@@ -72,7 +77,13 @@ public sealed partial class ConfigCommands
             settings,
             new(),
             output,
-            resolved => new { Valid = true, resolved.ProjectDirectory, resolved.Profile, resolved.Sources },
+            resolved => new
+            {
+                Valid = true,
+                resolved.ProjectDirectory,
+                resolved.Profile,
+                resolved.Sources,
+            },
             cancellationToken);
 
     [Command("profiles", Description = "List code-defined teacher profiles; JSON adds overlays to these identities.")]

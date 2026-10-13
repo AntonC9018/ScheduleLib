@@ -177,9 +177,9 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         .Select(source => source with
         {
             Keys = source.Keys.Where(x =>
-                x == key ||
-                x.StartsWith(key + ".", StringComparison.Ordinal) ||
-                key.StartsWith(x + ".", StringComparison.Ordinal)).Order().ToArray(),
+                x == key
+                || x.StartsWith(key + ".", StringComparison.Ordinal)
+                || key.StartsWith(x + ".", StringComparison.Ordinal)).Order().ToArray(),
         })
         .Where(source => source.Keys.Count != 0).ToArray();
 
@@ -563,9 +563,9 @@ public static partial class CliSettings
             envelope,
             ["schemaVersion", "defaults", "profiles", "operations"],
             path);
-        if (envelope["schemaVersion"] is not JsonValue version ||
-            !version.TryGetValue<int>(out var schema) ||
-            schema != 1)
+        if (envelope["schemaVersion"] is not JsonValue version
+            || !version.TryGetValue<int>(out var schema)
+            || schema != 1)
         {
             throw new JsonException($"Unsupported or missing schemaVersion in {path}; expected 1.");
         }
@@ -614,8 +614,8 @@ public static partial class CliSettings
 
             foreach (var setting in values)
             {
-                if (location.StartsWith("profiles.", StringComparison.Ordinal) &&
-                    setting.Key == "ScheduleDerivationConfig")
+                if (location.StartsWith("profiles.", StringComparison.Ordinal)
+                    && setting.Key == "ScheduleDerivationConfig")
                 {
                     throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 }
@@ -639,10 +639,10 @@ public static partial class CliSettings
                 {
                     _ = setting.Value?.Deserialize(type, json);
                 }
-                catch (Exception e) when (e is JsonException or
-                                              ArgumentException or
-                                              NotSupportedException or
-                                              InvalidOperationException)
+                catch (Exception e) when (e is JsonException
+                                              or ArgumentException
+                                              or NotSupportedException
+                                              or InvalidOperationException)
                 {
                     throw new JsonException($"Invalid {location}.{setting.Key} in {path}: {e.Message}");
                 }
@@ -654,15 +654,21 @@ public static partial class CliSettings
     private static void SetValue(
         MutableNode node,
         NodeDataKey key,
-        object value) => typeof(CliSettings)
-        .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
-        .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+        object value)
+    {
+        typeof(CliSettings)
+            .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+    }
 
     private static void SetTypedValue<T>(
         MutableNode node,
         NodeDataKey key,
-        object value) where T : class =>
-        node.GetOrAdd(new NodeDataKey<T>(key)).SetValue((T) value);
+        object value) where T : class
+    {
+        var typed = node.GetOrAdd(new NodeDataKey<T>(key));
+        typed.SetValue((T) value);
+    }
 
     private static void CheckDuplicates(JsonElement value, string file)
     {
@@ -708,9 +714,9 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                if (IsSecret(entry.Key) ||
-                    entry.Key == "$type" &&
-                    entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
+                if (IsSecret(entry.Key)
+                    || entry.Key == "$type"
+                    && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
                 {
                     throw new JsonException(
                         $"Inline secrets are unsupported in settings file {file}; reference the existing credential configuration instead.");
@@ -806,9 +812,9 @@ public static partial class CliSettings
         {
             foreach (var entry in obj.ToArray())
             {
-                if (entry.Key is "credentialsPath" or "filePath" or "path" &&
-                    entry.Value is JsonValue value &&
-                    value.TryGetValue<string>(out var path))
+                if (entry.Key is "credentialsPath" or "filePath" or "path"
+                    && entry.Value is JsonValue value
+                    && value.TryGetValue<string>(out var path))
                 {
                     try
                     {
@@ -887,11 +893,11 @@ public static partial class CliSettings
         }
     }
 
-    private static bool IsSecret(string key) => key.Contains("password", StringComparison.OrdinalIgnoreCase) ||
-        key.Contains("secret", StringComparison.OrdinalIgnoreCase) ||
-        key.Contains("token", StringComparison.OrdinalIgnoreCase) ||
-        key.Equals("apiKey", StringComparison.OrdinalIgnoreCase) ||
-        key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
+    private static bool IsSecret(string key) => key.Contains("password", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("token", StringComparison.OrdinalIgnoreCase)
+        || key.Equals("apiKey", StringComparison.OrdinalIgnoreCase)
+        || key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
 
     internal static JsonNode? Redact(JsonNode? node)
     {
@@ -935,9 +941,9 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
         }
 
         var value = reader.GetString()!;
-        if (value.Length == 9 &&
-            value[0] == '#' &&
-            uint.TryParse(
+        if (value.Length == 9
+            && value[0] == '#'
+            && uint.TryParse(
                 value.AsSpan(1),
                 System.Globalization.NumberStyles.HexNumber,
                 System.Globalization.CultureInfo.InvariantCulture,

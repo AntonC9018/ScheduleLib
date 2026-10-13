@@ -15,7 +15,12 @@ using File = System.IO.File;
 public sealed class MicrosoftTests
 {
     private const string Teacher = "Curmanschii Anton";
-    private static MicrosoftAuthConfig Config => new() { TenantId = "tenant", ClientId = "client" };
+
+    private static MicrosoftAuthConfig Config => new()
+    {
+        TenantId = "tenant",
+        ClientId = "client",
+    };
 
     [Fact]
     public async Task OrdinaryAuthenticationIsSilentAndHasExactLoginGuidance()
@@ -352,7 +357,11 @@ public sealed class MicrosoftTests
             Teacher,
             default);
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() => authentication.Resolve(
-            new() { TenantId = Config.TenantId, ClientId = "other-client" },
+            new()
+            {
+                TenantId = Config.TenantId,
+                ClientId = "other-client",
+            },
             Teacher,
             default));
         Assert.Equal(0, tokens.SilentCalls);
@@ -597,10 +606,10 @@ public sealed class MicrosoftTests
             var authentication = new DelegateAuthenticationProvider(request =>
             {
                 // Preflight succeeds; fail during middleware authentication, before the terminal fixture handler.
-                if (++calls > 1 &&
-                    (!partial ||
-                        request.RequestUri!.AbsolutePath.EndsWith("/content", StringComparison.Ordinal) &&
-                        Handler.ContentRequests == 1))
+                if (++calls > 1
+                    && (!partial
+                        || request.RequestUri!.AbsolutePath.EndsWith("/content", StringComparison.Ordinal)
+                        && Handler.ContentRequests == 1))
                 {
                     Assert.Contains(
                         "Microsoft.Graph.AuthenticationHandler",
@@ -812,8 +821,10 @@ public sealed class MicrosoftTests
                 }
                 else if (path.Contains("/items/root/children", StringComparison.Ordinal))
                 {
-                    json = "{\"value\":[{\"id\":\"program\",\"name\":\"group\",\"folder\":{}}]" +
-                        (paginate ? ",\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/programs-page2\"}" : "}");
+                    json = "{\"value\":[{\"id\":\"program\",\"name\":\"group\",\"folder\":{}}]"
+                        + (paginate
+                            ? ",\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/programs-page2\"}"
+                            : "}");
                 }
                 else if (path.Contains("/items/program", StringComparison.Ordinal))
                 {
@@ -832,8 +843,8 @@ public sealed class MicrosoftTests
                         });
                     if (paginate && path.Contains("/items/program/", StringComparison.Ordinal))
                     {
-                        json = json[..^1] +
-                            ",\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/documents-page2\"}";
+                        json = json[..^1]
+                            + ",\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/documents-page2\"}";
                     }
                 }
                 else

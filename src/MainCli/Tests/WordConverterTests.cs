@@ -18,7 +18,8 @@ public sealed class WordConverterTests
     [InlineData(unchecked((int) 0x80080005))] // CO_E_SERVER_EXEC_FAILURE
     public void OtherComFailuresAreNotReportedAsMissingWord(int hResult)
     {
-        Assert.False(WordConverterProtocol.IsMissingWordActivation(hResult));
+        var missing = WordConverterProtocol.IsMissingWordActivation(hResult);
+        Assert.False(missing);
     }
 
     [Theory]
@@ -28,7 +29,8 @@ public sealed class WordConverterTests
     [InlineData(-532462766, false)] // Unhandled CLR exception process exit.
     public void OrdinaryConverterExitsRetainSuccessOrConversionFailure(int exitCode, bool success)
     {
-        Assert.Equal(success, DocToDocxConversionHelper.ClassifyConverterExit(exitCode));
+        var actual = DocToDocxConversionHelper.ClassifyConverterExit(exitCode);
+        Assert.Equal(success, actual);
     }
 }
 
@@ -232,7 +234,8 @@ public sealed class WordConverterOwnershipTests
         var cancellationPath = Path.Combine(staging.DirectoryPath, "cancel");
         var info = new System.Diagnostics.ProcessStartInfo("/bin/sh")
         {
-            UseShellExecute = false, RedirectStandardOutput = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
         };
         info.ArgumentList.Add("-c");
         info.ArgumentList.Add(cooperative ? "while [ ! -f \"$1\" ]; do sleep 0.05; done; exit 130" : "sleep 30");
