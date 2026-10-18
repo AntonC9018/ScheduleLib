@@ -13,15 +13,16 @@ namespace ScheduleLib;
 
 public static class ScheduleSerializer
 {
-    public static Task Serialize(
-        Schedule schedule,
-        Stream outputFile,
-        string hash,
+    /// <summary>Creates a reusable serialization operation. Configure Input and Output
+    /// before execution; Hash is optional and defaults to empty.</summary>
+    public static ScheduleSerializationBuilder Serialize() => new();
+
+    internal static Task SerializeModelAsync(
+        SerializationModels.ScheduleModel model,
+        Stream output,
         CancellationToken cancellationToken)
     {
-        var model = SerializationModels.ConvertToSerializationModel(schedule, hash);
-        var json = JsonSerializer.SerializeAsync(outputFile, model, SerializerOptions, cancellationToken);
-        return json;
+        return JsonSerializer.SerializeAsync(output, model, SerializerOptions, cancellationToken);
     }
 
     public static async Task<SerializationModels.ScheduleModel> Deserialize(

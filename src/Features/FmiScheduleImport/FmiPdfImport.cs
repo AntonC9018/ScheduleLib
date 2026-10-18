@@ -76,10 +76,11 @@ public static class FmiPdfImport
                 SourceConflicts = sourceConflicts,
                 CohortProjection = "Teaching-section Gr.1/Gr.2 are temporarily projected onto elective alternatives, independently of academic-group I/II. Shared lectures belong to both. See README for model limitations.",
             }, new JsonSerializerOptions { WriteIndented = true }));
-        await using (var json = File.Create(Path.Combine(outputPath, "schedule.json")))
-        {
-            await ScheduleSerializer.Serialize(schedule, json, "", cancellationToken);
-        }
+        var schedulePath = Path.Combine(outputPath, "schedule.json");
+        await ScheduleSerializer.Serialize()
+            .Input(schedule)
+            .Output(schedulePath)
+            .ExecuteAsync(cancellationToken);
         var handler = new GeneratePdfsForGroupsAndTeachersTaskHandler(
             new(new SubGroupNumberDisplayHandler(), new ParityDisplayHandler(), new LessonTypeDisplayHandler()),
             context.TimeConfig, new TimeSlotDisplayHandler(), new DayNameProvider(),

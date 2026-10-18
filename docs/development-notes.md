@@ -506,3 +506,11 @@ lists. The formatter uses JetBrains CleanupCode with a restricted formatting, br
 and commas profile rather than a custom syntax rewriter. See
 [formatting](formatting.md) for the automatic utility and
 [analyzer decisions](analyzer-review.md) for the accepted initializer policy.
+
+## Reusable schedule serialization (#243)
+
+`ScheduleSerializer.Serialize()` returns a reusable validated builder with
+required Input and stream/path Output, optional Hash and cancellable ExecuteAsync.
+Path output shares the existing atomic publisher through Helper; loader hash
+identity and writer locking are unchanged. See [serialization contracts and caller
+completeness](schedule-serialization.md) for ownership, setter and retry behavior.

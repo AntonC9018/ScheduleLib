@@ -84,8 +84,11 @@ public sealed class ScheduleLoader
         if (CachedPath is { } destination)
         {
             var schedule = context.Schedule.Build();
-            await AtomicFile.Publish(destination, async (stream, token) =>
-                await ScheduleSerializer.Serialize(schedule, stream, hashHex!, token), cancellationToken);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(destination)
+                .Hash(hashHex!)
+                .ExecuteAsync(cancellationToken);
         }
     }
 }

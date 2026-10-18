@@ -28,25 +28,12 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
 
 public sealed class LocalOperationBusyException(string message, Exception? inner = null) : IOException(message, inner);
 
-/// <summary>Stages in the destination filesystem, flushes complete contents, then
-/// atomically replaces the live file. Callers coordinate writers with LocalFileLock.</summary>
+/// <summary>Publishes files atomically using the shared filesystem helper.
+/// Callers coordinate writers with <see cref="LocalFileLock"/>.</summary>
 public static class AtomicFile
 {
-    public static async Task Publish(string destination, Func<Stream, CancellationToken, Task> write, CancellationToken token)
+    public static Task Publish(string destination, Func<Stream, CancellationToken, Task> write, CancellationToken token)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
-        var staged = destination + $".{Guid.NewGuid():N}.tmp";
-        try
-        {
-            await using (var stream = new FileStream(staged, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
-            {
-                await write(stream, token);
-                await stream.FlushAsync(token);
-                stream.Flush(flushToDisk: true);
-            }
-            token.ThrowIfCancellationRequested();
-            File.Move(staged, destination, overwrite: true);
-        }
-        finally { File.Delete(staged); }
+        return ScheduleLib.Helper.AtomicFilePublisher.Publish(destination, write, token);
     }
 }

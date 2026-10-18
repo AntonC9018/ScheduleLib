@@ -54,7 +54,10 @@ public sealed class ScheduleFromDocTestExclusive1
         await using var outputFile = new FileStream(
             ScheduleSnapshotJsonPath(option),
             FileMode.Create);
-        await ScheduleSerializer.Serialize(schedule, outputFile, "", helper.CancellationToken);
+        await ScheduleSerializer.Serialize()
+            .Input(schedule)
+            .Output(outputFile)
+            .ExecuteAsync(helper.CancellationToken);
     }
 }
 
@@ -103,7 +106,10 @@ public sealed class ScheduleFromDocTests
         {
             var schedule = helper.GetScheduleFromSourceOfTruth();
             await using var outputFile = new FileStream(outputPath, FileMode.Create);
-            await ScheduleSerializer.Serialize(schedule, outputFile, "", helper.CancellationToken);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(outputFile)
+                .ExecuteAsync(helper.CancellationToken);
             if (Debugger.IsAttached)
             {
                 ExplorerHelper.TryOpenExplorerAndSelectFile(outputPath);
@@ -122,7 +128,10 @@ public sealed class ScheduleFromDocTests
             {
                 var schedule1 = builder.Build();
                 await using var outputFile = new FileStream(otherOutputPath, FileMode.Create);
-                await ScheduleSerializer.Serialize(schedule1, outputFile, "", helper.CancellationToken);
+                await ScheduleSerializer.Serialize()
+                    .Input(schedule1)
+                    .Output(outputFile)
+                    .ExecuteAsync(helper.CancellationToken);
             }
         }
         {
