@@ -181,7 +181,7 @@ public class CalendarCommands
                 data)
             {
                 Summary = summary,
-                Actions = actions,
+                ActionMessages = actions,
                 Warnings = warnings,
                 Status = status,
                 RenderHuman = status =>
@@ -195,19 +195,19 @@ public class CalendarCommands
         }
     }
 
-    private static string[] PlannedActions(CalendarSyncResult? data)
+    private static ICliMessage[] PlannedActions(CalendarSyncResult? data)
     {
         if (data is null)
         {
             return [];
         }
-        var actions = new List<string>();
+        var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            actions.Add($"Delete calendar {calendar.Id} and its {data.DeletedEvents.Count} events");
+            actions.Add(new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count));
         }
-        actions.Add($"Create calendar {data.CalendarName} with a new ID");
-        actions.Add($"Create {data.DesiredEvents.Count} events with new IDs");
+        actions.Add(new CalendarCreateAction(data.CalendarName));
+        actions.Add(new CalendarCreateEventsAction(data.DesiredEvents.Count));
         return actions.ToArray();
     }
 }

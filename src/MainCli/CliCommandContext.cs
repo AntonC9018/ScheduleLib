@@ -149,6 +149,11 @@ public sealed class CliCommandContext : IDisposable
         }
         if (Output.Json)
         {
+            if (completion.ActionMessages is { } messages)
+            {
+                actions = messages.Select(message => message.Format(System.Globalization.CultureInfo.CurrentCulture))
+                    .ToArray();
+            }
             var result = new CommandResult<T>(
                 1,
                 Command,
@@ -212,6 +217,15 @@ public sealed class CliCommandContext : IDisposable
     }
 
     public void StreamUpdate((string Id, string Status, object? Item, string Human) update)
+    {
+        StreamItem(
+            id: update.Id,
+            status: update.Status,
+            item: update.Item,
+            renderHuman: () => Output.WriteHuman(update.Human));
+    }
+
+    public void StreamUpdate(CalendarReport update)
     {
         StreamItem(
             id: update.Id,

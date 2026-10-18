@@ -131,6 +131,10 @@ can already have reached the server, so its outcome is explicitly uncertain.
 
 ### Calendar CLI replacement (#199)
 
+Calendar report messages and replacement-summary actions now retain typed data
+until rendering; see [structured calendar reporting](calendar-reporting.md)
+for the #241 formatting contract, evaluation review and snapshot semantics.
+
 `calendar sync` previews by default; `--apply` uses the shared `ApplyArguments`
 from the registry slice. The extracted `BuildDesiredEvents` in the existing
 Google Calendar handler is the common recurring payload builder. The CLI

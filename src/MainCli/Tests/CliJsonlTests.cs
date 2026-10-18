@@ -645,7 +645,7 @@ public sealed class CliJsonlTests
         using var cancellation = new CancellationTokenSource();
         using var provider = new CalendarFake();
         using var root = new TempRoot();
-        var updates = new List<(string Id, string Status, object? Item, string Human)>();
+        var updates = new List<CalendarReport>();
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
@@ -676,7 +676,7 @@ public sealed class CliJsonlTests
             new Event { Summary = "Desired A" },
             new Event { Summary = "Desired B" },
         };
-        var previewUpdates = new List<(string Id, string Status, object? Item, string Human)>();
+        var previewUpdates = new List<CalendarReport>();
         using var previewProvider = new CalendarFake();
         using var previewLock = new TempRoot();
         var preview = await CalendarSync.Run(
@@ -708,7 +708,7 @@ public sealed class CliJsonlTests
                 .Select((update) => JsonDocument.Parse(JsonSerializer.Serialize(update.Item, JsonOptions)).RootElement
                     .GetProperty("summary").GetString()));
 
-        var applyUpdates = new List<(string Id, string Status, object? Item, string Human)>();
+        var applyUpdates = new List<CalendarReport>();
         using var applyProvider = new CalendarFake();
         using var applyLock = new TempRoot();
         var applied = await CalendarSync.Run(

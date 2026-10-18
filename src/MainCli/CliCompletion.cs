@@ -21,6 +21,12 @@ public sealed record CliCompletion<T>(int ExitCode, string[] Errors, T Data)
         init;
     } = [];
 
+    public IReadOnlyList<ICliMessage>? ActionMessages
+    {
+        get;
+        init;
+    }
+
     public string[]? Warnings
     {
         get;

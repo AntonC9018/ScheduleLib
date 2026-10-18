@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
@@ -7,6 +9,135 @@ using Event = Google.Apis.Calendar.v3.Data.Event;
 
 public sealed class CalendarSyncTests
 {
+    [Fact]
+    public async Task HumanFormattingFailurePreservesCompletedMutationAndStopsApply()
+    {
+        using var provider = new Fake();
+        using var context = new CliCommandContext("calendar sync",
+            new(),
+            default);
+        var failure = await Assert.ThrowsAsync<CalendarStreamingException>(() => CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new()],
+            true,
+            default,
+            onOutcome: report =>
+            {
+                if (report.Id == "0" && report.Status == "completed")
+                {
+                    context.StreamUpdate(report with { Human = new ThrowingMessage() });
+                }
+            }));
+        Assert.Equal(["delete old"], provider.Writes);
+        Assert.Equal(6, failure.PartialResult.ExitCode);
+        Assert.Equal("completed", Assert.Single(failure.PartialResult.Outcomes).State);
+        Assert.IsType<InvalidOperationException>(failure.InnerException!.InnerException);
+    }
+
+    private readonly record struct ThrowingMessage : ICliMessage
+    {
+        public string Format(IFormatProvider provider) =>
+            throw new InvalidOperationException("synthetic formatting failure");
+    }
+
+    [Theory]
+    [InlineData("en-US", false)]
+    [InlineData("ro-RO", false)]
+    [InlineData("ro-RO", true)]
+    public async Task ReportsKeepStructuredSelectionSnapshotsAndOriginalText(string cultureName, bool missingDates)
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            using var provider = new Fake();
+            DateTimeOffset? start = missingDates
+                ? null
+                : new(2026,
+                    10,
+                    18,
+                    9,
+                    0,
+                    0,
+                    TimeSpan.FromHours(3));
+            var end = start?.AddMinutes(90);
+            var recurrence = new List<string>
+            {
+                "RRULE:FREQ=WEEKLY;COUNT=2",
+                "EXDATE:20261025T060000Z",
+            };
+            var desired = new Event
+            {
+                Summary = "Desired / Știință",
+                Start = new() { DateTimeDateTimeOffset = start },
+                End = new() { DateTimeDateTimeOffset = end },
+                Recurrence = missingDates ? null : recurrence,
+            };
+            var expected =
+                $"Create event [0]: {desired.Summary}; {start}–{end}; {string.Join(", ", desired.Recurrence ?? [])}";
+            var reports = new List<CalendarReport>();
+            JsonElement item = default;
+            var result = await CalendarSync.Run(
+                provider,
+                "Lessons",
+                [desired],
+                false,
+                default,
+                onOutcome: report =>
+                {
+                    reports.Add(report);
+                    if (report.Id != "desired-0")
+                    {
+                        return;
+                    }
+                    item = JsonSerializer.SerializeToElement(report.Item);
+                    // A callback can retain the message and mutate the SDK payload.
+                    // Only human presentation data is snapshotted; apply still owns the original payload.
+                    desired.Summary = "Changed";
+                    desired.Start.DateTimeDateTimeOffset = start?.AddDays(1);
+                    desired.End.DateTimeDateTimeOffset = end?.AddDays(1);
+                    recurrence.Clear();
+                });
+
+            var message = Assert.IsType<CalendarDesiredEventMessage>(reports.Single(x => x.Id == "desired-0").Human);
+            Assert.Equal(0, message.Index);
+            Assert.Equal("Desired / Știință", message.Summary);
+            Assert.Equal(start, message.Start);
+            Assert.Equal(end, message.End);
+            Assert.Equal(missingDates
+                    ? []
+                    : new[]
+                    {
+                        "RRULE:FREQ=WEEKLY;COUNT=2",
+                        "EXDATE:20261025T060000Z",
+                    },
+                message.Recurrence);
+            Assert.Equal(expected, message.Format(CultureInfo.CurrentCulture));
+            var deleted = Assert.IsType<CalendarDeletedEventMessage>(reports.Single(x => x.Id == "deleted-0").Human);
+            Assert.Equal("old-event", deleted.Id);
+            Assert.Equal("Old", deleted.Summary);
+            Assert.Equal("Delete event old-event: Old", deleted.Format(CultureInfo.CurrentCulture));
+            Assert.Equal(["0", "1", "2"], reports.Where(x => x.Status == "planned").Select(x => x.Id));
+            Assert.Equal(
+                "create event: planned; calendar ; event ; desired index 0",
+                reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture));
+            Assert.Equal(["index", "summary", "start", "end", "recurrence"],
+                item.EnumerateObject().Select(x => x.Name));
+            Assert.Equal(start?.ToString("o", CultureInfo.InvariantCulture), item.GetProperty("start").GetString());
+            Assert.Equal(end?.ToString("o", CultureInfo.InvariantCulture), item.GetProperty("end").GetString());
+            Assert.Equal(missingDates ? JsonValueKind.Null : JsonValueKind.Array,
+                item.GetProperty("recurrence").ValueKind);
+            Assert.Same(desired, Assert.Single(result.DesiredEvents));
+            Assert.Equal("Changed", desired.Summary);
+            Assert.Empty(provider.Writes);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
     [Fact]
     public async Task PreviewReportsReplacementAndEventsWithoutWrites()
     {
@@ -252,6 +383,15 @@ public sealed class CalendarSyncTests
             var data = document.RootElement.GetProperty("data");
             Assert.Equal("preview", document.RootElement.GetProperty("status").GetString());
             Assert.NotEmpty(data.GetProperty("desiredEvents").EnumerateArray());
+            var desiredCount = data.GetProperty("desiredEvents").GetArrayLength();
+            var calendarName = data.GetProperty("calendarName").GetString();
+            Assert.Equal(
+                new[]
+                {
+                    $"Create calendar {calendarName} with a new ID",
+                    $"Create {desiredCount} events with new IDs",
+                },
+                document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
             Assert.Empty(fake.Writes);
         }
         finally

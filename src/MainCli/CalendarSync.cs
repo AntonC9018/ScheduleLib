@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using ScheduleLib.Application.Config;
@@ -75,7 +76,7 @@ public static class CalendarSync
         CancellationToken token,
         string? lockRoot = null,
         string? profile = null,
-        Action<(string Id, string Status, object? Item, string Human)>? onOutcome = null)
+        Action<CalendarReport>? onOutcome = null)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Equals("primary", StringComparison.OrdinalIgnoreCase))
         {
@@ -124,33 +125,42 @@ public static class CalendarSync
         string? created = null;
         // Stable plan-order ids shared by preview and apply and by each action's
         // planned record and its later terminal transition.
-        var plan = new List<(string Id, string Action, string? CalendarId, int? DesiredEventIndex)>();
+        var plan = new List<CalendarPlanStep>();
         if (existing is not null)
         {
             plan.Add(
-                (Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), Action: "delete calendar",
-                    CalendarId: existing.Id, DesiredEventIndex: null));
+                new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Action: "delete calendar",
+                    CalendarId: existing.Id,
+                    DesiredEventIndex: null));
         }
 
         plan.Add(
-            (Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), Action: "create calendar",
-                CalendarId: null, DesiredEventIndex: null));
+            new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Action: "create calendar",
+                CalendarId: null,
+                DesiredEventIndex: null));
         for (var planIndex = 0; planIndex < desired.Count; planIndex++)
         {
             plan.Add(
-                (Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), Action: "create event",
-                    CalendarId: null, DesiredEventIndex: planIndex));
+                new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Action: "create event",
+                    CalendarId: null,
+                    DesiredEventIndex: planIndex));
         }
 
-        void Report(
+        void Report<TMessage>(
             string id,
             string status,
             object? item,
-            string human)
+            TMessage human) where TMessage : struct, ICliMessage
         {
             try
             {
-                onOutcome?.Invoke((Id: id, Status: status, Item: item, Human: human));
+                onOutcome?.Invoke(new(id,
+                    status,
+                    item,
+                    human));
             }
             catch (CliOutputStreamingException ex)
             {
@@ -174,7 +184,7 @@ public static class CalendarSync
                 inner);
         }
 
-        void ReportPlanned((string Id, string Action, string? CalendarId, int? DesiredEventIndex) step)
+        void ReportPlanned(CalendarPlanStep step)
         {
             var outcome = new CalendarActionOutcome(
                 step.Action,
@@ -186,7 +196,7 @@ public static class CalendarSync
                 step.Id,
                 outcome.State,
                 outcome,
-                $"{outcome.Action}: {outcome.State}; calendar {outcome.CalendarId}; event {outcome.EventId}; desired index {outcome.DesiredEventIndex}");
+                new CalendarActionMessage(outcome));
         }
 
         void AddOutcome(CalendarActionOutcome outcome)
@@ -198,7 +208,7 @@ public static class CalendarSync
                 PlanId(outcome),
                 outcome.State,
                 outcome,
-                $"{outcome.Action}: {outcome.State}; calendar {outcome.CalendarId}; event {outcome.EventId}; desired index {outcome.DesiredEventIndex}");
+                new CalendarActionMessage(outcome));
         }
 
         string PlanId(CalendarActionOutcome outcome)
@@ -227,7 +237,7 @@ public static class CalendarSync
                 "deleted-" + deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "completed",
                 identity,
-                $"Delete event {identity.Id}: {identity.Summary}");
+                new CalendarDeletedEventMessage(identity.Id, identity.Summary));
         }
         for (var index = 0; index < desired.Count; index++)
         {
@@ -247,7 +257,12 @@ public static class CalendarSync
                         System.Globalization.CultureInfo.InvariantCulture),
                     recurrence = ev.Recurrence,
                 },
-                $"Create event [{index}]: {ev.Summary}; {ev.Start?.DateTimeDateTimeOffset}–{ev.End?.DateTimeDateTimeOffset}; {string.Join(", ", ev.Recurrence ?? [])}");
+                new CalendarDesiredEventMessage(
+                    index,
+                    ev.Summary,
+                    ev.Start?.DateTimeDateTimeOffset,
+                    ev.End?.DateTimeDateTimeOffset,
+                    (ev.Recurrence ?? []).ToImmutableArray()));
         }
         if (!apply)
         {
@@ -429,7 +444,7 @@ public static class CalendarSync
                         step.Id,
                         skipped.State,
                         skipped,
-                        $"{step.Action}: not-attempted; desired index {step.DesiredEventIndex}");
+                        new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex));
                 }
             }
             return new(

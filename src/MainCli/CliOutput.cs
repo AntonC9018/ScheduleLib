@@ -165,6 +165,16 @@ public sealed class CliOutput
         }
     }
 
+    public void WriteHuman<TMessage>(TMessage message) where TMessage : ICliMessage
+    {
+        if (Json || Jsonl)
+        {
+            return;
+        }
+
+        WriteHuman(message.Format(System.Globalization.CultureInfo.CurrentCulture));
+    }
+
     public void WriteWarning(string message)
     {
         if (Jsonl)
