@@ -59,3 +59,34 @@ The calendar/reporting regressions cover culture and null fields, recurrence
 snapshots after callback mutations, generic output gating, legacy action
 strings, selection schemas, stable preview/apply IDs, cancellation and failures
 after a completed mutation.
+
+## Verification (2026-10-18)
+
+Run from the repository root. The initial normal restore was blocked by
+NU1902/NU1903 advisories on existing transitive Cryptography.Pkcs/Xml 10.0.10
+packages. Restore/build validation used a command-scoped warning exception,
+retaining the repository's existing CR warning exceptions; no dependency or
+project warning policy was changed:
+
+```sh
+schedulelib_test_warnings=$(python3 -c 'import xml.etree.ElementTree as E; print((E.parse("Directory.Build.props").find(".//AntonCodingRulesDiagnosticIds").text + ";NU1902;NU1903").replace(";", "%3B"))')
+DiffEngine_Disabled=true dotnet test src/MainCli/Tests/MainCli.Tests.csproj --filter 'FullyQualifiedName~Calendar' -m:1 --verbosity quiet "-p:WarningsNotAsErrors=$schedulelib_test_warnings"
+DiffEngine_Disabled=true dotnet test src/MainCli/Tests/MainCli.Tests.csproj --no-build --no-restore -m:1 --verbosity quiet
+```
+
+After restore/build corrections, the focused run (with `--no-restore`) passed
+**82/82** tests. The broader CLI run passed **760/761** tests, with no skips.
+The sole failure was
+`RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext`.
+It also failed in isolation with `--no-build --no-restore --filter
+FullyQualifiedName=RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext`.
+`RegistryErrorLogger.GroupNotFound` logs the supplied synthetic canary group
+label, violating the test's `Assert.DoesNotContain` at line 428. Both the logger
+(`src/Features/OnlineRegistry/OnlineRegistry/Services.cs`) and test file have
+identical Git blobs at the approved snapshot and the implementation commit;
+this calendar change does not modify that registry behavior. Resolving that
+separate logging/test contract is outside #241.
+
+The repository formatter completed on the ten changed C# files, and
+`git diff --check` passed. No solution-wide, package, publish or live-provider
+validation was needed for this reporting slice.
