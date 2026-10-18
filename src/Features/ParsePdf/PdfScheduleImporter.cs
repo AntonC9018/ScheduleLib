@@ -7,7 +7,7 @@ using ScheduleLib.Parsing.Lesson;
 
 namespace ScheduleLib.Import.Pdf;
 
-public delegate void ImportedLessonHandler(ParsedLesson lesson, DayOfWeek day, TimeSlot slot, IReadOnlyList<GroupId> groups, string? alternative);
+public delegate void ImportedLessonHandler(ImportedLessonInput input);
 
 public static class PdfScheduleImporter
 {
@@ -74,8 +74,15 @@ public static class PdfScheduleImporter
                     var namedGroup = names.FirstOrDefault(g => g.Split('(')[0] == lesson.PartitionHint.ToString());
                     if (namedGroup is not null) { names = [namedGroup]; lesson.PartitionHint = default; }
                     var groups = names.Select(g => context.Schedule.Group(g).Id).ToArray();
-                    if (addLesson is null) context.AddOrMergeLesson(lesson, day, time, groups, new(cell.Alternative));
-                    else addLesson(lesson, day, time, groups, cell.Alternative);
+                    var input = new ImportedLessonInput(lesson, day, time, groups, new(cell.Alternative));
+                    if (addLesson is null)
+                    {
+                        context.AddOrMergeLesson(input);
+                    }
+                    else
+                    {
+                        addLesson(input);
+                    }
                 }
             }
             catch (Exception e) when (e is FormatException or ScheduleBuildException or NotSupportedException or WrongFormatException)

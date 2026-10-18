@@ -1,9 +1,7 @@
 using ScheduleLib.Import.Pdf;
-
 using ScheduleLib.Parsing;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
@@ -67,37 +65,47 @@ public sealed class ElectiveCohorts
         return config.Build();
     }
 
-    public ImplicitSplitConfig SplitConfig { get; }
-
-    public void Add(ParsedLesson lesson, DayOfWeek day, TimeSlot slot,
-        IReadOnlyList<GroupId> groups, string? cohort)
+    public ImplicitSplitConfig SplitConfig
     {
-        if (_context.GetOrAddCourse(lesson.LessonName) != _course)
+        get;
+    }
+
+    public void Add(ImportedLessonInput input)
+    {
+        if (_context.GetOrAddCourse(input.Lesson.LessonName) != _course)
         {
-            if (cohort is not null)
+            if (input.Alternative.Value is not null)
             {
                 throw new FormatException("Cohort annotation on an unexpected course.");
             }
-            _context.AddOrMergeLesson(lesson, day, slot, groups);
+            _context.AddOrMergeLesson(input);
             return;
         }
-        if (cohort is not null)
+        if (input.Alternative.Value is not null)
         {
-            _context.AddOrMergeLesson(lesson, day, slot, groups, new(cohort));
+            _context.AddOrMergeLesson(input);
             return;
         }
-        foreach (var group in groups)
+        foreach (var group in input.Groups)
         {
             if (_byGroup.TryGetValue(group, out var alternatives))
             {
                 foreach (var alternative in alternatives)
                 {
-                    _context.AddOrMergeLesson(lesson, day, slot, [group], alternative);
+                    _context.AddOrMergeLesson(input with
+                    {
+                        Groups = [group],
+                        Alternative = alternative,
+                    });
                 }
             }
             else
             {
-                _context.AddOrMergeLesson(lesson, day, slot, [group], BaseAlternative);
+                _context.AddOrMergeLesson(input with
+                {
+                    Groups = [group],
+                    Alternative = BaseAlternative,
+                });
             }
         }
     }

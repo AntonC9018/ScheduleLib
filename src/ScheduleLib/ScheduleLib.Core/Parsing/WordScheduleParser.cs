@@ -537,7 +537,7 @@ public static class WordScheduleParser
             i += groupBucket.Size;
             groups.Add(groupBucket.Item);
         }
-        c.AddOrMergeLesson(lesson, state.CurrentDay!.Value, state.Time!.Value.TimeSlot, groups);
+        c.AddOrMergeLesson(new(lesson, state.CurrentDay!.Value, state.Time!.Value.TimeSlot, groups));
     }
 
     private static IEnumerable<TableCell> Cells(this TableRow row)

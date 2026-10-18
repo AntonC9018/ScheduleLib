@@ -44,6 +44,21 @@ and tests use the renamed type. Word and PDF share `ParseLessons` and
 `AddOrMergeLesson`, including course/teacher/room resolution, period assignment,
 explicit start-time overrides, subgroup classification and lesson merging.
 
+The PDF/Word path carries one `ImportedLessonInput` readonly record struct from
+`ScheduleLib.Parsing`: parsed lesson, day, time slot, group IDs and typed
+`Alternative` (default means unrestricted). `ImportedLessonHandler`,
+`ElectiveCohorts.Add` and `ScheduleImportContext.AddOrMergeLesson` consume that
+same type. Cohort expansion uses record copies to adjust groups and alternative;
+the merge operation still owns explicit group/time overrides and merge policy.
+Excel retains its separate `AddLessonParams` ref/span/date contract.
+
+This implements [#242](https://github.com/AntonC9018/ScheduleLib/issues/242),
+following the accepted Q20 decision in the
+[CodingRules follow-up](https://github.com/AntonC9018/CodingRules/blob/main/docs/schedulelib-follow-up.md#overload-scope-and-usage-context-q19q20).
+The maintainer identified the reviewed import/plumbing source at `4c26748` as
+Astra-generated; owner attribution in Git is not evidence of a human-style
+precedent. The record groups structured import values without rendering them.
+
 ## Source-specific limits
 
 Only the regular daytime bachelor table format is supported. Master, part-time
@@ -70,3 +85,44 @@ three September 21 source fixtures, including exact lesson text, groups, days,
 times and cohort membership. It also checks partial borders, normalization,
 parity repair, discovery, date selection, unchanged downloads and failed-update
 retries. Parser and DOCX regression suites cover the shared-context move.
+
+### Shared-record refactor (#242, 2026-10-18)
+
+Focused validation passed 4 `ScheduleCellParserTests` and 12
+`PdfLessonImportTests`/`ElectiveCohortTests`. These cover group merging, distinct
+alternatives, explicit group/time overrides, cohort expansion and fallback,
+course routing, optional callbacks, and wrapped versus unwrapped failures.
+
+The broader suites ran sequentially and passed:
+
+- `Parser.Tests`: 208 passed, 3 existing skips.
+- `ParsePdf.Tests`: 29 passed.
+- `ScheduleFromDoc.Tests`: 24 passed, 1 existing cache-regeneration skip.
+- `BuilderNewTests.Tests`: 18 passed.
+
+Run from the repository root. The build commands retain the existing CR warning
+exceptions and add command-scoped NU1902/NU1903 exceptions for the existing
+transitive Cryptography.Pkcs/Xml 10.0.10 advisories. Project warning policy and
+dependencies are unchanged. `DiffEngine_Disabled` prevents interactive snapshot
+diff viewers:
+
+```sh
+schedulelib_test_warnings=$(python3 -c 'import xml.etree.ElementTree as E; print((E.parse("Directory.Build.props").find(".//AntonCodingRulesDiagnosticIds").text + ";NU1902;NU1903").replace(";", "%3B"))')
+DiffEngine_Disabled=true dotnet test src/ScheduleLib/Tests/Parser/Parser.Tests.csproj --filter FullyQualifiedName~ScheduleCellParserTests -m:1 --verbosity quiet "-p:WarningsNotAsErrors=$schedulelib_test_warnings"
+DiffEngine_Disabled=true dotnet test src/Features/Tests/ParsePdf/ParsePdf.Tests.csproj --filter 'FullyQualifiedName~PdfLessonImportTests|FullyQualifiedName~ElectiveCohortTests' -m:1 --verbosity quiet "-p:WarningsNotAsErrors=$schedulelib_test_warnings"
+for schedulelib_test_project in \
+    src/ScheduleLib/Tests/Parser/Parser.Tests.csproj \
+    src/Features/Tests/ParsePdf/ParsePdf.Tests.csproj \
+    src/ScheduleLib/Tests/ScheduleFromDoc/ScheduleFromDoc.Tests.csproj \
+    src/Features/Tests/BuilderNewTests/BuilderNewTests.Tests.csproj
+do
+    DiffEngine_Disabled=true dotnet test "$schedulelib_test_project" -m:1 --verbosity quiet "-p:WarningsNotAsErrors=$schedulelib_test_warnings" || break
+done
+```
+
+The formatter completed on the new record and changed cohort/test files;
+`git diff --check` passed. The unrelated registry-history CLI failure documented
+in [calendar reporting](../../../docs/calendar-reporting.md#verification-2026-10-18)
+was outside these suites. Its logger and test files remain identical to the
+approved `4c26748` snapshot. No solution-wide, package, live-provider or CI checks
+were run for this refactor.

@@ -17,13 +17,20 @@ public sealed class ScheduleCellParserTests
         var first = context.Schedule.Group("IA2601(ro)").Id;
         var second = context.Schedule.Group("IA2602(ro)").Id;
         var lesson = Parse(context, "15:00 HTML (lab, imp)\nG.Marin 326/4");
-        context.AddOrMergeLesson(lesson, DayOfWeek.Monday, TimeSlot.First, [first]);
-        context.AddOrMergeLesson(lesson, DayOfWeek.Monday, TimeSlot.First, [second]);
+        context.AddOrMergeLesson(new(lesson,
+            DayOfWeek.Monday,
+            TimeSlot.First,
+            [first]));
+        context.AddOrMergeLesson(new(lesson,
+            DayOfWeek.Monday,
+            TimeSlot.First,
+            [second]));
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
         Assert.Equal(2, result.Base.Group.Groups.Count);
         Assert.Equal(4, result.Date.TimeSlot!.Value.Index);
         Assert.Equal(Parity.OddWeek, result.Date.Parity);
+        Assert.Equal(default, result.Base.Group.Alternative);
         Assert.Equal(context.CurrentPeriodId, result.Base.General.Period);
     }
 
@@ -33,12 +40,60 @@ public sealed class ScheduleCellParserTests
         var context = CreateContext();
         var group = context.Schedule.Group("IA2504(ru)").Id;
         var lesson = Parse(context, "Antreprenoriat inovativ (curs)\nN.Nazar 528/3");
-        context.AddOrMergeLesson(lesson, DayOfWeek.Monday, TimeSlot.First, [group], new("Gr.1"));
-        context.AddOrMergeLesson(lesson, DayOfWeek.Monday, TimeSlot.First, [group], new("Gr.2"));
+        context.AddOrMergeLesson(new(lesson,
+            DayOfWeek.Monday,
+            TimeSlot.First,
+            [group],
+            new("Gr.1")));
+        context.AddOrMergeLesson(new(lesson,
+            DayOfWeek.Monday,
+            TimeSlot.First,
+            [group],
+            new("Gr.2")));
 
         Assert.Equal(2, context.Schedule.WeeklyLessons.Count);
-        Assert.Equal(new[] { "Gr.1", "Gr.2" }, context.Schedule.WeeklyLessons.List
-            .Select(l => l.Base.Group.Alternative.Value));
+        Assert.Equal(new[]
+            {
+                "Gr.1",
+                "Gr.2",
+            },
+            context.Schedule.WeeklyLessons.List
+                .Select(l => l.Base.Group.Alternative.Value));
+    }
+
+    [Fact]
+    public void ExplicitLessonGroupOverridesCellGroups()
+    {
+        var context = CreateContext();
+        var cellGroup = context.Schedule.Group("IA2601(ro)").Id;
+        var lessonGroup = context.Schedule.Group("IA2602(ro)").Id;
+        var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
+        lesson.GroupName = "IA2602(ro)".AsMemory();
+
+        context.AddOrMergeLesson(new(lesson,
+            DayOfWeek.Tuesday,
+            TimeSlot.First,
+            [cellGroup]));
+
+        var result = Assert.Single(context.Schedule.WeeklyLessons.List);
+        Assert.Equal(lessonGroup, Assert.Single(result.Base.Group.Groups));
+        Assert.Equal(DayOfWeek.Tuesday, result.Date.DayOfWeek);
+    }
+
+    [Fact]
+    public void UnknownLessonStartTimeStillThrowsDomainError()
+    {
+        var context = CreateContext();
+        var group = context.Schedule.Group("IA2601(ro)").Id;
+        var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
+        lesson.StartTime = new(7, 13);
+
+        Assert.Throws<InvalidScheduleDocumentException>(() =>
+            context.AddOrMergeLesson(new(lesson,
+                DayOfWeek.Monday,
+                TimeSlot.First,
+                [group])));
+        Assert.Empty(context.Schedule.WeeklyLessons.List);
     }
 
     private static ScheduleImportContext CreateContext()
@@ -54,7 +109,12 @@ public sealed class ScheduleCellParserTests
         {
             CurrentStudyYear = new(2026),
         });
-        context.SetPeriod(new() { StartDate = new(2026, 9, 14) });
+        context.SetPeriod(new()
+        {
+            StartDate = new(2026,
+                9,
+                14),
+        });
         return context;
     }
 

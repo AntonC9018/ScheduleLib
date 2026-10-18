@@ -301,25 +301,21 @@ public sealed class ScheduleImportContext
     }
 
     /// <summary>Adds a parsed cell using the same group, time and merge rules for every document format.</summary>
-    public void AddOrMergeLesson(
-        in ParsedLesson lesson,
-        DayOfWeek day,
-        TimeSlot timeSlot,
-        IReadOnlyList<GroupId> groups,
-        Alternative alternative = default)
+    public void AddOrMergeLesson(ImportedLessonInput input)
     {
+        var lesson = input.Lesson;
         var builder = Schedule.DetachedRegularLesson();
         builder.TimeSlot(lesson.StartTime is { } startTime
             ? new(FindTimeSlotIndex(startTime))
-            : timeSlot);
-        builder.DayOfWeek(day);
+            : input.TimeSlot);
+        builder.DayOfWeek(input.Day);
         builder.Parity(lesson.Parity);
-        builder.Alternative(alternative);
+        builder.Alternative(input.Alternative);
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
         if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
         {
-            builder.Groups([.. groups]);
+            builder.Groups([.. input.Groups]);
         }
         else
         {
