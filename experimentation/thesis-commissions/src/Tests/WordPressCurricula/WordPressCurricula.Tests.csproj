@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+      <RootNamespace>WordPressCurriculum.Tests</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\WordPressCurricula\WordPressCurricula.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="data\**\*.*" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+</Project>
