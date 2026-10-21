@@ -6,12 +6,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public AuthCommands Auth
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public AuthCommands Auth { get; set; } = new();
 }
 
 // Enum names are the public command literals (CommandDotNet matches case exactly).
@@ -24,11 +19,7 @@ public enum AuthProvider
 public sealed class AuthProviderArguments : IArgumentModel
 {
     [Operand("provider", Description = "Authentication provider: google or microsoft.")]
-    public AuthProvider Provider
-    {
-        get;
-        set;
-    }
+    public AuthProvider Provider { get; set; }
 }
 
 [Command("auth", Description = "Manage local authorization; only login initiates browser consent.")]
@@ -42,12 +33,15 @@ public partial class AuthCommands
         AuthProviderArguments provider,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) => Route(
-        "login",
-        provider.Provider,
-        settings,
-        output,
-        cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        return Route(
+            "login",
+            provider.Provider,
+            settings,
+            output,
+            cancellationToken);
+    }
 
     [Command(
         "status",
@@ -56,12 +50,15 @@ public partial class AuthCommands
         AuthProviderArguments provider,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) => Route(
-        "status",
-        provider.Provider,
-        settings,
-        output,
-        cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        return Route(
+            "status",
+            provider.Provider,
+            settings,
+            output,
+            cancellationToken);
+    }
 
     [Command(
         "logout",
@@ -70,12 +67,15 @@ public partial class AuthCommands
         AuthProviderArguments provider,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) => Route(
-        "logout",
-        provider.Provider,
-        settings,
-        output,
-        cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        return Route(
+            "logout",
+            provider.Provider,
+            settings,
+            output,
+            cancellationToken);
+    }
 
     private Task<int> Route(
         string verb,
@@ -83,7 +83,8 @@ public partial class AuthCommands
         SettingsArguments settings,
         ResultArguments output,
         CancellationToken token)
-        => provider == AuthProvider.microsoft
+    {
+        return provider == AuthProvider.microsoft
             ? ExecuteMicrosoft(
                 verb,
                 settings,
@@ -94,6 +95,7 @@ public partial class AuthCommands
                 settings,
                 output,
                 token);
+    }
 
     private static async Task<int> Execute(
         string verb,

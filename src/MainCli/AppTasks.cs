@@ -64,160 +64,160 @@ public static class AppTasks
         switch (c.AppTask)
         {
             case AppTask.UploadDocsToDrive:
-            {
-                Task[] tasks =
-                [
-                    GenerateAllTeacherExcel(c),
+                {
+                    Task[] tasks =
+                    [
+                        GenerateAllTeacherExcel(c),
                     GenerateFreeRoomsExcel(c),
                     GeneratePdfsForGroupsAndTeachers(c),
                     GenerateIcsCalendars(c),
                 ];
-                await Task.WhenAll(tasks);
-                var handler = c.Services.GetRequiredService<SyncDriveFolderTaskHandler>();
-                await handler.Run(new()
-                {
-                    FilesProvider = new OutputDirectoryFilesProvider(c.OutputDirectory),
-                    CancellationToken = c.CancellationToken,
-                });
-                return;
-            }
+                    await Task.WhenAll(tasks);
+                    var handler = c.Services.GetRequiredService<SyncDriveFolderTaskHandler>();
+                    await handler.Run(new()
+                    {
+                        FilesProvider = new OutputDirectoryFilesProvider(c.OutputDirectory),
+                        CancellationToken = c.CancellationToken,
+                    });
+                    return;
+                }
             case AppTask.AllTeachersExcel:
-            {
-                await GenerateAllTeacherExcel(c);
-                c.AllTeachersFile.TryOpenInExplorer();
-                break;
-            }
-
-            case AppTask.PerGroupAndPerTeacherPdfs:
-            {
-                await GeneratePdfsForGroupsAndTeachers(c);
-                c.OutputDirectory.TryOpenInExplorer();
-                break;
-            }
-
-            case AppTask.GenerateIcsCalendars:
-            {
-                await GenerateIcsCalendars(c);
-                c.OutputDirectory.TryOpenInExplorer();
-                break;
-            }
-
-            case AppTask.CreateLessonsInRegistry:
-            {
-                var x = c.Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
-                await x.Execute(c.CancellationToken);
-                break;
-            }
-
-            case AppTask.PullCurriculaFromOneDrive:
-            {
-                // TODO: Move to per-user config
-                var conf = c.Services.GetRequiredService<IConfiguration>().GetMicrosoftGraphAuth();
-                await CurriculaDownloadTasks.PullCurriculaToDisk(conf, c.CancellationToken);
-                break;
-            }
-
-            case AppTask.FreeRooms:
-            {
-                await GenerateFreeRoomsExcel(c);
-                c.FreeRoomsFile.TryOpenInExplorer();
-                break;
-            }
-
-            case AppTask.FreeHoursOfGroup:
-            {
-                var sb = new StringBuilder();
-                var handler = c.Services.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
-                handler.Run(new()
                 {
-                    Groups = ["IA2401", "I2301"],
-                    StringBuilder = sb,
-                });
-                Console.WriteLine(sb.ToStringAndClear());
-                break;
-            }
-
-            case AppTask.TableOfAllLabLessons:
-            {
-                var outputFile = c.OutputDirectory.File("deadlines.xlsx");
-                await using var outputStream = outputFile.Open(
-                    FileMode.Create,
-                    FileAccess.ReadWrite,
-                    FileShare.ReadWrite);
-
-                var handler = c.Services.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
-                await handler.Run(new()
-                {
-                    CancellationToken = c.CancellationToken,
-                    OutputStream = outputStream,
-                });
-                outputFile.TryOpenInExplorer();
-                break;
-            }
-
-            case AppTask.JsonSchedulesForWebsite:
-            {
-                var services1 = new WebsiteJsonScheduleHelper.Services
-                {
-                    ParityDisplay = new(),
-                    LessonTypeDisplay = new(),
-                    SubGroupNumberDisplay = new(),
-                };
-                var schedule = c.Services.GetRequiredService<Schedule>();
-                var baseFilter = FilterHelper.Builder()
-                    .WithLatestPeriod(schedule);
-                var grouping = schedule.TeacherGrouping(baseFilter);
-                var outputDir = c.OutputDirectory.CreateSubDir("orar");
-                var slugLookup = await c.Services.GetRequiredService<ISlugProvider>()
-                    .SlugMap(cancellationToken: c.CancellationToken);
-                foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
-                {
-                    var name = new Name(teacher.Item.PersonName.AsNameFields());
-                    if (!slugLookup.TryGetValue(name, out var slug))
-                    {
-                        Console.WriteLine($"No slug for '{name}'.");
-                        continue;
-                    }
-
-                    var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
-                        filteredSchedule,
-                        services1);
-                    if (model.ScheduleDaysDto.IsEmpty)
-                    {
-                        continue;
-                    }
-                    var fileName = $"{slug}.json";
-                    await using var outputFile = outputDir.OpenFile(
-                        fileName,
-                        FileMode.Create,
-                        FileAccess.Write);
-                    await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
+                    await GenerateAllTeacherExcel(c);
+                    c.AllTeachersFile.TryOpenInExplorer();
+                    break;
                 }
 
-                var zipPath = await outputDir.Zip();
-                ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
+            case AppTask.PerGroupAndPerTeacherPdfs:
+                {
+                    await GeneratePdfsForGroupsAndTeachers(c);
+                    c.OutputDirectory.TryOpenInExplorer();
+                    break;
+                }
 
-                break;
-            }
+            case AppTask.GenerateIcsCalendars:
+                {
+                    await GenerateIcsCalendars(c);
+                    c.OutputDirectory.TryOpenInExplorer();
+                    break;
+                }
+
+            case AppTask.CreateLessonsInRegistry:
+                {
+                    var x = c.Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+                    await x.Execute(c.CancellationToken);
+                    break;
+                }
+
+            case AppTask.PullCurriculaFromOneDrive:
+                {
+                    // TODO: Move to per-user config
+                    var conf = c.Services.GetRequiredService<IConfiguration>().GetMicrosoftGraphAuth();
+                    await CurriculaDownloadTasks.PullCurriculaToDisk(conf, c.CancellationToken);
+                    break;
+                }
+
+            case AppTask.FreeRooms:
+                {
+                    await GenerateFreeRoomsExcel(c);
+                    c.FreeRoomsFile.TryOpenInExplorer();
+                    break;
+                }
+
+            case AppTask.FreeHoursOfGroup:
+                {
+                    var sb = new StringBuilder();
+                    var handler = c.Services.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
+                    handler.Run(new()
+                    {
+                        Groups = ["IA2401", "I2301"],
+                        StringBuilder = sb,
+                    });
+                    Console.WriteLine(sb.ToStringAndClear());
+                    break;
+                }
+
+            case AppTask.TableOfAllLabLessons:
+                {
+                    var outputFile = c.OutputDirectory.File("deadlines.xlsx");
+                    await using var outputStream = outputFile.Open(
+                        FileMode.Create,
+                        FileAccess.ReadWrite,
+                        FileShare.ReadWrite);
+
+                    var handler = c.Services.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
+                    await handler.Run(new()
+                    {
+                        CancellationToken = c.CancellationToken,
+                        OutputStream = outputStream,
+                    });
+                    outputFile.TryOpenInExplorer();
+                    break;
+                }
+
+            case AppTask.JsonSchedulesForWebsite:
+                {
+                    var services1 = new WebsiteJsonScheduleHelper.Services
+                    {
+                        ParityDisplay = new(),
+                        LessonTypeDisplay = new(),
+                        SubGroupNumberDisplay = new(),
+                    };
+                    var schedule = c.Services.GetRequiredService<Schedule>();
+                    var baseFilter = FilterHelper.Builder()
+                        .WithLatestPeriod(schedule);
+                    var grouping = schedule.TeacherGrouping(baseFilter);
+                    var outputDir = c.OutputDirectory.CreateSubDir("orar");
+                    var slugLookup = await c.Services.GetRequiredService<ISlugProvider>()
+                        .SlugMap(cancellationToken: c.CancellationToken);
+                    foreach (var (teacher, filteredSchedule) in grouping.Filter(schedule))
+                    {
+                        var name = new Name(teacher.Item.PersonName.AsNameFields());
+                        if (!slugLookup.TryGetValue(name, out var slug))
+                        {
+                            Console.WriteLine($"No slug for '{name}'.");
+                            continue;
+                        }
+
+                        var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
+                            filteredSchedule,
+                            services1);
+                        if (model.ScheduleDaysDto.IsEmpty)
+                        {
+                            continue;
+                        }
+                        var fileName = $"{slug}.json";
+                        await using var outputFile = outputDir.OpenFile(
+                            fileName,
+                            FileMode.Create,
+                            FileAccess.Write);
+                        await WebsiteJsonScheduleHelper.Serialize(model, outputFile);
+                    }
+
+                    var zipPath = await outputDir.Zip();
+                    ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
+
+                    break;
+                }
 
             case AppTask.CopyGradesFromMoodleToRegistry:
-            {
-                using var registryContext = await c.Services.MakeRegistryContext(c.CancellationToken);
-                using var moodleContext = await c.Services.MakeMoodleContext(c.CancellationToken);
-                var navigator = registryContext.Navigator(c.Services, c.CancellationToken);
-                var handler = c.Services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>();
-                var semester = c.Services.GetCurrentSemester();
-
-                await handler.Run(new()
                 {
-                    RegistryNavigator = navigator,
-                    CancellationToken = c.CancellationToken,
-                    MoodleContext = moodleContext,
-                    QuizId = c.MoodleQuizId,
-                    Semester = semester,
-                });
-                break;
-            }
+                    using var registryContext = await c.Services.MakeRegistryContext(c.CancellationToken);
+                    using var moodleContext = await c.Services.MakeMoodleContext(c.CancellationToken);
+                    var navigator = registryContext.Navigator(c.Services, c.CancellationToken);
+                    var handler = c.Services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>();
+                    var semester = c.Services.GetCurrentSemester();
+
+                    await handler.Run(new()
+                    {
+                        RegistryNavigator = navigator,
+                        CancellationToken = c.CancellationToken,
+                        MoodleContext = moodleContext,
+                        QuizId = c.MoodleQuizId,
+                        Semester = semester,
+                    });
+                    break;
+                }
             // case Option.Query:
             // {
             //     var res = schedule.RegularLessons
@@ -241,72 +241,72 @@ public static class AppTasks
             // }
 
             case AppTask.UpdateCalendar:
-            {
-                var handler = c.Services.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>();
-                await handler.Update(c.CancellationToken);
-                break;
-            }
+                {
+                    var handler = c.Services.GetRequiredService<UpdateLessonsInGoogleCalendarTaskHandler>();
+                    await handler.Update(c.CancellationToken);
+                    break;
+                }
 
             case AppTask.ListOfThesesPerTeacherForWebsite:
-            {
-                var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
-                var outputDir = c.OutputDirectory.CreateSubDir("theses");
-                await handler.Handle(c.CancellationToken, outputDir);
+                {
+                    var handler = c.Services.GetRequiredService<ThesesConversionTaskHandler>();
+                    var outputDir = c.OutputDirectory.CreateSubDir("theses");
+                    await handler.Handle(c.CancellationToken, outputDir);
 
-                var zipPath = await outputDir.Zip();
-                ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
+                    var zipPath = await outputDir.Zip();
+                    ExplorerHelper.TryOpenExplorerAndSelectFile(zipPath);
 
-                break;
-            }
+                    break;
+                }
 
             case AppTask.CreatePredzashitaExcels:
-            {
-                var handler = c.Services.GetRequiredService<ListsForPredzashitaTaskHandler>();
-                await handler.Handle(
-                    ThesisType.An,
-                    c.OutputDirectory,
-                    c.CancellationToken);
-                c.OutputDirectory.TryOpenInExplorer();
-                break;
-            }
+                {
+                    var handler = c.Services.GetRequiredService<ListsForPredzashitaTaskHandler>();
+                    await handler.Handle(
+                        ThesisType.An,
+                        c.OutputDirectory,
+                        c.CancellationToken);
+                    c.OutputDirectory.TryOpenInExplorer();
+                    break;
+                }
 
             case AppTask.Query:
-            {
-                var schedule = c.Services.GetRequiredService<Schedule>();
-                var filter = FilterHelper.Builder()
-                    .WithLatestPeriod(schedule);
-                var filteredSchedule = schedule.Filter(filter);
-
-                var timeConfig = c.Services.GetRequiredService<LessonTimeConfig>();
-                var startTimeSlot = timeConfig.FindTimeSlotByIncludedTime(new(hour: 17, minute: 00));
-                var timeDisplay = c.Services.GetRequiredService<TimeSlotDisplayHandler>();
-
-                foreach (var x in filteredSchedule.EnumerateWeeklyLessons())
                 {
-                    if (!x.Date.Parity.IsMatch(Parity.OddWeek))
+                    var schedule = c.Services.GetRequiredService<Schedule>();
+                    var filter = FilterHelper.Builder()
+                        .WithLatestPeriod(schedule);
+                    var filteredSchedule = schedule.Filter(filter);
+
+                    var timeConfig = c.Services.GetRequiredService<LessonTimeConfig>();
+                    var startTimeSlot = timeConfig.FindTimeSlotByIncludedTime(new(hour: 17, minute: 00));
+                    var timeDisplay = c.Services.GetRequiredService<TimeSlotDisplayHandler>();
+
+                    foreach (var x in filteredSchedule.EnumerateWeeklyLessons())
                     {
-                        continue;
+                        if (!x.Date.Parity.IsMatch(Parity.OddWeek))
+                        {
+                            continue;
+                        }
+                        if (x.Date.DayOfWeek != DayOfWeek.Tuesday)
+                        {
+                            continue;
+                        }
+                        if (x.Date.TimeSlot > startTimeSlot)
+                        {
+                            continue;
+                        }
+                        if (x.Lesson.Room.Id != "423/4")
+                        {
+                            continue;
+                        }
+                        var teacher = schedule.Get(x.Lesson.Teachers[0]);
+                        var course = schedule.Get(x.Lesson.Course);
+                        var timeInterval = timeConfig.GetTimeSlotInterval(x.Date.TimeSlot);
+                        var time = timeDisplay.IntervalDisplay(timeInterval);
+                        Console.WriteLine($"{teacher.PersonName}, {course.FullName}, {time}");
                     }
-                    if (x.Date.DayOfWeek != DayOfWeek.Tuesday)
-                    {
-                        continue;
-                    }
-                    if (x.Date.TimeSlot > startTimeSlot)
-                    {
-                        continue;
-                    }
-                    if (x.Lesson.Room.Id != "423/4")
-                    {
-                        continue;
-                    }
-                    var teacher = schedule.Get(x.Lesson.Teachers[0]);
-                    var course = schedule.Get(x.Lesson.Course);
-                    var timeInterval = timeConfig.GetTimeSlotInterval(x.Date.TimeSlot);
-                    var time = timeDisplay.IntervalDisplay(timeInterval);
-                    Console.WriteLine($"{teacher.PersonName}, {course.FullName}, {time}");
+                    break;
                 }
-                break;
-            }
         }
     }
 
@@ -365,53 +365,21 @@ public static class AppTasks
 
 public sealed class AppTasksExecutionContext
 {
-    public required AppTask[] SelectedOptions
-    {
-        get;
-        init;
-    }
+    public required AppTask[] SelectedOptions { get; init; }
 
-    public required OutputDirectory OutputDirectory
-    {
-        get;
-        init;
-    }
+    public required OutputDirectory OutputDirectory { get; init; }
 
-    public required string FreeRoomsExcelOutputFileName
-    {
-        get;
-        init;
-    }
+    public required string FreeRoomsExcelOutputFileName { get; init; }
 
-    public required string AllTeachersOutputFileName
-    {
-        get;
-        init;
-    }
+    public required string AllTeachersOutputFileName { get; init; }
 
-    public required Name TeacherName
-    {
-        get;
-        init;
-    }
+    public required Name TeacherName { get; init; }
 
-    public required ServiceProvider RootServiceProvider
-    {
-        get;
-        init;
-    }
+    public required ServiceProvider RootServiceProvider { get; init; }
 
-    public required CancellationToken CancellationToken
-    {
-        get;
-        init;
-    }
+    public required CancellationToken CancellationToken { get; init; }
 
-    public required string MoodleQuizId
-    {
-        get;
-        set;
-    }
+    public required string MoodleQuizId { get; set; }
 
     public FileInDirectory FreeRoomsFile => OutputDirectory.File(FreeRoomsExcelOutputFileName);
     public FileInDirectory AllTeachersFile => OutputDirectory.File(AllTeachersOutputFileName);
@@ -419,23 +387,11 @@ public sealed class AppTasksExecutionContext
 
 public readonly struct TaskExecutionContext
 {
-    public required AppTasksExecutionContext Context
-    {
-        get;
-        init;
-    }
+    public required AppTasksExecutionContext Context { get; init; }
 
-    public required IServiceProvider Services
-    {
-        get;
-        init;
-    }
+    public required IServiceProvider Services { get; init; }
 
-    public required AppTask AppTask
-    {
-        get;
-        init;
-    }
+    public required AppTask AppTask { get; init; }
 
     public OutputDirectory OutputDirectory => Context.OutputDirectory;
     public FileInDirectory FreeRoomsFile => Context.FreeRoomsFile;
