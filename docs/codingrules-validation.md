@@ -1,3 +1,21 @@
+# Ticket 18 resumed validation
+
+The old contract-gate blocker below is resolved by CodingRules
+`070dbf9568783497286c953deef89cc8b5dda5d3`: declaration errors cause csc to
+skip all analyzers; the gate now expects only the three CS0246 errors in that
+pass. Analyzer-side invalid-signature skips remain unit-test evidence.
+
+Fresh candidate: packed once into `/tmp/schedulelib-ticket18-070dbf9` from that
+clean HEAD. SHA-256:
+`cd255dca5aaa7cdec9eb28dd99bb70dc6e3d30a039c97f35b3d39f3f3a55e300`.
+The existing-artifact contract, formatting, computation and tuple consumer gates
+all passed, sequentially, against this one archive. Exact-ID-mapped ScheduleLib
+restore and byte verification passed across 24 projects and 26 packaged assets;
+explicit guidance export matched. Formatter/application validation continues.
+
+The following is the historical partial-run record; it is superseded by the
+resumed results above and will be consolidated after validation completes.
+
 # Ticket 18 validation and stopped handoff
 
 Status: **partial**. Work stopped when the fresh candidate exposed a failing
