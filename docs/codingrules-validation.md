@@ -1,5 +1,8 @@
 # Ticket 18 validation
 
+Status: **consumer adoption complete**. Manual/unresolved policy in the ledger,
+known test baselines and package publication remain separate.
+
 ## Fresh candidate and resolved gate issue
 
 CodingRules was confirmed clean at
@@ -32,7 +35,9 @@ WarningsNotAsErrors='NU1902;NU1903' python3 build/use-codingrules-candidate.py /
 Exit 0. An initially empty hash-specific cache and exact-ID source mapping
 exclude the stale machine/published 0.1.0. Across **24 restored projects**, the
 actual nupkg and **26 analyzer/fix/configuration/guidance assets** match the
-fresh archive. Explicit guidance export matches the archive; AGENTS.md directs
+fresh archive. After the broad solution restore/build, the same byte verifier
+confirmed the exact candidate and assets in **all 39 solution projects**.
+Explicit guidance export matches the archive; AGENTS.md directs
 agents to read the committed export, which was read during this task. Ordinary
 build/restore does not export instructions. See [candidate setup](codingrules-candidate.md).
 
@@ -143,7 +148,7 @@ dotnet test src/ScheduleLib/Tests/Parser/Parser.Tests.csproj -c Release -m:1 --f
 
 Passed: **27/27 MainCli tests**, **1/1 lexer test**, no failures or skips.
 The current structured reporting and serializer-builder behavior is rechecked
-independently from the package gates. Broader validation follows separately.
+independently from the package gates.
 
 ## Baselines and completion boundaries
 
@@ -153,9 +158,83 @@ System.Security.Cryptography.Pkcs/Xml 10.0.10. Validation uses the command-scope
 No permanent audit exception, dependency repair or rule-family suppression
 was added. These advisories are unrelated to the old gate defect.
 
-The supplied known baseline is
-`RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext`.
-It will be recorded separately from the adoption checks and will not be fixed.
+## Broad builds and tests
+
+All heavy checks ran sequentially. The same command-scoped audit exception and
+`DiffEngine_Disabled=true` were set for the following commands:
+
+```sh
+dotnet build All.sln -c Release -m:1
+dotnet test All.sln -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/full
+dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-full
+```
+
+- Solution build: **passed**, exit 0, **5,139 warnings, 0 errors**, 1:43.74.
+  Existing/legacy findings remain visible, including the new manual rules.
+- Unfiltered solution tests: exit **1**; **696 passed, 6 failed, 7 skipped**,
+  **709 total**. Two helper assemblies contain no tests. MainCli.Tests is not
+  listed in All.sln and therefore must be tested separately.
+- Unfiltered MainCli: exit **1**; **766 passed, 1 failed, 0 skipped**, **767 total**.
+  Its only failure is the supplied
+  `RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext`
+  (`RegistryHistoryTests.cs:428`, the synthetic canary appears in error output).
+  It was not fixed or suppressed in source.
+
+The other six solution failures were reproduced from an isolated `git archive
+6d271e3` of the **starting ScheduleLib sources**, under ignored
+`tmp/ticket18-baseline-6d271e3`. This is a temporary test snapshot, not another
+checkout or a branch switch. It uses the same SDK/fresh candidate and a copy of
+the generated NuGet.Config. The old props receive the additional current CR/RCS
+IDs in the command-scoped WarningsNotAsErrors environment, so warnings remain
+visible without breaking the baseline build. No rule family is disabled.
+
+From that snapshot, these commands each reproduced the same failures (exit 1):
+
+```sh
+dotnet test src/Features/Tests/Curriculum/Curriculum.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~ThesisNameTests --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-curriculum
+dotnet test src/Features/Tests/WebsiteJsonSchedule/WebsiteJsonSchedule.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~FmiWebsiteInteropTests.CountTest --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-website
+dotnet test src/Gui/Tests/Desktop/Desktop.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~Desktop.Tests.EventTests --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-desktop
+```
+
+- `Curriculum.Tests.ThesisNameTests.FileNameParsedCorrectly` and
+  `CurriculumParsedCorrectly`: **2/2 failed**. The Windows-style fixture path
+  yields a null curriculum key on this Linux host.
+- `FmiWebsiteInterop.Tests.FmiWebsiteInteropTests.CountTest`: **1/1 failed**.
+  The snapshot expects `DU2501`; starting/current code emits `DU-IA2501`.
+- `Desktop.Tests.EventTests.LayerChangedTest`, `NodeChangedTest`, `ReloadWorks`:
+  **3/3 failed**. The unchanged unkeyed Registry registration cannot resolve its
+  required option-key string constructor parameter. Its explicit factory/default
+  key belongs in a separate DI fix, not this formatter adoption.
+
+These files and their implementation paths are unchanged from the starting
+commit. No fixture/snapshot was accepted or implementation repaired to obtain
+passing results.
+
+Final regression checks exclude **only these seven exact baseline names**:
+
+```sh
+BASELINE_FILTER='FullyQualifiedName!=Curriculum.Tests.ThesisNameTests.FileNameParsedCorrectly'
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Curriculum.Tests.ThesisNameTests.CurriculumParsedCorrectly"
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=FmiWebsiteInterop.Tests.FmiWebsiteInteropTests.CountTest"
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.LayerChangedTest"
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.NodeChangedTest"
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.ReloadWorks"
+BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext"
+dotnet test All.sln -c Release --no-build --no-restore -m:1 --filter "$BASELINE_FILTER" --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/solution-filtered
+dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 --filter "$BASELINE_FILTER" --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-filtered
+```
+
+Both pass (exit **0**): solution **696 passed, 7 skipped, 0 failed** (**703 total**);
+MainCli **766 passed, 0 skipped, 0 failed** (**766 total**). Combined:
+**1,462 passed, 7 skipped, 0 failures** after explicit baseline exclusions.
+The unfiltered suites remain red for the seven proven baselines above; these
+filtered runs do not claim those failures have been fixed.
+
+TRX results and complete logs are retained under the local
+`/tmp/schedulelib-ticket18-070dbf9` artifact directory. Final source hashes match
+the formatter's post-apply hashes; `git diff --check` passes. CodingRules remains
+clean at `070dbf9`. The consumer changes are committed/pushed on the existing
+`feat/registry-history-analysis` branch/PR #226.
 
 Feature implementation (tickets 15–17), upstream package implementation coverage
 (tickets 01–14), consumer adoption (18) and publication have separate evidence.
