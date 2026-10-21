@@ -1,0 +1,43 @@
+using System;
+
+internal sealed class Payload
+{
+    public int A
+    {
+        get;
+        init;
+    }
+    public int B { get; init; }
+}
+
+internal static class Program
+{
+    private static int trace;
+    private static int Step(int value) { trace = trace * 10 + value; return value; }
+    private static int Sum(int first, int second, int third) => first + second + third;
+    private static Payload Keep(Payload value) => value;
+    private static bool Both(bool first, bool second) => first &&
+        second;
+    private static int Multiline(int value) => Math.Abs(
+        value);
+
+    private static void Main()
+    {
+        // The literal and this comment must survive verbatim.
+        var text = "{ braces } // text, &&";
+        var payload = Keep(
+            new Payload { A = Step(1), B = Step(2) });
+        int[] values =
+        [
+            1,
+            2
+        ];
+        if (Both(true, true)) Console.WriteLine(text);
+        Console.WriteLine(Sum(Step(3), Step(4), Step(5)));
+        /* Keep this block comment and both literal tokens. */
+        Console.WriteLine(string.Concat("first-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789", "second-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789"));
+        Console.WriteLine($"{trace}:{payload.A}:{payload.B}:{values.Length}:{Multiline(-3)}");
+        // Semantic cleanup must leave this concatenation alone (CR1100).
+        Console.WriteLine(text + ".lock");
+    }
+}

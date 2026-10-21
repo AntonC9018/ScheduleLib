@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Run the restricted JetBrains formatting profile on selected C# source copies."""
+"""Apply/check scoped layout, optionally including the package's formatting-style fixes."""
 import argparse
 import fnmatch
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -11,6 +12,10 @@ import tempfile
 from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parent.parent
+STYLE_DIAGNOSTICS = ['RCS0042', 'RCS1016', 'CR0800', 'CR0801', 'CR0802']
+WORKSPACE_SUFFIXES = {'.cs', '.csproj', '.sln', '.props', '.targets', '.globalconfig', '.resx', '.axaml', '.xaml'}
+WORKSPACE_NAMES = {'.editorconfig', 'NuGet.Config', 'nuget.config', 'global.json'}
+EXCLUDED_DIRECTORIES = {'.git', '.idea', '.registry-history', 'bin', 'obj', 'tmp', 'output', '__pycache__'}
 
 
 def selected_files(target, paths):
@@ -46,7 +51,36 @@ def matches(relative, pattern):
     return fnmatch.fnmatchcase(relative, pattern)
 
 
-def format_sources(sources, check):
+def package_style(mirror, target, sources):
+    # Unlike syntax-only CleanupCode, fixes need the real binding context for
+    # caller information and return contracts. Copy workspace inputs only, never
+    # application data or credentials. Keep the selected, already-cleaned copies.
+    selected = set(sources)
+    for directory, children, files in os.walk(ROOT):
+        children[:] = [name for name in children if name not in EXCLUDED_DIRECTORIES
+                       and not (Path(directory) / name).is_symlink()]
+        for name in files:
+            source = Path(directory) / name
+            if source in selected or (source.suffix not in WORKSPACE_SUFFIXES and name not in WORKSPACE_NAMES):
+                continue
+            if source.is_symlink():
+                raise ValueError(f'Workspace input is a symlink: {source.relative_to(ROOT)}')
+            destination = mirror / source.relative_to(ROOT)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+    project = str(mirror / target.relative_to(ROOT))
+    relative = [os.path.relpath(source, target.parent).replace(os.sep, '/') for source in sources]
+    subprocess.run(['dotnet', 'restore', project, '--disable-parallel', '--verbosity', 'quiet'],
+                   cwd=mirror, check=True)
+    # Explicit allowlist: no operation, naming, tuple, builder, or sealing refactors.
+    subprocess.run(['dotnet', 'format', 'analyzers', project, '--no-restore',
+                    '--diagnostics', *STYLE_DIAGNOSTICS, '--include', *relative],
+                   cwd=Path(project).parent, env=dict(os.environ, ScheduleLibFormatting='true'), check=True)
+    subprocess.run(['dotnet', 'format', 'whitespace', project, '--no-restore', '--include', *relative],
+                   cwd=Path(project).parent, check=True)
+
+
+def format_sources(sources, check, target=None, style=False):
     with tempfile.TemporaryDirectory(prefix='schedulelib-format-') as directory:
         mirror = Path(directory)
         original = {source: source.read_bytes() for source in sources}
@@ -80,6 +114,11 @@ def format_sources(sources, check):
                         '--profile=ScheduleLib Formatting', '--settings=' + str(ROOT / 'All.sln.DotSettings'),
                         '--no-buildin-settings', '--no-build', '--no-updates', '--verbosity=ERROR'],
                        cwd=ROOT, check=True)
+        if style:
+            # Remove the syntax-only host before loading the consumer workspace.
+            solution.unlink()
+            (mirror / 'Formatting.csproj').unlink()
+            package_style(mirror, target, sources)
         changed = {source: (mirror / source.relative_to(ROOT)).read_bytes() for source in sources
                    if (mirror / source.relative_to(ROOT)).read_bytes() != original[source]}
         if not check:
@@ -101,6 +140,8 @@ def main():
     parser.add_argument('--project', default='All.sln', help='Repository-relative .csproj or .sln.')
     parser.add_argument('--path', action='append', default=[], help='Repository-relative file, directory or glob.')
     parser.add_argument('--check', action='store_true', help='Verify without writing source.')
+    parser.add_argument('--style', action='store_true',
+                        help='Also apply the five packaged formatting-style fixes in the real project context.')
     parser.add_argument('--yes', action='store_true', help='Allow an unscoped solution rewrite.')
     args = parser.parse_args()
     if not args.check and not args.yes and not args.path and args.project == 'All.sln':
@@ -111,7 +152,7 @@ def main():
             raise ValueError('The target must be inside the repository.')
         sources = selected_files(target, args.path)
         subprocess.run(['dotnet', 'tool', 'restore', '--verbosity', 'quiet'], cwd=ROOT, check=True)
-        return format_sources(sources, args.check)
+        return format_sources(sources, args.check, target, args.style)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         print(f'Formatting failed: {error}')
         return 2

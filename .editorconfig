@@ -125,9 +125,9 @@ csharp_space_between_parentheses = false
 # Wrapping options
 csharp_preserve_single_line_statements = false
 
-# Single-line blocks are not preserved: a brace block always opens on its own line
-# and every statement keeps its own line, so IDE0011 rewrites stay diffable.
-csharp_preserve_single_line_blocks = false
+# The package's A2 compact auto-properties must survive Roslyn whitespace format.
+# CleanupCode retains control-statement block/statement layout.
+csharp_preserve_single_line_blocks = true
 
 dotnet_style_require_accessibility_modifiers = always
 
@@ -171,6 +171,9 @@ resharper_csharp_braces_for_lock = required
 resharper_csharp_braces_for_fixed = required
 
 [*.cs]
+# dotnet format's filter requires per-file severities for the two upstream fixes.
+dotnet_diagnostic.RCS0042.severity = warning
+dotnet_diagnostic.RCS1016.severity = warning
 # Disposable member none cleaned up
 dotnet_diagnostic.ca1001.severity = error
 dotnet_diagnostic.ca1816.severity = error
