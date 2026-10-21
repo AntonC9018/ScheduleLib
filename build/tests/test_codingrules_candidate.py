@@ -8,6 +8,7 @@ from pathlib import Path
 import runpy
 import subprocess
 import tempfile
+import traceback
 import unittest
 from unittest.mock import Mock, patch
 import xml.etree.ElementTree as ET
@@ -204,22 +205,42 @@ class CandidateAdoptionTests(unittest.TestCase):
         self.assertFalse(self.local.exists())
 
     def test_rollback_failure_keeps_original_error_and_attempts_both_files(self):
-        self._set_previous_files(True, True)
+        class LegacyRuntimeError(RuntimeError):
+            @property
+            def add_note(self):
+                raise AttributeError('add_note is unavailable before Python 3.11')
+
         write_bytes = Path.write_bytes
+        for failure_type, failed_paths in itertools.product(
+                (RuntimeError, LegacyRuntimeError),
+                ((), (self.config,), (self.config, self.guidance))):
+            with self.subTest(failure_type=failure_type, failed_paths=failed_paths):
+                self._set_previous_files(True, True)
+                failure = failure_type('injected adoption failure')
+                attempted = []
 
-        def write(path, content):
-            if path == self.config:
-                raise OSError('injected rollback failure')
-            return write_bytes(path, content)
+                def write(path, content):
+                    attempted.append(path)
+                    if path in failed_paths:
+                        raise OSError(f'injected rollback failure for {path}')
+                    return write_bytes(path, content)
 
-        with patch.object(Path, 'write_bytes', write), self.assertRaises(RuntimeError) as raised:
-            with CANDIDATE['restore_files_on_failure'](self.config, self.guidance):
-                write_bytes(self.config, b'new config')
-                write_bytes(self.guidance, b'new guidance')
-                raise self.failure
-        self.assertIs(raised.exception, self.failure)
-        self.assertIn('injected rollback failure', raised.exception.__notes__[0])
-        self.assertEqual(self.guidance.read_bytes(), self.old_guidance)
+                with patch.object(Path, 'write_bytes', write), self.assertRaises(failure_type) as raised:
+                    with CANDIDATE['restore_files_on_failure'](self.config, self.guidance):
+                        write_bytes(self.config, b'new config')
+                        write_bytes(self.guidance, b'new guidance')
+                        raise failure
+                self.assertIs(raised.exception, failure)
+                self.assertEqual(attempted, [self.config, self.guidance])
+                self.assertEqual(self.config.read_bytes(),
+                                 b'new config' if self.config in failed_paths else self.old_config)
+                self.assertEqual(self.guidance.read_bytes(),
+                                 b'new guidance' if self.guidance in failed_paths else self.old_guidance)
+                reported = ''.join(traceback.format_exception(type(failure), failure, failure.__traceback__))
+                for path in failed_paths:
+                    self.assertIn(f'Could not restore {path}: injected rollback failure for {path}', reported)
+                if failed_paths and not callable(getattr(failure, 'add_note', None)):
+                    self.assertIsInstance(failure.__cause__, RuntimeError)
 
 
 if __name__ == '__main__':

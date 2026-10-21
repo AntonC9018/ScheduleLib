@@ -20,6 +20,7 @@ def restore_files_on_failure(*paths):
     try:
         yield
     except BaseException as failure:
+        rollback_errors = []
         for path, content in previous:
             try:
                 if content is None:
@@ -27,7 +28,15 @@ def restore_files_on_failure(*paths):
                 else:
                     path.write_bytes(content)
             except Exception as rollback_failure:
-                failure.add_note(f'Could not restore {path}: {rollback_failure}')
+                rollback_errors.append(f'Could not restore {path}: {rollback_failure}')
+        if rollback_errors:
+            add_note = getattr(failure, 'add_note', None)
+            if callable(add_note):
+                for message in rollback_errors:
+                    add_note(message)
+            else:
+                # Python 3.9/3.10 display cleanup details through exception chaining.
+                raise failure from RuntimeError('\n'.join(rollback_errors))
         raise
 
 
