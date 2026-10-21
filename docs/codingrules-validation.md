@@ -67,8 +67,12 @@ All four passed (exit 0), using SDK **10.0.113**:
 - Formatting: **21 initial warnings** (RCS0042=1, RCS1016=6, CR0800=2, CR0801=8,
   CR0802=4); exported fixes, exact golden files, unchanged runtime and
   byte-identical second passes. Final build retains only **3 deliberate A1
-  caller-information warnings**. Analyzer verification's expected exit 2 has
-  exactly **11 manual diagnostics**: 6 arrow-comment, 2 custom-task-like and 3 A1.
+  caller-information warnings**. On SDK `10.0.113`, analyzer verification's
+  expected exit 2 has exactly **11 manual diagnostics**: 6 arrow-comment,
+  2 custom-task-like and 3 A1. SDK `10.0.4xx`'s `dotnet format` omits the
+  manual-only RCS1016 reports that offer no action and returns only the 3 A1
+  diagnostics; the gate requires those 3 exactly, allows only the documented
+  manual additions, and proves the manual sources stay byte-identical.
 - Computation: **7 exact findings**, accepted service receiver chaining,
   empty/direct/simple-factory initializers and lexer custom-handler interpolation
   unreported/unchanged; actual fixes, severity transport, stable second pass and
@@ -259,7 +263,14 @@ build/tests -v` passes **16 tests**; `git diff --check` is clean.
 
 The orchestrator then ran the final common-package gate once, sequentially,
 against the unchanged candidate (`cd255dca...e300`, CodingRules `070dbf9`).
-CodingRules source did not change after `070dbf9` and nothing was published.
+CodingRules source did not change after `070dbf9` before this gate and nothing
+was published. Later CodingRules commits are test/docs/gate only and leave the
+archive unchanged: `faac1d4` pins the test-host `System.Security.Cryptography.Pkcs`
+dependency at 9.0.21 to clear NU1902/NU1903, and `7100461` makes the formatting
+consumer gate portable across SDK feature bands (SDK `10.0.4xx` omits the
+manual-only RCS1016 reports; the 3 A1 diagnostics and golden bytes stay exact).
+PR #34 CI is green at `7100461` on SDK `10.0.402`: all six packaged consumer
+gates, package consumption tests, unit tests and provenance checks passed.
 
 - `dotnet test CodeFixTests/CodingRules.CodeFixes.Tests.csproj -c Release
   --filter FullyQualifiedName~PackageConsumptionTests`: **8/8 passed**.
