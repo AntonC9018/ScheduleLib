@@ -76,9 +76,9 @@ All four passed (exit 0), using SDK **10.0.113**:
 - Tuple: **6 exact CR0900 findings**, accepted local-function tuple results and
   generated cases, manual-only source stability and severity transport.
 
-No CodingRules full solution tests or other packaged consumer gates were run.
-The orchestrator owns its final common-package gate after review. No CR family
-is disabled in ScheduleLib to make an accepted case pass.
+The orchestrator ran the final common-package gate afterwards against the same
+candidate; it is recorded below. No CR family is disabled in ScheduleLib to make
+an accepted case pass.
 
 ## Formatter coverage and retained tooling
 
@@ -235,6 +235,46 @@ TRX results and complete logs are retained under the local
 the formatter's post-apply hashes; `git diff --check` passes. CodingRules remains
 clean at `070dbf9`. The consumer changes are committed/pushed on the existing
 `feat/registry-history-analysis` branch/PR #226.
+
+## Final review follow-up and orchestrator gate
+
+An independent final review covered CodingRules `387b3f2..070dbf9` (issue #19,
+ticket 07 and the contract-gate correction) and ScheduleLib `6d271e3..28b6f66`
+(ticket 18). It approved CodingRules and approved ScheduleLib with one **MAJOR**
+finding: failed candidate adoption could leave the replacement `NuGet.Config`
+active and could leave replacement guidance behind, because both were written
+before restore/verification/export. Two follow-up commits address it:
+
+- `0351355` restores the exact previous bytes or absence of `NuGet.Config` and
+  `.codingrules/agent-coding-rules.md` on any failure after the first mutation,
+  keeps the original failure (cleanup problems are attached to it), and adds
+  synthetic-archive regression tests. The ignored feed/cache, the candidate
+  record and partially restored `obj/` assets are explicitly **not** rolled
+  back; a retry must use a forced restore.
+- `16f3439` makes rollback reporting work on the documented Python 3.9+ rather
+  than requiring `BaseException.add_note` (3.11+), with a test for that path.
+
+Both were pushed on the existing branch. `python3 -m unittest discover -s
+build/tests -v` passes **16 tests**; `git diff --check` is clean.
+
+The orchestrator then ran the final common-package gate once, sequentially,
+against the unchanged candidate (`cd255dca...e300`, CodingRules `070dbf9`).
+CodingRules source did not change after `070dbf9` and nothing was published.
+
+- `dotnet test CodeFixTests/CodingRules.CodeFixes.Tests.csproj -c Release
+  --filter FullyQualifiedName~PackageConsumptionTests`: **8/8 passed**.
+- All nine packaged consumer gates exit 0 against the archive directory:
+  formatting (21 initial warnings, 3 deliberate A1 caller-information warnings
+  after the manual pass), tuple (6 CR0900), contract (9 CR1000 plus the exact
+  3-error unresolved pass), overload (14 CR1001), condition (6 findings),
+  computation (7 findings), sealed classes (9 CR1400), repeated formatting
+  (7 CR1300) and agent guidance (explicit export and read directive).
+- CodingRules broad suite excluding package tests: **1,358 passed** (250
+  analyzer tests, 1,108 code-fix tests), plus **15 passed** `build/tests`
+  release-guard tests. The SDK was `10.0.113`.
+
+The unfiltered ScheduleLib baseline failures in this document remain unfixed
+and are not part of the final gate.
 
 Feature implementation (tickets 15–17), upstream package implementation coverage
 (tickets 01–14), consumer adoption (18) and publication have separate evidence.
