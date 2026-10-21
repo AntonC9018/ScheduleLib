@@ -36,6 +36,25 @@ with the supplied archive. It explicitly invokes
 `.codingrules/agent-coding-rules.md` is committed, and root AGENTS.md directs
 agents to read it. Guidance does not export during ordinary build/restore.
 
+Adoption snapshots the bytes and existence of the root `NuGet.Config` and
+`.codingrules/agent-coding-rules.md` before writing either file. If configuration
+writing, restore, archive/asset verification, graph verification, guidance export,
+guidance comparison or the final candidate-record write fails, both files are
+restored to their previous bytes or removed if previously absent. The original
+failure is re-raised; if filesystem errors prevent rollback, each file's rollback
+is still attempted and those errors are attached to the original failure.
+On success, `tmp/codingrules-<sha256>/candidate.json` is written only after all
+verification and guidance export/comparison complete.
+
+This rollback covers those two files, not an atomic restore of the checkout.
+Project `obj/` assets may have been partially or fully rewritten, and the ignored
+hash-specific feed/cache (including any partial candidate record) remains. An
+export-created directory may also remain empty. After a failure, rerun adoption
+or restore with `dotnet restore --force` under the restored configuration before
+relying on project assets; adoption always passes `--force` on every attempt.
+Process termination or filesystem failures that prevent cleanup cannot guarantee
+rollback. The cache and restored project assets are not transaction records.
+
 The fresh-cache restore also exposed existing NU1902/NU1903 advisories in
 ScheduleLib's application dependencies (`System.Security.Cryptography.Pkcs`
 and `System.Security.Cryptography.Xml` 10.0.10). Validation keeps those warnings
