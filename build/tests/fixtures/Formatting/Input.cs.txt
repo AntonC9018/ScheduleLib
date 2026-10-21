@@ -20,6 +20,10 @@ internal static class Program
         second;
     private static int Multiline(int value) => Math.Abs(
         value);
+    private static int Forward() => Sum(
+        1,
+        2,
+        3);
 
     private static void Main()
     {
@@ -34,6 +38,7 @@ internal static class Program
         ];
         if (Both(true, true)) Console.WriteLine(text);
         Console.WriteLine(Sum(Step(3), Step(4), Step(5)));
+        Console.WriteLine(Forward());
         /* Keep this block comment and both literal tokens. */
         Console.WriteLine(string.Concat("first-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789", "second-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789"));
         Console.WriteLine($"{trace}:{payload.A}:{payload.B}:{values.Length}:{Multiline(-3)}");

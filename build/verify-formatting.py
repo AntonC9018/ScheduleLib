@@ -46,7 +46,7 @@ def main():
         assert '\n            && second' in package_text, 'A3 leading Boolean'
         assert 'Multiline(int value)\n    {' in package_text, 'A12 block conversion'
         assert 'if (Both(true, true))\n        {' not in package_text, 'Reassess package braces coverage'
-        assert '\n            2,\n' not in package_text, 'Reassess package trailing-comma coverage'
+        assert '\n            2,\n        ];' not in package_text, 'Reassess package trailing-comma coverage'
         assert 'Sum(Step(3), Step(4), Step(5))' in package_text, 'Reassess package wrapping coverage'
         assert '0123456789", "second-width-probe' in package_text, 'Reassess package width wrapping'
         assert 'trace = trace * 10 + value; return value;' in package_text, 'Reassess package statement layout'
@@ -63,10 +63,11 @@ def main():
         assert 'Keep(new Payload' in text
         assert '\n            A = Step(1),' in text
         assert 'if (Both(true, true))\n        {' in text, 'Braces'
-        assert '\n            2,\n' in text, 'Trailing comma'
+        assert '\n            2,\n        ];' in text, 'Trailing comma'
         assert 'trace = trace * 10 + value;\n' in text, 'Statement layout'
         assert 'Sum(Step(3),\n            Step(4),' in text, 'Argument-count wrapping'
         assert '0123456789",\n' in text, 'Width wrapping'
+        assert 'return Sum(\n            1,\n            2,\n            3);' in text, 'New block argument indentation'
         assert 'var text = "{ braces } // text, &&";' in text
         assert '// The literal and this comment must survive verbatim.' in text
         assert '/* Keep this block comment and both literal tokens. */' in text

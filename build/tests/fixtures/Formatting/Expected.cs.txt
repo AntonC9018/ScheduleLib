@@ -31,6 +31,14 @@ internal static class Program
             value);
     }
 
+    private static int Forward()
+    {
+        return Sum(
+            1,
+            2,
+            3);
+    }
+
     private static void Main()
     {
         // The literal and this comment must survive verbatim.
@@ -52,6 +60,7 @@ internal static class Program
         Console.WriteLine(Sum(Step(3),
             Step(4),
             Step(5)));
+        Console.WriteLine(Forward());
         /* Keep this block comment and both literal tokens. */
         Console.WriteLine(string.Concat("first-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789",
             "second-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789"));

@@ -80,11 +80,12 @@ def package_style(mirror, target, sources):
                    cwd=Path(project).parent, check=True)
 
 
-def format_sources(sources, check, target=None, style=False):
-    with tempfile.TemporaryDirectory(prefix='schedulelib-format-') as directory:
+def layout_sources(content_by_source):
+    # Keep the syntax-only host separate from the real semantic workspace.
+    sources = list(content_by_source)
+    with tempfile.TemporaryDirectory(prefix='schedulelib-cleanup-') as directory:
         mirror = Path(directory)
-        original = {source: source.read_bytes() for source in sources}
-        for source, content in original.items():
+        for source, content in content_by_source.items():
             destination = mirror / source.relative_to(ROOT)
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(content)
@@ -114,11 +115,31 @@ def format_sources(sources, check, target=None, style=False):
                         '--profile=ScheduleLib Formatting', '--settings=' + str(ROOT / 'All.sln.DotSettings'),
                         '--no-buildin-settings', '--no-build', '--no-updates', '--verbosity=ERROR'],
                        cwd=ROOT, check=True)
+        return {source: (mirror / source.relative_to(ROOT)).read_bytes() for source in sources}
+
+
+def format_sources(sources, check, target=None, style=False):
+    with tempfile.TemporaryDirectory(prefix='schedulelib-format-') as directory:
+        mirror = Path(directory)
+        original = {source: source.read_bytes() for source in sources}
+        previous = original
+        # A new block can require another layout pass for argument indentation.
+        # Require a fixed point before writing; fail safely on an actual cycle.
+        for attempt in range(4 if style else 1):
+            for source, content in layout_sources(previous).items():
+                destination = mirror / source.relative_to(ROOT)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+            if style:
+                package_style(mirror, target, sources)
+            current = {source: (mirror / source.relative_to(ROOT)).read_bytes() for source in sources}
+            if not style or current == previous:
+                break
+            previous = current
+        else:
+            raise ValueError('Formatting did not stabilize in four passes; source was not written.')
         if style:
-            # Remove the syntax-only host before loading the consumer workspace.
-            solution.unlink()
-            (mirror / 'Formatting.csproj').unlink()
-            package_style(mirror, target, sources)
+            print(f'Formatting stabilized after {attempt + 1} pass(es).')
         changed = {source: (mirror / source.relative_to(ROOT)).read_bytes() for source in sources
                    if (mirror / source.relative_to(ROOT)).read_bytes() != original[source]}
         if not check:

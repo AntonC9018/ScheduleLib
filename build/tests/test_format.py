@@ -9,6 +9,22 @@ FORMAT = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'format.py'))
 
 
 class FormattingWriteTests(unittest.TestCase):
+    def test_nonconvergent_style_never_writes_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'Source.cs'
+            source.write_bytes(b'original')
+
+            def toggle(content):
+                return {source: b'other' if content[source] == b'original' else b'original'}
+
+            function = FORMAT['format_sources']
+            with patch.dict(function.__globals__, ROOT=root, layout_sources=toggle,
+                            package_style=lambda *args: None):
+                with self.assertRaisesRegex(ValueError, 'did not stabilize'):
+                    function([source], check=False, target=root / 'App.csproj', style=True)
+            self.assertEqual(source.read_bytes(), b'original')
+
     def test_check_never_writes_source(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

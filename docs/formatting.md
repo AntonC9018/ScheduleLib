@@ -70,6 +70,10 @@ context; package fixes do not run against the syntax-only project. The copied
 consumer is restored, the five fixes run with an explicit diagnostic/file
 allowlist, then Roslyn whitespace formatting runs. Only selected source files
 can be copied back. No other workspace edits are applied to the repository.
+Complete layout/style rounds repeat until the selected bytes stabilize, with
+a four-round limit before any source write. This handles newly introduced
+blocks whose argument indentation CleanupCode must adjust. Nonconvergence
+fails explicitly and leaves source untouched; stable input needs one round.
 
 The temporary analyzer process sets `ScheduleLibFormatting=true`. This removes
 the legacy `WarningsNotAsErrors` list from its design-time compiler options:
