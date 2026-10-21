@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -76,7 +77,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             loader.Components.Add(l);
         }
 
-        var context = ActivatorUtilities.CreateInstance<DocParseContext>(sp, builder);
+        var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
         loader.ConfigurationIdentity = string.Join("|", "cache-v2",
@@ -86,6 +87,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             studyYear.StudyYear, studyYear.Semester, opts.EnrichWithFullNames, opts.LoadConsultations,
             System.Text.Json.JsonSerializer.Serialize(context.TimeConfig, new System.Text.Json.JsonSerializerOptions { IncludeFields = true }),
             System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings),
+            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings),
             string.Join(";", builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString()).Select(x => $"{x.Key}={x.Value}")));
         await loader.Load(
             context,
@@ -95,4 +97,3 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         _logger.LogInformation("Schedule built");
     }
 }
-

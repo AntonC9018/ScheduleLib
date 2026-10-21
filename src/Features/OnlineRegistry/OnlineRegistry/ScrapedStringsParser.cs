@@ -33,21 +33,22 @@ public static partial class RegistryScraping
         }
 
         var label = ParseLabel(ref mainParser);
-        bool isMaster = false;
-        if (context.IsGroupMaster(label))
+        var suffixes = new GroupSuffixes();
+        if (label.Length > 2 && label.Span.EndsWith("FR", StringComparison.OrdinalIgnoreCase))
         {
-            isMaster = true;
+            label = label[..^2];
+            suffixes.ReducedAttendance = true;
         }
+        bool isMaster = context.IsGroupMaster(label);
 
         var year = ParseYear(ref mainParser);
 
         bool isWildcard = false;
-        bool isDual = false;
         uint? groupNumber = null;
         var subGroup = ParseSubGroup(ref mainParser);
         if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
         {
-            isDual = true;
+            suffixes.Dual = true;
         }
         else if (!subGroup.IsEmpty)
         {
@@ -58,25 +59,46 @@ public static partial class RegistryScraping
             groupNumber = ParseGroupNumber(ref mainParser);
         }
 
-        // ReSharper disable once InconsistentNaming
-        var languageOrFR = ParseLanguageOrFR(ref mainParser);
+        ParseSuffixes(ref mainParser, ref suffixes);
 
         if (!isWildcard)
         {
             subGroup = ParseSubGroup(ref mainParser);
-        }
-        if (ParseFR(ref mainParser))
-        {
-            languageOrFR.FR = true;
+            if (!subGroup.IsEmpty)
+            {
+                ParseSuffixes(ref mainParser, ref suffixes);
+                var subgroupLanguage = LanguageHelper.ParseName(subGroup.Span);
+                if (subgroupLanguage is Language.Ru or Language.Ro)
+                {
+                    SetLanguage(ref suffixes, subgroupLanguage.Value);
+                    subGroup = ReadOnlyMemory<char>.Empty;
+                }
+                else if (subGroup.Span.Equals("Dual", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (suffixes.Dual)
+                    {
+                        JustThrow("duplicate dual marker");
+                    }
+                    suffixes.Dual = true;
+                    subGroup = ReadOnlyMemory<char>.Empty;
+                }
+            }
         }
 
         mainParser.SkipWhitespace();
         if (!mainParser.IsEmpty && !isRepeat)
         {
-            throw new NotSupportedException("Group name not parsed fully.");
+            JustThrow("trailing group suffix");
         }
 
         var grade = context.DetermineGrade((int) year);
+
+        // Registry "(en)" denotes English labs within a parent-language group.
+        // Keep it as a partition rather than changing the whole group's language.
+        if (subGroup.Span.Equals("en", StringComparison.OrdinalIgnoreCase))
+        {
+            subGroup = SpecialSubGroups.Eng.Value.AsMemory();
+        }
 
         return new()
         {
@@ -84,18 +106,24 @@ public static partial class RegistryScraping
             Grade = grade,
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
-            // Don't have precedents for master yet.
             QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
-            AttendanceMode = languageOrFR.FR ? AttendanceMode.FrecventaRedusa : AttendanceMode.Zi,
+            AttendanceMode = AttendanceModeHelper.FromFlags(suffixes.ReducedAttendance, suffixes.Dual),
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
-            Language = languageOrFR.Language,
-            IsDual = isDual,
+            Language = suffixes.Language,
+            IsDual = suffixes.Dual,
+            IsAdditionalCourses = suffixes.IsAdditionalCourses,
         };
 
         static ReadOnlyMemory<char> ParseLabel(ref SequenceReader reader)
         {
+            // Only the confirmed combined registry label is accepted; underscores
+            // do not introduce a general faculty-combination grammar.
+            if (reader.ConsumeExactString(RegistryFacultyLabels.CombinedInformatics))
+            {
+                return RegistryFacultyLabels.CombinedInformatics.AsMemory();
+            }
             var bparser = reader.BufferedView();
             bparser.SkipLetters();
             var ret = reader.SourceUntilExclusive(bparser.Position);
@@ -104,6 +132,12 @@ public static partial class RegistryScraping
                 JustThrow("no label");
             }
             reader.MoveTo(bparser.Position);
+            // Historical ordinary groups sometimes separate the faculty and year.
+            if (reader.CanPeekCount(2) && reader.PeekSpan(2)[0] == '_'
+                && char.IsAsciiDigit(reader.PeekSpan(2)[1]))
+            {
+                reader.Move();
+            }
             return ret;
         }
 
@@ -128,50 +162,72 @@ public static partial class RegistryScraping
             return num;
         }
 
-        // ReSharper disable once InconsistentNaming
-        static LanguageOrFR ParseLanguageOrFR(ref SequenceReader reader)
+        static void ParseSuffixes(ref SequenceReader reader, ref GroupSuffixes suffixes)
         {
-            var ret = new LanguageOrFR();
-            if (ParseFR(ref reader))
-            {
-                ret.FR = true;
-            }
-            if (reader.ConsumeExactString("SE"))
-            {
-                // ignore this
-            }
-
-            if (LanguageHelper.ParseName(ref reader) is { } language)
-            {
-                ret.Language = language;
-            }
-            else if (reader.ConsumeExactString("R"))
-            {
-                ret.Language = Language.Ru;
-            }
-
-            if (!ret.FR && ret.IsLanguage)
+            while (!reader.IsEmpty)
             {
                 if (ParseFR(ref reader))
                 {
-                    ret.FR = true;
+                    if (suffixes.ReducedAttendance)
+                    {
+                        JustThrow("duplicate FR marker");
+                    }
+                    suffixes.ReducedAttendance = true;
+                }
+                else if (ConsumeMarker(ref reader, "DU"))
+                {
+                    if (suffixes.Dual)
+                    {
+                        JustThrow("duplicate dual marker");
+                    }
+                    suffixes.Dual = true;
+                }
+                else if (ConsumeMarker(ref reader, "SE"))
+                {
+                    // SE marks an additional-courses roster.
+                    // Same schedule audience and attendance source as the ordinary list.
+                    suffixes.IsAdditionalCourses = true;
+                }
+                else if (LanguageHelper.ParseName(ref reader) is { } language)
+                {
+                    SetLanguage(ref suffixes, language);
+                }
+                else if (ConsumeMarker(ref reader, "R"))
+                {
+                    SetLanguage(ref suffixes, Language.Ru);
+                }
+                else
+                {
+                    break;
                 }
             }
-            return ret;
+        }
+
+        static void SetLanguage(ref GroupSuffixes suffixes, Language language)
+        {
+            if (suffixes.Language is not null)
+            {
+                JustThrow("duplicate language");
+            }
+            suffixes.Language = language;
         }
 
         // ReSharper disable once InconsistentNaming
         static bool ParseFR(ref SequenceReader p)
         {
-            const string fr = "fr";
-            if (!p.CanPeekCount(fr.Length))
+            return ConsumeMarker(ref p, "fr");
+        }
+
+        static bool ConsumeMarker(ref SequenceReader p, string marker)
+        {
+            if (!p.CanPeekCount(marker.Length))
             {
                 return false;
             }
-            var span = p.PeekSpan(fr.Length);
-            if (span.Equals(fr, StringComparison.OrdinalIgnoreCase))
+            var span = p.PeekSpan(marker.Length);
+            if (span.Equals(marker, StringComparison.OrdinalIgnoreCase))
             {
-                p.Move(fr.Length);
+                p.Move(marker.Length);
                 return true;
             }
             return false;
@@ -219,13 +275,12 @@ public sealed class GroupParsingException : Exception
     }
 }
 
-// ReSharper disable once InconsistentNaming
-file record struct LanguageOrFR
+file record struct GroupSuffixes
 {
     public Language? Language;
-    // ReSharper disable once InconsistentNaming
-    public bool FR;
-    public readonly bool IsLanguage => Language is not null;
+    public bool ReducedAttendance;
+    public bool Dual;
+    public bool IsAdditionalCourses;
 }
 
 internal struct GroupForSearch
@@ -241,4 +296,24 @@ internal struct GroupForSearch
     public required bool IsRepeat;
     public required bool IsWildcard;
     public required bool IsDual;
+    public bool IsAdditionalCourses;
+}
+
+/// <summary>Confirmed registry-only combined label, matched to existing faculties.</summary>
+internal static class RegistryFacultyLabels
+{
+    internal const string CombinedInformatics = "I_IA";
+
+    internal static bool IsCombined(ReadOnlyMemory<char> label) =>
+        label.Span.Equals(CombinedInformatics, StringComparison.OrdinalIgnoreCase);
+
+    internal static bool Matches(ReadOnlyMemory<char> label, string faculty)
+    {
+        if (IsCombined(label))
+        {
+            return faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
+                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase);
+        }
+        return label.Span.Equals(faculty, StringComparison.OrdinalIgnoreCase);
+    }
 }

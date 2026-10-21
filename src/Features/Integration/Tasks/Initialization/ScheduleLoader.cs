@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Teachers;
+using FmiScheduleImport;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -25,7 +26,7 @@ public sealed class ScheduleLoader
     public List<IScheduleLoaderComponent> Components { get; set; } = new();
 
     public async ValueTask Load(
-        DocParseContext context,
+        ScheduleImportContext context,
         CancellationToken cancellationToken,
         bool bypassCache = false)
     {
@@ -67,6 +68,12 @@ public sealed class ScheduleLoader
             if (model is not null && model.Hash == hashHex)
             {
                 ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
+                // Cache models already contain the explicit PDF cohort assignments;
+                // reuse the same import policy before the builder validates them.
+                if (Components.OfType<DirectoryScheduleLoaderComponent>().Any(component =>
+                    Directory.EnumerateFiles(component.DirectoryPath.Value, "*.pdf", SearchOption.AllDirectories).Any()))
+                    context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
+                        context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
                 return;
             }
         }
@@ -77,8 +84,11 @@ public sealed class ScheduleLoader
         if (CachedPath is { } destination)
         {
             var schedule = context.Schedule.Build();
-            await AtomicFile.Publish(destination, async (stream, token) =>
-                await ScheduleSerializer.Serialize(schedule, stream, hashHex!, token), cancellationToken);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(destination)
+                .Hash(hashHex!)
+                .ExecuteAsync(cancellationToken);
         }
     }
 }
@@ -86,7 +96,7 @@ public sealed class ScheduleLoader
 public interface IScheduleLoaderComponent
 {
     public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken);
-    public ValueTask Apply(DocParseContext context, CancellationToken cancellationToken);
+    public ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken);
 }
 
 public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
@@ -103,7 +113,7 @@ public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         await TasksHelper.ParseDocumentDirIntoSchedule(
             context,
@@ -127,7 +137,7 @@ public sealed class EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent : 
             cancellationToken: cancellationToken);
     }
 
-    public ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         TasksHelper.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, FilePath);
         return ValueTask.CompletedTask;
@@ -148,7 +158,7 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         var teachers = await _provider.Get(cancellationToken);
         foreach (var t in teachers)
@@ -189,7 +199,7 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*.xlsx", SearchOption.AllDirectories))
         {
@@ -246,7 +256,7 @@ public sealed class ConsultationsLoaderComponent(
         hasher.AppendMemoryStream(file);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         var file = await LazyFile(cancellationToken);
         ProcessExcel(context, file);
@@ -371,7 +381,7 @@ public sealed class ConsultationsLoaderComponent(
         }
     }
 
-    private static void ProcessExcel(DocParseContext context, MemoryStream file)
+    private static void ProcessExcel(ScheduleImportContext context, MemoryStream file)
     {
         var consultationCourseId = context.Schedule.Course("Consultație");
 

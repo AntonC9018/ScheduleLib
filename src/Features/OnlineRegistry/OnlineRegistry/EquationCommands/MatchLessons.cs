@@ -40,6 +40,18 @@ internal readonly record struct LessonMatchParams
 internal static class MatchLessonHelper
 {
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
+        => MatchLessonCandidates(p)
+            .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
+
+    internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
+        => MatchLessonCandidates(p)
+            .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
+            .ToList();
+
+    private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
+        => lesson.Type == LessonType.Lab && (groups.IsWildcard || !groups.Value.IsSingleGroup);
+
+    internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
     {
         {
             bool yielded = false;
@@ -48,7 +60,7 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
-            if (yielded)
+            if (yielded || p.Filter.Groups.IsCombined)
             {
                 yield break;
             }
@@ -67,6 +79,18 @@ internal static class MatchLessonHelper
         }
     }
 
+    internal static bool MatchesPartition(Schedule schedule, LessonData lesson, GroupPartitionKey partition)
+    {
+        if (lesson.GroupPartitionKey == partition) return true;
+        if (partition != GroupPartitionKey.All || lesson.Specialization != Specialization.All
+            || lesson.Alternative != Alternative.All || lesson.Groups.IsEmpty) return false;
+        // The ordinary registry destination represents the parent's teaching language;
+        // another language subgroup has its own destination.
+        return lesson.SubGroup.IsLanguageSubGroup()
+            && lesson.Groups.All(group => schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup);
+    }
+
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
         LessonMatchParams p,
         GroupPartitionKey groupPartition)
@@ -74,17 +98,29 @@ internal static class MatchLessonHelper
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
+            if (!p.Schedule.IsLessonActive(lessonId)) continue;
             var lesson = p.Schedule.Get(lessonId);
-            if (lesson.Lesson.GroupPartitionKey != groupPartition)
+            if (p.Filter.Groups.IsCombined ? lesson.Lesson.GroupPartitionKey != groupPartition
+                : !MatchesPartition(p.Schedule, lesson.Lesson, groupPartition))
             {
                 continue;
             }
 
             ref readonly var g = ref p.Filter.Groups;
 
-            if (g.IsWildcard)
+            if (g.IsCombined)
             {
-                if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
+                // Combined registry cohorts can have separate parent-group lessons.
+                // A lesson must be entirely within the confirmed resolved parents.
+                if (lesson.Lesson.Groups.IsEmpty || !lesson.Lesson.Groups.IsSubSetOf(g.Value))
+                {
+                    continue;
+                }
+            }
+            else if (g.IsWildcard)
+            {
+                if (lesson.Lesson.Groups.IsEmpty
+                    || !g.Value.IsSubSetOf(lesson.Lesson.Groups) && !lesson.Lesson.Groups.IsSubSetOf(g.Value))
                 {
                     continue;
                 }

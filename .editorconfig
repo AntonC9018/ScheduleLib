@@ -11,12 +11,18 @@ rulers = 120
 
 # Microsoft .NET properties
 csharp_new_line_before_members_in_object_initializers = true
-csharp_preserve_single_line_blocks = true
+
+# Roslyn braces rule (IDE0011), aligned with the ReSharper rules below.
+# build/format.sh applies braces through the shared cleanup profile. See docs/formatting.md.
+csharp_prefer_braces = true:warning
 
 # ReSharper properties
 resharper_csharp_blank_lines_after_block_statements = 0
+# #229 A1: a sole new() argument stays adjacent to the opening call
+# (Run(new()) rather than breaking after '('); declarations keep
+# break-after-paren.
 resharper_csharp_wrap_after_declaration_lpar = true
-resharper_csharp_wrap_after_invocation_lpar = true
+resharper_csharp_wrap_after_invocation_lpar = false
 resharper_csharp_wrap_arguments_style = chop_if_long
 resharper_csharp_wrap_multiple_type_parameter_constraints_style = chop_if_long
 resharper_csharp_wrap_parameters_style = chop_if_long
@@ -28,6 +34,9 @@ resharper_max_primary_constructor_parameters_on_line = 3
 resharper_wrap_array_initializer_style = chop_always
 resharper_wrap_list_pattern = chop_always
 resharper_wrap_object_and_collection_initializer_style = chop_always
+# #229 A1: object-initializer members go one per line, except a single member
+# may stay compact.
+resharper_max_initializer_elements_on_line = 1
 resharper_wrap_property_pattern = chop_always
 
 [*.md]
@@ -64,10 +73,13 @@ dotnet_style_null_propagation = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
 csharp_style_var_elsewhere = true:suggestion
 
-# Prefer method-like constructs to have a block body
-csharp_style_expression_bodied_methods = false:none
-csharp_style_expression_bodied_constructors = false:none
-csharp_style_expression_bodied_operators = false:none
+# Prefer method-like constructs to have a block body unless the whole
+# declaration fits on a single line (#229 A12). Multiline expression
+# bodies must use a regular block body.
+csharp_style_expression_bodied_methods = when_on_single_line:warning
+csharp_style_expression_bodied_constructors = when_on_single_line:warning
+csharp_style_expression_bodied_operators = when_on_single_line:warning
+csharp_style_expression_bodied_local_functions = when_on_single_line:warning
 
 # Prefer property-like constructs to have an expression-body
 csharp_style_expression_bodied_properties = true:none
@@ -112,6 +124,9 @@ csharp_space_between_parentheses = false
 
 # Wrapping options
 csharp_preserve_single_line_statements = false
+
+# The package's A2 compact auto-properties must survive Roslyn whitespace format.
+# CleanupCode retains control-statement block/statement layout.
 csharp_preserve_single_line_blocks = true
 
 dotnet_style_require_accessibility_modifiers = always
@@ -139,7 +154,9 @@ resharper_enforce_while_statement_braces_highlighting = error
 # ReSharper properties
 resharper_align_multiline_binary_expressions_chain = false
 resharper_trailing_comma_in_multiline_lists = true
-resharper_wrap_before_binary_pattern_op = false
+# #229 A3: a wrapped &&/|| leads the continuation line (or/and patterns likewise).
+resharper_wrap_before_binary_opsign = true
+resharper_wrap_before_binary_pattern_op = true
 resharper_wrap_chained_binary_expressions = chop_if_long
 resharper_wrap_chained_binary_patterns = chop_if_long
 
@@ -148,11 +165,15 @@ resharper_csharp_braces_for_ifelse = required
 resharper_csharp_braces_for_for = required
 resharper_csharp_braces_for_foreach = required
 resharper_csharp_braces_for_while = required
+resharper_csharp_braces_for_dowhile = required
 resharper_csharp_braces_for_using = required
 resharper_csharp_braces_for_lock = required
 resharper_csharp_braces_for_fixed = required
 
 [*.cs]
+# dotnet format's filter requires per-file severities for the two upstream fixes.
+dotnet_diagnostic.RCS0042.severity = warning
+dotnet_diagnostic.RCS1016.severity = warning
 # Disposable member none cleaned up
 dotnet_diagnostic.ca1001.severity = error
 dotnet_diagnostic.ca1816.severity = error

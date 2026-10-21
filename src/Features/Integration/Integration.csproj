@@ -19,6 +19,7 @@
         <ProjectReference Include="$(RootPath)src\ScheduleDefaults\ScheduleDefaults.csproj" />
 
         <ProjectReference Include="$(FeaturesPath)FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
+        <ProjectReference Include="$(FeaturesPath)ParsePdf\ParsePdf.csproj" />
         <ProjectReference Include="$(FeaturesPath)OnlineRegistry\OnlineRegistry.csproj" />
         <ProjectReference Include="$(FeaturesPath)CurriculumDownload\CurriculumDownload.csproj" />
         <ProjectReference Include="$(FeaturesPath)CurriculumShared\CurriculumShared.csproj" />
@@ -29,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="data\**\*.pdf" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
         <None
             Include="data\**\*.docx"
             Exclude="data\**\~$*.docx"

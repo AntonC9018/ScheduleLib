@@ -12,11 +12,6 @@ public sealed class InvalidGroupNameException : ScheduleBuildException
     {
     }
 
-    public static InvalidGroupNameException ForFrenchAndDual()
-    {
-        return new("Both FR and DUAL parsed, not allowed.");
-    }
-
     public static InvalidGroupNameException ForUnrecognizedLanguage(char value)
     {
         return new($"Unrecognized language: {value}");
@@ -64,6 +59,9 @@ public sealed class InvalidGroupNameException : ScheduleBuildException
 /// </summary>
 public sealed class InvalidScheduleDocumentException : ScheduleBuildException
 {
+    public static InvalidScheduleDocumentException ForUnknownTimeSlot(TimeOnly start) =>
+        new($"Unknown lesson start time: {start}");
+
     private InvalidScheduleDocumentException(string message)
         : base(message)
     {

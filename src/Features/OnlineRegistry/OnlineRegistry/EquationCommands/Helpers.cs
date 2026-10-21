@@ -74,7 +74,7 @@ internal struct MatchedLessonData
         {
             return true;
         }
-        if (Local.Topic == Remote.Topic)
+        if (Local.Topic.ReplaceLineEndings("\n") == Remote.Topic?.ReplaceLineEndings("\n"))
         {
             return true;
         }

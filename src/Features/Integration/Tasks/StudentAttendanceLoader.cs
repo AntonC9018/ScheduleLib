@@ -19,11 +19,14 @@ public sealed partial class StudentAttendanceLoader
     private readonly DataProvider<LessonAttendanceConfig> _configProvider;
     private readonly ScopeFilteredScheduleProvider _scheduleProvider;
     private readonly AttendanceListsExcelParser _parser;
+    private readonly DataProvider<RegistryConfig> _registryConfig;
+
+    public bool HasSources => _configProvider.Get()?.Sources.Count > 0;
 
     public StudentAttendanceList Load()
     {
         var attendanceConfig = _configProvider.Get();
-        if (attendanceConfig is null)
+        if (attendanceConfig is null || attendanceConfig.Sources.Count == 0)
         {
             return new([]);
         }
@@ -36,7 +39,12 @@ public sealed partial class StudentAttendanceLoader
             {
                 throw new InvalidOperationException("Misconfigured source with a null path.");
             }
-            var parseParams = new WorksheetParseParameters();
+            var parseParams = new WorksheetParseParameters
+            {
+                StudentNameColumn = source.StudentNameColumn,
+                WorksheetNames = source.WorksheetNames ?? new Dictionary<string, string>(),
+                LabMerges = _registryConfig.Get()?.LabMerges ?? [],
+            };
             {
                 if (source.RepeatedCourseBehavior is { } x)
                 {
@@ -47,6 +55,18 @@ public sealed partial class StudentAttendanceLoader
                 if (source.CellValueFormat is { } x)
                 {
                     parseParams.CellValueFormat = x;
+                }
+            }
+            {
+                if (source.HeaderFormat is { } x)
+                {
+                    parseParams.HeaderFormat.FormatType = x;
+                }
+            }
+            {
+                if (source.DateMode is { } x)
+                {
+                    parseParams.DateMode = x;
                 }
             }
 
@@ -63,6 +83,6 @@ public sealed partial class StudentAttendanceLoader
         // Maybe configure this per workbook.
         var ret = builder.Build(missingDaysFiller:
             attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return ret;
+        return AttendanceLabMerges.Project(ret, filteredSchedule.Source, _registryConfig.Get()?.LabMerges ?? []);
     }
 }

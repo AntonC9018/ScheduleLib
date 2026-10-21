@@ -1,9 +1,11 @@
+using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using ConvertDocToDocx;
+using FmiScheduleImport;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -13,6 +15,7 @@ using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;
+using ScheduleLib.Import.Pdf;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common.Config;
@@ -63,15 +66,17 @@ public static class TasksHelper
     }
 
     public static async Task ParseDocumentDirIntoSchedule(
-        DocParseContext context,
+        ScheduleImportContext context,
         string dirName,
         CancellationToken cancellationToken)
     {
         dirName = Path.GetFullPath(dirName);
+        var wordSplitConfig = context.Schedule.ImplicitSplitConfig;
 
         await ParseDirectoryToSchedule(
             context,
             dirName,
+            wordSplitConfig,
             cancellationToken: cancellationToken);
 
         var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
@@ -101,6 +106,7 @@ public static class TasksHelper
             await ParseDirectoryToSchedule(
                 context,
                 t.SubDirPath,
+                wordSplitConfig,
                 cancellationToken: cancellationToken,
                 period: new()
                 {
@@ -110,11 +116,14 @@ public static class TasksHelper
         return;
 
         static async Task ParseDirectoryToSchedule(
-            DocParseContext context,
+            ScheduleImportContext context,
             string dirName,
+            ImplicitSplitConfig? wordSplitConfig,
             CancellationToken cancellationToken,
             PeriodBeginning? period = null)
         {
+            var firstWeeklyLesson = context.Schedule.WeeklyLessons.Count;
+            var firstOneTimeLesson = context.Schedule.OneTimeLessons.Count;
             foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
             {
                 // CA2000 misses using-declaration disposal inside this async local function.
@@ -148,6 +157,23 @@ public static class TasksHelper
                     Document = document,
                 });
             }
+
+            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson, firstOneTimeLesson);
+
+            var pdfs = Directory.EnumerateFiles(dirName, "*.pdf", SearchOption.TopDirectoryOnly).Order().ToArray();
+            if (pdfs.Length == 0) return;
+            var cells = new List<PdfScheduleCell>();
+            foreach (var filePath in pdfs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var stream = File.OpenRead(filePath);
+                cells.AddRange(PdfScheduleImporter.Read(stream, Path.GetFileName(filePath)));
+            }
+            if (cells.Count == 0) throw new FormatException($"No schedule cells in PDF sources under {dirName}.");
+            var cohorts = new ElectiveCohorts(context, cells);
+            context.Schedule.ImplicitSplitConfig = cohorts.SplitConfig;
+            context.SetPeriod(period);
+            PdfScheduleImporter.Import(context, cells, cohorts.Add);
         }
     }
 

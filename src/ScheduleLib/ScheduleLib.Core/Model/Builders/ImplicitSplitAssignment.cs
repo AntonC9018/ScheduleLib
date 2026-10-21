@@ -11,9 +11,32 @@ public static partial class ScheduleBuilderHelper
     /// Assumes <c>LessonBuilderHelper.ValidateLessons</c> has been called.
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
+        => AssignImplicitSplits(s, s.ImplicitSplitConfig, firstWeeklyLesson: 0, firstOneTimeLesson: 0);
+
+    /// <summary>
+    /// Applies a document's implicit audience policy only to its newly imported
+    /// lessons. Previously imported documents can retain a different explicit
+    /// policy, such as the website's temporary elective-cohort adaptation.
+    /// </summary>
+    public static void AssignImportedImplicitSplits(this ScheduleBuilder s, ImplicitSplitConfig? config,
+        int firstWeeklyLesson, int firstOneTimeLesson)
     {
-        if (s.ImplicitSplitConfig is not { } config
-            || config.Scopes.Count == 0)
+        ArgumentOutOfRangeException.ThrowIfNegative(firstWeeklyLesson);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(firstWeeklyLesson, s.WeeklyLessons.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(firstOneTimeLesson);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(firstOneTimeLesson, s.OneTimeLessons.Count);
+        if (config is null || firstWeeklyLesson == s.WeeklyLessons.Count && firstOneTimeLesson == s.OneTimeLessons.Count) return;
+        s.Preprocess();
+        s.Validate();
+        s.ClassifySubGroups();
+        AssignImplicitSplits(s, config, firstWeeklyLesson, firstOneTimeLesson);
+        s.RefreshLookup();
+    }
+
+    private static void AssignImplicitSplits(ScheduleBuilder s, ImplicitSplitConfig? config,
+        int firstWeeklyLesson, int firstOneTimeLesson)
+    {
+        if (config is null || config.Scopes.Count == 0)
         {
             return;
         }
@@ -34,12 +57,12 @@ public static partial class ScheduleBuilderHelper
         // Splits append new lessons, so the loops cover only the original ones:
         // the counts are captured before any split runs.
         int weeklyCount = s.WeeklyLessons.Count;
-        for (int i = 0; i < weeklyCount; i++)
+        for (int i = firstWeeklyLesson; i < weeklyCount; i++)
         {
             Split(s.WeeklyLessons.Ref(i));
         }
         int oneTimeCount = s.OneTimeLessons.Count;
-        for (int i = 0; i < oneTimeCount; i++)
+        for (int i = firstOneTimeLesson; i < oneTimeCount; i++)
         {
             Split(s.OneTimeLessons.Ref(i));
         }

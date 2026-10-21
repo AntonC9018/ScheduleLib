@@ -18,6 +18,12 @@ public sealed class Schedule
     public required ImmutableArray<Teacher> Teachers { get; init; }
     public required ImmutableArray<Course> Courses { get; init; }
     public required ImmutableArray<Period> Periods { get; init; }
+    public ImmutableArray<DetectedLabSubGroupMerge> AutomaticLabSubGroupMerges { get; init; } = [];
+    public ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics { get; init; } = [];
+    public ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons { get; init; } = [];
+
+    public bool IsLessonActive(AnyLessonId id) => id.Regularity != LessonRegularity.Weekly
+        || !SuppressedWeeklyLessons.Contains(new(id.Id));
 
     public static readonly Schedule Empty = new()
     {
@@ -297,6 +303,11 @@ public readonly record struct AllLessonsEnumerable
 
                 if (_index < len)
                 {
+                    if (!_arrays.IsLessonActive(new(_regularity, _index)))
+                    {
+                        _index++;
+                        continue;
+                    }
                     return true;
                 }
                 _regularity++;
@@ -935,15 +946,38 @@ public enum AttendanceMode
 {
     Zi,
     FrecventaRedusa,
-    Dual,
+    DualZi,
+    DualFr,
     Count,
     Invalid = -1,
+}
+
+public static class AttendanceModeHelper
+{
+    public static bool IsZi(this AttendanceMode mode) =>
+        mode is AttendanceMode.Zi or AttendanceMode.DualZi;
+
+    public static bool IsFr(this AttendanceMode mode) =>
+        mode is AttendanceMode.FrecventaRedusa or AttendanceMode.DualFr;
+
+    public static bool IsDual(this AttendanceMode mode) =>
+        mode is AttendanceMode.DualZi or AttendanceMode.DualFr;
+
+    public static AttendanceMode FromFlags(bool isFr, bool isDual) => (isFr, isDual) switch
+    {
+        (false, false) => AttendanceMode.Zi,
+        (true, false) => AttendanceMode.FrecventaRedusa,
+        (false, true) => AttendanceMode.DualZi,
+        (true, true) => AttendanceMode.DualFr,
+    };
 }
 
 public record struct OneForEachAttendanceMode<T>
 {
     public required T Zi;
     public required T FrecventaRedusa;
+    public T DualZi;
+    public T DualFr;
 
     public T this[AttendanceMode mode]
     {
@@ -953,6 +987,8 @@ public record struct OneForEachAttendanceMode<T>
             {
                 AttendanceMode.Zi => Zi,
                 AttendanceMode.FrecventaRedusa => FrecventaRedusa,
+                AttendanceMode.DualZi => DualZi,
+                AttendanceMode.DualFr => DualFr,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode)),
             };
         }
@@ -970,6 +1006,16 @@ public record struct OneForEachAttendanceMode<T>
                     FrecventaRedusa = value;
                     break;
                 }
+                case AttendanceMode.DualZi:
+                {
+                    DualZi = value;
+                    break;
+                }
+                case AttendanceMode.DualFr:
+                {
+                    DualFr = value;
+                    break;
+                }
                 default:
                 {
                     throw new ArgumentOutOfRangeException(nameof(mode));
@@ -985,13 +1031,16 @@ public enum AttendanceModeFlags
     None,
     Zi = 1 << AttendanceMode.Zi,
     FrecventaRedusa = 1 << AttendanceMode.FrecventaRedusa,
+    DualZi = 1 << AttendanceMode.DualZi,
+    DualFr = 1 << AttendanceMode.DualFr,
 }
 
 public static class AttendanceModeFlagsHelper
 {
     public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
     {
-        return (flags & (AttendanceModeFlags) mode) != 0;
+        return mode >= AttendanceMode.Zi && mode < AttendanceMode.Count
+            && (flags & (AttendanceModeFlags)(1 << (int)mode)) != 0;
     }
 }
 
@@ -1098,9 +1147,11 @@ public static class ScheduleAccessorHelper
     {
         return new(schedule.Periods);
     }
-    public static ScheduleObjectEnumerable<WeeklyLesson, WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
+    public static IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
     {
-        return new(schedule.WeeklyLessons);
+        for (var index = 0; index < schedule.WeeklyLessons.Length; index++)
+            if (schedule.IsLessonActive(new(LessonRegularity.Weekly, index)))
+                yield return WeeklyLessonAccessor.Create(index, schedule.WeeklyLessons);
     }
     public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(this Schedule schedule)
     {
@@ -1199,4 +1250,3 @@ public readonly partial struct OneTimeLessonAccessor : IAccessor<OneTimeLessonAc
         return new(r);
     }
 }
-

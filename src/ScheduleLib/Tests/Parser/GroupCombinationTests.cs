@@ -342,7 +342,11 @@ public sealed class GroupCombinationTests
         });
 
         using var stream = new MemoryStream();
-        await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+        await ScheduleSerializer.Serialize()
+            .Input(schedule)
+            .Output(stream)
+            .Hash("hash")
+            .ExecuteAsync(CancellationToken.None);
         stream.Position = 0;
         var model = await ScheduleSerializer.Deserialize(stream, CancellationToken.None);
 
@@ -373,7 +377,11 @@ public sealed class GroupCombinationTests
         string json;
         using (var stream = new MemoryStream())
         {
-            await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(stream)
+                .Hash("hash")
+                .ExecuteAsync(CancellationToken.None);
             json = Encoding.UTF8.GetString(stream.ToArray());
         }
 
@@ -650,7 +658,7 @@ public sealed class GroupCombinationTests
             GroupNumber = 1,
             QualificationType = QualificationType.Licenta,
             Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Dual,
+            AttendanceMode = AttendanceMode.DualZi,
             Language = Language.Ro,
         };
 

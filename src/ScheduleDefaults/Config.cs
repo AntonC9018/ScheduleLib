@@ -32,6 +32,8 @@ public static class Config
         (From: "Dezvoltare WEB PHP", To: "PHP"),
         (From: "DA S-S", To: "Server-side"),
         (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
+        (From: "Cloud", To: "Cloud Computing"),
+        (From: "RA U&Vuforia", To: "U&Vuforia"),
         // "UI/UX" is mis-tokenized into "U X" by one of the docs.
         (From: "Designul UI/U X", To: "Designul UI/UX"),
     };
@@ -106,6 +108,15 @@ public static class Config
         StudyYear = new(2026),
         Allowlist =
         [
+            new LessonOverlapAllowlistEntry
+            {
+                CourseA = "Opț. ped.",
+                CourseB = "Dezv. WEB.",
+                GroupName = "I2501",
+                Day = DayOfWeek.Tuesday,
+                TimeSlot = new(4),
+                Reason = "Known website PDF source conflict at 15:00; retained without changing either lesson. See the 2026-10-11 capture.",
+            },
             // Elective courses students choose between: parallel alternatives sharing
             // slots by design. Separated by the grade-2 Alternative assignments
             // above; the entries stay as a safety net for lessons whose groups
@@ -171,7 +182,7 @@ public static class Config
         ],
     };
 
-    public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD"];
+    public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD", "MIA"];
 
     /// <summary>
     /// The initial specialization registry. Uses the canonical extension
@@ -203,7 +214,7 @@ public static class Config
             {
                 x.Grade = new(1);
                 x.Faculty = new("IA");
-                x.AttendanceMode = AttendanceMode.Dual;
+                x.AttendanceMode = AttendanceMode.DualZi;
                 x.Qualification = QualificationType.Licenta;
             });
         b.Set([Specialization.Spring])
@@ -284,6 +295,9 @@ public static class Config
 
     public static void ConfigureRemappings(Remappings remap)
     {
+        // The 2025 first-semester source calls this group DU2501; its later
+        // schedules identify it as DU-IA2501. DU alone does not identify a program.
+        remap.GroupNameRemappings.Add("DU2501", "DU-IA2501");
         var teach = remap.TeacherLastNameRemappings;
         teach.Add("Curmanschi", "Curmanschii");
         teach.Add("Curmanscii", "Curmanschii");
@@ -349,6 +363,10 @@ public static class Config
         var subgroup = remap.SubGroupNameRemappings;
         subgroup.Add(new("AG"), Specialization.AlgoritmicaGrafurilor);
         subgroup.Add(new("GR"), Specialization.GA2D);
+        subgroup.Add(new("SAWM"), Specialization.DezvoltareaAplicatiilor);
+        subgroup.Add(new("DAS-S"), Specialization.DezvoltareaAplicatiilor);
+        subgroup.Add(new("UI/UX"), Specialization.UI);
+        subgroup.Add(new("RVA"), Specialization.DJ);
         // "Node" is a grade-2 subgroup label aliasing the UI specialization
         // (see docs/subgroup-model-update-spec.md and docs/domain-model.md).
         // It is unrelated to the grade-3 "Node.js" course ("Dezv. apl.
@@ -368,47 +386,52 @@ public static class Config
     // Source: https://usm.md/?page_id=731
     public static CurrentYearSemesterIntervalProvider SemesterIntervalProvider()
     {
+        // Confirmed DU teaching dates use the frecvență zi calendar. Register
+        // both identities explicitly; DualFr remains unconfigured.
         var s = new CurrentYearSemesterIntervalBuilder();
-        s.Scope(x =>
+        foreach (var mode in new[] { AttendanceMode.Zi, AttendanceMode.DualZi })
         {
-            x.AttendanceMode(AttendanceMode.Zi);
-            x.QualificationType(QualificationType.Licenta);
-
+            s.Scope(x =>
             {
-                x.Year(2026);
-                x.Semester(Semester.Sem1);
-                x.LessonsStart(month: 9, day: 1);
-                x.LessonsEndInclusive(month: 12, day: 13);
-                for (int i = 1; i <= 3; i++)
+                x.AttendanceMode(mode);
+                x.QualificationType(QualificationType.Licenta);
+
                 {
-                    var r = x.Range();
-                    r.Grade(new(i));
+                    x.Year(2026);
+                    x.Semester(Semester.Sem1);
+                    x.LessonsStart(month: 9, day: 1);
+                    x.LessonsEndInclusive(month: 12, day: 13);
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        var r = x.Range();
+                        r.Grade(new(i));
+                    }
                 }
-            }
-            {
-                x.Year(2027);
-                x.Semester(Semester.Sem2);
+                {
+                    x.Year(2027);
+                    x.Semester(Semester.Sem2);
 
-                x.LessonsStart(month: 2, day: 1);
-                x.Range(r =>
-                {
-                    r.LessonsEndInclusive(month: 5, day: 1);
-                    r.Grade(new(2));
-                });
-                x.Range(r =>
-                {
-                    r.LessonsEndInclusive(month: 5, day: 1);
-                    r.Grade(new(1));
-                });
+                    x.LessonsStart(month: 2, day: 1);
+                    x.Range(r =>
+                    {
+                        r.LessonsEndInclusive(month: 5, day: 1);
+                        r.Grade(new(2));
+                    });
+                    x.Range(r =>
+                    {
+                        r.LessonsEndInclusive(month: 5, day: 1);
+                        r.Grade(new(1));
+                    });
 
-                x.Range(r =>
-                {
-                    r.Grade(new(3));
-                    r.LessonsStart(month: 2, day: 22);
-                    r.LessonsEndInclusive(month: 4, day: 11);
-                });
-            }
-        });
+                    x.Range(r =>
+                    {
+                        r.Grade(new(3));
+                        r.LessonsStart(month: 2, day: 22);
+                        r.LessonsEndInclusive(month: 4, day: 11);
+                    });
+                }
+            });
+        }
 
         s.Scope(x =>
         {
@@ -490,4 +513,3 @@ public static class Config
         }
     }
 }
-
