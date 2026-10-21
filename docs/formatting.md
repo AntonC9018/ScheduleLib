@@ -1,5 +1,10 @@
 # Formatting and analyzer review
 
+Ticket 18 has delivered a [fresh local candidate](codingrules-candidate.md) and
+[coverage ledger](codingrules-coverage.md), but formatter replacement stopped at
+a [CodingRules consumer-gate failure](codingrules-validation.md). The workflow
+below is retained pending that gate and demonstrated replacement equivalence.
+
 Run the formatter from any directory using Bash (or Git Bash on Windows):
 
 ```sh

@@ -36,6 +36,20 @@ def verify_restore(package, project):
         return restored
 
 
+def verify_graph(package, project):
+    pending, visited = [project], set()
+    while pending:
+        current = pending.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        verify_restore(package, current)
+        assets = json.loads((current.parent / 'obj/project.assets.json').read_text())
+        for framework in assets['project']['restore']['frameworks'].values():
+            pending.extend(Path(path).resolve() for path in framework.get('projectReferences', {}))
+    print(f'Verified candidate throughout {len(visited)} projects in the restored graph.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package', type=Path, help='An already-packed Anton.CodingRules nupkg.')
@@ -86,6 +100,7 @@ def main():
     config.write_text(MARKER + '\n' + ET.tostring(settings, encoding='unicode') + '\n')
     subprocess.run(['dotnet', 'restore', str(project), '--force', '--no-http-cache'], cwd=ROOT, check=True)
     restored = verify_restore(candidate, project)
+    verify_graph(candidate, project)
     subprocess.run(['dotnet', 'msbuild', str(project), '-t:ExportCodingRulesAgentGuidance',
                     '-p:CodingRulesAgentGuidanceDirectory=' + str(ROOT / '.codingrules')], cwd=ROOT, check=True)
     if (ROOT / '.codingrules/agent-coding-rules.md').read_bytes() != (restored / 'agent-guidance/agent-coding-rules.md').read_bytes():

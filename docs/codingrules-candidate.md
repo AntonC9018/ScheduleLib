@@ -29,8 +29,9 @@ The script refuses to overwrite a hand-written root NuGet.Config. To return to
 normal reviewed release restore, remove only the generated root config and
 restore the projects again; do not commit the candidate archive, cache, or config.
 
-After restore it compares the restored nupkg and all 26 analyzer/fix/configuration/
-guidance assets with the supplied archive. It explicitly invokes
+After restore it traverses the project-reference graph and compares each
+project's restored nupkg and all 26 analyzer/fix/configuration/guidance assets
+with the supplied archive. It explicitly invokes
 `ExportCodingRulesAgentGuidance` and compares exported bytes. The exported
 `.codingrules/agent-coding-rules.md` is committed, and root AGENTS.md directs
 agents to read it. Guidance does not export during ordinary build/restore.
