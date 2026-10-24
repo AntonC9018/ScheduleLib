@@ -5,7 +5,14 @@ security group permitting SSH only from the caller's `/32`. No AWS credentials
 or application data go onto the runner. The AWS free account permits
 `m7i-flex.large` (2 vCPU / 8 GiB). Run one build/test process at a time.
 
-The instance schedules a shutdown six hours after initial boot, with EC2
+The runner powers off after ten minutes without an SSH connection. Every SSH
+connection (including noninteractive commands) renews the heartbeat; background
+builds do not. A systemd timer checks every fifteen seconds, independently of
+the agent session, and survives reboots. Keep sending SSH commands at least once
+every ten minutes while working. Install or refresh this guard on an existing
+runner with `ssh ubuntu@HOST 'sudo bash -s' < build/aws-runner/watchdog.sh`.
+
+The instance also schedules a shutdown six hours after initial boot, with EC2
 configured to terminate on instance-initiated shutdown. A stopped runner was
 observed during the review, so do not rely on shutdown alone to remove disks
 or other resources. Explicit Terraform cleanup and state verification are

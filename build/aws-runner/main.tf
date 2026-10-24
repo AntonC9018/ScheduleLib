@@ -58,7 +58,7 @@ resource "aws_instance" "runner" {
     encrypted             = true
     delete_on_termination = true
   }
-  user_data = file("${path.module}/bootstrap.sh")
+  user_data = join("\n", [file("${path.module}/watchdog.sh"), file("${path.module}/bootstrap.sh")])
   tags      = { Name = "schedulelib-warning-review", Purpose = "schedulelib-warning-review" }
 }
 output "public_ip" { value = aws_instance.runner.public_ip }
