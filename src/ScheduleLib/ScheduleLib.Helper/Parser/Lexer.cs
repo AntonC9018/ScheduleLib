@@ -28,7 +28,12 @@ public record struct Token
     {
         if (Value.Length == 1)
         {
-            return Value.Span[0] == ch;
+            if (Value.Span[0] == ch)
+            {
+                return true;
+            }
+
+            return false;
         }
         return false;
     }
@@ -830,7 +835,13 @@ public struct LimitedLexerScope : ILexer
         {
             return false;
         }
-        return _lexer.CanPeek(offset);
+
+        if (_lexer.CanPeek(offset))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public readonly Token Peek(int offset = 1)

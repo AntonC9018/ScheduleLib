@@ -2,7 +2,7 @@ using ScheduleLib.Helper;
 
 namespace ScheduleLib.Tests;
 
-public class SizedItemArrayTests
+public sealed class SizedItemArrayTests
 {
     [Fact]
     public void AddAndFind_Basic()

@@ -100,7 +100,27 @@ public static class CalendarSync
         // Every invocation recomputes. Apply reads the current destination only after owning its lock.
         var calendars = await provider.ListCalendars(token);
         var existing = calendars.FirstOrDefault(x => x.Summary == name);
-        if (existing?.Primary == true || existing?.Id == account || existing?.Id == "primary")
+        bool CheckCondition()
+        {
+            if (existing?.Primary == true)
+            {
+                return true;
+            }
+
+            if (existing?.Id == account)
+            {
+                return true;
+            }
+
+            if (existing?.Id == "primary")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
         {
             throw new ArgumentException("The matching destination is the primary calendar; replacement is prohibited.");
         }
@@ -227,6 +247,8 @@ public static class CalendarSync
             ReportPlanned(step);
         }
 
+        static string? FormatCalendarTimestamp(DateTimeOffset? value) => value?.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+
         for (var deletedIndex = 0; deletedIndex < deleted.Count; deletedIndex++)
         {
             var identity = deleted[deletedIndex];
@@ -246,12 +268,8 @@ public static class CalendarSync
                 {
                     index,
                     summary = ev.Summary,
-                    start = ev.Start?.DateTimeDateTimeOffset?.ToString(
-                        "o",
-                        System.Globalization.CultureInfo.InvariantCulture),
-                    end = ev.End?.DateTimeDateTimeOffset?.ToString(
-                        "o",
-                        System.Globalization.CultureInfo.InvariantCulture),
+                    start = FormatCalendarTimestamp(ev.Start?.DateTimeDateTimeOffset),
+                    end = FormatCalendarTimestamp(ev.End?.DateTimeDateTimeOffset),
                     recurrence = ev.Recurrence,
                 },
                 new CalendarDesiredEventMessage(

@@ -10,9 +10,33 @@ public static class AttendanceLabMerges
         StudentsLookupKey source, out GroupPartitionKey destination)
     {
         destination = source.GroupPartition with { SubGroup = SubGroup.All };
-        if (source.LessonType != LessonType.Lab || !source.Groups.IsSingleGroup
-            || source.GroupPartition.SubGroup.Value is not { } subgroup
-            || NumberHelper.FromRoman(subgroup) is null) return false;
+        bool CheckCondition()
+        {
+            if (source.LessonType != LessonType.Lab)
+            {
+                return true;
+            }
+
+            if (!source.Groups.IsSingleGroup)
+            {
+                return true;
+            }
+
+            if (source.GroupPartition.SubGroup.Value is not { } subgroup)
+            {
+                return true;
+            }
+
+            if (NumberHelper.FromRoman(subgroup) is null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
+            return false;
 
         var group = source.Groups[0];
         var partition = source.GroupPartition;
@@ -23,12 +47,17 @@ public static class AttendanceLabMerges
             return false;
 
         // Do not invent a source partition merely because a merge exists.
-        return schedule.WeeklyLessons.Any(item => item.Base.Data.Course == source.CourseId
-            && item.Base.Data.Groups.IsSingleGroup && item.Base.Data.Groups[0] == group
-            && item.Base.Data.Type == LessonType.Lab && item.Base.Data.GroupPartitionKey == partition)
-            || schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == source.CourseId
-                && merge.Group == group && merge.Specialization == partition.Specialization
-                && merge.Alternative == partition.Alternative && merge.SurvivingSubGroup == partition.SubGroup);
+        if (schedule.WeeklyLessons.Any(item => item.Base.Data.Course == source.CourseId
+           && item.Base.Data.Groups.IsSingleGroup && item.Base.Data.Groups[0] == group
+           && item.Base.Data.Type == LessonType.Lab && item.Base.Data.GroupPartitionKey == partition)
+           || schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == source.CourseId
+               && merge.Group == group && merge.Specialization == partition.Specialization
+               && merge.Alternative == partition.Alternative && merge.SurvivingSubGroup == partition.SubGroup))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static StudentAttendanceList Project(StudentAttendanceList attendance, Schedule schedule,

@@ -15,7 +15,12 @@ public sealed class TypeComparer<T> : IEqualityComparer<T>
             return areBothNull;
         }
 
-        return x.GetType() == y.GetType();
+        if (x.GetType() == y.GetType())
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int GetHashCode([DisallowNull] T obj)

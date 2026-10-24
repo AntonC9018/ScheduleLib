@@ -178,12 +178,66 @@ public sealed class RegistryGradePreflightTests
 
             if (request.Method == HttpMethod.Post)
             {
-                if (defect == "lost-first" || defect == "lost-later" && number == 2)
+                bool CheckCondition()
+                {
+                    bool conditionResult;
+                    if (defect == "lost-first")
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        if (defect == "lost-later")
+                        {
+                            conditionResult = number == 2;
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+                    }
+
+                    if (conditionResult)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition())
                 {
                     throw new IOException("In-flight response lost");
                 }
 
-                if (defect == "cancel-first" || defect == "cancel-later" && number == 2)
+                bool CheckCondition2()
+                {
+                    bool conditionResult2;
+                    if (defect == "cancel-first")
+                    {
+                        conditionResult2 = true;
+                    }
+                    else
+                    {
+                        if (defect == "cancel-later")
+                        {
+                            conditionResult2 = number == 2;
+                        }
+                        else
+                        {
+                            conditionResult2 = false;
+                        }
+                    }
+
+                    if (conditionResult2)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition2())
                 {
                     entered.TrySetResult();
                     return pending.Task;

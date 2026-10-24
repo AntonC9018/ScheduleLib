@@ -62,7 +62,16 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         if (!HasConfiguredCommissions(_options))
             return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
-        try { return GetConfigurationError(ParseCommissionNames()); }
+        try
+        {
+            var result = GetConfigurationError(ParseCommissionNames());
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
+        }
         catch (InvalidDataException e) { return e.Message; }
     }
 

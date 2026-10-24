@@ -44,15 +44,23 @@ public sealed class FmiScheduleClient(HttpClient http)
             {
                 if (element.LocalName is "script" or "style") return;
                 if (element.LocalName == "br") prefix.Append(' ');
-                if (element.LocalName == "a" && element.GetAttribute("href") is { } href
-                    && Uri.TryCreate(baseUri: page, href, result: out var uri) && uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                if (element.LocalName == "a")
                 {
-                    var match = Regex.Match(input: prefix.ToString(), pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
-                    if (match.Success)
+                    if (element.GetAttribute("href") is { } href)
                     {
-                        var year = match.Groups[1].Value.Length;
-                        if (!links.TryAdd(year, new(year, uri, ReadUploadDate(element))))
-                            throw new FormatException($"Ambiguous schedule PDF links for year {year}.");
+                        if (Uri.TryCreate(baseUri: page, href, result: out var uri))
+                        {
+                            if (uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var match = Regex.Match(input: prefix.ToString(), pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
+                                if (match.Success)
+                                {
+                                    var year = match.Groups[1].Value.Length;
+                                    if (!links.TryAdd(year, new(year, uri, ReadUploadDate(element))))
+                                        throw new FormatException($"Ambiguous schedule PDF links for year {year}.");
+                                }
+                            }
+                        }
                     }
                 }
             }

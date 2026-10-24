@@ -12,7 +12,7 @@ namespace ScheduleFromDoc.Tests;
 using static IntegrationTestHelper;
 
 [CollectionDefinition("common1", DisableParallelization = true)]
-public class VerifyScheduleTestsCollection : ICollectionFixture<object>;
+public sealed class VerifyScheduleTestsCollection : ICollectionFixture<object>;
 
 [Collection("common1")]
 public sealed class ScheduleFromDocTestExclusive1

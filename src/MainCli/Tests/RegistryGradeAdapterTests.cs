@@ -93,10 +93,40 @@ public sealed class RegistryGradeAdapterTests
 
             posts++;
             // A replay would succeed: the production requester must never send it.
+            bool CheckCondition()
+            {
+                if (!(status == 401))
+                {
+                    return false;
+                }
+
+                if (!(posts > 1))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            bool CheckCondition2()
+            {
+                if (!(status == 401))
+                {
+                    return false;
+                }
+
+                if (!(posts > 1))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
             return Task.FromResult(
-                Response(
-                    status == 401 && posts > 1 ? HttpStatusCode.OK : (HttpStatusCode) status,
-                    status == 401 && posts > 1 ? GradeForm : body));
+                                        Response(
+                                            CheckCondition() ? HttpStatusCode.OK : (HttpStatusCode) status,
+                                            CheckCondition2() ? GradeForm : body));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -522,7 +552,12 @@ public sealed class RegistryGradeAdapterTests
             }
 
             entered.TrySetResult();
-            return cancel ? pending.Task : Task.FromResult(Response(HttpStatusCode.OK, LoginForm));
+            if (cancel)
+            {
+                return pending.Task;
+            }
+
+            return Task.FromResult(Response(HttpStatusCode.OK, LoginForm));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(

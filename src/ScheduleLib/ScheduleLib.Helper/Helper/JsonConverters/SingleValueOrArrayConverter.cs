@@ -20,13 +20,52 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         if (typeToConvert.IsGenericType)
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
-            return genericTypeDef == typeof(ImmutableArray<>)
-                   || genericTypeDef == typeof(List<>)
-                   || genericTypeDef == typeof(IEnumerable<>)
-                   || genericTypeDef == typeof(ICollection<>)
-                   || genericTypeDef == typeof(IList<>)
-                   || genericTypeDef == typeof(IReadOnlyCollection<>)
-                   || genericTypeDef == typeof(IReadOnlyList<>);
+            bool CheckCondition()
+            {
+                if (genericTypeDef == typeof(ImmutableArray<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(List<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IEnumerable<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(ICollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IList<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyCollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyList<>))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
+            {
+                return true;
+            }
+
+            return false;
         }
 
         return false;

@@ -158,12 +158,42 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
 
     private static void ValidateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)
-            || name != Path.GetFileName(name)
-            || name is "." or ".."
-            || name.Contains('\\')
-            || name.Contains('/')
-            || name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+        bool CheckCondition()
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return true;
+            }
+
+            if (name != Path.GetFileName(name))
+            {
+                return true;
+            }
+
+            if (name is "." or "..")
+            {
+                return true;
+            }
+
+            if (name.Contains('\\'))
+            {
+                return true;
+            }
+
+            if (name.Contains('/'))
+            {
+                return true;
+            }
+
+            if (name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
         {
             throw new IOException($"Invalid owned artifact name: {name}");
         }

@@ -553,9 +553,34 @@ public sealed class GoogleCalendarProviderTests
         {
             // The API HttpClient cancels the interceptor's linked token when its deadline
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
-            if (request.RequestUri!.Host == "oauth2.googleapis.com"
-                && (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
-                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            bool CheckCondition()
+            {
+                bool conditionResult;
+                if (request.RequestUri!.Host == "oauth2.googleapis.com")
+                {
+                    if (scenario.EndsWith("real-deadline", StringComparison.Ordinal))
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = scenario.EndsWith("real-cancel", StringComparison.Ordinal);
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
                 {
@@ -565,9 +590,27 @@ public sealed class GoogleCalendarProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
-            if (request.RequestUri!.Host == "oauth2.googleapis.com"
-                && scenario.Contains("-refresh-", StringComparison.Ordinal)
-                && scenario.Contains("expired", StringComparison.Ordinal))
+            bool CheckCondition7()
+            {
+                if (!(request.RequestUri!.Host == "oauth2.googleapis.com"))
+                {
+                    return false;
+                }
+
+                if (!(scenario.Contains("-refresh-", StringComparison.Ordinal)))
+                {
+                    return false;
+                }
+
+                if (!(scenario.Contains("expired", StringComparison.Ordinal)))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition7())
             {
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
@@ -583,19 +626,48 @@ public sealed class GoogleCalendarProviderTests
             }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
             {
-                return scenario == "create-401-refresh"
-                    ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
-                    : new HttpResponseMessage(HttpStatusCode.BadRequest)
-                    {
-                        Content = new StringContent(
-                            "{\"error\":\"invalid_grant\",\"error_description\":\"synthetic-private-detail\"}",
-                            Encoding.UTF8,
-                            "application/json"),
-                    };
+                if (scenario == "create-401-refresh")
+                {
+                    return Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}");
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                           "{\"error\":\"invalid_grant\",\"error_description\":\"synthetic-private-detail\"}",
+                           Encoding.UTF8,
+                           "application/json"),
+                };
             }
 
-            if (scenario == "read-sent-real-deadline"
-                || scenario == "create-sent-real-deadline" && request.Method == HttpMethod.Post)
+            bool CheckCondition2()
+            {
+                bool conditionResult2;
+                if (scenario == "read-sent-real-deadline")
+                {
+                    conditionResult2 = true;
+                }
+                else
+                {
+                    if (scenario == "create-sent-real-deadline")
+                    {
+                        conditionResult2 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+                }
+
+                if (conditionResult2)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition2())
             {
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("The sent API request must time out.");
@@ -606,13 +678,59 @@ public sealed class GoogleCalendarProviderTests
                 createAttempts++;
             }
 
-            if (scenario == "read-timeout"
-                || scenario.StartsWith("create-timeout", StringComparison.Ordinal) && request.Method == HttpMethod.Post)
+            bool CheckCondition3()
+            {
+                bool conditionResult3;
+                if (scenario == "read-timeout")
+                {
+                    conditionResult3 = true;
+                }
+                else
+                {
+                    if (scenario.StartsWith("create-timeout", StringComparison.Ordinal))
+                    {
+                        conditionResult3 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult3 = false;
+                    }
+                }
+
+                if (conditionResult3)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition3())
             {
                 throw new TaskCanceledException("synthetic-timeout", new TimeoutException());
             }
 
-            if (scenario == "event-timeout" && createAttempts == 2 && request.Method == HttpMethod.Post)
+            bool CheckCondition8()
+            {
+                if (!(scenario == "event-timeout"))
+                {
+                    return false;
+                }
+
+                if (!(createAttempts == 2))
+                {
+                    return false;
+                }
+
+                if (!(request.Method == HttpMethod.Post))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition8())
             {
                 throw new TaskCanceledException("synthetic-timeout", new TimeoutException());
             }
@@ -622,28 +740,171 @@ public sealed class GoogleCalendarProviderTests
                 throw new HttpRequestException("synthetic-connection-failure");
             }
 
-            if (scenario == "read-cancel"
-                || scenario == "create-cancel" && request.Method == HttpMethod.Post
-                || scenario == "event-second-cancel" && createAttempts == 3 && request.Method == HttpMethod.Post)
+            bool CheckCondition4()
+            {
+                bool conditionResult4;
+                if (scenario == "read-cancel")
+                {
+                    conditionResult4 = true;
+                }
+                else
+                {
+                    if (scenario == "create-cancel")
+                    {
+                        conditionResult4 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult4 = false;
+                    }
+
+                    if (conditionResult4)
+                    {
+                        conditionResult4 = true;
+                    }
+                    else
+                    {
+                        if (scenario == "event-second-cancel")
+                        {
+                            if (createAttempts == 3)
+                            {
+                                conditionResult4 = request.Method == HttpMethod.Post;
+                            }
+                            else
+                            {
+                                conditionResult4 = false;
+                            }
+                        }
+                        else
+                        {
+                            conditionResult4 = false;
+                        }
+                    }
+                }
+
+                if (conditionResult4)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition4())
             {
                 cancel.Cancel();
                 throw new OperationCanceledException(cancel.Token);
             }
-            if (scenario.StartsWith("read-401", StringComparison.Ordinal)
-                || scenario.StartsWith("create-401", StringComparison.Ordinal)
-                && request.Method == HttpMethod.Post
-                && createAttempts == 1)
+            bool CheckCondition5()
+            {
+                bool conditionResult5;
+                if (scenario.StartsWith("read-401", StringComparison.Ordinal))
+                {
+                    conditionResult5 = true;
+                }
+                else
+                {
+                    if (scenario.StartsWith("create-401", StringComparison.Ordinal))
+                    {
+                        if (request.Method == HttpMethod.Post)
+                        {
+                            conditionResult5 = createAttempts == 1;
+                        }
+                        else
+                        {
+                            conditionResult5 = false;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult5 = false;
+                    }
+                }
+
+                if (conditionResult5)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition5())
             {
                 return Error(HttpStatusCode.Unauthorized);
             }
 
-            if (scenario == "event-401" && createAttempts == 2 && request.Method == HttpMethod.Post)
+            bool CheckCondition9()
+            {
+                if (!(scenario == "event-401"))
+                {
+                    return false;
+                }
+
+                if (!(createAttempts == 2))
+                {
+                    return false;
+                }
+
+                if (!(request.Method == HttpMethod.Post))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition9())
             {
                 return Error(HttpStatusCode.Unauthorized);
             }
 
-            if ((scenario == "create-503" && createAttempts == 1 || scenario == "event-503" && createAttempts == 2)
-                && request.Method == HttpMethod.Post)
+            bool CheckCondition6()
+            {
+                bool conditionResult6;
+                if (scenario == "create-503")
+                {
+                    conditionResult6 = createAttempts == 1;
+                }
+                else
+                {
+                    conditionResult6 = false;
+                }
+
+                if (conditionResult6)
+                {
+                    conditionResult6 = true;
+                }
+                else
+                {
+                    if (scenario == "event-503")
+                    {
+                        conditionResult6 = createAttempts == 2;
+                    }
+                    else
+                    {
+                        conditionResult6 = false;
+                    }
+                }
+
+                if (conditionResult6)
+                {
+                    conditionResult6 = request.Method == HttpMethod.Post;
+                }
+                else
+                {
+                    conditionResult6 = false;
+                }
+
+                if (conditionResult6)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition6())
             {
                 return Error(HttpStatusCode.ServiceUnavailable);
             }
@@ -831,8 +1092,22 @@ public sealed class GoogleCalendarProviderTests
                     }
                 }
             }
-            if (expectedExit == 4
-                || scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401")
+            bool CheckCondition10()
+            {
+                if (expectedExit == 4)
+                {
+                    return true;
+                }
+
+                if (scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401")
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition10())
             {
                 Assert.Contains(expectedSubstring: "auth login google", actualString: stderr.ToString());
             }

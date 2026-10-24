@@ -23,7 +23,23 @@ internal sealed record RegistryMutationOutcome
 
     public string[] Errors { get; init; } = [];
 
-    public bool Stop => Cancelled || Errors.Length > 0;
+    public bool Stop
+    {
+        get
+        {
+            if (Cancelled)
+            {
+                return true;
+            }
+
+            if (Errors.Length > 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+    }
 }
 
 /// <summary>Executes one submission once. Rendering runs after this returns and cannot be a remote failure.</summary>

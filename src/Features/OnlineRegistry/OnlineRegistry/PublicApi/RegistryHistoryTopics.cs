@@ -26,22 +26,53 @@ public static class RegistryHistoryTopicsHtml
     public static IReadOnlyList<RegistryHistoryTopic> Lessons(IDocument document)
     {
         var table = document.QuerySelector<IHtmlTableElement>("table");
+        static bool InspectTextEquals(string? sourceText)
+        {
+            var textLength = sourceText!.Length;
+            var textSpan = global::System.MemoryExtensions.AsSpan(text: sourceText, start: 0, length: textLength);
+            var trimmedText = global::System.MemoryExtensions.Trim(span: textSpan);
+            var expectedText = global::System.MemoryExtensions.AsSpan(text: "Data");
+            return !global::System.MemoryExtensions.SequenceEqual<char>(span: trimmedText, other: expectedText);
+        }
+
+        static bool InspectTextEquals2(string? sourceText2)
+        {
+            var textLength2 = sourceText2!.Length;
+            var textSpan2 = global::System.MemoryExtensions.AsSpan(text: sourceText2, start: 0, length: textLength2);
+            var trimmedText2 = global::System.MemoryExtensions.Trim(span: textSpan2);
+            var expectedText2 = global::System.MemoryExtensions.AsSpan(text: "Tema");
+            return !global::System.MemoryExtensions.SequenceEqual<char>(span: trimmedText2, other: expectedText2);
+        }
+
         if (table is null || table.Rows.Length == 0 || table.Rows[0].Cells.Length != 3
             || table.Rows[0].Cells.Any(x => x.LocalName != "th")
-            || table.Rows[0].Cells[0].TextContent.Trim() != "Data"
-            || table.Rows[0].Cells[1].TextContent.Trim() != "Tema"
+            || InspectTextEquals(table.Rows[0].Cells[0].TextContent)
+            || InspectTextEquals2(table.Rows[0].Cells[1].TextContent)
             || table.Rows[0].Cells[2].TextContent.Trim() != "Redactare")
             throw InvalidMarkup();
         var result = new List<RegistryHistoryTopic>();
         foreach (var row in table.Rows.Skip(1))
         {
-            if (row.Cells.Length != 3 || row.Cells.Take(2).Any(x => x.LocalName != "td")) throw InvalidMarkup();
+            if (row.Cells.Length != 3 || row.Cells.Take(2).Any(x => x.LocalName != "td"))
+                throw InvalidMarkup();
             var dateCell = row.Cells[0];
             var anchors = dateCell.Children.OfType<IHtmlAnchorElement>().ToArray();
-            if (anchors.Length != 1 || dateCell.Children.Length != 1) throw InvalidMarkup();
+            bool conditionResult;
+            if (anchors.Length != 1)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = dateCell.Children.Length != 1;
+            }
+
+            if (conditionResult)
+                throw InvalidMarkup();
             var anchor = anchors[0];
             if (!DateTime.TryParseExact(s: anchor.TextContent.Trim(), format: "dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var date)) throw InvalidMarkup();
+                    DateTimeStyles.None, out var date))
+                throw InvalidMarkup();
             var typeText = string.Concat(dateCell.ChildNodes.Where(x => x != anchor).Select(x => x.TextContent)).Trim();
             var type = typeText switch
             {
@@ -52,9 +83,11 @@ public static class RegistryHistoryTopicsHtml
             };
             var raw = row.Cells[1].TextContent.AsSpan().TrimStart();
             var numberLength = 0;
-            while (numberLength < raw.Length && char.IsAsciiDigit(raw[numberLength])) numberLength++;
+            while (numberLength < raw.Length && char.IsAsciiDigit(raw[numberLength]))
+                numberLength++;
             // Observed leading registry sequence number is separated by whitespace.
-            if (numberLength > 0 && numberLength < raw.Length && char.IsWhiteSpace(raw[numberLength])) raw = raw[numberLength..].TrimStart();
+            if (numberLength > 0 && numberLength < raw.Length && char.IsWhiteSpace(raw[numberLength]))
+                raw = raw[numberLength..].TrimStart();
             result.Add(new(date, type, raw.TrimEnd().ToString()));
         }
         return result;
@@ -74,9 +107,17 @@ public static class RegistryHistoryTopicSelection
 
     public static int AcademicYearStart(string year)
     {
-        if (year.Length != 7 || year[4] != '/' || !int.TryParse(year.AsSpan(start: 0, length: 4), NumberStyles.None, CultureInfo.InvariantCulture, out var start)
-            || !int.TryParse(year.AsSpan(start: 5, length: 2), NumberStyles.None, CultureInfo.InvariantCulture, out var end)
-            || (start + 1) % 100 != end)
+        if (year.Length != 7)
+            throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        if (year[4] != '/')
+            throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        bool conditionValue = int.TryParse(year.AsSpan(start: 0, length: 4), NumberStyles.None, CultureInfo.InvariantCulture, out var start);
+        if (!conditionValue)
+            throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        bool conditionValue2 = int.TryParse(year.AsSpan(start: 5, length: 2), NumberStyles.None, CultureInfo.InvariantCulture, out var end);
+        if (!conditionValue2)
+            throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        if ((start + 1) % 100 != end)
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         return start;
     }
@@ -148,7 +189,18 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             .DistinctBy(course => $"{course.Semester}\0{RegistryHistoryTopicSelection.NormalizeCourseName(course.Name)}", StringComparer.OrdinalIgnoreCase).ToList();
         foreach (var year in previous)
         {
-            if (pending.Count == 0 && ambiguousPending.Count == 0) break;
+            bool conditionResult;
+            if (pending.Count == 0)
+            {
+                conditionResult = ambiguousPending.Count == 0;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
+                break;
             using var document = await reader.Read(year.Year.Uri, token);
             if (!RegistryHistoryHtml.Years(document, index).Any(x => x.Selected && x.Value == year.Year.Value))
                 throw new RegistryHistoryException("Registry did not confirm the requested academic year; topic discovery stopped.", RegistryHistoryFailure.YearNotConfirmed,

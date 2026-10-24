@@ -127,7 +127,27 @@ public static partial class CliSettings
         var path = OperationPath(key, json);
         var list = path.Value.IsGenericType && path.Value.GetGenericTypeDefinition() == typeof(List<>);
         var hasItem = action.ContainsKey("item");
-        if (operation is "remove" or "reset" && path.Members.Length == 0 && !hasItem)
+        bool CheckCondition()
+        {
+            if (!(operation is "remove" or "reset"))
+            {
+                return false;
+            }
+
+            if (!(path.Members.Length == 0))
+            {
+                return false;
+            }
+
+            if (!(!hasItem))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        if (CheckCondition())
         {
             return;
         }
@@ -246,9 +266,19 @@ public static partial class CliSettings
         JsonSerializerOptions json)
     {
         var path = OperationPath(action["key"]!.GetValue<string>(), json);
-        if (path.Members.Length != 0
-            && provider.GetService(
-                typeof(IKeyEqualityComparer<>).MakeGenericType(path.Value.GetGenericArguments()[0])) is null)
+        bool conditionResult;
+        if (path.Members.Length != 0)
+        {
+            object? conditionValue = provider.GetService(
+                typeof(IKeyEqualityComparer<>).MakeGenericType(path.Value.GetGenericArguments()[0]));
+            conditionResult = conditionValue is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             throw new JsonException("Collection has no registered item key.");
         }
@@ -277,7 +307,10 @@ public static partial class CliSettings
             object? current = value;
             foreach (var member in members)
             {
-                current = current is null ? null : member.GetValue(current);
+                if (current is not null)
+                {
+                    current = member.GetValue(current);
+                }
             }
 
             if (current is not IList list)
@@ -362,9 +395,31 @@ public static partial class CliSettings
         foreach (var action in actions.Cast<JsonObject>().ToArray())
         {
             var actionKey = action["key"]!.GetValue<string>();
-            if (actionKey == key
-                || actionKey.StartsWith((string) $"{key}.", StringComparison.Ordinal)
-                || includeAncestors && key.StartsWith((string) $"{actionKey}.", StringComparison.Ordinal))
+            bool conditionResult;
+            if (actionKey == key)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (actionKey.StartsWith((string) $"{key}.", StringComparison.Ordinal))
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    if (includeAncestors)
+                    {
+                        conditionResult = key.StartsWith((string) $"{actionKey}.", StringComparison.Ordinal);
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+            }
+
+            if (conditionResult)
             {
                 actions.Remove(action);
             }

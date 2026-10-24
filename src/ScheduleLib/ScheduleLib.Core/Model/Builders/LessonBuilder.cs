@@ -224,7 +224,7 @@ public interface ILessonBuilder<out T> where T : ILessonBuilderModel
     public T Model { get; }
 }
 
-public class LessonBuilder<T> : ILessonBuilder<T>
+public sealed class LessonBuilder<T> : ILessonBuilder<T>
     where T : ILessonBuilderModel
 {
     public LessonBuilder(
@@ -487,7 +487,27 @@ public static class LessonBuilderHelper
             {
                 throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
             }
-            if (courseId.IsInvalid || courseId.Id < 0 || courseId.Id >= s.Courses.Count)
+            bool CheckCondition()
+            {
+                if (courseId.IsInvalid)
+                {
+                    return true;
+                }
+
+                if (courseId.Id < 0)
+                {
+                    return true;
+                }
+
+                if (courseId.Id >= s.Courses.Count)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 throw UninitializedScheduleModelException.ForLessonCourseUnknown();
             }

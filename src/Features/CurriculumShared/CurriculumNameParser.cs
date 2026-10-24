@@ -346,7 +346,17 @@ public static class CurriculumNameParser
                 }
             }
 
-            if (hasUnparsedItem && itemCount > 1)
+            bool conditionResult;
+            if (hasUnparsedItem)
+            {
+                conditionResult = itemCount > 1;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 throw new NotSupportedException("'+' in the last segment without it parsing");
             }
@@ -612,9 +622,10 @@ public static class CurriculumDirectoryHelper
 
     public static IEnumerable<CurriculumFile> ListFiles(this CurriculumGroupDirectory directory)
     {
+        const string CurriculumDocumentSearchPattern = $"*{CurriculumDocumentExtension}";
         var dirs = Directory.EnumerateFiles(
             path: directory.FullPath,
-            searchPattern: $"*{CurriculumDocumentExtension}");
+            searchPattern: CurriculumDocumentSearchPattern);
         foreach (var fileFullPath in dirs)
         {
             var key = ParseCurriculumFileKey(fileFullPath);
@@ -1602,7 +1613,16 @@ internal static class SectionTypeHelper
         public bool MoveNext()
         {
             _index++;
-            return _index < (int) SectionType.Count;
+            bool conditionResult;
+            int conditionValue = _index;
+            int conditionValue2 = (int) SectionType.Count;
+            conditionResult = conditionValue < conditionValue2;
+            if (conditionResult)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public void Reset() => _index = -1;
@@ -2191,7 +2211,23 @@ public readonly struct SectionParseResult
     public readonly ReadOnlyMemory<char> MissingText;
 
     public readonly bool IsEmpty => !IsNotEmpty;
-    public readonly bool IsUnknown => IsNotEmpty && MatchIndex == -1;
+    public readonly bool IsUnknown
+    {
+        get
+        {
+            if (!(IsNotEmpty))
+            {
+                return false;
+            }
+
+            if (!(MatchIndex == -1))
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     private SectionParseResult(
         int matchIndex,

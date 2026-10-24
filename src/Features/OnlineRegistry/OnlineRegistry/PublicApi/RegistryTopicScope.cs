@@ -117,9 +117,15 @@ internal static class RegistryTopicScope
         {
             return (string) $"/{upper}";
         }
-        if (int.TryParse(value, out int arabic) && arabic >= 1 && arabic <= 10)
+        if (int.TryParse(value, out int arabic))
         {
-            return (string) $"/{NumberHelper.ToRoman(arabic)}";
+            if (arabic >= 1)
+            {
+                if (arabic <= 10)
+                {
+                    return (string) $"/{NumberHelper.ToRoman(arabic)}";
+                }
+            }
         }
         return (string) $"/sub:{value}";
     }
@@ -263,9 +269,32 @@ internal static class RegistryTopicScope
         int i = 0;
         while (i < value.Length)
         {
-            if (i + oldToken.Length <= value.Length
-                && value.AsSpan(start: i, length: oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase)
-                && (i + oldToken.Length == value.Length || !char.IsLetterOrDigit(value[i + oldToken.Length])))
+            bool conditionResult;
+            if (i + oldToken.Length <= value.Length)
+            {
+                if (value.AsSpan(start: i, length: oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + oldToken.Length == value.Length)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = char.IsLetterOrDigit(value[i + oldToken.Length]);
+                        conditionResult = !(conditionResult);
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 result.Append(newToken);
                 i += oldToken.Length;

@@ -561,7 +561,7 @@ public sealed class FreeHoursTests
         public void Dispose() => Directory.Delete(Path, recursive: true);
     }
 
-    private class FixtureQueryBase : QueryCommands
+    private abstract class FixtureQueryBase : QueryCommands
     {
         public void FixtureServices(IServiceCollection services) => ConfigureServices(services);
 

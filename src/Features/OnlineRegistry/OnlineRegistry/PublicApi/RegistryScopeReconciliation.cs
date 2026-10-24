@@ -36,8 +36,7 @@ internal static class RegistryScopeReconciliation
         // Preserve normal duplicate and legacy pairing, while preventing scoped rows from crossing audiences.
         var attributionTopic = "registry-scope-attribution";
         while (remote.Any(row => row.Topic == attributionTopic)) attributionTopic += "_";
-        var legacyLocal = local.Where(lesson => !remote.Any(row => owners.TryGetValue(row.ViewUri, out var scope)
-                && scope == getScope(lesson) && row.DateTime == lesson.DateTime && MatchesType(lesson, row)))
+        var legacyLocal = local.Where(lesson => !remote.Any(row => { if (!(owners.TryGetValue(row.ViewUri, out var scope))) { return false; } if (!(scope == getScope(lesson))) { return false; } if (!(row.DateTime == lesson.DateTime)) { return false; } if (!(MatchesType(lesson, row))) { return false; } return true; }))
             .Select(lesson => lesson with { Topic = attributionTopic, Attendance = null }).ToArray();
         foreach (var type in legacy.GroupBy(row => row.LessonType))
         foreach (var command in derivation.DeriveCommands(new(schedule, type,

@@ -338,7 +338,25 @@ public sealed class RegistryGradeTests
         Assert.All(action.Grades, x => Assert.Equal(expected: "5", actual: x.PreviousGrade));
         Assert.Equal(expected: 0, actual: navigator.Submissions);
         Assert.All(navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input"), x => Assert.Equal(expected: "5", actual: x.Value));
-        Assert.Contains(plan.Notices, x => x.Kind == "omitted" && x.Detail.Contains("Earlier attempt"));
+        Assert.Contains(plan.Notices, x =>
+        {
+            bool CheckCondition()
+            {
+                if (!(x.Kind == "omitted"))
+                {
+                    return false;
+                }
+
+                if (!(x.Detail.Contains("Earlier attempt")))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        });
         Assert.Contains(plan.Notices, x => x.Kind == "omitted" && x.Detail.Contains("no grade"));
         Assert.Contains(plan.Notices, x => x.Kind == "omitted" && x.Detail.Contains("Expelled"));
         Assert.Contains(plan.Notices, x => x.Kind == "unmatched" && x.Detail.Contains("Registry student"));

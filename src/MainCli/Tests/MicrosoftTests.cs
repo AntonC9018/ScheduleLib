@@ -796,19 +796,73 @@ public sealed class MicrosoftTests
             if (path.EndsWith("/content", StringComparison.Ordinal))
             {
                 ContentRequests++;
-                if (cancelDownload && (!paginate || ContentRequests == 2))
+                bool CheckCondition()
+                {
+                    bool conditionResult;
+                    if (cancelDownload)
+                    {
+                        if (!paginate)
+                        {
+                            conditionResult = true;
+                        }
+                        else
+                        {
+                            conditionResult = ContentRequests == 2;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+
+                    if (conditionResult)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition())
                 {
                     Cancellation?.Cancel();
                     throw new OperationCanceledException(cancellationToken);
                 }
+                bool CheckCondition2()
+                {
+                    bool conditionResult2;
+                    if (invalidDocx)
+                    {
+                        if (!paginate)
+                        {
+                            conditionResult2 = true;
+                        }
+                        else
+                        {
+                            conditionResult2 = ContentRequests == 2;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+
+                    if (conditionResult2)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
                 response = new(HttpStatusCode.OK)
                 {
                     Content = new ByteArrayContent(
-                        fileName.EndsWith(".doc", StringComparison.Ordinal)
-                            ? Encoding.UTF8.GetBytes("original-doc")
-                            : invalidDocx && (!paginate || ContentRequests == 2)
-                                ? Encoding.UTF8.GetBytes("not-docx")
-                                : Docx()),
+                                        fileName.EndsWith(".doc", StringComparison.Ordinal)
+                                            ? Encoding.UTF8.GetBytes("original-doc")
+                                            : CheckCondition2()
+                                                ? Encoding.UTF8.GetBytes("not-docx")
+                                                : Docx()),
                 };
             }
             else
@@ -845,7 +899,22 @@ public sealed class MicrosoftTests
                                 },
                             },
                         });
-                    if (paginate && path.Contains("/items/program/", StringComparison.Ordinal))
+                    bool CheckCondition3()
+                    {
+                        if (!(paginate))
+                        {
+                            return false;
+                        }
+
+                        if (!(path.Contains("/items/program/", StringComparison.Ordinal)))
+                        {
+                            return false;
+                        }
+
+                        return true;
+                    }
+
+                    if (CheckCondition3())
                     {
                         json = (string) $"{json[..^1]},\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/documents-page2\"}}";
                     }

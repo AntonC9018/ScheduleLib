@@ -33,7 +33,16 @@ public static class PdfTableReader
         var boxes = RecoverPartialBorders(FindCells(borders), borders);
         if (boxes.Count == 0)
             throw new FormatException($"Page {page.Number}: no bordered schedule table found.");
-        return new(page.Number, borders, boxes.Select(b => new PdfTableCell(b, ReadText(page, b))).ToArray());
+        global::ScheduleLib.Import.Pdf.PdfTableCell ProjectValue(global::ScheduleLib.Import.Pdf.PdfBox b)
+        {
+            global::ScheduleLib.Import.Pdf.PdfBox operationValue = b;
+            string operationValue2 = ReadText(page, b);
+            string operationValue3 = operationValue2;
+            global::ScheduleLib.Import.Pdf.PdfTableCell operationValue4 = new PdfTableCell(operationValue, operationValue3);
+            return operationValue4;
+        }
+
+        return new(page.Number, borders, boxes.Select(ProjectValue).ToArray());
     }
 
     public static IReadOnlyList<PdfBorder> JoinBorders(IEnumerable<PdfBorder> borders)
@@ -87,9 +96,28 @@ public static class PdfTableReader
                 if (!Connects(vertical, position: point.X, start: point.Y, end: bottom.Y)) continue;
                 foreach (var end in right)
                 {
-                    if (!Connects(horizontal, position: point.Y, start: point.X, end: end.X)
-                        || !Connects(vertical, position: end.X, start: point.Y, end: bottom.Y)
-                        || !Connects(horizontal, position: bottom.Y, start: point.X, end: end.X)) continue;
+                    bool CheckCondition()
+                    {
+                        if (!Connects(horizontal, position: point.Y, start: point.X, end: end.X))
+                        {
+                            return true;
+                        }
+
+                        if (!Connects(vertical, position: end.X, start: point.Y, end: bottom.Y))
+                        {
+                            return true;
+                        }
+
+                        if (!Connects(horizontal, position: bottom.Y, start: point.X, end: end.X))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    if (CheckCondition())
+                        continue;
                     result.Add(new(Left: point.X, Top: point.Y, Right: end.X, Bottom: bottom.Y));
                     found = true;
                     break;

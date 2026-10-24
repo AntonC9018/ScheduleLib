@@ -235,7 +235,25 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Single(imported);
             Assert.Contains(
                 imported,
-                x => x.Name == "Synthetic first, \"quoted\" topic" && x.LessonType == LessonType.Lab);
+                x =>
+                {
+                    bool CheckCondition()
+                    {
+                        if (!(x.Name == "Synthetic first, \"quoted\" topic"))
+                        {
+                            return false;
+                        }
+
+                        if (!(x.LessonType == LessonType.Lab))
+                        {
+                            return false;
+                        }
+
+                        return true;
+                    }
+
+                    return CheckCondition();
+                });
             Assert.DoesNotContain(expectedSubstring: "language", actualString: csv);
             Assert.DoesNotContain(expectedSubstring: "faculty", actualString: original);
             Assert.Contains(expectedSubstring: "raw ambiguous group", actualString: original);

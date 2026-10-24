@@ -30,17 +30,52 @@ public sealed class FmiScheduleUpdater(
             await using var input = File.OpenRead(stateFile);
             previous = await JsonSerializer.DeserializeAsync<ScheduleUpdateState>(input, Json, cancellationToken)
                 ?? throw new FormatException("Empty schedule hash checkpoint.");
-            if (previous.Version != 1 || previous.Sources is null
-                || !previous.Sources.Select(s => s.Year).Order().SequenceEqual(new[] { 1, 2, 3 })
-                || previous.Sources.Any(s => s.Sha256 is not { Length: 64 }
-                    || s.Sha256.Any(c => !char.IsAsciiHexDigit(c))))
+            bool CheckCondition()
+            {
+                if (previous.Version != 1)
+                {
+                    return true;
+                }
+
+                if (previous.Sources is null)
+                {
+                    return true;
+                }
+
+                if (!previous.Sources.Select(s => s.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
+                {
+                    return true;
+                }
+
+                if (previous.Sources.Any(s => s.Sha256 is not { Length: 64 }
+                                    || s.Sha256.Any(c => !char.IsAsciiHexDigit(c))))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
                 throw new FormatException("Invalid or unsupported schedule hash checkpoint.");
         }
         var downloads = await download(cancellationToken);
         if (!downloads.Select(d => d.Link.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
             throw new FormatException("An update requires all three bachelor schedules.");
-        var sources = downloads.Select(d => new ScheduleSourceHash(d.Link.Year, Url: d.Link.Url.AbsoluteUri,
-            Sha256: Convert.ToHexStringLower(SHA256.HashData(d.Content)), d.Link.UploadDate)).ToArray();
+        global::FmiScheduleImport.ScheduleSourceHash ProjectValue(global::FmiWebsiteInterop.FmiScheduleDownload d)
+        {
+            int operationValue = d.Link.Year;
+            string operationValue2 = d.Link.Url.AbsoluteUri;
+            byte[] operationValue3 = SHA256.HashData(d.Content);
+            byte[] operationValue4 = operationValue3;
+            string operationValue5 = Convert.ToHexStringLower(operationValue4);
+            string operationValue6 = operationValue5;
+            global::System.DateOnly? operationValue7 = d.Link.UploadDate;
+            global::FmiScheduleImport.ScheduleSourceHash operationValue8 = new ScheduleSourceHash(operationValue, Url: operationValue2, Sha256: operationValue6, operationValue7);
+            return operationValue8;
+        }
+
+        var sources = downloads.Select(ProjectValue).ToArray();
         var changed = sources.Where(s => !string.Equals(
             previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256, s.Sha256, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)

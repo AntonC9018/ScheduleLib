@@ -19,7 +19,17 @@ public sealed class PdfImportTests
         static string Key(PdfScheduleCell c) => $"{c.Page}|{string.Join(',', c.Groups)}|{c.Day}|{c.Start}|{c.Alternative}|{c.Text}";
         var missing = expected.Select(Key).Except(actual.Select(Key)).ToArray();
         var extra = actual.Select(Key).Except(expected.Select(Key)).ToArray();
-        Assert.True(missing.Length == 0 && extra.Length == 0,
+        bool conditionResult;
+        if (missing.Length == 0)
+        {
+            conditionResult = extra.Length == 0;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        Assert.True(conditionResult,
             (string) $"Missing:\n{string.Join("\n---\n", missing)}\nUnexpected:\n{string.Join("\n---\n", extra)}");
         Assert.Equal(expected: expected.Length, actual: actual.Count);
     }

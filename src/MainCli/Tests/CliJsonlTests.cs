@@ -123,7 +123,10 @@ public sealed class CliJsonlTests
             Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal(expected: "registry sync", actual: root.GetProperty("command").GetString());
             Assert.Equal(expected: i, actual: root.GetProperty("seq").GetInt32());
-            runId = runId is null ? root.GetProperty("runId").GetString() : runId;
+            if (runId is null)
+            {
+                runId = root.GetProperty("runId").GetString();
+            }
             Assert.Equal(expected: runId, actual: root.GetProperty("runId").GetString());
         }
         Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement.GetProperty("event").GetString());
@@ -1597,7 +1600,20 @@ public sealed class CliJsonlTests
                 base.WriteLine(value);
             }
 
-            if (Interlocked.Increment(ref _lines) == cancelAfter)
+            bool CheckCondition()
+            {
+                bool conditionResult;
+                int conditionValue = Interlocked.Increment(ref _lines);
+                conditionResult = conditionValue == cancelAfter;
+                if (conditionResult)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 source.Cancel();
             }
@@ -1755,43 +1771,56 @@ public sealed class CliJsonlTests
                 "update",
                 "delete",
             };
-            IReadOnlyList<RegistrySyncAction> actions = kinds.Select((kind, index) => new RegistrySyncAction(
-                kind: kind,
-                destination: Target.Destination,
-                course: "synthetic-course",
-                groups: "synthetic-group",
-                new(
-                    year: 2026,
-                    month: 1,
-                    day: index + 1),
-                topic: "synthetic-topic",
-                2,
-                true,
-                omission: null,
-                async ct =>
+            IReadOnlyList<RegistrySyncAction> actions = kinds.Select((kind, index) =>
+            {
+                global::ScheduleLib.OnlineRegistry.RegistrySyncAction ProjectValue()
                 {
-                    lock (Executed)
-                    {
-                        Executed.Add(index);
-                    }
+                    string operationValue = kind;
+                    string operationValue2 = Target.Destination;
+                    string operationValue3 = "synthetic-course";
+                    string operationValue4 = "synthetic-group";
+                    int operationValue5 = 2026;
+                    int operationValue6 = 1;
+                    int operationValue7 = index + 1;
+                    int operationValue8 = operationValue7;
+                    global::System.DateTime operationValue9 = new(
+                                        year: operationValue5, month: operationValue6, day: operationValue8);
+                    global::System.DateTime operationValue10 = operationValue9;
+                    string operationValue11 = "synthetic-topic";
+                    int? operationValue12 = 2;
+                    bool operationValue13 = true;
+                    string? operationValue14 = null;
+                    global::System.Func<global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operationValue15 = async ct =>
+                                    {
+                                        lock (Executed)
+                                        {
+                                            Executed.Add(index);
+                                        }
 
-                    if (ActionFailure is not null && index == 0)
-                    {
-                        throw ActionFailure;
-                    }
+                                        if (ActionFailure is not null && index == 0)
+                                        {
+                                            throw ActionFailure;
+                                        }
 
-                    if (BlockSecond is not null && index == 1)
-                    {
-                        await BlockSecond;
-                    }
+                                        if (BlockSecond is not null && index == 1)
+                                        {
+                                            await BlockSecond;
+                                        }
 
-                    if (CancelSecond && index == 1)
-                    {
-                        throw new OperationCanceledException();
-                    }
+                                        if (CancelSecond && index == 1)
+                                        {
+                                            throw new OperationCanceledException();
+                                        }
 
-                    await Task.CompletedTask;
-                })).ToArray();
+                                        await Task.CompletedTask;
+                                    };
+                    global::ScheduleLib.OnlineRegistry.RegistrySyncAction operationValue16 = new RegistrySyncAction(
+                                    kind: operationValue, destination: operationValue2, course: operationValue3, groups: operationValue4, operationValue10, topic: operationValue11, operationValue12, operationValue13, omission: operationValue14, operationValue15);
+                    return operationValue16;
+                }
+
+                return ProjectValue();
+            }).ToArray();
             return Task.FromResult(actions);
         }
 

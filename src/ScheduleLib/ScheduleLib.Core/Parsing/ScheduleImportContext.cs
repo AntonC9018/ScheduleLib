@@ -251,7 +251,13 @@ public sealed class ScheduleImportContext
             {
                 if (a == null || b == null)
                 {
-                    return a ?? b;
+                    var result = a;
+                    if (result is not null)
+                    {
+                        return result;
+                    }
+
+                    return b;
                 }
                 var ret = DiacriticsHelper.SelectWithDiacritics(a: a, b: b);
                 return ret;
@@ -313,7 +319,17 @@ public sealed class ScheduleImportContext
         builder.Alternative(input.Alternative);
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
-        if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
+        bool conditionResult;
+        if (lesson.GroupName.IsEmpty)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = groupNameHandledAsSubgroup;
+        }
+
+        if (conditionResult)
         {
             builder.Groups([.. input.Groups]);
         }

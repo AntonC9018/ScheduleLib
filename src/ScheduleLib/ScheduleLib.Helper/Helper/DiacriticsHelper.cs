@@ -66,7 +66,12 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
         }
         var x1 = DiacriticsHelper.RemoveDiacritics(x);
         var y1 = DiacriticsHelper.RemoveDiacritics(y);
-        return x1.Equals(y1, StringComparison.OrdinalIgnoreCase);
+        if (x1.Equals(y1, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int GetHashCode(string obj)
@@ -98,7 +103,17 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public int Compare(string? a, string? b)
     {
-        if (a is null && b is null)
+        bool conditionResult;
+        if (a is null)
+        {
+            conditionResult = b is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return 0;
         }

@@ -29,7 +29,27 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
     {
         var root = await graph.Users[source.Owner].Drive.Root.ItemWithPath(source.Path).Request()
             .Select("folder,parentReference,id").GetAsync(token);
-        if (root.Folder is null || string.IsNullOrWhiteSpace(root.Id) || string.IsNullOrWhiteSpace(root.ParentReference?.DriveId))
+        bool CheckCondition()
+        {
+            if (root.Folder is null)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(root.Id))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(root.ParentReference?.DriveId))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
             throw new CurriculaSourceUnavailableException("The coded curricula source is unavailable or is not a folder; update its owner/path in C# configuration if required.");
         var driveId = root.ParentReference.DriveId;
         var files = new List<CurriculaFile>();
@@ -39,7 +59,8 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
             foreach (var group in groups)
             {
                 token.ThrowIfCancellationRequested();
-                if (group.Folder is null) continue;
+                if (group.Folder is null)
+                    continue;
                 var documents = await graph.Drives[driveId].Items[group.Id].Children.Request().Select("name,id,folder,file").GetAsync(token);
                 while (documents is not null)
                 {

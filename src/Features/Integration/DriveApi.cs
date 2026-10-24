@@ -65,10 +65,35 @@ public static class GoogleApiHelper1
                 return false;
             }
 
-            return ex.Error.Errors.Any(e =>
-                e.Reason == "rateLimitExceeded"
-                || e.Reason == "userRateLimitExceeded"
-                || e.Reason == "backendError");
+            if (ex.Error.Errors.Any(e =>
+            {
+                bool CheckCondition()
+                {
+                    if (e.Reason == "rateLimitExceeded")
+                    {
+                        return true;
+                    }
+
+                    if (e.Reason == "userRateLimitExceeded")
+                    {
+                        return true;
+                    }
+
+                    if (e.Reason == "backendError")
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                return CheckCondition();
+            }))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 

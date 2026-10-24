@@ -15,7 +15,17 @@ public static class ComparisonHelper
         var comparer = EqualityComparer<T?>.Default;
         bool xdefault = comparer.Equals(x: x, y: default);
         bool ydefault = comparer.Equals(x: y, y: default);
-        if (xdefault && ydefault)
+        bool conditionResult;
+        if (xdefault)
+        {
+            conditionResult = ydefault;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             areBothDefault = true;
             return true;
@@ -37,17 +47,47 @@ public static class ComparisonHelper
         [NotNullWhen(false)] T? y,
         out int score)
     {
-        if (x is null && y is null)
+        bool conditionResult;
+        if (x is null)
+        {
+            conditionResult = y is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             score = 0;
             return true;
         }
-        if (x is not null && y is null)
+        bool conditionResult2;
+        if (x is not null)
+        {
+            conditionResult2 = y is null;
+        }
+        else
+        {
+            conditionResult2 = false;
+        }
+
+        if (conditionResult2)
         {
             score = 1;
             return true;
         }
-        if (x is null && y is not null)
+        bool conditionResult3;
+        if (x is null)
+        {
+            conditionResult3 = y is not null;
+        }
+        else
+        {
+            conditionResult3 = false;
+        }
+
+        if (conditionResult3)
         {
             score = -1;
             return true;
@@ -92,7 +132,13 @@ public static class ComparisonHelper
         {
             return bothNull;
         }
-        return comparer(arg1: x, arg2: y);
+
+        if (comparer(arg1: x, arg2: y))
+        {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -104,7 +150,17 @@ public static class StructComparisonHelper
         Func<T, T, bool> comparer)
         where T : struct
     {
-        if (x is null && y is null)
+        bool conditionResult;
+        if (x is null)
+        {
+            conditionResult = y is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return true;
         }
@@ -123,7 +179,17 @@ public static class StructComparisonHelper
     public static bool ValueEquals<T>(this T? x, T? y)
         where T : struct, IEquatable<T>
     {
-        if (x is null && y is null)
+        bool conditionResult;
+        if (x is null)
+        {
+            conditionResult = y is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return true;
         }

@@ -49,10 +49,46 @@ public static class PdfTextNormalizer
         ];
         foreach (var rule in rules)
         {
-            if (cell.Groups.Length != 1 || cell.Groups[0] != rule.Group || cell.Day != rule.Day || cell.Start != rule.Start
-                || !cell.Text.Contains(rule.Course) || !cell.Text.Contains(rule.Teacher)) continue;
+            bool CheckCondition()
+            {
+                if (cell.Groups.Length != 1)
+                {
+                    return true;
+                }
+
+                if (cell.Groups[0] != rule.Group)
+                {
+                    return true;
+                }
+
+                if (cell.Day != rule.Day)
+                {
+                    return true;
+                }
+
+                if (cell.Start != rule.Start)
+                {
+                    return true;
+                }
+
+                if (!cell.Text.Contains(rule.Course))
+                {
+                    return true;
+                }
+
+                if (!cell.Text.Contains(rule.Teacher))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
+                continue;
             var lines = cell.Text.Split('\n');
-            if (Regex.IsMatch(input: lines[0], pattern: @"\b(?:imp|par)\b")) continue;
+            if (Regex.IsMatch(input: lines[0], pattern: @"\b(?:imp|par)\b"))
+                continue;
             lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", $", {rule.Parity})") : (string) $"{lines[0]}{($" ({rule.Parity})")}";
             return cell with { Text = string.Join('\n', lines), Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md" };
         }

@@ -9,9 +9,13 @@ public static class RegistryCourseNameLookup
     {
         var name = registryName.Trim();
         var start = name.LastIndexOf('(');
-        if (start < 0 || !name.EndsWith(')')) return (name, []);
+        if (start < 0)
+            return (name, []);
+        if (!name.EndsWith(')'))
+            return (name, []);
         var classifications = name[(start + 1)..^1].Split('&', StringSplitOptions.TrimEntries);
-        if (!classifications.All(value => value is "BaDe" or "FrDe")) return (name, []);
+        if (!classifications.All(value => value is "BaDe" or "FrDe"))
+            return (name, []);
         return (name[..start].TrimEnd(), classifications);
     }
 
@@ -19,14 +23,25 @@ public static class RegistryCourseNameLookup
     public static CourseId? Find(LookupFacade lookup, string registryName,
         IReadOnlyDictionary<string, string> courseNames, int maxDistance = 2)
     {
-        if (maxDistance < 0) throw new ArgumentOutOfRangeException(nameof(maxDistance));
+        if (maxDistance < 0)
+            throw new ArgumentOutOfRangeException(nameof(maxDistance));
         var parsed = Parse(registryName);
         if (TryAlias(courseNames, registryName: registryName, parsedName: parsed.Name, mappedName: out var mappedName))
-            return lookup.Course(mappedName.AsMemory(), new() { IgnorePunctuation = true });
+        {
+            var result = lookup.Course(mappedName.AsMemory(), new() { IgnorePunctuation = true });
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
+        }
+
         if (lookup.Course(parsed.Name.AsMemory(), new() { IgnorePunctuation = true }) is { } exact)
             return exact;
         // An unknown annotation can distinguish courses; never discard it through fuzzy matching.
-        if (parsed.Name.Contains('(') || parsed.Name.Contains(')')) return null;
+        if (parsed.Name.Contains('(') || parsed.Name.Contains(')'))
+            return null;
         var normalized = Normalize(parsed.Name);
         var candidates = lookup.LookupModule.Courses
             .Select(course => (Name: Normalize(course.Key), Id: course.Value)).ToArray();
@@ -34,11 +49,43 @@ public static class RegistryCourseNameLookup
             .Select(course => course.Id).Distinct().ToArray();
         if (normalizedMatches.Length != 0)
             return normalizedMatches.Length == 1 ? normalizedMatches[0] : null;
-        if (normalized.Length < 12 || maxDistance == 0) return null;
+        bool conditionResult;
+        if (normalized.Length < 12)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = maxDistance == 0;
+        }
+
+        if (conditionResult)
+            return null;
         var tolerance = Math.Min(maxDistance, normalized.Length / 10);
-        var approximate = candidates.Where(course => course.Name.Length >= 12
-                && Math.Abs(course.Name.Length - normalized.Length) <= tolerance
-                && Distance(first: normalized, second: course.Name) <= tolerance)
+        var approximate = candidates.Where(course =>
+        {
+            bool CheckCondition()
+            {
+                if (!(course.Name.Length >= 12))
+                {
+                    return false;
+                }
+
+                if (!(Math.Abs(course.Name.Length - normalized.Length) <= tolerance))
+                {
+                    return false;
+                }
+
+                if (!(Distance(first: normalized, second: course.Name) <= tolerance))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        })
             .Select(course => course.Id).Distinct().ToArray();
         return approximate.Length == 1 ? approximate[0] : null;
     }

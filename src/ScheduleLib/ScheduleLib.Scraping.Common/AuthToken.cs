@@ -149,7 +149,8 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
     public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
         var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
-        if (html.StatusCode != HttpStatusCode.OK) return false;
+        if (html.StatusCode != HttpStatusCode.OK)
+            return false;
         if (GetInput(_formConfig.LoginName) is not { } loginInput)
         {
             return false;
@@ -193,7 +194,8 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
         }
 
         IDocument response;
-        try { response = await submission.WaitAsync(cancellationToken); }
+        try
+        { response = await submission.WaitAsync(cancellationToken); }
         catch (OperationCanceledException)
         {
             // AngleSharp cannot cancel submission; end this owned browsing session and
@@ -204,9 +206,36 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
                 TaskScheduler.Default);
             throw;
         }
-        return response.StatusCode == HttpStatusCode.OK
-            && response.QuerySelector("input[type=password]") is null
-            && (_formConfig.AuthenticationSuccessSelector is not { } selector || response.QuerySelector(selector) is not null);
+        bool conditionResult;
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            if (response.QuerySelector("input[type=password]") is null)
+            {
+                if (_formConfig.AuthenticationSuccessSelector is not { } selector)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    conditionResult = response.QuerySelector(selector) is not null;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
+        {
+            return true;
+        }
+
+        return false;
 
         IHtmlInputElement? GetInput(string name)
         {
@@ -416,7 +445,13 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             {
                 return false;
             }
-            return await Save(jobj);
+
+            if (await Save(jobj))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         async Task<bool> CreateNew()

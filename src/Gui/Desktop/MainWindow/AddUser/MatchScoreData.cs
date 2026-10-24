@@ -50,7 +50,17 @@ public readonly record struct MatchScore(
                     {
                         var p = parsedPart[i];
                         var e = existingFieldValue[i];
-                        if (p == null && e == null)
+                        bool conditionResult;
+                        if (p == null)
+                        {
+                            conditionResult = e == null;
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+
+                        if (conditionResult)
                         {
                             exactlyEqual.Set(i);
                             partiallyEqual.Set(i);

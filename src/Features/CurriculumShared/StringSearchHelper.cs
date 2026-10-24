@@ -71,12 +71,22 @@ public static class StringSearchHelper
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
 
-                    if (p.IsEmpty && remainingMem.Length > currentSlice.Length)
+                    bool conditionResult;
+                    if (p.IsEmpty)
+                    {
+                        conditionResult = remainingMem.Length > currentSlice.Length;
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+
+                    if (conditionResult)
                     {
                         ref var x = ref extraStuffFromMatch.Array[sectionIndex];
                         if (x.IsEmpty)
                         {
-                            x = remainingMem[currentSlice.Length ..];
+                            x = remainingMem[currentSlice.Length..];
                         }
                     }
                 }

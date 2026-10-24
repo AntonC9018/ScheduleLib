@@ -169,7 +169,12 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         }
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
-        if (!document.RootElement.TryGetProperty("id", out var id) || string.IsNullOrWhiteSpace(id.GetString()))
+        bool conditionValue = document.RootElement.TryGetProperty("id", out var id);
+        if (!conditionValue)
+        {
+            throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
+        }
+        if (string.IsNullOrWhiteSpace(id.GetString()))
         {
             throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
         }

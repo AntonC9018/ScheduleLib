@@ -114,8 +114,43 @@ public sealed partial class LessonTextDisplayHandler
                 var oneTime = p.Lesson.OneTime!.Value;
                 date = oneTime.Date.Date.ToString("dd.MM.yy");
             }
-            bool appendGroups = _config.PrintsGroupNames && p.Lesson.Lesson.Groups.Count > 0;
-            bool appendAny = lessonType != null || parity != null || appendGroups || date != null;
+            bool conditionResult;
+            if (_config.PrintsGroupNames)
+            {
+                conditionResult = p.Lesson.Lesson.Groups.Count > 0;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            bool appendGroups = conditionResult;
+            bool CheckCondition()
+            {
+                if (lessonType != null)
+                {
+                    return true;
+                }
+
+                if (parity != null)
+                {
+                    return true;
+                }
+
+                if (appendGroups)
+                {
+                    return true;
+                }
+
+                if (date != null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool appendAny = CheckCondition();
             if (appendAny)
             {
                 sb.Append(" (");

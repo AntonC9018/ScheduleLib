@@ -1,7 +1,24 @@
 using FmiScheduleImport;
 using FmiWebsiteInterop;
 
-if (args.Length is < 2 or > 3 || (args.Length == 3 && args[2] != "--strict"))
+bool conditionResult;
+if (args.Length is < 2 or > 3)
+{
+    conditionResult = true;
+}
+else
+{
+    if (args.Length == 3)
+    {
+        conditionResult = args[2] != "--strict";
+    }
+    else
+    {
+        conditionResult = false;
+    }
+}
+
+if (conditionResult)
 {
     Console.Error.WriteLine("Usage: FmiScheduleImport <hashes.json> <output-root> [--strict]");
     return 1;

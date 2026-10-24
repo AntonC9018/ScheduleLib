@@ -44,10 +44,32 @@ public static class RegistrationHelper
 
         bool ProcessSelf_CheckShouldProcessChildren()
         {
-            if (type == typeof(string)
-                || type == typeof(Type)
-                || type.IsInterface
-                || type.IsSubclassOf(typeof(Delegate)))
+            bool CheckCondition()
+            {
+                if (type == typeof(string))
+                {
+                    return true;
+                }
+
+                if (type == typeof(Type))
+                {
+                    return true;
+                }
+
+                if (type.IsInterface)
+                {
+                    return true;
+                }
+
+                if (type.IsSubclassOf(typeof(Delegate)))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(type);

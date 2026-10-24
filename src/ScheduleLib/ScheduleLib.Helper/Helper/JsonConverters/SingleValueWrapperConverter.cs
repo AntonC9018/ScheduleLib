@@ -32,7 +32,17 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
+        bool conditionResult;
+        if (typeToConvert.IsPrimitive)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = typeToConvert.IsEnum;
+        }
+
+        if (conditionResult)
         {
             return false;
         }

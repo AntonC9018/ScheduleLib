@@ -34,7 +34,7 @@ public static class MoodleQuizScraper
         // await page.SaveForDebug();
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
-        var path = pathItems.Select(x =>
+        (string, string?) ProjectValue(global::AngleSharp.Html.Dom.IHtmlListItemElement x)
         {
             var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
             if (anchor != null)
@@ -47,7 +47,8 @@ public static class MoodleQuizScraper
                 return (span.TextContent.Trim(), (string?) null);
             }
             throw new InvalidOperationException("Expected span or anchor in path");
-        }).ToList();
+        }
+        var path = pathItems.Select(ProjectValue).ToList();
 
         // Set page size
         var pageSizeInput = (IHtmlInputElement) page.QuerySelector("#id_pagesize")!;
@@ -214,9 +215,12 @@ public static class MoodleQuizScraper
             {
                 foreach (var key in keys)
                 {
-                    if (_tableHelper._mapping.TryGetValue(key, out int index) && index < Cells.Length)
+                    if (_tableHelper._mapping.TryGetValue(key, out int index))
                     {
-                        return new(Cells[index]);
+                        if (index < Cells.Length)
+                        {
+                            return new(Cells[index]);
+                        }
                     }
                 }
                 return new(null);
@@ -265,7 +269,14 @@ public static class MoodleQuizScraper
         {
             return null;
         }
-        return link.GetAttribute("href");
+
+        var result = link.GetAttribute("href");
+        if (result is not null)
+        {
+            return result;
+        }
+
+        return null;
     }
 
     private static List<QuestionGrade> ExtractQuestionGrades(MappedTableHelper.RowSearchHelper row)
@@ -351,9 +362,47 @@ public static class MoodleQuizScraper
         var classList = classes.Split(' ');
         foreach (var cls in classList)
         {
-            if (cls == "que" || cls.Contains("feedback") || cls.Contains("graded")
-                || cls == "complete" || cls == "correct" || cls == "incorrect"
-                || cls == "partiallycorrect")
+            bool CheckCondition()
+            {
+                if (cls == "que")
+                {
+                    return true;
+                }
+
+                if (cls.Contains("feedback"))
+                {
+                    return true;
+                }
+
+                if (cls.Contains("graded"))
+                {
+                    return true;
+                }
+
+                if (cls == "complete")
+                {
+                    return true;
+                }
+
+                if (cls == "correct")
+                {
+                    return true;
+                }
+
+                if (cls == "incorrect")
+                {
+                    return true;
+                }
+
+                if (cls == "partiallycorrect")
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 continue;
             }
@@ -600,7 +649,13 @@ public static class MoodleQuizScraper
         var parts = finalGrade.Split([' '], StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length > 0)
         {
-            return ParseGrade(parts[0]);
+            var result = ParseGrade(parts[0]);
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
         }
         return null;
     }
@@ -752,7 +807,7 @@ public static class MoodleQuizScraper
 }
 
 // Models
-public class QuizAttempt
+public sealed class QuizAttempt
 {
     public string AttemptId { get; set; } = "";
     public required string UserName { get; set; }
@@ -766,7 +821,7 @@ public class QuizAttempt
     public List<QuestionGrade> QuestionGrades { get; set; } = [];
 }
 
-public class QuestionGrade
+public sealed class QuestionGrade
 {
     public int QuestionNumber { get; set; }
     public float? Grade { get; set; }
@@ -774,7 +829,7 @@ public class QuestionGrade
     public required string ReviewLink { get; set; }
 }
 
-public class AttemptDetails
+public sealed class AttemptDetails
 {
     public AttemptState Status { get; set; }
     public DateTime? StartedAt { get; set; }
@@ -785,7 +840,7 @@ public class AttemptDetails
     public List<QuestionDetail> Questions { get; set; } = [];
 }
 
-public class QuestionDetail
+public sealed class QuestionDetail
 {
     public int QuestionNumber { get; set; }
     public QuestionType QuestionType { get; set; }
@@ -803,14 +858,14 @@ public class QuestionDetail
     public List<ResponseHistoryEntry> ResponseHistory { get; set; } = [];
 }
 
-public class ChoiceDetail
+public sealed class ChoiceDetail
 {
     public string Text { get; set; } = "";
     public bool IsChecked { get; set; }
     public bool IsCorrect { get; set; }
 }
 
-public class ResponseHistoryEntry
+public sealed class ResponseHistoryEntry
 {
     public int Step { get; set; }
     public DateTime? Time { get; set; }
@@ -1120,12 +1175,12 @@ file static class Accessors
     }
 }
 
-file class AccessorsBase
+file abstract class AccessorsBase
 {
     public required Type ValueType { get; init; }
 }
 
-file class Accessors<T, TValue> : AccessorsBase
+file sealed class Accessors<T, TValue> : AccessorsBase
 {
     public required Func<TValue?, T> Creator { get; init; }
     public required Func<T, TValue?> Extractor { get; init; }
@@ -1157,7 +1212,17 @@ file sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
+        bool conditionResult;
+        if (typeToConvert.IsPrimitive)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = typeToConvert.IsEnum;
+        }
+
+        if (conditionResult)
         {
             return false;
         }

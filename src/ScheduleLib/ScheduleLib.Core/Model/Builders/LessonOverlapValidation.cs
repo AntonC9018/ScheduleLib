@@ -96,7 +96,33 @@ public static partial class ScheduleBuilderHelper
             // Without a parity the lesson cannot be proven disjoint.
             return true;
         }
-        return pa == Parity.EveryWeek || pb == Parity.EveryWeek || pa == pb;
+
+        bool CheckCondition()
+        {
+            if (pa == Parity.EveryWeek)
+            {
+                return true;
+            }
+
+            if (pb == Parity.EveryWeek)
+            {
+                return true;
+            }
+
+            if (pa == pb)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
@@ -156,8 +182,33 @@ public static partial class ScheduleBuilderHelper
         var groupName = s.Groups.Ref(shared.Value).Name;
         foreach (var entry in allowlist)
         {
-            bool coursesMatch = (aName == entry.CourseA && bName == entry.CourseB)
-                || (aName == entry.CourseB && bName == entry.CourseA);
+            bool conditionResult;
+            if (aName == entry.CourseA)
+            {
+                conditionResult = bName == entry.CourseB;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (aName == entry.CourseB)
+                {
+                    conditionResult = bName == entry.CourseA;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+
+            bool coursesMatch = conditionResult;
             if (!coursesMatch)
             {
                 continue;

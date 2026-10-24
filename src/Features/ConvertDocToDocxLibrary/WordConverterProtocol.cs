@@ -17,15 +17,82 @@ internal static class WordConverterProtocol
         pid = 0;
         startTicks = 0;
         var fields = message?.Split('|');
-        return fields is { Length: 4 } && fields[0] == "WORD1" && fields[1] == nonce
-            && int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out pid) && pid > 0
-            && long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out startTicks) && startTicks > 0;
+        if (!(fields is { Length: 4 }))
+        {
+            return false;
+        }
+
+        if (!(fields[0] == "WORD1"))
+        {
+            return false;
+        }
+
+        if (!(fields[1] == nonce))
+        {
+            return false;
+        }
+
+        if (!(int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out pid)))
+        {
+            return false;
+        }
+
+        if (!(pid > 0))
+        {
+            return false;
+        }
+
+        if (!(long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out startTicks)))
+        {
+            return false;
+        }
+
+        if (!(startTicks > 0))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     internal static bool IsOwnedProcess(int pid, long reportedTicks, long actualTicks, long converterTicks,
         int session, int converterSession, string processName, bool existedBeforeConversion)
     {
-        return pid > 0 && !existedBeforeConversion && reportedTicks == actualTicks && actualTicks >= converterTicks
-        && session == converterSession && string.Equals(processName, "WINWORD", System.StringComparison.OrdinalIgnoreCase);
+        bool CheckCondition()
+        {
+            if (!(pid > 0))
+            {
+                return false;
+            }
+
+            if (!(!existedBeforeConversion))
+            {
+                return false;
+            }
+
+            if (!(reportedTicks == actualTicks))
+            {
+                return false;
+            }
+
+            if (!(actualTicks >= converterTicks))
+            {
+                return false;
+            }
+
+            if (!(session == converterSession))
+            {
+                return false;
+            }
+
+            if (!(string.Equals(processName, "WINWORD", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        return CheckCondition();
     }
 }

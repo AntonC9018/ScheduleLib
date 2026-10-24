@@ -141,7 +141,17 @@ public sealed class CliOutput
 
     public void WriteHuman(string line)
     {
-        if (Json || Jsonl)
+        bool conditionResult;
+        if (Json)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = Jsonl;
+        }
+
+        if (conditionResult)
         {
             return;
         }
@@ -155,7 +165,17 @@ public sealed class CliOutput
 
     public void WriteHuman<TMessage>(TMessage message) where TMessage : ICliMessage
     {
-        if (Json || Jsonl)
+        bool conditionResult;
+        if (Json)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = Jsonl;
+        }
+
+        if (conditionResult)
         {
             return;
         }
@@ -362,9 +382,7 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
 
             var message = formatter(state, exception);
             var properties = ExtractProperties(state)?.ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value,
-                    StringComparer.Ordinal)
+keySelector: pair => pair.Key, elementSelector: pair => pair.Value, StringComparer.Ordinal)
                 ?? new Dictionary<string, object?>(StringComparer.Ordinal);
             var scopes = new List<string>();
             scopeProvider().ForEachScope(

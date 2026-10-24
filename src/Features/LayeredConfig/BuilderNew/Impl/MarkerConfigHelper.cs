@@ -53,24 +53,25 @@ public static class MarkerConfigExtension
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
             // But we only consider the last such layers.
+            (global::ScheduleLib.Application.Config.TeacherLayerConfig value, global::Anton.LayeredData.NodeBuilder) ProjectValue(global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerationContext x)
+            {
+                var config = x.Node.Get(TeacherLayerConfig.Key);
+                if (!config.Exists)
+                {
+                    return default;
+                }
+                var value = config.Value.GetValue();
+                if (value == null)
+                {
+                    throw new InvalidOperationException("Teacher layer config must be explicitly set!");
+                }
+                return (value, b.CreateBuilder(x.Node));
+            }
             return b.BaseNode
                 .Dfs()
                 .Process()
                 .Where(x => x.Node.IsLeaf())
-                .Select(x =>
-                {
-                    var config = x.Node.Get(TeacherLayerConfig.Key);
-                    if (!config.Exists)
-                    {
-                        return default;
-                    }
-                    var value = config.Value.GetValue();
-                    if (value == null)
-                    {
-                        throw new InvalidOperationException("Teacher layer config must be explicitly set!");
-                    }
-                    return (value, b.CreateBuilder(x.Node));
-                })
+                .Select(ProjectValue)
                 .WhereNotDefault();
         }
 
@@ -139,7 +140,13 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
                 {
                     return false;
                 }
-                return CheckEquality(existing: c.Value.GetValue(), @scoped: config);
+
+                if (CheckEquality(existing: c.Value.GetValue(), @scoped: config))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .FirstOrDefault();
         if (c.IsNull)

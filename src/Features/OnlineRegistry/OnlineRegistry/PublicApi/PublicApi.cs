@@ -150,11 +150,50 @@ public sealed class GroupsNavigator
         RegistryGroupMatchRule rule, GroupPartitionResolver resolver)
     {
         var partition = new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
-        return groups.Count(group => group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)
-            && group.Grade == target.Grade && group.AttendanceMode == target.AttendanceMode
-            && group.QualificationType == target.QualificationType && group.IsDual == target.IsDual
-            && group.IsAdditionalCourses == target.IsAdditionalCourses
-            && resolver.Resolve(group) == partition) == 1;
+        return groups.Count(group =>
+        {
+            bool CheckCondition()
+            {
+                if (!(group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return false;
+                }
+
+                if (!(group.Grade == target.Grade))
+                {
+                    return false;
+                }
+
+                if (!(group.AttendanceMode == target.AttendanceMode))
+                {
+                    return false;
+                }
+
+                if (!(group.QualificationType == target.QualificationType))
+                {
+                    return false;
+                }
+
+                if (!(group.IsDual == target.IsDual))
+                {
+                    return false;
+                }
+
+                if (!(group.IsAdditionalCourses == target.IsAdditionalCourses))
+                {
+                    return false;
+                }
+
+                if (!(resolver.Resolve(group) == partition))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        }) == 1;
     }
 
     internal static GroupPartitionKey NormalizePartition(Schedule schedule, in LessonGroups parents, GroupPartitionKey partition,
@@ -163,15 +202,18 @@ public sealed class GroupsNavigator
         if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All)
             && parents.Count != 0 && parents.All(id => schedule.Get(id).Language == Language.En))
             return GroupPartitionKey.All;
-        if (rules is not null && parents.Count != 0)
+        if (rules is not null)
         {
-            foreach (var rule in rules)
+            if (parents.Count != 0)
             {
-                if (rule.MatchByLanguage && rule.AllowParentGroup
-                    && partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All)
-                    && parents.All(id => schedule.Get(id).Language == rule.Language
-                        && schedule.Get(id).Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)))
-                    return GroupPartitionKey.All;
+                foreach (var rule in rules)
+                {
+                    if (rule.MatchByLanguage && rule.AllowParentGroup
+                        && partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All)
+                        && parents.All(id => schedule.Get(id).Language == rule.Language
+                            && schedule.Get(id).Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)))
+                        return GroupPartitionKey.All;
+                }
             }
         }
         return partition;
@@ -278,9 +320,31 @@ public sealed class GroupsNavigator
                 {
                     if (!lesson.Lesson.Groups.Contains(parent.Id))
                         continue;
-                    if (lesson.Lesson.GroupPartitionKey == partition
-                        || rule.AllowParentGroup && parent.Item.Language == rule.Language
-                        && lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
+                    bool conditionResult;
+                    if (lesson.Lesson.GroupPartitionKey == partition)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        if (rule.AllowParentGroup)
+                        {
+                            if (parent.Item.Language == rule.Language)
+                            {
+                                conditionResult = lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All;
+                            }
+                            else
+                            {
+                                conditionResult = false;
+                            }
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+                    }
+
+                    if (conditionResult)
                         eligible.Add(parent.Id);
                 }
             }
@@ -391,7 +455,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var table = list.QuerySelector<IHtmlTableElement>("table")
             ?? throw new IOException("Registry lesson confirmation table is missing.");
         var dateText = date.ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        var editLinks = table.Rows.Where(row => row.Cells.Length >= 3 && row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))
+        var editLinks = table.Rows.Where(row => { if (!(row.Cells.Length >= 3)) { return false; } if (!(row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))) { return false; } return true; })
             .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
             .Select(anchor => new Uri(anchor.Href))
             .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
@@ -403,13 +467,40 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             RequireConfirmationPage(saved);
             var savedForm = HtmlSearch.GetLessonForm(saved);
             var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
+            bool conditionResult;
             if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
-                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate)
-                && savedDate == date
-                && savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode
-                && savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n")
-                && expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
-                    && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate))
+            {
+                if (savedDate == date)
+                {
+                    if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode)
+                    {
+                        if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n"))
+                        {
+                            conditionResult = expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
+                    && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value));
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
                 matches++;
         }
         if (matches != 1)
@@ -462,9 +553,31 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     || table.Rows.Length == 0)
                     throw new IOException("Registry deletion confirmation page is unrecognized.");
                 if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]").Any(anchor =>
-                        new Uri(anchor.Href).AbsolutePath is var path
-                        && (path.EndsWith((string) $"/LessonDetail/{lessonId}", StringComparison.Ordinal)
-                            || path.EndsWith((string) $"/Edit/{lessonId}", StringComparison.Ordinal))))
+                {
+                    bool conditionResult;
+                    if (new Uri(anchor.Href).AbsolutePath is var path)
+                    {
+                        if (path.EndsWith((string) $"/LessonDetail/{lessonId}", StringComparison.Ordinal))
+                        {
+                            conditionResult = true;
+                        }
+                        else
+                        {
+                            conditionResult = path.EndsWith((string) $"/Edit/{lessonId}", StringComparison.Ordinal);
+                        }
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+
+                    if (conditionResult)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }))
                     throw new RegistryDeletionRefusedException();
             }
         }
@@ -483,8 +596,13 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             throw new InvalidOperationException("Registry mutation form must use POST.");
         try
         {
-            return await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted)
-                ?? throw new IOException("Registry returned no submission response.");
+            var result = await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted);
+            if (result is null)
+            {
+                throw new IOException("Registry returned no submission response.");
+            }
+
+            return result;
         }
         catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther
             && error.Location is { } location && IsLoginAddress(location.ToString()))
@@ -595,7 +713,13 @@ public readonly record struct RegistryScrapingContext(
         if (provider is null)
             return BuiltRegistryConfig.DefaultHttpCallDelay;
         // Null means registry not enabled at this path; mapping errors (e.g. negative delay) propagate.
-        return provider.Get()?.HttpCallDelay ?? BuiltRegistryConfig.DefaultHttpCallDelay;
+        var result = provider.Get()?.HttpCallDelay;
+        if (result.HasValue)
+        {
+            return result.Value;
+        }
+
+        return BuiltRegistryConfig.DefaultHttpCallDelay;
     }
 }
 

@@ -91,9 +91,18 @@ public static class TeacherProfileScheduleLookup
             return found;
 
         // The registry credential profile predates the spelling in the current schedule.
-        return profileName.ToString() == "Visnevschi Vlada"
-            ? lookup.Teacher(NameHelper.Parse("Vișnevschii Vlada").ToNameModel())
-            : null;
+        if (profileName.ToString() == "Visnevschi Vlada")
+        {
+            var result = lookup.Teacher(NameHelper.Parse("Vișnevschii Vlada").ToNameModel());
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
+        }
+
+        return null;
     }
 }
 

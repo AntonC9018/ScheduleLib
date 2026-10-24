@@ -139,7 +139,23 @@ public static class ParserHelper
     {
         public bool EndOfInput;
         public bool SkippedAny;
-        public readonly bool Satisfied => SkippedAny && !EndOfInput;
+        public readonly bool Satisfied
+        {
+            get
+            {
+                if (!(SkippedAny))
+                {
+                    return false;
+                }
+
+                if (!(!EndOfInput))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
 
         public static SkipResult EndOfInputResult
         {

@@ -119,26 +119,27 @@ public static class ExcelScheduleParser
         {
             return worksheets.First();
         }
-        var ret = xl.Worksheets
-            .Select(x =>
+        global::ScheduleLib.Parsing.Excel.ExcelScheduleParser.NumberedWorksheet ProjectValue(global::ClosedXML.Excel.IXLWorksheet x)
+        {
+            var parser = new SequenceReader(x.Name);
+            if (!parser.ConsumeExactString("sem"))
             {
-                var parser = new SequenceReader(x.Name);
-                if (!parser.ConsumeExactString("sem"))
-                {
-                    return default;
-                }
-                if (!parser.SkipWhitespace().SkippedAny)
-                {
-                    return default;
-                }
-                var roman = parser.ReadRoman();
-                if (roman.Status != ReadRomanStatus.Ok)
-                {
-                    return default;
-                }
+                return default;
+            }
+            if (!parser.SkipWhitespace().SkippedAny)
+            {
+                return default;
+            }
+            var roman = parser.ReadRoman();
+            if (roman.Status != ReadRomanStatus.Ok)
+            {
+                return default;
+            }
 
-                return new NumberedWorksheet(x, roman.Number);
-            })
+            return new NumberedWorksheet(x, roman.Number);
+        }
+        var ret = xl.Worksheets
+            .Select(ProjectValue)
             // TODO: add validation for sem number?
             .WhereNotDefault()
             .Single()
@@ -172,7 +173,17 @@ public static class ExcelScheduleParser
             offset,
             config);
 
-        if (isFirstTime && config.ExpectBullshitRow)
+        bool conditionResult;
+        if (isFirstTime)
+        {
+            conditionResult = config.ExpectBullshitRow;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             if (!rowE.MoveNext())
             {
@@ -221,7 +232,7 @@ public static class ExcelScheduleParser
                     continue;
                 }
 
-                var lessonGroups = lessonGroupsMem[.. cellIterationContext.ColSpan];
+                var lessonGroups = lessonGroupsMem[..cellIterationContext.ColSpan];
                 foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
                 {
                     var offsetIndex = offset.GetUnOffsetIndex(columnNumber);

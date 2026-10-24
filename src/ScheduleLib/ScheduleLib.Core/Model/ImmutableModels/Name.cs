@@ -25,13 +25,32 @@ public record struct OptionalNamePart
             return null;
         }
     }
-    public readonly bool IsNull => Full is null && Short is null;
+    public readonly bool IsNull
+    {
+        get
+        {
+            if (!(Full is null))
+            {
+                return false;
+            }
+
+            if (!(Short is null))
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     public override string ToString()
     {
-        if (Full is null && Short is not null)
+        if (Full is null)
         {
-            return Short;
+            if (Short is not null)
+            {
+                return Short;
+            }
         }
         var sb = new StringBuilder();
         sb.Append(Full);
@@ -119,7 +138,12 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
         {
             if (x1 is null)
             {
-                return y1 is null;
+                if (y1 is null)
+                {
+                    return true;
+                }
+
+                return false;
             }
             return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x1, y: y1);
         });
@@ -453,8 +477,24 @@ public static class NameDisplayHelper
         else
         {
             var res = AppendFirstName();
-            if (res == WhichFirstName.Full
-                || res == WhichFirstName.Short && p.InsertSpaceAfterShortName)
+            bool conditionResult2;
+            if (res == WhichFirstName.Full)
+            {
+                conditionResult2 = true;
+            }
+            else
+            {
+                if (res == WhichFirstName.Short)
+                {
+                    conditionResult2 = p.InsertSpaceAfterShortName;
+                }
+                else
+                {
+                    conditionResult2 = false;
+                }
+            }
+
+            if (conditionResult2)
             {
                 shouldAddSpaceNext = true;
             }
@@ -509,8 +549,17 @@ public static class NameDisplayHelper
                     return false;
                 }
 
-                if (f[1].Full is null
-                    && f[1].Short is not null)
+                bool conditionResult;
+                if (f[1].Full is null)
+                {
+                    conditionResult = f[1].Short is not null;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     return false;
                 }

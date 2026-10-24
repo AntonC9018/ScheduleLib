@@ -71,11 +71,13 @@ public sealed class ScopedManifestTests
             };
             await builder.AddFromManifest(new(manifest, directory), lookup, default);
             var topics = builder.Build();
-            AttendanceLookupKey Key(CourseId courseId, GroupId groupId, GroupPartitionKey partition) =>
-                new(new FoundGroups {
+            AttendanceLookupKey Key(CourseId courseId, GroupId groupId, GroupPartitionKey partition)
+            {
+                return new(new FoundGroups {
                     Value = [groupId],
                     IsWildcard = false
                 }, partition, courseId, LessonType.Lab, 0, default);
+            }
             Assert.Equal(expected: enabled ? "Synthetic topic" : null, actual: topics.Get(Key(course, group, GroupPartitionKey.All)));
             Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with { LessonType = LessonType.Curs }));
             Assert.Null(topics.Get(Key(course, otherGroup, GroupPartitionKey.All)));

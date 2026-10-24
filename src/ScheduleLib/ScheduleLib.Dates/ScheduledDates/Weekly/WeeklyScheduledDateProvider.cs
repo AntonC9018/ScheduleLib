@@ -84,9 +84,14 @@ public sealed class ManualWeeklyScheduledDateProvider
                         return e.Week.IsOddWeek;
                     }
                     case Parity.EvenWeek:
-                    {
-                        return !e.Week.IsOddWeek;
-                    }
+                        {
+                            if (!e.Week.IsOddWeek)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     default:
                     {
                         throw Unreachable();

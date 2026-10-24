@@ -33,7 +33,7 @@ internal static class Program
             // the process did not exist before conversion and pins its native handle.
             identityDoc = app.Documents.Add();
             NativeMethods.GetWindowThreadProcessId(new IntPtr(identityDoc.ActiveWindow.Hwnd), out var pid);
-            using (var word = Process.GetProcessById((int)pid))
+            using (var word = Process.GetProcessById((int) pid))
             {
                 Console.WriteLine(WordConverterProtocol.OwnershipMessage(nonce, word.Id, word.StartTime.ToUniversalTime().Ticks));
                 Console.Out.Flush();
@@ -42,12 +42,19 @@ internal static class Program
             identityDoc = null;
             app.Visible = false;
             app.DisplayAlerts = WdAlertLevel.wdAlertsNone;
-            if (File.Exists(cancellationPath)) return 130;
+            if (File.Exists(cancellationPath))
+                return 130;
             object inputObj = inputPath;
             inputDoc = app.Documents.Open(ref inputObj);
-            if (File.Exists(cancellationPath)) return 130;
+            if (File.Exists(cancellationPath))
+                return 130;
             inputDoc.SaveAs2(FileName: outputPath, FileFormat: WdSaveFormat.wdFormatXMLDocument);
-            return File.Exists(cancellationPath) ? 130 : 0;
+            if (File.Exists(cancellationPath))
+            {
+                return 130;
+            }
+
+            return 0;
         }
         finally
         {

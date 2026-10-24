@@ -280,7 +280,12 @@ public static class FilterHelper
                 {
                     if (!filter.IncludeRegularity.IsEmpty)
                     {
-                        return filter.IncludeRegularity.Contains(l.Regularity);
+                        if (filter.IncludeRegularity.Contains(l.Regularity))
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
                     return true;
                 }
@@ -352,7 +357,12 @@ public static class FilterHelper
                     if (ObservedCounts(dimension) is not { } counts)
                     {
                         // The subgroup partition has no singleton rule: plain membership.
-                        return selected.Contains(lessonValue);
+                        if (selected.Contains(lessonValue))
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
                     if (l.Lesson.Groups.IsEmpty)
                     {
@@ -365,8 +375,18 @@ public static class FilterHelper
                         // every annotation as shared. A filter spanning
                         // several groups includes the lesson when it matches at least
                         // one of those group contexts.
-                        if (!counts.TryGetValue(groupId, out var count)
-                            || count < 2)
+                        bool conditionResult;
+                        bool conditionValue = counts.TryGetValue(groupId, out var count);
+                        if (!conditionValue)
+                        {
+                            conditionResult = true;
+                        }
+                        else
+                        {
+                            conditionResult = count < 2;
+                        }
+
+                        if (conditionResult)
                         {
                             return true;
                         }
@@ -433,7 +453,7 @@ public static class FilterHelper
                             set.Add(value);
                         }
                     }
-                    return sets.ToDictionary(x => x.Key, x => x.Value.Count);
+                    return sets.ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Value.Count);
                 }
 
                 bool PassesGroupFilter()
@@ -491,8 +511,17 @@ public static class FilterHelper
                     }
 
                     var p = weekly.Date.Period;
-                    if (p.IsUnspecified
-                        && filter.PeriodFilter.UnspecifiedIsAll)
+                    bool conditionResult;
+                    if (p.IsUnspecified)
+                    {
+                        conditionResult = filter.PeriodFilter.UnspecifiedIsAll;
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+
+                    if (conditionResult)
                     {
                         return true;
                     }

@@ -137,12 +137,24 @@ public sealed class GoogleCredentialResolver : IDisposable
 
         // Legacy hosts may refresh provisioned credentials, but never initiate consent.
         var user = _userNameProvider.Get();
-        if (config.CredentialsPath is null) throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        if (config.CredentialsPath is null)
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
         ClientSecrets secrets;
-        try { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
+        try
+        { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
-        if (string.IsNullOrWhiteSpace(secrets.ClientId) || string.IsNullOrWhiteSpace(secrets.ClientSecret))
+        bool conditionResult;
+        if (string.IsNullOrWhiteSpace(secrets.ClientId))
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = string.IsNullOrWhiteSpace(secrets.ClientSecret);
+        }
+
+        if (conditionResult)
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {

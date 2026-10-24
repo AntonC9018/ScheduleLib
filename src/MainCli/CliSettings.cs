@@ -137,7 +137,18 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         var value = block.Value;
         foreach (var part in parts.Skip(1))
         {
-            if (value is not JsonObject obj || !obj.TryGetPropertyValue(part, out value))
+            bool conditionResult;
+            if (value is not JsonObject obj)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = obj.TryGetPropertyValue(part, out value);
+                conditionResult = !(conditionResult);
+            }
+
+            if (conditionResult)
             {
                 throw new JsonException($"Unknown setting key: {key}");
             }
@@ -151,9 +162,29 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
             .Select(source => source with
             {
                 Keys = source.Keys.Where(x =>
-                    x == key
-                    || x.StartsWith((string) $"{key}.", StringComparison.Ordinal)
-                    || key.StartsWith((string) $"{x}.", StringComparison.Ordinal)).Order().ToArray(),
+                {
+                    bool CheckCondition()
+                    {
+                        if (x == key)
+                        {
+                            return true;
+                        }
+
+                        if (x.StartsWith((string) $"{key}.", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        if (key.StartsWith((string) $"{x}.", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    return CheckCondition();
+                }).Order().ToArray(),
             })
             .Where(source => source.Keys.Count != 0).ToArray();
     }
@@ -256,9 +287,7 @@ public static partial class CliSettings
             var tree = provider.GetRequiredService<TreeBuilder>();
             tree.AddDefaultConfig();
             var codeProfiles = tree.GetMarkerNodes().ToDictionary(
-                x => x.Config.TeacherName.ToString(),
-                x => x.Builder.Node,
-                StringComparer.Ordinal);
+keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Builder.Node, StringComparer.Ordinal);
             if (arguments.Profile is { } teacher && !codeProfiles.ContainsKey(teacher))
             {
                 throw new JsonException(
@@ -381,7 +410,17 @@ public static partial class CliSettings
                 }
 
                 var actions = GetOperations(file.Operations, profile);
-                if (values is null && actions is null)
+                bool conditionResult;
+                if (values is null)
+                {
+                    conditionResult = actions is null;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     return;
                 }
@@ -544,9 +583,25 @@ public static partial class CliSettings
             envelope,
             ["schemaVersion", "defaults", "profiles", "operations"],
             path);
-        if (envelope["schemaVersion"] is not JsonValue version
-            || !version.TryGetValue<int>(out var schema)
-            || schema != 1)
+        bool conditionResult2;
+        if (envelope["schemaVersion"] is not JsonValue version)
+        {
+            conditionResult2 = true;
+        }
+        else
+        {
+            bool conditionValue = version.TryGetValue<int>(out var schema);
+            if (!conditionValue)
+            {
+                conditionResult2 = true;
+            }
+            else
+            {
+                conditionResult2 = schema != 1;
+            }
+        }
+
+        if (conditionResult2)
         {
             throw new JsonException($"Unsupported or missing schemaVersion in {path}; expected 1.");
         }
@@ -595,8 +650,17 @@ public static partial class CliSettings
 
             foreach (var setting in values)
             {
-                if (location.StartsWith("profiles.", StringComparison.Ordinal)
-                    && setting.Key == "ScheduleDerivationConfig")
+                bool conditionResult;
+                if (location.StartsWith("profiles.", StringComparison.Ordinal))
+                {
+                    conditionResult = setting.Key == "ScheduleDerivationConfig";
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 }
@@ -695,9 +759,24 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                if (IsSecret(entry.Key)
-                    || entry.Key == "$type"
-                    && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
+                bool conditionResult;
+                if (IsSecret(entry.Key))
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    if (entry.Key == "$type")
+                    {
+                        conditionResult = entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource";
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+
+                if (conditionResult)
                 {
                     throw new JsonException(
                         $"Inline secrets are unsupported in settings file {file}; reference the existing credential configuration instead.");
@@ -925,15 +1004,19 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
         }
 
         var value = reader.GetString()!;
-        if (value.Length == 9
-            && value[0] == '#'
-            && uint.TryParse(
+        if (value.Length == 9)
+        {
+            if (value[0] == '#')
+            {
+                if (uint.TryParse(
                 value.AsSpan(1),
                 System.Globalization.NumberStyles.HexNumber,
                 System.Globalization.CultureInfo.InvariantCulture,
                 out var argb))
-        {
-            return Color.FromArgb(unchecked((int) argb));
+                {
+                    return Color.FromArgb(unchecked((int) argb));
+                }
+            }
         }
 
         var color = Color.FromName(value);

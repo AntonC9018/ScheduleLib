@@ -29,8 +29,28 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
         {
             var matchingSources = attendance.StudentNameSources(key).ToArray();
             var coveredGroups = matchingSources.SelectMany(source => source.Key.Groups).ToHashSet();
-            if (matchingSources.Length == 0 || matchingSources.Any(source => source.Names.Count == 0)
-                || key.Groups.Any(parent => !coveredGroups.Contains(parent))) complete = false;
+            bool CheckCondition()
+            {
+                if (matchingSources.Length == 0)
+                {
+                    return true;
+                }
+
+                if (matchingSources.Any(source => source.Names.Count == 0))
+                {
+                    return true;
+                }
+
+                if (key.Groups.Any(parent => !coveredGroups.Contains(parent)))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
+                complete = false;
             foreach (var source in matchingSources)
             {
                 var audience = source.Key;
@@ -77,7 +97,7 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
                 }
             }
             var unknown = new List<Name>();
-            foreach (var roster in component.Where(roster => roster.Complete && roster.Sources.Count != 0))
+            foreach (var roster in component.Where(roster => { if (!(roster.Complete)) { return false; } if (!(roster.Sources.Count != 0)) { return false; } return true; }))
             {
                 var names = NamesInDb.Create([.. roster.Sources.SelectMany(source =>
                     source.Value.Select(student => student.Key).Concat(

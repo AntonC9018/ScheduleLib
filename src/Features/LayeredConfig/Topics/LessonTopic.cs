@@ -253,7 +253,13 @@ public sealed class LessonTopicsFromDatabase : ILessonTopics
                 return null;
             }
 
-            return provider.Get(key.DayIndex);
+            var result = provider.Get(key.DayIndex);
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
         }
         return null;
     }
@@ -293,7 +299,12 @@ public readonly record struct TopicsGroupsKey
     {
         if (GroupPartition is { } partition)
         {
-            return partition == groupPartition;
+            if (partition == groupPartition)
+            {
+                return true;
+            }
+
+            return false;
         }
         return true;
     }
@@ -308,7 +319,13 @@ public readonly record struct TopicsGroupsKey
         {
             return false;
         }
-        return this.IsLessonGroupsMatch(key.Groups);
+
+        if (this.IsLessonGroupsMatch(key.Groups))
+        {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -565,10 +582,35 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             foreach (var (lang, groups) in lessonGroups)
             {
+                bool CheckCondition()
+                {
+                    if (document.WholeGroupOnly)
+                    {
+                        return true;
+                    }
+
+                    if (document.SubGroup is not null)
+                    {
+                        return true;
+                    }
+
+                    if (document.Specialization is not null)
+                    {
+                        return true;
+                    }
+
+                    if (document.Alternative is not null)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
                 bylang.SetupBuilder(this, lang, groups,
-                    document.WholeGroupOnly || document.SubGroup is not null || document.Specialization is not null || document.Alternative is not null
-                        ? new GroupPartitionKey(new SubGroup(document.SubGroup), new Specialization(document.Specialization), new Alternative(document.Alternative)) : null,
-                    document.AllowMissingLessonTypes);
+                                    CheckCondition()
+                                        ? new GroupPartitionKey(new SubGroup(document.SubGroup), new Specialization(document.Specialization), new Alternative(document.Alternative)) : null,
+                                    document.AllowMissingLessonTypes);
             }
 
             await foreach (var lessonTopic in e)
@@ -930,6 +972,12 @@ file struct TopicsByLanguage()
         {
             return GetBuilder(self, language);
         }
-        return _arr.TryGet(language, out var builder) ? builder : null;
+
+        if (_arr.TryGet(language, out var builder))
+        {
+            return builder;
+        }
+
+        return null;
     }
 }

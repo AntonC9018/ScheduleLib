@@ -27,7 +27,22 @@ public sealed class CalendarReportingTests
                 Status: "completed",
                 new { index = 0 },
                 new ProbeMessage(probe)));
-            Assert.Equal(expected: json || jsonl ? 0 : 1, actual: probe.Calls);
+            bool CheckCondition()
+            {
+                if (json)
+                {
+                    return true;
+                }
+
+                if (jsonl)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            Assert.Equal(expected: CheckCondition() ? 0 : 1, actual: probe.Calls);
             if (jsonl)
             {
                 using var document = JsonDocument.Parse(text.ToString());

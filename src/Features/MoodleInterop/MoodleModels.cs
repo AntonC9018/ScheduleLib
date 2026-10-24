@@ -7,7 +7,7 @@ namespace QuizModels;
 // ============================================================================
 
 [XmlRoot("quiz")]
-public class Quiz
+public sealed class Quiz
 {
     [XmlElement("question")]
     public List<QuestionBase> Questions { get; set; } = new();
@@ -22,7 +22,7 @@ public abstract class QuestionBase
     public string Type { get; set; } = string.Empty;
 }
 
-public class CategoryQuestion : QuestionBase
+public sealed class CategoryQuestion : QuestionBase
 {
     [XmlElement("category")]
     public Category Category { get; set; } = new();
@@ -34,7 +34,7 @@ public class CategoryQuestion : QuestionBase
     public string IdNumber { get; set; } = string.Empty;
 }
 
-public class EssayQuestion : QuestionBase
+public sealed class EssayQuestion : QuestionBase
 {
     [XmlElement("name")]
     public TextElement Name { get; set; } = new();
@@ -91,7 +91,7 @@ public class EssayQuestion : QuestionBase
     public FormattedText ResponseTemplate { get; set; } = new();
 }
 
-public class MultiChoiceQuestion : QuestionBase
+public sealed class MultiChoiceQuestion : QuestionBase
 {
     [XmlElement("name")]
     public TextElement Name { get; set; } = new();
@@ -142,19 +142,19 @@ public class MultiChoiceQuestion : QuestionBase
     public List<Answer> Answers { get; set; } = new();
 }
 
-public class Category
+public sealed class Category
 {
     [XmlElement("text")]
     public string Text { get; set; } = string.Empty;
 }
 
-public class TextElement
+public sealed class TextElement
 {
     [XmlElement("text")]
     public string Text { get; set; } = string.Empty;
 }
 
-public class FormattedText
+public sealed class FormattedText
 {
     [XmlAttribute("format")]
     public string Format { get; set; } = string.Empty;
@@ -163,7 +163,7 @@ public class FormattedText
     public string Text { get; set; } = string.Empty;
 }
 
-public class Answer
+public sealed class Answer
 {
     [XmlAttribute("fraction")]
     public decimal Fraction { get; set; }
@@ -178,7 +178,7 @@ public class Answer
     public FormattedText Feedback { get; set; } = new();
 }
 
-public class ShownumCorrect
+public sealed class ShownumCorrect
 {
 }
 
@@ -186,14 +186,14 @@ public class ShownumCorrect
 // Mutable Builder Models
 // ============================================================================
 
-public class MutableEssayQuestion
+public sealed class MutableEssayQuestion
 {
     public string Name { get; set; } = string.Empty;
     public string QuestionText { get; set; } = string.Empty;
     public decimal DefaultGrade { get; set; } = 1.0m;
 }
 
-public class MutableMultiChoiceQuestion
+public sealed class MutableMultiChoiceQuestion
 {
     public string Name { get; set; } = string.Empty;
     public string QuestionText { get; set; } = string.Empty;
@@ -201,13 +201,13 @@ public class MutableMultiChoiceQuestion
     public List<MutableAnswer> Answers { get; set; } = new();
 }
 
-public class MutableAnswer
+public sealed class MutableAnswer
 {
     public string Text { get; set; } = string.Empty;
     public decimal Fraction { get; set; }
 }
 
-public class AnswerBuilder
+public sealed class AnswerBuilder
 {
     private string _text = string.Empty;
     private decimal _fraction = 0m;
@@ -244,7 +244,7 @@ public class AnswerBuilder
 // Builders
 // ============================================================================
 
-public class QuizBuilder
+public sealed class QuizBuilder
 {
     private readonly List<object> _questionBuilders = new();
     private string _categoryText = "$module$/top/Implicit pentru Atestare 1";
@@ -312,7 +312,7 @@ public class QuizBuilder
     }
 }
 
-public class EssayQuestionBuilder
+public sealed class EssayQuestionBuilder
 {
     private readonly MutableEssayQuestion _question = new();
 
@@ -374,7 +374,7 @@ public class EssayQuestionBuilder
     }
 }
 
-public class MultiChoiceQuestionBuilder
+public sealed class MultiChoiceQuestionBuilder
 {
     private readonly MutableMultiChoiceQuestion _question = new();
 
@@ -522,7 +522,7 @@ public class MultiChoiceQuestionBuilder
 // Example Usage
 // ============================================================================
 
-public class Example
+public sealed class Example
 {
     public static void Demo()
     {

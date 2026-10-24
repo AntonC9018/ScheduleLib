@@ -21,12 +21,18 @@ public sealed class LessonTokenReader : ITokenReader
 
     public TokenType Read(ref SequenceReader reader)
     {
-        if (SkipWhitespace(ref reader).SkippedAny)
+        bool conditionResult;
+        global::ScheduleLib.Helper.Parsing.ParserHelper.SkipResult conditionValue = SkipWhitespace(ref reader);
+        conditionResult = conditionValue.SkippedAny;
+        if (conditionResult)
         {
             return TokenType.Whitespace;
         }
 
-        if (SkipRegular(ref reader).SkippedAny)
+        bool conditionResult2;
+        global::ScheduleLib.Helper.Parsing.ParserHelper.SkipResult conditionValue2 = SkipRegular(ref reader);
+        conditionResult2 = conditionValue2.SkippedAny;
+        if (conditionResult2)
         {
             bool isShort = reader.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
             var type = isShort ? LessonTokenType.ShortWord : LessonTokenType.Word;
@@ -46,17 +52,17 @@ public sealed class LessonTokenReader : ITokenReader
             case (char) LessonTokenType.ModifierGroupStart
                 or (char) LessonTokenType.ModifierGroupEnd
                 or (char) LessonTokenType.Star:
-            {
-                return (TokenType) ch;
-            }
+                {
+                    return (TokenType) ch;
+                }
             case ',' or '-' or ';' or ':' or '/':
-            {
-                return LessonTokenType.Separator;
-            }
+                {
+                    return LessonTokenType.Separator;
+                }
             default:
-            {
-                return TokenType.Invalid;
-            }
+                {
+                    return TokenType.Invalid;
+                }
         }
     }
 

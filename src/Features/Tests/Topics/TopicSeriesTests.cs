@@ -140,11 +140,13 @@ public sealed class TopicSeriesTests
             Assert.Null(topics.Get(Key(russian, LessonType.Lab, GroupPartitionKey.All, 0)));
             Assert.Null(topics.Get(Key(english, LessonType.Curs, GroupPartitionKey.All, 0)));
 
-            AttendanceLookupKey Key(GroupId group, LessonType type, GroupPartitionKey partition, int index) =>
-                new(new FoundGroups {
+            AttendanceLookupKey Key(GroupId group, LessonType type, GroupPartitionKey partition, int index)
+            {
+                return new(new FoundGroups {
                     Value = [group],
                     IsWildcard = false
                 }, partition, course, type, index, default);
+            }
 
             void Check(GroupId group, LessonType type, GroupPartitionKey partition, string first, string second)
             {

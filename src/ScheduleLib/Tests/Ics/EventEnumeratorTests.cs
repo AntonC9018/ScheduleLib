@@ -2,7 +2,7 @@ using ScheduleLib.Dates;
 
 namespace Tests.Ics;
 
-public class EventEnumeratorTests
+public sealed class EventEnumeratorTests
 {
     private static DateOnly[] Dates(Event e) => [.. e];
 

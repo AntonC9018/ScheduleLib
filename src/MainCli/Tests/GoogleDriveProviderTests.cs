@@ -409,9 +409,34 @@ public sealed class GoogleDriveProviderTests
         {
             // The API HttpClient cancels the interceptor's linked token when its deadline
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
-            if (request.RequestUri!.Host == "oauth2.googleapis.com"
-                && (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
-                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal)))
+            bool CheckCondition()
+            {
+                bool conditionResult;
+                if (request.RequestUri!.Host == "oauth2.googleapis.com")
+                {
+                    if (scenario.EndsWith("real-deadline", StringComparison.Ordinal))
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = scenario.EndsWith("real-cancel", StringComparison.Ordinal);
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
                 {
@@ -438,29 +463,112 @@ public sealed class GoogleDriveProviderTests
             }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
             {
-                return scenario == "refresh-success"
-                    ? Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}")
-                    : new HttpResponseMessage(HttpStatusCode.BadRequest)
-                    {
-                        Content = new StringContent(
-                            "{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}",
-                            Encoding.UTF8,
-                            "application/json"),
-                    };
+                if (scenario == "refresh-success")
+                {
+                    return Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}");
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(
+                           "{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}",
+                           Encoding.UTF8,
+                           "application/json"),
+                };
             }
 
-            if (scenario == "read-sent-real-deadline"
-                || scenario == "write-sent-real-deadline" && request.Method == HttpMethod.Post)
+            bool CheckCondition2()
+            {
+                bool conditionResult2;
+                if (scenario == "read-sent-real-deadline")
+                {
+                    conditionResult2 = true;
+                }
+                else
+                {
+                    if (scenario == "write-sent-real-deadline")
+                    {
+                        conditionResult2 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+                }
+
+                if (conditionResult2)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition2())
             {
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("The sent API request must time out.");
             }
-            if (scenario == "read-cancel" || scenario == "write-cancel" && request.Method == HttpMethod.Post)
+            bool CheckCondition3()
+            {
+                bool conditionResult3;
+                if (scenario == "read-cancel")
+                {
+                    conditionResult3 = true;
+                }
+                else
+                {
+                    if (scenario == "write-cancel")
+                    {
+                        conditionResult3 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult3 = false;
+                    }
+                }
+
+                if (conditionResult3)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition3())
             {
                 cancellation.Cancel();
                 throw new OperationCanceledException(cancellation.Token);
             }
-            if (scenario == "read-timeout" || scenario == "write-timeout" && request.Method == HttpMethod.Post)
+            bool CheckCondition4()
+            {
+                bool conditionResult4;
+                if (scenario == "read-timeout")
+                {
+                    conditionResult4 = true;
+                }
+                else
+                {
+                    if (scenario == "write-timeout")
+                    {
+                        conditionResult4 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult4 = false;
+                    }
+                }
+
+                if (conditionResult4)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition4())
             {
                 throw new TaskCanceledException("private-provider-diagnostic", new TimeoutException());
             }
@@ -470,7 +578,34 @@ public sealed class GoogleDriveProviderTests
                 throw new HttpRequestException("private-provider-diagnostic");
             }
 
-            if (scenario == "preview-401" || scenario == "apply-401" && request.Method == HttpMethod.Post)
+            bool CheckCondition5()
+            {
+                bool conditionResult5;
+                if (scenario == "preview-401")
+                {
+                    conditionResult5 = true;
+                }
+                else
+                {
+                    if (scenario == "apply-401")
+                    {
+                        conditionResult5 = request.Method == HttpMethod.Post;
+                    }
+                    else
+                    {
+                        conditionResult5 = false;
+                    }
+                }
+
+                if (conditionResult5)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition5())
             {
                 return new HttpResponseMessage(HttpStatusCode.Unauthorized)
                 {
@@ -587,13 +722,31 @@ public sealed class GoogleDriveProviderTests
                 Assert.All(
                     outcomes.Take(completed),
                     x => Assert.Equal(expected: "completed", actual: x.GetProperty("state").GetString()));
+                bool CheckCondition6()
+                {
+                    if (scenario.StartsWith("write-", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    if (scenario.EndsWith("refresh-cancel", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
                 Assert.Equal(
-                    expected: scenario.StartsWith("write-", StringComparison.Ordinal)
-                    || (scenario.EndsWith("refresh-cancel", StringComparison.Ordinal)
-                        || scenario.EndsWith("real-cancel", StringComparison.Ordinal))
-                        ? "uncertain"
-                        : "failed",
-                    actual: outcomes[completed].GetProperty("state").GetString());
+                                    expected: CheckCondition6()
+                                        ? "uncertain"
+                                        : "failed",
+                                    actual: outcomes[completed].GetProperty("state").GetString());
                 Assert.All(
                     outcomes.Skip(completed + 1),
                     x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state").GetString()));

@@ -8,8 +8,33 @@ public sealed class QuizArguments : IArgumentModel
     [Option("quiz-id", Description = "Required positive numeric Moodle quiz ID.")]
     public string? QuizId { get; set; }
 
-    internal bool IsValid =>
-        QuizId is { Length: > 0 } && QuizId.All(x => x is >= '0' and <= '9') && QuizId.Any(x => x != '0');
+    internal bool IsValid
+    {
+        get
+        {
+            bool CheckCondition()
+            {
+                if (!(QuizId is { Length: > 0 }))
+                {
+                    return false;
+                }
+
+                if (!(QuizId.All(x => x is >= '0' and <= '9')))
+                {
+                    return false;
+                }
+
+                if (!(QuizId.Any(x => x != '0')))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        }
+    }
 }
 
 public sealed record RegistryGradeOutcome(
@@ -221,7 +246,7 @@ public partial class RegistryCommands
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,

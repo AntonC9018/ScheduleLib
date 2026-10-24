@@ -3,7 +3,7 @@ using ScheduleLib.Generation.Ics;
 
 namespace Tests.Ics;
 
-public class IcsCalendarWriterTests
+public sealed class IcsCalendarWriterTests
 {
     private static IcsCalendar Calendar(params IcsEvent[] events)
     {
@@ -171,7 +171,30 @@ public class IcsCalendarWriterTests
         var lines = PhysicalLines(calendar);
         var summaryLines = lines
             .SkipWhile(l => !l.StartsWith("SUMMARY:"))
-            .TakeWhile((l, i) => i == 0 || l.StartsWith(" ") || l.StartsWith("\t"))
+            .TakeWhile((l, i) =>
+            {
+                bool CheckCondition()
+                {
+                    if (i == 0)
+                    {
+                        return true;
+                    }
+
+                    if (l.StartsWith(" "))
+                    {
+                        return true;
+                    }
+
+                    if (l.StartsWith("\t"))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                return CheckCondition();
+            })
             .ToArray();
 
         Assert.True(summaryLines.Length > 1, "expected the summary to be folded");

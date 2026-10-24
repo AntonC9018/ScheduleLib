@@ -140,7 +140,12 @@ public readonly struct SizedItemArray<T>
     {
         if (FindPosition(oldItem) is { } index)
         {
-            return ReplaceItem(index, newItem);
+            if (ReplaceItem(index, newItem))
+            {
+                return true;
+            }
+
+            return false;
         }
         return false;
     }
@@ -206,12 +211,22 @@ public readonly struct SizedItemArray<T>
         if (existingItemSize == sizeOfItems)
         {
             existingItemRef = items[0];
-            _items.InsertRange(existing.Index + 1, items[1 ..]);
+            _items.InsertRange(existing.Index + 1, items[1..]);
             return ReplaceItemStatus.FullyReplaced;
         }
 
         int remainingSizeEnd = availableSize - sizeOfItems;
-        if (offset > 0 && remainingSizeEnd > 0)
+        bool conditionResult;
+        if (offset > 0)
+        {
+            conditionResult = remainingSizeEnd > 0;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             existingItemRef = existingItemRef.WithSize(offset);
             var newItem = existingItemRef.WithSize(remainingSizeEnd);
@@ -230,14 +245,34 @@ public readonly struct SizedItemArray<T>
             return ReplaceItemStatus.Spliced;
         }
 
-        if (offset == 0 && remainingSizeEnd > 0)
+        bool conditionResult2;
+        if (offset == 0)
+        {
+            conditionResult2 = remainingSizeEnd > 0;
+        }
+        else
+        {
+            conditionResult2 = false;
+        }
+
+        if (conditionResult2)
         {
             existingItemRef = existingItemRef.WithSize(remainingSizeEnd);
             _items.InsertRange(existing.Index, items);
             return ReplaceItemStatus.PartlyReplaced;
         }
 
-        if (offset > 0 && remainingSizeEnd == 0)
+        bool conditionResult3;
+        if (offset > 0)
+        {
+            conditionResult3 = remainingSizeEnd == 0;
+        }
+        else
+        {
+            conditionResult3 = false;
+        }
+
+        if (conditionResult3)
         {
             existingItemRef = existingItemRef.WithSize(offset);
             _items.InsertRange(existing.Index + 1, items);

@@ -85,7 +85,7 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         // Get all writable properties
         _writableProperties = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite && p.CanRead)
+            .Where(p => { if (!(p.CanWrite)) { return false; } if (!(p.CanRead)) { return false; } return true; })
             .ToArray();
 
         // error if there are public fields
@@ -109,7 +109,11 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         {
             to = _basicOperations.Empty();
         }
-        if (from == null || to == null)
+        if (from == null)
+        {
+            throw new ArgumentNullException(from == null ? nameof(from) : nameof(to));
+        }
+        if (to == null)
         {
             throw new ArgumentNullException(from == null ? nameof(from) : nameof(to));
         }

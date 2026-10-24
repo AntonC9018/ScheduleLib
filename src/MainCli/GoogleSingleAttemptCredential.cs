@@ -23,9 +23,31 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (credential is UserCredential user
-                && string.IsNullOrEmpty(user.Token?.RefreshToken)
-                && (user.Token is null || user.Token.IsStale))
+            bool conditionResult;
+            if (credential is UserCredential user)
+            {
+                if (string.IsNullOrEmpty(user.Token?.RefreshToken))
+                {
+                    if (user.Token is null)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = user.Token.IsStale;
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 throw AuthorizationFailure();
             }
@@ -66,11 +88,37 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         // SDK throw site (async state machine) and its exact timeout-only terminal
         // condition, never arbitrary InvalidOperationException or credential messages.
         var declaringType = error.TargetSite?.DeclaringType;
-        return credential is UserCredential
-            && declaringType?.Assembly == typeof(UserCredential).Assembly
-            && declaringType.DeclaringType?.FullName == "Google.Apis.Auth.OAuth2.TokenRefreshManager"
-            && declaringType.Name.StartsWith("<RefreshTokenAsync>", StringComparison.Ordinal)
-            && error.Message
-            == "The access token has expired and could not be refreshed. Errors: timeout, timeout, timeout";
+        bool CheckCondition()
+        {
+            if (!(credential is UserCredential))
+            {
+                return false;
+            }
+
+            if (!(declaringType?.Assembly == typeof(UserCredential).Assembly))
+            {
+                return false;
+            }
+
+            if (!(declaringType.DeclaringType?.FullName == "Google.Apis.Auth.OAuth2.TokenRefreshManager"))
+            {
+                return false;
+            }
+
+            if (!(declaringType.Name.StartsWith("<RefreshTokenAsync>", StringComparison.Ordinal)))
+            {
+                return false;
+            }
+
+            if (!(error.Message
+                        == "The access token has expired and could not be refreshed. Errors: timeout, timeout, timeout"))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        return CheckCondition();
     }
 }

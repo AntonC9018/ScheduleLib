@@ -91,7 +91,17 @@ public partial class ExportCommands
 
             using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
-            if (!preDefense && teacher is null)
+            bool conditionResult;
+            if (!preDefense)
+            {
+                conditionResult = teacher is null;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 return await Finish(
                     CliExit.InvalidConfiguration,

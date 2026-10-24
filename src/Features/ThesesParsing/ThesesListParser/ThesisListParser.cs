@@ -116,11 +116,26 @@ public sealed class ThesisListParser(
             switch (targetThesisType)
             {
                 case ThesisType.An:
-                    return comparer.Contains(x: s.Name, y: "an");
+                    if (comparer.Contains(x: s.Name, y: "an"))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 case ThesisType.Licenta:
-                    return comparer.Contains(x: s.Name, y: "licenta");
+                    if (comparer.Contains(x: s.Name, y: "licenta"))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 case ThesisType.Master:
-                    return comparer.Contains(x: s.Name, y: "master");
+                    if (comparer.Contains(x: s.Name, y: "master"))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 default:
                     throw Unreachable();
             }
@@ -383,7 +398,17 @@ public sealed class ThesisListParser(
 
     private static bool TrySkipParenthesizedText(ref SequenceReader reader)
     {
-        if (reader.IsEmpty || reader.Current != '(')
+        bool conditionResult;
+        if (reader.IsEmpty)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = reader.Current != '(';
+        }
+
+        if (conditionResult)
         {
             return false;
         }

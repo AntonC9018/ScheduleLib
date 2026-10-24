@@ -24,8 +24,40 @@ public sealed class RegistryConfigTests
         var result = merger.Merge(@from: [replacementRule], @into: [existingRule, unrelatedRule]);
 
         Assert.Equal(expected: 2, actual: result.Count);
-        Assert.Contains(result, rule => rule.Faculty == "DJ" && rule.SubGroup == "eng"
-            && rule.Language == Language.Ro && !rule.MatchByLanguage && !rule.AllowParentGroup);
+        Assert.Contains(result, rule =>
+        {
+            bool CheckCondition()
+            {
+                if (!(rule.Faculty == "DJ"))
+                {
+                    return false;
+                }
+
+                if (!(rule.SubGroup == "eng"))
+                {
+                    return false;
+                }
+
+                if (!(rule.Language == Language.Ro))
+                {
+                    return false;
+                }
+
+                if (!(!rule.MatchByLanguage))
+                {
+                    return false;
+                }
+
+                if (!(!rule.AllowParentGroup))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        });
         Assert.Contains(result, rule => rule.Faculty == "IA" && rule.SubGroup == "eng"
             && rule.Language == Language.En && rule.MatchByLanguage);
     }

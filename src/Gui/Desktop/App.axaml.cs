@@ -127,8 +127,14 @@ public static class ServiceProviderExtensions
                     {
                         return false;
                     }
-                    return d.ImplementationType != null
-                        && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType);
+
+                    if (d.ImplementationType != null
+                       && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 })
                 .Select(d => d.ImplementationType!.FullName)
                 .ToList();

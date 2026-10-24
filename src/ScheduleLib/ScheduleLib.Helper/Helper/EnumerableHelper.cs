@@ -59,7 +59,12 @@ public static class EnumerableExtensions
         {
             if (source.TryGetNonEnumeratedCount(out int count))
             {
-                return count >= 2;
+                if (count >= 2)
+                {
+                    return true;
+                }
+
+                return false;
             }
             using var e = source.GetEnumerator();
             if (!e.MoveNext())
@@ -289,7 +294,17 @@ public static class EnumerableExtensions
         using var e2 = b.GetEnumerator().RememberIsDone();
         while (true)
         {
-            if (e1.IsDone || e2.IsDone)
+            bool conditionResult;
+            if (e1.IsDone)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = e2.IsDone;
+            }
+
+            if (conditionResult)
             {
                 break;
             }
@@ -311,36 +326,36 @@ public static class EnumerableExtensions
                 switch (duplicateBehavior)
                 {
                     case MergeDuplicateBehavior.KeepBoth:
-                    {
-                        yield return c1;
-                        e1.MoveNext();
-                        yield return c2;
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c1;
+                            e1.MoveNext();
+                            yield return c2;
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.KeepFirst:
-                    {
-                        yield return c1;
-                        e1.MoveNext();
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c1;
+                            e1.MoveNext();
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.KeepSecond:
-                    {
-                        yield return c2;
-                        e1.MoveNext();
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c2;
+                            e1.MoveNext();
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.Fail:
-                    {
-                        throw new InvalidOperationException(
-                            "Merging two sequences with duplicates not allowed");
-                    }
+                        {
+                            throw new InvalidOperationException(
+                                "Merging two sequences with duplicates not allowed");
+                        }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
             }
         }

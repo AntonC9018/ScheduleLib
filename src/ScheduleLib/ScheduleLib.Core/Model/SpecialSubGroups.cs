@@ -152,6 +152,26 @@ public static class SpecialSubGroups
 
     public static bool IsLanguageSubGroup(this SubGroup subGroup)
     {
-        return subGroup == Ro || subGroup == Ru || subGroup == Eng;
+        bool CheckCondition()
+        {
+            if (subGroup == Ro)
+            {
+                return true;
+            }
+
+            if (subGroup == Ru)
+            {
+                return true;
+            }
+
+            if (subGroup == Eng)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        return CheckCondition();
     }
 }

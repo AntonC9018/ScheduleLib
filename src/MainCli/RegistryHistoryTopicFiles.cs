@@ -219,8 +219,24 @@ public static class RegistryHistoryTopicFiles
     {
         for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
         {
-            if (current.LinkTarget is not null
-                || current.Exists && (current.Attributes & FileAttributes.ReparsePoint) != 0)
+            bool conditionResult;
+            if (current.LinkTarget is not null)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (current.Exists)
+                {
+                    conditionResult = (current.Attributes & FileAttributes.ReparsePoint) != 0;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+
+            if (conditionResult)
             {
                 throw new IOException("Private history output requires regular directories.");
             }

@@ -293,7 +293,17 @@ public static class NameHelper
 
         static void ErrorOnInvalidToken(ref LexerScope lexer)
         {
-            if (!lexer.IsEmpty && lexer.Current.Type == TokenType.Invalid)
+            bool conditionResult;
+            if (!lexer.IsEmpty)
+            {
+                conditionResult = lexer.Current.Type == TokenType.Invalid;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 throw lexer.NameParsingException("Invalid token");
             }

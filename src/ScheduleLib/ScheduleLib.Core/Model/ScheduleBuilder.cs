@@ -144,9 +144,27 @@ public static partial class ScheduleBuilderHelper
 
         void ValidateSubGroup(SubGroup subGroup, in LessonGroups groups)
         {
-            if (subGroup == SubGroup.All
-                || SpecialSubGroups.AllSpecial.Contains(subGroup)
-                || NumberHelper.FromRoman(subGroup.Value) is not null)
+            bool CheckCondition()
+            {
+                if (subGroup == SubGroup.All)
+                {
+                    return true;
+                }
+
+                if (SpecialSubGroups.AllSpecial.Contains(subGroup))
+                {
+                    return true;
+                }
+
+                if (NumberHelper.FromRoman(subGroup.Value) is not null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 return;
             }
@@ -345,11 +363,13 @@ public static partial class ScheduleBuilderHelper
         static TeacherNameRemapStatus Impl(ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
         {
             var status = TeacherNameRemapStatus.None;
-            if (!name.LastName.IsNull
-                && s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+            if (!name.LastName.IsNull)
             {
-                name.LastName = t;
-                status = TeacherNameRemapStatus.LastName;
+                if (s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+                {
+                    name.LastName = t;
+                    status = TeacherNameRemapStatus.LastName;
+                }
             }
 
             var copy = name;

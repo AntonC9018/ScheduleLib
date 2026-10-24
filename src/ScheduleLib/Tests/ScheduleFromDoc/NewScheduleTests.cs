@@ -20,7 +20,12 @@ public sealed class NewScheduleTests
             {
                 if (x.Weekly is { } w)
                 {
-                    return w.Date.Period == schedule.LatestPeriodId();
+                    if (w.Date.Period == schedule.LatestPeriodId())
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
                 return true;
             })

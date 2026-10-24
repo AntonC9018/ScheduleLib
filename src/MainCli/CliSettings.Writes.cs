@@ -43,7 +43,17 @@ public static partial class CliSettings
             cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
-        if (!unset && operation is null)
+        bool conditionResult;
+        if (!unset)
+        {
+            conditionResult = operation is null;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             try
             {

@@ -71,7 +71,12 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
         }
         var keyx = _keyGetter(x);
         var keyy = _keyGetter(y);
-        return _propEquality.Equals(x: keyx, y: keyy);
+        if (_propEquality.Equals(x: keyx, y: keyy))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int GetHashCode([DisallowNull] T obj)

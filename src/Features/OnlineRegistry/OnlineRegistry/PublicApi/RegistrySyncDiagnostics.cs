@@ -55,25 +55,65 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
     {
         var source = schedule.Get(lessonId);
         Cover(new(source.Lesson.Course, parent, partition));
-        if (source.Lesson.Type is not (LessonType.Curs or LessonType.Prelegere)
-            || partition != GroupPartitionKey.All || !source.Lesson.Groups.IsSingleGroup)
+        bool CheckCondition()
+        {
+            if (source.Lesson.Type is not (LessonType.Curs or LessonType.Prelegere))
+            {
+                return true;
+            }
+
+            if (partition != GroupPartitionKey.All)
+            {
+                return true;
+            }
+
+            if (!source.Lesson.Groups.IsSingleGroup)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
             return;
 
         var host = schedule.Get(parent);
-        if (host.Language is not (Language.Ro or Language.Ru)) return;
+        if (host.Language is not (Language.Ro or Language.Ru))
+            return;
         var intake = schedule.EnumerateGroups().Where(group => SameIntake(first: host, second: group.Item)).ToArray();
         if (intake.Any(group => group.Item.Language == Language.None)
-            || intake.GroupBy(group => group.Item.Language).Any(groups => groups.Count() > 1)) return;
+            || intake.GroupBy(group => group.Item.Language).Any(groups => groups.Count() > 1))
+            return;
 
         foreach (var target in _remaining.Where(target => target.Course == source.Lesson.Course).ToArray())
         {
             var audience = schedule.Get(target.Group);
-            if (!SameIntake(first: host, second: audience)
-                || target.Partition != new GroupPartitionKey(SpecialSubGroups.FromLanguage(host.Language), Specialization.All)
-                || !rules.Any(rule => rule.MatchByLanguage && rule.AllowParentGroup
-                    && rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase)
-                    && rule.Language == audience.Language && rule.Language != host.Language
-                    && rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)) continue;
+            bool CheckCondition2()
+            {
+                if (!SameIntake(first: host, second: audience))
+                {
+                    return true;
+                }
+
+                if (target.Partition != new GroupPartitionKey(SpecialSubGroups.FromLanguage(host.Language), Specialization.All))
+                {
+                    return true;
+                }
+
+                if (!rules.Any(rule => rule.MatchByLanguage && rule.AllowParentGroup
+                                    && rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase)
+                                    && rule.Language == audience.Language && rule.Language != host.Language
+                                    && rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition2())
+                continue;
 
             // Language partitions in a separate parent can attend the exact same lecture.
             // Its existing parent-language destination already synchronizes that event.
@@ -82,7 +122,8 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
                 && candidate.Lesson.GroupPartitionKey == target.Partition
                 && (candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }) == source.Lesson
                 && SameDate(first: source, second: candidate));
-            if (shared) Cover(target);
+            if (shared)
+                Cover(target);
         }
     }
 
@@ -96,9 +137,25 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
     private static bool SameDate(AnyLessonAccessor first, AnyLessonAccessor second)
     {
         if (first.Weekly is { } weekly && second.Weekly is { } otherWeekly)
-            return weekly.Date == otherWeekly.Date;
+        {
+            if (weekly.Date == otherWeekly.Date)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         if (first.OneTime is { } oneTime && second.OneTime is { } otherOneTime)
-            return oneTime.Date == otherOneTime.Date;
+        {
+            if (oneTime.Date == otherOneTime.Date)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         return false;
     }
 

@@ -130,7 +130,13 @@ public sealed class GroupPartitionInfo
         {
             return false;
         }
-        return IncludesSubGroup(in combination, in lesson);
+
+        if (IncludesSubGroup(in combination, in lesson))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool IncludesAlternative(in GroupCombination combination, in LessonData lesson)
@@ -144,8 +150,14 @@ public sealed class GroupPartitionInfo
             // Inactive: the annotation behaves as shared for this group.
             return true;
         }
-        return combination.Alternative is { } selected
-            && selected == lesson.Alternative;
+
+        if (combination.Alternative is { } selected
+           && selected == lesson.Alternative)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool IncludesSpecialization(in GroupCombination combination, in LessonData lesson)
@@ -159,8 +171,14 @@ public sealed class GroupPartitionInfo
             // Inactive: the annotation behaves as shared for this group.
             return true;
         }
-        return combination.Specialization is { } selected
-            && selected == lesson.Specialization;
+
+        if (combination.Specialization is { } selected
+           && selected == lesson.Specialization)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IncludesSubGroup(in GroupCombination combination, in LessonData lesson)

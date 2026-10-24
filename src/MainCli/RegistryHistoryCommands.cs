@@ -72,9 +72,27 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         try
         {
             credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>().Get();
-            if (credentials is null
-                || string.IsNullOrWhiteSpace(credentials.Login)
-                || string.IsNullOrWhiteSpace(credentials.Password))
+            bool CheckCondition()
+            {
+                if (credentials is null)
+                {
+                    return true;
+                }
+
+                if (string.IsNullOrWhiteSpace(credentials.Login))
+                {
+                    return true;
+                }
+
+                if (string.IsNullOrWhiteSpace(credentials.Password))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 throw new InvalidOperationException();
             }

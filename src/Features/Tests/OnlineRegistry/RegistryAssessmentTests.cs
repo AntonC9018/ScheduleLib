@@ -80,8 +80,25 @@ public sealed class RegistryAssessmentTests
         {
             LessonId = new WeeklyLessonId(index).AsAny(),
         }).ToArray();
-        var remote = lessons.Select((lesson, index) => Remote(lesson,
-            index == 0 ? "Atestare 1" : "Existing topic " + index)).ToArray();
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.LessonInstance lesson, int index)
+        {
+            global::ScheduleLib.OnlineRegistry.LessonInstance operationValue = lesson;
+            string operationValue2;
+            if (index == 0)
+            {
+                operationValue2 = "Atestare 1";
+            }
+            else
+            {
+                operationValue2 = "Existing topic " + index;
+            }
+
+            string operationValue3 = operationValue2;
+            global::ScheduleLib.OnlineRegistry.RemoteLessonInstance operationValue4 = Remote(operationValue, operationValue3);
+            return operationValue4;
+        }
+
+        var remote = lessons.Select(ProjectValue).ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[3])], (_, _) => null,
             lesson => [new GroupId(lesson.LessonId.Id % 2)]);
         Assert.Equal(expected: new[] { "Existing topic 1", "Existing topic 2", "Existing topic 3", "Atestare 1" },
@@ -159,7 +176,27 @@ public sealed class RegistryAssessmentTests
     public void ApplyingMovedTopicsProducesAnIdempotentEquationPlan()
     {
         var lessons = Lessons();
-        var remote = lessons.Select((lesson, index) => Remote(lesson, index < 2 ? "Atestare " + (index + 1) : "Synthetic old topic")).ToArray();
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.LessonInstance lesson, int index)
+        {
+            global::ScheduleLib.OnlineRegistry.LessonInstance operationValue = lesson;
+            string operationValue2;
+            if (index < 2)
+            {
+                string operationValue3 = "Atestare ";
+                int operationValue4 = index + 1;
+                operationValue2 = operationValue3 + (operationValue4);
+            }
+            else
+            {
+                operationValue2 = "Synthetic old topic";
+            }
+
+            string operationValue5 = operationValue2;
+            global::ScheduleLib.OnlineRegistry.RemoteLessonInstance operationValue6 = Remote(operationValue, operationValue5);
+            return operationValue6;
+        }
+
+        var remote = lessons.Select(ProjectValue).ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[2], lessons[3])], Topic);
         var schedule = new ScheduleBuilder().Build();
         var derivation = new SameDayDerivation();
@@ -197,7 +234,25 @@ public sealed class RegistryAssessmentTests
     public void ConfiguredMoveWithoutImportedTopicsFlowsExistingRegistryTopics()
     {
         var lessons = Lessons();
-        var remote = lessons.Select((lesson, index) => Remote(lesson, index == 0 ? "Atestare 1" : "Existing topic " + index)).ToArray();
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.LessonInstance lesson, int index)
+        {
+            global::ScheduleLib.OnlineRegistry.LessonInstance operationValue = lesson;
+            string operationValue2;
+            if (index == 0)
+            {
+                operationValue2 = "Atestare 1";
+            }
+            else
+            {
+                operationValue2 = "Existing topic " + index;
+            }
+
+            string operationValue3 = operationValue2;
+            global::ScheduleLib.OnlineRegistry.RemoteLessonInstance operationValue4 = Remote(operationValue, operationValue3);
+            return operationValue4;
+        }
+
+        var remote = lessons.Select(ProjectValue).ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[3])], (_, _) => null);
         Assert.Equal(expected: new[] { "Existing topic 1", "Existing topic 2", "Existing topic 3", "Atestare 1" }, actual: result.Local.Select(x => x.Topic));
     }

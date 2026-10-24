@@ -319,16 +319,26 @@ public sealed class ConsultationsLoaderComponent(
             switch (column)
             {
                 case Column.Name:
-                {
-                    var parser = new SequenceReader(t);
-                    var name = NameHelper.TryParseName(ref parser);
-                    if (!parser.IsEmpty || name is null)
                     {
-                        throw cell.Exception($"'{t}' did not parser as a name");
+                        var parser = new SequenceReader(t);
+                        var name = NameHelper.TryParseName(ref parser);
+                        bool conditionResult;
+                        if (!parser.IsEmpty)
+                        {
+                            conditionResult = true;
+                        }
+                        else
+                        {
+                            conditionResult = name is null;
+                        }
+
+                        if (conditionResult)
+                        {
+                            throw cell.Exception($"'{t}' did not parser as a name");
+                        }
+                        Data.Name = name;
+                        return true;
                     }
-                    Data.Name = name;
-                    return true;
-                }
                 case Column.Time:
                 {
                     TimeInterval interval;
@@ -520,28 +530,46 @@ public static class HashHelper
             static int CompareScopes(ImplicitSplitScope x, ImplicitSplitScope y)
             {
                 int c;
-                if ((c = Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value)) != 0)
+                bool conditionResult;
+                int conditionValue = c = Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value);
+                conditionResult = (conditionValue) != 0;
+                if (conditionResult)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value)) != 0)
+                bool conditionResult2;
+                int conditionValue2 = c = Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value);
+                conditionResult2 = (conditionValue2) != 0;
+                if (conditionResult2)
                 {
                     return c;
                 }
-                if ((c = string.Compare(strA: x.Faculty?.Name, strB: y.Faculty?.Name, StringComparison.Ordinal)) != 0)
+                bool conditionResult3;
+                int conditionValue3 = c = string.Compare(strA: x.Faculty?.Name, strB: y.Faculty?.Name, StringComparison.Ordinal);
+                conditionResult3 = (conditionValue3) != 0;
+                if (conditionResult3)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode)) != 0)
+                bool conditionResult4;
+                int conditionValue4 = c = Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode);
+                conditionResult4 = (conditionValue4) != 0;
+                if (conditionResult4)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(n1: x.Qualification, n2: y.Qualification)) != 0)
+                bool conditionResult5;
+                int conditionValue5 = c = Nullable.Compare(n1: x.Qualification, n2: y.Qualification);
+                conditionResult5 = (conditionValue5) != 0;
+                if (conditionResult5)
                 {
                     return c;
                 }
-                if ((c = CompareCourses(
-                        xs: x.SpecializationCourses, ys: y.SpecializationCourses, static s => s.Value)) != 0)
+                bool conditionResult6;
+                int conditionValue6 = c = CompareCourses(
+                        xs: x.SpecializationCourses, ys: y.SpecializationCourses, static s => s.Value);
+                conditionResult6 = (conditionValue6) != 0;
+                if (conditionResult6)
                 {
                     return c;
                 }

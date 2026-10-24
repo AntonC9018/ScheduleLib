@@ -78,7 +78,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         writer.WriteStartObject();
 
         var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite);
+            .Where(p => { if (!(p.CanRead)) { return false; } if (!(p.CanWrite)) { return false; } return true; });
 
         foreach (var prop in props)
         {
@@ -96,11 +96,37 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
     public override bool CanConvert(Type typeToConvert)
     {
         // Check if the type is a user-defined type (not a primitive, enum, string, or built-in collection)
-        return !typeToConvert.IsPrimitive
-               && !typeToConvert.IsEnum
-               && typeToConvert != typeof(string)
-               && !typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert)
-               && !typeToConvert.IsGenericType;
+        bool CheckCondition()
+        {
+            if (!(!typeToConvert.IsPrimitive))
+            {
+                return false;
+            }
+
+            if (!(!typeToConvert.IsEnum))
+            {
+                return false;
+            }
+
+            if (!(typeToConvert != typeof(string)))
+            {
+                return false;
+            }
+
+            if (!(!typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert)))
+            {
+                return false;
+            }
+
+            if (!(!typeToConvert.IsGenericType))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        return CheckCondition();
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)

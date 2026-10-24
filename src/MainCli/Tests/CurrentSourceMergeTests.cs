@@ -38,12 +38,36 @@ public sealed class CurrentSourceMergeTests
                 },
                 actual: raw.Periods.Select(x => x.Start));
             var cloudLabs = raw.EnumerateWeeklyLessons().Where(x =>
-                    x.Lesson.Type == LessonType.Lab
-                    && x.Lesson.Groups.IsSingleGroup
-                    && raw.Get(x.Lesson.Group).Name == "IA2402"
-                    && raw.Get(x.Lesson.Course).Names.Any(name => name.Contains(
-                        "Cloud",
-                        StringComparison.OrdinalIgnoreCase)))
+            {
+                bool CheckCondition()
+                {
+                    if (!(x.Lesson.Type == LessonType.Lab))
+                    {
+                        return false;
+                    }
+
+                    if (!(x.Lesson.Groups.IsSingleGroup))
+                    {
+                        return false;
+                    }
+
+                    if (!(raw.Get(x.Lesson.Group).Name == "IA2402"))
+                    {
+                        return false;
+                    }
+
+                    if (!(raw.Get(x.Lesson.Course).Names.Any(name => name.Contains(
+                                            "Cloud",
+                                            StringComparison.OrdinalIgnoreCase))))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                return CheckCondition();
+            })
                 .ToArray();
             Assert.Contains(
                 cloudLabs,

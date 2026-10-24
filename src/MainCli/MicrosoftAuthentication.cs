@@ -253,10 +253,32 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                 []);
         }
 
-        if (binding.SchemaVersion != 1
-            || string.IsNullOrWhiteSpace(binding.TenantId)
-            || string.IsNullOrWhiteSpace(binding.ClientId)
-            || string.IsNullOrWhiteSpace(binding.AccountId))
+        bool CheckCondition()
+        {
+            if (binding.SchemaVersion != 1)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.TenantId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.ClientId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.AccountId))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
         {
             throw new IOException("Microsoft authorization binding is invalid; log in explicitly to reprovision it.");
         }
@@ -298,7 +320,17 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
 
     private static void Validate(MicrosoftAuthConfig config, string profile)
     {
-        if (string.IsNullOrWhiteSpace(config.TenantId) || string.IsNullOrWhiteSpace(config.ClientId))
+        bool conditionResult;
+        if (string.IsNullOrWhiteSpace(config.TenantId))
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = string.IsNullOrWhiteSpace(config.ClientId);
+        }
+
+        if (conditionResult)
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }

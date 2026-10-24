@@ -19,20 +19,30 @@ public static class RegistryAssessmentTopics
 {
     public static bool IsAssessment([NotNullWhen(true)] string? topic)
     {
-        if (string.IsNullOrWhiteSpace(topic)) return false;
+        if (string.IsNullOrWhiteSpace(topic))
+            return false;
         var text = topic.Normalize(NormalizationForm.FormD);
         var word = new StringBuilder();
         foreach (var c in text)
         {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
-            if (char.IsLetter(c)) word.Append(char.ToLowerInvariant(c));
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                continue;
+            if (char.IsLetter(c))
+                word.Append(char.ToLowerInvariant(c));
             else
             {
-                if (IsAssessmentWord(word.ToString())) return true;
+                if (IsAssessmentWord(word.ToString()))
+                    return true;
                 word.Clear();
             }
         }
-        return IsAssessmentWord(word.ToString());
+
+        if (IsAssessmentWord(word.ToString()))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsAssessmentWord(string word) => word is "atestare" or "atestarea" or "atestari" or "atestarile";
@@ -43,12 +53,45 @@ internal static class RegistryAssessments
     internal static IReadOnlyList<RegistryAssessmentRule> Find(IReadOnlyList<RegistryAssessmentRule> rules,
         Schedule schedule, CourseId course, in LessonGroups groups, GroupPartitionKey partition)
     {
-        if (groups.IsEmpty || !groups.IsSingleGroup) return [];
+        bool conditionResult;
+        if (groups.IsEmpty)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = groups.IsSingleGroup;
+            conditionResult = !(conditionResult);
+        }
+
+        if (conditionResult)
+            return [];
         var groupName = schedule.Get(groups[0]).Name;
-        return rules.Where(rule => string.Equals(rule.Course, schedule.Get(course).FullName, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(rule.Group, groupName, StringComparison.OrdinalIgnoreCase)
-            && partition == new GroupPartitionKey(new SubGroup(rule.SubGroup),
-                new Specialization(rule.Specialization), new Alternative(rule.Alternative))).ToArray();
+        return rules.Where(rule =>
+        {
+            bool CheckCondition()
+            {
+                if (!(string.Equals(rule.Course, schedule.Get(course).FullName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return false;
+                }
+
+                if (!(string.Equals(rule.Group, groupName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return false;
+                }
+
+                if (!(partition == new GroupPartitionKey(new SubGroup(rule.SubGroup),
+                                new Specialization(rule.Specialization), new Alternative(rule.Alternative))))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        }).ToArray();
     }
 
     // Attendance stays tied to the timetable occurrence. Only regular topics use the compacted index.
@@ -57,9 +100,10 @@ internal static class RegistryAssessments
         Func<LessonInstance, int, string?> getTopic,
         Func<LessonInstance, LessonGroups>? getTopicGroups = null)
     {
-        remote = remote.Select(assessment =>
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.RemoteLessonInstance assessment)
         {
-            if (assessment.LessonType != LessonType.Unspecified || !RegistryAssessmentTopics.IsAssessment(assessment.Topic)) return assessment;
+            if (assessment.LessonType != LessonType.Unspecified || !RegistryAssessmentTopics.IsAssessment(assessment.Topic))
+                return assessment;
             var types = local.Where(lesson => lesson.DateTime == assessment.DateTime)
                 .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
             if (types.Length == 0)
@@ -74,7 +118,8 @@ internal static class RegistryAssessments
             if (types.Length != 1)
                 throw new InvalidOperationException("An assessment without a lesson type requires an unambiguous scheduled lesson type.");
             return assessment with { LessonType = types[0] };
-        }).ToArray();
+        }
+        remote = remote.Select(ProjectValue).ToArray();
         var reserved = new Dictionary<int, string>();
         var protectedRemote = new HashSet<int>();
         var configuredTypes = new HashSet<LessonType>();
@@ -116,7 +161,7 @@ internal static class RegistryAssessments
         var registryTopics = remote.Where(lesson => !string.IsNullOrWhiteSpace(lesson.Topic)
                 && !RegistryAssessmentTopics.IsAssessment(lesson.Topic))
             .GroupBy(lesson => lesson.LessonType)
-            .ToDictionary(group => group.Key, group => group.OrderBy(lesson => lesson.DateTime).Select(lesson => lesson.Topic!).ToArray());
+            .ToDictionary(keySelector: group => group.Key, elementSelector: group => group.OrderBy(lesson => lesson.DateTime).Select(lesson => lesson.Topic!).ToArray());
         for (int i = 0; i < local.Length; i++)
         {
             var lesson = local[i];
@@ -145,11 +190,9 @@ internal static class RegistryAssessments
 
         bool ReserveExisting(RemoteLessonInstance assessment)
         {
-            var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].DateTime == assessment.DateTime
-                && (assessment.LessonType == LessonType.Unspecified || local[index].RegistryLessonType == assessment.LessonType)).ToArray();
+            var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime == assessment.DateTime) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
             if (candidates.Length == 0)
-                candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].DateTime.Date == assessment.DateTime.Date
-                    && (assessment.LessonType == LessonType.Unspecified || local[index].RegistryLessonType == assessment.LessonType)).ToArray();
+                candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime.Date == assessment.DateTime.Date) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
             if (candidates.Length == 0) return false;
             if (candidates.Length != 1 || reserved.ContainsKey(candidates[0]))
                 throw new InvalidOperationException("Multiple assessments identify the same scheduled lesson.");

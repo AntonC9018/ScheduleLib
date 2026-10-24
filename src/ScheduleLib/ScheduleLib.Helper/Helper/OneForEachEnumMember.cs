@@ -375,9 +375,27 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             // May still leak if it's a property inside another object,
             // but it's undetectable from here and literally cannot be prevented.
             ret.Dispose();
-            if (typeof(TValue).IsClass
-                && !typeof(TValue).IsSealed
-                && !typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            bool CheckCondition()
+            {
+                if (!(typeof(TValue).IsClass))
+                {
+                    return false;
+                }
+
+                if (!(!typeof(TValue).IsSealed))
+                {
+                    return false;
+                }
+
+                if (!(!typeof(TValue).IsAssignableTo(typeof(IDisposable))))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition())
             {
                 foreach (var x in ret)
                 {

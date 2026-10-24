@@ -739,10 +739,35 @@ public sealed class GroupCombinationTests
         });
 
         var info = schedule.GetGroupPartitionInfo().Single().Value;
-        var combination = info.Combinations.Single(c => c.Specialization == Specialization.CV
-            && c.Proficiency == SpecialSubGroups.Beginners
-            && c.Language == SpecialSubGroups.Ro
-            && c.Numeric == SubGroup.CreateNumeric(1));
+        var combination = info.Combinations.Single(c =>
+        {
+            bool CheckCondition()
+            {
+                if (!(c.Specialization == Specialization.CV))
+                {
+                    return false;
+                }
+
+                if (!(c.Proficiency == SpecialSubGroups.Beginners))
+                {
+                    return false;
+                }
+
+                if (!(c.Language == SpecialSubGroups.Ro))
+                {
+                    return false;
+                }
+
+                if (!(c.Numeric == SubGroup.CreateNumeric(1)))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        });
 
         Assert.True(info.IncludesLesson(combination, Lesson("Shared")));
         Assert.True(info.IncludesLesson(combination, Lesson("Numeric I")));
@@ -758,8 +783,22 @@ public sealed class GroupCombinationTests
         LessonData Lesson(string courseName, SubGroup? subGroup = null)
         {
             return schedule.EnumerateAllLessons()
-                .Single(x => schedule.Get(x.Lesson.Course).FullName == courseName
-                    && (subGroup is null || x.Lesson.SubGroup == subGroup))
+                .Single(x =>
+                {
+                    bool conditionResult;
+                    if (schedule.Get(x.Lesson.Course).FullName == courseName)
+                    {
+                        if (subGroup is null)
+                        { conditionResult = true; }
+                        else
+                        { conditionResult = x.Lesson.SubGroup == subGroup; }
+                    }
+                    else
+                    { conditionResult = false; }
+                    if (conditionResult)
+                    { return true; }
+                    return false;
+                })
                 .Lesson;
         }
     }

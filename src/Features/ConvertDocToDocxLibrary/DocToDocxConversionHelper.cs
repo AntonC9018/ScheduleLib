@@ -49,7 +49,8 @@ public static class DocToDocxConversionHelper
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                try { File.WriteAllText(path: cancellationPath, contents: "cancel"); }
+                try
+                { File.WriteAllText(path: cancellationPath, contents: "cancel"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
                 var converterExited = await WaitForExitBounded(process, TimeSpan.FromSeconds(2));
@@ -58,7 +59,8 @@ public static class DocToDocxConversionHelper
                 // Never terminate an unknown, preexisting, or recycled PID.
                 ownershipReadCancellation.Cancel();
                 ownedWord = await ownership;
-                if (ownedWord is not null) TerminateProcess(ownedWord.SafeHandle, 130);
+                if (ownedWord is not null)
+                    TerminateProcess(ownedWord.SafeHandle, 130);
                 if (!converterExited)
                 {
                     TryKillConverter(process);
@@ -66,7 +68,13 @@ public static class DocToDocxConversionHelper
                 }
                 throw;
             }
-            return ClassifyConverterExit(process.ExitCode);
+
+            if (ClassifyConverterExit(process.ExitCode))
+            {
+                return true;
+            }
+
+            return false;
         }
         finally
         {

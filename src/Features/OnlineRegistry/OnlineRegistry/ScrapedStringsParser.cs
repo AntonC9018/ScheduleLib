@@ -86,7 +86,18 @@ public static partial class RegistryScraping
         }
 
         mainParser.SkipWhitespace();
-        if (!mainParser.IsEmpty && !isRepeat)
+        bool conditionResult;
+        if (!mainParser.IsEmpty)
+        {
+            conditionResult = isRepeat;
+            conditionResult = !(conditionResult);
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             JustThrow("trailing group suffix");
         }
@@ -311,8 +322,13 @@ internal static class RegistryFacultyLabels
     {
         if (IsCombined(label))
         {
-            return faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
-                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase);
+            if (faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
+               || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
         }
         return label.Span.Equals(faculty, StringComparison.OrdinalIgnoreCase);
     }

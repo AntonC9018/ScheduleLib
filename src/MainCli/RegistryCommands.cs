@@ -140,7 +140,12 @@ public partial class RegistryCommands
                 await session.PlanGroups(ProcessGroup, cancellation.Token);
             }
 
-            return stopped ? finalExit : Finish(CliExit.Success, []);
+            if (stopped)
+            {
+                return finalExit;
+            }
+
+            return Finish(CliExit.Success, []);
 
             async Task<bool> ProcessGroup(IReadOnlyList<RegistrySyncAction> plan)
             {
@@ -314,7 +319,7 @@ public partial class RegistryCommands
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,

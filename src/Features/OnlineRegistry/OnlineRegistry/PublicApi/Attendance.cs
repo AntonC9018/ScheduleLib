@@ -42,8 +42,38 @@ public readonly record struct AttendanceDate
         {
             return false;
         }
-        return (Year is null || dateTime.Year == Year)
-            && (Time is null || TimeOnly.FromDateTime(dateTime) == Time);
+        bool conditionResult;
+        if (Year is null)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = dateTime.Year == Year;
+        }
+
+        if (conditionResult)
+        {
+            if (Time is null)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = TimeOnly.FromDateTime(dateTime) == Time;
+            }
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -430,7 +460,18 @@ public readonly struct StudentAttendanceList
         {
             return list.StudentNames;
         }
-        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty) return NamesInDb.Empty;
+        bool conditionResult;
+        if (key.Groups.IsSingleGroup)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = key.Groups.IsEmpty;
+        }
+
+        if (conditionResult)
+            return NamesInDb.Empty;
         return NamesInDb.Create([.. ParentLists(key).SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
             .Select(student => student.Key))]);
     }
@@ -443,7 +484,18 @@ public readonly struct StudentAttendanceList
             yield return (key, list.StudentNames);
             yield break;
         }
-        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty) yield break;
+        bool conditionResult;
+        if (key.Groups.IsSingleGroup)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = key.Groups.IsEmpty;
+        }
+
+        if (conditionResult)
+            yield break;
         foreach (var parent in ParentLists(key))
             yield return (key.WithGroups(new LessonGroups { parent.Parent }), parent.Attendance.StudentNames);
     }
@@ -461,16 +513,40 @@ public readonly struct StudentAttendanceList
             groups: key.Groups.Value.Ordered(),
             groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
-        if (_map.TryGetValue(attendanceKey, out var list)) return GetDay(key, list);
-        if (attendanceKey.Groups.IsSingleGroup || attendanceKey.Groups.IsEmpty) return new([]);
+        if (_map.TryGetValue(attendanceKey, out var list))
+            return GetDay(key, list);
+        bool conditionResult;
+        if (attendanceKey.Groups.IsSingleGroup)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = attendanceKey.Groups.IsEmpty;
+        }
+
+        if (conditionResult)
+            return new([]);
         var attendance = ImmutableArray.CreateBuilder<Attendance>();
         foreach (var parent in ParentLists(attendanceKey))
         {
             // Separate sheets require dates: a shared audience's ordinal does not identify a parent's day.
             var active = key.ActiveGroups is not { } activeGroups || activeGroups.Contains(parent.Parent);
-            var day = active && parent.Attendance.Dates is not null ? GetDay(key, parent.Attendance).AsArray() : [];
-            if (day.Length == parent.Attendance.StudentNames.Count) attendance.AddRange(day);
-            else attendance.AddRange(Enumerable.Repeat(Attendance.None, parent.Attendance.StudentNames.Count));
+            bool conditionResult2;
+            if (active)
+            {
+                conditionResult2 = parent.Attendance.Dates is not null;
+            }
+            else
+            {
+                conditionResult2 = false;
+            }
+
+            var day = conditionResult2 ? GetDay(key, parent.Attendance).AsArray() : [];
+            if (day.Length == parent.Attendance.StudentNames.Count)
+                attendance.AddRange(day);
+            else
+                attendance.AddRange(Enumerable.Repeat(Attendance.None, parent.Attendance.StudentNames.Count));
         }
         return new(attendance.ToImmutable());
     }

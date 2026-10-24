@@ -228,12 +228,20 @@ public sealed class AttendanceExcelTests
 
         var submission = HtmlSearch.GetLessonForm(document).GetSubmission()!;
         using var reader = new StreamReader(submission.Body);
+        string ProjectValue(string[] @field)
+        {
+            string operationValue = field[1].Replace('+', ' ');
+            string operationValue2 = operationValue;
+            string operationValue3 = Uri.UnescapeDataString(operationValue2);
+            return operationValue3;
+        }
+
         var fields = (await reader.ReadToEndAsync())
             .Split('&')
             .Select(field => field.Split('=', 2))
             .ToDictionary(
                 keySelector: field => Uri.UnescapeDataString(field[0]),
-                elementSelector: field => Uri.UnescapeDataString(field[1].Replace('+', ' ')));
+                elementSelector: ProjectValue);
         Assert.Equal(expected: "a", actual: fields["StudentList[1001].NotaStr"]);
         Assert.Equal(expected: "am", actual: fields["StudentList[1002].NotaStr"]);
     }

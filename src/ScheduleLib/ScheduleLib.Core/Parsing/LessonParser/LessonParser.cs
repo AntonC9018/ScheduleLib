@@ -291,8 +291,17 @@ public static class LessonParsingHelper
 
             // Special case
             // Only appears to happen in Educatia fizica.
-            if (state.IsTerminalState
-                && state.Step is not ParsingStep.Output and not ParsingStep.Start)
+            bool conditionResult;
+            if (state.IsTerminalState)
+            {
+                conditionResult = state.Step is not ParsingStep.Output and not ParsingStep.Start;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 foreach (var x in DoOutput())
                 {
@@ -337,7 +346,17 @@ public static class LessonParsingHelper
                     foreach (var mod in lesson.Modifiers)
                     {
                         bool isDefaultKey = mod.Key == SubLessonModifiersKey.Default;
-                        if (isDefaultKey && shouldNotOutputDefaultKey)
+                        bool conditionResult;
+                        if (isDefaultKey)
+                        {
+                            conditionResult = shouldNotOutputDefaultKey;
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+
+                        if (conditionResult)
                         {
                             continue;
                         }
@@ -376,9 +395,25 @@ public static class LessonParsingHelper
                 foreach (var defaultMod in state2.DefaultModifiers)
                 {
                     ref var lesson1 = ref lessonsE.Current;
-                    if (defaultMod.SubGroup.IsEmpty
-                        && (defaultHasOtherThanAllSubGroup
-                            || !lesson1.Modifiers.IsEmpty))
+                    bool conditionResult3;
+                    if (defaultMod.SubGroup.IsEmpty)
+                    {
+                        if (defaultHasOtherThanAllSubGroup)
+                        {
+                            conditionResult3 = true;
+                        }
+                        else
+                        {
+                            conditionResult3 = lesson1.Modifiers.IsEmpty;
+                            conditionResult3 = !(conditionResult3);
+                        }
+                    }
+                    else
+                    {
+                        conditionResult3 = false;
+                    }
+
+                    if (conditionResult3)
                     {
                         continue;
                     }
@@ -405,8 +440,17 @@ public static class LessonParsingHelper
                     ref var lesson1 = ref lessonsE.Current;
                     ref var state3 = ref stateStack.First();
 
-                    if (lesson1.Modifiers.IsEmpty
-                        && state3.DefaultModifiers.IsEmpty)
+                    bool conditionResult2;
+                    if (lesson1.Modifiers.IsEmpty)
+                    {
+                        conditionResult2 = state3.DefaultModifiers.IsEmpty;
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+
+                    if (conditionResult2)
                     {
                         yield return Output(
                             subGroup: default,
@@ -469,7 +513,17 @@ public static class LessonParsingHelper
                 Apply(ref c);
                 return true;
             }
-            if (lexerCopy.IsEmpty && c.State.IsTerminalState)
+            bool conditionResult;
+            if (lexerCopy.IsEmpty)
+            {
+                conditionResult = c.State.IsTerminalState;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 Apply(ref c);
                 return true;
@@ -700,21 +754,43 @@ public static class LessonParsingHelper
                     // This is only done when there are modifiers,
                     // in order to disambiguate lessons with commas in name.
                     if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
-                    {
-                        c.StateStack.Push();
-                        if (TryParsingUntilOutputOrTerminalState(c)
-                            && (!c.State.LastModifiers.Specific.RoomName.IsEmpty
-                                || (c.State.LastModifiers.Specific.TeacherNames.Count != 0
-                                    && !c.State.LastModifiers.Specific.LastTeacher.IsNull)))
                         {
-                            c.StateStack.Pop(apply: true);
-                            return true;
-                        }
-                        c.StateStack.Pop(apply: false);
-                    }
+                            c.StateStack.Push();
+                            bool conditionResult;
+                            if (TryParsingUntilOutputOrTerminalState(c))
+                            {
+                                if (!c.State.LastModifiers.Specific.RoomName.IsEmpty)
+                                {
+                                    conditionResult = true;
+                                }
+                                else
+                                {
+                                    if (c.State.LastModifiers.Specific.TeacherNames.Count != 0)
+                                    {
+                                        conditionResult = c.State.LastModifiers.Specific.LastTeacher.IsNull;
+                                        conditionResult = !(conditionResult);
+                                    }
+                                    else
+                                    {
+                                        conditionResult = false;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                conditionResult = false;
+                            }
 
-                    // Default to another lesson name.
-                    c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
+                            if (conditionResult)
+                            {
+                                c.StateStack.Pop(apply: true);
+                                return true;
+                            }
+                            c.StateStack.Pop(apply: false);
+                        }
+
+                        // Default to another lesson name.
+                        c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                     return true;
                 }
 
@@ -1175,7 +1251,7 @@ public static class LessonParsingHelper
 
                 static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
                 {
-                    if (name.Any(x => !x.IsEmpty && x.Span[^1] == WordHelper.ShortenedWordCharacter))
+                    if (name.Any(x => { if (!(!x.IsEmpty)) { return false; } if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter)) { return false; } return true; }))
                     {
                         WrongFormatException.InvalidLastName();
                     }
@@ -1253,17 +1329,27 @@ public static class LessonParsingHelper
                     res.LastName = name1;
 
                     if (WhitespaceHandling_IsDone(c, ref copy))
-                    {
-                        return FullFormReturn(ref lexer);
-                    }
+                        {
+                            if (FullFormReturn(ref lexer))
+                            {
+                                return true;
+                            }
 
-                    var name2 = Name(ref copy);
+                            return false;
+                        }
+
+                        var name2 = Name(ref copy);
                     if (name2 == default)
-                    {
-                        return FullFormReturn(ref lexer);
-                    }
+                        {
+                            if (FullFormReturn(ref lexer))
+                            {
+                                return true;
+                            }
 
-                    if (onlyAllowFullForm)
+                            return false;
+                        }
+
+                        if (onlyAllowFullForm)
                     {
                         if (name2[0].Span[^1] == WordHelper.ShortenedWordCharacter)
                         {
@@ -1465,9 +1551,27 @@ public static class LessonParsingHelper
                 {
                     break;
                 }
-                if (t.Type == LessonTokenType.Number
-                    && t.Value.Length >= 2
-                    && !isInsideParen)
+                bool CheckCondition()
+                {
+                    if (!(t.Type == LessonTokenType.Number))
+                    {
+                        return false;
+                    }
+
+                    if (!(t.Value.Length >= 2))
+                    {
+                        return false;
+                    }
+
+                    if (!(!isInsideParen))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (CheckCondition())
                 {
                     break;
                 }
@@ -1782,7 +1886,12 @@ public sealed class RoomParser
         {
             if (lexer.Current.Type == LessonTokenType.Word)
             {
-                return TryAllUnderscore(ref lexer);
+                if (TryAllUnderscore(ref lexer))
+                {
+                    return true;
+                }
+
+                return false;
             }
             {
                 bool x = NumberAndOptionalLetter(ref lexer);
@@ -1964,7 +2073,13 @@ internal struct DefaultModifiersList() : IBasic<DefaultModifiersList>
         {
             return true;
         }
-        return !Ref(0).SubGroup.IsEmpty;
+
+        if (!Ref(0).SubGroup.IsEmpty)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int FindIndex(ReadOnlyMemory<char> subGroup)
@@ -2020,7 +2135,13 @@ internal struct SubLessonModifiersList() : IBasic<SubLessonModifiersList>
         {
             return true;
         }
-        return Ref(0).Key != SubLessonModifiersKey.Default;
+
+        if (Ref(0).Key != SubLessonModifiersKey.Default)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int FindIndex(SubLessonModifiersKey key)

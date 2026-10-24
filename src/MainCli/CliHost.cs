@@ -36,7 +36,27 @@ public static class CliHost
         var hasJsonl = args.Contains("--jsonl");
         var hasHelp = args.Contains("--help") || args.Contains("-h");
         CapturingConsole? capture = null;
-        if (hasJsonl && !hasJson && !hasHelp)
+        bool CheckCondition()
+        {
+            if (!(hasJsonl))
+            {
+                return false;
+            }
+
+            if (!(!hasJson))
+            {
+                return false;
+            }
+
+            if (!(!hasHelp))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        if (CheckCondition())
         {
             capture = new();
             runner.Configure(builder => builder.Console = capture);
@@ -52,14 +72,54 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-                inputFailure = !invoked
-                    && (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
+                bool conditionResult;
+                if (!invoked)
+                {
+                    if (context.ParseResult?.ParseError is not null)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = exit == ExitCodes.ValidationError;
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                inputFailure = conditionResult;
                 if (!invoked && context.ParseResult?.ParseError is not null)
                 {
                     parseDetail = context.ParseResult.ParseError.ToString();
                 }
 
-                if (exit != CliExit.Success && !invoked && (args.Contains("--json") || args.Contains("--jsonl")))
+                bool conditionResult2;
+                if (exit != CliExit.Success)
+                {
+                    if (!invoked)
+                    {
+                        if (args.Contains("--json"))
+                        {
+                            conditionResult2 = true;
+                        }
+                        else
+                        {
+                            conditionResult2 = args.Contains("--jsonl");
+                        }
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+                }
+                else
+                {
+                    conditionResult2 = false;
+                }
+
+                if (conditionResult2)
                 {
                     context.ShowHelpOnExit = false;
                 }
@@ -71,14 +131,34 @@ public static class CliHost
         {
             configure?.Invoke(runner);
             var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
-            if (result == 0 || invoked)
+            bool conditionResult;
+            if (result == 0)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = invoked;
+            }
+
+            if (conditionResult)
             {
                 return result;
             }
 
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            bool conditionResult2;
+            if (hasJson)
+            {
+                conditionResult2 = hasJsonl;
+            }
+            else
+            {
+                conditionResult2 = false;
+            }
+
+            if (conditionResult2)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
@@ -129,12 +209,33 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            bool conditionResult3;
+            if (hasJson)
+            {
+                conditionResult3 = hasJsonl;
+            }
+            else
+            {
+                conditionResult3 = false;
+            }
+
+            if (conditionResult3)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
-            if (hasJsonl && !hasJson)
+            bool conditionResult4;
+            if (hasJsonl)
+            {
+                conditionResult4 = hasJson;
+                conditionResult4 = !(conditionResult4);
+            }
+            else
+            {
+                conditionResult4 = false;
+            }
+
+            if (conditionResult4)
             {
                 var output = new CliOutput(
                     "cli",
@@ -166,7 +267,17 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            bool conditionResult;
+            if (hasJson)
+            {
+                conditionResult = hasJsonl;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 return;
             }
@@ -320,9 +431,42 @@ public partial class QueryCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            if (query.BeforeSlot is < 1 or > 7
-                || query.Day is { } day && !Enum.IsDefined(day)
-                || query.Parity is { } parity && !Enum.IsDefined(parity))
+            bool conditionResult;
+            if (query.BeforeSlot is < 1 or > 7)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (query.Day is { } day)
+                {
+                    conditionResult = Enum.IsDefined(day);
+                    conditionResult = !(conditionResult);
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    if (query.Parity is { } parity)
+                    {
+                        conditionResult = Enum.IsDefined(parity);
+                        conditionResult = !(conditionResult);
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+            }
+
+            if (conditionResult)
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -354,10 +498,66 @@ public partial class QueryCommands
                          .EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
-                if (query.Room is { } r && lesson.Lesson.Room.Id != r
-                    || query.Day is { } d && lesson.Date.DayOfWeek != d
-                    || query.Parity is { } p && !lesson.Date.Parity.IsMatch(p)
-                    || query.BeforeSlot is { } slot && lesson.Date.TimeSlot.Index + 1 > slot)
+                bool conditionResult2;
+                if (query.Room is { } r)
+                {
+                    conditionResult2 = lesson.Lesson.Room.Id != r;
+                }
+                else
+                {
+                    conditionResult2 = false;
+                }
+
+                if (conditionResult2)
+                {
+                    conditionResult2 = true;
+                }
+                else
+                {
+                    if (query.Day is { } d)
+                    {
+                        conditionResult2 = lesson.Date.DayOfWeek != d;
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+
+                    if (conditionResult2)
+                    {
+                        conditionResult2 = true;
+                    }
+                    else
+                    {
+                        if (query.Parity is { } p)
+                        {
+                            conditionResult2 = lesson.Date.Parity.IsMatch(p);
+                            conditionResult2 = !(conditionResult2);
+                        }
+                        else
+                        {
+                            conditionResult2 = false;
+                        }
+
+                        if (conditionResult2)
+                        {
+                            conditionResult2 = true;
+                        }
+                        else
+                        {
+                            if (query.BeforeSlot is { } slot)
+                            {
+                                conditionResult2 = lesson.Date.TimeSlot.Index + 1 > slot;
+                            }
+                            else
+                            {
+                                conditionResult2 = false;
+                            }
+                        }
+                    }
+                }
+
+                if (conditionResult2)
                 {
                     continue;
                 }

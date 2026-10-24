@@ -6,7 +6,7 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
 
-public class RegistryScrapingTests
+public sealed class RegistryScrapingTests
 {
     private static GroupForSearch Parse(string input)
     {

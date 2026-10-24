@@ -69,11 +69,15 @@ public sealed class OutputDirectory
             path: _directory,
             searchPattern: pattern,
             enumerationOptions: options);
-        var ret = files.Select(x =>
-        {
-            var separatorLen = 1;
-            var ret = x[(_directory.Length + separatorLen) ..];
-            return new RelativeFilePath(ret);
+        var ret = files.Select(x => {
+            global::ScheduleLib.Application.Core.Helper.RelativeFilePath ProjectValue()
+            {
+                var separatorLen = 1;
+                var ret = x[(_directory.Length + separatorLen)..];
+                return new RelativeFilePath(ret);
+            }
+
+            return ProjectValue();
         });
         return ret;
     }

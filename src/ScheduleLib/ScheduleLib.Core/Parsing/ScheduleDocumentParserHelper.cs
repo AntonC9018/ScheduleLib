@@ -63,7 +63,17 @@ public static class ScheduleDocumentParserHelper
             {
                 throw new NotSupportedException("Expected time range start");
             }
-            if (reader.IsEmpty || reader.Current != '-')
+            bool conditionResult;
+            if (reader.IsEmpty)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = reader.Current != '-';
+            }
+
+            if (conditionResult)
             {
                 if (allowOpenInterval)
                 {

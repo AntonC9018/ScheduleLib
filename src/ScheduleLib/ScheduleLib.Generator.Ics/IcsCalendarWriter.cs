@@ -162,9 +162,27 @@ public static class IcsCalendarWriter
         {
             int charLen = 1;
             int charOctets;
-            if (char.IsHighSurrogate(line[i])
-                && i + 1 < line.Length
-                && char.IsLowSurrogate(line[i + 1]))
+            bool CheckCondition()
+            {
+                if (!(char.IsHighSurrogate(line[i])))
+                {
+                    return false;
+                }
+
+                if (!(i + 1 < line.Length))
+                {
+                    return false;
+                }
+
+                if (!(char.IsLowSurrogate(line[i + 1])))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition())
             {
                 charLen = 2;
                 charOctets = 4;

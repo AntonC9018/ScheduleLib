@@ -129,13 +129,14 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             FilteredUserNames.Clear();
             if (tempArr.Count != 0)
             {
+                (global::ScheduleLib.Parsing.Name Name, global::Desktop.MainWindow.MatchScore Score, int ScoreInt) ProjectValue(global::ScheduleLib.Parsing.Name x)
+                {
+                    var scoreData = MatchScore.Create(x, tempArr);
+                    var scoreInt = scoreData.AsInt();
+                    return (Name: x, Score: scoreData, ScoreInt: scoreInt);
+                }
                 var matchesWithScores = matches
-                    .Select(x =>
-                    {
-                        var scoreData = MatchScore.Create(x, tempArr);
-                        var scoreInt = scoreData.AsInt();
-                        return (Name: x, Score: scoreData, ScoreInt: scoreInt);
-                    })
+                    .Select(ProjectValue)
                     .Where(x => x.ScoreInt > 0)
                     .OrderByDescending(x => x.ScoreInt)
                     .ThenBy(x => x.Name, NameAlphabeticComparer.CurrentCultureIgnoreCase);

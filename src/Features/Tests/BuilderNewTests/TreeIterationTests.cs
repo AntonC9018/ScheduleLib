@@ -94,7 +94,17 @@ public sealed class TreeIterationTests
         foreach (var x in e)
         {
             // Skip children when we process Root
-            if (x.LayerName == "Root" && x.State == DfsVisitationState.Process)
+            bool conditionResult;
+            if (x.LayerName == "Root")
+            {
+                conditionResult = x.State == DfsVisitationState.Process;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 x.Controller.Action = DfsAction.PreventRecursionOnce;
             }
@@ -125,7 +135,17 @@ public sealed class TreeIterationTests
         // Act
         foreach (var x in e)
         {
-            if (x.LayerName == "Child1" && x.State == DfsVisitationState.BeforeProcess)
+            bool conditionResult;
+            if (x.LayerName == "Child1")
+            {
+                conditionResult = x.State == DfsVisitationState.BeforeProcess;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 x.Controller.Action = DfsAction.KeepPreventingRecursion;
             }

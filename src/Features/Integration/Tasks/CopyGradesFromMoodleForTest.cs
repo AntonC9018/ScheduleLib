@@ -80,12 +80,32 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 notices.Add(new(Kind: "omitted", Detail: $"Moodle student has no grade: {q.UserName}"));
                 continue;
             }
-            if (!float.IsFinite(grade1) || (double) grade1 > int.MaxValue || (double) grade1 < int.MinValue)
+            bool conditionResult2;
+            if (!float.IsFinite(grade1))
+            {
+                conditionResult2 = true;
+            }
+            else
+            {
+                double conditionValue = (double) grade1;
+                if (conditionValue > int.MaxValue)
+                {
+                    conditionResult2 = true;
+                }
+                else
+                {
+                    double conditionValue2 = (double) grade1;
+                    conditionResult2 = conditionValue2 < int.MinValue;
+                }
+            }
+
+            if (conditionResult2)
             {
                 notices.Add(new(Kind: "unsupported", Detail: $"Moodle grade is not a finite supported number: {q.UserName}"));
                 continue;
             }
-            if (gradeByName.ContainsKey(name)) notices.Add(new(Kind: "omitted", Detail: $"Earlier attempt replaced by the last graded attempt: {name}"));
+            if (gradeByName.ContainsKey(name))
+                notices.Add(new(Kind: "omitted", Detail: $"Earlier attempt replaced by the last graded attempt: {name}"));
             gradeByName[name] = grade1;
         }
 
@@ -119,7 +139,17 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             foreach (var group in await registryNav.GetGroups(course))
             {
-                if (group.Groups.IsWildcard || group.Groups.Value.Count == 0)
+                bool conditionResult;
+                if (group.Groups.IsWildcard)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    conditionResult = group.Groups.Value.Count == 0;
+                }
+
+                if (conditionResult)
                 {
                     notices.Add(new(Kind: "unsupported", Detail: $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}"));
                     continue;
@@ -252,7 +282,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     try
                     {
                         token.ThrowIfCancellationRequested();
-                        foreach (var input in inputs) input.Input.Value = input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        foreach (var input in inputs)
+                            input.Input.Value = input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         token.ThrowIfCancellationRequested();
                         await registryNav.SubmitGrades(test1Doc, token, () => started = true);
                     }

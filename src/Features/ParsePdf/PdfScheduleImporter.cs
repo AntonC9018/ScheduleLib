@@ -32,8 +32,19 @@ public static class PdfScheduleImporter
             var right = xs[^1];
             var headers = table.Cells.Where(c => Group.IsMatch(c.Text)).OrderBy(c => c.Bounds.Left).ToArray();
             if (headers.Length > 0)
-                columns = headers.Select(c => (Name: c.Text, Center: (c.Bounds.CenterX - left) / (right - left))).ToArray();
-            if (columns.Length == 0) throw new FormatException($"{source}, page {table.Page}: missing group header.");
+{
+                (string Name, double Center) ProjectValue(global::ScheduleLib.Import.Pdf.PdfTableCell c)
+                {
+                    string operationValue = c.Text;
+                    double operationValue2 = c.Bounds.CenterX - left;
+                    double operationValue3 = (operationValue2);
+                    double operationValue4 = right - left;
+                    double operationValue5 = operationValue3 / (operationValue4);
+                    return (Name: operationValue, Center: operationValue5);
+                }
+
+                columns = headers.Select(ProjectValue).ToArray();
+}            if (columns.Length == 0) throw new FormatException($"{source}, page {table.Page}: missing group header.");
             var days = table.Cells.Where(c => c.Bounds.Left == xs[0] && c.Text.Length > 0).ToArray();
             var times = table.Cells.Where(c => c.Bounds.Left == xs[1] && c.Text.Length > 0).ToArray();
             foreach (var day in days)
@@ -43,11 +54,52 @@ public static class PdfScheduleImporter
             foreach (var cell in table.Cells)
             {
                 var box = cell.Bounds;
-                if (box.Left < left || cell.Text.Length == 0 || Group.IsMatch(cell.Text)) continue;
+                bool CheckCondition()
+                {
+                    if (box.Left < left)
+                    {
+                        return true;
+                    }
+
+                    if (cell.Text.Length == 0)
+                    {
+                        return true;
+                    }
+
+                    if (Group.IsMatch(cell.Text))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition())
+                    continue;
                 var day = days.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom).ToArray();
                 var time = times.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom).ToArray();
                 var groups = columns.Where(c => box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right).Select(c => c.Name).ToArray();
-                if (day.Length != 1 || time.Length != 1 || groups.Length == 0)
+                bool CheckCondition2()
+                {
+                    if (day.Length != 1)
+                    {
+                        return true;
+                    }
+
+                    if (time.Length != 1)
+                    {
+                        return true;
+                    }
+
+                    if (groups.Length == 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition2())
                     throw new FormatException($"{source}, page {table.Page}: unmapped cell {box}: {cell.Text}");
                 var resolved = new PdfScheduleCell(Source: source, table.Page, groups, Day: day[0].Text, Start: Time.Match(time[0].Text).Groups[1].Value,
                     Text: PdfTextNormalizer.Normalize(cell.Text), RawText: cell.Text, Bounds: box);

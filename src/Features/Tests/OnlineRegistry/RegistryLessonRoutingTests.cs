@@ -472,12 +472,52 @@ public sealed class RegistryLessonRoutingTests
         foreach (var id in builder.LookupModule!.LessonsByCourse[course])
         {
             var lesson = schedule.Get(id).Lesson;
-            if (lesson.Groups.Count == 2 && lesson.Groups.Contains(first) && lesson.Groups.Contains(second))
+            bool CheckCondition()
+            {
+                if (!(lesson.Groups.Count == 2))
+                {
+                    return false;
+                }
+
+                if (!(lesson.Groups.Contains(first)))
+                {
+                    return false;
+                }
+
+                if (!(lesson.Groups.Contains(second)))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition())
             {
                 valid = id;
                 foundValid = true;
             }
-            if (lesson.Groups.Count == 2 && lesson.Groups.Contains(first) && lesson.Groups.Contains(outside))
+            bool CheckCondition2()
+            {
+                if (!(lesson.Groups.Count == 2))
+                {
+                    return false;
+                }
+
+                if (!(lesson.Groups.Contains(first)))
+                {
+                    return false;
+                }
+
+                if (!(lesson.Groups.Contains(outside)))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition2())
             {
                 tainted = id;
                 foundTainted = true;

@@ -121,17 +121,32 @@ public sealed class RegistryTests
             ? schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.Count > 1)
             : schedule.EnumerateWeeklyLessons().First();
         var destinationGroups = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups;
+        bool CheckCondition2()
+        {
+            if (!(!singleDestination))
+            {
+                return false;
+            }
+
+            if (!(!destinationGroups.IsSingleGroup))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         var navigator = new FixtureNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = !singleDestination && !destinationGroups.IsSingleGroup,
-                    Value = destinationGroups,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation")));
+                    lesson.Lesson.Course,
+                    new GroupLink(
+                        new FoundGroups
+                        {
+                            IsWildcard = CheckCondition2(),
+                            Value = destinationGroups,
+                        },
+                        lesson.Lesson.GroupPartitionKey,
+                        uri: new("https://registry.test/group"),
+                        evaluationUri: new("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
@@ -157,9 +172,30 @@ public sealed class RegistryTests
         {
             Assert.Contains(
                 diagnostics.Items,
-                item => item.Kind == "missing-registry-group"
-                    && item.Course == schedule.Get(lesson.Lesson.Course).FullName
-                    && item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
+                item =>
+                {
+                    bool CheckCondition()
+                    {
+                        if (!(item.Kind == "missing-registry-group"))
+                        {
+                            return false;
+                        }
+
+                        if (!(item.Course == schedule.Get(lesson.Lesson.Course).FullName))
+                        {
+                            return false;
+                        }
+
+                        if (!(item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name))
+                        {
+                            return false;
+                        }
+
+                        return true;
+                    }
+
+                    return CheckCondition();
+                });
         }
     }
 
@@ -703,45 +739,56 @@ public sealed class RegistryTests
                 "create",
                 "update",
                 "delete",
-            }.Select(kind => new RegistrySyncAction(
-                kind: kind,
-                destination: Target.Destination,
-                course: "course",
-                groups: "group",
-                new(
-                    year: 2026,
-                    month: 1,
-                    day: Plans),
-                topic: "topic",
-                2,
-                true,
-                omission: null,
-                async ct =>
+            }.Select(kind =>
+            {
+                global::ScheduleLib.OnlineRegistry.RegistrySyncAction ProjectValue()
                 {
-                    if (ActionFailure is not null)
-                    {
-                        throw ActionFailure;
-                    }
+                    string operationValue = kind;
+                    string operationValue2 = Target.Destination;
+                    string operationValue3 = "course";
+                    string operationValue4 = "group";
+                    global::System.DateTime operationValue5 = new(
+                                        year: 2026,
+                                        month: 1,
+                                        day: Plans);
+                    global::System.DateTime operationValue6 = operationValue5;
+                    string operationValue7 = "topic";
+                    int? operationValue8 = 2;
+                    bool operationValue9 = true;
+                    string? operationValue10 = null;
+                    global::System.Func<global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operationValue11 = async ct =>
+                                    {
+                                        if (ActionFailure is not null)
+                                        {
+                                            throw ActionFailure;
+                                        }
 
-                    if (kind == "delete")
-                    {
-                        await Navigator.SubmitDelete(null!);
-                    }
-                    else
-                    {
-                        await Navigator.SubmitLesson(null!);
-                    }
+                                        if (kind == "delete")
+                                        {
+                                            await Navigator.SubmitDelete(null!);
+                                        }
+                                        else
+                                        {
+                                            await Navigator.SubmitLesson(null!);
+                                        }
 
-                    if (FailSubmission)
-                    {
-                        throw new InvalidOperationException("validation failure");
-                    }
+                                        if (FailSubmission)
+                                        {
+                                            throw new InvalidOperationException("validation failure");
+                                        }
 
-                    if (CancelSecond && kind == "update")
-                    {
-                        throw new OperationCanceledException();
-                    }
-                })).ToArray();
+                                        if (CancelSecond && kind == "update")
+                                        {
+                                            throw new OperationCanceledException();
+                                        }
+                                    };
+                    global::ScheduleLib.OnlineRegistry.RegistrySyncAction operationValue12 = new RegistrySyncAction(
+                                    kind: operationValue, destination: operationValue2, course: operationValue3, groups: operationValue4, operationValue6, topic: operationValue7, operationValue8, operationValue9, omission: operationValue10, operationValue11);
+                    return operationValue12;
+                }
+
+                return ProjectValue();
+            }).ToArray();
             return Task.FromResult(actions);
         }
 

@@ -66,7 +66,12 @@ internal struct MatchedLessonData
             return true;
         }
 
-        return Local.RegistryLessonType == Remote.LessonType;
+        if (Local.RegistryLessonType == Remote.LessonType)
+        {
+            return true;
+        }
+
+        return false;
     }
     public readonly bool TopicEquals()
     {

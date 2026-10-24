@@ -30,8 +30,30 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             foreach (var destination in destinations)
             {
                 var group = destination.Group;
-                if (!group.Groups.IsWildcard && !group.Groups.IsCombined && group.Groups.Value.IsSingleGroup) continue;
-                if (!destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab)) continue;
+                bool CheckCondition()
+                {
+                    if (!(!group.Groups.IsWildcard))
+                    {
+                        return false;
+                    }
+
+                    if (!(!group.Groups.IsCombined))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.Groups.Value.IsSingleGroup))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (CheckCondition())
+                    continue;
+                if (!destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
+                    continue;
                 if (destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab
                     && _schedule.Get(id).Lesson.Groups.Where(group.Groups.Value.Contains).Any(parent =>
                         !destinations.Where(candidate => candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
@@ -70,7 +92,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             var document = await navigator.GetHtml(lesson.ViewUri);
                             token.ThrowIfCancellationRequested();
                             Exception? submissionError = null;
-                            try { await navigator.SubmitDelete(document, () => submissionStarted = true); }
+                            try
+                            { await navigator.SubmitDelete(document, () => submissionStarted = true); }
                             catch (Exception error) when (error is IOException or RegistrySubmissionRejectedException or RegistryDeletionRefusedException)
                             {
                                 // A refused or unconfirmed response must be resolved through reads, never another POST.
@@ -85,7 +108,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         catch (OperationCanceledException error) { throw new RegistryActionCancelledException(submissionStarted, error); }
                         catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
                     })).ToArray();
-                if (!await onGroupPlanned(actions)) return;
+                if (!await onGroupPlanned(actions))
+                    return;
             }
         }
 

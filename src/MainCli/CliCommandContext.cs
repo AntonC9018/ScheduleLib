@@ -21,7 +21,27 @@ public static class CliExit
 
     public static int AfterEffects(int exit, bool effects)
     {
-        if (effects && exit != Success && exit != Cancelled)
+        bool CheckCondition()
+        {
+            if (!(effects))
+            {
+                return false;
+            }
+
+            if (!(exit != Success))
+            {
+                return false;
+            }
+
+            if (!(exit != Cancelled))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        if (CheckCondition())
         {
             return Partial;
         }
@@ -74,7 +94,17 @@ public sealed class CliCommandContext : IDisposable
 
     public bool Start()
     {
-        if (Output.Json && Output.Jsonl)
+        bool conditionResult;
+        if (Output.Json)
+        {
+            conditionResult = Output.Jsonl;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
             return false;
@@ -91,7 +121,17 @@ public sealed class CliCommandContext : IDisposable
         bool partial = false,
         bool cancellation = true)
     {
-        if (cancellation && exit == CliExit.Cancelled)
+        bool conditionResult;
+        if (cancellation)
+        {
+            conditionResult = exit == CliExit.Cancelled;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return "cancelled";
         }
@@ -99,7 +139,17 @@ public sealed class CliCommandContext : IDisposable
         {
             return success;
         }
-        if (partial || exit == CliExit.Partial)
+        bool conditionResult2;
+        if (partial)
+        {
+            conditionResult2 = true;
+        }
+        else
+        {
+            conditionResult2 = exit == CliExit.Partial;
+        }
+
+        if (conditionResult2)
         {
             return "partial";
         }

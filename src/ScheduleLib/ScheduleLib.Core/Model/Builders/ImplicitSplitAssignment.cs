@@ -25,7 +25,25 @@ public static partial class ScheduleBuilderHelper
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstWeeklyLesson, s.WeeklyLessons.Count);
         ArgumentOutOfRangeException.ThrowIfNegative(firstOneTimeLesson);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstOneTimeLesson, s.OneTimeLessons.Count);
-        if (config is null || firstWeeklyLesson == s.WeeklyLessons.Count && firstOneTimeLesson == s.OneTimeLessons.Count) return;
+        bool conditionResult;
+        if (config is null)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            if (firstWeeklyLesson == s.WeeklyLessons.Count)
+            {
+                conditionResult = firstOneTimeLesson == s.OneTimeLessons.Count;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+        }
+
+        if (conditionResult)
+            return;
         s.Preprocess();
         s.Validate();
         s.ClassifySubGroups();
@@ -115,7 +133,17 @@ public static partial class ScheduleBuilderHelper
                     ResolveSpecialization(scope, names, courseName, ref spec);
                     ResolveAlternative(scope, names, courseName, ref alt);
                 }
-                if (spec is null && alt is null)
+                bool conditionResult;
+                if (spec is null)
+                {
+                    conditionResult = alt is null;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     // The group is covered by no entry: its part of the lesson keeps
                     // going out without a specialization.

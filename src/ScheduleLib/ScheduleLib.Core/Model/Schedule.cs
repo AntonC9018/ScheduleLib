@@ -463,7 +463,12 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
     {
         if (o is LessonGroups other)
         {
-            return this == other;
+            if (this == other)
+            {
+                return true;
+            }
+
+            return false;
         }
         return false;
     }
@@ -1067,8 +1072,25 @@ public static class AttendanceModeFlagsHelper
 {
     public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
     {
-        return mode >= AttendanceMode.Zi && mode < AttendanceMode.Count
-            && (flags & (AttendanceModeFlags)(1 << (int)mode)) != 0;
+        if (!(mode >= AttendanceMode.Zi))
+        {
+            return false;
+        }
+
+        if (!(mode < AttendanceMode.Count))
+        {
+            return false;
+        }
+
+        global::ScheduleLib.AttendanceModeFlags conditionValue = flags;
+        int conditionValue2 = (int) mode;
+        global::ScheduleLib.AttendanceModeFlags conditionValue3 = (AttendanceModeFlags) (1 << conditionValue2);
+        if (!((conditionValue & conditionValue3) != 0))
+        {
+            return false;
+        }
+
+        return true;
     }
 }
 

@@ -1108,7 +1108,27 @@ public sealed class RegistryLabDestinationTests
                 return await new HtmlParser().ParseDocumentAsync(
                     $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr>{rows}</table></form>");
             }
-            if (FailDelete && DeleteCalls != 0 && uri == group.Uri)
+            bool CheckCondition()
+            {
+                if (!(FailDelete))
+                {
+                    return false;
+                }
+
+                if (!(DeleteCalls != 0))
+                {
+                    return false;
+                }
+
+                if (!(uri == group.Uri))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition())
             {
                 throw new IOException("Synthetic confirmation read failure.");
             }
@@ -1124,7 +1144,22 @@ public sealed class RegistryLabDestinationTests
                 return await new HtmlParser().ParseDocumentAsync(
                     $"<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr>{rows}</table><table><tr><th>NN</th><th>Name</th><th>Spec</th>{headers}</tr><tr><td>1</td><td>Synthetic Student</td><td>spec</td>{marks}</tr></table>");
             }
-            if (UseSyntheticRoster && uri.AbsolutePath == "/add")
+            bool CheckCondition2()
+            {
+                if (!(UseSyntheticRoster))
+                {
+                    return false;
+                }
+
+                if (!(uri.AbsolutePath == "/add"))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (CheckCondition2())
             {
                 return await new HtmlParser().ParseDocumentAsync(
                     (string) $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr><tr><td>1</td><td>Synthetic Alpha</td><td>spec</td><td><input name='alpha' value='{OtherAudienceMark}'></td></tr><tr><td>2</td><td>Synthetic Beta</td><td>spec</td><td><input name='beta'></td></tr></table></form>");

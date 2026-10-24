@@ -42,13 +42,45 @@ public static class RegistryHistoryHtml
             || form.QuerySelectorAll("input, select, textarea, button").Any(x => x != select && x.HasAttribute("name")))
             throw new RegistryHistoryException("Academic-year GET selector is missing or unsupported; navigation requires inspection.", phase: RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelector);
         var action = SafeUri(address, form.GetAttribute("action") ?? address.AbsoluteUri);
-        if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal) || action.Query.Length != 0 || action.Fragment.Length != 0)
+        bool CheckCondition()
+        {
+            if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (action.Query.Length != 0)
+            {
+                return true;
+            }
+
+            if (action.Fragment.Length != 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
             throw new RegistryHistoryException("Academic-year form action is unsupported; navigation requires inspection.", phase: RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelector);
         var result = new List<RegistryHistoryYear>();
         foreach (var option in select.Options)
         {
-            if (option.IsDisabled || string.IsNullOrWhiteSpace(option.Value)) continue;
-            if (result.Any(x => x.Value == option.Value)) continue;
+            bool conditionResult;
+            if (option.IsDisabled)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = string.IsNullOrWhiteSpace(option.Value);
+            }
+
+            if (conditionResult)
+                continue;
+            if (result.Any(x => x.Value == option.Value))
+                continue;
             result.Add(new(option.Value, option.IsSelected, new((string) $"{action.AbsoluteUri}?AnUniv={Uri.EscapeDataString(option.Value)}")));
         }
         if (result.Count == 0 || result.Count(x => x.Selected) != 1)
@@ -108,14 +140,30 @@ public static class RegistryHistoryHtml
     private static bool IsEmptyHistoricalGroupForm(IDocument document)
     {
         var forms = document.QuerySelectorAll("form[name='lesson']");
-        if (forms.Length != 1 || forms[0].Children.Length != 1) return false;
+        bool conditionResult;
+        if (forms.Length != 1)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = forms[0].Children.Length != 1;
+        }
+
+        if (conditionResult)
+            return false;
         var input = forms[0].Children[0];
         // Observed historical courses without assigned groups retain only the
         // MVC verification field. Its value is never read or retained.
-        return input.LocalName == "input" && input.GetAttribute("type") == "hidden"
-            && input.GetAttribute("name") == "__RequestVerificationToken"
-            && !document.QuerySelectorAll("a[href]").Any(anchor =>
-                anchor.GetAttribute("href")?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase) == true);
+        if (input.LocalName == "input" && input.GetAttribute("type") == "hidden"
+           && input.GetAttribute("name") == "__RequestVerificationToken"
+           && !document.QuerySelectorAll("a[href]").Any(anchor =>
+               anchor.GetAttribute("href")?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     internal static string Root(Uri address)
@@ -170,15 +218,69 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                     : uri == _index || uri is not null && uri.AbsolutePath == _index.AbsolutePath
                         ? RegistryHistoryPhase.Index
                         : RegistryHistoryPhase.Unknown;
-            if (_stopped || uri is null || uri.Scheme != _index.Scheme || uri.Authority != _index.Authority || uri.UserInfo.Length != 0
-                || !login && (request.Method != HttpMethod.Get || !AllowedRead(uri)))
+            bool conditionResult;
+            if (_stopped)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (uri is null)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    if (uri.Scheme != _index.Scheme)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        if (uri.Authority != _index.Authority)
+                        {
+                            conditionResult = true;
+                        }
+                        else
+                        {
+                            if (uri.UserInfo.Length != 0)
+                            {
+                                conditionResult = true;
+                            }
+                            else
+                            {
+                                if (!login)
+                                {
+                                    if (request.Method != HttpMethod.Get)
+                                    {
+                                        conditionResult = true;
+                                    }
+                                    else
+                                    {
+                                        conditionResult = AllowedRead(uri);
+                                        conditionResult = !(conditionResult);
+                                    }
+                                }
+                                else
+                                {
+                                    conditionResult = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (conditionResult)
                 throw new RegistryHistoryException("History session stopped or disallowed a request.", RegistryHistoryFailure.TransportStopped,
                     phase, diagnostic: RegistryHistoryDiagnostic.RequestPolicy);
-            if (login) _loginAttempted = true;
+            if (login)
+                _loginAttempted = true;
             for (var attempt = 0; ; attempt++)
             {
                 var delay = _sent ? _lastCompletion + _spacing - DateTimeOffset.UtcNow : _spacing;
-                if (delay > TimeSpan.Zero) await Task.Delay(delay, token);
+                if (delay > TimeSpan.Zero)
+                    await Task.Delay(delay, token);
                 _sent = true;
                 HttpResponseMessage? response = null;
                 try
@@ -200,12 +302,21 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                         phase, diagnostic: RegistryHistoryDiagnostic.Transport);
                 }
                 finally { _lastCompletion = DateTimeOffset.UtcNow; }
-                if (login && response.StatusCode == HttpStatusCode.Redirect) return response;
-                if (!login && response.IsSuccessStatusCode) return response;
+                if (login)
+                {
+                    if (response.StatusCode == HttpStatusCode.Redirect)
+                        return response;
+                }
+                if (!login)
+                {
+                    if (response.IsSuccessStatusCode)
+                        return response;
+                }
                 var retry = !login && attempt == 0 && response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
-                var statusCode = (int)response.StatusCode;
+                var statusCode = (int) response.StatusCode;
                 response.Dispose();
-                if (retry) continue;
+                if (retry)
+                    continue;
                 _stopped = true;
                 throw new RegistryHistoryException("Registry rejected history access; session stopped without authentication replay or redirect navigation.",
                     RegistryHistoryFailure.AccessRejected, phase, statusCode, RegistryHistoryDiagnostic.HttpRejected);
@@ -223,16 +334,25 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
 
     private bool IsIndex(Uri uri)
     {
-        if (uri.AbsolutePath != _index.AbsolutePath || uri.Fragment.Length != 0) return false;
-        if (uri.Query.Length == 0) return true;
+        if (uri.AbsolutePath != _index.AbsolutePath || uri.Fragment.Length != 0)
+            return false;
+        if (uri.Query.Length == 0)
+            return true;
         const string yearQuery = "?AnUniv=";
-        if (!uri.Query.StartsWith(yearQuery, StringComparison.Ordinal)) return false;
+        if (!uri.Query.StartsWith(yearQuery, StringComparison.Ordinal))
+            return false;
         var value = Uri.UnescapeDataString(uri.Query[yearQuery.Length..]);
         if (value.Length != 7 || value[4] != '/' || value.AsSpan(start: 0, length: 4).IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0
-            || value.AsSpan(start: 5, length: 2).IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0) return false;
+            || value.AsSpan(start: 5, length: 2).IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0)
+            return false;
         var start = int.Parse(value.AsSpan(start: 0, length: 4), System.Globalization.CultureInfo.InvariantCulture);
         var end = int.Parse(value.AsSpan(start: 5, length: 2), System.Globalization.CultureInfo.InvariantCulture);
-        return (start + 1) % 100 == end && uri.Query == (string) $"{yearQuery}{Uri.EscapeDataString(value)}";
+        if ((start + 1) % 100 == end && uri.Query == (string) $"{yearQuery}{Uri.EscapeDataString(value)}")
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool IsLessonList(Uri uri) => IsNumericRoute(uri, "LessonsList", allowGroupQuery: true);
@@ -240,15 +360,35 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
     private bool IsNumericRoute(Uri uri, string route, bool allowGroupQuery)
     {
         var prefix = (string) $"{RegistryHistoryHtml.Root(_index)}LessonAttendance/{route}/";
-        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) || uri.Fragment.Length != 0) return false;
+        bool conditionResult;
+        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = uri.Fragment.Length != 0;
+        }
+
+        if (conditionResult)
+            return false;
         var id = uri.AbsolutePath.AsSpan(prefix.Length);
-        if (id.Length == 0 || id.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0) return false;
-        if (uri.Query.Length == 0) return true;
-        if (!allowGroupQuery) return false;
+        if (id.Length == 0 || id.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0)
+            return false;
+        if (uri.Query.Length == 0)
+            return true;
+        if (!allowGroupQuery)
+            return false;
         const string groupQuery = "?groupId=";
-        if (!uri.Query.StartsWith(groupQuery, StringComparison.Ordinal)) return false;
+        if (!uri.Query.StartsWith(groupQuery, StringComparison.Ordinal))
+            return false;
         var groupId = uri.Query.AsSpan(groupQuery.Length);
-        return groupId.Length > 0 && groupId.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') < 0;
+        if (groupId.Length > 0 && groupId.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') < 0)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -266,8 +406,19 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
         foreach (var selected in years.Where(x => year is null || x.Value == year))
         {
             // Historical selection changes server session state, even though the initial document remains unchanged.
-            using var fetched = selected.Selected && initialYearActive ? null : await Read(selected.Uri, token);
-            if (fetched is not null) initialYearActive = selected.Selected;
+            bool conditionResult;
+            if (selected.Selected)
+            {
+                conditionResult = initialYearActive;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            using var fetched = conditionResult ? null : await Read(selected.Uri, token);
+            if (fetched is not null)
+                initialYearActive = selected.Selected;
             var document = fetched ?? initial;
             // Detect ignored year parameters rather than labelling current data as historical.
             if (!RegistryHistoryHtml.Years(document, index).Any(x => x.Selected && x.Value == selected.Value))

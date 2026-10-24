@@ -92,18 +92,24 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
                 {
                     return true;
                 }
-                return va.Value.ValueEquals(vb.Value, (ca, cb) =>
+
+                if (va.Value.ValueEquals(vb.Value, (ca, cb) =>
+               {
+                   if (ca.Login != cb.Login)
+                   {
+                       return false;
+                   }
+                   if (ca.Password != cb.Password)
+                   {
+                       return false;
+                   }
+                   return true;
+               }))
                 {
-                    if (ca.Login != cb.Login)
-                    {
-                        return false;
-                    }
-                    if (ca.Password != cb.Password)
-                    {
-                        return false;
-                    }
                     return true;
-                });
+                }
+
+                return false;
             }))
         {
             return false;

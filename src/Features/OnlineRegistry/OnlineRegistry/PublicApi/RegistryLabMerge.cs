@@ -18,14 +18,53 @@ internal static class RegistryLabMerges
     {
         if (!groups.IsSingleGroup || course.IsInvalid || partition != GroupPartitionKey.All) return null;
         var group = groups[0];
-        if (schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == course && merge.Group == group
-            && merge.Specialization == partition.Specialization && merge.Alternative == partition.Alternative)) return null;
+        if (schedule.AutomaticLabSubGroupMerges.Any(merge =>
+        {
+            bool CheckCondition()
+            {
+                if (!(merge.Course == course))
+                {
+                    return false;
+                }
+
+                if (!(merge.Group == group))
+                {
+                    return false;
+                }
+
+                if (!(merge.Specialization == partition.Specialization))
+                {
+                    return false;
+                }
+
+                if (!(merge.Alternative == partition.Alternative))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return CheckCondition();
+        })) return null;
         RegistryLabMergeRule? found = null;
         foreach (var rule in rules)
         {
-            if (!string.Equals(rule.Course, schedule.Get(course).FullName, StringComparison.OrdinalIgnoreCase)
-                || !string.Equals(rule.Group, schedule.Get(groups[0]).Name, StringComparison.OrdinalIgnoreCase)) continue;
-            if (found is not null) throw new InvalidOperationException("Duplicate registry lab merge rules.");
+            bool conditionResult;
+            if (!string.Equals(rule.Course, schedule.Get(course).FullName, StringComparison.OrdinalIgnoreCase))
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = string.Equals(rule.Group, schedule.Get(groups[0]).Name, StringComparison.OrdinalIgnoreCase);
+                conditionResult = !(conditionResult);
+            }
+
+            if (conditionResult)
+                continue;
+            if (found is not null)
+                throw new InvalidOperationException("Duplicate registry lab merge rules.");
             if (string.IsNullOrWhiteSpace(rule.SourceSubGroup))
                 throw new InvalidOperationException("Registry lab merge requires a surviving subgroup.");
             found = rule;
@@ -37,7 +76,17 @@ internal static class RegistryLabMerges
         LessonMatchParams parameters)
     {
         var filter = parameters.Filter;
-        var rule = filter.Groups.IsWildcard || filter.Groups.IsCombined ? null
+        bool conditionResult;
+        if (filter.Groups.IsWildcard)
+        {
+            conditionResult = true;
+        }
+        else
+        {
+            conditionResult = filter.Groups.IsCombined;
+        }
+
+        var rule = conditionResult ? null
             : Find(rules, parameters.Schedule, filter.CourseId, filter.Groups.Value, filter.GroupPartition);
         if (rule is null)
         {
@@ -49,12 +98,19 @@ internal static class RegistryLabMerges
         // Exact surviving lab partition; no elective fallback or cross-parent lesson.
         var lessons = parameters.Lookup[filter.CourseId].Where(id =>
         {
-            if (!parameters.Schedule.IsLessonActive(id)) return false;
+            if (!parameters.Schedule.IsLessonActive(id))
+                return false;
             var lesson = parameters.Schedule.Get(id).Lesson;
-            return lesson.Type == LessonType.Lab && lesson.GroupPartitionKey == survivingPartition
-                && lesson.Groups.IsSingleGroup && lesson.Groups[0] == filter.Groups.Value[0];
+            if (lesson.Type == LessonType.Lab && lesson.GroupPartitionKey == survivingPartition
+               && lesson.Groups.IsSingleGroup && lesson.Groups[0] == filter.Groups.Value[0])
+            {
+                return true;
+            }
+
+            return false;
         }).ToList();
-        if (lessons.Count == 0) throw new InvalidOperationException("Surviving registry lab merge lessons not found.");
+        if (lessons.Count == 0)
+            throw new InvalidOperationException("Surviving registry lab merge lessons not found.");
         // A registry course can contain lectures as well as the merged labs.
         lessons.AddRange(MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .Where(id => parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab));

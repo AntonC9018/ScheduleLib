@@ -17,7 +17,24 @@ public sealed record class UiNode
 
     public static readonly UiNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
-    public bool IsEditable => !IsNull && IsUiLayer;
+    public bool IsEditable
+    {
+        get
+        {
+            if (!(!IsNull))
+            {
+                return false;
+            }
+
+            if (!(IsUiLayer))
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
     public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();

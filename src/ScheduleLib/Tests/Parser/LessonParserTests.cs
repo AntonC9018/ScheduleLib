@@ -593,7 +593,12 @@ public sealed class LessonParserTests
         {
             if (actual.LastName.All(x => x.IsEmpty))
             {
-                return expectedName.LastName == default;
+                if (expectedName.LastName == default)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             return expectedName.LastName.Parts.EachEquals(actual.LastName, (a, b) =>

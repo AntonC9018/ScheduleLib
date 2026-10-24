@@ -35,8 +35,27 @@ public static class RegistryGradeForm
         var form = document.QuerySelector<IHtmlFormElement>("form")
             ?? throw new InvalidOperationException("Registry grade form is missing.");
         var inputs = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]").ToArray();
-        if (inputs.Length == 0 || inputs.Any(input => string.IsNullOrWhiteSpace(input.Name))
-            || inputs.Select(input => input.Name).Distinct(StringComparer.Ordinal).Count() != inputs.Length)
+        bool CheckCondition()
+        {
+            if (inputs.Length == 0)
+            {
+                return true;
+            }
+
+            if (inputs.Any(input => string.IsNullOrWhiteSpace(input.Name)))
+            {
+                return true;
+            }
+
+            if (inputs.Select(input => input.Name).Distinct(StringComparer.Ordinal).Count() != inputs.Length)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
             throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
         return form;
     }

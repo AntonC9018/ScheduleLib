@@ -163,9 +163,22 @@ public static class GroupHelper
                 {
                     languageLen++;
                 }
-                else if (ch == ')' && isParen)
+                else
                 {
-                    break;
+                    bool conditionResult;
+                    if (ch == ')')
+                    {
+                        conditionResult = isParen;
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+
+                    if (conditionResult)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -229,7 +242,18 @@ public static class GroupHelper
             throw InvalidGroupNameException.ForMissingNumberAfterLabel();
         }
 
-        bool isCertainlyMaster = isMaybeMaster && !label.IsEmpty;
+        bool conditionResult;
+        if (isMaybeMaster)
+        {
+            conditionResult = label.IsEmpty;
+            conditionResult = !(conditionResult);
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        bool isCertainlyMaster = conditionResult;
         if (label.IsEmpty)
         {
             label = "M";

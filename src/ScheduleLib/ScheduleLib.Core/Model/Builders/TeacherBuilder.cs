@@ -104,9 +104,14 @@ public static class TeacherLookupHelper
                         return true;
                     }
                     case FirstNameComparison.EitherFullOrShort:
-                    {
-                        return !onlyContainsFullNames;
-                    }
+                        {
+                            if (!onlyContainsFullNames)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     case FirstNameComparison.MatchFullAgainstShort:
                     {
                         return onlyContainsFullNames;
@@ -133,26 +138,31 @@ public static class TeacherLookupHelper
                 switch (i)
                 {
                     case FirstNameComparison.AllFull:
-                    {
-                        var fullNameCount = teacherName.Count(x => x.Full != null);
-                        if (fullNameCount != nonEmptyCount)
                         {
-                            return false;
-                        }
-
-                        return teacherName.EachEquals(name, (existingPart, newPart) =>
-                        {
-                            if (existingPart.Full is not { } full)
-                            {
-                                return true;
-                            }
-                            if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: full, y: newPart.Value))
+                            var fullNameCount = teacherName.Count(x => x.Full != null);
+                            if (fullNameCount != nonEmptyCount)
                             {
                                 return false;
                             }
-                            return true;
-                        });
-                    }
+
+                            if (teacherName.EachEquals(name, (existingPart, newPart) =>
+                           {
+                               if (existingPart.Full is not { } full)
+                               {
+                                   return true;
+                               }
+                               if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: full, y: newPart.Value))
+                               {
+                                   return false;
+                               }
+                               return true;
+                           }))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     case FirstNameComparison.AllAsShort:
                     {
                         var shortCount = teacherName.Count(x => x.Short != null);
@@ -178,42 +188,52 @@ public static class TeacherLookupHelper
                         });
                     }
                     case FirstNameComparison.EitherFullOrShort:
-                    {
-                        return FullOrShort(teacherName, name);
-                    }
-                    case FirstNameComparison.MatchFullAgainstShort:
-                    {
-                        return teacherName.EachEquals(name, (existingPart, newPart) =>
                         {
-                            if (existingPart.IsNull)
+                            if (FullOrShort(teacherName, name))
                             {
                                 return true;
                             }
 
-                            Debug.Assert(newPart.Span.LooksFull);
+                            return false;
+                        }
+                    case FirstNameComparison.MatchFullAgainstShort:
+                        {
+                            if (teacherName.EachEquals(name, (existingPart, newPart) =>
+                           {
+                               if (existingPart.IsNull)
+                               {
+                                   return true;
+                               }
 
-                            var newFull = newPart.Span.Value;
-                            if (existingPart.Full is { } f)
+                               Debug.Assert(newPart.Span.LooksFull);
+
+                               var newFull = newPart.Span.Value;
+                               if (existingPart.Full is { } f)
+                               {
+                                   if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
+                                   {
+                                       return true;
+                                   }
+                                   return false;
+                               }
+                               if (existingPart.Short is { } s)
+                               {
+                                   if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                           x: newFull,
+                                           y: new Word(s).Span.Shortened.Value))
+                                   {
+                                       return true;
+                                   }
+                                   return false;
+                               }
+                               throw Unreachable();
+                           }))
                             {
-                                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
-                                {
-                                    return true;
-                                }
-                                return false;
+                                return true;
                             }
-                            if (existingPart.Short is { } s)
-                            {
-                                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                        x: newFull,
-                                        y: new Word(s).Span.Shortened.Value))
-                                {
-                                    return true;
-                                }
-                                return false;
-                            }
-                            throw Unreachable();
-                        });
-                    }
+
+                            return false;
+                        }
                     default:
                     {
                         throw Unreachable();
@@ -311,7 +331,12 @@ public static class TeacherBuilderHelper
         {
             if (x.Longer is { } l)
             {
-                return l.Length > 0;
+                if (l.Length > 0)
+                {
+                    return true;
+                }
+
+                return false;
             }
             return true;
         }));
@@ -646,7 +671,17 @@ public static class TeacherNameHelper
                 }
 
                 bool isShort = false;
-                if (!bparser.IsEmpty && bparser.Current == WordHelper.ShortenedWordCharacter)
+                bool conditionResult;
+                if (!bparser.IsEmpty)
+                {
+                    conditionResult = bparser.Current == WordHelper.ShortenedWordCharacter;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     bparser.Move();
                     isShort = true;

@@ -159,7 +159,18 @@ public sealed class ScrapingContextBuilder
 
         internal void Validate()
         {
-            if (_cached && !_password)
+            bool conditionResult;
+            if (_cached)
+            {
+                conditionResult = _password;
+                conditionResult = !(conditionResult);
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 throw new NotSupportedException();
             }

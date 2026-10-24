@@ -383,12 +383,42 @@ public class CurriculaCommands
 
     private static void ValidateComponent(string value)
     {
-        if (string.IsNullOrWhiteSpace(value)
-            || value is "." or ".."
-            || value.Any(c => char.IsControl(c) || "/\\:<>\"|?*".Contains(c))
-            || value.EndsWith('.')
-            || value.EndsWith(' ')
-            || Path.GetFileName(value) != value)
+        bool CheckCondition()
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return true;
+            }
+
+            if (value is "." or "..")
+            {
+                return true;
+            }
+
+            if (value.Any(c => char.IsControl(c) || "/\\:<>\"|?*".Contains(c)))
+            {
+                return true;
+            }
+
+            if (value.EndsWith('.'))
+            {
+                return true;
+            }
+
+            if (value.EndsWith(' '))
+            {
+                return true;
+            }
+
+            if (Path.GetFileName(value) != value)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
         {
             throw new IOException("Unsafe curricula group or document name in provider response.");
         }

@@ -24,7 +24,22 @@ public sealed class CalendarSyncTests
             default,
             onOutcome: report =>
             {
-                if (report.Id == "0" && report.Status == "completed")
+                bool CheckCondition()
+                {
+                    if (!(report.Id == "0"))
+                    {
+                        return false;
+                    }
+
+                    if (!(report.Status == "completed"))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (CheckCondition())
                 {
                     context.StreamUpdate(report with { Human = new ThrowingMessage() });
                 }

@@ -11,10 +11,51 @@ internal static class RegistryLectureAudience
         {
             if (!schedule.IsLessonActive(candidate.Id) || candidate.Id == id
                 || candidate.Lesson.SubGroup != SubGroup.All && !candidate.Lesson.SubGroup.IsLanguageSubGroup()
-                || !(candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }).Equals(source.Lesson)) continue;
-            var sameTime = source.Weekly is { } weekly && candidate.Weekly is { } otherWeekly && weekly.Date == otherWeekly.Date
-                || source.OneTime is { } oneTime && candidate.OneTime is { } otherOneTime && oneTime.Date == otherOneTime.Date;
-            if (!sameTime || candidate.Lesson.Groups.IsSetEquals(source.Lesson.Groups)) continue;
+                || !(candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }).Equals(source.Lesson))
+                continue;
+            bool conditionResult;
+            if (source.Weekly is { } weekly)
+            {
+                if (candidate.Weekly is { } otherWeekly)
+                {
+                    conditionResult = weekly.Date == otherWeekly.Date;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (source.OneTime is { } oneTime)
+                {
+                    if (candidate.OneTime is { } otherOneTime)
+                    {
+                        conditionResult = oneTime.Date == otherOneTime.Date;
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+
+            var sameTime = conditionResult;
+            if (!sameTime || candidate.Lesson.Groups.IsSetEquals(source.Lesson.Groups))
+                continue;
             scopes.Add(RegistryTopicScope.Format(schedule, candidate.Lesson.Groups, candidate.Lesson.GroupPartitionKey));
         }
         return string.Join(", ", scopes.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal));

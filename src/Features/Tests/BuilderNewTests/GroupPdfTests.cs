@@ -182,7 +182,17 @@ public sealed class GroupPdfTests
         public string BoldPrefix = "";
         public void Span(string str, bool isBold = false)
         {
-            if (isBold && BoldPrefix == "")
+            bool conditionResult;
+            if (isBold)
+            {
+                conditionResult = BoldPrefix == "";
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 BoldPrefix = str;
             }

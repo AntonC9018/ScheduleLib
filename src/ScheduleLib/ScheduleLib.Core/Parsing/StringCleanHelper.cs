@@ -49,15 +49,34 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
                 return true;
             }
 
-            bool isPrevPunctuation = _withoutSpaces.IsInitialized
-                && _withoutSpaces.Current is ',' or '.' or ':' or ';';
+            bool conditionResult;
+            if (_withoutSpaces.IsInitialized)
+            {
+                conditionResult = _withoutSpaces.Current is ',' or '.' or ':' or ';';
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            bool isPrevPunctuation = conditionResult;
             if (!_withoutSpaces.MoveNext())
             {
                 return false;
             }
 
             bool isCurrentSpace = _withoutSpaces.Current == ' ';
-            if (!isCurrentSpace && isPrevPunctuation)
+            bool conditionResult2;
+            if (!isCurrentSpace)
+            {
+                conditionResult2 = isPrevPunctuation;
+            }
+            else
+            {
+                conditionResult2 = false;
+            }
+
+            if (conditionResult2)
             {
                 _shouldOutputSpace = true;
             }
@@ -109,7 +128,17 @@ public readonly ref struct WithoutConsecutiveSpacesEnumerable
                 }
 
                 bool isCurrentSpace = Current is ' ' or '\t' or '\r' or '\n';
-                if (_isSpace && isCurrentSpace)
+                bool conditionResult;
+                if (_isSpace)
+                {
+                    conditionResult = isCurrentSpace;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     continue;
                 }

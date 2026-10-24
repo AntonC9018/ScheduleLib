@@ -154,9 +154,27 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                if (groupForSearch.IsRepeat
-                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase)
-                    || groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
+                bool CheckCondition()
+                {
+                    if (groupForSearch.IsRepeat)
+                    {
+                        return true;
+                    }
+
+                    if (groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    if (groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (CheckCondition())
                 {
                     // Repeats and unconfirmed historical (S)/(D) markers are skipped
                     // before producing navigable links or accessing remote lessons.
@@ -167,7 +185,17 @@ internal static class HtmlSearch
                 {
                     continue;
                 }
-                if (groupForSearch.IsWildcard && groups.Count == 0)
+                bool conditionResult;
+                if (groupForSearch.IsWildcard)
+                {
+                    conditionResult = groups.Count == 0;
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
@@ -825,7 +853,11 @@ internal static class HtmlSearch
 
     internal static string? GetLessonTypeName(LessonType type)
     {
-        if (LessonTypeNames.Length <= (int) type)
+        bool conditionResult;
+        int conditionValue = LessonTypeNames.Length;
+        int conditionValue2 = (int) type;
+        conditionResult = conditionValue <= conditionValue2;
+        if (conditionResult)
         {
             return null;
         }

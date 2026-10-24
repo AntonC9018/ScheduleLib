@@ -21,7 +21,13 @@ public readonly struct ParsedCourseName() : IEquatable<ParsedCourseName>
         {
             return false;
         }
-        return Equals(other);
+
+        if (Equals(other))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public override int GetHashCode()
@@ -245,7 +251,13 @@ public static class CourseNameParsing
             {
                 return false;
             }
-            return config.ProgrammingLanguages.Contains(word.Value);
+
+            if (config.ProgrammingLanguages.Contains(word.Value))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool IsInitials(ReadOnlySpan<char> s)
@@ -278,7 +290,17 @@ public static class CourseNameParsing
         CourseIter a,
         CourseIter b)
     {
-        if (a.IsDone && b.IsDone)
+        bool conditionResult;
+        if (a.IsDone)
+        {
+            conditionResult = b.IsDone;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return true;
         }
@@ -287,7 +309,17 @@ public static class CourseNameParsing
             CourseIter a,
             CourseIter b)
         {
-            if (!a.IsDone && a.CanIgnoreCurrent)
+            bool conditionResult;
+            if (!a.IsDone)
+            {
+                conditionResult = a.CanIgnoreCurrent;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 foreach (var w in a.GetPossibleWords())
                 {
@@ -326,9 +358,31 @@ public static class CourseNameParsing
             foreach (var wb in b.GetPossibleWords())
             {
                 var equal = wa.Word.Shortened.Compare(wb.Word.Shortened);
-                if (wa.Type == WordType.Plain
-                    && wb.Type == WordType.Plain
-                    && (a.MightBeInitials || b.MightBeInitials))
+                bool conditionResult2;
+                if (wa.Type == WordType.Plain)
+                {
+                    if (wb.Type == WordType.Plain)
+                    {
+                        if (a.MightBeInitials)
+                        {
+                            conditionResult2 = true;
+                        }
+                        else
+                        {
+                            conditionResult2 = b.MightBeInitials;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+                }
+                else
+                {
+                    conditionResult2 = false;
+                }
+
+                if (conditionResult2)
                 {
                     if (equal != CompareShortenedWordsResult.Equal_Exactly)
                     {

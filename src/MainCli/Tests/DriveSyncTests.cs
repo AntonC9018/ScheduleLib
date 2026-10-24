@@ -392,9 +392,25 @@ public sealed class DriveSyncTests
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
         {
+            bool CheckCondition()
+            {
+                if (!(ChangeFolder))
+                {
+                    return false;
+                }
+
+                int conditionValue = ++_folderCalls;
+                if (!(conditionValue > 1))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
             return Task.FromResult(new DriveDestination(
-                        Id: ChangeFolder && ++_folderCalls > 1 ? "changed-folder" : "actual-folder",
-                        Name: "Actual folder"));
+                                    Id: CheckCondition() ? "changed-folder" : "actual-folder",
+                                    Name: "Actual folder"));
         }
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
@@ -484,7 +500,19 @@ public sealed class DriveSyncTests
                 await File.WriteAllTextAsync(path: System.IO.Path.Combine(Path, name), contents: "fixture bytes");
             }
 
-            return names.Select(x => new DriveArtifact(Name: x, Path: System.IO.Path.Combine(Path, x))).ToArray();
+            return names.Select(x =>
+            {
+                global::ScheduleLib.Cli.DriveArtifact ProjectValue()
+                {
+                    string operationValue = x;
+                    string operationValue2 = System.IO.Path.Combine(Path, x);
+                    string operationValue3 = operationValue2;
+                    global::ScheduleLib.Cli.DriveArtifact operationValue4 = new DriveArtifact(Name: operationValue, Path: operationValue3);
+                    return operationValue4;
+                }
+
+                return ProjectValue();
+            }).ToArray();
         }
 
         public void Dispose() => Directory.Delete(Path, true);
