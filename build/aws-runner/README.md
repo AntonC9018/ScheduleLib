@@ -12,10 +12,9 @@ the agent session, and survives reboots. Keep sending SSH commands at least once
 every ten minutes while working. Install or refresh this guard on an existing
 runner with `ssh ubuntu@HOST 'sudo bash -s' < build/aws-runner/watchdog.sh`.
 
-The instance also schedules a shutdown six hours after initial boot, with EC2
-configured to terminate on instance-initiated shutdown. A stopped runner was
-observed during the review, so do not rely on shutdown alone to remove disks
-or other resources. Explicit Terraform cleanup and state verification are
+The instance also schedules a shutdown six hours after initial boot. EC2 stops
+on instance-initiated shutdown, preserving unfinished work on its disk. A stopped
+runner still retains storage, so explicit Terraform cleanup and state verification are
 required. The encrypted root disk is deleted on termination. There is no NAT gateway or reserved instance.
 
 Prerequisites: Terraform, authenticated AWS CLI, SSH, Python 3, and an existing

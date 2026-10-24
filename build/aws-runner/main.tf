@@ -50,7 +50,7 @@ resource "aws_instance" "runner" {
   associate_public_ip_address          = true
   key_name                             = aws_key_pair.runner.key_name
   vpc_security_group_ids               = [aws_security_group.runner.id]
-  instance_initiated_shutdown_behavior = "terminate"
+  instance_initiated_shutdown_behavior = "stop"
   metadata_options { http_tokens = "required" }
   root_block_device {
     volume_size           = 30
