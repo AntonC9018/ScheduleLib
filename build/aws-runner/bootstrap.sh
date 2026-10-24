@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
-# The timer survives shell disconnects; shutdown terminates the instance and disk.
+# Bound the initial running session; always destroy and verify via Terraform.
 systemd-run --unit=runner-expiry --on-active=6h /sbin/shutdown -h now
 export DEBIAN_FRONTEND=noninteractive
 apt-get update

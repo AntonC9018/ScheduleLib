@@ -5,9 +5,11 @@ security group permitting SSH only from the caller's `/32`. No AWS credentials
 or application data go onto the runner. The AWS free account permits
 `m7i-flex.large` (2 vCPU / 8 GiB). Run one build/test process at a time.
 
-The instance schedules its own termination six hours after boot. Its encrypted
-root disk is deleted on termination. This bounds compute lifetime; it does not
-replace explicit Terraform cleanup. There is no NAT gateway or reserved instance.
+The instance schedules a shutdown six hours after initial boot, with EC2
+configured to terminate on instance-initiated shutdown. A stopped runner was
+observed during the review, so do not rely on shutdown alone to remove disks
+or other resources. Explicit Terraform cleanup and state verification are
+required. The encrypted root disk is deleted on termination. There is no NAT gateway or reserved instance.
 
 Prerequisites: Terraform, authenticated AWS CLI, SSH, Python 3, and an existing
 default VPC in us-east-1. `tf.py` obtains ephemeral credentials from AWS CLI in
