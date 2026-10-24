@@ -26,6 +26,59 @@ The corrected candidate comes from CodingRules `d8803f6`, which fixes the
 unbound-generic CR0500 crash found during this rollout. All 1,370 CodingRules
 analyzer, fixer and packaged-consumer tests pass on AWS.
 
+## Validated candidate and applied changes
+
+The adopted candidate is CodingRules `a78e907161714e9e0ded51a84a5602b227bc9157`,
+package `Anton.CodingRules.0.1.0.nupkg`, SHA-256
+`b309e17db91f1c8bfd2fc043dd480d0532bc4d63b83d75ffb6b3a5b8b4f560ec`.
+It includes both the unbound-generic named-argument fix and the null-forgiving
+operation proof fix. All 1,372 analyzer/fixer/package tests and all nine separate
+consumer gates pass on AWS against this stable candidate. The local adoption
+script verifies package assets and exports the packaged agent guidance; the
+candidate is verified across the 24-project CLI test dependency graph.
+
+The second pass applies available return, condition, pipeline, span and
+assignment fixes. Manual review seals 30 concrete classes, makes two base/test
+fixtures abstract, names the constant curriculum glob, shares the calendar
+start/end timestamp representation and suppresses the four externally required
+collection overload implementations. Existing inheritance seams remain visible.
+Bulk CR0300–CR0302 fixes are held for the readability reasons below.
+
+## Final inventory — 2026-10-24
+
+Clean Release rebuilds of both targets produce **zero errors** and **2,902
+unique source warnings**, down from 7,642 (**4,740 removed; 62%**). The current
+build logs also contain 55 project/package advisory rows; dependencies were not
+updated by this cleanup. Advisory row counts depend on restore/build coverage
+and should not be interpreted as vulnerability remediation.
+
+| Remaining family | Findings |
+| --- | ---: |
+| CR0300–CR0302: named computation steps | 2,615 |
+| CR0200–CR0203: compound conditions | 118 |
+| CR0900: named tuple data | 95 |
+| CR1001: overload configuration builders | 56 |
+| CR1400: inheritance review | 10 |
+| CR1000: contract argument groups | 7 |
+| CR1300: repeated formatting review | 1 |
+
+All return, pipeline, span, named-argument, interpolation, selected layout and
+unchanged-assignment findings are cleared. Remaining condition findings were
+not removed by the packaged fixes; retain their safety/manual review boundary.
+The bulk computation fixes are deliberately held for the usability review below.
+This is still a substantial warning inventory, not a claim of quiet builds.
+
+The final TRX comparison matches the baseline exactly: solution 709 cases / 11
+failures, CLI tests 767 cases / 3 failures; **no new failures**. All 1,476 cases
+are accounted for, with shared projects potentially run in both targets. This
+cleanup does not make the entire ScheduleLib suite green.
+
+Implementation commits: `bac5d6f` (first packaged pass), `96f177c` (second pass
+and reviewed manual fixes). Validation logs, TRX files, before/after inventories
+and the candidate package are retained in the CodingRules checkout under
+`artifacts/schedulelib-cleanup-a78e907/`; they are intentionally ignored by Git.
+The final C# patch was byte-compared with the AWS-tested patch before committing.
+
 ## Patterns to discuss
 
 These are review candidates, not newly accepted exemptions. Existing policy
@@ -38,7 +91,8 @@ the boundary is decided rather than turning off a rule family.
 Its `Insert(int, T)` / `Insert(int, object?)` and
 `CopyTo(T[], int)` / `CopyTo(Array, int)` pairs satisfy those interfaces.
 Replacing these signatures with a configuration builder cannot satisfy the
-external contract. These are strong false-positive candidates; analyze the
+external contract. The four required implementations now carry method-scoped,
+justified suppressions; the analyzer policy itself remains unchanged. These are strong false-positive candidates; analyze the
 resolved interface implementation before requiring a builder.
 
 ### CR1001: configuration already being built
@@ -67,6 +121,16 @@ Likewise review casts such as `Process.GetProcessById((int)pid)` separately
 from chains that query, convert, index and construct a result. A helper whose
 only purpose is a numeric cast may add more indirection than meaning.
 
+### CR0300–CR0302: automatic rewrite readability
+
+The bulk computation rewrite is held after a saved-source probe of
+`CliSettings.Removals.cs`. Preferring expansion executes 21 packaged actions,
+but creates redundant `operationValue` copies and substantially expands short
+conditions. Default extraction instead introduces many `CalculateValue` helpers.
+This is a fixer usability problem, separate from the crash fixed in CodingRules
+`a78e907`. Keep these warnings visible while naming/capture quality is improved;
+see [CodingRules #26](https://github.com/AntonC9018/CodingRules/issues/26).
+
 ### CR0300: exception rendering versus structured context
 
 Examples include `throw new NotSupportedException($"Unknown preliminary field {field}")`
@@ -93,6 +157,9 @@ factories. It needs a deliberate exception-model decision. Current CR1400
 policy explicitly requests that review even when subclasses exist, so this
 is a manual finding rather than a proven analyzer defect.
 
+`CliOutputStreamingException` is instantiated directly and has calendar/drive
+subclasses; it also requires an intentional exception to sealing.
+
 `CalendarCommands` also has a tested virtual seam. Keep it under architectural
 review rather than deleting or sealing the seam to satisfy the warning.
 
@@ -100,7 +167,7 @@ review rather than deleting or sealing the seam to satisfy the warning.
 
 All builds and tests run on the temporary Terraform-managed AWS runner,
 sequentially. No local application data or credentials are uploaded.
-Before fixes, AWS reproduces these 15 failing cases:
+Before fixes, AWS reproduces these 14 failing cases:
 
 - `ThesisNameTests`: `CurriculumParsedCorrectly`, `FileNameParsedCorrectly`.
 - `FmiWebsiteInteropTests.CountTest`.
@@ -111,7 +178,17 @@ Before fixes, AWS reproduces these 15 failing cases:
 - `CurrentSourceMergeTests`: both fresh/cached merge comparison cases.
 - `RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext`.
 
-The last case is a real existing privacy regression tracked by #228; a warning
+The TRX files contain 1,476 reported cases across both targets (with shared
+project tests potentially executed in both). Fourteen fail. The last case is a real existing privacy regression tracked by #228; a warning
 cleanup must not claim to resolve it. Data/live-service failures on a runner
 without private local configuration are recorded separately from regressions
 introduced by code fixes.
+
+## Runner cleanup
+
+Terraform destroy completed successfully (three managed resources). AWS queries
+confirm the instance is terminated and its root volume, temporary SSH key and
+security group are absent; Terraform state is empty. Logs and package artifacts
+were retrieved before destruction. The runner used one `m7i-flex.large`, with
+no NAT gateway or reserved commitment. Estimated compute cost is under $2,
+well within the authorized $100 budget; this is an estimate, not a billing total.
