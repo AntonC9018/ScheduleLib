@@ -8,7 +8,8 @@ import sys
 
 root = Path(__file__).resolve().parent
 credentials = json.loads(subprocess.check_output([
-    'aws', 'configure', 'export-credentials', '--format', 'process'
+    'aws', 'configure', 'export-credentials', '--format', 'process',
+    '--region', 'us-east-1'
 ]))
 env = dict(os.environ, AWS_ACCESS_KEY_ID=credentials['AccessKeyId'],
            AWS_SECRET_ACCESS_KEY=credentials['SecretAccessKey'],
