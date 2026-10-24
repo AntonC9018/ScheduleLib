@@ -15,7 +15,7 @@ public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
         {
             throw new InvalidOperationException("Node not found in the path");
         }
-        return new(Path[.. (i + 1)]);
+        return new(Path[..(i + 1)]);
     }
 }
 
@@ -29,15 +29,15 @@ public sealed class LayerPathContext() : IDfsEnumerationContext
         switch (context.State)
         {
             case DfsVisitationState.Process:
-            {
-                Builder.Add(context.Node);
-                break;
-            }
+                {
+                    Builder.Add(context.Node);
+                    break;
+                }
             case DfsVisitationState.AfterProcess:
-            {
-                Builder.Count--;
-                break;
-            }
+                {
+                    Builder.Count--;
+                    break;
+                }
         }
     }
 

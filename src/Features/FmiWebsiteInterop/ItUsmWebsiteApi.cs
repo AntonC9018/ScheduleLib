@@ -24,7 +24,7 @@ public static class ItUsmWebsiteApi
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    extension (ItUsmWebsiteHttpClient c)
+    extension(ItUsmWebsiteHttpClient c)
     {
         public async Task<ItUsmTeacherModel[]> GetAllTeachers(CancellationToken cancellationToken)
         {

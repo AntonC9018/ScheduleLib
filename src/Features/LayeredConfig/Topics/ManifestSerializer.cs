@@ -61,7 +61,10 @@ public static class ManifestSerializer
         foreach (var d in manifest.Documents)
         {
             if (d.Semester is { } semester && semester is not (1 or 2))
+            {
                 throw new InvalidDataException("Topic document semester must be 1 or 2.");
+            }
+
             if (d.Course.IsEmpty)
             {
                 throw new InvalidDataException("Expecting the courses to not be empty");

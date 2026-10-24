@@ -345,7 +345,8 @@ public sealed class EssayQuestionBuilder
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText {
+            GeneralFeedback = new FormattedText
+            {
                 Format = "html",
                 Text = string.Empty
             },
@@ -362,11 +363,13 @@ public sealed class EssayQuestionBuilder
             AttachmentsRequired = 0,
             MaxBytes = 0,
             FileTypesList = string.Empty,
-            GraderInfo = new FormattedText {
+            GraderInfo = new FormattedText
+            {
                 Format = "html",
                 Text = string.Empty
             },
-            ResponseTemplate = new FormattedText {
+            ResponseTemplate = new FormattedText
+            {
                 Format = "html",
                 Text = string.Empty
             },
@@ -457,7 +460,10 @@ public sealed class MultiChoiceQuestionBuilder
             {
                 // Scale negative fractions by the same factor, capped at -100
                 var scaledNegative = answer.Fraction * scale;
-                fraction = Math.Max(-100, RoundToStandardPercentage(scaledNegative));
+                decimal val1 = -100;
+                decimal val2 = RoundToStandardPercentage(scaledNegative);
+                decimal max = Math.Max(val1, val2);
+                fraction = max;
             }
             else
             {
@@ -469,7 +475,8 @@ public sealed class MultiChoiceQuestionBuilder
                 Fraction = fraction,
                 Format = "html",
                 Text = answer.Text,
-                Feedback = new FormattedText {
+                Feedback = new FormattedText
+                {
                     Format = "html",
                     Text = string.Empty
                 },
@@ -485,7 +492,8 @@ public sealed class MultiChoiceQuestionBuilder
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText {
+            GeneralFeedback = new FormattedText
+            {
                 Format = "html",
                 Text = string.Empty
             },

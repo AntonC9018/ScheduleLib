@@ -22,7 +22,11 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(options => options.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(options =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = options;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(options =>
         {
             options.StudyYear = new(2025);
@@ -34,17 +38,29 @@ public sealed class RegistryTests
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.IsSingleGroup);
         schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualFr;
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new FixtureNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    Value = lesson.Lesson.Groups,
-                    IsWildcard = false,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation")));
+                            lesson.Lesson.Course,
+                            new GroupLink(
+                                new FoundGroups
+                                {
+                                    Value = lesson.Lesson.Groups,
+                                    IsWildcard = false,
+                                },
+                                lesson.Lesson.GroupPartitionKey,
+                                uri: CalculateUri(),
+                                evaluationUri: CalculateEvaluationUri()));
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
         {
@@ -107,7 +123,11 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -136,17 +156,29 @@ public sealed class RegistryTests
             return true;
         }
 
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new FixtureNavigator(
-                    lesson.Lesson.Course,
-                    new GroupLink(
-                        new FoundGroups
-                        {
-                            IsWildcard = CheckCondition2(),
-                            Value = destinationGroups,
-                        },
-                        lesson.Lesson.GroupPartitionKey,
-                        uri: new("https://registry.test/group"),
-                        evaluationUri: new("https://registry.test/evaluation")));
+                                    lesson.Lesson.Course,
+                                    new GroupLink(
+                                        new FoundGroups
+                                        {
+                                            IsWildcard = CheckCondition2(),
+                                            Value = destinationGroups,
+                                        },
+                                        lesson.Lesson.GroupPartitionKey,
+                                        uri: CalculateUri(),
+                                        evaluationUri: CalculateEvaluationUri()));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
@@ -167,7 +199,21 @@ public sealed class RegistryTests
         Assert.Equal(expected: hasAttendanceSources, actual: diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
         Assert.NotEmpty(topics.Keys);
-        Assert.All(topics.Keys, key => Assert.True(key.Groups.Value.IsSubSetOf(destinationGroups)));
+        Assert.All(topics.Keys, key =>
+        {
+            bool CalculateCondition()
+            {
+                bool condition = key.Groups.Value.IsSubSetOf(destinationGroups);
+                if (condition)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            Assert.True(CalculateCondition());
+        });
         if (singleDestination)
         {
             Assert.Contains(
@@ -213,7 +259,11 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -223,17 +273,30 @@ public sealed class RegistryTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new FixtureNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
-                    Value = lesson.Lesson.Groups,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation"))) { TwoGroups = true };
+                            lesson.Lesson.Course,
+                            new GroupLink(
+                                new FoundGroups
+                                {
+                                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                                    Value = lesson.Lesson.Groups,
+                                },
+                                lesson.Lesson.GroupPartitionKey,
+                                uri: CalculateUri(),
+                                evaluationUri: CalculateEvaluationUri()))
+        { TwoGroups = true };
         var delivered = 0;
         await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(
             new()
@@ -246,11 +309,24 @@ public sealed class RegistryTests
             actions =>
             {
                 Assert.NotEmpty(actions);
-                Assert.Equal(expected: ++delivered, actual: navigator.GroupReads);
+                int expected2 = ++delivered;
+                int actual2 = navigator.GroupReads;
+                Assert.Equal(expected: expected2, actual: actual2);
                 return Task.FromResult(continueScanning);
             },
             explicitApply: true);
-        Assert.Equal(expected: continueScanning ? 2 : 1, actual: delivered);
+        int expected2;
+        if (continueScanning)
+        {
+            expected2 = 2;
+        }
+        else
+        {
+            expected2 = 1;
+        }
+
+        int actual2 = delivered;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: delivered, actual: navigator.GroupReads);
         Assert.Equal(expected: 0, actual: navigator.Submissions);
     }
@@ -286,7 +362,18 @@ public sealed class RegistryTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = apply }));
-        Assert.Equal(expected: apply ? 1 : 0, actual: fake.Submissions);
+        int expected2;
+        if (apply)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 0;
+        }
+
+        int actual2 = fake.Submissions;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: !failSubmission, actual: fake.LaterScanStarted);
         var result = capture.Result();
         Assert.Equal(expected: apply ? "partial" : "failed", actual: result.GetProperty("status").GetString());
@@ -311,7 +398,11 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -322,17 +413,29 @@ public sealed class RegistryTests
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons().First();
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new PreparationNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
-                    Value = lesson.Lesson.Groups,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation")));
+                            lesson.Lesson.Course,
+                            new GroupLink(
+                                new FoundGroups
+                                {
+                                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                                    Value = lesson.Lesson.Groups,
+                                },
+                                lesson.Lesson.GroupPartitionKey,
+                                uri: CalculateUri(),
+                                evaluationUri: CalculateEvaluationUri()));
         var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
         var parameters = new AddLessonsToOnlineRegistryTaskHandler.RunParams
         {
@@ -382,7 +485,11 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -392,17 +499,29 @@ public sealed class RegistryTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new PreparationNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
-                    Value = lesson.Lesson.Groups,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation")))
+                            lesson.Lesson.Course,
+                            new GroupLink(
+                                new FoundGroups
+                                {
+                                    IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                                    Value = lesson.Lesson.Groups,
+                                },
+                                lesson.Lesson.GroupPartitionKey,
+                                uri: CalculateUri(),
+                                evaluationUri: CalculateEvaluationUri()))
         {
             InvalidFirstForm = false,
             ReadFailure = !submitted,
@@ -419,7 +538,18 @@ public sealed class RegistryTests
         Assert.Equal(expected: submitted, actual: error.SubmissionStarted);
         Assert.IsType<InvalidOperationException>(error.InnerException);
         Assert.Equal(expected: 1, actual: navigator.FormReads);
-        Assert.Equal(expected: submitted ? 1 : 0, actual: navigator.Submissions);
+        int expected2;
+        if (submitted)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 0;
+        }
+
+        int actual2 = navigator.Submissions;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -593,11 +723,17 @@ public sealed class RegistryTests
     public async Task MissingTargetsAreIncludedInFinalJsonAndJsonl(bool jsonl)
     {
         await using var fake = new FakeProvider();
-        fake.DiagnosticItems.Add(new(
-            Kind: "missing-registry-group",
-            Course: "Synthetic course",
-            Group: "IA2502",
-            Detail: "Ask the registry administrator to add the English subgroup."));
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic CalculateItem()
+        {
+            global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic item = new(
+                        Kind: "missing-registry-group",
+                        Course: "Synthetic course",
+                        Group: "IA2502",
+                        Detail: "Ask the registry administrator to add the English subgroup.");
+            return item;
+        }
+
+        fake.DiagnosticItems.Add(CalculateItem());
         using var capture = new Capture();
         Assert.Equal(
             expected: 0,
@@ -656,29 +792,41 @@ public sealed class RegistryTests
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
             CancellationToken token)
         {
-            var action = new RegistrySyncAction(
-                kind: "create",
-                destination: Target.Destination,
-                course: "course",
-                groups: "group",
-                new(
-                    year: 2026,
-                    month: 1,
-                    day: 1),
-                topic: "topic",
-                0,
-                true,
-                omission: null,
-                _ =>
-                {
-                    Submissions++;
-                    if (FailSubmission)
-                    {
-                        throw new RegistryActionExecutionException(true, new IOException("lost response"));
-                    }
+            global::System.DateTime CalculateDate()
+            {
+                global::System.DateTime date = new(
+                                    year: 2026,
+                                    month: 1,
+                                    day: 1);
+                return date;
+            }
 
-                    return Task.CompletedTask;
-                });
+            var action = new RegistrySyncAction(
+                            kind: "create",
+                            destination: Target.Destination,
+                            course: "course",
+                            groups: "group",
+                            CalculateDate(),
+                            topic: "topic",
+                            0,
+                            true,
+                            omission: null,
+                            _ =>
+                            {
+                                Submissions++;
+                                if (FailSubmission)
+                                {
+                                    global::System.IO.IOException CalculateInner()
+                                    {
+                                        global::System.IO.IOException inner = new IOException("lost response");
+                                        return inner;
+                                    }
+
+                                    throw new RegistryActionExecutionException(true, CalculateInner());
+                                }
+
+                                return Task.CompletedTask;
+                            });
             if (!await onGroupPlanned([action]))
             {
                 return;
@@ -843,22 +991,36 @@ public sealed class RegistryTests
         public int GroupReads;
         public bool TwoGroups;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
-            Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+        {
+            global::System.Uri CalculateUrl()
+            {
+                global::System.Uri url = new("https://registry.test/course");
+                return url;
+            }
+
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
+        }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
+            global::System.Uri CalculateUri()
+            {
+                global::System.Uri uri2 = new("https://registry.test/group2");
+                return uri2;
+            }
+
             return Task.FromResult<IEnumerable<GroupLink>>(
-                TwoGroups
-                    ?
-                    [
-                        group, new(
+                            TwoGroups
+                                ?
+                                [
+                                    group, new(
                             group.Groups,
                             group.GroupPartition,
-                            uri: new("https://registry.test/group2"),
+                            uri: CalculateUri(),
                             evaluationUri: group.EvaluationUri),
-                    ]
-                    : [group]);
+                                ]
+                                : [group]);
         }
 
         public async Task<IDocument> GetHtml(Uri uri)
@@ -897,8 +1059,16 @@ public sealed class RegistryTests
         public bool SubmissionFailure;
         private bool _initialFormRead;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
-            Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+        {
+            global::System.Uri CalculateUrl()
+            {
+                global::System.Uri url = new("https://registry.test/course");
+                return url;
+            }
+
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
+        }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>
             Task.FromResult<IEnumerable<GroupLink>>([group]);

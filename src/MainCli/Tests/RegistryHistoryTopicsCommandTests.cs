@@ -19,10 +19,16 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task TopicsAndProvenanceRemainPrivateAndConsoleContainsCounts()
     {
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         var original = Console.Out;
         using var output = new StringWriter();
         try
@@ -38,7 +44,9 @@ public sealed class RegistryHistoryTopicsCommandTests
             Assert.DoesNotContain(expectedSubstring: "private.test", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion").GetInt32());
-            var inventory = Assert.Single(Directory.GetFiles(path: directory, searchPattern: "*.json"));
+            string[] collection = Directory.GetFiles(path: directory, searchPattern: "*.json");
+            global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+            var inventory = Assert.Single(collection2);
             Assert.Contains(expectedSubstring: "canary-current-topic", actualString: await File.ReadAllTextAsync(inventory));
             Assert.Contains(
                 expectedSubstring: "canary-historical-topic",
@@ -47,18 +55,22 @@ public sealed class RegistryHistoryTopicsCommandTests
             {
                 foreach (var file in Directory.GetFiles(directory))
                 {
-                    Assert.Equal(expected: UnixFileMode.UserRead | UnixFileMode.UserWrite, actual: File.GetUnixFileMode(file));
+                    global::System.IO.UnixFileMode expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                    global::System.IO.UnixFileMode actual2 = File.GetUnixFileMode(file);
+                    Assert.Equal(expected: expected2, actual: actual2);
                 }
 
+                global::System.IO.UnixFileMode expected3 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+                global::System.IO.UnixFileMode actual3 = File.GetUnixFileMode(directory);
                 Assert.Equal(
-                    expected: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
-                    actual: File.GetUnixFileMode(directory));
+                    expected: expected3, actual: actual3);
             }
         }
         finally
         {
             Console.SetOut(original);
-            if (Directory.Exists(Path.GetDirectoryName(directory)))
+            string? path3 = Path.GetDirectoryName(directory);
+            if (Directory.Exists(path3))
             {
                 Directory.Delete(Path.GetDirectoryName(directory)!, true);
             }
@@ -73,7 +85,13 @@ public sealed class RegistryHistoryTopicsCommandTests
             return;
         }
 
-        var parent = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var parent = Path.Combine(Path.GetTempPath(), CalculatePath2());
         var target = Path.Combine(parent, "target");
         var link = Path.Combine(parent, "link");
         Directory.CreateDirectory(target);
@@ -180,35 +198,59 @@ public sealed class RegistryHistoryTopicsCommandTests
                 throw new Exception("canary-password canary-student canary-topic");
             }
 
+            global::System.Uri CalculateUri()
+            {
+                global::System.Uri uri = new("https://private.test/groups/1");
+                return uri;
+            }
+
             var course = new RegistryHistoryCourse(
-                "canary-course",
-                1,
-                new("https://private.test/groups/1"));
+                            "canary-course",
+                            1,
+                            CalculateUri());
+            global::System.Uri CalculateUri2()
+            {
+                global::System.Uri uri2 = new("https://private.test/LessonsList/1");
+                return uri2;
+            }
+
+            global::System.DateTime CalculateDate()
+            {
+                global::System.DateTime date = new DateTime(
+                                            year: 2024,
+                                            month: 10,
+                                            day: 1);
+                return date;
+            }
+
             var group = new RegistryHistoryGroupTopics(
-                "canary-group",
-                new("https://private.test/LessonsList/1"),
-                [
-                    new(
-                        new DateTime(
-                            year: 2024,
-                            month: 10,
-                            day: 1),
+                                        "canary-group",
+                                        CalculateUri2(),
+                                        [
+                                            new(
+                        CalculateDate(),
                         ScheduleLib.LessonType.Curs,
                         "canary-historical-topic"),
-                ]);
+                                        ]);
             var historical = new RegistryHistoryCourseTopics(
                 "2024/25",
                 course,
                 [group]);
+            global::System.DateTime CalculateDate2()
+            {
+                global::System.DateTime date2 = new DateTime(
+                                            year: 2025,
+                                            month: 10,
+                                            day: 1);
+                return date2;
+            }
+
             var currentGroup = group with
             {
                 Lessons =
-                [
-                    new(
-                        new DateTime(
-                            year: 2025,
-                            month: 10,
-                            day: 1),
+                            [
+                                new(
+                        CalculateDate2(),
                         ScheduleLib.LessonType.Curs,
                         "canary-current-topic"),
                 ],

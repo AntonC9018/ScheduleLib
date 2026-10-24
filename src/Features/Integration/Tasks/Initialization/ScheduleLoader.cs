@@ -72,14 +72,19 @@ public sealed class ScheduleLoader
                 // reuse the same import policy before the builder validates them.
                 if (Components.OfType<DirectoryScheduleLoaderComponent>().Any(component =>
                     Directory.EnumerateFiles(path: component.DirectoryPath.Value, searchPattern: "*.pdf", SearchOption.AllDirectories).Any()))
+                {
                     context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
-                        context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
+                    context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
+                }
+
                 return;
             }
         }
 
         foreach (var loader in Components)
+        {
             await loader.Apply(context, cancellationToken);
+        }
 
         if (CachedPath is { } destination)
         {
@@ -334,55 +339,62 @@ public sealed class ConsultationsLoaderComponent(
 
                         if (conditionResult)
                         {
-                            throw cell.Exception($"'{t}' did not parser as a name");
+                            global::ClosedXML.Excel.IXLCell iXLCell = cell;
+                            string message = $"'{t}' did not parser as a name";
+                            throw iXLCell.Exception(message);
                         }
                         Data.Name = name;
                         return true;
                     }
                 case Column.Time:
-                {
-                    TimeInterval interval;
-                    if (cell.TryGetValue(out TimeSpan time))
                     {
-                        var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
-                        var consultationDuration = _timeConfig.LessonDuration;
-                        interval = new(Start: startTime, End: startTime.Add(consultationDuration));
-                    }
-                    else
-                    {
-                        var parser = new SequenceReader(t);
-                        interval = parser.ParseTimeInterval(allowOpenInterval: true);
-                        if (!parser.IsEmpty)
+                        TimeInterval interval;
+                        if (cell.TryGetValue(out TimeSpan time))
                         {
-                            throw cell.Exception("Not consumed the interval fully.");
+                            var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
+                            var consultationDuration = _timeConfig.LessonDuration;
+                            global::System.TimeOnly start = startTime;
+                            global::System.TimeOnly end = startTime.Add(consultationDuration);
+                            global::ScheduleLib.Parsing.TimeInterval timeInterval = new(Start: start, End: end);
+                            interval = timeInterval;
                         }
-                    }
+                        else
+                        {
+                            var parser = new SequenceReader(t);
+                            interval = parser.ParseTimeInterval(allowOpenInterval: true);
+                            if (!parser.IsEmpty)
+                            {
+                                throw cell.Exception("Not consumed the interval fully.");
+                            }
+                        }
 
-                    _timeConfig.GetTimeSlotsThatInclude(interval, Data.Time);
-                    if (Data.Time.Count == 0)
-                    {
-                        throw cell.Exception("The given time doesn't match a single time slot");
+                        _timeConfig.GetTimeSlotsThatInclude(interval, Data.Time);
+                        if (Data.Time.Count == 0)
+                        {
+                            throw cell.Exception("The given time doesn't match a single time slot");
+                        }
+                        return true;
                     }
-                    return true;
-                }
                 case Column.Day:
-                {
-                    if (_dayParser.Map(t) is not { } day)
                     {
-                        throw cell.Exception($"Unknown day of week '{t}'");
+                        if (_dayParser.Map(t) is not { } day)
+                        {
+                            global::ClosedXML.Excel.IXLCell iXLCell2 = cell;
+                            string message2 = $"Unknown day of week '{t}'";
+                            throw iXLCell2.Exception(message2);
+                        }
+                        Data.Day = day;
+                        return true;
                     }
-                    Data.Day = day;
-                    return true;
-                }
                 case Column.Room:
-                {
-                    Data.Room = t;
-                    return true;
-                }
+                    {
+                        Data.Room = t;
+                        return true;
+                    }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
     }
@@ -415,7 +427,9 @@ public sealed class ConsultationsLoaderComponent(
             var notSetRows = setRows.Flipped;
             if (!notSetRows.IsEmpty)
             {
-                throw dataRow.Exception($"The following rows were not set: '{notSetRows}'");
+                global::ClosedXML.Excel.IXLRow iXLRow = dataRow;
+                string message = $"The following rows were not set: '{notSetRows}'";
+                throw iXLRow.Exception(message);
             }
 
             ref var data = ref processor.Data;
@@ -472,8 +486,28 @@ public static class HashHelper
                 AppendNullableInt(scope.StudyYear?.Value);
                 AppendNullableInt(scope.Grade?.Value);
                 AppendString(scope.Faculty?.Name);
-                AppendNullableInt(scope.AttendanceMode is { } mode ? (int)mode : null);
-                AppendNullableInt(scope.Qualification is { } qualification ? (int)qualification : null);
+                int? value3;
+                if (scope.AttendanceMode is { } mode)
+                {
+                    value3 = (int) mode;
+                }
+                else
+                {
+                    value3 = null;
+                }
+
+                AppendNullableInt(value3);
+                int? value4;
+                if (scope.Qualification is { } qualification)
+                {
+                    value4 = (int) qualification;
+                }
+                else
+                {
+                    value4 = null;
+                }
+
+                AppendNullableInt(value4);
                 AppendCourses(scope.SpecializationCourses, static s => s.Value);
                 AppendCourses(scope.AlternativeCourses, static a => a.Value);
             }
@@ -523,7 +557,8 @@ public static class HashHelper
                 foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
                 {
                     AppendString(name);
-                    AppendString(value(v));
+                    string? value2 = value(v);
+                    AppendString(value2);
                 }
             }
 
@@ -596,8 +631,12 @@ public static class HashHelper
                     {
                         return c;
                     }
-                    c = string.Compare(
-                        strA: value(xe.Current.Value), strB: value(ye.Current.Value), StringComparison.Ordinal);
+                    string? strA2 = value(xe.Current.Value);
+                    string? strB2 = value(ye.Current.Value);
+                    global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                    int compare = string.Compare(
+                        strA: strA2, strB: strB2, comparisonType);
+                    c = compare;
                     if (c != 0)
                     {
                         return c;
@@ -644,7 +683,7 @@ public static class HashHelper
             using var pathBuffer = new RentedBuffer<byte>(maxPathBytes);
 
             int byteCount = Encoding.UTF8.GetBytes(relativePath, pathBuffer.Span);
-            hasher.AppendData(pathBuffer.Span[.. byteCount]);
+            hasher.AppendData(pathBuffer.Span[..byteCount]);
         }
 
         public async ValueTask TryAppendFileContents(
@@ -660,7 +699,7 @@ public static class HashHelper
                 int read;
                 while ((read = await fs.ReadAsync(readBuffer.Memory, cancellationToken)) > 0)
                 {
-                    hasher.AppendData(readBuffer.Span[.. read]);
+                    hasher.AppendData(readBuffer.Span[..read]);
                 }
             }
             catch (FileNotFoundException)

@@ -56,23 +56,33 @@ public sealed class WebsiteExportTests
         Assert.NotEmpty(data.GetProperty("missingSlugs").EnumerateArray());
         Assert.Contains(expectedSubstring: "No slug", actualString: stderr);
         var teacherFile = Path.Combine(output, "mapped-teacher.json");
-        Assert.True(File.Exists(teacherFile));
+        bool condition = File.Exists(teacherFile);
+        Assert.True(condition);
         using (var content = JsonDocument.Parse(await File.ReadAllTextAsync(teacherFile)))
         {
             Assert.NotEmpty(content.RootElement.GetProperty("scheduleDaysDto").EnumerateArray());
         }
 
         var zipPath = Path.Combine(output, "orar.zip");
-        Assert.True(File.Exists(zipPath));
+        bool condition2 = File.Exists(zipPath);
+        Assert.True(condition2);
         Assert.Equal(expected: zipPath, actual: data.GetProperty("zipPath").GetString());
         AssertZipMatchesDirectory(zipPath: zipPath, directory: output);
-        Assert.True(File.Exists(Path.Combine(output, "schedulelib-manifest.json")));
+        string path2 = Path.Combine(output, "schedulelib-manifest.json");
+        bool condition3 = File.Exists(path2);
+        Assert.True(condition3);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
+        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+        {
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(
+                            path: Fixtures,
+                            searchPattern: "*schedule_*.json",
+                            SearchOption.AllDirectories);
+            return collection;
+        }
+
         Assert.Empty(
-            Directory.EnumerateFiles(
-                path: Fixtures,
-                searchPattern: "*schedule_*.json",
-                SearchOption.AllDirectories));
+                    CalculateCollection());
     }
 
     [Fact]
@@ -89,8 +99,12 @@ public sealed class WebsiteExportTests
                 new() { Directory = output },
                 new()));
         Assert.Equal(expected: 0, actual: exit);
-        Assert.Contains(expectedSubstring: Path.Combine(output, "orar.zip"), actualString: stdout);
-        Assert.Contains(expectedSubstring: Path.Combine(output, "mapped-teacher.json"), actualString: stdout);
+        string expectedSubstring2 = Path.Combine(output, "orar.zip");
+        string actualString2 = stdout;
+        Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
+        string expectedSubstring3 = Path.Combine(output, "mapped-teacher.json");
+        string actualString3 = stdout;
+        Assert.Contains(expectedSubstring: expectedSubstring3, actualString: actualString3);
     }
 
     [Fact]
@@ -120,7 +134,8 @@ public sealed class WebsiteExportTests
         Assert.Contains(teachers.ThesisKey2.ToString(), missing);
         Assert.NotEmpty(root.GetProperty("warnings").EnumerateArray());
         var teacherFile = Path.Combine(output, "mapped-teacher.json");
-        Assert.True(File.Exists(teacherFile));
+        bool condition = File.Exists(teacherFile);
+        Assert.True(condition);
         using (var content = JsonDocument.Parse(await File.ReadAllTextAsync(teacherFile)))
         {
             var items = content.RootElement.GetProperty("content").EnumerateArray().ToArray();
@@ -129,10 +144,13 @@ public sealed class WebsiteExportTests
             Assert.Equal(expected: teachers.ThesisKey1.ToString(), actual: items[0].GetProperty("teacher").GetString());
         }
         var zipPath = Path.Combine(output, "theses.zip");
-        Assert.True(File.Exists(zipPath));
+        bool condition2 = File.Exists(zipPath);
+        Assert.True(condition2);
         Assert.Equal(expected: zipPath, actual: data.GetProperty("zipPath").GetString());
         AssertZipMatchesDirectory(zipPath: zipPath, directory: output);
-        Assert.True(File.Exists(Path.Combine(output, "schedulelib-manifest.json")));
+        string path = Path.Combine(output, "schedulelib-manifest.json");
+        bool condition3 = File.Exists(path);
+        Assert.True(condition3);
     }
 
     [Fact]
@@ -153,7 +171,9 @@ public sealed class WebsiteExportTests
                 new() { Json = true }));
         Assert.Equal(expected: 5, actual: exit);
         Assert.Equal(expected: "sentinel-bytes", actual: await File.ReadAllTextAsync(sentinel));
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
         Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
         Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -180,7 +200,9 @@ public sealed class WebsiteExportTests
                     new() { Json = true }));
             Assert.Equal(expected: 5, actual: exit);
             Assert.Equal(expected: "sentinel-bytes", actual: await File.ReadAllTextAsync(sentinel));
-            Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+            global::System.Collections.IEnumerable collection2 = collection;
+            Assert.Empty(collection2);
             using var document = JsonDocument.Parse(stdout);
             Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
             Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -215,7 +237,9 @@ public sealed class WebsiteExportTests
                 new() { Directory = output },
                 new());
         Assert.Equal(expected: 5, actual: exit);
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Theory]
@@ -223,10 +247,16 @@ public sealed class WebsiteExportTests
     [InlineData("website-theses")]
     public async Task WebsiteExportsMapConnectionFailureToExit5(string command)
     {
+        global::System.Net.Http.HttpRequestException CalculateError()
+        {
+            global::System.Net.Http.HttpRequestException error = new HttpRequestException("connection refused");
+            return error;
+        }
+
         var fixture = new FixtureWebsite
         {
             UseFakeSlugProvider = false,
-            HttpHandlerOverride = new FakeThrowingHandler(new HttpRequestException("connection refused")),
+            HttpHandlerOverride = new FakeThrowingHandler(CalculateError()),
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -242,7 +272,9 @@ public sealed class WebsiteExportTests
                 new() { Directory = output },
                 new());
         Assert.Equal(expected: 5, actual: exit);
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Theory]
@@ -269,7 +301,9 @@ public sealed class WebsiteExportTests
                 new() { Directory = output },
                 new());
         Assert.Equal(expected: 5, actual: exit);
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Fact]
@@ -290,7 +324,9 @@ public sealed class WebsiteExportTests
                 new() { Json = true }));
         Assert.Equal(expected: 5, actual: exit);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
         Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
         Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -315,7 +351,9 @@ public sealed class WebsiteExportTests
                 new() { Json = true }));
         Assert.Equal(expected: 5, actual: exit);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
         Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
         Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -339,7 +377,9 @@ public sealed class WebsiteExportTests
                 new() { Json = true }));
         Assert.Equal(expected: 5, actual: exit);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
         Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
         Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -363,7 +403,9 @@ public sealed class WebsiteExportTests
                 new() { Json = true }));
         Assert.Equal(expected: 5, actual: exit);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
-        Assert.Empty(Directory.EnumerateFiles(path: output, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: output, searchPattern: "*.json");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
         Assert.Equal(expected: "failed", actual: document.RootElement.GetProperty("status").GetString());
         Assert.Equal(expected: 5, actual: document.RootElement.GetProperty("exitCode").GetInt32());
@@ -423,7 +465,13 @@ public sealed class WebsiteExportTests
     [Fact]
     public async Task MissingSourceReturnsConfigurationError()
     {
-        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var missing = Path.Combine(Path.GetTempPath(), CalculatePath2());
         var source = new SourceArguments
         {
             NoCache = true,
@@ -493,7 +541,12 @@ public sealed class WebsiteExportTests
 
         for (var row = 0; row < rows.Length; row++)
         {
-            sheet.Cell(row: row + 2, column: 1).Value = row + 1;
+            global::ClosedXML.Excel.IXLWorksheet iXLWorksheet = sheet;
+            int row2 = row + 2;
+            int column2 = 1;
+            global::ClosedXML.Excel.IXLCell cell = iXLWorksheet.Cell(row: row2, column: column2);
+            int int32 = row + 1;
+            cell.Value = int32;
             sheet.Cell(row: row + 2, column: 2).Value = rows[row].Group;
             sheet.Cell(row: row + 2, column: 3).Value = rows[row].Student;
             sheet.Cell(row: row + 2, column: 4).Value = rows[row].Mentor;
@@ -582,16 +635,32 @@ public sealed class WebsiteExportTests
 
     private sealed class FakeThesesFileProvider(byte[] bytes) : IThesesFileProvider
     {
-        public ValueTask<Stream> Open(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<Stream>(new MemoryStream(bytes, writable: false));
+        public ValueTask<Stream> Open(CancellationToken cancellationToken)
+        {
+            global::System.IO.MemoryStream CalculateResult()
+            {
+                global::System.IO.MemoryStream result = new MemoryStream(bytes, writable: false);
+                return result;
+            }
+
+            return ValueTask.FromResult<Stream>(CalculateResult());
+        }
     }
 
     private sealed class FakeFailingStatusHandler(HttpStatusCode status) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(status));
+            CancellationToken cancellationToken)
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(status);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        }
     }
 
     private sealed class FakeThrowingHandler(Exception error) : HttpMessageHandler
@@ -608,8 +677,14 @@ public sealed class WebsiteExportTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            return Task.FromException<HttpResponseMessage>(new TaskCanceledException(
-                    "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing."));
+            global::System.Threading.Tasks.TaskCanceledException CalculateException()
+            {
+                global::System.Threading.Tasks.TaskCanceledException exception = new TaskCanceledException(
+                                    "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.");
+                return exception;
+            }
+
+            return Task.FromException<HttpResponseMessage>(CalculateException());
         }
     }
 
@@ -630,7 +705,11 @@ public sealed class WebsiteExportTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -638,7 +717,10 @@ public sealed class WebsiteExportTests
             });
             if (UseFakeSlugProvider)
             {
-                services.AddSingleton<ISlugProvider>(new FakeSlugProvider(Slugs));
+                global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = services;
+                global::WebsiteExportTests.FakeSlugProvider implementationInstance = new FakeSlugProvider(Slugs);
+                global::FmiWebsiteInterop.Teachers.ISlugProvider implementationInstance2 = implementationInstance;
+                iServiceCollection.AddSingleton<ISlugProvider>(implementationInstance2);
             }
 #pragma warning disable CA2000 // The service provider owns and disposes the client and handler.
             services.AddSingleton(new ItUsmWebsiteHttpClient(
@@ -649,7 +731,10 @@ public sealed class WebsiteExportTests
 #pragma warning restore CA2000
             if (ThesesXlsx is { } xlsx)
             {
-                services.AddSingleton<IThesesFileProvider>(new FakeThesesFileProvider(xlsx));
+                global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection2 = services;
+                global::WebsiteExportTests.FakeThesesFileProvider implementationInstance3 = new FakeThesesFileProvider(xlsx);
+                global::ScheduleLib.Theses.Parsing.IThesesFileProvider implementationInstance4 = implementationInstance3;
+                iServiceCollection2.AddSingleton<IThesesFileProvider>(implementationInstance4);
             }
         }
 
@@ -681,15 +766,19 @@ public sealed class WebsiteExportTests
             var display1 = first.PersonName.ToString();
             var display2 = second.PersonName.ToString();
             var parsed1 = NameHelper.Parse(display1);
-            return new(
-                Display1: display1,
-                ScheduleKey1: new(first.PersonName.AsNameFields()),
-                ScheduleKey2: new(second.PersonName.AsNameFields()),
-                ThesisKey1: remapper.RemapName(parsed1),
-                ApiFirst1: JoinParts(parsed1.FirstName),
-                ApiLast1: JoinParts(parsed1.LastName),
-                Display2: display2,
-                ThesisKey2: remapper.RemapName(NameHelper.Parse(display2)));
+            string display12 = display1;
+            global::ScheduleLib.Parsing.Name scheduleKey1 = new(first.PersonName.AsNameFields());
+            global::ScheduleLib.Parsing.Name scheduleKey2 = new(second.PersonName.AsNameFields());
+            global::ScheduleLib.Parsing.Name thesisKey1 = remapper.RemapName(parsed1);
+            string apiFirst1 = JoinParts(parsed1.FirstName);
+            string apiLast1 = JoinParts(parsed1.LastName);
+            string display22 = display2;
+            global::ScheduleLib.Theses.Parsing.INameRemapper iNameRemapper = remapper;
+            global::ScheduleLib.Parsing.Name name = NameHelper.Parse(display2);
+            global::ScheduleLib.Parsing.Name thesisKey2 = iNameRemapper.RemapName(name);
+            global::WebsiteExportTests.TeacherDiscovery teacherDiscovery = new(
+                            Display1: display12, ScheduleKey1: scheduleKey1, ScheduleKey2: scheduleKey2, ThesisKey1: thesisKey1, ApiFirst1: apiFirst1, ApiLast1: apiLast1, Display2: display22, ThesisKey2: thesisKey2);
+            return teacherDiscovery;
         }
 
         public async Task<(int LatestTeacherless, int LatestWeekly, int AllTeacherless, int AllWeekly)>
@@ -728,9 +817,15 @@ public sealed class WebsiteExportTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-website-{Guid.NewGuid():N}");
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
         public TempDirectory() => Directory.CreateDirectory(Path);
         public void Dispose() => Directory.Delete(Path, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = $"schedulelib-website-{Guid.NewGuid():N}";
+            return path2;
+        }
     }
 }

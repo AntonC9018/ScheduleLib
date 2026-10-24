@@ -53,7 +53,9 @@ public static class MappingsHelper
                 var notFoundColumns = foundColumns.Flipped;
                 if (!notFoundColumns.IsEmpty)
                 {
-                    throw headerRow.Exception($"Columns '{notFoundColumns}' not found in the header");
+                    global::ClosedXML.Excel.IXLRow iXLRow = headerRow;
+                    string message = $"Columns '{notFoundColumns}' not found in the header";
+                    throw iXLRow.Exception(message);
                 }
             }
         }

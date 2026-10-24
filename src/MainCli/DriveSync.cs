@@ -68,9 +68,18 @@ public static class DriveSync
         string account,
         string folderId)
     {
-        return Path.Combine(
-        root,
-        (string) $"{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{account}\n{folderId}")))}.lock");
+        string path1 = root;
+        global::System.Text.Encoding encoding = Encoding.UTF8;
+        string text = $"{account}\n{folderId}";
+        string s = (string) text;
+        byte[] source = encoding.GetBytes(s);
+        byte[] inArray = SHA256.HashData(source);
+        string toHexString = Convert.ToHexString(inArray);
+        string text2 = $"{toHexString}.lock";
+        string path2 = (string) text2;
+        string combine = Path.Combine(
+        path1, path2);
+        return combine;
     }
 
     public static async Task<DriveSyncResult> Run(
@@ -84,19 +93,25 @@ public static class DriveSync
     {
         var account = await provider.GetAccount(token);
         var folder = await provider.FindFolder(folderName, token);
+        string CalculatePath1()
+        {
+            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return path1;
+        }
+
         await using var lease = apply
-            ? await LocalFileLock.Acquire(
-                LockPath(
-                    root: lockRoot
-                    ?? Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "ScheduleLib",
-                        "remote-locks",
-                        "drive"),
-                    account: account.Id,
-                    folderId: folder.Id),
-                token)
-            : null;
+                    ? await LocalFileLock.Acquire(
+                        LockPath(
+                            root: lockRoot
+                            ?? Path.Combine(
+                                CalculatePath1(),
+                                "ScheduleLib",
+                                "remote-locks",
+                                "drive"),
+                            account: account.Id,
+                            folderId: folder.Id),
+                        token)
+                    : null;
         // Folder identity is resolved before locking; reread it under the lease and refuse a changed destination.
         if (apply && (await provider.FindFolder(folderName, token)).Id != folder.Id)
         {
@@ -157,19 +172,33 @@ public static class DriveSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw StreamingFailure(new GeneralCliOutputStreamingException("Drive output streaming failed.", ex));
+                global::ScheduleLib.Cli.GeneralCliOutputStreamingException inner = new GeneralCliOutputStreamingException("Drive output streaming failed.", ex);
+                global::System.Exception inner2 = inner;
+                throw StreamingFailure(inner2);
             }
         }
 
         DriveStreamingException StreamingFailure(Exception inner)
         {
-            return new(
-                Result(
-                    outcomes.Any(x => x.State == "completed") ? 6 : 1,
-                    [
-                        "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
-                    ]),
-                inner);
+            int exit;
+            if (outcomes.Any(x => x.State == "completed"))
+            {
+                exit = 6;
+            }
+            else
+            {
+                exit = 1;
+            }
+
+            string[] errors = [
+                                    "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
+                    ];
+            global::ScheduleLib.Cli.DriveSyncResult partialResult = Result(
+            exit, errors);
+            global::System.Exception inner2 = inner;
+            global::ScheduleLib.Cli.DriveStreamingException driveStreamingException = new(
+            partialResult, inner2);
+            return driveStreamingException;
         }
 
         void ReportPlanned(int index, DriveAction action)
@@ -178,10 +207,11 @@ public static class DriveSync
                 action,
                 State: "planned",
                 ResultFileId: null);
+            string id2 = PlanId(index);
+            global::ScheduleLib.Cli.DriveOutcome outcome = planned;
+            string human2 = $"{action.Action} {action.Name}: {planned.State}";
             Report(
-                id: PlanId(index),
-                planned,
-                human: $"{action.Action} {action.Name}: {planned.State}");
+                id: id2, outcome, human: human2);
         }
 
         void AddOutcome(DriveOutcome outcome)
@@ -193,10 +223,11 @@ public static class DriveSync
             // rendering failure is never misclassified as provider uncertainty.
             outcomes.Add(outcome);
             var index = outcomes.Count - 1;
+            string id2 = PlanId(index);
+            global::ScheduleLib.Cli.DriveOutcome outcome2 = outcome;
+            string human2 = $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}";
             Report(
-                id: PlanId(index),
-                outcome,
-                human: $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}");
+                id: id2, outcome2, human: human2);
         }
 
         token.ThrowIfCancellationRequested();
@@ -222,10 +253,11 @@ public static class DriveSync
                 {
                     attempted = true;
                     await provider.Delete(action.FileId!, token);
-                    AddOutcome(new(
+                    global::ScheduleLib.Cli.DriveOutcome outcome3 = new(
                         action,
                         State: "completed",
-                        ResultFileId: action.FileId));
+                        ResultFileId: action.FileId);
+                    AddOutcome(outcome3);
                 }
                 else
                 {
@@ -242,10 +274,11 @@ public static class DriveSync
                             action.FileId!,
                             input,
                             token);
-                    AddOutcome(new(
+                    global::ScheduleLib.Cli.DriveOutcome outcome4 = new(
                         action,
                         State: "completed",
-                        ResultFileId: id));
+                        ResultFileId: id);
+                    AddOutcome(outcome4);
                 }
             }
             catch (CliOutputStreamingException)
@@ -257,10 +290,21 @@ public static class DriveSync
             catch (Exception error) when (token.IsCancellationRequested
                                           && error is OperationCanceledException or GooglePreSendTransportException)
             {
-                AddOutcome(new(
-                    action,
-                    State: attempted ? "uncertain" : "not-attempted",
-                    ResultFileId: null));
+                global::ScheduleLib.Cli.DriveAction action2 = action;
+                string state;
+                if (attempted)
+                {
+                    state = "uncertain";
+                }
+                else
+                {
+                    state = "not-attempted";
+                }
+
+                string? resultFileId = null;
+                global::ScheduleLib.Cli.DriveOutcome outcome7 = new(
+                    action2, State: state, ResultFileId: resultFileId);
+                AddOutcome(outcome7);
                 AddRemaining();
                 return Result(
                     130,
@@ -270,16 +314,28 @@ public static class DriveSync
             }
             catch (GooglePreSendTransportException)
             {
-                AddOutcome(new(
+                global::ScheduleLib.Cli.DriveOutcome outcome5 = new(
                     action,
                     State: "failed",
-                    ResultFileId: null));
+                    ResultFileId: null);
+                AddOutcome(outcome5);
                 AddRemaining();
-                return Result(
-                    outcomes.Any(x => x.State == "completed") ? 6 : 5,
-                    [
-                        "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
-                    ]);
+                int exit2;
+                if (outcomes.Any(x => x.State == "completed"))
+                {
+                    exit2 = 6;
+                }
+                else
+                {
+                    exit2 = 5;
+                }
+
+                string[] errors2 = [
+                                        "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
+                    ];
+                global::ScheduleLib.Cli.DriveSyncResult result = Result(
+                exit2, errors2);
+                return result;
             }
             catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400
                                                       or 401
@@ -289,41 +345,107 @@ public static class DriveSync
                                                       or 412
                                                       or 422)
             {
-                AddOutcome(new(
+                global::ScheduleLib.Cli.DriveOutcome outcome6 = new(
                     action,
                     State: "failed",
-                    ResultFileId: null));
+                    ResultFileId: null);
+                AddOutcome(outcome6);
                 AddRemaining();
-                return Result(
-                    outcomes.Any(x => x.State == "completed") ? 6 : (int) e.HttpStatusCode == 401 ? 4 : 5,
-                    ["Drive rejected the action. Completed actions remain applied; no action was retried."]);
+                int exit3;
+                if (outcomes.Any(x => x.State == "completed"))
+                {
+                    exit3 = 6;
+                }
+                else
+                {
+                    int int32 = (int) e.HttpStatusCode;
+                    int int322;
+                    if (int32 == 401)
+                    {
+                        int322 = 4;
+                    }
+                    else
+                    {
+                        int322 = 5;
+                    }
+
+                    exit3 = int322;
+                }
+
+                string[] errors3 = ["Drive rejected the action. Completed actions remain applied; no action was retried."];
+                global::ScheduleLib.Cli.DriveSyncResult result2 = Result(
+                exit3, errors3);
+                return result2;
             }
             catch (Exception)
             {
-                AddOutcome(new(
-                    action,
-                    State: attempted ? "uncertain" : "failed",
-                    ResultFileId: null));
+                global::ScheduleLib.Cli.DriveAction action3 = action;
+                string state2;
+                if (attempted)
+                {
+                    state2 = "uncertain";
+                }
+                else
+                {
+                    state2 = "failed";
+                }
+
+                string? resultFileId2 = null;
+                global::ScheduleLib.Cli.DriveOutcome outcome8 = new(
+                    action3, State: state2, ResultFileId: resultFileId2);
+                AddOutcome(outcome8);
                 AddRemaining();
-                return Result(
-                    outcomes.Any(x => x.State is "completed" or "uncertain") ? 6 : 5,
-                    [
-                        "Drive application failed. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
-                    ]);
+                int exit4;
+                if (outcomes.Any(x => x.State is "completed" or "uncertain"))
+                {
+                    exit4 = 6;
+                }
+                else
+                {
+                    exit4 = 5;
+                }
+
+                string[] errors4 = [
+                                        "Drive application failed. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
+                    ];
+                global::ScheduleLib.Cli.DriveSyncResult result3 = Result(
+                exit4, errors4);
+                return result3;
             }
         }
-        return Result(
-            token.IsCancellationRequested ? 130 : 0,
-            token.IsCancellationRequested ? ["Cancelled after the reported actions completed."] : []);
+        int exit5;
+        if (token.IsCancellationRequested)
+        {
+            exit5 = 130;
+        }
+        else
+        {
+            exit5 = 0;
+        }
+
+        string[] errors5;
+        if (token.IsCancellationRequested)
+        {
+            errors5 = ["Cancelled after the reported actions completed."];
+        }
+        else
+        {
+            errors5 = [];
+        }
+
+        global::ScheduleLib.Cli.DriveSyncResult result4 = Result(
+        exit5, errors5);
+        return result4;
 
         void AddRemaining()
         {
             foreach (var action in actions.Skip(outcomes.Count))
             {
-                AddOutcome(new(
+                global::ScheduleLib.Cli.DriveOutcome outcome = new(
                     action,
                     State: "not-attempted",
-                    ResultFileId: null));
+                    ResultFileId: null);
+                AddOutcome(outcome);
             }
         }
 
@@ -343,12 +465,18 @@ public static class DriveSync
 
     public static bool IsScheduleArtifact(string name)
     {
+        string CalculateValue()
+        {
+            string value = Path.GetExtension(name);
+            return value;
+        }
+
         return name == Path.GetFileName(name)
-            && new[]
-            {
+                    && new[]
+                    {
                 ".xlsx",
                 ".pdf",
                 ".ics",
-            }.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+                    }.Contains(CalculateValue(), StringComparer.OrdinalIgnoreCase);
     }
 }

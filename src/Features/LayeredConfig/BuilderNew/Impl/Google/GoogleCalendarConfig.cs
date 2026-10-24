@@ -21,7 +21,7 @@ public sealed class GoogleCalendarConfig : INodeData<GoogleCalendarConfig>
 
 public sealed class BuiltGoogleCalendarConfig
 {
-    public static NodeDataKey<BuiltGoogleCalendarConfig> Key { get; set; } = new (GoogleCalendarConfig.Key.Value);
+    public static NodeDataKey<BuiltGoogleCalendarConfig> Key { get; set; } = new(GoogleCalendarConfig.Key.Value);
     public required GoogleCredentialsConfig Credentials { get; set; }
     public required string CalendarName { get; set; }
 }

@@ -27,11 +27,11 @@ public readonly struct LessonFilterBuilder
 
 public static class LessonFilterBuilderExtensions
 {
-    extension (IServiceProvider sp)
+    extension(IServiceProvider sp)
     {
         public LessonFilterBuilder LessonFilterBuilder() => new(sp);
     }
-    extension (LessonFilterBuilder builder)
+    extension(LessonFilterBuilder builder)
     {
         public ILessonFilter Create() => builder.Current;
 
@@ -46,7 +46,13 @@ public static class LessonFilterBuilderExtensions
 
         public LessonFilterBuilder SkipAttendance(AttendanceMode attendance)
         {
-            return builder.Wrap(new SkipAttendanceLessonFilter(attendance));
+            global::ScheduleLib.Application.Core.SkipAttendanceLessonFilter CalculateValue()
+            {
+                global::ScheduleLib.Application.Core.SkipAttendanceLessonFilter value = new SkipAttendanceLessonFilter(attendance);
+                return value;
+            }
+
+            return builder.Wrap(CalculateValue());
         }
 
         public LessonFilterBuilder CurrentTeacher()

@@ -10,10 +10,18 @@ public sealed class BitArray
         bitArray.Set(2);
         bitArray.Set(4);
         bitArray.Set(6);
-        Assert.Equal(expected: 2, actual: bitArray.GetSetAfter(0));
-        Assert.Equal(expected: 4, actual: bitArray.GetSetAfter(2));
-        Assert.Equal(expected: 6, actual: bitArray.GetSetAfter(4));
-        Assert.Equal(expected: -1, actual: bitArray.GetSetAfter(6));
+        int expected2 = 2;
+        int actual2 = bitArray.GetSetAfter(0);
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3 = 4;
+        int actual3 = bitArray.GetSetAfter(2);
+        Assert.Equal(expected: expected3, actual: actual3);
+        int expected4 = 6;
+        int actual4 = bitArray.GetSetAfter(4);
+        Assert.Equal(expected: expected4, actual: actual4);
+        int expected5 = -1;
+        int actual5 = bitArray.GetSetAfter(6);
+        Assert.Equal(expected: expected5, actual: actual5);
     }
 
     [Fact]
@@ -24,17 +32,27 @@ public sealed class BitArray
         bitArray.Set(2, false);
         bitArray.Set(4, false);
         bitArray.Set(6, false);
-        Assert.Equal(expected: 2, actual: bitArray.GetUnsetAfter(0));
-        Assert.Equal(expected: 4, actual: bitArray.GetUnsetAfter(2));
-        Assert.Equal(expected: 6, actual: bitArray.GetUnsetAfter(4));
-        Assert.Equal(expected: -1, actual: bitArray.GetUnsetAfter(6));
+        int expected2 = 2;
+        int actual2 = bitArray.GetUnsetAfter(0);
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3 = 4;
+        int actual3 = bitArray.GetUnsetAfter(2);
+        Assert.Equal(expected: expected3, actual: actual3);
+        int expected4 = 6;
+        int actual4 = bitArray.GetUnsetAfter(4);
+        Assert.Equal(expected: expected4, actual: actual4);
+        int expected5 = -1;
+        int actual5 = bitArray.GetUnsetAfter(6);
+        Assert.Equal(expected: expected5, actual: actual5);
     }
 
     [Fact]
     public void GetUnsetEmpty()
     {
         var bitArray = BitArray32.AllSet(0);
-        Assert.Equal(expected: -1, actual: bitArray.GetUnsetAfter(-1));
+        int expected2 = -1;
+        int actual2 = bitArray.GetUnsetAfter(-1);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]

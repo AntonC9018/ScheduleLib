@@ -14,8 +14,16 @@ public sealed class TeacherProfileScheduleLookupTests
         schedule.RefreshLookup();
         var lookup = schedule.Lookup(null!);
 
-        Assert.Equal(expected: vlada.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
-        Assert.NotEqual(expected: other.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
+        global::ScheduleLib.TeacherId? expected2 = vlada.Id;
+        global::ScheduleLib.Builders.LookupFacade lookup2 = lookup;
+        global::ScheduleLib.Parsing.Name profileName = NameHelper.Parse("Visnevschi Vlada");
+        global::ScheduleLib.TeacherId? actual2 = TeacherProfileScheduleLookup.Find(lookup2, profileName);
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.TeacherId? expected3 = other.Id;
+        global::ScheduleLib.Builders.LookupFacade lookup3 = lookup;
+        global::ScheduleLib.Parsing.Name profileName2 = NameHelper.Parse("Visnevschi Vlada");
+        global::ScheduleLib.TeacherId? actual3 = TeacherProfileScheduleLookup.Find(lookup3, profileName2);
+        Assert.NotEqual(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -28,8 +36,19 @@ public sealed class TeacherProfileScheduleLookupTests
         schedule.RefreshLookup();
         var lookup = schedule.Lookup(null!);
 
-        Assert.Equal(expected: oldSpelling.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
-        Assert.Equal(expected: natalia.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Plesca Natalia")));
-        Assert.Null(TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Unknown Teacher")));
+        global::ScheduleLib.TeacherId? expected2 = oldSpelling.Id;
+        global::ScheduleLib.Builders.LookupFacade lookup2 = lookup;
+        global::ScheduleLib.Parsing.Name profileName = NameHelper.Parse("Visnevschi Vlada");
+        global::ScheduleLib.TeacherId? actual2 = TeacherProfileScheduleLookup.Find(lookup2, profileName);
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.TeacherId? expected3 = natalia.Id;
+        global::ScheduleLib.Builders.LookupFacade lookup3 = lookup;
+        global::ScheduleLib.Parsing.Name profileName2 = NameHelper.Parse("Plesca Natalia");
+        global::ScheduleLib.TeacherId? actual3 = TeacherProfileScheduleLookup.Find(lookup3, profileName2);
+        Assert.Equal(expected: expected3, actual: actual3);
+        global::ScheduleLib.Builders.LookupFacade lookup4 = lookup;
+        global::ScheduleLib.Parsing.Name profileName3 = NameHelper.Parse("Unknown Teacher");
+        global::ScheduleLib.TeacherId? value = TeacherProfileScheduleLookup.Find(lookup4, profileName3);
+        Assert.Null(value);
     }
 }

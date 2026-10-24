@@ -160,7 +160,7 @@ public sealed class YYYPropertyBuilder2<TSource, TDerived> : IYYYPropertyBuilder
 
 public static class YYYExtensions
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void ConfigurePropertySet<T>(
             NodeDataKey<T> key,
@@ -258,7 +258,8 @@ public static class YYYExtensions
         public YYYPropertyBuilder2<TSource, TDerived> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            global::Desktop.NodeData.Features.Registry.RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }
@@ -273,7 +274,8 @@ public static class YYYStructExtensions
         public YYYPropertyBuilder2<TSource, TDerived> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            global::Desktop.NodeData.Features.Registry.RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }
@@ -329,7 +331,8 @@ public static class YYYNullableStructExtensions
         public YYYPropertyBuilder2<TSource, TDerived?> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            global::Desktop.NodeData.Features.Registry.RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }

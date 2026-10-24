@@ -86,7 +86,7 @@ public static class LessonTypeConstants
         return ret;
     }
 
-    public static readonly ImmutableArray<string> Names = [..CreateNames()];
+    public static readonly ImmutableArray<string> Names = [.. CreateNames()];
 }
 
 public sealed class LessonTypeDisplayHandler

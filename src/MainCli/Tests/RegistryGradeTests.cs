@@ -148,7 +148,18 @@ public sealed class RegistryGradeTests
                 new() { Json = true },
                 new() { Apply = true }));
         Assert.Equal(expected: 1, actual: fake.Executions);
-        Assert.Equal(expected: started ? 1 : 0, actual: fake.Submissions);
+        int expected2;
+        if (started)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 0;
+        }
+
+        int actual2 = fake.Submissions;
+        Assert.Equal(expected: expected2, actual: actual2);
         var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
         Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status").GetString());
         Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
@@ -178,7 +189,18 @@ public sealed class RegistryGradeTests
         Assert.Equal(expected: status, actual: outcomes[1].GetProperty("status").GetString());
         Assert.Equal(expected: "not-attempted", actual: outcomes[2].GetProperty("status").GetString());
         Assert.Equal(expected: 2, actual: fake.Executions);
-        Assert.Equal(expected: started ? 2 : 1, actual: fake.Submissions);
+        int expected2;
+        if (started)
+        {
+            expected2 = 2;
+        }
+        else
+        {
+            expected2 = 1;
+        }
+
+        int actual2 = fake.Submissions;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -243,7 +265,11 @@ public sealed class RegistryGradeTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         services.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -256,17 +282,29 @@ public sealed class RegistryGradeTests
         var lesson = schedule.EnumerateWeeklyLessons().First(x =>
             schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         var groupInfo = schedule.Get(lesson.Lesson.Groups[0]);
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri2 = new("https://registry.test/group");
+            return uri2;
+        }
+
+        global::System.Uri CalculateEvaluationUri()
+        {
+            global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+            return evaluationUri2;
+        }
+
         var navigator = new FixtureNavigator(
-            lesson.Lesson.Course,
-            new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = false,
-                    Value = lesson.Lesson.Groups,
-                },
-                lesson.Lesson.GroupPartitionKey,
-                uri: new("https://registry.test/group"),
-                evaluationUri: new("https://registry.test/evaluation")));
+                            lesson.Lesson.Course,
+                            new GroupLink(
+                                new FoundGroups
+                                {
+                                    IsWildcard = false,
+                                    Value = lesson.Lesson.Groups,
+                                },
+                                lesson.Lesson.GroupPartitionKey,
+                                uri: CalculateUri(),
+                                evaluationUri: CalculateEvaluationUri()));
         var quiz = new QuizAttemptsPage
         {
             Path = new[]
@@ -337,7 +375,9 @@ public sealed class RegistryGradeTests
         Assert.Equal(expected: 8.5f, actual: action.Grades[0].SourceGrade);
         Assert.All(action.Grades, x => Assert.Equal(expected: "5", actual: x.PreviousGrade));
         Assert.Equal(expected: 0, actual: navigator.Submissions);
-        Assert.All(navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input"), x => Assert.Equal(expected: "5", actual: x.Value));
+        global::System.Collections.Generic.IEnumerable<global::AngleSharp.Html.Dom.IHtmlInputElement> collection = navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input");
+        global::System.Action<global::AngleSharp.Html.Dom.IHtmlInputElement> action2 = x => Assert.Equal(expected: "5", actual: x.Value);
+        Assert.All(collection, action2);
         Assert.Contains(plan.Notices, x =>
         {
             bool CheckCondition()
@@ -369,19 +409,24 @@ public sealed class RegistryGradeTests
                 action.Execute(cancelled.Token));
             Assert.False(error.SubmissionStarted);
             Assert.Equal(expected: 0, actual: navigator.Submissions);
-            Assert.All(navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input"), x => Assert.Equal(expected: "5", actual: x.Value));
+            global::System.Collections.Generic.IEnumerable<global::AngleSharp.Html.Dom.IHtmlInputElement> collection2 = navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input");
+            global::System.Action<global::AngleSharp.Html.Dom.IHtmlInputElement> action3 = x => Assert.Equal(expected: "5", actual: x.Value);
+            Assert.All(collection2, action3);
         }
         await action.Execute(default);
         Assert.Equal(expected: 1, actual: navigator.Submissions);
-        Assert.Equal(
-            expected: new[]
+        global::System.Collections.Generic.IEnumerable<string> expected2 = new[]
             {
                 "8",
                 "8",
                 "5",
                 "5",
-            },
-            actual: navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input").Select(x => x.Value));
+            };
+        global::System.Collections.Generic.IEnumerable<global::AngleSharp.Html.Dom.IHtmlInputElement> querySelectorAll = navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input");
+        global::System.Func<global::AngleSharp.Html.Dom.IHtmlInputElement, string> selector = x => x.Value;
+        global::System.Collections.Generic.IEnumerable<string> actual2 = querySelectorAll.Select(selector);
+        Assert.Equal(
+            expected: expected2, actual: actual2);
 
         quiz.Attempts.Clear();
         var empty = await handler.Plan(new()
@@ -457,37 +502,46 @@ public sealed class RegistryGradeTests
                 throw PlanFailure;
             }
 
-            RegistryGradeAction[] actions = Enumerable.Range(start: 1, count: 3).Select(i => new RegistryGradeAction(
-                destination: $"https://registry.test/test/{i}",
-                course: "course",
-                groups: "group",
-                1,
-                [
-                    new(
+            RegistryGradeAction[] actions = Enumerable.Range(start: 1, count: 3).Select(i =>
+            {
+                string CalculateDestination()
+                {
+                    string destination2 = $"https://registry.test/test/{i}";
+                    return destination2;
+                }
+
+                return new RegistryGradeAction(
+                                destination: CalculateDestination(),
+                                course: "course",
+                                groups: "group",
+                                1,
+                                [
+                                    new(
                         Student: "Student",
                         Plans,
                         Plans,
                         PreviousGrade: "5"),
-                ],
-                ct =>
-                {
-                    Assert.True(Held);
-                    Executions++;
-                    var failure = Executions == FailAt ? Failure : null;
-                    var beforeSubmit = failure is RegistryActionExecutionException { SubmissionStarted: false }
-                        or RegistryActionCancelledException { SubmissionStarted: false };
-                    if (!beforeSubmit)
-                    {
-                        Submissions++;
-                    }
+                                ],
+                                ct =>
+                                {
+                                    Assert.True(Held);
+                                    Executions++;
+                                    var failure = Executions == FailAt ? Failure : null;
+                                    var beforeSubmit = failure is RegistryActionExecutionException { SubmissionStarted: false }
+                                        or RegistryActionCancelledException { SubmissionStarted: false };
+                                    if (!beforeSubmit)
+                                    {
+                                        Submissions++;
+                                    }
 
-                    if (failure is not null)
-                    {
-                        throw failure;
-                    }
+                                    if (failure is not null)
+                                    {
+                                        throw failure;
+                                    }
 
-                    return Task.CompletedTask;
-                })).ToArray();
+                                    return Task.CompletedTask;
+                                });
+            }).ToArray();
             return Task.FromResult(new RegistryGradePlan(actions, [new(Kind: "omitted", Detail: "Ungraded student")]));
         }
 
@@ -500,7 +554,10 @@ public sealed class RegistryGradeTests
 
             LockTarget = target;
             Held = true;
-            return Task.FromResult<IAsyncDisposable>(new Lease(this));
+            global::RegistryGradeTests.Fake.Lease result = new Lease(this);
+            global::System.IAsyncDisposable result2 = result;
+            global::System.Threading.Tasks.Task<global::System.IAsyncDisposable> fromResult = Task.FromResult<IAsyncDisposable>(result2);
+            return fromResult;
         }
 
         private sealed class Lease(Fake fake) : IAsyncDisposable
@@ -532,7 +589,13 @@ public sealed class RegistryGradeTests
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
         {
             Assert.Equal(expected: Semester.Sem2, actual: semester);
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+            global::System.Uri CalculateUrl()
+            {
+                global::System.Uri url = new("https://registry.test/course");
+                return url;
+            }
+
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
         }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>

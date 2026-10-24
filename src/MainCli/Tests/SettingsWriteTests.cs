@@ -22,7 +22,14 @@ public sealed class SettingsWriteTests
                     "--profile",
                     "Curmanschii Anton")));
         var original = await File.ReadAllTextAsync(files.UserFile);
-        File.Delete((string) $"{files.UserFile}.lock");
+        string CalculatePath()
+        {
+            string text = $"{files.UserFile}.lock";
+            string path = (string) text;
+            return path;
+        }
+
+        File.Delete(CalculatePath());
         var result = await files.Run(
             "set",
             "ScheduleDerivationConfig.autoMergeLabSubGroups",
@@ -34,7 +41,20 @@ public sealed class SettingsWriteTests
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Contains(expectedSubstring: "global", actualString: result.Error);
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.UserFile));
-        Assert.False(File.Exists((string) $"{files.UserFile}.lock"));
+        bool CalculateCondition()
+        {
+            string text2 = $"{files.UserFile}.lock";
+            string path2 = (string) text2;
+            bool condition = File.Exists(path2);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
     }
 
     [Fact]
@@ -124,9 +144,15 @@ public sealed class SettingsWriteTests
             "\"tokens\"",
             "--scope",
             "project");
+        string CalculateExpected()
+        {
+            string expected2 = Path.Combine(files.ProjectDirectory, "tokens");
+            return expected2;
+        }
+
         Assert.Equal(
-            expected: Path.Combine(files.ProjectDirectory, "tokens"),
-            actual: await files.Get("GoogleCalendarConfig.credentials.credentialsPath"));
+                    expected: CalculateExpected(),
+                    actual: await files.Get("GoogleCalendarConfig.credentials.credentialsPath"));
     }
 
     [Fact]
@@ -187,9 +213,29 @@ public sealed class SettingsWriteTests
             "project");
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.NotEmpty(result.Error);
-        Assert.DoesNotContain(expectedSubstring: "sensitive", actualString: (string) $"{result.Output}{result.Error}");
+        string CalculateActualString()
+        {
+            string text = $"{result.Output}{result.Error}";
+            string actualString2 = (string) text;
+            return actualString2;
+        }
+
+        Assert.DoesNotContain(expectedSubstring: "sensitive", actualString: CalculateActualString());
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
-        Assert.False(File.Exists((string) $"{files.ProjectFile}.lock"));
+        bool CalculateCondition()
+        {
+            string text2 = $"{files.ProjectFile}.lock";
+            string path2 = (string) text2;
+            bool condition = File.Exists(path2);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
     }
 
     [Fact]
@@ -211,13 +257,35 @@ public sealed class SettingsWriteTests
                 "project",
                 "--profile",
                 "Unknown")).Exit);
-        Assert.False(File.Exists(files.ProjectFile));
+        bool CalculateCondition()
+        {
+            bool condition = File.Exists(files.ProjectFile);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
         await files.Success(
             "unset",
             "GoogleCalendarConfig.calendarName",
             "--scope",
             "project");
-        Assert.False(File.Exists(files.ProjectFile));
+        bool CalculateCondition2()
+        {
+            bool condition2 = File.Exists(files.ProjectFile);
+            if (condition2)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition2());
         Assert.NotEmpty(await files.Get("GoogleCalendarConfig.calendarName"));
     }
 
@@ -225,7 +293,14 @@ public sealed class SettingsWriteTests
     public async Task TwoProcessesWaitForEditorLeaseAndRetainBothEdits()
     {
         using var files = new Fixture();
-        await using var lease = await LocalFileLock.Acquire((string) $"{files.ProjectFile}.lock", CancellationToken.None);
+        string CalculatePath()
+        {
+            string text = $"{files.ProjectFile}.lock";
+            string path = (string) text;
+            return path;
+        }
+
+        await using var lease = await LocalFileLock.Acquire(CalculatePath(), CancellationToken.None);
         using var first = files.Start(
             "set",
             "GoogleCalendarConfig.calendarName",
@@ -254,7 +329,14 @@ public sealed class SettingsWriteTests
         using var files = new Fixture();
         const string original = """{"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"valid"}}}""";
         await File.WriteAllTextAsync(path: files.ProjectFile, contents: original);
-        await using (var lease = await LocalFileLock.Acquire((string) $"{files.ProjectFile}.lock", CancellationToken.None))
+        string CalculatePath()
+        {
+            string text = $"{files.ProjectFile}.lock";
+            string path2 = (string) text;
+            return path2;
+        }
+
+        await using (var lease = await LocalFileLock.Acquire(CalculatePath(), CancellationToken.None))
         {
             using var cancellation = new CancellationTokenSource();
             var edit = CliSettings.Edit(
@@ -287,12 +369,18 @@ public sealed class SettingsWriteTests
             },
             CancellationToken.None));
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
-        Assert.Empty(Directory.GetFiles(path: files.ProjectDirectory, searchPattern: "*.tmp"));
+        string[] CalculateCollection()
+        {
+            string[] collection = Directory.GetFiles(path: files.ProjectDirectory, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
     }
 
     internal sealed class Fixture : IDisposable
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-writes-{Guid.NewGuid().ToString("N")}");
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
         public string ProjectDirectory => Path.Combine(Root, "project");
         public string ProjectFile => Path.Combine(ProjectDirectory, CliSettings.FileName);
@@ -350,7 +438,13 @@ public sealed class SettingsWriteTests
         {
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            global::System.TimeSpan CalculateDelay()
+            {
+                global::System.TimeSpan delay = TimeSpan.FromSeconds(30);
+                return delay;
+            }
+
+            using var timeout = new CancellationTokenSource(CalculateDelay());
             await process.WaitForExitAsync(timeout.Token);
             return (process.ExitCode, await output, await error);
         }
@@ -358,7 +452,14 @@ public sealed class SettingsWriteTests
         public async Task Success(params string[] args)
         {
             var result = await Run(args);
-            Assert.True(result.Exit == 0, (string) $"{result.Output}{result.Error}");
+            string CalculateUserMessage()
+            {
+                string text = $"{result.Output}{result.Error}";
+                string userMessage = (string) text;
+                return userMessage;
+            }
+
+            Assert.True(result.Exit == 0, CalculateUserMessage());
             Assert.Empty(result.Error);
             using var document = JsonDocument.Parse(result.Output);
             Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
@@ -372,11 +473,26 @@ public sealed class SettingsWriteTests
                     "get",
                     key,
                 }.Concat(args).ToArray());
-            Assert.True(result.Exit == 0, (string) $"{result.Output}{result.Error}");
+            string CalculateUserMessage()
+            {
+                string text = $"{result.Output}{result.Error}";
+                string userMessage = (string) text;
+                return userMessage;
+            }
+
+            Assert.True(result.Exit == 0, CalculateUserMessage());
             using var document = JsonDocument.Parse(result.Output);
             return document.RootElement.GetProperty("data").GetProperty("value").ToString();
         }
 
         public void Dispose() => Directory.Delete(Root, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string toString = Guid.NewGuid().ToString("N");
+            string text = $"schedulelib-writes-{toString}";
+            string path2 = (string) text;
+            return path2;
+        }
     }
 }

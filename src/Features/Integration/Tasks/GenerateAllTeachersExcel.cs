@@ -169,8 +169,11 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             for (uint dayIndex = 0; dayIndex < 6; dayIndex++)
             {
                 var merge = new MergeCell();
-                uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
-                uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
+                uint uInt32 = initialRowIndex;
+                uint uInt322 = dayIndex * timeSlotCount;
+                uint rowIndexStart = uInt32 + uInt322;
+                uint uInt323 = rowIndexStart + timeSlotCount;
+                uint rowIndexEnd = uInt323 - 1;
                 merge.Reference = ExcelRangeHelper.GetCellRange(new()
                 {
                     Start = new(Col: 0, Row: rowIndexStart),
@@ -256,14 +259,18 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             cell.SetStringValue(caps);
                         }
                         var odd = option.GetOddness();
-                        cell.SetStyle(styles.Day.Get(odd));
+                        global::DocumentFormat.OpenXml.Spreadsheet.Cell cell2 = cell;
+                        global::ScheduleLib.Application.Core.ExcelBuilder.CellFormatId formatId = styles.Day.Get(odd);
+                        cell2.SetStyle(formatId);
                     }
 
                     {
                         var id = new SharedStringItemId(firstTimeSlotStringId.Value + timeSlotIndex);
                         var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        cell.SetStyle(styles.TimeSlot.Get(option));
+                        global::DocumentFormat.OpenXml.Spreadsheet.Cell cell3 = cell;
+                        global::ScheduleLib.Application.Core.ExcelBuilder.CellFormatId formatId2 = styles.TimeSlot.Get(option);
+                        cell3.SetStyle(formatId2);
                     }
 
                     bool isSeminarDate = day == seminarDate.Day && timeSlot == seminarDate.TimeSlot;
@@ -283,7 +290,9 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        cell.SetStyle(styles.Lesson.Get(option));
+                        global::DocumentFormat.OpenXml.Spreadsheet.Cell cell4 = cell;
+                        global::ScheduleLib.Application.Core.ExcelBuilder.CellFormatId formatId3 = styles.Lesson.Get(option);
+                        cell4.SetStyle(formatId3);
 
                         var cellKey = rowKey.DefaultCellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -319,9 +328,15 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             {
                 var timeSlot = new TimeSlot(timeSlotIndex);
                 var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
+                global::System.TimeSpan CalculateTs()
+                {
+                    global::System.TimeSpan ts = TimeSpan.FromMinutes(1);
+                    return ts;
+                }
+
                 interval = interval with
                 {
-                    Duration = interval.Duration.Add(TimeSpan.FromMinutes(1)),
+                    Duration = interval.Duration.Add(CalculateTs()),
                 };
                 var timeSlotString = _timeSlotDisplay.IntervalDisplay(interval);
                 var ret = strings.AddString(timeSlotString);
@@ -383,26 +398,26 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     switch (lesson.Date.Parity)
                     {
                         case Parity.EvenWeek:
-                        {
-                            metEven = true;
-                            break;
-                        }
+                            {
+                                metEven = true;
+                                break;
+                            }
                         case Parity.OddWeek:
-                        {
-                            metOdd = true;
-                            break;
-                        }
+                            {
+                                metOdd = true;
+                                break;
+                            }
                         case Parity.EveryWeek:
-                        {
-                            metEven = true;
-                            metOdd = true;
-                            break;
-                        }
+                            {
+                                metEven = true;
+                                metOdd = true;
+                                break;
+                            }
                         default:
-                        {
-                            Debug.Fail("??");
-                            throw new InvalidOperationException("??");
-                        }
+                            {
+                                Debug.Fail("??");
+                                throw new InvalidOperationException("??");
+                            }
                     }
                 }
                 Debug.Assert(!(metEven == false && metOdd == false));
@@ -691,7 +706,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         {
             // The style with this id is some dotted grid pattern.
             // ???
-            var wtf = stylesheet.Fill(_ => {});
+            var wtf = stylesheet.Fill(_ => { });
             _ = wtf;
         }
 
@@ -783,7 +798,9 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         {
             x.CenterAndWrap();
             x.SetFont(cellFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -794,13 +811,17 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             x.CenterAndWrap();
             x.SetFont(cellFontId);
             x.SetFill(greenFillId);
-            x.SetBorder(BorderIdByEdge(edge));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge);
+            cellFormat.SetBorder(borderId);
         });
         var timeSlotStyleIds = stylesheet.CellFormats<OddEdge>((x, edge) =>
         {
             x.CenterAndWrap();
             x.SetFont(timeSlotFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);

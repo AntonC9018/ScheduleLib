@@ -12,9 +12,16 @@ public sealed class PdfImportTests
         var source = $"orar{year}.pdf";
         using var stream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", source));
         var actual = PdfScheduleImporter.Read(stream, source);
+        string CalculateJson()
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "expected-cells.json");
+            string json = File.ReadAllText(path);
+            return json;
+        }
+
         var expected = JsonSerializer.Deserialize<PdfScheduleCell[]>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "expected-cells.json")),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!.Where(c => c.Source == source).ToArray();
+                    CalculateJson(),
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!.Where(c => c.Source == source).ToArray();
         // Compare semantics, independent of the order in which a PDF library discovers cells.
         static string Key(PdfScheduleCell c) => $"{c.Page}|{string.Join(',', c.Groups)}|{c.Day}|{c.Start}|{c.Alternative}|{c.Text}";
         var missing = expected.Select(Key).Except(actual.Select(Key)).ToArray();
@@ -45,7 +52,12 @@ public sealed class PdfImportTests
     [InlineData("Progr.C++ (lab,I-imp,II-par))\nA.Curmanscii 143/4", "Progr.C++ (lab, I-imp, II-par)\nA.Curmanscii 143/4")]
     [InlineData("Design audio și efecte\nvizuale (curs)", "Design audio și efecte vizuale (curs)")]
     [InlineData("Intel.artif.(lab,)", "Intel.artif.(lab)")]
-    public void NormalizesPdfWrappingAndPunctuation(string text, string expected) => Assert.Equal(expected: expected, actual: PdfTextNormalizer.Normalize(text));
+    public void NormalizesPdfWrappingAndPunctuation(string text, string expected)
+    {
+        string expected2 = expected;
+        string actual2 = PdfTextNormalizer.Normalize(text);
+        Assert.Equal(expected: expected2, actual: actual2);
+    }
 
     [Fact]
     public void ParityRepairIsScopedAndIdempotent()
@@ -53,8 +65,12 @@ public sealed class PdfImportTests
         var cell = new PdfScheduleCell(Source: "test", 1, ["I2502(ru)"], Day: "Vineri", Start: "11:30", Text: "Baze de date(lab)\nCr.Ulmanu 218/4a");
         var repaired = PdfTextNormalizer.RepairMissingParity(cell);
         Assert.Equal(expected: "Baze de date(lab, imp)\nCr.Ulmanu 218/4a", actual: repaired.Text);
-        Assert.Equal(expected: repaired, actual: PdfTextNormalizer.RepairMissingParity(repaired));
+        global::ScheduleLib.Import.Pdf.PdfScheduleCell expected2 = repaired;
+        global::ScheduleLib.Import.Pdf.PdfScheduleCell actual2 = PdfTextNormalizer.RepairMissingParity(repaired);
+        Assert.Equal(expected: expected2, actual: actual2);
         var monday = cell with { Day = "Luni" };
-        Assert.Equal(expected: monday, actual: PdfTextNormalizer.RepairMissingParity(monday));
+        global::ScheduleLib.Import.Pdf.PdfScheduleCell expected3 = monday;
+        global::ScheduleLib.Import.Pdf.PdfScheduleCell actual3 = PdfTextNormalizer.RepairMissingParity(monday);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 }

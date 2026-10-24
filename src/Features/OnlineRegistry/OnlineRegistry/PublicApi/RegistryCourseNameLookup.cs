@@ -10,12 +10,21 @@ public static class RegistryCourseNameLookup
         var name = registryName.Trim();
         var start = name.LastIndexOf('(');
         if (start < 0)
+        {
             return (name, []);
+        }
+
         if (!name.EndsWith(')'))
+        {
             return (name, []);
+        }
+
         var classifications = name[(start + 1)..^1].Split('&', StringSplitOptions.TrimEntries);
         if (!classifications.All(value => value is "BaDe" or "FrDe"))
+        {
             return (name, []);
+        }
+
         return (name[..start].TrimEnd(), classifications);
     }
 
@@ -24,7 +33,10 @@ public static class RegistryCourseNameLookup
         IReadOnlyDictionary<string, string> courseNames, int maxDistance = 2)
     {
         if (maxDistance < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(maxDistance));
+        }
+
         var parsed = Parse(registryName);
         if (TryAlias(courseNames, registryName: registryName, parsedName: parsed.Name, mappedName: out var mappedName))
         {
@@ -38,17 +50,25 @@ public static class RegistryCourseNameLookup
         }
 
         if (lookup.Course(parsed.Name.AsMemory(), new() { IgnorePunctuation = true }) is { } exact)
+        {
             return exact;
+        }
         // An unknown annotation can distinguish courses; never discard it through fuzzy matching.
         if (parsed.Name.Contains('(') || parsed.Name.Contains(')'))
+        {
             return null;
+        }
+
         var normalized = Normalize(parsed.Name);
         var candidates = lookup.LookupModule.Courses
             .Select(course => (Name: Normalize(course.Key), Id: course.Value)).ToArray();
         var normalizedMatches = candidates.Where(course => course.Name == normalized)
             .Select(course => course.Id).Distinct().ToArray();
         if (normalizedMatches.Length != 0)
+        {
             return normalizedMatches.Length == 1 ? normalizedMatches[0] : null;
+        }
+
         bool conditionResult;
         if (normalized.Length < 12)
         {
@@ -60,7 +80,10 @@ public static class RegistryCourseNameLookup
         }
 
         if (conditionResult)
+        {
             return null;
+        }
+
         var tolerance = Math.Min(maxDistance, normalized.Length / 10);
         var approximate = candidates.Where(course =>
         {
@@ -99,8 +122,14 @@ public static class RegistryCourseNameLookup
 
     private static string Normalize(string name)
     {
-        return new(name.Normalize(NormalizationForm.FormD)
-            .Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+        string normalize = name.Normalize(NormalizationForm.FormD);
+        global::System.Func<char, bool> predicate = char.IsLetterOrDigit;
+        global::System.Collections.Generic.IEnumerable<char> where = normalize.Where(predicate);
+        global::System.Func<char, char> selector = char.ToLowerInvariant;
+        global::System.Collections.Generic.IEnumerable<char> select = where.Select(selector);
+        char[] value = select.ToArray();
+        string text = new(value);
+        return text;
     }
 
     private static int Distance(string first, string second)
@@ -111,8 +140,37 @@ public static class RegistryCourseNameLookup
         {
             current[0] = i;
             for (var j = 1; j <= second.Length; j++)
-                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1),
-                    previous[j - 1] + (first[i - 1] == second[j - 1] ? 0 : 1));
+            {
+                int[] value = current;
+                int int32 = j;
+                int[] value2 = current;
+                int int322 = j - 1;
+                int val1 = value2[int322] + 1;
+                int val2 = previous[j] + 1;
+                int val12 = Math.Min(val1, val2);
+                int[] value3 = previous;
+                int int323 = j - 1;
+                int int324 = value3[int323];
+                string text = first;
+                int index = i - 1;
+                int charValue = text[index];
+                string text2 = second;
+                int index2 = j - 1;
+                int int325;
+                if (charValue == text2[index2])
+                {
+                    int325 = 0;
+                }
+                else
+                {
+                    int325 = 1;
+                }
+
+                int val22 = int324 + (int325);
+                int min = Math.Min(val12, val22);
+                value[int32] = min;
+            }
+
             (previous, current) = (current, previous);
         }
         return previous[second.Length];

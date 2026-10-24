@@ -16,26 +16,41 @@ public sealed class RegistryCourseNameTests
     {
         var parsed = RegistryCourseNameLookup.Parse(input);
         Assert.Equal(expected: name, actual: parsed.Name);
-        Assert.Equal(expected: classifications, actual: string.Join(',', parsed.ElectiveClassifications));
+        string expected2 = classifications;
+        string actual2 = string.Join(',', parsed.ElectiveClassifications);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
     public void NormalizationMatchesObservedPunctuationAndSpacingError()
     {
         var lookup = Lookup("Designul UI/U X");
-        Assert.Equal(expected: new CourseId(0), actual: RegistryCourseNameLookup.Find(lookup, "Design-ul UI/UX", new Dictionary<string, string>()));
+        global::ScheduleLib.CourseId expected2 = new CourseId(0);
+        global::ScheduleLib.CourseId? expected3 = expected2;
+        global::ScheduleLib.CourseId? actual2 = RegistryCourseNameLookup.Find(lookup, "Design-ul UI/UX", new Dictionary<string, string>());
+        Assert.Equal(expected: expected3, actual: actual2);
     }
 
     [Fact]
     public void LongNameTyposMatchOnlyOneCourseWithinSmallRelativeDistance()
     {
         var lookup = Lookup("Introduction to networking");
-        Assert.Equal(expected: new CourseId(0), actual: RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking", new Dictionary<string, string>()));
-        Assert.Null(RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking", new Dictionary<string, string>(), maxDistance: 0));
-        Assert.Null(RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking(Unknown)", new Dictionary<string, string>()));
+        global::ScheduleLib.CourseId expected2 = new CourseId(0);
+        global::ScheduleLib.CourseId? expected3 = expected2;
+        global::ScheduleLib.CourseId? actual2 = RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking", new Dictionary<string, string>());
+        Assert.Equal(expected: expected3, actual: actual2);
+        global::ScheduleLib.CourseId? value = RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking", new Dictionary<string, string>(), maxDistance: 0);
+        Assert.Null(value);
+        global::ScheduleLib.CourseId? value2 = RegistryCourseNameLookup.Find(lookup, "Introduction to netwroking(Unknown)", new Dictionary<string, string>());
+        Assert.Null(value2);
         var ambiguous = Lookup("Introduction to networking", "Introduction to networkinb");
-        Assert.Null(RegistryCourseNameLookup.Find(ambiguous, "Introduction to networkinx", new Dictionary<string, string>()));
-        Assert.Null(RegistryCourseNameLookup.Find(Lookup("HTML"), "HTLM", new Dictionary<string, string>()));
+        global::ScheduleLib.CourseId? value3 = RegistryCourseNameLookup.Find(ambiguous, "Introduction to networkinx", new Dictionary<string, string>());
+        Assert.Null(value3);
+        global::ScheduleLib.Builders.LookupFacade lookup2 = Lookup("HTML");
+        string registryName = "HTLM";
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string> courseNames = new Dictionary<string, string>();
+        global::ScheduleLib.CourseId? value4 = RegistryCourseNameLookup.Find(lookup2, registryName, courseNames);
+        Assert.Null(value4);
     }
 
     [Fact]
@@ -43,14 +58,21 @@ public sealed class RegistryCourseNameTests
     {
         var lookup = Lookup("Server-side");
         var aliases = new Dictionary<string, string> { ["Application development with Node.js"] = "Server-side" };
-        Assert.Equal(expected: new CourseId(0), actual: RegistryCourseNameLookup.Find(lookup, "Application development with Node.js(BaDe)", aliases));
+        global::ScheduleLib.CourseId expected2 = new CourseId(0);
+        global::ScheduleLib.CourseId? expected3 = expected2;
+        global::ScheduleLib.CourseId? actual2 = RegistryCourseNameLookup.Find(lookup, "Application development with Node.js(BaDe)", aliases);
+        Assert.Equal(expected: expected3, actual: actual2);
     }
 
     private static LookupFacade Lookup(params string[] names)
     {
         var builder = new ScheduleBuilder();
         builder.EnableLookupModule();
-        foreach (var name in names) builder.Course(name);
+        foreach (var name in names)
+        {
+            builder.Course(name);
+        }
+
         var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
         unifier.Refresh(builder);
         return builder.Lookup(unifier);
@@ -67,7 +89,9 @@ public sealed class RegistryCourseNameTests
         unifier.Refresh(builder);
         var lookup = builder.Lookup(unifier);
 
-        Assert.Equal(expected: automatic, actual: RegistryCourseNameLookup.Find(lookup, "Advanced web", new Dictionary<string, string>()));
+        global::ScheduleLib.CourseId? expected2 = automatic;
+        global::ScheduleLib.CourseId? actual2 = RegistryCourseNameLookup.Find(lookup, "Advanced web", new Dictionary<string, string>());
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: intended, actual: RegistryCourseNameLookup.Find(lookup, "Advanced web",
             new Dictionary<string, string> { ["Advanced web"] = "Web fundamentals" }));
         Assert.Null(RegistryCourseNameLookup.Find(lookup, "Advanced web",

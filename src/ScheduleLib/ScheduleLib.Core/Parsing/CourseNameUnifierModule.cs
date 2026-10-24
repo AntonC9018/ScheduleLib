@@ -67,7 +67,9 @@ public sealed class CourseNameUnifierConfig
         {
             var fromParsed = config.Parse(from.AsMemory(), new() { IgnorePunctuation = true });
             var toParsed = config.Parse(to.AsMemory(), new() { IgnorePunctuation = true });
-            remappedNames.Add(new FullyRenamedCourse(From: fromParsed, To: toParsed));
+            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Parsing.CourseName.FullyRenamedCourse>.Builder builder = remappedNames;
+            global::ScheduleLib.Parsing.CourseName.FullyRenamedCourse item = new FullyRenamedCourse(From: fromParsed, To: toParsed);
+            builder.Add(item);
         }
         return new CourseNameUnifierConfig
         {
@@ -124,7 +126,9 @@ public sealed class CourseNameUnifierModule
             },
         });
         parsedCourse = TryRemap(parsedCourse);
-        SlowCourses.Add(new(parsedCourse, id));
+        global::System.Collections.Generic.List<global::ScheduleLib.Parsing.WordDoc.SlowCourse> list = SlowCourses;
+        global::ScheduleLib.Parsing.WordDoc.SlowCourse item = new(parsedCourse, id);
+        list.Add(item);
     }
 
     public ref struct FindParams()

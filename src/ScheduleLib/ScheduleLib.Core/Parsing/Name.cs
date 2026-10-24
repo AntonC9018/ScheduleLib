@@ -400,21 +400,21 @@ public static class NameHelper
         switch (field)
         {
             case NameField.First:
-            {
-                return ref fields.FirstName;
-            }
+                {
+                    return ref fields.FirstName;
+                }
             case NameField.Last:
-            {
-                return ref fields.LastName;
-            }
+                {
+                    return ref fields.LastName;
+                }
             case NameField.Patronymic:
-            {
-                return ref fields.Patronymic;
-            }
+                {
+                    return ref fields.Patronymic;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 

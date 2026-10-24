@@ -24,7 +24,9 @@ public sealed class RegistryHistoryTests
             <h1>Synthetic course</h1><h3>Groups</h3>
             <form name='lesson'><input type='hidden' name='__RequestVerificationToken' value='canary-token'></form>
             """);
-        Assert.Empty(RegistryHistoryHtml.Groups(document, Index));
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryGroup> collection = RegistryHistoryHtml.Groups(document, Index);
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Theory]
@@ -65,12 +67,21 @@ public sealed class RegistryHistoryTests
             else
             {
                 groupYears.Add(activeYear);
+                string text2 = $"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>";
+                string text3 = $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{(text2)}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
                 html =
-                    (string) $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{($"<a href='/studregistry/LessonAttendance/LessonsList/1'>{activeYear}</a>")}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+                    (string) text3;
             }
+            string CalculateContent()
+            {
+                string text = $"<a href='/studregistry/Account/Logout'>Exit</a>{html}";
+                string content = (string) text;
+                return content;
+            }
+
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent((string) $"<a href='/studregistry/Account/Logout'>Exit</a>{html}"),
+                Content = new StringContent(CalculateContent()),
             });
         });
         using var client = new HttpClient(inner);
@@ -89,14 +100,24 @@ public sealed class RegistryHistoryTests
                 "2025/26",
             },
             actual: summaries.Select(x => x.Year));
-        Assert.Equal(expected: "2025/26", actual: Assert.Single(Assert.Single(summaries[1].Courses).Groups));
+        string expected2 = "2025/26";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryCourseSummary single = Assert.Single(summaries[1].Courses);
+        global::System.Collections.Generic.IEnumerable<string> collection = single.Groups;
+        string actual2 = Assert.Single(collection);
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Contains("/studregistry/LessonAttendance?AnUniv=2025%2F26", requests);
     }
 
     [Fact]
     public void YearNavigationUsesObservedGetFormAndEncodedValue()
     {
-        var years = RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(Years), Index);
+        global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(Years);
+            return document;
+        }
+
+        var years = RegistryHistoryHtml.Years(CalculateDocument(), Index);
         Assert.Equal(
             expected: new[]
             {
@@ -135,7 +156,15 @@ public sealed class RegistryHistoryTests
         RegistryHistoryDiagnostic diagnostic)
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
-            RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index));
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+            {
+                global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(html);
+                return document;
+            }
+
+            return RegistryHistoryHtml.Years(CalculateDocument(), Index);
+        });
         Assert.Equal(expected: phase, actual: error.Phase);
         Assert.Equal(expected: diagnostic, actual: error.Diagnostic);
     }
@@ -147,7 +176,15 @@ public sealed class RegistryHistoryTests
     public void ChangedGroupContainerDoesNotSilentlyProduceAnEmptySummary(string html)
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
-            RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index));
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+            {
+                global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(html);
+                return document;
+            }
+
+            return RegistryHistoryHtml.Groups(CalculateDocument(), Index);
+        });
         Assert.Equal(expected: RegistryHistoryPhase.Groups, actual: error.Phase);
         Assert.Contains(
             error.Diagnostic,
@@ -161,12 +198,21 @@ public sealed class RegistryHistoryTests
     [Fact]
     public void ChangedCourseContainerDoesNotSilentlyProduceAnEmptySummary()
     {
-        var error = Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(
-            new HtmlParser().ParseDocument(
-                """
+        var error = Assert.Throws<RegistryHistoryException>(() =>
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+            {
+                global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(
+                                """
                 <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
-                """),
-            Index));
+                """);
+                return document;
+            }
+
+            return RegistryHistoryHtml.Courses(
+                        CalculateDocument(),
+                        Index);
+        });
         Assert.Equal(expected: RegistryHistoryPhase.Index, actual: error.Phase);
         Assert.Equal(expected: RegistryHistoryDiagnostic.CourseLayout, actual: error.Diagnostic);
     }
@@ -194,22 +240,39 @@ public sealed class RegistryHistoryTests
                 2,
             },
             actual: courses.Select(x => x.Semester));
-        var groups = RegistryHistoryHtml.Groups(
-            new HtmlParser().ParseDocument(
-                """
+        global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument document2 = new HtmlParser().ParseDocument(
+                            """
                 <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
                 <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
                 <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
                 </div></div></div></form>
-                """),
-            Index);
-        Assert.Equal(expected: "Repeat / unknown notation", actual: Assert.Single(groups).Name);
-        Assert.Throws<RegistryHistoryException>(() => RegistryHistoryHtml.Courses(
-            new HtmlParser().ParseDocument(
-                document.DocumentElement.OuterHtml.Replace(
-                    "/studregistry/LessonAttendance/groups/1",
-                    "https://other.test/studregistry/LessonAttendance/groups/1")),
-            Index));
+                """);
+            return document2;
+        }
+
+        var groups = RegistryHistoryHtml.Groups(
+                    CalculateDocument(),
+                    Index);
+        string expected2 = "Repeat / unknown notation";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryGroup single = Assert.Single(groups);
+        string actual2 = single.Name;
+        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.Throws<RegistryHistoryException>(() =>
+        {
+            global::AngleSharp.Html.Parser.HtmlParser htmlParser = new HtmlParser();
+            string source = document.DocumentElement.OuterHtml.Replace(
+                                "/studregistry/LessonAttendance/groups/1",
+                                "https://other.test/studregistry/LessonAttendance/groups/1");
+            global::AngleSharp.Html.Dom.IHtmlDocument document2 = htmlParser.ParseDocument(
+            source);
+            global::AngleSharp.Dom.IDocument document3 = document2;
+            global::System.Uri address = Index;
+            global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse> courses = RegistryHistoryHtml.Courses(
+            document3, address);
+            return courses;
+        });
     }
 
     [Theory]
@@ -233,12 +296,33 @@ public sealed class RegistryHistoryTests
     [InlineData("https://registry.test/other/LessonAttendance/groups/1", false)]
     public async Task OnlyExactIndexAndObservedNumericGroupReadsReachTransport(string address, bool allowed)
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        using var inner = new FakeHandler((_, _) =>
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(HttpStatusCode.OK);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new(Index, "../Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new(Index, "../Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         if (allowed)
@@ -250,7 +334,18 @@ public sealed class RegistryHistoryTests
             await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(address));
         }
 
-        Assert.Equal(expected: allowed ? 1 : 0, actual: inner.Calls);
+        int expected2;
+        if (allowed)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 0;
+        }
+
+        int actual2 = inner.Calls;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -260,12 +355,33 @@ public sealed class RegistryHistoryTests
     [InlineData(302)]
     public async Task RejectionStopsWithoutReplayOrFollowingRedirect(int status)
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode) status)));
+        using var inner = new FakeHandler((_, _) =>
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage((HttpStatusCode) status);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new(Index, "../Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new(Index, "../Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -302,18 +418,30 @@ public sealed class RegistryHistoryTests
     {
         using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode) status) { Content = new StringContent("canary-response-body") }));
         var login = new Uri("https://registry.test/studregistry/Account/Login");
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: login,
-            TimeSpan.FromMilliseconds(1));
+                    inner,
+                    index: Index,
+                    login: login,
+                    CalculateSpacing());
         using var client = new HttpClient(guard);
         using var content = new StringContent("canary-password");
+        global::System.Uri CalculateRequestUri()
+        {
+            global::System.Uri requestUri = new Uri("https://registry.test/studregistry/LessonAttendance/groups/1");
+            return requestUri;
+        }
+
         Task<HttpResponseMessage> request = route switch
         {
             "login" => client.PostAsync(login, content),
             "index" => client.GetAsync(Index),
-            "groups" => client.GetAsync(new Uri("https://registry.test/studregistry/LessonAttendance/groups/1")),
+            "groups" => client.GetAsync(CalculateRequestUri()),
             _ => throw new ArgumentOutOfRangeException(nameof(route)),
         };
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => request);
@@ -327,12 +455,32 @@ public sealed class RegistryHistoryTests
     public async Task ReadsRetryAtMostOnceAndMutationNeverReachesTransport()
     {
         using var inner = new FakeHandler((_, _) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new(Index, "../Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new(Index, "../Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -345,20 +493,61 @@ public sealed class RegistryHistoryTests
     [Fact]
     public async Task FreshHistorySessionBlocksMutationAndLessonEditRoutes()
     {
-        using var inner = new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        using var inner = new FakeHandler((_, _) =>
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(HttpStatusCode.OK);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         using var content = new StringContent("synthetic");
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.PostAsync(Index, content));
         await Assert.ThrowsAsync<RegistryHistoryException>(() =>
-            client.DeleteAsync(new Uri((string) $"{Index.AbsoluteUri}/groups/1")));
+        {
+            global::System.Uri CalculateRequestUri()
+            {
+                string text = $"{Index.AbsoluteUri}/groups/1";
+                string uriString = (string) text;
+                global::System.Uri requestUri = new Uri(uriString);
+                return requestUri;
+            }
+
+            return client.DeleteAsync(CalculateRequestUri());
+        });
         await Assert.ThrowsAsync<RegistryHistoryException>(() =>
-            client.GetAsync(new Uri((string) $"{Index.AbsoluteUri}/Edit/1")));
+        {
+            global::System.Uri CalculateRequestUri()
+            {
+                string text = $"{Index.AbsoluteUri}/Edit/1";
+                string uriString = (string) text;
+                global::System.Uri requestUri = new Uri(uriString);
+                return requestUri;
+            }
+
+            return client.GetAsync(CalculateRequestUri());
+        });
         Assert.Equal(expected: 0, actual: inner.Calls);
     }
 
@@ -381,16 +570,40 @@ public sealed class RegistryHistoryTests
 
         using var innerA = new FakeHandler(Respond);
         using var innerB = new FakeHandler(Respond);
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new(Index, "../Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(30);
+            return spacing;
+        }
+
         using var guardA = new RegistryHistoryRequestHandler(
-            innerA,
-            index: Index,
-            login: new(Index, "../Account/Login"),
-            TimeSpan.FromMilliseconds(30));
+                            innerA,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
+        global::System.Uri CalculateLogin2()
+        {
+            global::System.Uri login3 = new(Index, "../Account/Login");
+            return login3;
+        }
+
+        global::System.TimeSpan CalculateSpacing2()
+        {
+            global::System.TimeSpan spacing2 = TimeSpan.FromMilliseconds(30);
+            return spacing2;
+        }
+
         using var guardB = new RegistryHistoryRequestHandler(
-            innerB,
-            index: Index,
-            login: new(Index, "../Account/Login"),
-            TimeSpan.FromMilliseconds(30));
+                            innerB,
+                            index: Index,
+                            login: CalculateLogin2(),
+                            CalculateSpacing2());
         using var first = new HttpClient(guardA);
         using var second = new HttpClient(guardB);
         // Intentionally race only synthetic transports to prove the shared gate.
@@ -407,17 +620,42 @@ public sealed class RegistryHistoryTests
     {
         var log = new CaptureLogger();
         var logger = new RegistryErrorLogger(log);
-        logger.StudentsNotInDbButInRegistry(new(
-                PrivateStudents(),
-                null!,
-                default,
-                default));
-        logger.LessonsDecidedErroneous(new("canary-student canary-password canary-token"));
-        logger.GroupParsingError(new(new GroupParsingException("canary-password canary-student"),
-            "canary-student canary-token"));
+        global::ScheduleLib.OnlineRegistry.StudentsInGroup CalculateStudents()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsInGroup students = new(
+                            PrivateStudents(),
+                            null!,
+                            default,
+                            default);
+            return students;
+        }
+
+        logger.StudentsNotInDbButInRegistry(CalculateStudents());
+        global::ScheduleLib.OnlineRegistry.ErroneousLesson CalculateLesson()
+        {
+            global::ScheduleLib.OnlineRegistry.ErroneousLesson lesson = new("canary-student canary-password canary-token");
+            return lesson;
+        }
+
+        logger.LessonsDecidedErroneous(CalculateLesson());
+        global::ScheduleLib.OnlineRegistry.GroupParseErrorContext CalculateContext()
+        {
+            global::ScheduleLib.OnlineRegistry.GroupParsingException exception = new GroupParsingException("canary-password canary-student");
+            string stringValue = "canary-student canary-token";
+            global::ScheduleLib.OnlineRegistry.GroupParseErrorContext context = new(exception, stringValue);
+            return context;
+        }
+
+        logger.GroupParsingError(CalculateContext());
         logger.GroupNotFound("canary-student canary-token");
         Assert.NotEmpty(log.Messages);
-        Assert.DoesNotContain(expectedSubstring: "canary", actualString: string.Join("\n", log.Messages));
+        string CalculateActualString()
+        {
+            string actualString2 = string.Join("\n", log.Messages);
+            return actualString2;
+        }
+
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: CalculateActualString());
 
         static IEnumerable<ScheduleLib.Parsing.Name> PrivateStudents()
         {
@@ -443,12 +681,24 @@ public sealed class RegistryHistoryTests
     public async Task ProductionLoginBuilderAndYearDiscoveryUseOnlySyntheticCredentialsAndSerialReads()
     {
         var log = new CaptureLogger();
-        using var logs = LoggerFactory.Create(x => x.AddProvider(new CaptureProvider(log)));
+        using var logs = LoggerFactory.Create(x =>
+        {
+            global::RegistryHistoryTests.CaptureProvider CalculateProvider()
+            {
+                global::RegistryHistoryTests.CaptureProvider provider = new CaptureProvider(log);
+                return provider;
+            }
+
+            x.AddProvider(CalculateProvider());
+        });
         var login = new Uri("https://registry.test/studregistry/Account/Login");
         var requests = new List<string>();
         using var inner = new FakeHandler(async (request, token) =>
         {
-            requests.Add((string) $"{(request.Method + " ")}{request.RequestUri!.PathAndQuery}");
+            global::System.Collections.Generic.List<string> list = requests;
+            string text = $"{(request.Method + " ")}{request.RequestUri!.PathAndQuery}";
+            string item = (string) text;
+            list.Add(item);
             if (request.Method == HttpMethod.Post)
             {
                 var body = await request.Content!.ReadAsStringAsync(token);
@@ -472,11 +722,17 @@ public sealed class RegistryHistoryTests
                 : (string) $"{years}<div id='nav-1'><div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/1'>Unmapped historical course,</a></span></div></div><div id='nav-2'></div>";
             return new(HttpStatusCode.OK) { Content = new StringContent(html) };
         });
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: login,
-            TimeSpan.FromMilliseconds(1));
+                    inner,
+                    index: Index,
+                    login: login,
+                    CalculateSpacing());
         using var client = new HttpClient(guard);
         using var transport = new HttpClientContext(
             new AngleSharp.Io.MemoryCookieProvider(),
@@ -505,8 +761,15 @@ public sealed class RegistryHistoryTests
         using var context = await builder.Build(default, transport);
         guard.CompleteAuthentication();
         var summary = await new RegistryHistoryReader(context.HttpClient, Index).Discover("2024/25", default);
-        Assert.Equal(expected: "2024/25", actual: Assert.Single(summary).Year);
-        Assert.Equal(expected: "Unknown historical group", actual: Assert.Single(Assert.Single(summary[0].Courses).Groups));
+        string expected2 = "2024/25";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryYearSummary single = Assert.Single(summary);
+        string actual2 = single.Year;
+        Assert.Equal(expected: expected2, actual: actual2);
+        string expected3 = "Unknown historical group";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryCourseSummary single2 = Assert.Single(summary[0].Courses);
+        global::System.Collections.Generic.IEnumerable<string> collection = single2.Groups;
+        string actual3 = Assert.Single(collection);
+        Assert.Equal(expected: expected3, actual: actual3);
         Assert.Equal(
             expected: new[]
             {
@@ -516,8 +779,16 @@ public sealed class RegistryHistoryTests
                 "GET /studregistry/LessonAttendance/groups/1",
             },
             actual: requests);
-        Assert.DoesNotContain(expectedSubstring: "canary", actualString: string.Join("\n", log.Messages));
-        Assert.DoesNotContain(expectedSubstring: "canary-student", actualString: System.Text.Json.JsonSerializer.Serialize(summary));
+        string CalculateActualString()
+        {
+            string actualString2 = string.Join("\n", log.Messages);
+            return actualString2;
+        }
+
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: CalculateActualString());
+        string expectedSubstring2 = "canary-student";
+        string actualString3 = System.Text.Json.JsonSerializer.Serialize(summary);
+        Assert.DoesNotContain(expectedSubstring: expectedSubstring2, actualString: actualString3);
     }
 
     [Theory]
@@ -532,17 +803,40 @@ public sealed class RegistryHistoryTests
                     ? "<input type='password' value='canary-password'>"
                     : Years + "<div id='nav-1'></div><div id='nav-2'></div>"),
         }));
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() =>
             new RegistryHistoryReader(client, Index).Discover("2024/25", default));
         Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.Message);
-        Assert.Equal(expected: loginPage ? 1 : 2, actual: inner.Calls);
+        int expected2;
+        if (loginPage)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 2;
+        }
+
+        int actual2 = inner.Calls;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -565,16 +859,32 @@ public sealed class RegistryHistoryTests
                   """;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(html) });
         });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var summary = Assert.Single(await new RegistryHistoryReader(client, Index).Discover("current", default));
         Assert.Equal(expected: "2025/26", actual: summary.Year);
-        Assert.Equal(expected: "Unmapped group", actual: Assert.Single(Assert.Single(summary.Courses).Groups));
+        string expected2 = "Unmapped group";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryCourseSummary single = Assert.Single(summary.Courses);
+        global::System.Collections.Generic.IEnumerable<string> collection = single.Groups;
+        string actual2 = Assert.Single(collection);
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(
             expected: new[]
             {
@@ -622,7 +932,16 @@ public sealed class RegistryHistoryTests
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter) =>
-            Messages.Add(formatter(state, exception) + exception);
+            Func<TState, Exception?, string> formatter)
+        {
+            string CalculateItem()
+            {
+                string invoke = formatter(state, exception);
+                string item = invoke + exception;
+                return item;
+            }
+
+            Messages.Add(CalculateItem());
+        }
     }
 }

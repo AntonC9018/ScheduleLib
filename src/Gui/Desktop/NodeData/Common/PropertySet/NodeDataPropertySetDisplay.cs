@@ -193,7 +193,9 @@ public static class PropertySet
 
         public XXXPropertyBuilder<T> IncludeProperty(string name)
         {
-            var ret = builder.Model.AddProperty(new(name));
+            global::Desktop.NodeData.Common.XXXPropertySetModel xXXPropertySetModel = builder.Model;
+            global::Desktop.NodeData.Common.PropertyId id = new(name);
+            var ret = xXXPropertySetModel.AddProperty(id);
             return new(ret);
         }
 
@@ -205,7 +207,7 @@ public static class PropertySet
 
     }
 
-    extension (XXXPropertySetModel model)
+    extension(XXXPropertySetModel model)
     {
         private PropertyConfig AddProperty(PropertyId id)
         {

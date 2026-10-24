@@ -94,7 +94,8 @@ internal static class HtmlSearch
 {
     internal static IEnumerable<CourseLink> ScanCoursesDocumentForLinks(ScanCoursesParams p)
     {
-        var queryString = $"#nav-{SemString(p.Semester)} > div > span:nth-of-type(2) > a";
+        string semString = SemString(p.Semester);
+        var queryString = $"#nav-{semString} > div > span:nth-of-type(2) > a";
 
         var anchors = p.Document.QuerySelectorAll(queryString);
         foreach (var el in anchors)
@@ -104,7 +105,7 @@ internal static class HtmlSearch
             var courseName = anchor.Text;
             if (courseName.EndsWith(','))
             {
-                courseName = courseName[.. ^1];
+                courseName = courseName[..^1];
             }
             if (p.FindCourse(courseName) is { } courseId)
             {
@@ -150,7 +151,9 @@ internal static class HtmlSearch
                 }
                 catch (GroupParsingException e)
                 {
-                    p.ParseErrorHandler(new(e, groupName));
+                    global::ScheduleLib.OnlineRegistry.ScanGroupsParams scanGroupsParams = p;
+                    global::ScheduleLib.OnlineRegistry.GroupParseErrorContext context = new(e, groupName);
+                    scanGroupsParams.ParseErrorHandler(context);
                     continue;
                 }
 
@@ -590,7 +593,17 @@ internal static class HtmlSearch
     {
         var tables = p.Document.QuerySelectorAll<IHtmlTableElement>("table").Take(2).ToArray();
         var lessonTable = new EditableLessonsHelper(tables[0], p.ErrorHandler);
-        var attendanceTable = new AttendanceTableHelper(tables.Length > 1 ? tables[1] : null);
+        global::AngleSharp.Html.Dom.IHtmlTableElement? table2;
+        if (tables.Length > 1)
+        {
+            table2 = tables[1];
+        }
+        else
+        {
+            table2 = null;
+        }
+
+        var attendanceTable = new AttendanceTableHelper(table2);
 
         HtmlStudent[] studentNames = [];
         if (attendanceTable.StudentCount != 0)
@@ -613,8 +626,8 @@ internal static class HtmlSearch
 
         var ret = new ScanLessonResult
         {
-           Lessons = E(),
-           Students = studentNames,
+            Lessons = E(),
+            Students = studentNames,
         };
         return ret;
 
@@ -627,7 +640,8 @@ internal static class HtmlSearch
 
     internal static IHtmlTableElement FindAttendanceTable(IDocument doc)
     {
-        var table = (IHtmlTableElement) doc.QuerySelectorAll("table").Last();
+        global::AngleSharp.Dom.IHtmlCollection<global::AngleSharp.Dom.IElement> querySelectorAll = doc.QuerySelectorAll("table");
+        var table = (IHtmlTableElement) querySelectorAll.Last();
         return table;
     }
 

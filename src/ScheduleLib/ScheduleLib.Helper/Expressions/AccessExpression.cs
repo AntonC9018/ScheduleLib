@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
@@ -65,8 +65,10 @@ public static class AccessExpressionExtensions
         var visitor = ReplaceVariableExpressionVisitor.GetInstance(parameterReplacement.Access, originalAccess.Parameter);
         var newAccess = visitor.Visit(originalAccess.Access);
 
-        return new AccessExpression<TToSource, TResult>(
-            new AccessExpression(parameterReplacement.Parameter, newAccess));
+        global::ScheduleLib.Helper.Expressions.AccessExpression underlyingExpression = new AccessExpression(parameterReplacement.Parameter, newAccess);
+        global::ScheduleLib.Helper.Expressions.AccessExpression<TToSource, TResult> accessExpression = new AccessExpression<TToSource, TResult>(
+        underlyingExpression);
+        return accessExpression;
     }
 
     extension<TObject, TFieldOrProperty>(AccessExpression<TObject, TFieldOrProperty> access)
@@ -109,7 +111,9 @@ public static class AccessExpressionExtensions
         public AccessExpression<TObject, TMapped> MapReturn<TMapped>(Expression<Func<TFieldOrProperty, TMapped>> map)
         {
             var body = map.ReplaceParameterAndGetBody(access.Access);
-            return new(new(access.Parameter, body));
+            global::ScheduleLib.Helper.Expressions.AccessExpression underlyingExpression = new(access.Parameter, body);
+            global::ScheduleLib.Helper.Expressions.AccessExpression<TObject, TMapped> accessExpression = new(underlyingExpression);
+            return accessExpression;
         }
 
         public Expression<Func<TObject, TFieldOrProperty>> ToLambda()

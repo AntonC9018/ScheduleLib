@@ -175,7 +175,8 @@ public static class AppTasks
                         var name = new Name(teacher.Item.PersonName.AsNameFields());
                         if (!slugLookup.TryGetValue(name, out var slug))
                         {
-                            Console.WriteLine($"No slug for '{name}'.");
+                            string value = $"No slug for '{name}'.";
+                            Console.WriteLine(value);
                             continue;
                         }
 
@@ -278,7 +279,9 @@ public static class AppTasks
                     var filteredSchedule = schedule.Filter(filter);
 
                     var timeConfig = c.Services.GetRequiredService<LessonTimeConfig>();
-                    var startTimeSlot = timeConfig.FindTimeSlotByIncludedTime(new(hour: 17, minute: 00));
+                    global::LessonTimeConfig lessonTimeConfig = timeConfig;
+                    global::System.TimeOnly time2 = new(hour: 17, minute: 00);
+                    var startTimeSlot = lessonTimeConfig.FindTimeSlotByIncludedTime(time2);
                     var timeDisplay = c.Services.GetRequiredService<TimeSlotDisplayHandler>();
 
                     foreach (var x in filteredSchedule.EnumerateWeeklyLessons())
@@ -303,7 +306,8 @@ public static class AppTasks
                         var course = schedule.Get(x.Lesson.Course);
                         var timeInterval = timeConfig.GetTimeSlotInterval(x.Date.TimeSlot);
                         var time = timeDisplay.IntervalDisplay(timeInterval);
-                        Console.WriteLine($"{teacher.PersonName}, {course.FullName}, {time}");
+                        string value2 = $"{teacher.PersonName}, {course.FullName}, {time}";
+                        Console.WriteLine(value2);
                     }
                     break;
                 }

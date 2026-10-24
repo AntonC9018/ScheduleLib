@@ -63,9 +63,18 @@ public static class CalendarSync
         string account,
         string name)
     {
-        return Path.Combine(
-        root,
-        (string) $"{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{account}\n{name}")))}.lock");
+        string path1 = root;
+        global::System.Text.Encoding encoding = Encoding.UTF8;
+        string text = $"{account}\n{name}";
+        string s = (string) text;
+        byte[] source = encoding.GetBytes(s);
+        byte[] inArray = SHA256.HashData(source);
+        string toHexString = Convert.ToHexString(inArray);
+        string text2 = $"{toHexString}.lock";
+        string path2 = (string) text2;
+        string combine = Path.Combine(
+        path1, path2);
+        return combine;
     }
 
     public static async Task<CalendarSyncResult> Run(
@@ -84,19 +93,25 @@ public static class CalendarSync
         }
 
         var account = await provider.GetAccount(token);
+        string CalculatePath1()
+        {
+            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return path1;
+        }
+
         await using var lease = apply
-            ? await LocalFileLock.Acquire(
-                LockPath(
-                    root: lockRoot
-                    ?? Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "ScheduleLib",
-                        "remote-locks",
-                        "calendar"),
-                    account: account,
-                    name: name),
-                token)
-            : null;
+                    ? await LocalFileLock.Acquire(
+                        LockPath(
+                            root: lockRoot
+                            ?? Path.Combine(
+                                CalculatePath1(),
+                                "ScheduleLib",
+                                "remote-locks",
+                                "calendar"),
+                            account: account,
+                            name: name),
+                        token)
+                    : null;
         // Every invocation recomputes. Apply reads the current destination only after owning its lock.
         var calendars = await provider.ListCalendars(token);
         var existing = calendars.FirstOrDefault(x => x.Summary == name);
@@ -148,22 +163,31 @@ public static class CalendarSync
         var plan = new List<CalendarPlanStep>();
         if (existing is not null)
         {
-            plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    Action: "delete calendar",
-                    CalendarId: existing.Id,
-                    DesiredEventIndex: null));
+            global::System.Collections.Generic.List<global::ScheduleLib.Cli.CalendarPlanStep> list = plan;
+            string id2 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string action2 = "delete calendar";
+            string calendarId = existing.Id;
+            int? desiredEventIndex = null;
+            global::ScheduleLib.Cli.CalendarPlanStep item2 = new(Id: id2, Action: action2, CalendarId: calendarId, DesiredEventIndex: desiredEventIndex);
+            list.Add(item2);
         }
 
-        plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                Action: "create calendar",
-                CalendarId: null,
-                DesiredEventIndex: null));
+        global::System.Collections.Generic.List<global::ScheduleLib.Cli.CalendarPlanStep> list2 = plan;
+        string id3 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string action3 = "create calendar";
+        string? calendarId2 = null;
+        int? desiredEventIndex2 = null;
+        global::ScheduleLib.Cli.CalendarPlanStep item3 = new(Id: id3, Action: action3, CalendarId: calendarId2, DesiredEventIndex: desiredEventIndex2);
+        list2.Add(item3);
         for (var planIndex = 0; planIndex < desired.Count; planIndex++)
         {
-            plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    Action: "create event",
-                    CalendarId: null,
-                    DesiredEventIndex: planIndex));
+            global::System.Collections.Generic.List<global::ScheduleLib.Cli.CalendarPlanStep> list3 = plan;
+            string id4 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string action4 = "create event";
+            string? calendarId3 = null;
+            int? desiredEventIndex3 = planIndex;
+            global::ScheduleLib.Cli.CalendarPlanStep item4 = new(Id: id4, Action: action4, CalendarId: calendarId3, DesiredEventIndex: desiredEventIndex3);
+            list3.Add(item4);
         }
 
         void Report<TMessage>(
@@ -174,10 +198,16 @@ public static class CalendarSync
         {
             try
             {
-                onOutcome?.Invoke(new(Id: id,
-                    Status: status,
-                    item,
-                    human));
+                global::ScheduleLib.Cli.CalendarReport CalculateObj()
+                {
+                    global::ScheduleLib.Cli.CalendarReport obj = new(Id: id,
+                                        Status: status,
+                                        item,
+                                        human);
+                    return obj;
+                }
+
+                onOutcome?.Invoke(CalculateObj());
             }
             catch (CliOutputStreamingException ex)
             {
@@ -185,20 +215,34 @@ public static class CalendarSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw StreamingFailure(new GeneralCliOutputStreamingException("Calendar output streaming failed.", ex));
+                global::ScheduleLib.Cli.GeneralCliOutputStreamingException inner = new GeneralCliOutputStreamingException("Calendar output streaming failed.", ex);
+                global::System.Exception inner2 = inner;
+                throw StreamingFailure(inner2);
             }
         }
 
         CalendarStreamingException StreamingFailure(Exception inner)
         {
-            return new(
-                Result(
-                    outcomes.Any(x => x.State == "completed") ? 6 : 1,
-                    [
-                        "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
-                    ],
-                    reportRemaining: false),
-                inner);
+            int exit;
+            if (outcomes.Any(x => x.State == "completed"))
+            {
+                exit = 6;
+            }
+            else
+            {
+                exit = 1;
+            }
+
+            string[] errors = [
+                                    "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
+                    ];
+            bool reportRemaining2 = false;
+            global::ScheduleLib.Cli.CalendarSyncResult partialResult = Result(
+            exit, errors, reportRemaining: reportRemaining2);
+            global::System.Exception inner2 = inner;
+            global::ScheduleLib.Cli.CalendarStreamingException calendarStreamingException = new(
+            partialResult, inner2);
+            return calendarStreamingException;
         }
 
         void ReportPlanned(CalendarPlanStep step)
@@ -209,11 +253,12 @@ public static class CalendarSync
                 EventId: null,
                 State: "planned",
                 step.DesiredEventIndex);
+            string id2 = step.Id;
+            string status2 = outcome.State;
+            object item = outcome;
+            global::ScheduleLib.Cli.CalendarActionMessage human = new CalendarActionMessage(outcome);
             Report(
-                id: step.Id,
-                status: outcome.State,
-                outcome,
-                new CalendarActionMessage(outcome));
+                id: id2, status: status2, item, human);
         }
 
         void AddOutcome(CalendarActionOutcome outcome)
@@ -221,11 +266,12 @@ public static class CalendarSync
             // The completed remote outcome is recorded before rendering so a
             // rendering failure cannot change it or trigger another mutation.
             outcomes.Add(outcome);
+            string id2 = PlanId(outcome);
+            string status2 = outcome.State;
+            object item = outcome;
+            global::ScheduleLib.Cli.CalendarActionMessage human = new CalendarActionMessage(outcome);
             Report(
-                id: PlanId(outcome),
-                status: outcome.State,
-                outcome,
-                new CalendarActionMessage(outcome));
+                id: id2, status: status2, item, human);
         }
 
         string PlanId(CalendarActionOutcome outcome)
@@ -252,32 +298,43 @@ public static class CalendarSync
         for (var deletedIndex = 0; deletedIndex < deleted.Count; deletedIndex++)
         {
             var identity = deleted[deletedIndex];
+            string toString = deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string text = $"deleted-{toString}";
+            string id5 = (string) text;
+            string status3 = "completed";
+            object item5 = identity;
+            global::ScheduleLib.Cli.CalendarDeletedEventMessage human2 = new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary);
             Report(
-                id: (string) $"deleted-{deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                status: "completed",
-                identity,
-                new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary));
+                id: id5, status: status3, item5, human2);
         }
         for (var index = 0; index < desired.Count; index++)
         {
             var ev = desired[index];
+            string CalculateId()
+            {
+                string toString2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text2 = $"desired-{toString2}";
+                string id6 = (string) text2;
+                return id6;
+            }
+
             Report(
-                id: (string) $"desired-{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                status: "completed",
-                new
-                {
-                    index,
-                    summary = ev.Summary,
-                    start = FormatCalendarTimestamp(ev.Start?.DateTimeDateTimeOffset),
-                    end = FormatCalendarTimestamp(ev.End?.DateTimeDateTimeOffset),
-                    recurrence = ev.Recurrence,
-                },
-                new CalendarDesiredEventMessage(
-                    index,
-                    ev.Summary,
-                    Start: ev.Start?.DateTimeDateTimeOffset,
-                    End: ev.End?.DateTimeDateTimeOffset,
-                    (ev.Recurrence ?? []).ToImmutableArray()));
+                            id: CalculateId(),
+                            status: "completed",
+                            new
+                            {
+                                index,
+                                summary = ev.Summary,
+                                start = FormatCalendarTimestamp(ev.Start?.DateTimeDateTimeOffset),
+                                end = FormatCalendarTimestamp(ev.End?.DateTimeDateTimeOffset),
+                                recurrence = ev.Recurrence,
+                            },
+                            new CalendarDesiredEventMessage(
+                                index,
+                                ev.Summary,
+                                Start: ev.Start?.DateTimeDateTimeOffset,
+                                End: ev.End?.DateTimeDateTimeOffset,
+                                (ev.Recurrence ?? []).ToImmutableArray()));
         }
         if (!apply)
         {
@@ -295,11 +352,12 @@ public static class CalendarSync
                 token.ThrowIfCancellationRequested();
                 attempted = true;
                 await provider.DeleteCalendar(existing.Id, token);
-                AddOutcome(new(
+                global::ScheduleLib.Cli.CalendarActionOutcome outcome2 = new(
                     Action: action,
                     CalendarId: existing.Id,
                     EventId: null,
-                    State: "completed"));
+                    State: "completed");
+                AddOutcome(outcome2);
             }
             action = "create calendar";
             attempted = false;
@@ -311,11 +369,12 @@ public static class CalendarSync
                 throw new IOException("Calendar create returned no identity.");
             }
 
-            AddOutcome(new(
+            global::ScheduleLib.Cli.CalendarActionOutcome outcome3 = new(
                 Action: action,
                 CalendarId: created,
                 EventId: null,
-                State: "completed"));
+                State: "completed");
+            AddOutcome(outcome3);
             for (var index = 0; index < desired.Count; index++)
             {
                 var ev = desired[index];
@@ -334,12 +393,13 @@ public static class CalendarSync
                     throw new IOException("Event create returned no identity.");
                 }
 
-                AddOutcome(new(
+                global::ScheduleLib.Cli.CalendarActionOutcome outcome4 = new(
                     Action: action,
                     CalendarId: created,
                     EventId: eventId,
                     State: "completed",
-                    desiredIndex));
+                    desiredIndex);
+                AddOutcome(outcome4);
             }
             return Result(0, []);
         }
@@ -354,12 +414,23 @@ public static class CalendarSync
         {
             if (attempted)
             {
-                AddOutcome(new(
-                    Action: action,
-                    CalendarId: action == "delete calendar" ? existing?.Id : created,
-                    EventId: eventId,
-                    State: "uncertain",
-                    desiredIndex));
+                string action5 = action;
+                string? calendarId4;
+                if (action == "delete calendar")
+                {
+                    calendarId4 = existing?.Id;
+                }
+                else
+                {
+                    calendarId4 = created;
+                }
+
+                string? eventId2 = eventId;
+                string state = "uncertain";
+                int? desiredEventIndex4 = desiredIndex;
+                global::ScheduleLib.Cli.CalendarActionOutcome outcome5 = new(
+                    Action: action5, CalendarId: calendarId4, EventId: eventId2, State: state, desiredEventIndex4);
+                AddOutcome(outcome5);
             }
 
             return Result(
@@ -371,17 +442,39 @@ public static class CalendarSync
         catch (GooglePreSendTransportException)
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(new(
-                Action: action,
-                CalendarId: action == "delete calendar" ? existing?.Id : created,
-                EventId: eventId,
-                State: "failed",
-                desiredIndex));
-            return Result(
-                partial ? 6 : 5,
-                [
-                    "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
-                ]);
+            string action6 = action;
+            string? calendarId5;
+            if (action == "delete calendar")
+            {
+                calendarId5 = existing?.Id;
+            }
+            else
+            {
+                calendarId5 = created;
+            }
+
+            string? eventId3 = eventId;
+            string state2 = "failed";
+            int? desiredEventIndex5 = desiredIndex;
+            global::ScheduleLib.Cli.CalendarActionOutcome outcome6 = new(
+                Action: action6, CalendarId: calendarId5, EventId: eventId3, State: state2, desiredEventIndex5);
+            AddOutcome(outcome6);
+            int exit2;
+            if (partial)
+            {
+                exit2 = 6;
+            }
+            else
+            {
+                exit2 = 5;
+            }
+
+            string[] errors2 = [
+                                "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
+                ];
+            global::ScheduleLib.Cli.CalendarSyncResult result = Result(
+            exit2, errors2);
+            return result;
         }
         catch (AuthenticationRequiredException)
         {
@@ -398,45 +491,115 @@ public static class CalendarSync
         catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400 or 403 or 404 or 409 or 412 or 422)
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(new(
-                Action: action,
-                CalendarId: action == "delete calendar" ? existing?.Id : created,
-                EventId: eventId,
-                State: "failed",
-                desiredIndex));
-            return Result(
-                partial ? 6 : 5,
-                ["Google Calendar rejected the action; it was not retried. Completed actions remain applied."]);
+            string action7 = action;
+            string? calendarId6;
+            if (action == "delete calendar")
+            {
+                calendarId6 = existing?.Id;
+            }
+            else
+            {
+                calendarId6 = created;
+            }
+
+            string? eventId4 = eventId;
+            string state3 = "failed";
+            int? desiredEventIndex6 = desiredIndex;
+            global::ScheduleLib.Cli.CalendarActionOutcome outcome7 = new(
+                Action: action7, CalendarId: calendarId6, EventId: eventId4, State: state3, desiredEventIndex6);
+            AddOutcome(outcome7);
+            int exit3;
+            if (partial)
+            {
+                exit3 = 6;
+            }
+            else
+            {
+                exit3 = 5;
+            }
+
+            string[] errors3 = ["Google Calendar rejected the action; it was not retried. Completed actions remain applied."];
+            global::ScheduleLib.Cli.CalendarSyncResult result2 = Result(
+            exit3, errors3);
+            return result2;
         }
         catch (Exception)
         {
             if (attempted)
             {
-                AddOutcome(new(
-                    Action: action,
-                    CalendarId: action == "delete calendar" ? existing?.Id : created,
-                    EventId: eventId,
-                    State: "uncertain",
-                    desiredIndex));
+                string action8 = action;
+                string? calendarId7;
+                if (action == "delete calendar")
+                {
+                    calendarId7 = existing?.Id;
+                }
+                else
+                {
+                    calendarId7 = created;
+                }
+
+                string? eventId5 = eventId;
+                string state4 = "uncertain";
+                int? desiredEventIndex7 = desiredIndex;
+                global::ScheduleLib.Cli.CalendarActionOutcome outcome8 = new(
+                    Action: action8, CalendarId: calendarId7, EventId: eventId5, State: state4, desiredEventIndex7);
+                AddOutcome(outcome8);
             }
 
-            return Result(
-                outcomes.Count > 0 ? 6 : 5,
-                [
-                    "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
-                ]);
+            int exit4;
+            if (outcomes.Count > 0)
+            {
+                exit4 = 6;
+            }
+            else
+            {
+                exit4 = 5;
+            }
+
+            string[] errors4 = [
+                                "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
+                ];
+            global::ScheduleLib.Cli.CalendarSyncResult result3 = Result(
+            exit4, errors4);
+            return result3;
         }
 
         CalendarSyncResult AuthenticationFailure()
         {
             var partial = outcomes.Any(x => x.State == "completed");
-            AddOutcome(new(
-                Action: action,
-                CalendarId: action == "delete calendar" ? existing?.Id : created,
-                EventId: eventId,
-                State: "failed",
-                desiredIndex));
-            return Result(partial ? 6 : 4, [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
+            string action2 = action;
+            string? calendarId;
+            if (action == "delete calendar")
+            {
+                calendarId = existing?.Id;
+            }
+            else
+            {
+                calendarId = created;
+            }
+
+            string? eventId2 = eventId;
+            string state = "failed";
+            int? desiredEventIndex = desiredIndex;
+            global::ScheduleLib.Cli.CalendarActionOutcome outcome = new(
+                Action: action2, CalendarId: calendarId, EventId: eventId2, State: state, desiredEventIndex);
+            AddOutcome(outcome);
+            int CalculateExit()
+            {
+                int exit;
+                if (partial)
+                {
+                    exit = 6;
+                }
+                else
+                {
+                    exit = 4;
+                }
+
+                return exit;
+            }
+
+            return Result(CalculateExit(), [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
         }
 
         CalendarSyncResult Result(
@@ -455,11 +618,12 @@ public static class CalendarSync
                         EventId: null,
                         State: "not-attempted",
                         step.DesiredEventIndex);
+                    string id2 = step.Id;
+                    string status2 = skipped.State;
+                    object item = skipped;
+                    global::ScheduleLib.Cli.CalendarNotAttemptedMessage human = new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex);
                     Report(
-                        id: step.Id,
-                        status: skipped.State,
-                        skipped,
-                        new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex));
+                        id: id2, status: status2, item, human);
                 }
             }
             return new(

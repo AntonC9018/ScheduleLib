@@ -61,7 +61,10 @@ public sealed partial class ListsForPredzashitaTaskHandler
     public string? GetConfigurationError()
     {
         if (!HasConfiguredCommissions(_options))
+        {
             return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
+        }
+
         try
         {
             var result = GetConfigurationError(ParseCommissionNames());
@@ -82,11 +85,16 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var commission in commissions)
         {
             if (!numbers.Add(commission.Number))
+            {
                 return $"Pre-defense commission number {commission.Number} is configured more than once.";
+            }
+
             foreach (var member in commission.Members)
             {
                 if (!members.Add(member))
+                {
                     return $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+                }
             }
         }
         return null;
@@ -105,7 +113,13 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
     private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
     {
-        try { return _nameRemapper.RemapName(NameHelper.Parse(name)); }
+        try
+        {
+            global::ScheduleLib.Theses.Parsing.INameRemapper iNameRemapper = _nameRemapper;
+            global::ScheduleLib.Parsing.Name name2 = NameHelper.Parse(name);
+            global::ScheduleLib.Parsing.Name remapName = iNameRemapper.RemapName(name2);
+            return remapName;
+        }
         catch (NameParsingException e)
         {
             throw new InvalidDataException(
@@ -127,17 +141,25 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!HasConfiguredCommissions(_options))
+        {
             throw new InvalidDataException("Pre-defense requires commission data in the existing C# configuration.");
+        }
+
         var commissionsWithParsedNames = ParseCommissionNames();
         if (GetConfigurationError(commissionsWithParsedNames) is { } error)
+        {
             throw new InvalidDataException(error);
+        }
+
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
         var avrLookup = new HashSet<NameAndGroup>(Hasher.Instance);
         foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
-            avrLookup.Add(new(name, x.Group));
+            global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet = avrLookup;
+            global::ScheduleLib.Application.Core.NameAndGroup item = new(name, x.Group);
+            hashSet.Add(item);
         }
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
@@ -150,7 +172,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
-            list.Add(new(studentName, Group: group, ThesisName: thesisName));
+            global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.ThesisRecord> list2 = list;
+            global::ScheduleLib.Application.Core.ThesisRecord item2 = new(studentName, Group: group, ThesisName: thesisName);
+            list2.Add(item2);
         }
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
@@ -184,17 +208,21 @@ public sealed partial class ListsForPredzashitaTaskHandler
             foreach (var t in theses1)
             {
                 string? practicaPlace = null;
-                if (avrLookup.Contains(new(t.StudentName, t.Group)))
+                global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet2 = avrLookup;
+                global::ScheduleLib.Application.Core.NameAndGroup item3 = new(t.StudentName, t.Group);
+                if (hashSet2.Contains(item3))
                 {
                     practicaPlace = "Laborator AVR";
                 }
 
-                list.Add(new(
+                global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.StudentThesisRecord> list3 = list;
+                global::ScheduleLib.Application.Core.StudentThesisRecord item4 = new(
                     StudentName: t.StudentName,
                     TeacherName: teacher,
                     Group: t.Group,
                     ThesisName: t.ThesisName,
-                    PracticaPlace: practicaPlace));
+                    PracticaPlace: practicaPlace);
+                list3.Add(item4);
             }
         }
 
@@ -233,7 +261,13 @@ public sealed partial class ListsForPredzashitaTaskHandler
             },
         });
 
-        await spreadsheet.StartWorksheetAsync($"Comisia {commissionNumber}", options: null, cancellationToken);
+        string CalculateName()
+        {
+            string name = $"Comisia {commissionNumber}";
+            return name;
+        }
+
+        await spreadsheet.StartWorksheetAsync(CalculateName(), options: null, cancellationToken);
 
         // Header
         Cell HeaderCell(string s) => new(s, headerStyle);
@@ -288,7 +322,13 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         foreach (var (commissionNumber, students) in data)
         {
-            await using var outputFile = output.OpenFile($"comisia_{commissionNumber}.xlsx", FileMode.Create, FileAccess.Write);
+            string CalculatePath()
+            {
+                string path = $"comisia_{commissionNumber}.xlsx";
+                return path;
+            }
+
+            await using var outputFile = output.OpenFile(CalculatePath(), FileMode.Create, FileAccess.Write);
             await WriteAsync(
                 commissionNumber,
                 students,

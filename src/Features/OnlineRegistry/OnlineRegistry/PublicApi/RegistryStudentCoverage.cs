@@ -14,13 +14,21 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
         IEnumerable<StudentsLookupKey> membershipKeys)
     {
         foreach (var key in routedKeys.Distinct())
-        foreach (var source in attendance.StudentNameSources(key))
         {
-            var audience = source.Key;
-            if (!_sources.TryGetValue(audience, out var coverage))
-                _sources.Add(audience, coverage = new());
-            coverage.Names.UnionWith(source.Names.Select(student => student.Key));
-            coverage.Rosters.Add(students);
+            foreach (var source in attendance.StudentNameSources(key))
+            {
+                var audience = source.Key;
+                if (!_sources.TryGetValue(audience, out var coverage))
+                {
+                    global::System.Collections.Generic.Dictionary<global::ScheduleLib.OnlineRegistry.StudentsLookupKey, global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage.SourceCoverage> dictionary = _sources;
+                    global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = audience;
+                    global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage.SourceCoverage value = coverage = new();
+                    dictionary.Add(key2, value);
+                }
+
+                coverage.Names.UnionWith(source.Names.Select(student => student.Key));
+                coverage.Rosters.Add(students);
+            }
         }
 
         var sources = new Dictionary<StudentsLookupKey, NamesInDb>();
@@ -50,32 +58,65 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
             }
 
             if (CheckCondition())
+            {
                 complete = false;
+            }
+
             foreach (var source in matchingSources)
             {
                 var audience = source.Key;
-                sources[audience] = sources.TryGetValue(audience, out var known)
-                    ? NamesInDb.Create([.. known.Concat(source.Names).Select(student => student.Key).Distinct(NameComparer)])
-                    : source.Names;
+                global::System.Collections.Generic.Dictionary<global::ScheduleLib.OnlineRegistry.StudentsLookupKey, global::ScheduleLib.OnlineRegistry.NamesInDb> dictionary2 = sources;
+                global::ScheduleLib.OnlineRegistry.StudentsLookupKey key3 = audience;
+                global::ScheduleLib.OnlineRegistry.NamesInDb namesInDb;
+                if (sources.TryGetValue(audience, out var known))
+                {
+                    global::ScheduleLib.OnlineRegistry.NamesInDb create = NamesInDb.Create([.. known.Concat(source.Names).Select(student => student.Key).Distinct(NameComparer)]);
+                    namesInDb = create;
+                }
+                else
+                {
+                    namesInDb = source.Names;
+                }
+
+                dictionary2[key3] = namesInDb;
             }
         }
-        _rosters.Add(new(students, sources, complete));
+        global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage.RosterCoverage> list = _rosters;
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage.RosterCoverage item = new(students, sources, complete);
+        list.Add(item);
     }
 
     // Called only after every relevant list for the course was processed successfully.
     internal void Report(Schedule schedule, CourseId course, RegistrySyncDiagnostics? diagnostics)
     {
-        if (diagnostics is null) return;
+        if (diagnostics is null)
+        {
+            return;
+        }
+
         foreach (var (key, source) in _sources)
         {
             var names = NamesInDb.Create([.. source.Names]);
             foreach (var roster in source.Rosters)
+            {
                 _ = StudentNameRemapHelper.Create(roster, names, [], aliases, source.Matched);
+            }
+
             var missing = source.Names.Count(student => !source.Matched.Contains(student));
-            if (missing == 0) continue;
+            if (missing == 0)
+            {
+                continue;
+            }
+
+            string CalculateGroup()
+            {
+                string group2 = key.Groups.ToString(schedule);
+                return group2;
+            }
+
             diagnostics.Add(kind: "attendance-students-not-in-registry", course: schedule.Get(course).FullName,
-                @group: key.Groups.ToString(schedule),
-                detail: $"{missing} attendance students have no matching student in any relevant registry roster for {key.LessonType} ({RegistrySyncDiagnostics.DescribePartition(key.GroupPartition)}). Check enrollment and name mappings.");
+                            @group: CalculateGroup(),
+                            detail: $"{missing} attendance students have no matching student in any relevant registry roster for {key.LessonType} ({RegistrySyncDiagnostics.DescribePartition(key.GroupPartition)}). Check enrollment and name mappings.");
         }
 
         // Related lists share one diagnostic, while each roster is checked only against
@@ -93,19 +134,25 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
                 {
                     component.Add(roster);
                     remaining.Remove(roster);
-                    foreach (var source in roster.Sources) sources.TryAdd(source.Key, source.Value);
+                    foreach (var source in roster.Sources)
+                    {
+                        sources.TryAdd(source.Key, source.Value);
+                    }
                 }
             }
             var unknown = new List<Name>();
             foreach (var roster in component.Where(roster => { if (!(roster.Complete)) { return false; } if (!(roster.Sources.Count != 0)) { return false; } return true; }))
             {
-                var names = NamesInDb.Create([.. roster.Sources.SelectMany(source =>
-                    source.Value.Select(student => student.Key).Concat(
-                        _sources.TryGetValue(source.Key, out var coverage) ? coverage.Names : [])).Distinct(NameComparer)]);
+                var names = NamesInDb.Create([.. roster.Sources.SelectMany(source => { global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> select = source.Value.Select(student => student.Key); global::System.Collections.Generic.HashSet<global::ScheduleLib.Parsing.Name> second; if (_sources.TryGetValue(source.Key, out var coverage)) { second = coverage.Names; } else { second = []; } global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> second2 = second; global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> concat = select.Concat(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     second2); return concat; }).Distinct(NameComparer)]);
                 _ = StudentNameRemapHelper.Create(roster.Students, names, unknown, aliases);
             }
             var count = unknown.Distinct(NameComparer).Count();
-            if (count == 0) continue;
+            if (count == 0)
+            {
+                continue;
+            }
+
             var groups = string.Join(", ", sources.Keys.SelectMany(key => key.Groups).Distinct()
                 .Select(parent => schedule.Get(parent).Name).Order(StringComparer.Ordinal));
             var partitions = string.Join("; ", sources.Keys.Select(key => RegistrySyncDiagnostics.DescribePartition(key.GroupPartition))

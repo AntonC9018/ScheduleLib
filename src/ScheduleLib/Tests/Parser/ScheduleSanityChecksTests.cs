@@ -16,7 +16,9 @@ public sealed class ScheduleSanityChecksTests
         var group = schedule.Group("IA2401").Id;
         var lesson = schedule.RegularLesson();
         lesson.Group(group);
-        lesson.SubGroup(new("IA2504"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.SubGroup subGroup = new("IA2504");
+        lessonBuilder.SubGroup(subGroup);
 
         var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
@@ -40,7 +42,9 @@ public sealed class ScheduleSanityChecksTests
         var group = schedule.Group("IA2401").Id;
         var lesson = schedule.RegularLesson();
         lesson.Group(group);
-        lesson.SubGroup(new("unconfigured"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.SubGroup subGroup = new("unconfigured");
+        lessonBuilder.SubGroup(subGroup);
 
         var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
@@ -58,7 +62,9 @@ public sealed class ScheduleSanityChecksTests
         }
         for (int number = 1; number <= 10; number++)
         {
-            schedule.RegularLesson().SubGroup(SubGroup.CreateNumeric(number));
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> regularLesson = schedule.RegularLesson();
+            global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(number);
+            regularLesson.SubGroup(subGroup);
         }
 
         schedule.SanityChecks();
@@ -68,7 +74,9 @@ public sealed class ScheduleSanityChecksTests
     public void RejectsSpecializationLabelsAsSubGroups()
     {
         var schedule = new ScheduleBuilder();
-        schedule.RegularLesson().SubGroup(new(Specialization.CV.Value!));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> regularLesson = schedule.RegularLesson();
+        global::ScheduleLib.SubGroup subGroup = new(Specialization.CV.Value!);
+        regularLesson.SubGroup(subGroup);
 
         var error = Assert.Throws<UnknownSubGroupException>(() => schedule.SanityChecks());
 
@@ -80,7 +88,9 @@ public sealed class ScheduleSanityChecksTests
     {
         var schedule = new ScheduleBuilder();
         var lesson = schedule.RegularLesson();
-        lesson.SubGroup(new("CV"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.SubGroup subGroup = new("CV");
+        lessonBuilder.SubGroup(subGroup);
 
         schedule.ClassifySubGroups();
 
@@ -166,7 +176,9 @@ public sealed class ScheduleSanityChecksTests
         var numeric = schedule.RegularLesson();
         numeric.Course(courseId);
         numeric.Group(groupId);
-        numeric.SubGroup(SubGroup.CreateNumeric(1));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = numeric;
+        global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(1);
+        lessonBuilder.SubGroup(subGroup);
         var language = schedule.RegularLesson();
         language.Course(courseId);
         language.Group(groupId);
@@ -175,7 +187,9 @@ public sealed class ScheduleSanityChecksTests
         schedule.NormalizeLanguageProficiency();
 
         Assert.Equal(expected: SpecialSubGroups.NonBeginners, actual: counterpart.Model.Base.Group.SubGroup);
-        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: numeric.Model.Base.Group.SubGroup);
+        global::ScheduleLib.SubGroup expected2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.SubGroup actual2 = numeric.Model.Base.Group.SubGroup;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: SpecialSubGroups.Ro, actual: language.Model.Base.Group.SubGroup);
     }
 
@@ -224,9 +238,17 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "I"));
+        global::ScheduleLib.Parsing.Lesson.ParsedLesson CalculateParsedLesson()
+        {
+            global::ScheduleLib.Parsing.Lesson.ParsedLesson parsedLesson = Parsed(groupName: "Spring", subGroup: "I");
+            return parsedLesson;
+        }
 
-        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: lesson.Model.Base.Group.SubGroup);
+        context.SetCommonProps(lesson, CalculateParsedLesson());
+
+        global::ScheduleLib.SubGroup expected2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.SubGroup actual2 = lesson.Model.Base.Group.SubGroup;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: Specialization.Spring, actual: lesson.Model.Base.Group.Specialization);
     }
 
@@ -238,7 +260,16 @@ public sealed class ScheduleSanityChecksTests
         lesson.Group(group);
 
         var error = Assert.Throws<ConflictingSubGroupException>(
-            () => context.SetCommonProps(lesson, Parsed(groupName: "ro", subGroup: "ru")));
+            () =>
+            {
+                global::ScheduleLib.Parsing.Lesson.ParsedLesson CalculateParsedLesson()
+                {
+                    global::ScheduleLib.Parsing.Lesson.ParsedLesson parsedLesson = Parsed(groupName: "ro", subGroup: "ru");
+                    return parsedLesson;
+                }
+
+                return context.SetCommonProps(lesson, CalculateParsedLesson());
+            });
 
         Assert.Contains(expectedSubstring: "two subgroups", actualString: error.Message);
     }
@@ -251,7 +282,16 @@ public sealed class ScheduleSanityChecksTests
         lesson.Group(group);
 
         var error = Assert.Throws<ConflictingSpecializationException>(
-            () => context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "CV")));
+            () =>
+            {
+                global::ScheduleLib.Parsing.Lesson.ParsedLesson CalculateParsedLesson()
+                {
+                    global::ScheduleLib.Parsing.Lesson.ParsedLesson parsedLesson = Parsed(groupName: "Spring", subGroup: "CV");
+                    return parsedLesson;
+                }
+
+                return context.SetCommonProps(lesson, CalculateParsedLesson());
+            });
 
         Assert.Contains(expectedSubstring: "two specializations", actualString: error.Message);
     }
@@ -268,7 +308,9 @@ public sealed class ScheduleSanityChecksTests
 
         context.SetCommonProps(lesson, Parsed(groupName: future.Value!, subGroup: "I"));
 
-        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: lesson.Model.Base.Group.SubGroup);
+        global::ScheduleLib.SubGroup expected2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.SubGroup actual2 = lesson.Model.Base.Group.SubGroup;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: future, actual: lesson.Model.Base.Group.Specialization);
     }
 
@@ -285,9 +327,17 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        context.SetCommonProps(lesson, Parsed(groupName: "futu", subGroup: "I"));
+        global::ScheduleLib.Parsing.Lesson.ParsedLesson CalculateParsedLesson()
+        {
+            global::ScheduleLib.Parsing.Lesson.ParsedLesson parsedLesson = Parsed(groupName: "futu", subGroup: "I");
+            return parsedLesson;
+        }
 
-        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: lesson.Model.Base.Group.SubGroup);
+        context.SetCommonProps(lesson, CalculateParsedLesson());
+
+        global::ScheduleLib.SubGroup expected2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.SubGroup actual2 = lesson.Model.Base.Group.SubGroup;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: future, actual: lesson.Model.Base.Group.Specialization);
     }
 
@@ -296,7 +346,9 @@ public sealed class ScheduleSanityChecksTests
     {
         var schedule = new ScheduleBuilder();
         schedule.ValidationSettings.SubGroup = SubGroupValidationMode.None;
-        schedule.RegularLesson().SubGroup(new("unconfigured"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> regularLesson = schedule.RegularLesson();
+        global::ScheduleLib.SubGroup subGroup = new("unconfigured");
+        regularLesson.SubGroup(subGroup);
 
         schedule.SanityChecks();
     }

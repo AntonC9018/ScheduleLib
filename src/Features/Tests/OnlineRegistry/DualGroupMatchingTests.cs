@@ -22,10 +22,15 @@ public sealed class DualGroupMatchingTests
         var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
         var builder = new ScheduleBuilder { GroupParseContext = context };
         foreach (var group in new[] { "IA2601", "DU-IA2601", "IAFR2601", "DU-IAFR2601", "DU-DJ2601" })
+        {
             builder.Group(group);
+        }
+
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         var match = GroupsNavigator.FindGroupMatch(builder.Build(), parsed);
-        Assert.Equal(expected: new GroupId(expectedGroup), actual: Assert.Single(match));
+        global::ScheduleLib.GroupId expected2 = new GroupId(expectedGroup);
+        global::ScheduleLib.GroupId actual2 = Assert.Single(match);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -38,6 +43,10 @@ public sealed class DualGroupMatchingTests
         builder.Group("IA2501");
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2501DU");
         Assert.Equal(expected: 2, actual: parsed.Grade.Value);
-        Assert.Equal(expected: new GroupId(0), actual: Assert.Single(GroupsNavigator.FindGroupMatch(builder.Build(), parsed)));
+        global::ScheduleLib.GroupId expected2 = new GroupId(0);
+        global::ScheduleLib.LessonGroups collection = GroupsNavigator.FindGroupMatch(builder.Build(), parsed);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.GroupId> collection2 = collection;
+        global::ScheduleLib.GroupId actual2 = Assert.Single(collection2);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 }

@@ -21,9 +21,22 @@ public sealed class FmiScheduleUpdater(
         Func<ScheduleUpdate, CancellationToken, Task> importAndExport, CancellationToken cancellationToken = default)
     {
         stateFile = Path.GetFullPath(stateFile);
-        Directory.CreateDirectory(Path.GetDirectoryName(stateFile)!);
+        string CalculatePath()
+        {
+            string path = Path.GetDirectoryName(stateFile)!;
+            return path;
+        }
+
+        Directory.CreateDirectory(CalculatePath());
         // FileShare.None rejects concurrent writers before either starts downloading.
-        await using var gate = new FileStream((string) $"{stateFile}.lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        string CalculatePath2()
+        {
+            string text = $"{stateFile}.lock";
+            string path2 = (string) text;
+            return path2;
+        }
+
+        await using var gate = new FileStream(CalculatePath2(), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         ScheduleUpdateState? previous = null;
         if (File.Exists(stateFile))
         {
@@ -57,11 +70,16 @@ public sealed class FmiScheduleUpdater(
             }
 
             if (CheckCondition())
+            {
                 throw new FormatException("Invalid or unsupported schedule hash checkpoint.");
+            }
         }
         var downloads = await download(cancellationToken);
         if (!downloads.Select(d => d.Link.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
+        {
             throw new FormatException("An update requires all three bachelor schedules.");
+        }
+
         global::FmiScheduleImport.ScheduleSourceHash ProjectValue(global::FmiWebsiteInterop.FmiScheduleDownload d)
         {
             int operationValue = d.Link.Year;
@@ -79,12 +97,19 @@ public sealed class FmiScheduleUpdater(
         var changed = sources.Where(s => !string.Equals(
             previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256, s.Sha256, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)
+        {
             return new(false, previous.PeriodStart);
+        }
+
         var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         // A single period represents this complete snapshot. Each changed source
         // contributes its upload date, or today when the site supplies none.
         var period = changed.Select(s => s.UploadDate ?? today).DefaultIfEmpty(today).Max();
-        if (period > today) throw new FormatException($"Schedule upload date {period:yyyy-MM-dd} is in the future.");
+        if (period > today)
+        {
+            throw new FormatException($"Schedule upload date {period:yyyy-MM-dd} is in the future.");
+        }
+
         await importAndExport(new(period, downloads, sources), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var temporary = (string) $"{stateFile}.{Guid.NewGuid().ToString("N")}.tmp";
@@ -97,7 +122,13 @@ public sealed class FmiScheduleUpdater(
             }
             File.Move(sourceFileName: temporary, destFileName: stateFile, overwrite: true);
         }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
         return new(true, period);
     }
 }

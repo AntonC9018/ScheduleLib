@@ -188,7 +188,7 @@ public sealed class OpenHierarchyOptions
 
 public static class ConfigJsonSerializationConfiguration
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void ConfigureOpenHierarchy(Action<OpenHierarchyOptions> configure)
         {

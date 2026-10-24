@@ -130,7 +130,9 @@ public readonly struct SizedItemArray<T>
         var diff = position - totalSize;
         if (diff > 0)
         {
-            _items.Add(new(fillerValue!, diff));
+            global::System.Collections.Generic.List<global::ScheduleLib.Helper.SizedItem<T>> list = _items;
+            global::ScheduleLib.Helper.SizedItem<T> item = new(fillerValue!, diff);
+            list.Add(item);
         }
 
         _items.Add(it);
@@ -411,7 +413,7 @@ public readonly record struct SizedItemWithPosition<T>(SizedItem<T> SizedItem, i
 
 public static class SizedItemArrayExtensions
 {
-    extension<T> (SizedItemArray<T> items)
+    extension<T>(SizedItemArray<T> items)
     {
         public int? FindPositionOfFirstOtherThan(T otherValue)
         {

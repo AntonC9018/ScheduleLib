@@ -64,7 +64,7 @@ public static class ObservableValueHelper
             return new(initialValue, d);
         }
     }
-    extension (IDispatcher d)
+    extension(IDispatcher d)
     {
         public ObservableValueSource<T> CreateObservableValue<T>(T initialValue)
         {

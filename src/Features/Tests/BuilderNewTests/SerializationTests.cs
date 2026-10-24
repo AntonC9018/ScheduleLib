@@ -14,14 +14,22 @@ public sealed class SerializationTests
     {
         var services = new ServiceCollection();
         services.AddLayeredData();
-        services.Replace(new ServiceDescriptor(
-                serviceType: typeof(TreeBuilder), implementationType: typeof(TreeBuilder), ServiceLifetime.Transient));
+        global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = services;
+        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = new ServiceDescriptor(
+                serviceType: typeof(TreeBuilder), implementationType: typeof(TreeBuilder), ServiceLifetime.Transient);
+        serviceCollection.Replace(descriptor);
         CredentialsSource.Register(services);
         RegistryConfig.Register(services);
         TeacherLayerConfig.Register(services);
         var sp = services.BuildServiceProvider();
         var t1 = sp.GetRequiredService<TreeBuilder>();
-        var t1a = t1.Defaults.AddLayer(new("A"));
+        global::Anton.LayeredData.Layer CalculateLayer()
+        {
+            global::Anton.LayeredData.Layer layer3 = new("A");
+            return layer3;
+        }
+
+        var t1a = t1.Defaults.AddLayer(CalculateLayer());
 
         var t2 = sp.GetRequiredService<TreeBuilder>();
 
@@ -53,7 +61,10 @@ public sealed class SerializationTests
             var config = Assert.Single(configs);
             Assert.Equal(expected: RegistryConfig.Key.Value, actual: config.Key);
             Assert.Equal(expected: value, actual: (RegistryConfig?) config.Value, Comparer.Instance);
-            return t2.AddNode(new("A"));
+            global::Anton.LayeredData.TreeBuilder treeBuilder = t2;
+            global::Anton.LayeredData.Layer layer2 = new("A");
+            global::Anton.LayeredData.NodeBuilder addNode = treeBuilder.AddNode(layer2);
+            return addNode;
         });
 
         var child0 = t2.BaseNode.ChildNodes[0];

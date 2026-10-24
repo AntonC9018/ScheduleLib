@@ -15,7 +15,9 @@ public sealed class GoogleDriveConfig : INodeData<GoogleDriveConfig>
         services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
         services.AddMapper<GoogleDriveConfigMapper>();
         services.AddConfigProvider(GoogleDriveConfig.Key);
-        services.AddConfigProvider(new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value));
+        global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = services;
+        global::Anton.LayeredData.NodeDataKey<global::ScheduleLib.Application.Config.BuiltGoogleDriveConfig> key = new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value);
+        iServiceCollection.AddConfigProvider(key);
     }
 }
 

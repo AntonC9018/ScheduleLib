@@ -40,10 +40,17 @@ public static class StorageProbe
         }
         if (args[0] == "interrupt")
         {
+            string CalculatePath()
+            {
+                string text = $"{args[1]}.lock";
+                string path = (string) text;
+                return path;
+            }
+
             await using var lease = await LocalFileLock.Acquire(
-                (string) $"{args[1]}.lock",
-                CancellationToken.None,
-                wait: true);
+                            CalculatePath(),
+                            CancellationToken.None,
+                            wait: true);
             await AtomicFile.Publish(
                 args[1],
                 async (stream, token) =>
@@ -63,7 +70,11 @@ public static class StorageProbe
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -77,7 +88,11 @@ public static class StorageProbe
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);

@@ -60,11 +60,18 @@ public static class LessonTopicCsvSerializer
             config = c(config);
         }
         using var csvReader = new CsvReader(input, config);
-        if (!await csvReader.ReadAsync()) yield break;
+        if (!await csvReader.ReadAsync())
+        {
+            yield break;
+        }
+
         csvReader.ReadHeader();
         var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
         var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
-        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults, hasLessonType: hasLessonType, hasLanguage: hasLanguage));
+        global::CsvHelper.CsvContext csvContext = csvReader.Context;
+        global::ScheduleLib.Application.Core.Topics.LessonTopicMap map = new LessonTopicMap(defaults, hasLessonType: hasLessonType, hasLanguage: hasLanguage);
+        global::CsvHelper.Configuration.ClassMap map2 = map;
+        csvContext.RegisterClassMap(map2);
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
         await foreach (var x in ret)
         {
@@ -76,7 +83,10 @@ public static class LessonTopicCsvSerializer
             {
                 x.Language = defaults.Language ?? Language.None;
             }
-            if (!RegistryAssessmentTopics.IsAssessment(x.Name)) yield return x;
+            if (!RegistryAssessmentTopics.IsAssessment(x.Name))
+            {
+                yield return x;
+            }
         }
     }
 }
@@ -351,7 +361,12 @@ public struct CourseKeyBuilder
         return true;
     }
 
-    public CourseKey Build() => new(new(_builder.ToImmutable()));
+    public CourseKey Build()
+    {
+        global::ScheduleLib.Helper.SequenceComparableImmutableArray<global::ScheduleLib.CourseId> ids = new(_builder.ToImmutable());
+        global::ScheduleLib.Application.Core.Topics.CourseKey courseKey = new(ids);
+        return courseKey;
+    }
 }
 
 public readonly record struct CourseKey(
@@ -485,7 +500,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
             }
 
             var fallbackProviders = GetProvidersNoFallback(it);
-            fallbacks.Add(new(it, fallbackProviders.Providers));
+            global::ScheduleLib.Application.Core.Topics.FallbackProvidersDS fallbackProvidersDS = fallbacks;
+            global::ScheduleLib.Application.Core.Topics.BuiltFallbackProvider item = new(it, fallbackProviders.Providers);
+            fallbackProvidersDS.Add(item);
         }
 
         var b = ImmutableArray.CreateBuilder<ClassifiedTopicsProviders>(_items.Count - fallbacks.Count);
@@ -507,7 +524,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 it.AllowMissingLessonTypes);
 
             var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
-            b.Add(new(builtKey, p.Providers));
+            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Application.Core.Topics.ClassifiedTopicsProviders>.Builder builder = b;
+            global::ScheduleLib.Application.Core.Topics.ClassifiedTopicsProviders item2 = new(builtKey, p.Providers);
+            builder.Add(item2);
         }
         return new LessonTopicsFromDatabase(b.MoveToImmutable());
     }
@@ -532,13 +551,17 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
         foreach (var document in m.Manifest.Documents)
         {
-            if (document.Semester is { } semester && semester != Semester) continue;
+            if (document.Semester is { } semester && semester != Semester)
+            {
+                continue;
+            }
+
             var documentFilePath = Path.Combine(m.DirectoryPath ?? "", document.Path);
             await using var documentStream = File.OpenRead(documentFilePath);
 
-            #pragma warning disable CA2000 // Dispose objects before losing scope
+#pragma warning disable CA2000 // Dispose objects before losing scope
             var textReader = new StreamReader(documentStream);
-            #pragma warning restore CA2000 // Dispose objects before losing scope
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
             var defaults = new LessonTopicDefaults
             {
@@ -615,9 +638,21 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             await foreach (var lessonTopic in e)
             {
-                if (document.Series is { } series && lessonTopic.Series != series) continue;
-                if (document.LessonType is { } lessonType && lessonTopic.LessonType != lessonType) continue;
-                if (document.Language is { } language && lessonTopic.Language != language) continue;
+                if (document.Series is { } series && lessonTopic.Series != series)
+                {
+                    continue;
+                }
+
+                if (document.LessonType is { } lessonType && lessonTopic.LessonType != lessonType)
+                {
+                    continue;
+                }
+
+                if (document.Language is { } language && lessonTopic.Language != language)
+                {
+                    continue;
+                }
+
                 if (lessonTopic.Language == Language.None)
                 {
                     // Must have been checked earlier at CSV binding.
@@ -625,7 +660,11 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 }
 
                 var builder = bylang.FindBuilder(this, lessonTopic.Language);
-                if (builder is null) continue;
+                if (builder is null)
+                {
+                    continue;
+                }
+
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
 
@@ -641,7 +680,11 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         {
             var group = filteredSchedule.Source.Get(groupId);
             if (document.Groups is { } names
-                && !names.Contains(group.Name, StringComparer.OrdinalIgnoreCase)) continue;
+                && !names.Contains(group.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (!IsFacultyMatch())
             {
                 continue;
@@ -926,10 +969,13 @@ file struct TopicsByLanguage()
         bool allowMissingLessonTypes)
     {
         _partition = partition;
-        var topics = self.Topics(new(
-            courseKey: _courseKey,
-            groupsKey: new(groups, partition),
-            language: language));
+        global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder allLessonTopicsDatabaseBuilder = self;
+        global::ScheduleLib.Application.Core.Topics.CourseKey courseKey2 = _courseKey;
+        global::ScheduleLib.Application.Core.Topics.TopicsGroupsKey groupsKey2 = new(groups, partition);
+        global::ScheduleLib.Language language2 = language;
+        global::ScheduleLib.Application.Core.Topics.TopicsBuilderKey key = new(
+            courseKey: courseKey2, groupsKey: groupsKey2, language: language2);
+        var topics = allLessonTopicsDatabaseBuilder.Topics(key);
         topics.AllowMissingLessonTypes |= allowMissingLessonTypes;
         _arr[language] = topics;
     }
@@ -954,12 +1000,19 @@ file struct TopicsByLanguage()
                 }
             }
 
-            foreach (var group in _set) allGroups.Add(group);
+            foreach (var group in _set)
+            {
+                allGroups.Add(group);
+            }
 
-            _fallback = self.Topics(new(
-                courseKey: _courseKey,
-                groupsKey: new(allGroups, _partition),
-                language: Language.None));
+            global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder allLessonTopicsDatabaseBuilder = self;
+            global::ScheduleLib.Application.Core.Topics.CourseKey courseKey2 = _courseKey;
+            global::ScheduleLib.Application.Core.Topics.TopicsGroupsKey groupsKey2 = new(allGroups, _partition);
+            global::ScheduleLib.Language language2 = Language.None;
+            global::ScheduleLib.Application.Core.Topics.TopicsBuilderKey key = new(
+                courseKey: courseKey2, groupsKey: groupsKey2, language: language2);
+            global::ScheduleLib.Application.Core.Topics.LessonTopicsBuilder topics = allLessonTopicsDatabaseBuilder.Topics(key);
+            _fallback = topics;
         }
         return _fallback;
     }

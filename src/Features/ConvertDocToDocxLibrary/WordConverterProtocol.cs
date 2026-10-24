@@ -7,10 +7,24 @@ internal static class WordConverterProtocol
 {
     internal const int MissingWordExitCode = 8;
     internal const string MissingWordMessage = "Legacy .doc conversion requires a registered Microsoft Word installation on Windows. Install or repair Word, or supply DOCX sources instead.";
-    internal static bool IsMissingWordActivation(int hResult) => hResult == unchecked((int)0x80040154);
+    internal static bool IsMissingWordActivation(int hResult) => hResult == unchecked((int) 0x80040154);
 
-    internal static string OwnershipMessage(string nonce, int pid, long startTicks) =>
-        string.Join("|", "WORD1", nonce, pid.ToString(CultureInfo.InvariantCulture), startTicks.ToString(CultureInfo.InvariantCulture));
+    internal static string OwnershipMessage(string nonce, int pid, long startTicks)
+    {
+        string CalculateToString()
+        {
+            string toString = pid.ToString(CultureInfo.InvariantCulture);
+            return toString;
+        }
+
+        string CalculateToString2()
+        {
+            string toString2 = startTicks.ToString(CultureInfo.InvariantCulture);
+            return toString2;
+        }
+
+        return string.Join("|", "WORD1", nonce, CalculateToString(), CalculateToString2());
+    }
 
     internal static bool TryReadOwnership(string? message, string nonce, out int pid, out long startTicks)
     {

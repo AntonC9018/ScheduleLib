@@ -42,7 +42,10 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
 
     public void Run(RunParams p)
     {
-        foreach (var section in Sections(p.Groups)) Write(section, p.StringBuilder);
+        foreach (var section in Sections(p.Groups))
+        {
+            Write(section, p.StringBuilder);
+        }
     }
 
     /// <summary>The sections <see cref="Run"/> prints: both parities, both occupancy modes,
@@ -54,14 +57,16 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
     internal FreeHoursSection[] Sections(string[] groups, IEnumerable<WeeklyLessonAccessor> lessons, CancellationToken cancellationToken)
     {
         var sections = new List<FreeHoursSection>();
-        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        foreach (var parity in new[] { Parity.EvenWeek, Parity.OddWeek })
         {
             foreach (var group in groups)
             {
                 foreach (var mode in new[] { FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy, FreeHoursOccupancyMode.EveryLessonOccupies })
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    sections.Add(Section(group, parity, mode, lessons, cancellationToken));
+                    global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.FreeHoursSection> list = sections;
+                    global::ScheduleLib.Application.Core.FreeHoursSection item = Section(group, parity, mode, lessons, cancellationToken);
+                    list.Add(item);
                 }
             }
         }
@@ -119,7 +124,11 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
             .Select(x =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                return new FreeHoursDay(x.Key, MergeConsecutive(x.Select(y => y.Time)).ToArray());
+                global::System.DayOfWeek day = x.Key;
+                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Application.Core.FreeHoursInterval> mergeConsecutive = MergeConsecutive(x.Select(y => y.Time));
+                global::ScheduleLib.Application.Core.FreeHoursInterval[] intervals = mergeConsecutive.ToArray();
+                global::ScheduleLib.Application.Core.FreeHoursDay freeHoursDay = new FreeHoursDay(day, intervals);
+                return freeHoursDay;
             })
             .ToArray();
         cancellationToken.ThrowIfCancellationRequested();
@@ -160,7 +169,9 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         sb.AppendLine($"paritatea: {parityDisplay.Get(section.Parity)}, grupa: {section.Group}, optional?: {isOptional}");
         foreach (var day in section.Days)
         {
-            sb.Append(_dayNameProvider.GetDayName(day.Day));
+            global::System.Text.StringBuilder stringBuilder = sb;
+            string value = _dayNameProvider.GetDayName(day.Day);
+            stringBuilder.Append(value);
             sb.Append(":");
 
             var listBuilder = new ListStringBuilder(sb, ",");
@@ -171,7 +182,9 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 var startTime = _timeConfig.GetTimeSlotInterval(start).Start;
                 var endTime = _timeConfig.GetTimeSlotInterval(end).End;
                 var duration = endTime - startTime;
-                var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
+                global::ScheduleLib.Generation.TimeSlotDisplayHandler timeSlotDisplayHandler = displayHandler;
+                global::TimeSlotInterval i = new TimeSlotInterval(startTime, duration);
+                var intervalStr = timeSlotDisplayHandler.IntervalDisplay(i);
                 listBuilder.Append(intervalStr);
             }
             sb.AppendLine();

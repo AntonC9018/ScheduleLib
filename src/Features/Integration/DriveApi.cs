@@ -50,7 +50,8 @@ public static class GoogleApiHelper1
                 const double maxJitter = 1.0;
                 const double backoffScalar = 1.0;
                 double jitter = random.NextDouble() * maxJitter;
-                var backoff = Math.Pow(x: 2, y: attempt) * backoffScalar;
+                double pow = Math.Pow(x: 2, y: attempt);
+                var backoff = pow * backoffScalar;
                 var delay = TimeSpan.FromSeconds(jitter + backoff);
                 await Task.Delay(delay);
 
@@ -106,7 +107,13 @@ public static class DriveApiHelper
 
     public record struct BatchDeleteOperation(IEnumerable<Func<Task>> Tasks, int BatchCount);
 
-    private static int CeilDiv(int x, int y) => (x + y - 1) / y;
+    private static int CeilDiv(int x, int y)
+    {
+        int int32 = x + y;
+        int int322 = int32 - 1;
+        int int323 = (int322) / y;
+        return int323;
+    }
 
     public static BatchDeleteOperation ExecuteBatchDeleteAsync(
         DriveService driveService,
@@ -137,7 +144,8 @@ public static class DriveApiHelper
                             _ = message;
                             if (error != null)
                             {
-                                Console.WriteLine($"Delete failed for file {chunk[index]}");
+                                string value = $"Delete failed for file {chunk[index]}";
+                                Console.WriteLine(value);
                             }
                         });
 
@@ -175,7 +183,9 @@ public static class DriveApiHelper
                 var response = await request.ExecuteAsync(cancellationToken);
                 foreach (var f in response.Files)
                 {
-                    var basic = new BasicDriveFile(f.Name, new(f.Id));
+                    string name = f.Name;
+                    global::ScheduleLib.Application.Core.FileId id = new(f.Id);
+                    var basic = new BasicDriveFile(name, id);
                     result.Add(basic);
                 }
 

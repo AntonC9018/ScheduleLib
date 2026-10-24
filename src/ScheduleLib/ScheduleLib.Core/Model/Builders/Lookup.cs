@@ -219,7 +219,10 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    coursesMap.Add(name, new(i));
+                    global::System.Collections.Generic.Dictionary<string, global::ScheduleLib.CourseId> dictionary = coursesMap;
+                    string key = name;
+                    global::ScheduleLib.CourseId value = new(i);
+                    dictionary.Add(key, value);
                 }
             }
         }
@@ -241,7 +244,10 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                groupsMap.Add(group.Name, new(i));
+                global::System.Collections.Generic.Dictionary<string, global::ScheduleLib.GroupId> dictionary2 = groupsMap;
+                string key2 = group.Name;
+                global::ScheduleLib.GroupId value2 = new(i);
+                dictionary2.Add(key2, value2);
             }
         }
         {
@@ -261,7 +267,9 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(new(LessonRegularity.Weekly, i));
+                global::System.Collections.Generic.List<global::ScheduleLib.AnyLessonId> list2 = list;
+                global::ScheduleLib.AnyLessonId item = new(LessonRegularity.Weekly, i);
+                list2.Add(item);
             }
             for (int i = 0; i < s.OneTimeLessons.Count; i++)
             {
@@ -271,7 +279,9 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(new(LessonRegularity.OneTime, i));
+                global::System.Collections.Generic.List<global::ScheduleLib.AnyLessonId> list3 = list;
+                global::ScheduleLib.AnyLessonId item2 = new(LessonRegularity.OneTime, i);
+                list3.Add(item2);
             }
         }
     }

@@ -17,17 +17,23 @@ public sealed class RegistryConfigViewModel(
 {
     public static void Register(IServiceCollection services)
     {
+        global::Desktop.NodeData.Common.PropertySetId CalculateKey()
+        {
+            global::Desktop.NodeData.Common.PropertySetId key = new("Online Registry");
+            return key;
+        }
+
         services.AddPropertySetDisplayFactory(
-            new("Online Registry"),
-            b => b.SourceFrom(RegistryConfig.Key)
-            // b => b.SourceFrom(RegistryConfig.Key, c =>
-            // {
-            //     c.IncludeAll();
-            //
-            //     var viewId = new ViewId(typeof(UserControl));
-            //     c.IncludeProperty(x => x.CommandProcessingConfig).UseView(viewId);
-            // })
-            );
+                    CalculateKey(),
+                    b => b.SourceFrom(RegistryConfig.Key)
+                    // b => b.SourceFrom(RegistryConfig.Key, c =>
+                    // {
+                    //     c.IncludeAll();
+                    //
+                    //     var viewId = new ViewId(typeof(UserControl));
+                    //     c.IncludeProperty(x => x.CommandProcessingConfig).UseView(viewId);
+                    // })
+                    );
 
         services.ConfigurePropertySet(RegistryConfig.Key, b =>
         {

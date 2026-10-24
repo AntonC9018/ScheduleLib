@@ -43,9 +43,17 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
     {
         return WithHistoryContext(
             settings,
-            client => new RegistryHistoryReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance")).Discover(
-                year,
-                token),
+            client =>
+            {
+                global::System.Net.Http.HttpClient client2 = client;
+                global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryReader registryHistoryReader = new RegistryHistoryReader(client2, index);
+                string? year2 = year;
+                global::System.Threading.CancellationToken token2 = token;
+                global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryYearSummary>> discover = registryHistoryReader.Discover(
+                year2, token2);
+                return discover;
+            },
             token);
     }
 
@@ -55,11 +63,12 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         CancellationToken token)
     {
         // A single destination-wide lease covers login and all reads, regardless of account/profile.
+        string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string path2 = "ScheduleLib";
+        string path3 = "locks";
+        string path4 = "registry-history-global.lock";
         var lockPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ScheduleLib",
-            "locks",
-            "registry-history-global.lock");
+            path1, path2, path3, path4);
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
         using var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
@@ -179,7 +188,10 @@ public partial class RegistryCommands
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
 
-            var path = Path.Combine(directory, (string) $"summary-{context.RunId}.json");
+            string path1 = directory;
+            string text = $"summary-{context.RunId}.json";
+            string path2 = (string) text;
+            var path = Path.Combine(path1, path2);
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
             {
@@ -206,16 +218,20 @@ public partial class RegistryCommands
                 var year = summary[yearIndex];
                 var courseCount = year.Courses.Count;
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
-                output.WriteHuman($"Year {year.Year}: {courseCount} courses, {groupCount} groups.");
-                output.EmitItem(
-                    id: yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    status: "completed",
-                    new
-                    {
-                        year = year.Year,
-                        courses = courseCount,
-                        groups = groupCount,
-                    });
+                global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                string line = $"Year {year.Year}: {courseCount} courses, {groupCount} groups.";
+                cliOutput.WriteHuman(line);
+                global::ScheduleLib.Cli.CliOutput cliOutput2 = output;
+                string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string status2 = "completed";
+                object item = new
+                {
+                    year = year.Year,
+                    courses = courseCount,
+                    groups = groupCount,
+                };
+                cliOutput2.EmitItem(
+                id: id2, status: status2, item);
             }
             return Finish(
                 exit: CliExit.Success,
@@ -237,9 +253,11 @@ public partial class RegistryCommands
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            return Finish(
-                CliExit.IoFailure,
-                $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.");
+            int exit2 = CliExit.IoFailure;
+            string error2 = $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            int finish = Finish(
+            exit2, error2);
+            return finish;
         }
         catch (LocalOperationBusyException)
         {
@@ -287,8 +305,10 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        output.WriteHuman(
-                            $"Saved local summary: {years} years, {courses} courses, {groups} groups.");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        string line = $"Saved local summary: {years} years, {courses} courses, {groups} groups.";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

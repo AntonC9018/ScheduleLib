@@ -183,7 +183,9 @@ public static partial class CliSettings
     private static void ValidateEditKey(string key, ResolvedSettings settings)
     {
         var parts = key.Split('.');
-        var type = NodeDataKey.Registry.TryGetTypeFromKey(new(parts[0]));
+        global::Anton.LayeredData.NodeDataKeyRegistry nodeDataKeyRegistry = NodeDataKey.Registry;
+        global::Anton.LayeredData.NodeDataKey key2 = new(parts[0]);
+        var type = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
         if (type is null || !SupportedBlocks.Contains(parts[0]) || parts.Any(string.IsNullOrEmpty))
         {
             throw new JsonException($"Unsupported setting key: {key}");
@@ -216,16 +218,24 @@ public static partial class CliSettings
         bool unset)
     {
         var parts = key.Split('.');
-        var path = profile is null
-            ? new[]
+        string[] value2;
+        if (profile is null)
+        {
+            value2 = new[]
             {
                 "defaults",
-            }.Concat(parts).ToArray()
-            : new[]
+            }.Concat(parts).ToArray();
+        }
+        else
+        {
+            value2 = new[]
             {
                 "profiles",
                 profile,
             }.Concat(parts).ToArray();
+        }
+
+        var path = value2;
         var current = envelope;
         var parents = new List<(JsonObject Parent, string Key)>();
         foreach (var part in path.SkipLast(1))

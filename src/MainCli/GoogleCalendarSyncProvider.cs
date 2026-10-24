@@ -40,7 +40,9 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             token);
         var initializer = helper.CreateServiceInitializer(credential);
         initializer.DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None;
-        return new GoogleCalendarSyncProvider(new CalendarService(initializer));
+        global::Google.Apis.Calendar.v3.CalendarService service = new CalendarService(initializer);
+        global::ScheduleLib.Cli.GoogleCalendarSyncProvider googleCalendarSyncProvider = new GoogleCalendarSyncProvider(service);
+        return googleCalendarSyncProvider;
     }
 
     public async Task<string> GetAccount(CancellationToken token) =>

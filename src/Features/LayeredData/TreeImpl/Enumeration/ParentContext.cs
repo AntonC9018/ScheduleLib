@@ -12,15 +12,15 @@ public sealed class ParentContext() : IDfsEnumerationContext
         switch (context.State)
         {
             case DfsVisitationState.BeforeChildren:
-            {
-                _stack.Push(context.Node);
-                break;
-            }
+                {
+                    _stack.Push(context.Node);
+                    break;
+                }
             case DfsVisitationState.AfterChildren:
-            {
-                _stack.Pop();
-                break;
-            }
+                {
+                    _stack.Pop();
+                    break;
+                }
         }
     }
 

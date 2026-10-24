@@ -110,12 +110,14 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        LessonsStart(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day));
+        global::System.DateOnly start = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day);
+        LessonsStart(start);
     }
 
     public void LessonsEndInclusive(int month, int day)
     {
-        LessonsEndInclusive(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day));
+        global::System.DateOnly end = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day);
+        LessonsEndInclusive(end);
     }
 }
 

@@ -40,7 +40,9 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         var initializer = helper.CreateServiceInitializer(credential);
         // Disable SDK exponential backoff too: lost create responses must not cause duplicate files.
         initializer.DefaultExponentialBackOffPolicy = Google.Apis.Http.ExponentialBackOffPolicy.None;
-        return new GoogleDriveSyncProvider(new DriveService(initializer));
+        global::Google.Apis.Drive.v3.DriveService service = new DriveService(initializer);
+        global::ScheduleLib.Cli.GoogleDriveSyncProvider googleDriveSyncProvider = new GoogleDriveSyncProvider(service);
+        return googleDriveSyncProvider;
     }
 
     public async Task<DriveAccount> GetAccount(CancellationToken token)
@@ -63,7 +65,10 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{Escape(name)}' and trashed=false";
+            global::Google.Apis.Drive.v3.FilesResource.ListRequest listRequest = request;
+            string escape = Escape(name);
+            string text = $"mimeType='application/vnd.google-apps.folder' and name='{escape}' and trashed=false";
+            listRequest.Q = text;
             request.Fields = "nextPageToken,files(id,name)";
             request.PageSize = 2;
             request.PageToken = page;
@@ -95,7 +100,10 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            request.Q = $"'{Escape(folderId)}' in parents and trashed=false";
+            global::Google.Apis.Drive.v3.FilesResource.ListRequest listRequest = request;
+            string escape = Escape(folderId);
+            string text = $"'{escape}' in parents and trashed=false";
+            listRequest.Q = text;
             request.Fields = "nextPageToken,files(id,name)";
             request.PageSize = 1000;
             request.PageToken = page;
@@ -157,7 +165,20 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         using var content = new StreamContent(input);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         multipart.Add(content);
-        var uri = (string) $"https://www.googleapis.com/upload/drive/v3/files{(fileId is null ? "" : (string) $"/{Uri.EscapeDataString(fileId)}")}?uploadType=multipart&fields=id";
+        string text;
+        if (fileId is null)
+        {
+            text = "";
+        }
+        else
+        {
+            string escapeDataString = Uri.EscapeDataString(fileId);
+            string text2 = $"/{escapeDataString}";
+            text = (string) text2;
+        }
+
+        string text3 = $"https://www.googleapis.com/upload/drive/v3/files{(text)}?uploadType=multipart&fields=id";
+        var uri = (string) text3;
         using var request = new HttpRequestMessage(method, uri) { Content = multipart };
         using var response = await _service.HttpClient.SendAsync(request, token);
         if (!response.IsSuccessStatusCode)

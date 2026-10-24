@@ -73,13 +73,19 @@ public sealed class CliJsonlTests
                 new() { Jsonl = true },
                 new() { Apply = true });
             // Wait for early output: start + 3 planned/not-attempted + first completed.
+            global::System.TimeSpan CalculateTimeout()
+            {
+                global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+                return timeout;
+            }
+
             var early = await WaitFor(
-                () => stdoutCapture.Snapshot(),
-                s => s.Contains("\"event\":\"start\"")
-                    && s.Contains("\"id\":\"0\"")
-                    && s.Contains("completed")
-                    && !s.Contains("\"event\":\"final\""),
-                TimeSpan.FromSeconds(5));
+                            () => stdoutCapture.Snapshot(),
+                            s => s.Contains("\"event\":\"start\"")
+                                && s.Contains("\"id\":\"0\"")
+                                && s.Contains("completed")
+                                && !s.Contains("\"event\":\"final\""),
+                            CalculateTimeout());
             Assert.Contains(expectedSubstring: "\"event\":\"start\"", actualString: early);
             Assert.Contains(expectedSubstring: "\"id\":\"0\"", actualString: early);
             Assert.DoesNotContain(expectedSubstring: "\"event\":\"final\"", actualString: early);
@@ -87,14 +93,30 @@ public sealed class CliJsonlTests
             Assert.Equal(expected: 0, actual: await run);
             var all = stdoutCapture.Snapshot();
             var lines = all.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            int int32 = lines.Length;
+            int int322 = 1 + 3;
+            int int323 = int322 + 1;
+            int int324 = int323 + 1;
+            bool condition2 = int32 >= int324;
+            string userMessage = $"Expected start + initial + updates + final, got {lines.Length}";
             Assert.True(
-                lines.Length >= 1 + 3 + 1 + 1,
-                $"Expected start + initial + updates + final, got {lines.Length}");
+                condition2, userMessage);
             var final = JsonDocument.Parse(lines[^1]).RootElement;
             Assert.Equal(expected: "final", actual: final.GetProperty("event").GetString());
             Assert.Equal(expected: "applied", actual: final.GetProperty("status").GetString());
             // Final must not repeat the full outcomes array.
-            Assert.False(final.TryGetProperty("outcomes", out _), "Final JSONL must not repeat emitted items.");
+            bool CalculateCondition()
+            {
+                bool condition = final.TryGetProperty("outcomes", out _);
+                if (condition)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            Assert.False(CalculateCondition(), "Final JSONL must not repeat emitted items.");
         }
         finally
         {
@@ -180,7 +202,13 @@ public sealed class CliJsonlTests
             var logger = provider.CreateLogger("synthetic");
             logger.LogInformation("Synthetic information {Value}", 42);
             logger.LogWarning("Synthetic warning");
-            logger.LogError(new InvalidOperationException("synthetic failure"), "Synthetic error");
+            global::System.InvalidOperationException CalculateException()
+            {
+                global::System.InvalidOperationException exception = new InvalidOperationException("synthetic failure");
+                return exception;
+            }
+
+            logger.LogError(CalculateException(), "Synthetic error");
             output.WriteWarning("Synthetic warning line");
             output.WriteError("Synthetic error line");
         }
@@ -224,7 +252,11 @@ public sealed class CliJsonlTests
                 },
                 AppConfiguration.ConfigureServices);
             settings.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -241,17 +273,29 @@ public sealed class CliJsonlTests
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
             var lesson = schedule.EnumerateWeeklyLessons().First();
+            global::System.Uri CalculateUri()
+            {
+                global::System.Uri uri2 = new("https://registry.test/group");
+                return uri2;
+            }
+
+            global::System.Uri CalculateEvaluationUri()
+            {
+                global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+                return evaluationUri2;
+            }
+
             var navigator = new FixtureNavigator(
-                lesson.Lesson.Course,
-                new GroupLink(
-                    new FoundGroups
-                    {
-                        IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
-                        Value = lesson.Lesson.Groups,
-                    },
-                    lesson.Lesson.GroupPartitionKey,
-                    uri: new("https://registry.test/group"),
-                    evaluationUri: new("https://registry.test/evaluation")));
+                                        lesson.Lesson.Course,
+                                        new GroupLink(
+                                            new FoundGroups
+                                            {
+                                                IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                                                Value = lesson.Lesson.Groups,
+                                            },
+                                            lesson.Lesson.GroupPartitionKey,
+                                            uri: CalculateUri(),
+                                            evaluationUri: CalculateEvaluationUri()));
             var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
             await handler.Plan(
                 new()
@@ -354,11 +398,28 @@ public sealed class CliJsonlTests
         var final = JsonDocument.Parse(lines[^1]).RootElement;
         Assert.Equal(expected: "cancelled", actual: final.GetProperty("status").GetString());
         Assert.Equal(expected: 130, actual: final.GetProperty("exitCode").GetInt32());
-        Assert.False(final.TryGetProperty("outcomes", out _));
+        bool CalculateCondition()
+        {
+            bool condition = final.TryGetProperty("outcomes", out _);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
+
+        global::System.IO.IOException CalculateInner()
+        {
+            global::System.IO.IOException inner = new IOException("synthetic lost response");
+            return inner;
+        }
 
         await using var failing = new FakeProvider
         {
-            ActionFailure = new RegistryActionExecutionException(true, new IOException("synthetic lost response")),
+            ActionFailure = new RegistryActionExecutionException(true, CalculateInner()),
         };
         var (failExit, failStdout, _) = await CaptureJsonl(() => new TestCommands(failing).Sync(
             new(),
@@ -366,8 +427,11 @@ public sealed class CliJsonlTests
             new() { Jsonl = true },
             new() { Apply = true }));
         Assert.Equal(expected: 6, actual: failExit);
-        var failFinal = JsonDocument.Parse(failStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)[^1])
-            .RootElement;
+        string[] split = failStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        global::System.Index index = ^1;
+        string json = split[index];
+        global::System.Text.Json.JsonDocument parse = JsonDocument.Parse(json);
+        var failFinal = parse.RootElement;
         Assert.Equal(expected: "partial", actual: failFinal.GetProperty("status").GetString());
     }
 
@@ -429,15 +493,27 @@ public sealed class CliJsonlTests
             {
                 for (var i = 0; i < 50; i++)
                 {
+                    string CalculateId()
+                    {
+                        string id2 = $"w{worker}-i{i}";
+                        return id2;
+                    }
+
                     output.EmitItem(
-                        id: $"w{worker}-i{i}",
-                        status: "completed",
-                        new
-                        {
-                            worker,
-                            i,
-                        });
-                    output.WriteWarning($"synthetic warning w{worker} i{i}");
+                                            id: CalculateId(),
+                                            status: "completed",
+                                            new
+                                            {
+                                                worker,
+                                                i,
+                                            });
+                    string CalculateMessage()
+                    {
+                        string message = $"synthetic warning w{worker} i{i}";
+                        return message;
+                    }
+
+                    output.WriteWarning(CalculateMessage());
                 }
             })).ToArray();
             await Task.WhenAll(writers);
@@ -456,7 +532,14 @@ public sealed class CliJsonlTests
         // Allocation, serialization, write and flush hold one lock per record,
         // so file order matches sequence order on each independent stream.
         var outLines = stdout.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal(expected: 1 + 400 + 1, actual: outLines.Length);
+        int CalculateExpected()
+        {
+            int int32 = 1 + 400;
+            int expected2 = int32 + 1;
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: outLines.Length);
         for (var i = 0; i < outLines.Length; i++)
         {
             using var doc = JsonDocument.Parse(outLines[i]);
@@ -499,7 +582,13 @@ public sealed class CliJsonlTests
                 logger.LogInformation("Synthetic information {Value}", 42);
             }
 
-            logger.LogError(new InvalidOperationException("synthetic failure"), "Synthetic error");
+            global::System.InvalidOperationException CalculateException()
+            {
+                global::System.InvalidOperationException exception = new InvalidOperationException("synthetic failure");
+                return exception;
+            }
+
+            logger.LogError(CalculateException(), "Synthetic error");
         }
         finally
         {
@@ -519,9 +608,18 @@ public sealed class CliJsonlTests
             "synthetic-scope",
             info.RootElement.GetProperty("scopes").EnumerateArray().Select(x => x.GetString()));
         Assert.Equal(expected: "synthetic", actual: info.RootElement.GetProperty("category").GetString());
+        bool condition;
+        if (info.RootElement.TryGetProperty("timestamp", out var timestamp))
+        {
+            condition = DateTimeOffset.TryParse(timestamp.GetString(), out _);
+        }
+        else
+        {
+            condition = false;
+        }
+
         Assert.True(
-            info.RootElement.TryGetProperty("timestamp", out var timestamp)
-            && DateTimeOffset.TryParse(timestamp.GetString(), out _));
+            condition);
         using var error = JsonDocument.Parse(lines[1]);
         Assert.Equal(expected: "Error", actual: error.RootElement.GetProperty("level").GetString());
         Assert.Contains(
@@ -537,12 +635,18 @@ public sealed class CliJsonlTests
         Console.SetError(stderr);
         try
         {
+            global::ScheduleLib.Cli.CliOutput CalculateOutput()
+            {
+                global::ScheduleLib.Cli.CliOutput output = new CliOutput(
+                                    command: "synthetic",
+                                    runId: "scope-run",
+                                    json: false,
+                                    jsonl: true);
+                return output;
+            }
+
             using var provider = new CliJsonlLoggerProvider(
-                new CliOutput(
-                    command: "synthetic",
-                    runId: "scope-run",
-                    json: false,
-                    jsonl: true));
+                            CalculateOutput());
             var logger = provider.CreateLogger("synthetic");
             using var parent = logger.BeginScope(new Dictionary<string, object?> { ["Parent"] = "shared" });
             var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -598,7 +702,10 @@ public sealed class CliJsonlTests
         }
         var lines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.True(lines.Length > 1);
-        Assert.Equal(expected: $"succeeded: {lines.Length - 1} profiles.", actual: lines[^1].TrimEnd());
+        int int32 = lines.Length - 1;
+        string expected2 = $"succeeded: {int32} profiles.";
+        string actual2 = lines[^1].TrimEnd();
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(lines, line => line.StartsWith("succeeded:", StringComparison.Ordinal));
     }
 
@@ -699,17 +806,32 @@ public sealed class CliJsonlTests
             actual: previewUpdates.Where((update) => update.Status == "planned").Select((update) => update.Id));
         Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status);
         var deleted = previewUpdates.Single((update) => update.Id == "deleted-0");
+        string CalculateJson()
+        {
+            string json = JsonSerializer.Serialize(deleted.Item, JsonOptions);
+            return json;
+        }
+
         Assert.Equal(
-            expected: "Old",
-            actual: JsonDocument.Parse(JsonSerializer.Serialize(deleted.Item, JsonOptions)).RootElement.GetProperty("summary")
-                .GetString());
+                    expected: "Old",
+                    actual: JsonDocument.Parse(CalculateJson()).RootElement.GetProperty("summary")
+                        .GetString());
         Assert.Equal(
             expected: ["Desired A", "Desired B"],
             actual: previewUpdates
                 .Where((update) => update.Id.StartsWith("desired-", StringComparison.Ordinal))
                 .OrderBy((update) => update.Id)
-                .Select((update) => JsonDocument.Parse(JsonSerializer.Serialize(update.Item, JsonOptions)).RootElement
-                    .GetProperty("summary").GetString()));
+                .Select((update) =>
+                {
+                    string CalculateJson()
+                    {
+                        string json = JsonSerializer.Serialize(update.Item, JsonOptions);
+                        return json;
+                    }
+
+                    return JsonDocument.Parse(CalculateJson()).RootElement
+                                        .GetProperty("summary").GetString();
+                }));
 
         var applyUpdates = new List<CalendarReport>();
         using var applyProvider = new CalendarFake();
@@ -779,9 +901,15 @@ public sealed class CliJsonlTests
     public async Task DrivePlanIdsAreStableAcrossPreviewApplyAndTransitions()
     {
         using var root = new TempRoot();
-        var artifacts = new[]
+        string CalculatePath()
         {
-            new DriveArtifact(Name: "a.pdf", Path: Path.Combine(root.Path, "a.pdf")),
+            string path = Path.Combine(root.Path, "a.pdf");
+            return path;
+        }
+
+        var artifacts = new[]
+                {
+            new DriveArtifact(Name: "a.pdf", Path: CalculatePath()),
         };
         var previewUpdates = new List<(string Id, string Status, object? Item, string Human)>();
         using var previewProvider = new DriveFake();
@@ -802,7 +930,13 @@ public sealed class CliJsonlTests
 
         var applyUpdates = new List<(string Id, string Status, object? Item, string Human)>();
         using var applyProvider = new DriveFake();
-        await using var created = File.Create(Path.Combine(root.Path, "a.pdf"));
+        string CalculatePath2()
+        {
+            string path2 = Path.Combine(root.Path, "a.pdf");
+            return path2;
+        }
+
+        await using var created = File.Create(CalculatePath2());
         await created.WriteAsync("fixture bytes"u8.ToArray());
         await created.FlushAsync();
         await created.DisposeAsync();
@@ -833,9 +967,15 @@ public sealed class CliJsonlTests
     {
         using var root = new TempRoot();
         using var provider = new DriveFake();
-        var artifacts = new[]
+        string CalculatePath()
         {
-            new DriveArtifact(Name: "a.pdf", Path: Path.Combine(root.Path, "a.pdf")),
+            string path = Path.Combine(root.Path, "a.pdf");
+            return path;
+        }
+
+        var artifacts = new[]
+                {
+            new DriveArtifact(Name: "a.pdf", Path: CalculatePath()),
         };
         var calls = 0;
         var failure = await Assert.ThrowsAsync<DriveStreamingException>(() => DriveSync.Run(
@@ -901,7 +1041,18 @@ public sealed class CliJsonlTests
         // Both executed actions keep their completed remote outcomes even
         // though the second one's rendering failed; nothing was retried.
         Assert.Equal(expected: 2, actual: data.GetProperty("counts").GetProperty("completed").GetInt32());
-        Assert.False(final.TryGetProperty("outcomes", out _));
+        bool CalculateCondition()
+        {
+            bool condition = final.TryGetProperty("outcomes", out _);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
     }
 
     [Fact]
@@ -946,7 +1097,14 @@ public sealed class CliJsonlTests
                     new() { Jsonl = true }));
             Assert.Equal(expected: 0, actual: historyExit);
             var historyLines = historyStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            Assert.Equal(expected: 1 + 1 + 1, actual: historyLines.Length);
+            int CalculateExpected()
+            {
+                int int32 = 1 + 1;
+                int expected2 = int32 + 1;
+                return expected2;
+            }
+
+            Assert.Equal(expected: CalculateExpected(), actual: historyLines.Length);
             var historyFinal = JsonDocument.Parse(historyLines[^1]).RootElement;
             Assert.Equal(expected: 1, actual: historyFinal.GetProperty("data").GetProperty("years").GetInt32());
             Assert.Equal(
@@ -1320,7 +1478,20 @@ public sealed class CliJsonlTests
                 stdout.GetStringBuilder().Clear();
                 stderr.GetStringBuilder().Clear();
                 Assert.Equal(expected: 2, actual: await run());
-                Assert.True(string.IsNullOrWhiteSpace(stdout.ToString()), $"stdout must stay empty for {name}.");
+                bool CalculateCondition()
+                {
+                    bool condition = string.IsNullOrWhiteSpace(stdout.ToString());
+                    if (condition)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                bool condition2 = CalculateCondition();
+                string userMessage = $"stdout must stay empty for {name}.";
+                Assert.True(condition2, userMessage);
                 Assert.Contains(expectedSubstring: "Only one of --json and --jsonl", actualString: stderr.ToString());
             }
         }
@@ -1333,17 +1504,29 @@ public sealed class CliJsonlTests
 
     private static string NewTempRoot()
     {
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var path = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(path);
         return path;
     }
 
     private static string NewHistoryDirectory()
     {
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         Directory.CreateDirectory(directory);
         return directory;
     }
@@ -1360,7 +1543,11 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -1374,7 +1561,11 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -1394,7 +1585,11 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -1444,35 +1639,59 @@ public sealed class CliJsonlTests
     {
         public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
         {
+            global::System.Uri CalculateUri()
+            {
+                global::System.Uri uri = new("https://private.test/groups/1");
+                return uri;
+            }
+
             var course = new RegistryHistoryCourse(
-                "canary-course",
-                1,
-                new("https://private.test/groups/1"));
+                            "canary-course",
+                            1,
+                            CalculateUri());
+            global::System.Uri CalculateUri2()
+            {
+                global::System.Uri uri2 = new("https://private.test/LessonsList/1");
+                return uri2;
+            }
+
+            global::System.DateTime CalculateDate()
+            {
+                global::System.DateTime date = new DateTime(
+                                            year: 2024,
+                                            month: 10,
+                                            day: 1);
+                return date;
+            }
+
             var group = new RegistryHistoryGroupTopics(
-                "canary-group",
-                new("https://private.test/LessonsList/1"),
-                [
-                    new(
-                        new DateTime(
-                            year: 2024,
-                            month: 10,
-                            day: 1),
+                                        "canary-group",
+                                        CalculateUri2(),
+                                        [
+                                            new(
+                        CalculateDate(),
                         LessonType.Curs,
                         "canary-historical-topic"),
-                ]);
+                                        ]);
             var historical = new RegistryHistoryCourseTopics(
                 "2024/25",
                 course,
                 [group]);
+            global::System.DateTime CalculateDate2()
+            {
+                global::System.DateTime date2 = new DateTime(
+                                            year: 2025,
+                                            month: 10,
+                                            day: 1);
+                return date2;
+            }
+
             var currentGroup = group with
             {
                 Lessons =
-                [
-                    new(
-                        new DateTime(
-                            year: 2025,
-                            month: 10,
-                            day: 1),
+                            [
+                                new(
+                        CalculateDate2(),
                         LessonType.Curs,
                         "canary-current-topic"),
                 ],
@@ -1514,7 +1733,14 @@ public sealed class CliJsonlTests
 
         public Task DeleteCalendar(string id, CancellationToken token)
         {
-            Writes.Add((string) $"delete {id}");
+            string CalculateItem()
+            {
+                string text = $"delete {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.CompletedTask;
         }
 
@@ -1529,7 +1755,14 @@ public sealed class CliJsonlTests
             Event desired,
             CancellationToken token)
         {
-            Writes.Add((string) $"event {id}");
+            string CalculateItem()
+            {
+                string text = $"event {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.FromResult((string) $"event-{(++_events).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
 
@@ -1542,18 +1775,41 @@ public sealed class CliJsonlTests
     {
         public List<string> Writes { get; } = [];
 
-        public Task<DriveAccount> GetAccount(CancellationToken token) =>
-            Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
+        public Task<DriveAccount> GetAccount(CancellationToken token)
+        {
+            global::ScheduleLib.Cli.DriveAccount CalculateResult()
+            {
+                global::ScheduleLib.Cli.DriveAccount result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        }
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
-            => Task.FromResult(new DriveDestination(Id: "actual-folder", Name: "Actual folder"));
+        {
+            global::ScheduleLib.Cli.DriveDestination CalculateResult()
+            {
+                global::ScheduleLib.Cli.DriveDestination result = new DriveDestination(Id: "actual-folder", Name: "Actual folder");
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        }
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
             => Task.FromResult<IReadOnlyList<DriveRemoteFile>>([new(Id: "old", Name: "obsolete.txt")]);
 
         public Task Delete(string id, CancellationToken token)
         {
-            Writes.Add((string) $"delete {id}");
+            string CalculateItem()
+            {
+                string text = $"delete {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.CompletedTask;
         }
 
@@ -1563,7 +1819,14 @@ public sealed class CliJsonlTests
             Stream input,
             CancellationToken token)
         {
-            Writes.Add((string) $"create {name}");
+            string CalculateItem()
+            {
+                string text = $"create {name}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.FromResult("created");
         }
 
@@ -1572,7 +1835,14 @@ public sealed class CliJsonlTests
             Stream input,
             CancellationToken token)
         {
-            Writes.Add((string) $"update {id}");
+            string CalculateItem()
+            {
+                string text = $"update {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.FromResult(id);
         }
 
@@ -1628,7 +1898,9 @@ public sealed class CliJsonlTests
 
         public override void WriteLine(string? value)
         {
-            if (_failOn.Contains(Interlocked.Increment(ref _lines)))
+            global::System.Collections.Generic.HashSet<int> hashSet = _failOn;
+            int item = Interlocked.Increment(ref _lines);
+            if (hashSet.Contains(item))
             {
                 throw new InvalidOperationException("synthetic console failure");
             }
@@ -1648,13 +1920,26 @@ public sealed class CliJsonlTests
             _previousConfig = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
             _previousData = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
             _previousDirectory = Environment.CurrentDirectory;
-            var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Path.Combine(root, "config"));
-            Directory.CreateDirectory(Path.Combine(root, "data"));
-            Directory.CreateDirectory(Path.Combine(root, "work"));
+            string CalculatePath2()
+            {
+                string path2 = Guid.NewGuid().ToString("N");
+                return path2;
+            }
+
+            var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
+            string path = Path.Combine(root, "config");
+            Directory.CreateDirectory(path);
+            string path3 = Path.Combine(root, "data");
+            Directory.CreateDirectory(path3);
+            string path4 = Path.Combine(root, "work");
+            Directory.CreateDirectory(path4);
             Root = root;
-            Environment.SetEnvironmentVariable(variable: "XDG_CONFIG_HOME", value: Path.Combine(root, "config"));
-            Environment.SetEnvironmentVariable(variable: "XDG_DATA_HOME", value: Path.Combine(root, "data"));
+            string variable2 = "XDG_CONFIG_HOME";
+            string value2 = Path.Combine(root, "config");
+            Environment.SetEnvironmentVariable(variable: variable2, value: value2);
+            string variable3 = "XDG_DATA_HOME";
+            string value3 = Path.Combine(root, "data");
+            Environment.SetEnvironmentVariable(variable: variable3, value: value3);
             Environment.CurrentDirectory = Path.Combine(root, "work");
         }
 
@@ -1833,7 +2118,15 @@ public sealed class CliJsonlTests
             IRegistrySession session,
             string quizId,
             CancellationToken token)
-            => Task.FromResult(new RegistryGradePlan([], []));
+        {
+            global::ScheduleLib.OnlineRegistry.RegistryGradePlan CalculateResult()
+            {
+                global::ScheduleLib.OnlineRegistry.RegistryGradePlan result = new RegistryGradePlan([], []);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        }
     }
 
     private sealed class SyncCapture : System.IO.TextWriter
@@ -1899,8 +2192,16 @@ public sealed class CliJsonlTests
 
     private sealed class FixtureNavigator(CourseId course, GroupLink group) : IRegistrySyncNavigator
     {
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
-            Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+        {
+            global::System.Uri CalculateUrl()
+            {
+                global::System.Uri url = new("https://registry.test/course");
+                return url;
+            }
+
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
+        }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>
             Task.FromResult<IEnumerable<GroupLink>>([group]);

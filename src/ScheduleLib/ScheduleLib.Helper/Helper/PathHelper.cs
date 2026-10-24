@@ -12,6 +12,6 @@ public static class PathHelper
         {
             return string.Concat(str0: file, str1: extension);
         }
-        return string.Concat(str0: file[.. indexOfDot], str1: extension);
+        return string.Concat(str0: file[..indexOfDot], str1: extension);
     }
 }

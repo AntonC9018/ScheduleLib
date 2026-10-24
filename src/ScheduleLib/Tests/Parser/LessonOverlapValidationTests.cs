@@ -32,9 +32,16 @@ public sealed class LessonOverlapValidationTests
         string? alternative = null)
     {
         var lesson = s.RegularLesson();
-        lesson.Course(s.Course(courseName));
-        lesson.Group(s.Group(groupName));
-        lesson.TimeSlot(new(timeSlot));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.CourseId course = s.Course(courseName);
+        lessonBuilder.Course(course);
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::ScheduleLib.Builders.GroupBuilder group = s.Group(groupName);
+        global::ScheduleLib.GroupId group2 = group;
+        lessonBuilder2.Group(group2);
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder3 = lesson;
+        global::TimeSlot timeSlot2 = new(timeSlot);
+        lessonBuilder3.TimeSlot(timeSlot2);
         lesson.DayOfWeek(day ?? DayOfWeek.Monday);
         if (parity is { } p)
         {
@@ -42,15 +49,21 @@ public sealed class LessonOverlapValidationTests
         }
         if (subGroup is { } sub)
         {
-            lesson.SubGroup(new(sub));
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder4 = lesson;
+            global::ScheduleLib.SubGroup subGroup2 = new(sub);
+            lessonBuilder4.SubGroup(subGroup2);
         }
         if (specialization is { } spec)
         {
-            lesson.Specialization(new(spec));
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder5 = lesson;
+            global::ScheduleLib.Specialization specialization2 = new(spec);
+            lessonBuilder5.Specialization(specialization2);
         }
         if (alternative is { } alt)
         {
-            lesson.Alternative(new(alt));
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder6 = lesson;
+            global::ScheduleLib.Alternative alternative2 = new(alt);
+            lessonBuilder6.Alternative(alternative2);
         }
     }
 
@@ -197,10 +210,19 @@ public sealed class LessonOverlapValidationTests
         var builder = CreateBuilder();
         AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X");
         var oneTime = builder.OneTimeLesson();
-        oneTime.Course(builder.Course("Y"));
-        oneTime.Group(builder.Group("IA2401"));
-        oneTime.TimeSlot(new(0));
-        oneTime.Date(new DateOnly(year: 2026, month: 9, day: 7));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.OneTimeLessonBuilderModel> lessonBuilder = oneTime;
+        global::ScheduleLib.CourseId course = builder.Course("Y");
+        lessonBuilder.Course(course);
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.OneTimeLessonBuilderModel> lessonBuilder2 = oneTime;
+        global::ScheduleLib.Builders.GroupBuilder group = builder.Group("IA2401");
+        global::ScheduleLib.GroupId group2 = group;
+        lessonBuilder2.Group(group2);
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.OneTimeLessonBuilderModel> lessonBuilder3 = oneTime;
+        global::TimeSlot timeSlot = new(0);
+        lessonBuilder3.TimeSlot(timeSlot);
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.OneTimeLessonBuilderModel> lessonBuilder4 = oneTime;
+        global::System.DateOnly date = new DateOnly(year: 2026, month: 9, day: 7);
+        lessonBuilder4.Date(date);
 
         builder.Build();
     }

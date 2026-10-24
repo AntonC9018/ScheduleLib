@@ -269,7 +269,12 @@ public struct ReverseSetBitIndicesEnumerator64 : IEnumerator<int>
             return false;
         }
 
-        _current = (sizeof(ulong) * 8) - BitOperations.LeadingZeroCount(_bits) - 1;
+        int int32 = sizeof(ulong) * 8;
+        int int322 = (int32);
+        int leadingZeroCount = BitOperations.LeadingZeroCount(_bits);
+        int int323 = int322 - leadingZeroCount;
+        int int324 = int323 - 1;
+        _current = int324;
         _bits &= ~(1UL << _current);
         return true;
     }
@@ -380,7 +385,16 @@ public readonly struct SlidingWindowLowToHighEnumerable64 : IEnumerable<SliceAnd
 
         object IEnumerator.Current => Current;
 
-        public SliceAndOffset64 Current => new(_offset, _e._source.Slice(offset: _offset, length: _e._length));
+        public SliceAndOffset64 Current
+        {
+            get
+            {
+                int offset2 = _offset;
+                global::BitArray64 slice = _e._source.Slice(offset: _offset, length: _e._length);
+                global::SliceAndOffset64 sliceAndOffset64 = new(offset2, slice);
+                return sliceAndOffset64;
+            }
+        }
 
         public void Dispose()
         {

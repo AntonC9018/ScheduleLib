@@ -9,7 +9,11 @@ public sealed class PermutationTests
     private static VerifySettings CreateSettings()
     {
         var s = new VerifySettings();
-        s.AddExtraSettings(json => json.DefaultValueHandling = DefaultValueHandling.Include);
+        s.AddExtraSettings(json =>
+        {
+            global::Argon.JsonSerializerSettings jsonSerializerSettings = json;
+            jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
+        });
         return s;
     }
 

@@ -9,10 +9,13 @@ public sealed class EventEnumeratorTests
     [Fact]
     public void SingleEvent_YieldsOnlyItsDate()
     {
-        var e = Event.CreateSingle(new(year: 2026, month: 9, day: 7));
+        global::System.DateOnly date = new(year: 2026, month: 9, day: 7);
+        var e = Event.CreateSingle(date);
 
         DateOnly[] expected = [new(year: 2026, month: 9, day: 7)];
-        Assert.Equal(expected: expected, actual: Dates(e));
+        global::System.DateOnly[] expected2 = expected;
+        global::System.DateOnly[] actual2 = Dates(e);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]

@@ -111,11 +111,31 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         }
         if (from == null)
         {
-            throw new ArgumentNullException(from == null ? nameof(from) : nameof(to));
+            string paramName;
+            if (from == null)
+            {
+                paramName = nameof(from);
+            }
+            else
+            {
+                paramName = nameof(to);
+            }
+
+            throw new ArgumentNullException(paramName);
         }
         if (to == null)
         {
-            throw new ArgumentNullException(from == null ? nameof(from) : nameof(to));
+            string paramName2;
+            if (from == null)
+            {
+                paramName2 = nameof(from);
+            }
+            else
+            {
+                paramName2 = nameof(to);
+            }
+
+            throw new ArgumentNullException(paramName2);
         }
 
         foreach (var property in _writableProperties)
@@ -127,7 +147,9 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             }
 
             var targetValue = property.GetValue(to);
-            var merger = _serviceProvider.GetService(typeof(IMerger<>).MakeGenericType(property.PropertyType));
+            global::System.IServiceProvider iServiceProvider = _serviceProvider;
+            global::System.Type serviceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
+            var merger = iServiceProvider.GetService(serviceType);
             if (merger != null)
             {
                 targetValue = CallMergerHelper.Merge(merger: merger, @from: sourceValue, @into: targetValue);
@@ -135,7 +157,9 @@ public sealed class ReflectionMerger<T> : IMerger<T>
                 continue;
             }
 
-            var copier = _serviceProvider.GetService(typeof(IBasicOperations<>).MakeGenericType(property.PropertyType));
+            global::System.IServiceProvider iServiceProvider2 = _serviceProvider;
+            global::System.Type serviceType2 = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
+            var copier = iServiceProvider2.GetService(serviceType2);
             if (copier != null)
             {
                 targetValue = CallCopyHelper.Copy(operations: copier, @from: sourceValue);

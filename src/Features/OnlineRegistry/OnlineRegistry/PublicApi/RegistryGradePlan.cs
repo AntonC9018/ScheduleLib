@@ -56,7 +56,10 @@ public static class RegistryGradeForm
         }
 
         if (CheckCondition())
+        {
             throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
+        }
+
         return form;
     }
 }

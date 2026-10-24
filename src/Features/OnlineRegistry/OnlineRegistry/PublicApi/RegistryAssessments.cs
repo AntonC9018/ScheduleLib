@@ -20,19 +20,32 @@ public static class RegistryAssessmentTopics
     public static bool IsAssessment([NotNullWhen(true)] string? topic)
     {
         if (string.IsNullOrWhiteSpace(topic))
+        {
             return false;
+        }
+
         var text = topic.Normalize(NormalizationForm.FormD);
         var word = new StringBuilder();
         foreach (var c in text)
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
                 continue;
+            }
+
             if (char.IsLetter(c))
-                word.Append(char.ToLowerInvariant(c));
+            {
+                global::System.Text.StringBuilder stringBuilder = word;
+                char value = char.ToLowerInvariant(c);
+                stringBuilder.Append(value);
+            }
             else
             {
                 if (IsAssessmentWord(word.ToString()))
+                {
                     return true;
+                }
+
                 word.Clear();
             }
         }
@@ -65,7 +78,10 @@ internal static class RegistryAssessments
         }
 
         if (conditionResult)
+        {
             return [];
+        }
+
         var groupName = schedule.Get(groups[0]).Name;
         return rules.Where(rule =>
         {
@@ -81,8 +97,26 @@ internal static class RegistryAssessments
                     return false;
                 }
 
-                if (!(partition == new GroupPartitionKey(new SubGroup(rule.SubGroup),
-                                new Specialization(rule.Specialization), new Alternative(rule.Alternative))))
+                global::ScheduleLib.SubGroup CalculateSubGroup()
+                {
+                    global::ScheduleLib.SubGroup subGroup = new SubGroup(rule.SubGroup);
+                    return subGroup;
+                }
+
+                global::ScheduleLib.Specialization CalculateSpecialization()
+                {
+                    global::ScheduleLib.Specialization specialization = new Specialization(rule.Specialization);
+                    return specialization;
+                }
+
+                global::ScheduleLib.Alternative CalculateAlternative()
+                {
+                    global::ScheduleLib.Alternative alternative = new Alternative(rule.Alternative);
+                    return alternative;
+                }
+
+                if (!(partition == new GroupPartitionKey(CalculateSubGroup(),
+                                                                                CalculateSpecialization(), CalculateAlternative())))
                 {
                     return false;
                 }
@@ -103,20 +137,32 @@ internal static class RegistryAssessments
         global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.RemoteLessonInstance assessment)
         {
             if (assessment.LessonType != LessonType.Unspecified || !RegistryAssessmentTopics.IsAssessment(assessment.Topic))
+            {
                 return assessment;
+            }
+
             var types = local.Where(lesson => lesson.DateTime == assessment.DateTime)
                 .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
             if (types.Length == 0)
+            {
                 types = local.Where(lesson => lesson.DateTime.Date == assessment.DateTime.Date)
-                    .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
+                .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
+            }
+
             if (types.Length == 0)
             {
                 if (rules.Count != 0)
+                {
                     throw new InvalidOperationException("An assessment outside the timetable with no lesson type cannot be assigned a configured date.");
+                }
+
                 return assessment;
             }
             if (types.Length != 1)
+            {
                 throw new InvalidOperationException("An assessment without a lesson type requires an unambiguous scheduled lesson type.");
+            }
+
             return assessment with { LessonType = types[0] };
         }
         remote = remote.Select(ProjectValue).ToArray();
@@ -126,9 +172,15 @@ internal static class RegistryAssessments
         foreach (var rule in rules)
         {
             if (rule.LessonType == LessonType.Unspecified || !configuredTypes.Add(rule.LessonType))
+            {
                 throw new InvalidOperationException("Assessment rules require one explicit lesson type per scope.");
+            }
+
             if (rule.Dates.Count != rule.Dates.Distinct().Count())
+            {
                 throw new InvalidOperationException("Assessment dates must be distinct within a scope.");
+            }
+
             var existing = remote.Where(x => x.LessonType == rule.LessonType && RegistryAssessmentTopics.IsAssessment(x.Topic))
                 .OrderBy(x => x.DateTime).ToArray();
             var dates = rule.Dates.Order().ToArray();
@@ -137,23 +189,62 @@ internal static class RegistryAssessments
                 var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].RegistryLessonType == rule.LessonType
                     && DateOnly.FromDateTime(local[index].DateTime) == dates[i]).ToArray();
                 if (candidates.Length != 1)
+                {
                     throw new InvalidOperationException("An assessment date must identify exactly one scheduled lesson of its type.");
-                reserved.Add(candidates[0], i < existing.Length ? existing[i].Topic! : "Atestare " + (i + 1));
+                }
+
+                global::System.Collections.Generic.Dictionary<int, string> dictionary = reserved;
+                int key = candidates[0];
+                string value;
+                if (i < existing.Length)
+                {
+                    value = existing[i].Topic!;
+                }
+                else
+                {
+                    string text = "Atestare ";
+                    int int32 = i + 1;
+                    value = text + (int32);
+                }
+
+                dictionary.Add(key, value);
             }
             // Unconfigured additional assessments retain their original dates.
             foreach (var extra in existing.Skip(dates.Length))
-                if (!ReserveExisting(extra)) protectedRemote.Add(Array.IndexOf(remote, extra));
+            {
+                if (!ReserveExisting(extra))
+                {
+                    global::System.Collections.Generic.HashSet<int> hashSet = protectedRemote;
+                    int item = Array.IndexOf(remote, extra);
+                    hashSet.Add(item);
+                }
+            }
             // Moving an assessment outside the known timetable could leave an orphaned entry.
             foreach (var moved in existing.Take(dates.Length))
+            {
                 if (!local.Any(x => x.DateTime.Date == moved.DateTime.Date && x.RegistryLessonType == moved.LessonType))
+                {
                     throw new InvalidOperationException("Moving an assessment requires its original lesson in the selected timetable.");
+                }
+            }
         }
         for (int i = 0; i < remote.Length; i++)
         {
             var assessment = remote[i];
-            if (!RegistryAssessmentTopics.IsAssessment(assessment.Topic)) continue;
-            if (configuredTypes.Contains(assessment.LessonType)) continue;
-            if (!ReserveExisting(assessment)) protectedRemote.Add(i);
+            if (!RegistryAssessmentTopics.IsAssessment(assessment.Topic))
+            {
+                continue;
+            }
+
+            if (configuredTypes.Contains(assessment.LessonType))
+            {
+                continue;
+            }
+
+            if (!ReserveExisting(assessment))
+            {
+                protectedRemote.Add(i);
+            }
         }
         var indexes = new Dictionary<(LessonType Type, LessonGroups Groups), int>();
         var registryIndexes = new Dictionary<LessonType, int>();
@@ -165,7 +256,10 @@ internal static class RegistryAssessments
         for (int i = 0; i < local.Length; i++)
         {
             var lesson = local[i];
-            if (reserved.TryGetValue(i, out var topic)) local[i] = lesson with { Topic = topic };
+            if (reserved.TryGetValue(i, out var topic))
+            {
+                local[i] = lesson with { Topic = topic };
+            }
             else
             {
                 var topicGroups = getTopicGroups is null ? new LessonGroups() : getTopicGroups(lesson).Ordered();
@@ -174,13 +268,22 @@ internal static class RegistryAssessments
                 var registryIndex = registryIndexes.GetValueOrDefault(lesson.RegistryLessonType);
                 var regularTopic = getTopic(lesson, index);
                 if (registryIndex == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
+                {
                     useRegistryTopics.Add(lesson.RegistryLessonType);
+                }
+
                 if (useRegistryTopics.Contains(lesson.RegistryLessonType))
+                {
                     regularTopic = registryTopics.GetValueOrDefault(lesson.RegistryLessonType)?.ElementAtOrDefault(registryIndex) ?? "";
+                }
+
                 if (regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType)
                     && remote.Any(existing => existing.DateTime.Date == lesson.DateTime.Date
                         && existing.LessonType == lesson.RegistryLessonType && RegistryAssessmentTopics.IsAssessment(existing.Topic)))
+                {
                     throw new InvalidOperationException("Moving an assessment requires a regular topic for the freed occurrence.");
+                }
+
                 local[i] = lesson with { Topic = regularTopic };
                 indexes[topicKey] = index + 1;
                 registryIndexes[lesson.RegistryLessonType] = registryIndex + 1;
@@ -192,10 +295,20 @@ internal static class RegistryAssessments
         {
             var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime == assessment.DateTime) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
             if (candidates.Length == 0)
+            {
                 candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime.Date == assessment.DateTime.Date) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
-            if (candidates.Length == 0) return false;
+            }
+
+            if (candidates.Length == 0)
+            {
+                return false;
+            }
+
             if (candidates.Length != 1 || reserved.ContainsKey(candidates[0]))
+            {
                 throw new InvalidOperationException("Multiple assessments identify the same scheduled lesson.");
+            }
+
             reserved.Add(candidates[0], assessment.Topic!);
             return true;
         }

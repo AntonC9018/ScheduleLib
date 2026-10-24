@@ -41,9 +41,15 @@ public sealed class MatchingContextTests
         lists.AddExisting(DT6);
 
         var context = lists.CreateContext();
-        context.UseUpMatch(new(
-            AllIndex: 1,
-            ExistingIndex: 2));
+        global::ScheduleLib.OnlineRegistry.Impl.Mapping CalculateM()
+        {
+            global::ScheduleLib.OnlineRegistry.Impl.Mapping m = new(
+                        AllIndex: 1,
+                        ExistingIndex: 2);
+            return m;
+        }
+
+        context.UseUpMatch(CalculateM());
 
         var e = context.IteratePotentialMappings().GetEnumerator();
         e.CheckNext(all: DT1, existing: DT4);

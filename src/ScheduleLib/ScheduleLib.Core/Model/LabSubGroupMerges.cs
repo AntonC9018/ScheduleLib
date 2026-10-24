@@ -33,7 +33,10 @@ public static class LabSubGroupMerges
         }
 
         if (conditionResult)
+        {
             return source;
+        }
+
         var merges = ImmutableArray.CreateBuilder<DetectedLabSubGroupMerge>();
         var diagnostics = ImmutableArray.CreateBuilder<LabSubGroupMergeDiagnostic>();
         var suppressed = ImmutableHashSet.CreateBuilder<WeeklyLessonId>();
@@ -47,10 +50,13 @@ public static class LabSubGroupMerges
             var key = candidate.Key;
             var numeric = candidate.Where(x => IsNumeric(x.Lesson.SubGroup)).ToArray();
             if (numeric.Length == 0)
+            {
                 continue;
+            }
+
             var applicable = source.EnumerateWeeklyLessons()
-                .Where(x => x.Lesson.Groups.Contains(key.Group) && x.Date.Period.IsSpecified)
-                .Select(x => x.Date.Period).Distinct().OrderBy(x => source.Get(x).Start).ToArray();
+                            .Where(x => x.Lesson.Groups.Contains(key.Group) && x.Date.Period.IsSpecified)
+                            .Select(x => x.Date.Period).Distinct().OrderBy(x => source.Get(x).Start).ToArray();
             if (applicable.Length < 2)
             {
                 Diagnose("At least two dated schedule periods are required.");
@@ -112,7 +118,10 @@ public static class LabSubGroupMerges
                 var previousLabels = numeric.Where(x => x.Date.Period != latest)
                     .Select(x => x.Lesson.SubGroup).Distinct().ToArray();
                 if (previousLabels.Except(labels).Any())
+                {
                     Diagnose("More than one numeric subgroup survives.");
+                }
+
                 continue;
             }
             bool conditionResult2;
@@ -210,9 +219,14 @@ public static class LabSubGroupMerges
             }
             var retained = labels.Length == 1 ? currentNumeric : whole;
             var survivor = labels.Length == 1 ? labels[0] : SubGroup.All;
-            merges.Add(new(key.Course, key.Group, key.Specialization, key.Alternative, survivor, latest));
+            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.DetectedLabSubGroupMerge>.Builder builder = merges;
+            global::ScheduleLib.DetectedLabSubGroupMerge item2 = new(key.Course, key.Group, key.Specialization, key.Alternative, survivor, latest);
+            builder.Add(item2);
             foreach (var old in candidate.Where(x => IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All))
+            {
                 suppressed.Add(old.Id);
+            }
+
             foreach (var item in retained)
             {
                 suppressed.Remove(item.Id);
@@ -224,8 +238,10 @@ public static class LabSubGroupMerges
 
             void Diagnose(string reason)
             {
-                diagnostics.Add(new(
-                    key.Course, key.Group, key.Specialization, key.Alternative, reason));
+                global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.LabSubGroupMergeDiagnostic>.Builder builder = diagnostics;
+                global::ScheduleLib.LabSubGroupMergeDiagnostic item = new(
+                    key.Course, key.Group, key.Specialization, key.Alternative, reason);
+                builder.Add(item);
             }
         }
         return new()

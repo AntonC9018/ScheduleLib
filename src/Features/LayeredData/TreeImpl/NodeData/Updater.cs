@@ -75,7 +75,7 @@ public sealed class ResetValueUpdater<T> : IUpdater<T>
 
 public static class BuilderUpdaterExtensions
 {
-    extension<T> (NodeDataBuilder<T> builder)
+    extension<T>(NodeDataBuilder<T> builder)
         where T : class
     {
         // TODO:

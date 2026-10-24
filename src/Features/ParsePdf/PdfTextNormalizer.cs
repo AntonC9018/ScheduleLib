@@ -6,7 +6,11 @@ public static class PdfTextNormalizer
 {
     public static string Normalize(string text)
     {
-        text = string.Join('\n', text.Split('\n').Select(l => Regex.Replace(l, @"[ \t]+", " ").Trim()));
+        char separator = '\n';
+        string[] split = text.Split('\n');
+        global::System.Func<string, string> selector = l => Regex.Replace(l, @"[ \t]+", " ").Trim();
+        global::System.Collections.Generic.IEnumerable<string> values = split.Select(selector);
+        text = string.Join(separator, values);
         text = Regex.Replace(text, @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă", "Securitatea cibernetică");
         text = text.Replace("UI/U X", "UI/UX").Replace("145a/4/4", "145a/4")
             .Replace("Disciplină umanistică opțională: ", "").Replace("cal cul.", "calcul.")
@@ -21,21 +25,50 @@ public static class PdfTextNormalizer
     {
         var lines = cell.Text.Split('\n');
         var pattern = new Regex(@"^Gr\.(\d+)\s*\((.*?)\)\s*:\s*(.+)$");
-        if (!lines.Any(pattern.IsMatch)) { yield return cell; yield break; }
+        if (!lines.Any(pattern.IsMatch))
+        { yield return cell; yield break; }
         var course = lines[0];
-        if (!course.Contains("Antreprenoriat inovativ")) throw new FormatException($"Unknown cohort course: {cell.Text}");
+        if (!course.Contains("Antreprenoriat inovativ"))
+        {
+            throw new FormatException($"Unknown cohort course: {cell.Text}");
+        }
+
         var remaining = new List<string>();
         foreach (var line in lines.Skip(1))
         {
             var match = pattern.Match(line);
-            if (!match.Success) { remaining.Add(line); continue; }
+            if (!match.Success)
+            { remaining.Add(line); continue; }
             var names = Regex.Matches(input: match.Groups[2].Value, pattern: @"\[(.*?)\]").Select(m => m.Groups[1].Value).ToArray();
-            var groups = cell.Groups.Where(g => names.Contains(g.Split('(')[0])).ToArray();
-            if (groups.Length == 0 || groups.Length != names.Length) throw new FormatException($"Unknown cohort membership: {line}");
-            yield return cell with { Groups = groups, Text = (string) $"{course}\n{match.Groups[3].Value}",
-                Alternative = (string) $"Antreprenoriat Gr.{match.Groups[1].Value}", Cohort = match.Groups[2].Value };
+            var groups = cell.Groups.Where(g =>
+            {
+                string CalculateValue()
+                {
+                    string[] split = g.Split('(');
+                    int int32 = 0;
+                    string value = split[int32];
+                    return value;
+                }
+
+                return names.Contains(CalculateValue());
+            }).ToArray();
+            if (groups.Length == 0 || groups.Length != names.Length)
+            {
+                throw new FormatException($"Unknown cohort membership: {line}");
+            }
+
+            yield return cell with
+            {
+                Groups = groups,
+                Text = (string) $"{course}\n{match.Groups[3].Value}",
+                Alternative = (string) $"Antreprenoriat Gr.{match.Groups[1].Value}",
+                Cohort = match.Groups[2].Value
+            };
         }
-        if (remaining.Count > 0) yield return cell with { Text = string.Join('\n', remaining) };
+        if (remaining.Count > 0)
+        {
+            yield return cell with { Text = string.Join('\n', remaining) };
+        }
     }
 
     public static PdfScheduleCell RepairMissingParity(PdfScheduleCell cell)
@@ -85,11 +118,23 @@ public static class PdfTextNormalizer
             }
 
             if (CheckCondition())
+            {
                 continue;
+            }
+
             var lines = cell.Text.Split('\n');
             if (Regex.IsMatch(input: lines[0], pattern: @"\b(?:imp|par)\b"))
+            {
                 continue;
-            lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", $", {rule.Parity})") : (string) $"{lines[0]}{($" ({rule.Parity})")}";
+            }
+
+            string CalculateNewValue()
+            {
+                string newValue = $", {rule.Parity})";
+                return newValue;
+            }
+
+            lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", CalculateNewValue()) : (string) $"{lines[0]}{($" ({rule.Parity})")}";
             return cell with { Text = string.Join('\n', lines), Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md" };
         }
         return cell;

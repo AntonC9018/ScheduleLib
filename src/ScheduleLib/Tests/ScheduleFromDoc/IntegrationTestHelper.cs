@@ -31,9 +31,26 @@ public sealed class IntegrationTestHelper : IDisposable
         }
     }
 
-    public static string VerifyScheduleSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_model";
-    public static string ScheduleJsonSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_json";
-    public static string ScheduleSnapshotJsonPath(TestOption option) => $"schedule_{Enum.GetName(option)}.json";
+    public static string VerifyScheduleSnapshotName(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"{name}_verify_schedule_model";
+        return text;
+    }
+
+    public static string ScheduleJsonSnapshotName(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"{name}_verify_schedule_json";
+        return text;
+    }
+
+    public static string ScheduleSnapshotJsonPath(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"schedule_{name}.json";
+        return text;
+    }
 
     public readonly int Year;
     public readonly Semester Semester;

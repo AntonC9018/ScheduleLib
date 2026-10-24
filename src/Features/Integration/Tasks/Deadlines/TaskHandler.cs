@@ -151,11 +151,14 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     int maxCols = scheduledLessons.Length;
 
-                    var dataRange = worksheet.Range(
-                        firstCellRow: secondRowPos,
-                        firstCellColumn: firstColPos,
-                        lastCellRow: secondRowPos + maxRows - 1,
-                        lastCellColumn: maxCols);
+                    global::ClosedXML.Excel.IXLWorksheet iXLWorksheet = worksheet;
+                    int firstCellRow2 = secondRowPos;
+                    int firstCellColumn2 = firstColPos;
+                    int int32 = secondRowPos + maxRows;
+                    int lastCellRow2 = int32 - 1;
+                    int lastCellColumn2 = maxCols;
+                    var dataRange = iXLWorksheet.Range(
+                        firstCellRow: firstCellRow2, firstCellColumn: firstCellColumn2, lastCellRow: lastCellRow2, lastCellColumn: lastCellColumn2);
 
                     worksheet.ConditionalFormats.RemoveAll();
                     for (int i = 0; i <= deadlinesExcelConfig.LessonDelayLimit; i++)
@@ -190,18 +193,23 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     if (tasks != null)
                     {
-                        var labsRange = worksheet.Range(
-                            firstCellRow: secondRowPos,
-                            firstCellColumn: labCols,
-                            lastCellRow: secondRowPos + maxRows - 1,
-                            lastCellColumn: labCols);
+                        global::ClosedXML.Excel.IXLWorksheet iXLWorksheet2 = worksheet;
+                        int firstCellRow3 = secondRowPos;
+                        int firstCellColumn3 = labCols;
+                        int int322 = secondRowPos + maxRows;
+                        int lastCellRow3 = int322 - 1;
+                        int lastCellColumn3 = labCols;
+                        var labsRange = iXLWorksheet2.Range(
+                            firstCellRow: firstCellRow3, firstCellColumn: firstCellColumn3, lastCellRow: lastCellRow3, lastCellColumn: lastCellColumn3);
                         foreach (var x in labsRange.Cells().WithIndex())
                         {
                             var t = tasks[x.Index];
                             x.Item.SetValue(t.Name);
                             if (t.Url is { } url)
                             {
-                                x.Item.SetHyperlink(new XLHyperlink(url));
+                                global::ClosedXML.Excel.IXLCell iXLCell = x.Item;
+                                global::ClosedXML.Excel.XLHyperlink hyperlink = new XLHyperlink(url);
+                                iXLCell.SetHyperlink(hyperlink);
                             }
                         }
                     }

@@ -133,11 +133,11 @@ public partial class QueryCommands
             for (var i = 0; i < data.Sections.Length; i++)
             {
                 var section = data.Sections[i];
-                context.StreamItem(
-                    id: i.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    status: "completed",
-                    section,
-                    renderHuman: () =>
+                global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+                string id2 = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string status2 = "completed";
+                object item = section;
+                global::System.Action renderHuman2 = () =>
                     {
                         output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
                         foreach (var day in section.Days)
@@ -145,7 +145,9 @@ public partial class QueryCommands
                             output.WriteHuman(
                                 $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}");
                         }
-                    });
+                    };
+                cliCommandContext.StreamItem(
+                    id: id2, status: status2, item, renderHuman: renderHuman2);
             }
             return Finish(CliExit.Success, []);
         }

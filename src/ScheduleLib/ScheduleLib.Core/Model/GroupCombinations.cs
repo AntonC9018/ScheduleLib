@@ -346,9 +346,17 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
         // alternative dimensions.
         static T[] ActiveValues<T>(IReadOnlyCollection<T> observed, Func<T, string?> name)
         {
-            return observed.Count < 2
-                ? []
-                : observed.OrderBy(name, StringComparer.Ordinal).ToArray();
+            T[] value;
+            if (observed.Count < 2)
+            {
+                value = [];
+            }
+            else
+            {
+                value = observed.OrderBy(name, StringComparer.Ordinal).ToArray();
+            }
+
+            return value;
         }
 
         static List<GroupCombination> Expand<T>(
@@ -366,7 +374,9 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 foreach (var value in values)
                 {
-                    next.Add(apply(seed, value));
+                    global::System.Collections.Generic.List<global::ScheduleLib.GroupCombination> list = next;
+                    global::ScheduleLib.GroupCombination item = apply(seed, value);
+                    list.Add(item);
                 }
             }
             return next;

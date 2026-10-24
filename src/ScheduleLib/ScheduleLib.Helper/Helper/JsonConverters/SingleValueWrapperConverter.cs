@@ -20,7 +20,10 @@ public sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, _accessor.Extractor(value), options);
+        global::System.Text.Json.Utf8JsonWriter writer2 = writer;
+        TValue? value2 = _accessor.Extractor(value);
+        global::System.Text.Json.JsonSerializerOptions options2 = options;
+        JsonSerializer.Serialize(writer2, value2, options2);
     }
 }
 

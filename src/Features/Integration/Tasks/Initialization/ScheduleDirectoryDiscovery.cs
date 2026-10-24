@@ -145,31 +145,31 @@ public sealed class ScheduleDirectoryDescriptor
         switch (AttendanceMode)
         {
             case AttendanceMode.FrecventaRedusa:
-            {
-                yield return new ScheduleDirectoryExcelLoaderComponent
                 {
-                    Config = ExcelScheduleParser.FrConfig,
-                    DirectoryPath = Path,
-                };
-                break;
-            }
+                    yield return new ScheduleDirectoryExcelLoaderComponent
+                    {
+                        Config = ExcelScheduleParser.FrConfig,
+                        DirectoryPath = Path,
+                    };
+                    break;
+                }
             case AttendanceMode.Zi:
-            {
-                yield return new DirectoryScheduleLoaderComponent
                 {
-                    DirectoryPath = Path,
-                };
-                yield return new ScheduleDirectoryExcelLoaderComponent
-                {
-                    Config = ExcelScheduleParser.MasterConfig,
-                    DirectoryPath = Path,
-                };
-                break;
-            }
+                    yield return new DirectoryScheduleLoaderComponent
+                    {
+                        DirectoryPath = Path,
+                    };
+                    yield return new ScheduleDirectoryExcelLoaderComponent
+                    {
+                        Config = ExcelScheduleParser.MasterConfig,
+                        DirectoryPath = Path,
+                    };
+                    break;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 }

@@ -81,7 +81,9 @@ public sealed class LessonEquationTests
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
-                Assert.Equal(expected: new(1), actual: c.Existing.TimeSlot);
+                global::TimeSlot expected2 = new(1);
+                global::TimeSlot actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
             });
     }
 
@@ -118,7 +120,9 @@ public sealed class LessonEquationTests
 
         var c = Assert.Single(result);
         Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
-        Assert.Equal(expected: new(0), actual: c.Existing.TimeSlot);
+        global::TimeSlot expected2 = new(0);
+        global::TimeSlot actual2 = c.Existing.TimeSlot;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -212,19 +216,27 @@ public sealed class LessonEquationTests
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
-                Assert.Equal(expected: new(1), actual: c.Existing.TimeSlot);
+                global::TimeSlot expected2 = new(1);
+                global::TimeSlot actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
                 Assert.Equal(expected: LessonType.Curs, actual: c.Existing.Type);
             },
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
-                Assert.Equal(expected: new(3), actual: c.Existing.TimeSlot);
-                Assert.Equal(expected: new(2), actual: c.All.TimeSlot);
+                global::TimeSlot expected2 = new(3);
+                global::TimeSlot actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
+                global::TimeSlot expected3 = new(2);
+                global::TimeSlot actual3 = c.All.TimeSlot;
+                Assert.Equal(expected: expected3, actual: actual3);
             },
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
-                Assert.Equal(expected: new(4), actual: c.Existing.TimeSlot);
+                global::TimeSlot expected2 = new(4);
+                global::TimeSlot actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
             });
     }
 
@@ -255,9 +267,15 @@ public sealed class LessonEquationTests
                 Assert.Equal(expected: ts, actual: actualTs);
             }
 
-            Check(DayOfWeek.Sunday, new(0));
-            Check(DayOfWeek.Friday, new(1));
-            Check(DayOfWeek.Tuesday, new(2));
+            global::System.DayOfWeek day2 = DayOfWeek.Sunday;
+            global::TimeSlot ts2 = new(0);
+            Check(day2, ts2);
+            global::System.DayOfWeek day3 = DayOfWeek.Friday;
+            global::TimeSlot ts3 = new(1);
+            Check(day3, ts3);
+            global::System.DayOfWeek day4 = DayOfWeek.Tuesday;
+            global::TimeSlot ts4 = new(2);
+            Check(day4, ts4);
         }
     }
 }
@@ -308,7 +326,9 @@ file sealed class TestContext
     internal static (DayOfWeek, TimeSlot) ReverseEngineerDateTime(DateTime dateTime)
     {
         var day = dateTime.DayOfWeek;
-        var maybeTimeSlot = TimeConfig.Base.FindTimeSlotByStartTime(TimeOnly.FromDateTime(dateTime));
+        global::LessonTimeConfig lessonTimeConfig = TimeConfig.Base;
+        global::System.TimeOnly startTime = TimeOnly.FromDateTime(dateTime);
+        var maybeTimeSlot = lessonTimeConfig.FindTimeSlotByStartTime(startTime);
         Debug.Assert(maybeTimeSlot is not null);
         var timeSlot = maybeTimeSlot.Value;
         return (day, timeSlot);
@@ -427,7 +447,9 @@ file sealed class TestContext
         }
 
         var derivationAlgorithm = new SameDayDerivation();
-        var result = derivationAlgorithm.DeriveCommands(new(schedule, existing, scheduled));
+        global::ScheduleLib.OnlineRegistry.Impl.SameDayDerivation sameDayDerivation = derivationAlgorithm;
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p = new(schedule, existing, scheduled);
+        var result = sameDayDerivation.DeriveCommands(p);
         return result.Select(x =>
         {
             var ret = new ResolvedCommand(x.Type);

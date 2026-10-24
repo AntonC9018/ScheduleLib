@@ -43,10 +43,16 @@ public sealed class Test
 
         var teacherId = teachers.First();
         var teacherName = schedule.Get(teacherId).PersonName.AsNameFields();
+        global::ScheduleLib.Parsing.Name CalculateName()
+        {
+            global::ScheduleLib.Parsing.Name name = new Name(teacherName);
+            return name;
+        }
+
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
-            helper.ServiceProvider,
-            path,
-            new Name(teacherName));
+                    helper.ServiceProvider,
+                    path,
+                    CalculateName());
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
         var filteredSchedule = schedule.Filter(
@@ -67,13 +73,19 @@ public sealed class Test
         };
         while (true)
         {
-            var topic = result.Get(new(
-                courseId: courseId,
-                groups: groups,
-                groupPartition: GroupPartitionKey.All,
-                lessonType: LessonType.Lab,
-                dayIndex: dayIndex,
-                dateTime: default));
+            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
+            {
+                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key = new(
+                                courseId: courseId,
+                                groups: groups,
+                                groupPartition: GroupPartitionKey.All,
+                                lessonType: LessonType.Lab,
+                                dayIndex: dayIndex,
+                                dateTime: default);
+                return key;
+            }
+
+            var topic = result.Get(CalculateKey());
             if (topic == null)
             {
                 break;

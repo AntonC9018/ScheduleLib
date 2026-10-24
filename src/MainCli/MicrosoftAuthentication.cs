@@ -105,7 +105,7 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
 {
     private readonly string _root = stateDirectory
         ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            CalculatePath1(),
             "ScheduleLib",
             "auth",
             "microsoft");
@@ -124,23 +124,53 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         DateTimeOffset ExpiresOn,
         string[] Scopes);
 
-    private static string Key(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
-    private string ProfileDirectory(string profile) => Path.Combine(_root, Key(profile));
-    private string BindingFile(string profile) => Path.Combine(ProfileDirectory(profile), "account.json");
+    private static string Key(string value)
+    {
+        byte[] source = Encoding.UTF8.GetBytes(value);
+        byte[] inArray = SHA256.HashData(source);
+        string toHexStringLower = Convert.ToHexStringLower(inArray);
+        return toHexStringLower;
+    }
+
+    private string ProfileDirectory(string profile)
+    {
+        string path1 = _root;
+        string path2 = Key(profile);
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
+
+    private string BindingFile(string profile)
+    {
+        string path1 = ProfileDirectory(profile);
+        string path2 = "account.json";
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
 
     private string TokenFile(string profile, Binding binding)
     {
-        return Path.Combine(
-            ProfileDirectory(profile),
-            Key((string) $"{binding.TenantId}\n{binding.ClientId}"),
-            (string) $"{Key(binding.AccountId)}.json");
+        string path1 = ProfileDirectory(profile);
+        string text = $"{binding.TenantId}\n{binding.ClientId}";
+        string value = (string) text;
+        string path2 = Key(value);
+        string key = Key(binding.AccountId);
+        string text2 = $"{key}.json";
+        string path3 = (string) text2;
+        string combine = Path.Combine(
+        path1, path2, path3);
+        return combine;
     }
 
     private Task<LocalFileLock> Lease(string profile, CancellationToken token)
     {
-        return LocalFileLock.Acquire(
-            Path.Combine(ProfileDirectory(profile), ".operation.lock"),
-            token);
+        string path1 = ProfileDirectory(profile);
+        string path2 = ".operation.lock";
+        string path = Path.Combine(path1, path2);
+        global::System.Threading.CancellationToken token2 = token;
+        global::System.Threading.Tasks.Task<global::ScheduleLib.Application.Core.LocalFileLock> acquire = LocalFileLock.Acquire(
+        path, token2);
+        return acquire;
     }
 
     public async Task Login(
@@ -169,14 +199,20 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             TenantId: config.TenantId,
             ClientId: config.ClientId,
             AccountId: authorization.AccountId);
+        global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
+        {
+            global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
+                            1,
+                            authorization.Cache,
+                            authorization.ExpiresOn,
+                            authorization.Scopes);
+            return value;
+        }
+
         await Write(
-            TokenFile(profile, binding),
-            new CachedAuthorization(
-                1,
-                authorization.Cache,
-                authorization.ExpiresOn,
-                authorization.Scopes),
-            token);
+                    TokenFile(profile, binding),
+                    CalculateValue(),
+                    token);
         // Publish the binding last: cancelled login leaves the previous authorization selected.
         await Write(
             BindingFile(profile),
@@ -230,14 +266,20 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
+        global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
+        {
+            global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
+                            1,
+                            authorization.Cache,
+                            authorization.ExpiresOn,
+                            authorization.Scopes);
+            return value;
+        }
+
         await Write(
-            TokenFile(profile, binding),
-            new CachedAuthorization(
-                1,
-                authorization.Cache,
-                authorization.ExpiresOn,
-                authorization.Scopes),
-            token);
+                    TokenFile(profile, binding),
+                    CalculateValue(),
+                    token);
         return authorization.AccessToken;
     }
 
@@ -387,5 +429,11 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                     cancellationToken: ct);
             },
             token);
+    }
+
+    private static string CalculatePath1()
+    {
+        string path12 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return path12;
     }
 }

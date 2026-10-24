@@ -11,13 +11,29 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root");
 
         // Act
-        var states = CollectStates(new(root));
+        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
         Assert.Collection(states,
-            s1 => Assert.Equal(expected: S(DfsVisitationState.BeforeProcess), actual: s1),
-            s2 => Assert.Equal(expected: S(DfsVisitationState.Process), actual: s2),
-            s3 => Assert.Equal(expected: S(DfsVisitationState.AfterProcess), actual: s3));
+            s1 =>
+            {
+                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.BeforeProcess);
+                global::Anton.LayeredData.Tests.VisitRecord actual2 = s1;
+                Assert.Equal(expected: expected2, actual: actual2);
+            },
+            s2 =>
+            {
+                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.Process);
+                global::Anton.LayeredData.Tests.VisitRecord actual2 = s2;
+                Assert.Equal(expected: expected2, actual: actual2);
+            },
+            s3 =>
+            {
+                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.AfterProcess);
+                global::Anton.LayeredData.Tests.VisitRecord actual2 = s3;
+                Assert.Equal(expected: expected2, actual: actual2);
+            });
         VisitRecord S(DfsVisitationState state) => new("Root", state);
     }
 
@@ -30,7 +46,8 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root", child1, child2);
 
         // Act
-        var states = CollectStates(new(root));
+        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
         var expected = new VisitRecord[]
@@ -58,7 +75,8 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root", child1, child2);
 
         // Act
-        var states = CollectStates(new(root));
+        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
         var expected = new VisitRecord[]
@@ -167,7 +185,16 @@ public sealed class TreeIterationTests
     {
         // Arrange
         var children = Enumerable.Range(start: 1, count: 5)
-            .Select(i => CreateLayer($"Child{i}"))
+            .Select(i =>
+            {
+                string CalculateName()
+                {
+                    string name = $"Child{i}";
+                    return name;
+                }
+
+                return CreateLayer(CalculateName());
+            })
             .ToArray();
         var root = CreateLayer("Root", children);
         var enumerable = new DfsEnumerable(root);
@@ -183,7 +210,9 @@ public sealed class TreeIterationTests
         Assert.Equal(expected: 6, actual: visitedLayers.Count); // Root + 5 children
         for (int i = 1; i <= 5; i++)
         {
-            Assert.Contains($"Child{i}", visitedLayers);
+            string expected2 = $"Child{i}";
+            global::System.Collections.Generic.HashSet<string> set = visitedLayers;
+            Assert.Contains(expected2, set);
         }
     }
 
@@ -192,7 +221,13 @@ public sealed class TreeIterationTests
     {
         // Arrange
         var leaf = CreateLayer("Leaf");
-        using var enumerator = new DfsEnumerator(leaf, new([]));
+        global::Anton.LayeredData.TreeEnumeration.Infrastructure.EnumerationContextCollection CalculateEnumerationContextCollection()
+        {
+            global::Anton.LayeredData.TreeEnumeration.Infrastructure.EnumerationContextCollection enumerationContextCollection = new([]);
+            return enumerationContextCollection;
+        }
+
+        using var enumerator = new DfsEnumerator(leaf, CalculateEnumerationContextCollection());
 
         // Act
         enumerator.MoveNext(); // BeforeProcess
@@ -226,11 +261,11 @@ public sealed class TreeIterationTests
 
 file static class Helper
 {
-    extension (in DfsEnumerationContext val)
+    extension(in DfsEnumerationContext val)
     {
         public string LayerName => val.Node.Layer.Value;
     }
-    extension (DfsEnumerable c)
+    extension(DfsEnumerable c)
     {
         public DfsEnumerable AddRecorder(out RecorderContext recorder)
         {
@@ -249,7 +284,9 @@ file sealed class RecorderContext : IDfsEnumerationContext
 
     public void Update(DfsEnumerationContext v)
     {
-        Records.Add(new(v.LayerName, v.State));
+        global::System.Collections.Generic.List<global::Anton.LayeredData.Tests.VisitRecord> list = Records;
+        global::Anton.LayeredData.Tests.VisitRecord item = new(v.LayerName, v.State);
+        list.Add(item);
     }
 }
 

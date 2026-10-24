@@ -8,12 +8,20 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length != 4) return 1;
+        if (args.Length != 4)
+        {
+            return 1;
+        }
+
         var inputPath = args[0];
         var outputPath = args[1];
         var nonce = args[2];
         var cancellationPath = args[3];
-        if (File.Exists(cancellationPath)) return 130;
+        if (File.Exists(cancellationPath))
+        {
+            return 130;
+        }
+
         Application app;
         try
         {
@@ -35,7 +43,8 @@ internal static class Program
             NativeMethods.GetWindowThreadProcessId(new IntPtr(identityDoc.ActiveWindow.Hwnd), out var pid);
             using (var word = Process.GetProcessById((int) pid))
             {
-                Console.WriteLine(WordConverterProtocol.OwnershipMessage(nonce, word.Id, word.StartTime.ToUniversalTime().Ticks));
+                string value = WordConverterProtocol.OwnershipMessage(nonce, word.Id, word.StartTime.ToUniversalTime().Ticks);
+                Console.WriteLine(value);
                 Console.Out.Flush();
             }
             identityDoc.Close(WdSaveOptions.wdDoNotSaveChanges);
@@ -43,11 +52,17 @@ internal static class Program
             app.Visible = false;
             app.DisplayAlerts = WdAlertLevel.wdAlertsNone;
             if (File.Exists(cancellationPath))
+            {
                 return 130;
+            }
+
             object inputObj = inputPath;
             inputDoc = app.Documents.Open(ref inputObj);
             if (File.Exists(cancellationPath))
+            {
                 return 130;
+            }
+
             inputDoc.SaveAs2(FileName: outputPath, FileFormat: WdSaveFormat.wdFormatXMLDocument);
             if (File.Exists(cancellationPath))
             {
@@ -58,10 +73,12 @@ internal static class Program
         }
         finally
         {
-            try { inputDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
+            try
+            { inputDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
             finally
             {
-                try { identityDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
+                try
+                { identityDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
                 finally { app.Quit(WdSaveOptions.wdDoNotSaveChanges); }
             }
         }

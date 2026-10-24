@@ -114,13 +114,19 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
+            global::ScheduleLib.Cli.FreeRoomsResult CalculateData()
+            {
+                global::ScheduleLib.Cli.FreeRoomsResult data = new(
+                                    output?.DirectoryPath,
+                                    lessonCount,
+                                    worksheets.ToArray());
+                return data;
+            }
+
             return context.Finish(new CliCompletion<FreeRoomsResult>(
-                exit,
-                errors,
-                new(
-                    output?.DirectoryPath,
-                    lessonCount,
-                    worksheets.ToArray()))
+                            exit,
+                            errors,
+                            CalculateData())
             {
                 Summary = new
                 {
@@ -132,8 +138,13 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                    line);
+                },
             });
         }
     }

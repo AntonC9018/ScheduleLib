@@ -58,7 +58,9 @@ public sealed class ScrapingContextBuilder
     {
         if (value != null)
         {
-            _services.Replace(ServiceDescriptor.Singleton(value));
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
+            global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton(value);
+            serviceCollection.Replace(descriptor);
             return;
         }
         if (_services.Any(sd => sd.ServiceType == typeof(T)))
@@ -202,7 +204,9 @@ public sealed class ScrapingContextBuilder
 
     public void JsonOptions(JsonSerializerOptions jsonOptions)
     {
-        _services.Replace(ServiceDescriptor.Singleton(jsonOptions));
+        global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
+        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton(jsonOptions);
+        serviceCollection.Replace(descriptor);
     }
 
     // Add more stuff here.
@@ -211,7 +215,12 @@ public sealed class ScrapingContextBuilder
     public async Task<ScrapingContext> Build(CancellationToken cancellationToken, HttpClientContext? httpContext = null)
     {
         if (httpContext is not null)
-            _services.Replace(ServiceDescriptor.Singleton<HttpClientContext>(_ => httpContext));
+        {
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
+            global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton<HttpClientContext>(_ => httpContext);
+            serviceCollection.Replace(descriptor);
+        }
+
         var sp = _services.BuildServiceProvider();
         ScrapingContext? ret = null;
         try

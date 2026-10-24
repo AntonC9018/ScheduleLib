@@ -22,27 +22,36 @@ public sealed class AttendanceModeTests
     [Fact]
     public void DualZiKeepsTheExistingNumericIdentity()
     {
-        Assert.Equal(expected: 2, actual: (int)AttendanceMode.DualZi);
+        Assert.Equal(expected: 2, actual: (int) AttendanceMode.DualZi);
     }
 
     [Fact]
     public void AttendanceFlagsDoNotConfuseDualWithReducedAttendance()
     {
         var flags = AttendanceModeFlags.Zi | AttendanceModeFlags.DualFr;
-        Assert.True(flags.Has(AttendanceMode.Zi));
-        Assert.True(flags.Has(AttendanceMode.DualFr));
-        Assert.False(flags.Has(AttendanceMode.FrecventaRedusa));
-        Assert.False(flags.Has(AttendanceMode.DualZi));
-        Assert.False(flags.Has(AttendanceMode.Invalid));
-        Assert.False(flags.Has(AttendanceMode.Count));
-        Assert.True(AttendanceModeFlags.DualZi.Has(AttendanceMode.DualZi));
-        Assert.False(AttendanceModeFlags.FrecventaRedusa.Has(AttendanceMode.DualZi));
+        bool condition = flags.Has(AttendanceMode.Zi);
+        Assert.True(condition);
+        bool condition2 = flags.Has(AttendanceMode.DualFr);
+        Assert.True(condition2);
+        bool condition3 = flags.Has(AttendanceMode.FrecventaRedusa);
+        Assert.False(condition3);
+        bool condition4 = flags.Has(AttendanceMode.DualZi);
+        Assert.False(condition4);
+        bool condition5 = flags.Has(AttendanceMode.Invalid);
+        Assert.False(condition5);
+        bool condition6 = flags.Has(AttendanceMode.Count);
+        Assert.False(condition6);
+        bool condition7 = AttendanceModeFlags.DualZi.Has(AttendanceMode.DualZi);
+        Assert.True(condition7);
+        bool condition8 = AttendanceModeFlags.FrecventaRedusa.Has(AttendanceMode.DualZi);
+        Assert.False(condition8);
     }
 
     [Fact]
     public void ModeSpecificValuesHaveIndependentDualSlots()
     {
-        var values = new OneForEachAttendanceMode<int> {
+        var values = new OneForEachAttendanceMode<int>
+        {
             Zi = 10,
             FrecventaRedusa = 20
         };
@@ -71,13 +80,21 @@ public sealed class AttendanceModeTests
         };
         builder.EnableLookupModule();
         var lesson = builder.RegularLesson();
-        lesson.Course(builder.Course("Course"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.CourseId course = builder.Course("Course");
+        lessonBuilder.Course(course);
         lesson.Groups([builder.Group(first), builder.Group(second)]);
-        lesson.TimeSlot(new(0));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::TimeSlot timeSlot = new(0);
+        lessonBuilder2.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (valid)
+        {
             Assert.Single(builder.Build().WeeklyLessons);
+        }
         else
+        {
             Assert.Throws<InvalidLessonGroupsException>(() => builder.Build());
+        }
     }
 }

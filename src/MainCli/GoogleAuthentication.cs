@@ -141,12 +141,18 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
     public GoogleAuthentication(string? stateDirectory = null, IGoogleTokenProvider? tokens = null)
     {
+        string CalculatePath1()
+        {
+            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return path1;
+        }
+
         _root = stateDirectory
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ScheduleLib",
-                "auth",
-                "google");
+                    ?? Path.Combine(
+                        CalculatePath1(),
+                        "ScheduleLib",
+                        "auth",
+                        "google");
         _tokens = tokens ?? new GoogleTokenProvider();
     }
 
@@ -161,13 +167,32 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
     }
 
-    private static string Key(string identity) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
+    private static string Key(string identity)
+    {
+        byte[] source = Encoding.UTF8.GetBytes(identity);
+        byte[] inArray = SHA256.HashData(source);
+        string toHexString = Convert.ToHexString(inArray);
+        string toLowerInvariant = toHexString.ToLowerInvariant();
+        return toLowerInvariant;
+    }
 
-    private string TeacherDirectory(string teacher) => Path.Combine(_root, Key(teacher));
+    private string TeacherDirectory(string teacher)
+    {
+        string path1 = _root;
+        string path2 = Key(teacher);
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
 
-    private string AccountFile(string teacher, string clientId) =>
-        Path.Combine(TeacherDirectory(teacher), (string) $"{Key(clientId)}.json");
+    private string AccountFile(string teacher, string clientId)
+    {
+        string path1 = TeacherDirectory(teacher);
+        string key = Key(clientId);
+        string text = $"{key}.json";
+        string path2 = (string) text;
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
 
     public Task Login(
         BuiltGoogleCredentialsConfig config,
@@ -215,7 +240,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         await using var lease = await LocalFileLock.Acquire(
             Path.Combine(TeacherDirectory(teacher), ".operation.lock"),
             token);
-        var store = new AtomicTokenStore(AccountFile(teacher: teacher, clientId: secrets.ClientId));
+        string path = AccountFile(teacher: teacher, clientId: secrets.ClientId);
+        var store = new AtomicTokenStore(path);
         var previous = await store.GetAsync<TokenResponse>(teacher);
         var scopes = LoginScopes.Union(previous?.Scope?.Split(' ') ?? []).ToArray();
         TokenResponse result;
@@ -259,7 +285,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         await using var lease = await LocalFileLock.Acquire(
             Path.Combine(TeacherDirectory(teacher), ".operation.lock"),
             cancellationToken);
-        var store = new AtomicTokenStore(AccountFile(teacher: teacher, clientId: secrets.ClientId));
+        string path = AccountFile(teacher: teacher, clientId: secrets.ClientId);
+        var store = new AtomicTokenStore(path);
         var authorization = await store.GetAsync<TokenResponse>(teacher);
         if (authorization is null || !Usable(authorization, scopes))
         {
@@ -313,12 +340,18 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
             }
         }
-        return _tokens.CreateCredential(
-            secrets,
-            teacher,
-            scopes,
-            authorization,
-            new AtomicTokenStore(AccountFile(teacher: teacher, clientId: secrets.ClientId), requireExisting: true));
+        global::ScheduleLib.Cli.IGoogleTokenProvider iGoogleTokenProvider = _tokens;
+        global::Google.Apis.Auth.OAuth2.ClientSecrets secrets2 = secrets;
+        string teacher2 = teacher;
+        string[] scopes2 = scopes;
+        global::Google.Apis.Auth.OAuth2.Responses.TokenResponse authorization2 = authorization;
+        string path2 = AccountFile(teacher: teacher, clientId: secrets.ClientId);
+        bool requireExisting2 = true;
+        global::ScheduleLib.Cli.AtomicTokenStore store2 = new AtomicTokenStore(path2, requireExisting: requireExisting2);
+        global::Google.Apis.Util.Store.IDataStore store3 = store2;
+        global::Google.Apis.Auth.OAuth2.UserCredential createCredential = iGoogleTokenProvider.CreateCredential(
+        secrets2, teacher2, scopes2, authorization2, store3);
+        return createCredential;
     }
 
     private static bool Usable(TokenResponse authorization, string[] scopes) =>
@@ -458,10 +491,17 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
         CancellationToken token,
         bool preserveOmittedScopes)
     {
+        string CalculatePath()
+        {
+            string text = $"{path}.lock";
+            string path2 = (string) text;
+            return path2;
+        }
+
         await using var lease = await LocalFileLock.Acquire(
-            (string) $"{path}.lock",
-            token,
-            wait: true);
+                    CalculatePath(),
+                    token,
+                    wait: true);
         if (requireExisting && !File.Exists(path))
         {
             throw new IOException("Local authorization was logged out; login is required.");
@@ -493,10 +533,17 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
 
     public async Task DeleteAsync<T>(string key)
     {
+        string CalculatePath()
+        {
+            string text = $"{path}.lock";
+            string path2 = (string) text;
+            return path2;
+        }
+
         await using var lease = await LocalFileLock.Acquire(
-            (string) $"{path}.lock",
-            CancellationToken.None,
-            wait: true);
+                    CalculatePath(),
+                    CancellationToken.None,
+                    wait: true);
         File.Delete(path);
     }
 

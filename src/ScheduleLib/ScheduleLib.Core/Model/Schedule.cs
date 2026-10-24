@@ -24,8 +24,25 @@ public sealed class Schedule
 
     public bool IsLessonActive(AnyLessonId id)
     {
-        return id.Regularity != LessonRegularity.Weekly
-            || !SuppressedWeeklyLessons.Contains(new(id.Id));
+        bool condition;
+        if (id.Regularity != LessonRegularity.Weekly)
+        {
+            condition = true;
+        }
+        else
+        {
+            global::System.Collections.Immutable.ImmutableHashSet<global::ScheduleLib.WeeklyLessonId> immutableHashSet = SuppressedWeeklyLessons;
+            global::ScheduleLib.WeeklyLessonId item = new(id.Id);
+            bool contains = immutableHashSet.Contains(item);
+            condition = !contains;
+        }
+
+        if (condition)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static readonly Schedule Empty = new()
@@ -88,11 +105,15 @@ public readonly partial struct RefAccessor<T, TRef, TId>
 
     public static RefAccessor<T, TRef, TId> Create(int index, ImmutableArray<T> arr)
     {
-        return new(Accessor<T, TId>.Create(index, arr));
+        global::ScheduleLib.Accessor<T, TId> impl = Accessor<T, TId>.Create(index, arr);
+        global::ScheduleLib.RefAccessor<T, TRef, TId> refAccessor = new(impl);
+        return refAccessor;
     }
     public static RefAccessor<T, TRef, TId> Create(TId id, ImmutableArray<T> arr)
     {
-        return new(Accessor<T, TId>.Create(id, arr));
+        global::ScheduleLib.Accessor<T, TId> impl = Accessor<T, TId>.Create(id, arr);
+        global::ScheduleLib.RefAccessor<T, TRef, TId> refAccessor = new(impl);
+        return refAccessor;
     }
 }
 
@@ -278,9 +299,11 @@ public readonly record struct AllLessonsEnumerable
         {
             get
             {
-                return new(
-                    new AnyLessonId(_regularity, _index),
-                    _arrays);
+                global::ScheduleLib.AnyLessonId id = new AnyLessonId(_regularity, _index);
+                global::ScheduleLib.Schedule arrays = _arrays;
+                global::ScheduleLib.AnyLessonAccessor anyLessonAccessor = new(
+                id, arrays);
+                return anyLessonAccessor;
             }
         }
 
@@ -294,26 +317,29 @@ public readonly record struct AllLessonsEnumerable
                 switch (_regularity)
                 {
                     case LessonRegularity.Weekly:
-                    {
-                        var arr = _arrays.WeeklyLessons;
-                        len = arr.Length;
-                        break;
-                    }
+                        {
+                            var arr = _arrays.WeeklyLessons;
+                            len = arr.Length;
+                            break;
+                        }
                     case LessonRegularity.OneTime:
-                    {
-                        var arr = _arrays.OneTimeLessons;
-                        len = arr.Length;
-                        break;
-                    }
+                        {
+                            var arr = _arrays.OneTimeLessons;
+                            len = arr.Length;
+                            break;
+                        }
                     default:
-                    {
-                        return false;
-                    }
+                        {
+                            return false;
+                        }
                 }
 
                 if (_index < len)
                 {
-                    if (!_arrays.IsLessonActive(new(_regularity, _index)))
+                    global::ScheduleLib.Schedule schedule = _arrays;
+                    global::ScheduleLib.AnyLessonId id = new(_regularity, _index);
+                    bool isLessonActive = schedule.IsLessonActive(id);
+                    if (!isLessonActive)
                     {
                         _index++;
                         continue;
@@ -401,7 +427,8 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         int count = Count;
         if (count == Capacity)
         {
-            Debug.Fail($"Can't add more than {Capacity} groups per lesson");
+            string message = $"Can't add more than {Capacity} groups per lesson";
+            Debug.Fail(message);
         }
         this[count] = id;
     }
@@ -478,12 +505,14 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         int hash = 17;
         for (int i = 0; i < Capacity; i++)
         {
-            hash = hash * 31 + this[i].GetHashCode();
+            int int32 = hash * 31;
+            int int322 = int32 + this[i].GetHashCode();
+            hash = int322;
         }
         return hash;
     }
 
-    public static bool operator==(in LessonGroups a, in LessonGroups b)
+    public static bool operator ==(in LessonGroups a, in LessonGroups b)
     {
         var count = a.Count;
         if (count != b.Count)
@@ -499,7 +528,7 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         }
         return true;
     }
-    public static bool operator!=(in LessonGroups a, in LessonGroups b) => !(a == b);
+    public static bool operator !=(in LessonGroups a, in LessonGroups b) => !(a == b);
 }
 
 public static class LessonGroupsHelper
@@ -727,9 +756,12 @@ public static class LessonRegularityHelper
     {
         switch (r)
         {
-            case LessonRegularity.OneTime: return ref x.OneTime;
-            case LessonRegularity.Weekly: return ref x.Weekly;
-            default: throw Unreachable();
+            case LessonRegularity.OneTime:
+                return ref x.OneTime;
+            case LessonRegularity.Weekly:
+                return ref x.Weekly;
+            default:
+                throw Unreachable();
         }
     }
 }
@@ -810,7 +842,13 @@ public enum LessonType
 
 public readonly record struct SubGroup
 {
-    public static SubGroup CreateNumeric(int i) => new(NumberHelper.ToRoman(i));
+    public static SubGroup CreateNumeric(int i)
+    {
+        string value = NumberHelper.ToRoman(i);
+        global::ScheduleLib.SubGroup subGroup = new(value);
+        return subGroup;
+    }
+
     public readonly string? Value { get; }
 
     public SubGroup(string? value)
@@ -1030,29 +1068,29 @@ public record struct OneForEachAttendanceMode<T>
             switch (mode)
             {
                 case AttendanceMode.Zi:
-                {
-                    Zi = value;
-                    break;
-                }
+                    {
+                        Zi = value;
+                        break;
+                    }
                 case AttendanceMode.FrecventaRedusa:
-                {
-                    FrecventaRedusa = value;
-                    break;
-                }
+                    {
+                        FrecventaRedusa = value;
+                        break;
+                    }
                 case AttendanceMode.DualZi:
-                {
-                    DualZi = value;
-                    break;
-                }
+                    {
+                        DualZi = value;
+                        break;
+                    }
                 case AttendanceMode.DualFr:
-                {
-                    DualFr = value;
-                    break;
-                }
+                    {
+                        DualFr = value;
+                        break;
+                    }
                 default:
-                {
-                    throw new ArgumentOutOfRangeException(nameof(mode));
-                }
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(mode));
+                    }
             }
         }
     }
@@ -1200,8 +1238,14 @@ public static class ScheduleAccessorHelper
     public static IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
     {
         for (var index = 0; index < schedule.WeeklyLessons.Length; index++)
-            if (schedule.IsLessonActive(new(LessonRegularity.Weekly, index)))
+        {
+            global::ScheduleLib.Schedule schedule2 = schedule;
+            global::ScheduleLib.AnyLessonId id = new(LessonRegularity.Weekly, index);
+            if (schedule2.IsLessonActive(id))
+            {
                 yield return WeeklyLessonAccessor.Create(index, schedule.WeeklyLessons);
+            }
+        }
     }
     public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(this Schedule schedule)
     {

@@ -112,7 +112,9 @@ public static partial class ScheduleBuilderHelper
             }
             if (splitGroups != lesson.Base.Group.Groups.Count)
             {
-                throw InconsistentLanguageSplitException.ForMixedSplit(groups: GroupNames(s, lesson.Base.Group.Groups), course: CourseName(s, course));
+                string groups2 = GroupNames(s, lesson.Base.Group.Groups);
+                string course2 = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMixedSplit(groups: groups2, course: course2);
             }
 
             foreach (var g in lesson.Base.Group.Groups)
@@ -127,7 +129,9 @@ public static partial class ScheduleBuilderHelper
             if (!coveredSplits.Contains((group, course))
                 && !normalizedSplits.Contains((group, course)))
             {
-                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: GroupName(s, group), course: CourseName(s, course));
+                string group2 = GroupName(s, group);
+                string course3 = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: group2, course: course3);
             }
         }
 
@@ -246,7 +250,10 @@ public static partial class ScheduleBuilderHelper
             {
                 if (!numbers.Contains(expected))
                 {
-                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(GroupName(s, groupId), missing: expected, occurring: numbers[^1]);
+                    string groupName = GroupName(s, groupId);
+                    int missing2 = expected;
+                    int occurring2 = numbers[^1];
+                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(groupName, missing: missing2, occurring: occurring2);
                 }
             }
         }
@@ -264,7 +271,8 @@ public static partial class ScheduleBuilderHelper
             int languageCount = values.Count(SpecialSubGroups.IsLanguageSubGroup);
             if (languageCount == 1)
             {
-                throw InvalidSubGroupPartitionException.ForSingleLanguageSubgroup(GroupName(s, groupId));
+                string groupName = GroupName(s, groupId);
+                throw InvalidSubGroupPartitionException.ForSingleLanguageSubgroup(groupName);
             }
         }
     }

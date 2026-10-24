@@ -111,7 +111,9 @@ public static class ThingRegistryHelper
     {
         public void Add(string name, T value)
         {
-            opts.Values.Add(new(name, value));
+            global::System.Collections.Generic.List<global::Desktop.NodeData.Features.Registry.Named<T>> list = opts.Values;
+            global::Desktop.NodeData.Features.Registry.Named<T> item = new(name, value);
+            list.Add(item);
         }
 
         public void UseTypeComparer()

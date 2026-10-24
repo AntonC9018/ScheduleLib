@@ -101,7 +101,9 @@ public sealed partial class SyncDriveFolderTaskHandler
         }
         Stream File(string path)
         {
-            var stream = p.FilesProvider.OpenForReading(new(path));
+            global::ScheduleLib.Application.Core.IFilesProvider iFilesProvider = p.FilesProvider;
+            global::ScheduleLib.Application.Core.Helper.RelativeFilePath relativeFile = new(path);
+            var stream = iFilesProvider.OpenForReading(relativeFile);
             return stream;
         }
         foreach (var fileName in cloudFilesToCreate)

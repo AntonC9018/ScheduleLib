@@ -180,7 +180,8 @@ public sealed class CliOutput
             return;
         }
 
-        WriteHuman(message.Format(System.Globalization.CultureInfo.CurrentCulture));
+        string line = message.Format(System.Globalization.CultureInfo.CurrentCulture);
+        WriteHuman(line);
     }
 
     public void WriteWarning(string message)
@@ -407,14 +408,36 @@ keySelector: pair => pair.Key, elementSelector: pair => pair.Value, StringCompar
                     collected.Add(scope?.ToString() ?? string.Empty);
                 },
                 scopes);
-            output.WriteStructuredLog(
-                logLevel,
-                message: message,
-                exception: exception?.ToString(),
-                properties.Count > 0 ? properties : null,
-                scopes.Count > 0 ? scopes : null,
-                category: category,
-                DateTimeOffset.UtcNow);
+            global::ScheduleLib.Cli.CliOutput cliOutput = output;
+            global::Microsoft.Extensions.Logging.LogLevel level = logLevel;
+            string message2 = message;
+            string? exception2 = exception?.ToString();
+            global::System.Collections.Generic.Dictionary<string, object?>? properties2;
+            if (properties.Count > 0)
+            {
+                properties2 = properties;
+            }
+            else
+            {
+                properties2 = null;
+            }
+
+            global::System.Collections.Generic.IReadOnlyDictionary<string, object?>? properties3 = properties2;
+            global::System.Collections.Generic.List<string>? scopes2;
+            if (scopes.Count > 0)
+            {
+                scopes2 = scopes;
+            }
+            else
+            {
+                scopes2 = null;
+            }
+
+            global::System.Collections.Generic.IReadOnlyList<string>? scopes3 = scopes2;
+            string category2 = category;
+            global::System.DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            cliOutput.WriteStructuredLog(
+                level, message: message2, exception: exception2, properties3, scopes3, category: category2, timestamp);
         }
 
         private static IReadOnlyDictionary<string, object?>? ExtractProperties<TState>(TState state)
@@ -448,7 +471,10 @@ public static class CliLogging
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
-            builder.AddProvider(new CliJsonlLoggerProvider(output));
+            global::Microsoft.Extensions.Logging.ILoggingBuilder iLoggingBuilder = builder;
+            global::ScheduleLib.Cli.CliJsonlLoggerProvider provider = new CliJsonlLoggerProvider(output);
+            global::Microsoft.Extensions.Logging.ILoggerProvider provider2 = provider;
+            iLoggingBuilder.AddProvider(provider2);
         });
     }
 }

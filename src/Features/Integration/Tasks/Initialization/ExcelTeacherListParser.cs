@@ -103,67 +103,67 @@ public static class ExcelTeacherListParser
                     switch (colIndex)
                     {
                         case 0:
-                        {
-                            if (cell.CellValue is null)
                             {
-                                return false;
+                                if (cell.CellValue is null)
+                                {
+                                    return false;
+                                }
+                                return true;
                             }
-                            return true;
-                        }
                         // Nume, prenume
                         case 1:
-                        {
-                            var teacherName = stringTable.GetStringValue(cell);
-                            if (teacherName is null)
                             {
-                                throw new NotSupportedException("Expected a teacher name in the cell.");
+                                var teacherName = stringTable.GetStringValue(cell);
+                                if (teacherName is null)
+                                {
+                                    throw new NotSupportedException("Expected a teacher name in the cell.");
+                                }
+                                var parsedName = ParseTeacherName(teacherName);
+                                var model = new TeacherBuilderModel.NameModel();
+                                model.FirstName[0] = new()
+                                {
+                                    Full = parsedName.FirstName.ToString(),
+                                    Short = null,
+                                };
+                                model.LastName[0] = parsedName.LastName.ToString();
+                                builder = p.Schedule.Teacher(model);
+                                return true;
                             }
-                            var parsedName = ParseTeacherName(teacherName);
-                            var model = new TeacherBuilderModel.NameModel();
-                            model.FirstName[0] = new()
-                            {
-                                Full = parsedName.FirstName.ToString(),
-                                Short = null,
-                            };
-                            model.LastName[0] = parsedName.LastName.ToString();
-                            builder = p.Schedule.Teacher(model);
-                            return true;
-                        }
                         // E-mail
                         case 2:
-                        {
-                            var email = stringTable.GetStringValue(cell);
-                            if (email is not null)
                             {
-                                builder.Model.Contacts.PersonalEmail = email;
+                                var email = stringTable.GetStringValue(cell);
+                                if (email is not null)
+                                {
+                                    builder.Model.Contacts.PersonalEmail = email;
+                                }
+                                return true;
                             }
-                            return true;
-                        }
                         // E-mail corporativ
                         case 3:
-                        {
-                            var email = stringTable.GetStringValue(cell);
-                            if (email is not null)
                             {
-                                builder.Model.Contacts.CorporateEmail = email;
+                                var email = stringTable.GetStringValue(cell);
+                                if (email is not null)
+                                {
+                                    builder.Model.Contacts.CorporateEmail = email;
+                                }
+                                return true;
                             }
-                            return true;
-                        }
                         // Phone number
                         case 4:
-                        {
-                            var phone = stringTable.GetStringValue(cell);
-                            if (phone is not null)
                             {
-                                builder.Model.Contacts.PhoneNumber = phone;
+                                var phone = stringTable.GetStringValue(cell);
+                                if (phone is not null)
+                                {
+                                    builder.Model.Contacts.PhoneNumber = phone;
+                                }
+                                return true;
                             }
-                            return true;
-                        }
                         default:
-                        {
-                            Debug.Fail("??");
-                            return false;
-                        }
+                            {
+                                Debug.Fail("??");
+                                return false;
+                            }
                     }
                 }
             }

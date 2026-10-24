@@ -35,16 +35,16 @@ public static class DebugHelper
         switch (doc)
         {
             case IXmlDocument xml:
-            {
-                await using var textWriter = new StreamWriter(outputStream);
-                xml.ToXml(textWriter);
-                break;
-            }
+                {
+                    await using var textWriter = new StreamWriter(outputStream);
+                    xml.ToXml(textWriter);
+                    break;
+                }
             case IHtmlDocument html:
-            {
-                await html.ToHtmlAsync(outputStream);
-                break;
-            }
+                {
+                    await html.ToHtmlAsync(outputStream);
+                    break;
+                }
         }
         ExplorerHelper.TryOpenExplorerAndSelectFile(fileName);
     }

@@ -232,7 +232,13 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
         var lb = new ListStringBuilder(output);
         foreach (var value in SetValues())
         {
-            lb.Append(Enum.GetName(value));
+            string? CalculateS()
+            {
+                string? s = Enum.GetName(value);
+                return s;
+            }
+
+            lb.Append(CalculateS());
         }
     }
 

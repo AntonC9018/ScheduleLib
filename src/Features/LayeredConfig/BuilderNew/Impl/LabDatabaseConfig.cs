@@ -70,7 +70,7 @@ public readonly ref struct OptionBuilder(ref Option value)
 
 public static class LabTasksBuilderExtensions
 {
-    extension (CourseLabTasksBuilder builder)
+    extension(CourseLabTasksBuilder builder)
     {
         public CourseOptionLabTasksBuilder Option(Action<OptionBuilder> configure)
         {
@@ -87,7 +87,7 @@ public static class LabTasksBuilderExtensions
             });
         }
     }
-    extension (CourseOptionLabTasksBuilder c)
+    extension(CourseOptionLabTasksBuilder c)
     {
         public void AddSource(LabTasksSource source)
         {
@@ -106,7 +106,7 @@ public static class LabTasksBuilderExtensions
             return c;
         }
     }
-    extension (LabTasksDatabaseConfig c)
+    extension(LabTasksDatabaseConfig c)
     {
         public CourseLabTasksBuilder Course(string name)
         {

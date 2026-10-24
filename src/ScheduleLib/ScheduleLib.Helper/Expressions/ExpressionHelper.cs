@@ -72,7 +72,8 @@ public static class ExpressionHelper
         for (int i = 1; i < paramCount; i++)
         {
             newParameters[i] = source.Parameters[i];
-        };
+        }
+        ;
 
         var oldBody = source.Body;
         var visitor = ReplaceVariableExpressionVisitor.GetInstance(replacement.Access, firstParam);

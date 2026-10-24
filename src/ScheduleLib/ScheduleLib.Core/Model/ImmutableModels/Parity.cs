@@ -12,21 +12,21 @@ public static class ParityHelper
         switch (check)
         {
             case Parity.EveryWeek:
-            {
-                return true;
-            }
+                {
+                    return true;
+                }
             default:
-            {
-                if (parity == Parity.EveryWeek)
                 {
-                    return true;
+                    if (parity == Parity.EveryWeek)
+                    {
+                        return true;
+                    }
+                    if (parity == check)
+                    {
+                        return true;
+                    }
+                    return false;
                 }
-                if (parity == check)
-                {
-                    return true;
-                }
-                return false;
-            }
         }
     }
 }

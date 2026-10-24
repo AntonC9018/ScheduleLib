@@ -130,7 +130,8 @@ public static class MoodleQuizScraper
             var timeFinish = ParseDateTime(rowSearch.FindCell("timefinish").MaybeExtractText());
             var duration = ParseDuration(rowSearch.FindCell("duration").MaybeExtractText());
             var grade = ParseGrade(rowSearch.FindCell("sumgrades").MaybeExtractText());
-            var reviewLink = ExtractReviewLink(new(nameCell));
+            global::QuizModels.MoodleQuizScraper.CellSearchResult x = new(nameCell);
+            var reviewLink = ExtractReviewLink(x);
             var questionGrades = ExtractQuestionGrades(rowSearch);
             if (reviewLink is null)
             {
@@ -286,7 +287,13 @@ public static class MoodleQuizScraper
 
         while (true)
         {
-            var cellResult = row.FindCell($"qsgrade{questionNum}");
+            string CalculateKeys()
+            {
+                string keys = $"qsgrade{questionNum}";
+                return keys;
+            }
+
+            var cellResult = row.FindCell(CalculateKeys());
             if (cellResult.Cell is not { } cell)
             {
                 break;
@@ -474,7 +481,7 @@ public static class MoodleQuizScraper
             const string s = "Salvat:";
             if (x.StartsWith(s))
             {
-                return x.AsSpan()[s.Length ..].Trim().ToString();
+                return x.AsSpan()[s.Length..].Trim().ToString();
             }
         }
         return null;
@@ -1200,7 +1207,10 @@ file sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, _accessor.Extractor(value), options);
+        global::System.Text.Json.Utf8JsonWriter writer2 = writer;
+        TValue? value2 = _accessor.Extractor(value);
+        global::System.Text.Json.JsonSerializerOptions options2 = options;
+        JsonSerializer.Serialize(writer2, value2, options2);
     }
 }
 

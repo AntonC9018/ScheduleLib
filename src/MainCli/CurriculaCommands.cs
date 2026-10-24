@@ -43,7 +43,7 @@ public class CurriculaCommands
         var provider = new HttpProvider();
         try
         {
-            var client = new GraphServiceClient(new DelegateAuthenticationProvider(async request =>
+            global::Microsoft.Graph.DelegateAuthenticationProvider authenticationProvider = new DelegateAuthenticationProvider(async request =>
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue(
                         scheme: "Bearer",
@@ -51,8 +51,10 @@ public class CurriculaCommands
                             config,
                             profile,
                             token));
-                }),
-                provider);
+                });
+            global::Microsoft.Graph.IAuthenticationProvider authenticationProvider2 = authenticationProvider;
+            global::Microsoft.Graph.IHttpProvider httpProvider = provider;
+            var client = new GraphServiceClient(authenticationProvider2, httpProvider);
             return new GraphCurriculaProvider(client, provider);
         }
         catch
@@ -149,7 +151,9 @@ public class CurriculaCommands
                 if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase)
                     && !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
-                    warnings.Add($"Skipping unsupported curriculum document: {file.Group}/{file.Name}");
+                    global::System.Collections.Generic.List<string> list = warnings;
+                    string item = $"Skipping unsupported curriculum document: {file.Group}/{file.Name}";
+                    list.Add(item);
                     continue;
                 }
                 var name = ArtifactName(file);
@@ -205,7 +209,9 @@ public class CurriculaCommands
                     {
                         var input = Path.Combine(staging, "source.doc");
                         var converted = Path.Combine(staging, "converted.docx");
-                        File.Copy(sourceFileName: Path.Combine(output.DirectoryPath, originalName), destFileName: input);
+                        string sourceFileName2 = Path.Combine(output.DirectoryPath, originalName);
+                        string destFileName2 = input;
+                        File.Copy(sourceFileName: sourceFileName2, destFileName: destFileName2);
                         if (!await ConvertLegacy(
                                 input: input,
                                 output: converted,
@@ -356,9 +362,13 @@ public class CurriculaCommands
             WarningsFirst = true,
             RenderHuman = status =>
             {
-                cli.WriteHuman($"Curricula source: {source.Owner}/{source.Path}");
-                cli.WriteHuman(
-                    $"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.");
+                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                string line = $"Curricula source: {source.Owner}/{source.Path}";
+                cliOutput.WriteHuman(line);
+                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                string line2 = $"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                cliOutput2.WriteHuman(
+                    line2);
             },
         });
 

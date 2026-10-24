@@ -10,11 +10,41 @@ public sealed class LayerPathTests
         // var services = new ServiceCollection();
         // var sp = services.BuildServiceProvider();
         var tree = new TreeBuilder(null!);
-        var a = tree.Defaults.AddLayer(new("A"));
-        var b = tree.Defaults.AddLayer(new("B"));
-        var c = a.AddLayer(new("C"));
-        var d = c.AddLayer(new("D"));
-        var e = b.AddLayer(new("E"));
+        global::Anton.LayeredData.Layer CalculateLayer()
+        {
+            global::Anton.LayeredData.Layer layer = new("A");
+            return layer;
+        }
+
+        var a = tree.Defaults.AddLayer(CalculateLayer());
+        global::Anton.LayeredData.Layer CalculateLayer2()
+        {
+            global::Anton.LayeredData.Layer layer2 = new("B");
+            return layer2;
+        }
+
+        var b = tree.Defaults.AddLayer(CalculateLayer2());
+        global::Anton.LayeredData.Layer CalculateLayer3()
+        {
+            global::Anton.LayeredData.Layer layer3 = new("C");
+            return layer3;
+        }
+
+        var c = a.AddLayer(CalculateLayer3());
+        global::Anton.LayeredData.Layer CalculateLayer4()
+        {
+            global::Anton.LayeredData.Layer layer4 = new("D");
+            return layer4;
+        }
+
+        var d = c.AddLayer(CalculateLayer4());
+        global::Anton.LayeredData.Layer CalculateLayer5()
+        {
+            global::Anton.LayeredData.Layer layer5 = new("E");
+            return layer5;
+        }
+
+        var e = b.AddLayer(CalculateLayer5());
         var paths = tree.BaseNode
             .Dfs()
             .AddLayerPath()

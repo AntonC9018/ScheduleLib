@@ -62,7 +62,9 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 {
                     var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
                     var intervalText = _timeSlotDisplay.IntervalDisplay(interval);
-                    dataCells.Add(new(intervalText));
+                    global::System.Collections.Generic.List<global::SpreadCheetah.DataCell> list = dataCells;
+                    global::SpreadCheetah.DataCell item = new(intervalText);
+                    list.Add(item);
 
                     var lessons = lessonsThisDay
                         .Where(x => x.Date.TimeSlot == timeSlot
@@ -74,13 +76,15 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                         var id = roomId.Id!;
                         // TODO: Maybe store this in the model?
                         var blockIndex = id.IndexOf('/');
-                        var block = blockIndex >= 0 ? id[(blockIndex + 1) ..] : null;
-                        var room = id[.. blockIndex];
+                        var block = blockIndex >= 0 ? id[(blockIndex + 1)..] : null;
+                        var room = id[..blockIndex];
                         return (block, room);
                     });
                     foreach (var freeRoom in orderedFreeRooms)
                     {
-                        dataCells.Add(new(freeRoom.Id!));
+                        global::System.Collections.Generic.List<global::SpreadCheetah.DataCell> list2 = dataCells;
+                        global::SpreadCheetah.DataCell item2 = new(freeRoom.Id!);
+                        list2.Add(item2);
                     }
 
                     await spreadsheet.AddRowAsync(dataCells, p.CancellationToken);
@@ -190,7 +194,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         {
             // The style with this id is some dotted grid pattern.
             // ???
-            var wtf = stylesheet.Fill(_ => {});
+            var wtf = stylesheet.Fill(_ => { });
             _ = wtf;
         }
 
@@ -282,7 +286,9 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         {
             x.CenterAndWrap();
             x.SetFont(cellFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -293,13 +299,17 @@ public sealed partial class GenerateFreeRoomsTaskHandler
             x.CenterAndWrap();
             x.SetFont(cellFontId);
             x.SetFill(greenFillId);
-            x.SetBorder(BorderIdByEdge(edge));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge);
+            cellFormat.SetBorder(borderId);
         });
         var timeSlotStyleIds = stylesheet.CellFormats<OddEdge>((x, edge) =>
         {
             x.CenterAndWrap();
             x.SetFont(timeSlotFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
+            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);

@@ -68,10 +68,12 @@ internal static class CliAuthenticationExecution
         for (var index = 0; index < data.Accounts.Count; index++)
         {
             var account = data.Accounts[index];
-            cli.EmitItem(
-                id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                status: "completed",
-                account);
+            global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string status2 = "completed";
+            object item = account;
+            cliOutput.EmitItem(
+                id: id2, status: status2, item);
         }
 
         return context.Finish(new CliCompletion<AuthStatus?>(
@@ -92,7 +94,9 @@ internal static class CliAuthenticationExecution
             {
                 foreach (var account in data.Accounts)
                 {
-                    cli.WriteHuman($"{account.AccountId}: {account.State}");
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{account.AccountId}: {account.State}";
+                    cliOutput.WriteHuman(line);
                 }
 
                 var provisioned = "provisioned";
@@ -100,7 +104,9 @@ internal static class CliAuthenticationExecution
                 {
                     provisioned = "not provisioned";
                 }
-                cli.WriteHuman($"{providerDisplay} authorization for {data.Profile}: {provisioned}");
+                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                string line2 = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
+                cliOutput2.WriteHuman(line2);
             },
         });
     }

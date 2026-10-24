@@ -57,7 +57,9 @@ public static class RentedEnumerableExtensions
                 var i = 0;
                 foreach (var item in e)
                 {
-                    buffer.Array[i++] = item;
+                    T[] value = buffer.Array;
+                    int int32 = i++;
+                    value[int32] = item;
                 }
 
                 return buffer;
@@ -76,7 +78,9 @@ public static class RentedEnumerableExtensions
                         ArrayPool<T>.Shared.Return(arr);
                         arr = bigger;
                     }
-                    arr[written++] = item;
+                    T[] value2 = arr;
+                    int int322 = written++;
+                    value2[int322] = item;
                 }
                 return new RentedBuffer<T>(arr, written);
             }

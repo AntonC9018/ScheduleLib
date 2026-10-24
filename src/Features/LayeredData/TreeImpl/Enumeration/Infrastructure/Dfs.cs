@@ -108,13 +108,13 @@ public sealed class DfsEnumerator() : IDfsEnumerator
             {
                 case DfsVisitationState.Process:
                 case DfsVisitationState.ProcessChild:
-                {
-                    if (TryConsumePreventRecursion())
                     {
-                        continue;
+                        if (TryConsumePreventRecursion())
+                        {
+                            continue;
+                        }
+                        break;
                     }
-                    break;
-                }
             }
 
             SetCurrent(frame);
@@ -122,76 +122,76 @@ public sealed class DfsEnumerator() : IDfsEnumerator
             switch (frame.State)
             {
                 case DfsVisitationState.BeforeProcess:
-                {
-                    _stack.Push(frame with
                     {
-                        State = DfsVisitationState.Process,
-                    });
-                    return true;
-                }
+                        _stack.Push(frame with
+                        {
+                            State = DfsVisitationState.Process,
+                        });
+                        return true;
+                    }
                 case DfsVisitationState.Process:
-                {
-                    _stack.Push(frame with
-                    {
-                        State = DfsVisitationState.AfterProcess,
-                    });
-
-                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
-                            State = DfsVisitationState.BeforeChildren,
+                            State = DfsVisitationState.AfterProcess,
                         });
+
+                        if (frame.Node.ChildNodes.Count > 0)
+                        {
+                            _stack.Push(frame with
+                            {
+                                State = DfsVisitationState.BeforeChildren,
+                            });
+                        }
+                        return true;
                     }
-                    return true;
-                }
                 case DfsVisitationState.BeforeChildren:
-                {
-                    _stack.Push(frame with
-                    {
-                        State = DfsVisitationState.AfterChildren,
-                    });
-
-                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
-                            ChildIndex = 0,
-                            State = DfsVisitationState.ProcessChild,
+                            State = DfsVisitationState.AfterChildren,
                         });
+
+                        if (frame.Node.ChildNodes.Count > 0)
+                        {
+                            _stack.Push(frame with
+                            {
+                                ChildIndex = 0,
+                                State = DfsVisitationState.ProcessChild,
+                            });
+                        }
+                        return true;
                     }
-                    return true;
-                }
                 case DfsVisitationState.ProcessChild:
-                {
-                    var nextChildIndex = frame.ChildIndex + 1;
-                    var childLayers = frame.Node.ChildNodes;
-                    if (nextChildIndex < childLayers.Count)
                     {
-                        _stack.Push(frame with
+                        var nextChildIndex = frame.ChildIndex + 1;
+                        var childLayers = frame.Node.ChildNodes;
+                        if (nextChildIndex < childLayers.Count)
                         {
-                            ChildIndex = nextChildIndex,
-                        });
-                    }
+                            _stack.Push(frame with
+                            {
+                                ChildIndex = nextChildIndex,
+                            });
+                        }
 
-                    var child = childLayers[frame.ChildIndex];
-                    _stack.Push(new StackFrame
-                    {
-                        Node = child,
-                        State = DfsVisitationState.BeforeProcess,
-                    });
-                    continue;
-                }
+                        var child = childLayers[frame.ChildIndex];
+                        _stack.Push(new StackFrame
+                        {
+                            Node = child,
+                            State = DfsVisitationState.BeforeProcess,
+                        });
+                        continue;
+                    }
                 case DfsVisitationState.AfterChildren:
                 case DfsVisitationState.AfterProcess:
-                {
-                    return true;
-                }
+                    {
+                        return true;
+                    }
 
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
     }

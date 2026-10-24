@@ -75,7 +75,9 @@ public sealed class RegistryConfigTests
         var input = ValidConfig();
         input.HttpCallDelay = TimeSpan.FromSeconds(2);
         var mapped = new RegistryConfigMapper().Map(input);
-        Assert.Equal(expected: TimeSpan.FromSeconds(2), actual: mapped.HttpCallDelay);
+        global::System.TimeSpan expected2 = TimeSpan.FromSeconds(2);
+        global::System.TimeSpan actual2 = mapped.HttpCallDelay;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -99,10 +101,14 @@ public sealed class RegistryConfigTests
     {
         return new()
         {
-            Credentials = new ValueCredentialsSource { Value = new() {
-                Login = "login",
-                Password = "pass"
-            } },
+            Credentials = new ValueCredentialsSource
+            {
+                Value = new()
+                {
+                    Login = "login",
+                    Password = "pass"
+                }
+            },
             EquationCommandsDerivation = new AnyDayDerivation(),
         };
     }
@@ -118,12 +124,18 @@ public sealed class RegistryConfigTests
         var overridden = merger.Merge(
             @from: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(1) },
             @into: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(5) });
-        Assert.Equal(expected: TimeSpan.FromSeconds(1), actual: overridden.HttpCallDelay);
+        global::System.TimeSpan expected2 = TimeSpan.FromSeconds(1);
+        global::System.TimeSpan? expected3 = expected2;
+        global::System.TimeSpan? actual2 = overridden.HttpCallDelay;
+        Assert.Equal(expected: expected3, actual: actual2);
 
         var inherit = merger.Merge(
             @from: new RegistryConfig(),
             @into: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(5) });
-        Assert.Equal(expected: TimeSpan.FromSeconds(5), actual: inherit.HttpCallDelay);
+        global::System.TimeSpan expected4 = TimeSpan.FromSeconds(5);
+        global::System.TimeSpan? expected5 = expected4;
+        global::System.TimeSpan? actual3 = inherit.HttpCallDelay;
+        Assert.Equal(expected: expected5, actual: actual3);
     }
 
     [Fact]
@@ -131,7 +143,13 @@ public sealed class RegistryConfigTests
     {
         using var inner = new StubHandler();
         var index = new Uri("https://registry.test/studregistry/LessonAttendance");
-        using var guard = new RegistryHistoryRequestHandler(inner, index: index, login: new(index, "../Account/Login"), TimeSpan.Zero);
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new(index, "../Account/Login");
+            return login2;
+        }
+
+        using var guard = new RegistryHistoryRequestHandler(inner, index: index, login: CalculateLogin(), TimeSpan.Zero);
         guard.CompleteAuthentication();
         Assert.NotNull(guard);
     }
@@ -142,7 +160,14 @@ public sealed class RegistryConfigTests
         using var inner = new StubHandler();
         var index = new Uri("https://registry.test/studregistry/LessonAttendance");
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new RegistryHistoryRequestHandler(inner, index: index, login: new(index, "../Account/Login"), TimeSpan.FromSeconds(-1)));
+        {
+            global::System.Net.Http.HttpMessageHandler inner2 = inner;
+            global::System.Uri index2 = index;
+            global::System.Uri login2 = new(index, "../Account/Login");
+            global::System.TimeSpan spacing = TimeSpan.FromSeconds(-1);
+            global::ScheduleLib.OnlineRegistry.RegistryHistoryRequestHandler registryHistoryRequestHandler = new RegistryHistoryRequestHandler(inner2, index: index2, login: login2, spacing);
+            return registryHistoryRequestHandler;
+        });
     }
 
     [Fact]
@@ -150,7 +175,11 @@ public sealed class RegistryConfigTests
     {
         var builder = new ScrapingContextBuilder();
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            RegistryScraping.AddDefaultConfigWithoutHandlers(builder, TimeSpan.FromSeconds(-1)));
+        {
+            global::ScheduleLib.Scraping.Common.ScrapingContextBuilder b = builder;
+            global::System.TimeSpan delay = TimeSpan.FromSeconds(-1);
+            RegistryScraping.AddDefaultConfigWithoutHandlers(b, delay);
+        });
     }
 
     [Fact]
@@ -175,7 +204,11 @@ public sealed class RegistryConfigTests
 
     private sealed class StubHandler : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
-            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(result);
+            return fromResult;
+        }
     }
 }

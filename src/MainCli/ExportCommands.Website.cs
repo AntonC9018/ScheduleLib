@@ -90,7 +90,9 @@ public partial class ExportCommands
             var teacherless = latest.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                warnings.Add($"The website schedule export omits {teacherless} weekly lessons with no teacher.");
+                global::System.Collections.Generic.List<string> list = warnings;
+                string item = $"The website schedule export omits {teacherless} weekly lessons with no teacher.";
+                list.Add(item);
             }
 
             var displays = new WebsiteJsonScheduleHelper.Services
@@ -106,19 +108,27 @@ public partial class ExportCommands
                 if (!slugLookup.TryGetValue(name, out var slug))
                 {
                     missingSlugs.Add(name.ToString());
-                    warnings.Add($"No slug for '{name}'.");
+                    global::System.Collections.Generic.List<string> list2 = warnings;
+                    string item2 = $"No slug for '{name}'.";
+                    list2.Add(item2);
                     continue;
                 }
                 var model = WebsiteJsonScheduleHelper.CreateSerializationModel(filteredSchedule, displays);
                 if (model.ScheduleDaysDto.IsEmpty)
                 {
                     omittedEmpty.Add(name.ToString());
-                    warnings.Add($"Teacher '{name}' has no website schedule entries and is omitted.");
+                    global::System.Collections.Generic.List<string> list3 = warnings;
+                    string item3 = $"Teacher '{name}' has no website schedule entries and is omitted.";
+                    list3.Add(item3);
                     continue;
                 }
                 using var buffer = new MemoryStream();
                 await WebsiteJsonScheduleHelper.Serialize(model, buffer);
-                if (!files.TryAdd($"{slug}.json", buffer.ToArray()))
+                global::System.Collections.Generic.Dictionary<string, byte[]> dictionary = files;
+                string key = $"{slug}.json";
+                byte[] value = buffer.ToArray();
+                bool tryAdd = dictionary.TryAdd(key, value);
+                if (!tryAdd)
                 {
                     throw new IOException($"Duplicate website artifact name: {slug}.json");
                 }
@@ -198,8 +208,13 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                    line);
+                },
             });
         }
     }
@@ -261,10 +276,13 @@ public partial class ExportCommands
             var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
                 .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));
-            var stagingRoot = Path.Combine(Path.GetTempPath(), $"schedulelib-theses-{context.RunId}");
+            string path1 = Path.GetTempPath();
+            string path2 = $"schedulelib-theses-{context.RunId}";
+            var stagingRoot = Path.Combine(path1, path2);
             try
             {
-                var staging = new OutputDirectory(Path.Combine(stagingRoot, "theses"));
+                string directory = Path.Combine(stagingRoot, "theses");
+                var staging = new OutputDirectory(directory);
                 staging.Initialize(clear: true);
                 var handler = scope.ServiceProvider.GetRequiredService<ThesesConversionTaskHandler>();
                 await handler.Handle(cancellation.Token, staging);
@@ -273,9 +291,15 @@ public partial class ExportCommands
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
                     var stagedName = Path.GetFileName(file.Path);
+                    string CalculatePath()
+                    {
+                        string path = staging.BuildPath(file.Path);
+                        return path;
+                    }
+
                     if (!files.TryAdd(
-                            stagedName,
-                            await File.ReadAllBytesAsync(staging.BuildPath(file.Path), cancellation.Token)))
+                                                stagedName,
+                                                await File.ReadAllBytesAsync(CalculatePath(), cancellation.Token)))
                     {
                         throw new IOException($"Duplicate website artifact name: {stagedName}");
                     }
@@ -290,7 +314,9 @@ public partial class ExportCommands
             }
             foreach (var warning in thesisWarnings.Messages)
             {
-                missingSlugs.Add(ExtractTeacher(warning));
+                global::System.Collections.Generic.List<string> list = missingSlugs;
+                string item = ExtractTeacher(warning);
+                list.Add(item);
                 warnings.Add(warning);
             }
             ValidateWebsiteArtifactNames(files.Keys);
@@ -367,8 +393,13 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                    line);
+                },
             });
         }
     }
@@ -515,7 +546,9 @@ public partial class ExportCommands
 
             lock (collector)
             {
-                collector.Messages.Add(formatter(state, exception));
+                global::System.Collections.Generic.List<string> list = collector.Messages;
+                string item = formatter(state, exception);
+                list.Add(item);
             }
         }
     }

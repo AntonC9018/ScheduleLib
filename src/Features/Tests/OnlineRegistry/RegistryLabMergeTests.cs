@@ -15,7 +15,9 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var selection = fixture.Select(fixture.Rules);
-        var lesson = fixture.Schedule.Get(Assert.Single(selection.Lessons));
+        global::ScheduleLib.Schedule schedule = fixture.Schedule;
+        global::ScheduleLib.AnyLessonId id = Assert.Single(selection.Lessons);
+        var lesson = schedule.Get(id);
         Assert.Equal(expected: DayOfWeek.Monday, actual: lesson.Weekly!.Value.Date.DayOfWeek);
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
         Assert.Equal(expected: 2, actual: fixture.Schedule.EnumerateAllLessons().Count());
@@ -65,25 +67,37 @@ public sealed class RegistryLabMergeTests
         var fixture = new Fixture();
         using var workbook = new XLWorkbook();
         var sheet = workbook.AddWorksheet("Synthetic course IA2601 (lab)");
-        sheet.Cell(row: 1,column: 2).Value="lab";
-        sheet.Cell(row: 1,column: 3).Value="lab";
-        sheet.Cell(row: 2,column: 1).Value="Synthetic Alpha";
-        sheet.Cell(row: 2,column: 2).Value="a";
-        sheet.Cell(row: 2,column: 3).Value="a";
-        sheet.Cell(row: 2,column: 4).Value="a"; // Outside the two declared lesson columns.
-        sheet.Cell(row: 3,column: 1).Value="Synthetic Beta";
-        sheet.Cell(row: 3,column: 2).Value="a";
-        sheet.Cell(row: 3,column: 3).Value="a";
-        var attendance=new AllStudentAttendanceListBuilder();
-        var parser=new AttendanceListsExcelParser(fixture.Builder.GroupParseContext!,fixture.Lookup,
-            LessonTypeParser.Instance,new SubGroupNameRemapper(fixture.Builder),SpecializationRegistry.Empty);
-        parser.Parse(new(new(){LabMerges=fixture.Rules},attendance,fixture.Schedule.Filter(new()),workbook));
-        var result=Assert.Single(attendance.Build(Attendance.Present));
-        Assert.Equal(expected: GroupPartitionKey.All,actual: result.Key.GroupPartition);
-        Assert.Equal(expected: LessonType.Lab,actual: result.Key.LessonType);
-        Assert.Equal(expected: 2,actual: result.Value.StudentNames.Count);
-        Assert.Equal(expected: 2,actual: result.Value.Attendance.Values.Count());
-        Assert.All(result.Value.Attendance.Values, day => Assert.All(day.AsArray(), mark => Assert.Equal(expected: Attendance.NotPresent,actual: mark)));
+        sheet.Cell(row: 1, column: 2).Value = "lab";
+        sheet.Cell(row: 1, column: 3).Value = "lab";
+        sheet.Cell(row: 2, column: 1).Value = "Synthetic Alpha";
+        sheet.Cell(row: 2, column: 2).Value = "a";
+        sheet.Cell(row: 2, column: 3).Value = "a";
+        sheet.Cell(row: 2, column: 4).Value = "a"; // Outside the two declared lesson columns.
+        sheet.Cell(row: 3, column: 1).Value = "Synthetic Beta";
+        sheet.Cell(row: 3, column: 2).Value = "a";
+        sheet.Cell(row: 3, column: 3).Value = "a";
+        var attendance = new AllStudentAttendanceListBuilder();
+        global::ScheduleLib.Parsing.GroupParser.GroupParseContext groupParser = fixture.Builder.GroupParseContext!;
+        global::ScheduleLib.Builders.LookupFacade lookup = fixture.Lookup;
+        global::ScheduleLib.Parsing.Lesson.LessonTypeParser lessonTypeParser = LessonTypeParser.Instance;
+        global::ScheduleLib.Builders.SubGroupNameRemapper subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        global::ScheduleLib.SpecializationRegistry specializationRegistry = SpecializationRegistry.Empty;
+        var parser = new AttendanceListsExcelParser(groupParser, lookup, lessonTypeParser, subGroupRemapper, specializationRegistry);
+        global::ScheduleLib.FilteredSchedule CalculateSchedule()
+        {
+            global::ScheduleLib.FilteredSchedule schedule = fixture.Schedule.Filter(new());
+            return schedule;
+        }
+
+        parser.Parse(new(new() { LabMerges = fixture.Rules }, attendance, CalculateSchedule(), workbook));
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList collection = attendance.Build(Attendance.Present);
+        global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<global::ScheduleLib.OnlineRegistry.StudentsLookupKey, global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances>> collection2 = collection;
+        var result = Assert.Single(collection2);
+        Assert.Equal(expected: GroupPartitionKey.All, actual: result.Key.GroupPartition);
+        Assert.Equal(expected: LessonType.Lab, actual: result.Key.LessonType);
+        Assert.Equal(expected: 2, actual: result.Value.StudentNames.Count);
+        Assert.Equal(expected: 2, actual: result.Value.Attendance.Values.Count());
+        Assert.All(result.Value.Attendance.Values, day => Assert.All(day.AsArray(), mark => Assert.Equal(expected: Attendance.NotPresent, actual: mark)));
     }
 
     [Fact]
@@ -91,11 +105,47 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
-        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
-        first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+        {
+            global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+            global::ScheduleLib.Specialization specialization = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition = new(subGroup, specialization);
+            return groupPartition;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key = new([fixture.Group], CalculateGroupPartition(), fixture.Course, LessonType.Lab);
+            return key;
+        }
+
+        var first = builder.List(CalculateKey());
+        global::ScheduleLib.Parsing.Name CalculateName()
+        {
+            global::ScheduleLib.Parsing.Name name2 = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha");
+            return name2;
+        }
+
+        first.Student(CalculateName()).Day(Attendance.NotPresent);
         first.HintMaxCount(1);
-        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
-        var student = second.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta"));
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition2()
+        {
+            global::ScheduleLib.SubGroup subGroup2 = new SubGroup("II");
+            global::ScheduleLib.Specialization specialization2 = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
+            return groupPartition2;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey2()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new([fixture.Group], CalculateGroupPartition2(), fixture.Course, LessonType.Lab);
+            return key2;
+        }
+
+        var second = builder.List(CalculateKey2());
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceListBuilder studentAttendanceListBuilder = second;
+        global::ScheduleLib.Parsing.Name name = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta");
+        var student = studentAttendanceListBuilder.Student(name);
         student.Day(Attendance.MotivatedAbsent);
         student.Day(Attendance.NotPresent);
         var canonical = builder.Build(Attendance.Present);
@@ -112,7 +162,21 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
-        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+        {
+            global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+            global::ScheduleLib.Specialization specialization = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition = new(subGroup, specialization);
+            return groupPartition;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key = new([fixture.Group], CalculateGroupPartition(), fixture.Course, LessonType.Lab);
+            return key;
+        }
+
+        var first = builder.List(CalculateKey());
         first.AddAttendanceDates([new() {
         Month = 9,
         Day = 1
@@ -120,10 +184,26 @@ public sealed class RegistryLabMergeTests
         Month = 9,
         Day = 8
         }]);
-        var alpha = first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha"));
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceListBuilder studentAttendanceListBuilder = first;
+        global::ScheduleLib.Parsing.Name name = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha");
+        var alpha = studentAttendanceListBuilder.Student(name);
         alpha.Day(Attendance.NotPresent);
         alpha.Day(Attendance.MotivatedAbsent);
-        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition2()
+        {
+            global::ScheduleLib.SubGroup subGroup2 = new SubGroup("II");
+            global::ScheduleLib.Specialization specialization2 = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
+            return groupPartition2;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey2()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new([fixture.Group], CalculateGroupPartition2(), fixture.Course, LessonType.Lab);
+            return key2;
+        }
+
+        var second = builder.List(CalculateKey2());
         second.AddAttendanceDates([new() {
         Month = 9,
         Day = 2
@@ -134,11 +214,16 @@ public sealed class RegistryLabMergeTests
         Month = 9,
         Day = 8
         }]);
-        var beta = second.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta"));
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceListBuilder studentAttendanceListBuilder2 = second;
+        global::ScheduleLib.Parsing.Name name2 = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Beta");
+        var beta = studentAttendanceListBuilder2.Student(name2);
         beta.Day(Attendance.MotivatedAbsent);
         beta.Day(Attendance.NotPresent);
         beta.Day(Attendance.NotPresent);
-        var result = AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = builder.Build(Attendance.Present);
+        global::ScheduleLib.Schedule schedule = fixture.Schedule;
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryLabMergeRule> rules = fixture.Rules;
+        var result = AttendanceLabMerges.Project(attendance, schedule, rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
         Assert.Equal(expected: 3, actual: merged.Value.Dates!.Value.Length);
         Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.None }, actual: merged.Value.Attendance.Day(0).AsArray());
@@ -151,11 +236,46 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
-        builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab))
-            .Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
-        builder.List(new([fixture.Group], GroupPartitionKey.All, fixture.Course, LessonType.Lab))
-            .Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.MotivatedAbsent);
-        var result = AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules);
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+        {
+            global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+            global::ScheduleLib.Specialization specialization = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition = new(subGroup, specialization);
+            return groupPartition;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key = new([fixture.Group], CalculateGroupPartition(), fixture.Course, LessonType.Lab);
+            return key;
+        }
+
+        global::ScheduleLib.Parsing.Name CalculateName()
+        {
+            global::ScheduleLib.Parsing.Name name = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha");
+            return name;
+        }
+
+        builder.List(CalculateKey())
+                                    .Student(CalculateName()).Day(Attendance.NotPresent);
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey2()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new([fixture.Group], GroupPartitionKey.All, fixture.Course, LessonType.Lab);
+            return key2;
+        }
+
+        global::ScheduleLib.Parsing.Name CalculateName2()
+        {
+            global::ScheduleLib.Parsing.Name name2 = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha");
+            return name2;
+        }
+
+        builder.List(CalculateKey2())
+                            .Student(CalculateName2()).Day(Attendance.MotivatedAbsent);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = builder.Build(Attendance.Present);
+        global::ScheduleLib.Schedule schedule = fixture.Schedule;
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryLabMergeRule> rules = fixture.Rules;
+        var result = AttendanceLabMerges.Project(attendance, schedule, rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
         Assert.Equal(expected: Attendance.MotivatedAbsent, actual: Assert.Single(merged.Value.Attendance.Day(0).AsArray()));
     }
@@ -167,15 +287,76 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
-        var first = builder.List(new([fixture.Group], new(new SubGroup("I"), Specialization.All), fixture.Course, LessonType.Lab));
-        first.Student(ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha")).Day(Attendance.NotPresent);
-        var second = builder.List(new([fixture.Group], new(new SubGroup("II"), Specialization.All), fixture.Course, LessonType.Lab));
-        second.Student(ScheduleLib.Parsing.NameHelper.Parse(duplicateName ? "Synthetic Alpha" : "Synthetic Beta")).Day(Attendance.MotivatedAbsent);
-        if (!duplicateName) second.AddAttendanceDates([new() {
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+        {
+            global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+            global::ScheduleLib.Specialization specialization = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition = new(subGroup, specialization);
+            return groupPartition;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key = new([fixture.Group], CalculateGroupPartition(), fixture.Course, LessonType.Lab);
+            return key;
+        }
+
+        var first = builder.List(CalculateKey());
+        global::ScheduleLib.Parsing.Name CalculateName()
+        {
+            global::ScheduleLib.Parsing.Name name = ScheduleLib.Parsing.NameHelper.Parse("Synthetic Alpha");
+            return name;
+        }
+
+        first.Student(CalculateName()).Day(Attendance.NotPresent);
+        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition2()
+        {
+            global::ScheduleLib.SubGroup subGroup2 = new SubGroup("II");
+            global::ScheduleLib.Specialization specialization2 = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
+            return groupPartition2;
+        }
+
+        global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey2()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new([fixture.Group], CalculateGroupPartition2(), fixture.Course, LessonType.Lab);
+            return key2;
+        }
+
+        var second = builder.List(CalculateKey2());
+        global::ScheduleLib.Parsing.Name CalculateName2()
+        {
+            string s;
+            if (duplicateName)
+            {
+                s = "Synthetic Alpha";
+            }
+            else
+            {
+                s = "Synthetic Beta";
+            }
+
+            global::ScheduleLib.Parsing.Name name2 = ScheduleLib.Parsing.NameHelper.Parse(s);
+            return name2;
+        }
+
+        second.Student(CalculateName2()).Day(Attendance.MotivatedAbsent);
+        if (!duplicateName)
+        {
+            second.AddAttendanceDates([new() {
         Month = 9,
         Day = 1
         }]);
-        Assert.Throws<InvalidOperationException>(() => AttendanceLabMerges.Project(builder.Build(Attendance.Present), fixture.Schedule, fixture.Rules));
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = builder.Build(Attendance.Present);
+            global::ScheduleLib.Schedule schedule = fixture.Schedule;
+            global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryLabMergeRule> rules = fixture.Rules;
+            global::ScheduleLib.OnlineRegistry.StudentAttendanceList project = AttendanceLabMerges.Project(attendance, schedule, rules);
+            return project;
+        });
     }
 
     private sealed class Fixture
@@ -194,12 +375,12 @@ public sealed class RegistryLabMergeTests
 
         internal Fixture(bool includeLecture = false)
         {
-            Builder.GroupParseContext = GroupParseContext.Create(new(){CurrentStudyYear=new(2026)});
+            Builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
             Builder.EnableLookupModule();
-            _course=Builder.Course("Synthetic course");
-            _group=Builder.Group("IA2601");
-            Add("I",DayOfWeek.Monday);
-            Add("II",DayOfWeek.Wednesday);
+            _course = Builder.Course("Synthetic course");
+            _group = Builder.Group("IA2601");
+            Add("I", DayOfWeek.Monday);
+            Add("II", DayOfWeek.Wednesday);
             if (includeLecture)
             {
                 Builder.RegularLesson(lesson =>
@@ -211,21 +392,23 @@ public sealed class RegistryLabMergeTests
                     lesson.TimeSlot(TimeSlot.First);
                 });
             }
-            var unifier=new CourseNameUnifierModule(Config.CourseNameUnifier);
+            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
             unifier.Refresh(Builder);
             Builder.RefreshLookup();
-            Lookup=Builder.Lookup(unifier);
-            Schedule=Builder.Build();
+            Lookup = Builder.Lookup(unifier);
+            Schedule = Builder.Build();
         }
 
         private void Add(string subgroup, DayOfWeek day)
         {
-            Builder.RegularLesson(lesson=>
+            Builder.RegularLesson(lesson =>
             {
                 lesson.Course(_course);
                 lesson.Group(_group);
                 lesson.Type(LessonType.Lab);
-                lesson.SubGroup(new(subgroup));
+                global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+                global::ScheduleLib.SubGroup subGroup = new(subgroup);
+                lessonBuilder.SubGroup(subGroup);
                 lesson.DayOfWeek(day);
                 lesson.TimeSlot(TimeSlot.First);
             });
@@ -233,7 +416,8 @@ public sealed class RegistryLabMergeTests
 
         internal RegistryLessonSelection Select(IReadOnlyList<RegistryLabMergeRule> rules)
         {
-            return RegistryLabMerges.Select(rules, new(new LessonSearchFilter(_course, new FoundGroups() {
+            return RegistryLabMerges.Select(rules, new(new LessonSearchFilter(_course, new FoundGroups()
+            {
                 Value = [_group],
                 IsWildcard = false
             }, GroupPartitionKey.All),

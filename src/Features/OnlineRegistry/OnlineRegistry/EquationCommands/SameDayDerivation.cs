@@ -7,7 +7,8 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
 {
     public IEnumerable<LessonEquationCommand> DeriveCommands(GetLessonEquationCommandsParams p)
     {
-        /* using */ var lists = new MatchingLists();
+        /* using */
+        var lists = new MatchingLists();
 
         using var a_ = p.LocalLessons.GetEnumerator();
         var allEnumerator = a_.RememberIsDone();

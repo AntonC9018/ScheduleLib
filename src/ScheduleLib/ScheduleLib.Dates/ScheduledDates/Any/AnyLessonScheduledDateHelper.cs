@@ -129,7 +129,11 @@ public sealed partial class ScheduleDateProviderHelper
     {
         foreach (var lessonId in p.Lessons)
         {
-            if (!_schedule.IsLessonActive(lessonId)) continue;
+            if (!_schedule.IsLessonActive(lessonId))
+            {
+                continue;
+            }
+
             var v = Get(lessonId, p.Semester);
             yield return new(lessonId, v.TimeInterval, v.Params);
         }

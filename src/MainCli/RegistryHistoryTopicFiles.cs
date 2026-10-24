@@ -59,7 +59,9 @@ public static class RegistryHistoryTopicFiles
         CancellationToken token)
     {
         directory = Path.GetFullPath(directory);
-        if (Path.GetFileName(Path.TrimEndingDirectorySeparator(directory)) != ".registry-history")
+        string path = Path.TrimEndingDirectorySeparator(directory);
+        string fileName = Path.GetFileName(path);
+        if (fileName != ".registry-history")
         {
             throw new IOException("Private history output requires a directory named .registry-history.");
         }
@@ -126,17 +128,29 @@ public static class RegistryHistoryTopicFiles
 
                     var name = $"topics-{runId}-{files.Count + 1}.csv";
                     await using (var stream = NewPrivateFile(Path.Combine(directory, name)))
-                    await using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
                     {
-                        await writer.WriteLineAsync("name,lessonType".AsMemory(), token);
-                        foreach (var lesson in ordered)
+                        global::System.Text.UTF8Encoding CalculateEncoding()
                         {
-                            var line = (string) $"\"{lesson.Topic.Replace("\"", "\"\"")}\"," + lesson.LessonType;
-                            await writer.WriteLineAsync(line.AsMemory(), token);
+                            global::System.Text.UTF8Encoding encoding = new UTF8Encoding(false);
+                            return encoding;
+                        }
+
+                        await using (var writer = new StreamWriter(stream, CalculateEncoding()))
+                        {
+                            await writer.WriteLineAsync("name,lessonType".AsMemory(), token);
+                            foreach (var lesson in ordered)
+                            {
+                                string replace = lesson.Topic.Replace("\"", "\"\"");
+                                string text = $"\"{replace}\",";
+                                var line = (string) text + lesson.LessonType;
+                                await writer.WriteLineAsync(line.AsMemory(), token);
+                            }
                         }
                     }
+
                     files.Add(name);
-                    sources.Add(new(
+                    global::System.Collections.Generic.List<global::ScheduleLib.Cli.RegistryHistoryTopicFileSource> list = sources;
+                    global::ScheduleLib.Cli.RegistryHistoryTopicFileSource item2 = new(
                         File: name,
                         CurrentCourse: candidate.CurrentCourse.Name,
                         candidate.CurrentCourse.Semester,
@@ -146,7 +160,8 @@ public static class RegistryHistoryTopicFiles
                         group.Uri,
                         lessons.Key,
                         ordered.Select(x => x.Date).ToArray(),
-                        CourseMapping: candidate.CourseMapping));
+                        CourseMapping: candidate.CourseMapping);
+                    list.Add(item2);
                 }
             }
         }
@@ -207,7 +222,9 @@ public static class RegistryHistoryTopicFiles
     public static void ValidateDirectory(string directory)
     {
         directory = Path.GetFullPath(directory);
-        if (Path.GetFileName(Path.TrimEndingDirectorySeparator(directory)) != ".registry-history")
+        string path = Path.TrimEndingDirectorySeparator(directory);
+        string fileName = Path.GetFileName(path);
+        if (fileName != ".registry-history")
         {
             throw new IOException("Private history output requires a directory named .registry-history.");
         }

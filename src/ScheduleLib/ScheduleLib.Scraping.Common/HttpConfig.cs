@@ -202,7 +202,8 @@ internal sealed class HttpClientRequester : BaseRequester
         var previousCallback = _onSubmissionStarted.Value;
         _suppressAuthenticationReplay.Value = true;
         _onSubmissionStarted.Value = onSubmissionStarted;
-        try { return await submit(); }
+        try
+        { return await submit(); }
         finally
         {
             _suppressAuthenticationReplay.Value = previous;
@@ -219,7 +220,11 @@ internal sealed class HttpClientRequester : BaseRequester
         {
             using var httpRequest = ToHttpRequest(request);
             cancel.ThrowIfCancellationRequested();
-            if (httpRequest.Method == HttpMethod.Post) _onSubmissionStarted.Value?.Invoke();
+            if (httpRequest.Method == HttpMethod.Post)
+            {
+                _onSubmissionStarted.Value?.Invoke();
+            }
+
             var httpResponse = await _httpClient.SendAsync(
                 request: httpRequest,
                 completionOption: HttpCompletionOption.ResponseHeadersRead,
@@ -281,9 +286,10 @@ internal sealed class HttpClientRequester : BaseRequester
             _ => throw new ArgumentOutOfRangeException(nameof(request.Method)),
         };
 
+        global::System.Net.Http.HttpMethod method2 = method;
+        global::System.Uri requestUri2 = new Uri(request.Address.ToString());
         var ret = new HttpRequestMessage(
-            method: method,
-            requestUri: new Uri(request.Address.ToString()));
+            method: method2, requestUri: requestUri2);
         try
         {
             if (request.Content != null)

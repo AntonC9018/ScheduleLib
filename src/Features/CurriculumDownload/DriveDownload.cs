@@ -50,7 +50,10 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
         }
 
         if (CheckCondition())
+        {
             throw new CurriculaSourceUnavailableException("The coded curricula source is unavailable or is not a folder; update its owner/path in C# configuration if required.");
+        }
+
         var driveId = root.ParentReference.DriveId;
         var files = new List<CurriculaFile>();
         var groups = await graph.Drives[driveId].Items[root.Id].Children.Request().Select("name,id,folder,file").GetAsync(token);
@@ -60,12 +63,20 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
             {
                 token.ThrowIfCancellationRequested();
                 if (group.Folder is null)
+                {
                     continue;
+                }
+
                 var documents = await graph.Drives[driveId].Items[group.Id].Children.Request().Select("name,id,folder,file").GetAsync(token);
                 while (documents is not null)
                 {
                     foreach (var document in documents.Where(x => x.File is not null))
-                        files.Add(new(Group: group.Name, Name: document.Name, Id: document.Id, DriveId: driveId));
+                    {
+                        global::System.Collections.Generic.List<global::ScheduleLib.Curriculum.Download.CurriculaFile> list = files;
+                        global::ScheduleLib.Curriculum.Download.CurriculaFile item = new(Group: group.Name, Name: document.Name, Id: document.Id, DriveId: driveId);
+                        list.Add(item);
+                    }
+
                     documents = documents.NextPageRequest is { } nextDocuments ? await nextDocuments.GetAsync(token) : null;
                 }
             }

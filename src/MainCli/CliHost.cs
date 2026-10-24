@@ -59,7 +59,11 @@ public static class CliHost
         if (CheckCondition())
         {
             capture = new();
-            runner.Configure(builder => builder.Console = capture);
+            runner.Configure(builder =>
+            {
+                global::CommandDotNet.AppConfigBuilder appConfigBuilder = builder;
+                appConfigBuilder.Console = capture;
+            });
         }
         runner.Configure(builder => builder.UseMiddleware(
             (context, next) =>
@@ -130,7 +134,22 @@ public static class CliHost
         try
         {
             configure?.Invoke(runner);
-            var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
+            string[] CalculateArgs()
+            {
+                string[] args2;
+                if (args.Length == 0)
+                {
+                    args2 = ["--help"];
+                }
+                else
+                {
+                    args2 = args;
+                }
+
+                return args2;
+            }
+
+            var result = await runner.RunAsync(CalculateArgs());
             bool conditionResult;
             if (result == 0)
             {
@@ -237,11 +256,12 @@ public static class CliHost
 
             if (conditionResult4)
             {
+                string command = "cli";
+                string runId = Guid.NewGuid().ToString("N");
+                bool json = false;
+                bool jsonl = true;
                 var output = new CliOutput(
-                    "cli",
-                    Guid.NewGuid().ToString("N"),
-                    false,
-                    true);
+                    command, runId, json, jsonl);
                 output.EmitStart();
                 output.WriteError(e.Message);
                 output.EmitFinal(
@@ -284,11 +304,12 @@ public static class CliHost
 
             if (hasJsonl)
             {
+                string command = "cli";
+                string runId = Guid.NewGuid().ToString("N");
+                bool json = false;
+                bool jsonl = true;
                 var output = new CliOutput(
-                    "cli",
-                    Guid.NewGuid().ToString("N"),
-                    false,
-                    true);
+                    command, runId, json, jsonl);
                 output.EmitStart();
                 foreach (var detail in details)
                 {
@@ -304,20 +325,27 @@ public static class CliHost
             }
             else if (hasJson)
             {
+                global::ScheduleLib.Cli.CommandResult<object?> CalculateValue()
+                {
+                    int schemaVersion = 1;
+                    string command2 = "cli";
+                    string runId2 = Guid.NewGuid().ToString("N");
+                    string status = "failed";
+                    int exitCode = exit;
+                    string[] outputs = [];
+                    string[] actions = [];
+                    string[] warnings = [];
+                    string[] errors = [error];
+                    object? data = null;
+                    global::ScheduleLib.Cli.CommandResult<object?> value = new CommandResult<object?>(
+                    schemaVersion, command2, runId2, status, exitCode, outputs, actions, warnings, errors, data);
+                    return value;
+                }
+
                 Console.WriteLine(
-                    JsonSerializer.Serialize(
-                        new CommandResult<object?>(
-                            1,
-                            "cli",
-                            Guid.NewGuid().ToString("N"),
-                            "failed",
-                            exit,
-                            [],
-                            [],
-                            [],
-                            [error],
-                            null),
-                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                                    JsonSerializer.Serialize(
+                                        CalculateValue(),
+                                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             }
         }
     }
@@ -563,25 +591,33 @@ public partial class QueryCommands
                 }
 
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
+                string CalculateStart()
+                {
+                    string start = interval.Start.ToString("HH:mm");
+                    return start;
+                }
+
                 var item = new LessonResult(
-                    lesson.Date.DayOfWeek.ToString(),
-                    lesson.Date.Parity.ToString(),
-                    lesson.Date.TimeSlot.Index + 1,
-                    interval.Start.ToString("HH:mm"),
-                    interval.End.ToString("HH:mm"),
-                    lesson.Lesson.Room.Id,
-                    schedule.Get(lesson.Lesson.Course).FullName,
-                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray());
+                                    lesson.Date.DayOfWeek.ToString(),
+                                    lesson.Date.Parity.ToString(),
+                                    lesson.Date.TimeSlot.Index + 1,
+                                    CalculateStart(),
+                                    interval.End.ToString("HH:mm"),
+                                    lesson.Lesson.Room.Id,
+                                    schedule.Get(lesson.Lesson.Course).FullName,
+                                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray());
                 lessons.Add(item);
-                context.StreamItem(
-                    streamed.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
-                    item,
-                    renderHuman: () =>
+                global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+                string id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string status2 = "completed";
+                object item2 = item;
+                global::System.Action renderHuman2 = () =>
                     {
                         output.WriteHuman(
                             $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
-                    });
+                    };
+                cliCommandContext.StreamItem(
+                    id, status2, item2, renderHuman: renderHuman2);
                 streamed++;
             }
             return Finish(
@@ -618,7 +654,12 @@ public partial class QueryCommands
                 Summary = new { count = streamed },
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => output.WriteHuman($"{status}: {streamed} lessons."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                    string line = $"{status}: {streamed} lessons.";
+                    cliOutput.WriteHuman(line);
+                },
             });
         }
     }

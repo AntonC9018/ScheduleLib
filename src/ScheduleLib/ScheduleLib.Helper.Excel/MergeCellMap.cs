@@ -41,7 +41,9 @@ public sealed class MergeCellMap
             {
                 throw new InvalidOperationException("Range syntax continues?");
             }
-            int width = (int) (end.Col - start.Col + 1);
+            uint uInt32 = end.Col - start.Col;
+            uint uInt322 = uInt32 + 1;
+            int width = (int) (uInt322);
             _cellWidths[start] = width;
         }
     }

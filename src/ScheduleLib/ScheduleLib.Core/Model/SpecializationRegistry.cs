@@ -132,25 +132,35 @@ public sealed class SpecializationRegistry
             var constraints = new List<string>(4);
             if (selector.Grade is { } grade)
             {
-                constraints.Add($"grade {grade.Value}");
+                global::System.Collections.Generic.List<string> list = constraints;
+                string item = $"grade {grade.Value}";
+                list.Add(item);
             }
             if (selector.Faculty is { } faculty)
             {
-                constraints.Add($"faculty {faculty.Name}");
+                global::System.Collections.Generic.List<string> list2 = constraints;
+                string item2 = $"faculty {faculty.Name}";
+                list2.Add(item2);
             }
             if (selector.AttendanceMode is { } attendance)
             {
-                constraints.Add($"attendance {attendance}");
+                global::System.Collections.Generic.List<string> list3 = constraints;
+                string item3 = $"attendance {attendance}";
+                list3.Add(item3);
             }
             if (selector.Qualification is { } qualification)
             {
-                constraints.Add($"qualification {qualification}");
+                global::System.Collections.Generic.List<string> list4 = constraints;
+                string item4 = $"qualification {qualification}";
+                list4.Add(item4);
             }
 
             var selectorText = constraints.Count == 0
                 ? "any group"
                 : string.Join(", ", constraints);
-            matches.Add($"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]");
+            global::System.Collections.Generic.List<string> list5 = matches;
+            string item5 = $"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]";
+            list5.Add(item5);
         }
 
         return matches.Count == 0
@@ -211,10 +221,13 @@ public sealed class SpecializationSetBuilder
     {
         var b = new GroupSelectorBuilder();
         configure(b);
-        _owner.Add(new(
+        global::ScheduleLib.SpecializationRegistryBuilder specializationRegistryBuilder = _owner;
+        global::ScheduleLib.GroupCategorySelector selector = new(
             Grade: b.Grade,
             Faculty: b.Faculty,
             AttendanceMode: b.AttendanceMode,
-            Qualification: b.Qualification), _values);
+            Qualification: b.Qualification);
+        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Specialization> values = _values;
+        specializationRegistryBuilder.Add(selector, values);
     }
 }

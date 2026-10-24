@@ -53,7 +53,13 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task SuppliedGroupsReportBothParitiesAndBothOccupancyModes()
     {
-        var data = (await Execute(For("M2301", "IA2301"))).GetProperty("data");
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups = For("M2301", "IA2301");
+            return groups;
+        }
+
+        var data = (await Execute(CalculateGroups())).GetProperty("data");
         Assert.Equal(
             expected: new[]
             {
@@ -92,12 +98,16 @@ public sealed class FreeHoursTests
 
         // The fixture's two parities differ for M2301 on Wednesday.
         Assert.Equal(expected: "Wednesday: 08:00-11:15,15:00-20:00 | ", actual: Day(sections[0], "Wednesday"));
-        Assert.Equal(expected: "Wednesday: 08:00-11:15,16:45-20:00 | ", actual: Day(sections[4], "Wednesday"));
+        string expected2 = "Wednesday: 08:00-11:15,16:45-20:00 | ";
+        string actual2 = Day(sections[4], "Wednesday");
+        Assert.Equal(expected: expected2, actual: actual2);
         // Every IA2301 lesson is held every week, so its parities are identical.
         Assert.Equal(
             expected: "Monday: 08:00-13:00 | Tuesday: 08:00-14:45,18:30-20:00 | Wednesday: 08:00-09:30,13:15-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-11:15,15:00-20:00 | ",
             actual: Days(sections[2]));
-        Assert.Equal(expected: Days(sections[2]), actual: Days(sections[6]));
+        string expected3 = Days(sections[2]);
+        string actual3 = Days(sections[6]);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -107,8 +117,14 @@ public sealed class FreeHoursTests
         // subgroup I at 15:00-16:30 and one for subgroup II at 18:30-20:00. Only the first
         // one occupies its slot when only whole-group lessons count, so the two modes must
         // report different free intervals for the very same lessons.
-        var mia = (await Execute(For("MIASD2501"))).GetProperty("data").GetProperty("sections").EnumerateArray()
-            .ToArray();
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups = For("MIASD2501");
+            return groups;
+        }
+
+        var mia = (await Execute(CalculateGroups())).GetProperty("data").GetProperty("sections").EnumerateArray()
+                    .ToArray();
         Assert.Equal(
             expected: new[]
             {
@@ -118,13 +134,27 @@ public sealed class FreeHoursTests
                 "MIASD2501/OddWeek/every",
             },
             actual: mia.Select(Name).ToArray());
-        Assert.Equal(expected: "Tuesday: 08:00-16:30,18:30-20:00 | ", actual: Day(mia[0], "Tuesday"));
-        Assert.Equal(expected: "Tuesday: 08:00-14:45 | ", actual: Day(mia[1], "Tuesday"));
-        Assert.Equal(expected: "Tuesday: 08:00-16:30,18:30-20:00 | ", actual: Day(mia[2], "Tuesday"));
-        Assert.Equal(expected: "Tuesday: 08:00-14:45 | ", actual: Day(mia[3], "Tuesday"));
+        string expected2 = "Tuesday: 08:00-16:30,18:30-20:00 | ";
+        string actual2 = Day(mia[0], "Tuesday");
+        Assert.Equal(expected: expected2, actual: actual2);
+        string expected3 = "Tuesday: 08:00-14:45 | ";
+        string actual3 = Day(mia[1], "Tuesday");
+        Assert.Equal(expected: expected3, actual: actual3);
+        string expected4 = "Tuesday: 08:00-16:30,18:30-20:00 | ";
+        string actual4 = Day(mia[2], "Tuesday");
+        Assert.Equal(expected: expected4, actual: actual4);
+        string expected5 = "Tuesday: 08:00-14:45 | ";
+        string actual5 = Day(mia[3], "Tuesday");
+        Assert.Equal(expected: expected5, actual: actual5);
 
         // DJ2301 is the same story with subgroup I lessons at 16:45-18:15 and 18:30-20:00.
-        var dj = (await Execute(For("DJ2301"))).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups2()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups2 = For("DJ2301");
+            return groups2;
+        }
+
+        var dj = (await Execute(CalculateGroups2())).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
         Assert.Equal(
             expected: new[]
             {
@@ -134,8 +164,12 @@ public sealed class FreeHoursTests
                 "DJ2301/OddWeek/every",
             },
             actual: dj.Select(Name).ToArray());
-        Assert.Equal(expected: "Tuesday: 08:00-11:15,13:15-20:00 | ", actual: Day(dj[2], "Tuesday"));
-        Assert.Equal(expected: "Tuesday: 08:00-11:15,13:15-16:30 | ", actual: Day(dj[3], "Tuesday"));
+        string expected6 = "Tuesday: 08:00-11:15,13:15-20:00 | ";
+        string actual6 = Day(dj[2], "Tuesday");
+        Assert.Equal(expected: expected6, actual: actual6);
+        string expected7 = "Tuesday: 08:00-11:15,13:15-16:30 | ";
+        string actual7 = Day(dj[3], "Tuesday");
+        Assert.Equal(expected: expected7, actual: actual7);
     }
 
     [Fact]
@@ -152,9 +186,15 @@ public sealed class FreeHoursTests
                     new() { Groups = ["IA2301"] },
                     Source(),
                     new()));
+            string[] CalculateActual()
+            {
+                string[] actual2 = output.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                return actual2;
+            }
+
             Assert.Equal(
-                expected: new[]
-                {
+                            expected: new[]
+                            {
                     "IA2301, EvenWeek week, whole-group lessons and unspecialized optional lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
@@ -179,8 +219,8 @@ public sealed class FreeHoursTests
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                },
-                actual: output.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries));
+                            },
+                            actual: CalculateActual());
         }
         finally
         {
@@ -217,48 +257,102 @@ public sealed class FreeHoursTests
             "Luni:8:00-13:00,16:45-20:00", "Marţi:8:00-11:15,16:45-20:00", "Miercuri:8:00-11:15,16:45-20:00",
             "Joi:8:00-9:30,15:00-20:00", "Vineri:8:00-9:30,16:45-20:00",
         ];
+        string CalculateValues()
+        {
+            string values = Block(
+                            parity: "par",
+                            @group: "IA2301",
+                            true,
+                            everyWeek);
+            return values;
+        }
+
+        string CalculateBlock()
+        {
+            string block = Block(
+                                    parity: "par",
+                                    @group: "IA2301",
+                                    false,
+                                    everyWeek);
+            return block;
+        }
+
+        string CalculateBlock2()
+        {
+            string block2 = Block(
+                                            parity: "par",
+                                            @group: "M2301",
+                                            true,
+                                            m2301Par);
+            return block2;
+        }
+
+        string CalculateBlock3()
+        {
+            string block3 = Block(
+                                                    parity: "par",
+                                                    @group: "M2301",
+                                                    false,
+                                                    m2301Par);
+            return block3;
+        }
+
+        string CalculateBlock4()
+        {
+            string block4 = Block(
+                                                            parity: "impar",
+                                                            @group: "IA2301",
+                                                            true,
+                                                            everyWeek);
+            return block4;
+        }
+
+        string CalculateBlock5()
+        {
+            string block5 = Block(
+                                                                    parity: "impar",
+                                                                    @group: "IA2301",
+                                                                    false,
+                                                                    everyWeek);
+            return block5;
+        }
+
+        string CalculateBlock6()
+        {
+            string block6 = Block(
+                                                                            parity: "impar",
+                                                                            @group: "M2301",
+                                                                            true,
+                                                                            m2301Impar);
+            return block6;
+        }
+
+        string CalculateBlock7()
+        {
+            string block7 = Block(
+                                                                                    parity: "impar",
+                                                                                    @group: "M2301",
+                                                                                    false,
+                                                                                    m2301Impar);
+            return block7;
+        }
+
         var expected = string.Concat(
-            Block(
-                parity: "par",
-                @group: "IA2301",
-                true,
-                everyWeek),
-            Block(
-                parity: "par",
-                @group: "IA2301",
-                false,
-                everyWeek),
-            Block(
-                parity: "par",
-                @group: "M2301",
-                true,
-                m2301Par),
-            Block(
-                parity: "par",
-                @group: "M2301",
-                false,
-                m2301Par),
-            Block(
-                parity: "impar",
-                @group: "IA2301",
-                true,
-                everyWeek),
-            Block(
-                parity: "impar",
-                @group: "IA2301",
-                false,
-                everyWeek),
-            Block(
-                parity: "impar",
-                @group: "M2301",
-                true,
-                m2301Impar),
-            Block(
-                parity: "impar",
-                @group: "M2301",
-                false,
-                m2301Impar));
-        Assert.Equal(expected: expected, actual: builder.ToString().Replace("\r\n", "\n"));
+                                                                            CalculateValues(),
+                                                                            CalculateBlock(),
+                                                                            CalculateBlock2(),
+                                                                            CalculateBlock3(),
+                                                                            CalculateBlock4(),
+                                                                            CalculateBlock5(),
+                                                                            CalculateBlock6(),
+                                                                            CalculateBlock7());
+        string CalculateActual()
+        {
+            string actual2 = builder.ToString().Replace("\r\n", "\n");
+            return actual2;
+        }
+
+        Assert.Equal(expected: expected, actual: CalculateActual());
 
         static string Block(
             string parity,
@@ -271,7 +365,13 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task UnknownGroupFailsClearlyWithoutWarnings()
     {
-        var result = await Execute(For("IA2301", "NOPE"), expected: 2);
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups = For("IA2301", "NOPE");
+            return groups;
+        }
+
+        var result = await Execute(CalculateGroups(), expected: 2);
         Assert.Equal(expected: "failed", actual: result.GetProperty("status").GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
         Assert.Equal(expected: 2, actual: result.GetProperty("exitCode").GetInt32());
@@ -282,7 +382,13 @@ public sealed class FreeHoursTests
             },
             actual: result.GetProperty("errors").EnumerateArray().Select(x => x.GetString()).ToArray());
         Assert.Empty(result.GetProperty("warnings").EnumerateArray().Select(x => x.GetString()));
-        var suggestion = await Execute(For("ia2301"), expected: 2);
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups2()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups2 = For("ia2301");
+            return groups2;
+        }
+
+        var suggestion = await Execute(CalculateGroups2(), expected: 2);
         Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?", actual: suggestion.GetProperty("errors")[0].GetString());
     }
 
@@ -328,15 +434,23 @@ public sealed class FreeHoursTests
             "2025_sem2",
             "zi");
         Directory.CreateDirectory(zi);
+        string CalculateFile()
+        {
+            string file = Path.Combine(
+                                   FixtureDirectory(),
+                                   "2025_sem2",
+                                   "zi",
+                                   "master.xlsx");
+            return file;
+        }
+
         using (var workbook = new XLWorkbook(
-                   Path.Combine(
-                       FixtureDirectory(),
-                       "2025_sem2",
-                       "zi",
-                       "master.xlsx")))
+                           CalculateFile()))
         {
             workbook.Worksheet(1).Rows(firstRow: 4, lastRow: 18).Delete();
-            workbook.SaveAs(Path.Combine(zi, "master.xlsx"));
+            global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
+            string file2 = Path.Combine(zi, "master.xlsx");
+            xLWorkbook.SaveAs(file2);
         }
         var original = Console.Out;
         using var output = new StringWriter();
@@ -358,9 +472,15 @@ public sealed class FreeHoursTests
             Assert.Equal(expected: 4, actual: sections.Length);
             foreach (var section in sections)
             {
+                string CalculateActual()
+                {
+                    string actual2 = Days(section);
+                    return actual2;
+                }
+
                 Assert.Equal(
-                    expected: "Monday: 08:00-20:00 | Tuesday: 08:00-20:00 | Wednesday: 08:00-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-20:00 | ",
-                    actual: Days(section));
+                                    expected: "Monday: 08:00-20:00 | Tuesday: 08:00-20:00 | Wednesday: 08:00-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-20:00 | ",
+                                    actual: CalculateActual());
             }
         }
         finally
@@ -372,13 +492,19 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
+        global::System.Threading.CancellationToken CalculateCancellationToken()
+        {
+            global::System.Threading.CancellationToken cancellationToken = new CancellationToken(canceled: true);
+            return cancellationToken;
+        }
+
         Assert.Equal(
-            expected: 130,
-            actual: await new FixtureQuery().FreeHours(
-                new() { Groups = ["IA2301"] },
-                new(),
-                new(),
-                new CancellationToken(canceled: true)));
+                    expected: 130,
+                    actual: await new FixtureQuery().FreeHours(
+                        new() { Groups = ["IA2301"] },
+                        new(),
+                        new(),
+                        CalculateCancellationToken()));
     }
 
     [Fact]
@@ -418,7 +544,10 @@ public sealed class FreeHoursTests
         // Entry checks saw an active token; enumeration triggered cancellation. A final
         // guard alone would consume every lesson instead of stopping at the first one.
         Assert.Equal(expected: 1, actual: enumerated);
-        Assert.Equal(expected: 4, actual: handler.Sections(["IA2301"], CancellationToken.None).Length);
+        int expected2 = 4;
+        global::ScheduleLib.Application.Core.FreeHoursSection[] sections = handler.Sections(["IA2301"], CancellationToken.None);
+        int actual2 = sections.Length;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -427,11 +556,23 @@ public sealed class FreeHoursTests
         using var cancellation = new CancellationTokenSource();
         // Every section is computed by then, so only a check right before the result is
         // reported can still turn this into a cancellation instead of a success.
+        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        {
+            global::ScheduleLib.Cli.FreeHoursArguments groups = For("IA2301");
+            return groups;
+        }
+
+        global::FreeHoursTests.LateCancellingQuery CalculateQuery()
+        {
+            global::FreeHoursTests.LateCancellingQuery query = new LateCancellingQuery(cancellation);
+            return query;
+        }
+
         var result = await Execute(
-            For("IA2301"),
-            new LateCancellingQuery(cancellation),
-            cancellation.Token,
-            expected: 130);
+                            CalculateGroups(),
+                            CalculateQuery(),
+                            cancellation.Token,
+                            expected: 130);
         Assert.Equal(expected: 130, actual: result.GetProperty("exitCode").GetInt32());
         Assert.Equal(expected: "failed", actual: result.GetProperty("status").GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
@@ -532,11 +673,17 @@ public sealed class FreeHoursTests
             Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
             Assert.Equal(expected: "query free-hours", actual: document.RootElement.GetProperty("command").GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
+            global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+            {
+                global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(
+                                    path: FixtureDirectory(),
+                                    searchPattern: "*schedule_*.json",
+                                    SearchOption.AllDirectories);
+                return collection;
+            }
+
             Assert.Empty(
-                Directory.EnumerateFiles(
-                    path: FixtureDirectory(),
-                    searchPattern: "*schedule_*.json",
-                    SearchOption.AllDirectories));
+                            CalculateCollection());
             return document.RootElement.Clone();
         }
         finally
@@ -555,10 +702,16 @@ public sealed class FreeHoursTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-free-hours-{Guid.NewGuid():N}");
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
         public TempDirectory() => Directory.CreateDirectory(Path);
         public void Dispose() => Directory.Delete(Path, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = $"schedulelib-free-hours-{Guid.NewGuid():N}";
+            return path2;
+        }
     }
 
     private abstract class FixtureQueryBase : QueryCommands
@@ -568,7 +721,11 @@ public sealed class FreeHoursTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);

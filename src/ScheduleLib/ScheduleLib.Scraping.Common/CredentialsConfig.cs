@@ -43,7 +43,7 @@ public readonly struct CredentialsSourceBuilder
 
 public static class CredentialsBuilderExtensions
 {
-    extension<T> (NodeDataBuilder<T> builder)
+    extension<T>(NodeDataBuilder<T> builder)
         where T : class, ICredentialsHolder
     {
         public CredentialsSourceBuilder Credentials()
@@ -53,7 +53,7 @@ public static class CredentialsBuilderExtensions
         }
     }
 
-    extension (CredentialsSourceBuilder builder)
+    extension(CredentialsSourceBuilder builder)
     {
         public void FromConfig()
         {
@@ -84,7 +84,7 @@ public static class CredentialsBuilderExtensions
         }
     }
 
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void AddCredentialsResolver<T>(
             string serviceKey,
@@ -123,25 +123,25 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
         switch (source)
         {
             case AppConfigCredentialsSource:
-            {
-                // TODO: Support other types of sources.
-                var credentials = _resolver.Resolve(serviceKey);
-                if (credentials != null)
                 {
-                    return credentials;
+                    // TODO: Support other types of sources.
+                    var credentials = _resolver.Resolve(serviceKey);
+                    if (credentials != null)
+                    {
+                        return credentials;
+                    }
+                    {
+                        throw new InvalidOperationException("Credentials must be given as per configuration");
+                    }
                 }
-                {
-                    throw new InvalidOperationException("Credentials must be given as per configuration");
-                }
-            }
             case ValueCredentialsSource v:
-            {
-                return v.Value;
-            }
+                {
+                    return v.Value;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 }

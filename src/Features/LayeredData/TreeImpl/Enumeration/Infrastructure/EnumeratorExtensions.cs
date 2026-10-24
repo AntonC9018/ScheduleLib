@@ -11,11 +11,11 @@ public static class EnumerableExtensions
 
         public IEnumerable<T> DebugAssertSingleUse()
         {
-            #if DEBUG
-                return new DebugAssertSingleUseEnumerable<T>(e);
-            #else
+#if DEBUG
+            return new DebugAssertSingleUseEnumerable<T>(e);
+#else
                 return e.AsSingleUse();
-            #endif
+#endif
         }
     }
 }

@@ -13,12 +13,16 @@ public sealed class ParseTimeTests
     [Fact]
     public void HourDigitsWithoutColonReturnsNull()
     {
-        Assert.Null(Parse("15"));
+        global::System.TimeOnly? value = Parse("15");
+        Assert.Null(value);
     }
 
     [Fact]
     public void ValidTimeParses()
     {
-        Assert.Equal(expected: new TimeOnly(hour: 15, minute: 30), actual: Parse("15:30"));
+        global::System.TimeOnly expected2 = new TimeOnly(hour: 15, minute: 30);
+        global::System.TimeOnly? expected3 = expected2;
+        global::System.TimeOnly? actual2 = Parse("15:30");
+        Assert.Equal(expected: expected3, actual: actual2);
     }
 }

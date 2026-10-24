@@ -180,8 +180,14 @@ public sealed class RegistryScrapingTests
         Assert.False(ordinary.IsAdditionalCourses);
         Assert.True(additional.IsAdditionalCourses);
         var resolver = new GroupPartitionResolver(null);
-        Assert.Equal(expected: resolver.Resolve(ordinary), actual: resolver.Resolve(additional));
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), actual: resolver.Resolve(additional));
+        global::ScheduleLib.GroupPartitionKey expected2 = resolver.Resolve(ordinary);
+        global::ScheduleLib.GroupPartitionKey actual2 = resolver.Resolve(additional);
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.Specialization specialization = Specialization.All;
+        global::ScheduleLib.GroupPartitionKey expected3 = new GroupPartitionKey(subGroup, specialization);
+        global::ScheduleLib.GroupPartitionKey actual3 = resolver.Resolve(additional);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -228,7 +234,18 @@ public sealed class RegistryScrapingTests
         Assert.Equal(expected: language, actual: result.Language);
         Assert.Equal(expected: grade, actual: result.Grade.Value);
         Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
-        Assert.Equal(expected: master ? QualificationType.Master : QualificationType.Licenta, actual: result.QualificationType);
+        global::ScheduleLib.QualificationType expected2;
+        if (master)
+        {
+            expected2 = QualificationType.Master;
+        }
+        else
+        {
+            expected2 = QualificationType.Licenta;
+        }
+
+        global::ScheduleLib.QualificationType actual2 = result.QualificationType;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.False(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
@@ -317,13 +334,21 @@ public sealed class RegistryScrapingTests
             _ => Specialization.DezvoltareaAplicatiilor,
         };
         var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
-        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, $"IA25({alias})ru");
+        global::ScheduleLib.Parsing.GroupParser.GroupParseContext context2 = context;
+        string s = $"IA25({alias})ru";
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context2, s);
         result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!.AsMemory();
         Assert.True(result.IsWildcard);
         Assert.Null(result.GroupNumber);
         Assert.Equal(expected: 2, actual: result.Grade.Value);
         Assert.Equal(expected: Language.Ru, actual: result.Language);
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, specialization), actual: new GroupPartitionResolver(null).Resolve(result));
+        global::ScheduleLib.GroupPartitionKey CalculateExpected()
+        {
+            global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, specialization);
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
 
@@ -337,7 +362,13 @@ public sealed class RegistryScrapingTests
         Assert.True(result.IsWildcard);
         Assert.Equal(expected: Language.Ru, actual: result.Language);
         Assert.Equal(expected: 2, actual: result.Grade.Value);
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, Specialization.GA2D), actual: new GroupPartitionResolver(null).Resolve(result));
+        global::ScheduleLib.GroupPartitionKey CalculateExpected()
+        {
+            global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.GA2D);
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
     [Fact]

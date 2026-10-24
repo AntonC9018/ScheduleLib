@@ -21,17 +21,29 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public void ExtractsOnlyDateTypeAndTopicWithoutAttendanceOrMutationLinks()
     {
-        var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons));
+        global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(Lessons);
+            return document;
+        }
+
+        var lessons = RegistryHistoryTopicsHtml.Lessons(CalculateDocument());
         Assert.Equal(expected: 2, actual: lessons.Count);
+        global::System.DateTime CalculateExpected()
+        {
+            global::System.DateTime expected2 = new DateTime(
+                            year: 2024,
+                            month: 10,
+                            day: 3,
+                            hour: 9,
+                            minute: 45,
+                            second: 0);
+            return expected2;
+        }
+
         Assert.Equal(
-            expected: new DateTime(
-                year: 2024,
-                month: 10,
-                day: 3,
-                hour: 9,
-                minute: 45,
-                second: 0),
-            actual: lessons[0].Date);
+                    expected: CalculateExpected(),
+                    actual: lessons[0].Date);
         Assert.Equal(expected: LessonType.Lab, actual: lessons[0].LessonType);
         Assert.Equal(expected: "Synthetic first, \"quoted\" topic", actual: lessons[0].Topic);
         var json = JsonSerializer.Serialize(lessons);
@@ -47,9 +59,15 @@ public sealed class RegistryHistoryTopicsTests
     public void SequenceRemovalPreservesBlankPositionsAndTopicNumbers(string cell, string expected)
     {
         var html = (string) $"<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr> <tr><td><a>01.10.2024 08:00</a> curs</td><td>{cell}</td><td></td></tr></table>";
+        string expected2 = expected;
+        global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(html);
+        global::AngleSharp.Dom.IDocument document2 = document;
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic> collection = RegistryHistoryTopicsHtml.Lessons(document2);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic> collection2 = collection;
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic single = Assert.Single(collection2);
+        string actual2 = single.Topic;
         Assert.Equal(
-            expected: expected,
-            actual: Assert.Single(RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html))).Topic);
+            expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -62,7 +80,15 @@ public sealed class RegistryHistoryTopicsTests
     public void ChangedLessonMarkupFailsWithGenericDiagnostics(string html)
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
-            RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html)));
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+            {
+                global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(html);
+                return document;
+            }
+
+            return RegistryHistoryTopicsHtml.Lessons(CalculateDocument());
+        });
         Assert.Equal(expected: RegistryHistoryPhase.Lessons, actual: error.Phase);
         Assert.Equal(expected: RegistryHistoryDiagnostic.TopicTable, actual: error.Diagnostic);
         Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.Message);
@@ -133,7 +159,10 @@ public sealed class RegistryHistoryTopicsTests
             historical);
         var candidate = Assert.Single(selection.Candidates);
         Assert.Equal(expected: "2024/25", actual: candidate.Historical.Year);
-        Assert.Equal(expected: "new", actual: Assert.Single(candidate.Historical.Groups).Name);
+        string expected2 = "new";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryGroupTopics single = Assert.Single(candidate.Historical.Groups);
+        string actual2 = single.Name;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: 2, actual: candidate.Historical.Groups[0].Lessons.Count);
         Assert.Equal(expected: 3, actual: selection.Unresolved.Count);
         Assert.Contains(selection.Unresolved, x => x.Reason == RegistryHistoryTopicMappingFailure.AmbiguousCourse);
@@ -163,32 +192,76 @@ public sealed class RegistryHistoryTopicsTests
     public async Task OnlyExactLessonListReadsReachTransport(string path, bool allowed)
     {
         using var inner = new FakeHandler();
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         if (allowed)
         {
-            using var response = await client.GetAsync(new Uri(Index, path));
+            global::System.Uri CalculateRequestUri()
+            {
+                global::System.Uri requestUri = new Uri(Index, path);
+                return requestUri;
+            }
+
+            using var response = await client.GetAsync(CalculateRequestUri());
         }
         else
         {
-            await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index, path)));
+            await Assert.ThrowsAsync<RegistryHistoryException>(() =>
+            {
+                global::System.Uri CalculateRequestUri()
+                {
+                    global::System.Uri requestUri = new Uri(Index, path);
+                    return requestUri;
+                }
+
+                return client.GetAsync(CalculateRequestUri());
+            });
         }
 
-        Assert.Equal(expected: allowed ? 1 : 0, actual: inner.Calls);
+        int expected2;
+        if (allowed)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 0;
+        }
+
+        int actual2 = inner.Calls;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
     public async Task CandidateFilesArePrivateAppendOnlyCsvWithSeparateUnresolvedProvenance()
     {
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         try
         {
             var selection = RegistryHistoryTopicSelection.Select(
@@ -262,7 +335,9 @@ public sealed class RegistryHistoryTopicsTests
                 inventory.RootElement.GetProperty("sources").EnumerateArray(),
                 source =>
                     Assert.Equal(expected: "requires-group-mapping", actual: source.GetProperty("courseMapping").GetString()));
-            Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
+            string path = Path.Combine(directory, "manifest.json");
+            bool condition = File.Exists(path);
+            Assert.False(condition);
         }
         finally
         {
@@ -305,18 +380,40 @@ public sealed class RegistryHistoryTopicsTests
                 html = Lessons;
             }
 
-            return new(HttpStatusCode.OK) { Content = new StringContent((string) $"{logout}{html}") };
+            string CalculateContent()
+            {
+                string text = $"{logout}{html}";
+                string content = (string) text;
+                return content;
+            }
+
+            return new(HttpStatusCode.OK) { Content = new StringContent(CalculateContent()) };
         });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var analysis = await new RegistryHistoryTopicsReader(client, Index).Discover(default);
         Assert.Equal(expected: "2025/26", actual: analysis.Selection.CurrentYear);
-        Assert.Equal(expected: "2024/25", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        string expected2 = "2024/25";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate single = Assert.Single(analysis.Selection.Candidates);
+        string actual2 = single.Historical.Year;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(analysis.Current);
         Assert.Equal(
             expected: new[]
@@ -329,14 +426,19 @@ public sealed class RegistryHistoryTopicsTests
                 "/studregistry/LessonAttendance/LessonsList/1?groupId=2",
             },
             actual: requests);
-        Assert.DoesNotContain(expectedSubstring: "canary", actualString: JsonSerializer.Serialize(analysis));
+        string expectedSubstring2 = "canary";
+        string actualString2 = JsonSerializer.Serialize(analysis);
+        Assert.DoesNotContain(expectedSubstring: expectedSubstring2, actualString: actualString2);
     }
 
     [Fact]
     public async Task ReaderStopsBeforeOlderYearWhenLatestTopicsResolveCourse()
     {
         var (analysis, requests) = await ReadThreeYearHistory();
-        Assert.Equal(expected: "2024/25", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        string expected2 = "2024/25";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate single = Assert.Single(analysis.Selection.Candidates);
+        string actual2 = single.Historical.Year;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(analysis.Current);
         Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
         Assert.DoesNotContain(requests, path => path.EndsWith("/groups/5", StringComparison.Ordinal));
@@ -347,7 +449,10 @@ public sealed class RegistryHistoryTopicsTests
     public async Task ReaderFallsBackAfterBlankLatestTopics()
     {
         var (analysis, requests) = await ReadThreeYearHistory(latestBlank: true);
-        Assert.Equal(expected: "2023/24", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        string expected2 = "2023/24";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate single = Assert.Single(analysis.Selection.Candidates);
+        string actual2 = single.Historical.Year;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: 2, actual: analysis.Historical!.Count);
         Assert.Contains(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
@@ -377,9 +482,11 @@ public sealed class RegistryHistoryTopicsTests
     {
         var (analysis, requests) = await ReadThreeYearHistory(latestDuplicate: true);
         Assert.Empty(analysis.Selection.Candidates);
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicMappingFailure expected2 = RegistryHistoryTopicMappingFailure.AmbiguousCourse;
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse single = Assert.Single(analysis.Selection.Unresolved);
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicMappingFailure actual2 = single.Reason;
         Assert.Equal(
-            expected: RegistryHistoryTopicMappingFailure.AmbiguousCourse,
-            actual: Assert.Single(analysis.Selection.Unresolved).Reason);
+            expected: expected2, actual: actual2);
         Assert.Equal(expected: 2, actual: analysis.Historical!.Count);
         Assert.Contains(requests, path => path.EndsWith("/groups/3", StringComparison.Ordinal));
         Assert.Contains(requests, path => path.EndsWith("/groups/4", StringComparison.Ordinal));
@@ -416,10 +523,16 @@ public sealed class RegistryHistoryTopicsTests
     public async Task AmbiguousCurrentCourseExportsPrivateCsvCandidatesAndKeepsUnresolvedStatus()
     {
         var (analysis, _) = await ReadThreeYearHistory(duplicateCurrent: true);
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         try
         {
             var result = await RegistryHistoryTopicFiles.Save(
@@ -443,7 +556,9 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Contains(
                 expectedSubstring: "Synthetic first",
                 actualString: await File.ReadAllTextAsync(Path.Combine(directory, result.CsvFiles[0])));
-            Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
+            string path = Path.Combine(directory, "manifest.json");
+            bool condition = File.Exists(path);
+            Assert.False(condition);
         }
         finally
         {
@@ -455,10 +570,16 @@ public sealed class RegistryHistoryTopicsTests
     public async Task AmbiguousHistoricalYearExportsEveryMatchingSnapshot()
     {
         var (analysis, _) = await ReadThreeYearHistory(latestDuplicate: true);
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         try
         {
             var result = await RegistryHistoryTopicFiles.Save(
@@ -496,8 +617,27 @@ public sealed class RegistryHistoryTopicsTests
             string html;
             if (uri.AbsolutePath == Index.AbsolutePath)
             {
-                var year = uri.Query.Contains("2024%2F25", StringComparison.Ordinal) ? "2024/25"
-                    : uri.Query.Contains("2023%2F24", StringComparison.Ordinal) ? "2023/24" : "2025/26";
+                string text4;
+                if (uri.Query.Contains("2024%2F25", StringComparison.Ordinal))
+                {
+                    text4 = "2024/25";
+                }
+                else
+                {
+                    string text5;
+                    if (uri.Query.Contains("2023%2F24", StringComparison.Ordinal))
+                    {
+                        text5 = "2023/24";
+                    }
+                    else
+                    {
+                        text5 = "2025/26";
+                    }
+
+                    text4 = text5;
+                }
+
+                var year = text4;
                 var courseIds = year == "2025/26" ? duplicateCurrent ? new[]
                     {
                         1,
@@ -525,8 +665,10 @@ public sealed class RegistryHistoryTopicsTests
             else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
             {
                 var id = uri.AbsolutePath.Split('/').Last();
+                string text2 = $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>";
+                string text3 = $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{(text2)}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
                 html =
-                    (string) $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{($"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>")}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+                    (string) text3;
             }
             else
             {
@@ -537,13 +679,32 @@ public sealed class RegistryHistoryTopicsTests
                     : Lessons;
             }
 
-            return new(HttpStatusCode.OK) { Content = new StringContent((string) $"{logout}{html}") };
+            string CalculateContent()
+            {
+                string text = $"{logout}{html}";
+                string content = (string) text;
+                return content;
+            }
+
+            return new(HttpStatusCode.OK) { Content = new StringContent(CalculateContent()) };
         });
+        global::System.Uri CalculateLogin()
+        {
+            global::System.Uri login2 = new("https://registry.test/studregistry/Account/Login");
+            return login2;
+        }
+
+        global::System.TimeSpan CalculateSpacing()
+        {
+            global::System.TimeSpan spacing = TimeSpan.FromMilliseconds(1);
+            return spacing;
+        }
+
         using var guard = new RegistryHistoryRequestHandler(
-            inner,
-            index: Index,
-            login: new("https://registry.test/studregistry/Account/Login"),
-            TimeSpan.FromMilliseconds(1));
+                            inner,
+                            index: Index,
+                            login: CalculateLogin(),
+                            CalculateSpacing());
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         return (await new RegistryHistoryTopicsReader(client, Index).Discover(default), requests);
@@ -552,22 +713,34 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public void EmptyLessonTableDoesNotRequestStudentOrCreateData()
     {
+        global::AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(
+                            "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr></table><table><tr><td>canary-student</td></tr></table>");
+            return document;
+        }
+
         var lessons = RegistryHistoryTopicsHtml.Lessons(
-            new HtmlParser().ParseDocument(
-                "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr></table><table><tr><td>canary-student</td></tr></table>"));
+                    CalculateDocument());
         Assert.Empty(lessons);
     }
 
     [Fact]
     public void LatestYearWithoutTopicsFallsBackAndSemesterRemainsPartOfMatching()
     {
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse CalculateCourse()
+        {
+            global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse course = Course(
+                            name: "Systems",
+                            1,
+                            id: "empty");
+            return course;
+        }
+
         var empty = new RegistryHistoryCourseTopics(
-            "2024/25",
-            Course(
-                name: "Systems",
-                1,
-                id: "empty"),
-            []);
+                    "2024/25",
+                    CalculateCourse(),
+                    []);
         var selection = RegistryHistoryTopicSelection.Select(
             "2025/26",
             ["2025/26", "2024/25", "2023/24"],
@@ -588,17 +761,29 @@ public sealed class RegistryHistoryTopicsTests
                     1,
                     @group: "older"),
             ]);
-        Assert.Equal(expected: "2023/24", actual: Assert.Single(selection.Candidates).Historical.Year);
-        Assert.Equal(expected: 2, actual: Assert.Single(selection.Unresolved).CurrentCourse.Semester);
+        string expected2 = "2023/24";
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate single = Assert.Single(selection.Candidates);
+        string actual2 = single.Historical.Year;
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3 = 2;
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse single2 = Assert.Single(selection.Unresolved);
+        int actual3 = single2.CurrentCourse.Semester;
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
     public async Task ExportKeepsOnlyRegularTopicsAndTheirDates()
     {
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         try
         {
             var course = Course(
@@ -612,28 +797,46 @@ public sealed class RegistryHistoryTopicsTests
                 hour: 9,
                 minute: 45,
                 second: 0);
+            global::System.Uri CalculateUri()
+            {
+                global::System.Uri uri = new(Index, "LessonsList/1");
+                return uri;
+            }
+
+            global::System.DateTime CalculateDate()
+            {
+                global::System.DateTime date2 = date.AddDays(7);
+                return date2;
+            }
+
+            global::System.DateTime CalculateDate2()
+            {
+                global::System.DateTime date3 = date.AddDays(14);
+                return date3;
+            }
+
             var historical = new RegistryHistoryCourseTopics(
-                "2024/25",
-                course,
-                [
-                    new(
+                                                    "2024/25",
+                                                    course,
+                                                    [
+                                                        new(
                         "IA2401",
-                        new(Index, "LessonsList/1"),
+                        CalculateUri(),
                         [
                             new(
                                 date,
                                 LessonType.Curs,
                                 "Synthetic first"),
                             new(
-                                date.AddDays(7),
+                                CalculateDate(),
                                 LessonType.Curs,
                                 "Atestare 1"),
                             new(
-                                date.AddDays(14),
+                                CalculateDate2(),
                                 LessonType.Curs,
                                 "Synthetic second"),
                         ]),
-                ]);
+                                                    ]);
             var selection = new RegistryHistoryTopicSelectionResult(
                 "2025/26",
                 [new(course, historical)],
@@ -669,10 +872,19 @@ public sealed class RegistryHistoryTopicsTests
         int semester,
         string id)
     {
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri baseUri = Index;
+            string text = $"groups/{id}";
+            string relativeUri = (string) text;
+            global::System.Uri uri = new(baseUri, relativeUri);
+            return uri;
+        }
+
         return new(
-        name,
-        semester,
-        new(Index, (string) $"groups/{id}"));
+                name,
+                semester,
+                CalculateUri());
     }
 
     private static RegistryHistoryCourseTopics Snapshot(
@@ -681,18 +893,38 @@ public sealed class RegistryHistoryTopicsTests
         int semester,
         string group)
     {
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse CalculateCourse()
+        {
+            global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse course = Course(
+                        name: name,
+                        semester,
+                        id: group);
+            return course;
+        }
+
+        global::System.Uri CalculateUri()
+        {
+            global::System.Uri uri = new(Index, "LessonsList/1");
+            return uri;
+        }
+
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic> CalculateLessons()
+        {
+            global::AngleSharp.Html.Dom.IHtmlDocument document = new HtmlParser().ParseDocument(Lessons);
+            global::AngleSharp.Dom.IDocument document2 = document;
+            global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic> lessons = RegistryHistoryTopicsHtml.Lessons(document2);
+            return lessons;
+        }
+
         return new(
-        year,
-        Course(
-            name: name,
-            semester,
-            id: group),
-        [
-            new(
+                                year,
+                                CalculateCourse(),
+                                [
+                                    new(
                 group,
-                new(Index, "LessonsList/1"),
-                RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons))),
-        ]);
+                CalculateUri(),
+                CalculateLessons()),
+                                ]);
     }
 
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage>? respond = null) : HttpMessageHandler
@@ -706,10 +938,18 @@ public sealed class RegistryHistoryTopicsTests
             Calls++;
             if (respond is not null)
             {
-                return Task.FromResult(respond(request));
+                global::System.Net.Http.HttpResponseMessage result2 = respond(request);
+                global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(result2);
+                return fromResult;
             }
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(HttpStatusCode.OK);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
         }
     }
 }

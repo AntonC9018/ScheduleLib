@@ -27,14 +27,16 @@ public partial class ExportCommands
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
     {
-        return TeacherExport(
-                new(
+        global::ScheduleLib.Cli.ExportRequest request = new(
                     source,
                     destination,
                     resultArgs,
-                    settings),
-                TeacherExportKind.LabDeadlines,
-                cancellationToken);
+                    settings);
+        global::ScheduleLib.Cli.TeacherExportKind kind = TeacherExportKind.LabDeadlines;
+        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
+        global::System.Threading.Tasks.Task<int> teacherExport = TeacherExport(
+        request, kind, cancellationToken2);
+        return teacherExport;
     }
 
     [Command(
@@ -47,14 +49,16 @@ public partial class ExportCommands
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
     {
-        return TeacherExport(
-                new(
+        global::ScheduleLib.Cli.ExportRequest request = new(
                     null,
                     destination,
                     resultArgs,
-                    settings),
-                TeacherExportKind.PreDefense,
-                cancellationToken);
+                    settings);
+        global::ScheduleLib.Cli.TeacherExportKind kind = TeacherExportKind.PreDefense;
+        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
+        global::System.Threading.Tasks.Task<int> teacherExport = TeacherExport(
+        request, kind, cancellationToken2);
+        return teacherExport;
     }
 
     private async Task<int> TeacherExport(
@@ -67,10 +71,25 @@ public partial class ExportCommands
         var resultArgs = request.Result;
         var settings = request.Settings;
         var preDefense = kind == TeacherExportKind.PreDefense;
+        string CalculateCommand()
+        {
+            string command2;
+            if (preDefense)
+            {
+                command2 = "export pre-defense";
+            }
+            else
+            {
+                command2 = "export lab-deadlines";
+            }
+
+            return command2;
+        }
+
         using var context = new CliCommandContext(
-            preDefense ? "export pre-defense" : "export lab-deadlines",
-            resultArgs,
-            cancellationToken);
+                    CalculateCommand(),
+                    resultArgs,
+                    cancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -189,18 +208,24 @@ public partial class ExportCommands
                 var workbooks = await handler.BuildWorkbooks(ThesisType.An, cancellation.Token);
                 foreach (var (number, students) in workbooks.OrderBy(x => x.Key))
                 {
+                    string CalculateName()
+                    {
+                        string name = $"comisia_{number}.xlsx";
+                        return name;
+                    }
+
                     await output.Publish(
-                        $"comisia_{number}.xlsx",
-                        async (stream, token) =>
-                        {
-                            await ListsForPredzashitaTaskHandler.WriteAsync(
-                                number,
-                                students,
-                                stream,
-                                token);
-                            VerifyTeacherWorkbook(stream, token);
-                        },
-                        cancellation.Token);
+                                            CalculateName(),
+                                            async (stream, token) =>
+                                            {
+                                                await ListsForPredzashitaTaskHandler.WriteAsync(
+                                                    number,
+                                                    students,
+                                                    stream,
+                                                    token);
+                                                VerifyTeacherWorkbook(stream, token);
+                                            },
+                                            cancellation.Token);
                     workbookCount++;
                     StreamNew();
                 }
@@ -288,13 +313,19 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: true);
+            global::ScheduleLib.Cli.TeacherExportResult CalculateData()
+            {
+                global::ScheduleLib.Cli.TeacherExportResult data = new(
+                                    OutputDirectory: output?.DirectoryPath,
+                                    Teacher: teacher,
+                                    workbookCount);
+                return data;
+            }
+
             return context.Finish(new CliCompletion<TeacherExportResult>(
-                exit,
-                errors,
-                new(
-                    OutputDirectory: output?.DirectoryPath,
-                    Teacher: teacher,
-                    workbookCount))
+                            exit,
+                            errors,
+                            CalculateData())
             {
                 Summary = new
                 {
@@ -306,8 +337,13 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                    line);
+                },
             });
         }
     }
@@ -340,7 +376,9 @@ public partial class ExportCommands
         {
             if (IsEnabled(level))
             {
-                warnings.Add(formatter(state, exception));
+                global::System.Collections.Generic.List<string> list = warnings;
+                string item = formatter(state, exception);
+                list.Add(item);
             }
         }
     }

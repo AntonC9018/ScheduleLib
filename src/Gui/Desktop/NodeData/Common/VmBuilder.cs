@@ -10,7 +10,7 @@ namespace Desktop.NodeData.Common;
 
 public static class VmBuilder
 {
-    extension (NodeDataVMCreateParams p)
+    extension(NodeDataVMCreateParams p)
     {
         private VmBuilderData<T> CreateBuilderData<T>(NodeDataKey<T> key)
             where T : class

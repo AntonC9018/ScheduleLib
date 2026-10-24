@@ -63,7 +63,7 @@ public sealed partial class UpdateTreeHelper
                 // We don't detect moving nodes between paths,
                 // but that is never used in the program either way.
                 // Can make the function return the new path, if such control is desired.
-                return new(prevPath[.. nextIndex]);
+                return new(prevPath[..nextIndex]);
             }
 
             currentIndex++;

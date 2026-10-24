@@ -121,7 +121,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     nameof(GetNode),
                     BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(type).Invoke(this, [key]);
-            values.Add(key.Value, new((JsonNode?) value, ContributingSources(key.Value)));
+            global::System.Collections.Generic.SortedDictionary<string, global::ScheduleLib.Cli.SettingsValue> sortedDictionary = values;
+            string key2 = key.Value;
+            global::System.Text.Json.Nodes.JsonNode? value2 = (JsonNode?) value;
+            global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Cli.SettingsSource> sources = ContributingSources(key.Value);
+            global::ScheduleLib.Cli.SettingsValue value3 = new(value2, sources);
+            sortedDictionary.Add(key2, value3);
         }
         return values;
     }
@@ -153,7 +158,10 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                 throw new JsonException($"Unknown setting key: {key}");
             }
         }
-        return new(value?.DeepClone(), ContributingSources(key));
+        global::System.Text.Json.Nodes.JsonNode? value2 = value?.DeepClone();
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Cli.SettingsSource> sources = ContributingSources(key);
+        global::ScheduleLib.Cli.SettingsValue settingsValue = new(value2, sources);
+        return settingsValue;
     }
 
     private IReadOnlyList<SettingsSource> ContributingSources(string key)
@@ -170,12 +178,20 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                             return true;
                         }
 
-                        if (x.StartsWith((string) $"{key}.", StringComparison.Ordinal))
+                        string text = x;
+                        string text2 = $"{key}.";
+                        string value = (string) text2;
+                        global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                        if (text.StartsWith(value, comparisonType))
                         {
                             return true;
                         }
 
-                        if (key.StartsWith((string) $"{x}.", StringComparison.Ordinal))
+                        string text3 = key;
+                        string text4 = $"{x}.";
+                        string value2 = (string) text4;
+                        global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                        if (text3.StartsWith(value2, comparisonType2))
                         {
                             return true;
                         }
@@ -191,8 +207,11 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
 
     private JsonNode? GetNode<T>(NodeDataKey key) where T : class
     {
-        var value = Get(new NodeDataKey<T>(key));
-        return CliSettings.Redact(JsonSerializer.SerializeToNode(value, _json));
+        global::Anton.LayeredData.NodeDataKey<T> key2 = new NodeDataKey<T>(key);
+        var value = Get(key2);
+        global::System.Text.Json.Nodes.JsonNode? node = JsonSerializer.SerializeToNode(value, _json);
+        global::System.Text.Json.Nodes.JsonNode? redact = CliSettings.Redact(node);
+        return redact;
     }
 
     public void Validate()
@@ -204,10 +223,16 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
             {
                 try
                 {
+                    global::System.Type CalculateTypeArguments()
+                    {
+                        global::System.Type typeArguments = NodeDataKey.Registry.GetTypeFromKey(key);
+                        return typeArguments;
+                    }
+
                     typeof(ResolvedSettings).GetMethod(
-                            nameof(ValidateBlock),
-                            BindingFlags.NonPublic | BindingFlags.Instance)!
-                        .MakeGenericMethod(NodeDataKey.Registry.GetTypeFromKey(key)).Invoke(this, [path, key]);
+                                                nameof(ValidateBlock),
+                                                BindingFlags.NonPublic | BindingFlags.Instance)!
+                                            .MakeGenericMethod(CalculateTypeArguments()).Invoke(this, [path, key]);
                 }
                 catch (TargetInvocationException e) when (e.InnerException is { } error)
                 {
@@ -217,8 +242,16 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         }
     }
 
-    private void ValidateBlock<T>(NodePath path, NodeDataKey key) where T : class =>
-        _ = path.ConstructValue(new NodeDataKey<T>(key), _provider);
+    private void ValidateBlock<T>(NodePath path, NodeDataKey key) where T : class
+    {
+        global::Anton.LayeredData.NodeDataKey<T> CalculateKey()
+        {
+            global::Anton.LayeredData.NodeDataKey<T> key2 = new NodeDataKey<T>(key);
+            return key2;
+        }
+
+        _ = path.ConstructValue(CalculateKey(), _provider);
+    }
 
     public void Dispose() => _provider.Dispose();
 }
@@ -245,10 +278,12 @@ public static partial class CliSettings
     {
         get
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "ScheduleLib",
-                FileName);
+            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string path2 = "ScheduleLib";
+            string path3 = FileName;
+            string combine = Path.Combine(
+            path1, path2, path3);
+            return combine;
         }
     }
 
@@ -305,7 +340,11 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                     WriteIndented = true,
                 };
             json.Converters.Insert(0, new ConfigColorConverter());
-            json.Converters.Insert(0, new JsonStringEnumConverter(allowIntegerValues: false));
+            global::System.Collections.Generic.IList<global::System.Text.Json.Serialization.JsonConverter> iList = json.Converters;
+            int index = 0;
+            global::System.Text.Json.Serialization.JsonStringEnumConverter item = new JsonStringEnumConverter(allowIntegerValues: false);
+            global::System.Text.Json.Serialization.JsonConverter item2 = item;
+            iList.Insert(index, item2);
             var user = await ReadFile(
                 userFile ?? UserFile,
                 json,
@@ -349,27 +388,48 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 var path = defaultsPath.ToImmutable().ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
-                sources.Add(
-                    CodeSource(
-                        (string) $"code profile: {coded.Key}",
-                        coded.Value,
-                        json));
+                global::System.Collections.Generic.List<global::ScheduleLib.Cli.SettingsSource> list = sources;
+                string text = $"code profile: {coded.Key}";
+                string name2 = (string) text;
+                global::Anton.LayeredData.MutableNode node2 = coded.Value;
+                global::System.Text.Json.JsonSerializerOptions json2 = json;
+                global::ScheduleLib.Cli.SettingsSource item3 = CodeSource(
+                    name2, node2, json2);
+                list.Add(
+                    item3);
+                string CalculateName()
+                {
+                    string text2 = $"user profile: {coded.Key}";
+                    string name3 = (string) text2;
+                    return name3;
+                }
+
                 AddOverlay(
-                    path,
-                    sources,
-                    user,
-                    name: (string) $"user profile: {coded.Key}",
-                    user?.Profiles.GetValueOrDefault(coded.Key),
-                    profile: coded.Key);
+                                    path,
+                                    sources,
+                                    user,
+                                    name: CalculateName(),
+                                    user?.Profiles.GetValueOrDefault(coded.Key),
+                                    profile: coded.Key);
+                string CalculateName2()
+                {
+                    string text3 = $"project profile: {coded.Key}";
+                    string name4 = (string) text3;
+                    return name4;
+                }
+
                 AddOverlay(
-                    path,
-                    sources,
-                    local,
-                    name: (string) $"project profile: {coded.Key}",
-                    local?.Profiles.GetValueOrDefault(coded.Key),
-                    profile: coded.Key);
+                                    path,
+                                    sources,
+                                    local,
+                                    name: CalculateName2(),
+                                    local?.Profiles.GetValueOrDefault(coded.Key),
+                                    profile: coded.Key);
                 AddCli(path, sources);
-                profilePaths.Add(coded.Key, new(path.ToImmutable()));
+                global::System.Collections.Generic.Dictionary<string, global::Anton.LayeredData.TreeEnumeration.NodePath> dictionary = profilePaths;
+                string key2 = coded.Key;
+                global::Anton.LayeredData.TreeEnumeration.NodePath value2 = new(path.ToImmutable());
+                dictionary.Add(key2, value2);
                 if (arguments.Profile == coded.Key)
                 {
                     selectedPath = path.ToImmutable();
@@ -382,17 +442,18 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 AddCli(path, selectedSources);
                 selectedPath = path.ToImmutable();
             }
+            global::Microsoft.Extensions.DependencyInjection.ServiceProvider provider2 = provider;
+            global::Anton.LayeredData.TreeBuilder tree2 = tree;
+            global::Anton.LayeredData.TreeEnumeration.NodePath path2 = new(selectedPath);
+            global::System.Text.Json.JsonSerializerOptions json3 = json;
+            string? projectDirectory2 = project;
+            string? profile2 = arguments.Profile;
+            global::System.Collections.Generic.IReadOnlyList<string> profiles = codeProfiles.Keys.Order().ToArray();
+            global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Cli.SettingsSource> sources2 = selectedSources;
+            global::System.Collections.Generic.IReadOnlyDictionary<string, global::Anton.LayeredData.TreeEnumeration.NodePath> profilePaths2 = profilePaths;
+            global::Anton.LayeredData.TreeEnumeration.NodePath globalPath2 = new(defaultsPath.ToImmutable());
             var resolved = new ResolvedSettings(
-                provider,
-                tree,
-                path: new(selectedPath),
-                json,
-                projectDirectory: project,
-                profile: arguments.Profile,
-                codeProfiles.Keys.Order().ToArray(),
-                selectedSources,
-                profilePaths,
-                globalPath: new(defaultsPath.ToImmutable()));
+                provider2, tree2, path: path2, json3, projectDirectory: projectDirectory2, profile: profile2, profiles, sources2, profilePaths2, globalPath: globalPath2);
             resolved.Validate();
             return resolved;
 
@@ -452,12 +513,17 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                     }
                 }
 
-                sources.Add(new(
-                    Name: name,
-                    File: file.Path,
-                    LeafKeys(values).Concat(
-                            actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [])
-                        .ToArray()));
+                global::System.Collections.Generic.List<global::ScheduleLib.Cli.SettingsSource> list = sources;
+                string name2 = name;
+                string file2 = file.Path;
+                global::System.Collections.Generic.IEnumerable<string> leafKeys = LeafKeys(values);
+                global::System.Collections.Generic.IEnumerable<string> second = actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [];
+                global::System.Collections.Generic.IEnumerable<string> concat = leafKeys.Concat(
+                    second);
+                global::System.Collections.Generic.IReadOnlyList<string> keys = concat.ToArray();
+                global::ScheduleLib.Cli.SettingsSource item = new(
+                    Name: name2, File: file2, keys);
+                list.Add(item);
             }
 
             void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
@@ -468,12 +534,18 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 }
 
                 var node = new MutableNode();
-                new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x => x.CalendarName = calendar);
+                new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x =>
+                {
+                    global::ScheduleLib.Application.Config.GoogleCalendarConfig googleCalendarConfig = x;
+                    googleCalendarConfig.CalendarName = calendar;
+                });
                 path.Add(node);
-                sources.Add(new(
+                global::System.Collections.Generic.List<global::ScheduleLib.Cli.SettingsSource> list = sources;
+                global::ScheduleLib.Cli.SettingsSource item = new(
                     Name: "CLI arguments",
                     File: null,
-                    ["GoogleCalendarConfig.calendarName"]));
+                    ["GoogleCalendarConfig.calendarName"]);
+                list.Add(item);
             }
         }
         catch
@@ -507,7 +579,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
              directory is not null;
              directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(directory.FullName, FileName)))
+            string path2 = Path.Combine(directory.FullName, FileName);
+            if (File.Exists(path2))
             {
                 return directory.FullName;
             }
@@ -622,7 +695,13 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                     throw new JsonException($"Unknown teacher profile '{entry.Key}' in {path}.");
                 }
 
-                profiles.Add(entry.Key, ReadBlock(entry.Value, (string) $"profiles.{entry.Key}"));
+                global::System.Collections.Generic.Dictionary<string, global::System.Text.Json.Nodes.JsonObject?> dictionary = profiles;
+                string key2 = entry.Key;
+                global::System.Text.Json.Nodes.JsonNode? block2 = entry.Value;
+                string text = $"profiles.{entry.Key}";
+                string location2 = (string) text;
+                global::System.Text.Json.Nodes.JsonObject? value = ReadBlock(block2, location2);
+                dictionary.Add(key2, value);
             }
         }
         var operations = ReadOperations(
@@ -630,11 +709,13 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
             path,
             json,
             teachers);
-        return new(
-            Path.GetFullPath(path),
-            Defaults: defaults,
-            profiles,
-            Operations: operations);
+        string path2 = Path.GetFullPath(path);
+        global::System.Text.Json.Nodes.JsonObject? defaults2 = defaults;
+        global::System.Collections.Generic.Dictionary<string, global::System.Text.Json.Nodes.JsonObject?> profiles2 = profiles;
+        global::System.Text.Json.Nodes.JsonObject? operations2 = operations;
+        global::ScheduleLib.Cli.CliSettings.SettingsFile settingsFile = new(
+        path2, Defaults: defaults2, profiles2, Operations: operations2);
+        return settingsFile;
 
         JsonObject? ReadBlock(JsonNode? block, string location)
         {
@@ -678,7 +759,14 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                     type,
                     json,
                     path);
-                ResolvePaths(setting.Value, Path.GetDirectoryName(Path.GetFullPath(path))!);
+                string CalculateDirectory()
+                {
+                    string path2 = Path.GetFullPath(path);
+                    string directory = Path.GetDirectoryName(path2)!;
+                    return directory;
+                }
+
+                ResolvePaths(setting.Value, CalculateDirectory());
                 // Separate CLI options; the desktop serializer's format and options remain unchanged.
                 try
                 {
@@ -711,7 +799,9 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
         NodeDataKey key,
         object value) where T : class
     {
-        var typed = node.GetOrAdd(new NodeDataKey<T>(key));
+        global::Anton.LayeredData.MutableNode mutableNode = node;
+        global::Anton.LayeredData.NodeDataKey<T> key2 = new NodeDataKey<T>(key);
+        var typed = mutableNode.GetOrAdd(key2);
         typed.SetValue((T) value);
     }
 
@@ -809,11 +899,14 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                     throw new JsonException($"Null collection entries are unsupported in {file}.");
                 }
 
+                global::System.Text.Json.Nodes.JsonNode node2 = item;
+                global::System.Type[] genericArguments = type.GetGenericArguments();
+                int int32 = 0;
+                global::System.Type type2 = genericArguments[int32];
+                global::System.Text.Json.JsonSerializerOptions json2 = json;
+                string file2 = file;
                 NormalizeInheritance(
-                    item,
-                    type.GetGenericArguments()[0],
-                    json,
-                    file);
+                    node2, type2, json2, file2);
             }
             return;
         }
@@ -915,13 +1008,27 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
             }
             else
             {
-                var leaves = LeafKeys(
-                    JsonSerializer.SerializeToNode(
+                global::System.Text.Json.Nodes.JsonNode? node2 = JsonSerializer.SerializeToNode(
                         value,
                         value.GetType(),
-                        json),
-                    config.Key.Value).ToArray();
-                keys.AddRange(leaves.Length == 0 ? [config.Key.Value] : leaves);
+                        json);
+                string prefix = config.Key.Value;
+                global::System.Collections.Generic.IEnumerable<string> leafKeys = LeafKeys(
+                    node2, prefix);
+                var leaves = leafKeys.ToArray();
+                global::System.Collections.Generic.List<string> list = keys;
+                string[] collection;
+                if (leaves.Length == 0)
+                {
+                    collection = [config.Key.Value];
+                }
+                else
+                {
+                    collection = leaves;
+                }
+
+                global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+                list.AddRange(collection2);
             }
         }
         return new(
@@ -941,7 +1048,23 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
         {
             foreach (var entry in obj)
             {
-                foreach (var key in LeafKeys(entry.Value, prefix.Length == 0 ? entry.Key : (string) $"{prefix}.{entry.Key}"))
+                string CalculatePrefix()
+                {
+                    string prefix2;
+                    if (prefix.Length == 0)
+                    {
+                        prefix2 = entry.Key;
+                    }
+                    else
+                    {
+                        string text = $"{prefix}.{entry.Key}";
+                        prefix2 = (string) text;
+                    }
+
+                    return prefix2;
+                }
+
+                foreach (var key in LeafKeys(entry.Value, CalculatePrefix()))
                 {
                     yield return key;
                 }
@@ -1031,6 +1154,20 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
     public override void Write(
         Utf8JsonWriter writer,
         Color value,
-        JsonSerializerOptions options) =>
-        writer.WriteStringValue(value.IsKnownColor ? value.Name : $"#{unchecked((uint) value.ToArgb()):X8}");
+        JsonSerializerOptions options)
+    {
+        global::System.Text.Json.Utf8JsonWriter utf8JsonWriter = writer;
+        string value2;
+        if (value.IsKnownColor)
+        {
+            value2 = value.Name;
+        }
+        else
+        {
+            string text = $"#{unchecked((uint) value.ToArgb()):X8}";
+            value2 = text;
+        }
+
+        utf8JsonWriter.WriteStringValue(value2);
+    }
 }

@@ -36,7 +36,8 @@ public sealed class GroupParseContext
 
     public Grade DetermineGrade(int year)
     {
-        var ret = CurrentStudyYear.Mod100 - year + 1;
+        int int32 = CurrentStudyYear.Mod100 - year;
+        var ret = int32 + 1;
         return new(ret);
     }
 }
@@ -281,21 +282,21 @@ public static class GroupHelper
         switch (result.Status)
         {
             case ConsumeIntStatus.Ok:
-            {
-                return (int) result.Value;
-            }
+                {
+                    return (int) result.Value;
+                }
             case ConsumeIntStatus.InputTooShort:
-            {
-                throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
-            }
+                {
+                    throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
+                }
             case ConsumeIntStatus.NotAnInteger:
-            {
-                throw InvalidGroupNameException.ForInvalidYear();
-            }
+                {
+                    throw InvalidGroupNameException.ForInvalidYear();
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 

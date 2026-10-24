@@ -32,8 +32,14 @@ public sealed class GoogleCalendarProviderTests
             // A replay or response-triggered refresh would succeed, concealing the first failure.
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
             {
+                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                {
+                    global::System.Net.Http.HttpResponseMessage result = Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}");
+                    return result;
+                }
+
                 return Task.FromResult(
-                    Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}"));
+                                    CalculateResult());
             }
 
             var response = Error(status);
@@ -67,19 +73,49 @@ public sealed class GoogleCalendarProviderTests
         });
         var sent = Assert.Single(transport.Requests);
         Assert.Equal(expected: "www.googleapis.com", actual: sent.Host);
-        Assert.Equal(expected: action == "delete" ? "DELETE" : "POST", actual: sent.Method);
+        string expected2;
+        if (action == "delete")
+        {
+            expected2 = "DELETE";
+        }
+        else
+        {
+            expected2 = "POST";
+        }
+
+        string actual2 = sent.Method;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.DoesNotContain(expectedSubstring: "redirected", actualString: sent.Path);
     }
 
     [Fact]
     public async Task ProvisionedCredentialRefreshesBeforeSendAndPersistsAuthorization()
     {
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        using var transport = new Transport((request, _) => Task.FromResult(
-            Json(
-                request.RequestUri!.Host == "oauth2.googleapis.com"
-                    ? "{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}"
-                    : "{\"id\":\"created\"}")));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var transport = new Transport((request, _) =>
+        {
+            string value;
+            if (request.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                value = "{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}";
+            }
+            else
+            {
+                value = "{\"id\":\"created\"}";
+            }
+
+            global::System.Net.Http.HttpResponseMessage result = Json(
+            value);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
+            result);
+            return fromResult;
+        });
         using var tokens = new SdkTokens(transport);
         using var auth = new GoogleAuthentication(directory, tokens);
         using var services = new ServiceCollection().BuildServiceProvider();
@@ -923,23 +959,50 @@ public sealed class GoogleCalendarProviderTests
 
                 if (scenario == "preview-pagination")
                 {
-                    return Json(
-                        request.RequestUri.Query.Contains("pageToken")
-                            ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}"
-                            : "{\"items\":[],\"nextPageToken\":\"next\"}");
+                    string value;
+                    if (request.RequestUri.Query.Contains("pageToken"))
+                    {
+                        value = "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}";
+                    }
+                    else
+                    {
+                        value = "{\"items\":[],\"nextPageToken\":\"next\"}";
+                    }
+
+                    global::System.Net.Http.HttpResponseMessage json = Json(
+                    value);
+                    return json;
                 }
 
-                return Json(
-                    scenario == "create-timeout-after-delete"
-                        ? "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}"
-                        : "{\"items\":[]}");
+                string value2;
+                if (scenario == "create-timeout-after-delete")
+                {
+                    value2 = "{\"items\":[{\"id\":\"old\",\"summary\":\"lessons\"}]}";
+                }
+                else
+                {
+                    value2 = "{\"items\":[]}";
+                }
+
+                global::System.Net.Http.HttpResponseMessage json2 = Json(
+                value2);
+                return json2;
             }
             if (request.Method == HttpMethod.Get && path.EndsWith("/events", StringComparison.Ordinal))
             {
-                return Json(
-                    request.RequestUri.Query.Contains("pageToken")
-                        ? "{\"items\":[{\"id\":\"event2\",\"summary\":\"Second\"}]}"
-                        : "{\"items\":[{\"id\":\"event1\",\"summary\":\"First\"}],\"nextPageToken\":\"next\"}");
+                string value3;
+                if (request.RequestUri.Query.Contains("pageToken"))
+                {
+                    value3 = "{\"items\":[{\"id\":\"event2\",\"summary\":\"Second\"}]}";
+                }
+                else
+                {
+                    value3 = "{\"items\":[{\"id\":\"event1\",\"summary\":\"First\"}],\"nextPageToken\":\"next\"}";
+                }
+
+                global::System.Net.Http.HttpResponseMessage json3 = Json(
+                value3);
+                return json3;
             }
 
             if (request.Method == HttpMethod.Post && path.EndsWith("/calendars", StringComparison.Ordinal))
@@ -949,20 +1012,66 @@ public sealed class GoogleCalendarProviderTests
                     credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
                 }
 
-                return Json(
-                    scenario == "create-missing-id" ? "{}" :
-                    scenario == "create-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-calendar\"}");
+                string value4;
+                if (scenario == "create-missing-id")
+                {
+                    value4 = "{}";
+                }
+                else
+                {
+                    string text;
+                    if (scenario == "create-blank-id")
+                    {
+                        text = "{\"id\":\" \"}";
+                    }
+                    else
+                    {
+                        text = "{\"id\":\"new-calendar\"}";
+                    }
+
+                    value4 = text;
+                }
+
+                global::System.Net.Http.HttpResponseMessage json4 = Json(
+                value4);
+                return json4;
             }
             if (request.Method == HttpMethod.Post)
             {
-                return Json(
-                    scenario == "event-missing-id" ? "{}" :
-                    scenario == "event-blank-id" ? "{\"id\":\" \"}" : "{\"id\":\"new-event\"}");
+                string value5;
+                if (scenario == "event-missing-id")
+                {
+                    value5 = "{}";
+                }
+                else
+                {
+                    string text2;
+                    if (scenario == "event-blank-id")
+                    {
+                        text2 = "{\"id\":\" \"}";
+                    }
+                    else
+                    {
+                        text2 = "{\"id\":\"new-event\"}";
+                    }
+
+                    value5 = text2;
+                }
+
+                global::System.Net.Http.HttpResponseMessage json5 = Json(
+                value5);
+                return json5;
             }
 
             return new HttpResponseMessage(HttpStatusCode.NoContent);
         });
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         using var tokens = new SdkTokens(
             transport,
             scenario.EndsWith("no-refresh", StringComparison.Ordinal) ? null : "fixture");
@@ -1073,11 +1182,31 @@ public sealed class GoogleCalendarProviderTests
             if (expectedState is not null)
             {
                 var outcomes = data.GetProperty("outcomes").EnumerateArray().ToArray();
+                int expected2;
+                if (expectedMutations == 0)
+                {
+                    expected2 = 1;
+                }
+                else
+                {
+                    int int32 = expectedMutations;
+                    int int322;
+                    if (scenario.Contains("expired", StringComparison.Ordinal))
+                    {
+                        int322 = 1;
+                    }
+                    else
+                    {
+                        int322 = 0;
+                    }
+
+                    int int323 = int32 + (int322);
+                    expected2 = int323;
+                }
+
+                int actual2 = outcomes.Length;
                 Assert.Equal(
-                    expected: expectedMutations == 0
-                        ? 1
-                        : expectedMutations + (scenario.Contains("expired", StringComparison.Ordinal) ? 1 : 0),
-                    actual: outcomes.Length);
+                    expected: expected2, actual: actual2);
                 Assert.Equal(expected: expectedState, actual: outcomes.Last().GetProperty("state").GetString());
                 Assert.All(outcomes.SkipLast(1), x => Assert.Equal(expected: "completed", actual: x.GetProperty("state").GetString()));
                 if (outcomes.Last().GetProperty("action").GetString() == "create event")
@@ -1146,12 +1275,19 @@ public sealed class GoogleCalendarProviderTests
 
     private static HttpResponseMessage Error(HttpStatusCode status)
     {
+        string CalculateContent()
+        {
+            string text = $"{("{\"error\":{\"code\":" + (int) status)},\"message\":\"synthetic-rejection\"}}}}";
+            string content = (string) text;
+            return content;
+        }
+
         return new(status)
         {
             Content = new StringContent(
-                (string) $"{("{\"error\":{\"code\":" + (int) status)},\"message\":\"synthetic-rejection\"}}}}",
-                Encoding.UTF8,
-                "application/json"),
+                        CalculateContent(),
+                        Encoding.UTF8,
+                        "application/json"),
         };
     }
 
@@ -1160,7 +1296,11 @@ public sealed class GoogleCalendarProviderTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);

@@ -21,8 +21,14 @@ public sealed class FmiScheduleClient(HttpClient http)
         foreach (var link in links)
         {
             var bytes = await http.GetByteArrayAsync(link.Url, cancellationToken);
-            if (!bytes.AsSpan().StartsWith("%PDF-"u8)) throw new FormatException($"{link.Url} did not return a PDF.");
-            downloads.Add(new(link, bytes));
+            if (!bytes.AsSpan().StartsWith("%PDF-"u8))
+            {
+                throw new FormatException($"{link.Url} did not return a PDF.");
+            }
+
+            global::System.Collections.Generic.List<global::FmiWebsiteInterop.FmiScheduleDownload> list = downloads;
+            global::FmiWebsiteInterop.FmiScheduleDownload item = new(link, bytes);
+            list.Add(item);
         }
         return downloads;
     }
@@ -34,16 +40,28 @@ public sealed class FmiScheduleClient(HttpClient http)
         var links = new Dictionary<int, FmiScheduleLink>();
         Visit(document.Body ?? throw new FormatException("Schedule page has no body."));
         if (!links.Keys.Order().SequenceEqual(new[] { 1, 2, 3 }))
+        {
             throw new FormatException("Expected exactly the three regular bachelor schedule PDFs.");
+        }
+
         return links.Values.OrderBy(l => l.Year).ToArray();
 
         void Visit(INode node)
         {
-            if (node is IText text) { prefix.Append(text.Data); return; }
+            if (node is IText text)
+            { prefix.Append(text.Data); return; }
             if (node is IElement element)
             {
-                if (element.LocalName is "script" or "style") return;
-                if (element.LocalName == "br") prefix.Append(' ');
+                if (element.LocalName is "script" or "style")
+                {
+                    return;
+                }
+
+                if (element.LocalName == "br")
+                {
+                    prefix.Append(' ');
+                }
+
                 if (element.LocalName == "a")
                 {
                     if (element.GetAttribute("href") is { } href)
@@ -56,15 +74,27 @@ public sealed class FmiScheduleClient(HttpClient http)
                                 if (match.Success)
                                 {
                                     var year = match.Groups[1].Value.Length;
-                                    if (!links.TryAdd(year, new(year, uri, ReadUploadDate(element))))
+                                    global::System.Collections.Generic.Dictionary<int, global::FmiWebsiteInterop.FmiScheduleLink> dictionary = links;
+                                    int key = year;
+                                    int year2 = year;
+                                    global::System.Uri url = uri;
+                                    global::System.DateOnly? uploadDate = ReadUploadDate(element);
+                                    global::FmiWebsiteInterop.FmiScheduleLink value = new(year2, url, uploadDate);
+                                    bool tryAdd = dictionary.TryAdd(key, value);
+                                    if (!tryAdd)
+                                    {
                                         throw new FormatException($"Ambiguous schedule PDF links for year {year}.");
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            foreach (var child in node.ChildNodes) Visit(child);
+            foreach (var child in node.ChildNodes)
+            {
+                Visit(child);
+            }
         }
     }
 
@@ -77,12 +107,22 @@ public sealed class FmiScheduleClient(HttpClient http)
         {
             var labelled = Regex.Match(input: link.GetAttribute("title") ?? link.TextContent,
                 pattern: @"(?i)(?:uploaded|încărcat[ă]?|actualizat[ă]?)\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})");
-            if (labelled.Success) value = labelled.Groups[1].Value;
+            if (labelled.Success)
+            {
+                value = labelled.Groups[1].Value;
+            }
         }
-        if (value is null) return null;
+        if (value is null)
+        {
+            return null;
+        }
+
         var datePart = value.Split('T')[0];
         if (!DateOnly.TryParseExact(datePart, ["yyyy-MM-dd", "dd.MM.yyyy"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
             throw new FormatException($"Invalid schedule upload date: {value}");
+        }
+
         return date;
     }
 }

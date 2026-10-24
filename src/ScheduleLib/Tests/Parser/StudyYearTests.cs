@@ -25,6 +25,24 @@ public sealed class StudyYearTests
         Assert.Equal(expected: 26, actual: year.Mod100);
         Assert.Equal(expected: "2026", actual: year.ToString());
         Assert.True(year == new StudyYear(2026));
-        Assert.True(year.CompareTo(new StudyYear(2027)) < 0);
+        global::ScheduleLib.StudyYear CalculateOther()
+        {
+            global::ScheduleLib.StudyYear other = new StudyYear(2027);
+            return other;
+        }
+
+        bool CalculateCondition()
+        {
+            int compareTo = year.CompareTo(CalculateOther());
+            bool condition = compareTo < 0;
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.True(CalculateCondition());
     }
 }

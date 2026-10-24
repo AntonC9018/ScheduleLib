@@ -20,14 +20,16 @@ public record struct UnsizedBitArray32
     {
         if (index < 0 || index >= BitArray32.MaxLength)
         {
-            Debug.Fail($"Index {index} is invalid");
+            string message = $"Index {index} is invalid";
+            Debug.Fail(message);
         }
     }
     internal static void ValidateLen(int len)
     {
         if (len < 0 || len > BitArray32.MaxLength)
         {
-            Debug.Fail($"Len {len} is invalid");
+            string message = $"Len {len} is invalid";
+            Debug.Fail(message);
         }
     }
 
@@ -90,7 +92,9 @@ public record struct UnsizedBitArray32
         Debug.Assert(index < BitArray32.MaxLength);
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
-        var set = _bits & ~ignoredMask;
+        uint uInt32 = _bits;
+        uint uInt322 = ~ignoredMask;
+        var set = uInt32 & uInt322;
         if (set == 0)
         {
             return -1;
@@ -110,8 +114,10 @@ public record struct UnsizedBitArray32
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
         var allMask = GetMask(length).Bits;
-        var mask = ~ignoredMask & allMask;
-        var unset = ~_bits & mask;
+        uint uInt32 = ~ignoredMask;
+        var mask = uInt32 & allMask;
+        uint uInt322 = ~_bits;
+        var unset = uInt322 & mask;
         if (unset == 0)
         {
             return -1;
@@ -154,7 +160,13 @@ public record struct UnsizedBitArray32
     public readonly BitArray32 WithShrunkLen(int len)
     {
         var x = this;
-        x = x.Intersect(GetMask(len));
+        global::UnsizedBitArray32 CalculateOther()
+        {
+            global::UnsizedBitArray32 other = GetMask(len);
+            return other;
+        }
+
+        x = x.Intersect(CalculateOther());
         var ret = x.WithFixedSize(len);
         return ret;
     }
@@ -253,8 +265,12 @@ public record struct UnsizedBitArray32
             return new(0);
         }
 
-        int shift = sizeof(uint) * 8 - length;
-        return new(~default(uint) >> shift);
+        int int32 = sizeof(uint) * 8;
+        int shift = int32 - length;
+        uint uInt32 = ~default(uint);
+        uint bits = uInt32 >> shift;
+        global::UnsizedBitArray32 unsizedBitArray32 = new(bits);
+        return unsizedBitArray32;
     }
 
     public static UnsizedBitArray32 GetOffsetMask(int offset, int length)

@@ -53,11 +53,17 @@ public sealed class AuthenticationTests
             default);
         Assert.Equal(expected: "access-secret", actual: credential.Token.AccessToken);
         Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
+        string[] CalculateCollection()
+        {
+            string[] collection = Directory.GetFiles(
+                            path: fixture.Root,
+                            searchPattern: "*.json",
+                            SearchOption.AllDirectories);
+            return collection;
+        }
+
         var file = Assert.Single(
-            Directory.GetFiles(
-                path: fixture.Root,
-                searchPattern: "*.json",
-                SearchOption.AllDirectories));
+                    CalculateCollection());
         var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
         stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
         await new AtomicTokenStore(file).Write(stored, default);
@@ -78,7 +84,9 @@ public sealed class AuthenticationTests
             actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
         if (!OperatingSystem.IsWindows())
         {
-            Assert.Equal(expected: UnixFileMode.UserRead | UnixFileMode.UserWrite, actual: File.GetUnixFileMode(file));
+            global::System.IO.UnixFileMode expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            global::System.IO.UnixFileMode actual2 = File.GetUnixFileMode(file);
+            Assert.Equal(expected: expected2, actual: actual2);
         }
     }
 
@@ -98,11 +106,17 @@ public sealed class AuthenticationTests
             Teacher,
             fixture.Services,
             default));
+        string[] CalculateCollection()
+        {
+            string[] collection = Directory.GetFiles(
+                            path: fixture.Root,
+                            searchPattern: "*.json",
+                            SearchOption.AllDirectories);
+            return collection;
+        }
+
         var file = Assert.Single(
-            Directory.GetFiles(
-                path: fixture.Root,
-                searchPattern: "*.json",
-                SearchOption.AllDirectories));
+                    CalculateCollection());
         var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
         stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
         await new AtomicTokenStore(file).Write(stored, default);
@@ -185,7 +199,13 @@ public sealed class AuthenticationTests
             fixture.Services,
             default));
         Assert.Single((await auth.Status(Teacher, default)).Accounts);
-        var directory = Assert.Single(Directory.GetDirectories(fixture.Root));
+        string[] CalculateCollection()
+        {
+            string[] collection = Directory.GetDirectories(fixture.Root);
+            return collection;
+        }
+
+        var directory = Assert.Single(CalculateCollection());
         await using var lease = await LocalFileLock.Acquire(Path.Combine(directory, ".operation.lock"), default);
         await Assert.ThrowsAsync<LocalOperationBusyException>(() => auth.Logout(Teacher, default));
         await Assert.ThrowsAsync<LocalOperationBusyException>(() => auth.Resolve(
@@ -214,7 +234,13 @@ public sealed class AuthenticationTests
             default));
         await Task.WhenAll(writes);
         Assert.NotNull(await store.GetAsync<TokenResponse>(Teacher));
-        Assert.Empty(Directory.GetFiles(path: fixture.Root, searchPattern: "*.tmp"));
+        string[] CalculateCollection()
+        {
+            string[] collection = Directory.GetFiles(path: fixture.Root, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
     }
 
     [Theory]
@@ -293,7 +319,13 @@ public sealed class AuthenticationTests
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: "auth status google", actual: result.RootElement.GetProperty("command").GetString());
             Assert.Equal(expected: Teacher, actual: result.RootElement.GetProperty("data").GetProperty("profile").GetString());
-            Assert.Empty(Directory.GetFileSystemEntries(fixture.Root));
+            string[] CalculateCollection()
+            {
+                string[] collection = Directory.GetFileSystemEntries(fixture.Root);
+                return collection;
+            }
+
+            Assert.Empty(CalculateCollection());
             Assert.DoesNotContain(expectedSubstring: "secret", actualString: output.ToString());
         }
         finally
@@ -306,10 +338,16 @@ public sealed class AuthenticationTests
     public async Task ConfiguredClientSourceAndRuntimeResolverUseSelectedTypedProfile()
     {
         using var fixture = new Fixture();
+        string CalculateUserFile()
+        {
+            string userFile2 = Path.Combine(fixture.Root, "missing-settings.json");
+            return userFile2;
+        }
+
         using var settings = await CliSettings.Load(
-            new() { Profile = Teacher },
-            invocationDirectory: fixture.Root,
-            userFile: Path.Combine(fixture.Root, "missing-settings.json"));
+                    new() { Profile = Teacher },
+                    invocationDirectory: fixture.Root,
+                    userFile: CalculateUserFile());
         var services = new ServiceCollection();
         services.AddConfigsServices();
         services.AddOnlineRegistry();
@@ -357,13 +395,19 @@ public sealed class AuthenticationTests
         try
         {
             Console.SetOut(output);
+            global::System.Threading.CancellationToken CalculateCancellationToken()
+            {
+                global::System.Threading.CancellationToken cancellationToken = new CancellationToken(true);
+                return cancellationToken;
+            }
+
             Assert.Equal(
-                expected: 130,
-                actual: await new AuthCommands().Status(
-                    new() { Provider = provider },
-                    new() { Profile = Teacher },
-                    new() { Json = true },
-                    new CancellationToken(true)));
+                            expected: 130,
+                            actual: await new AuthCommands().Status(
+                                new() { Provider = provider },
+                                new() { Profile = Teacher },
+                                new() { Json = true },
+                                CalculateCancellationToken()));
             using var json = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: "cancelled", actual: json.RootElement.GetProperty("status").GetString());
             Assert.Equal(expected: 130, actual: json.RootElement.GetProperty("exitCode").GetInt32());
@@ -377,7 +421,7 @@ public sealed class AuthenticationTests
 
     private sealed class Fixture : IDisposable
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-auth-{Guid.NewGuid().ToString("N")}");
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
         public FakeTokens Tokens { get; } = new();
 
@@ -404,6 +448,14 @@ public sealed class AuthenticationTests
         {
             Services.Dispose();
             Directory.Delete(Root, true);
+        }
+
+        private static string CalculatePath2()
+        {
+            string toString = Guid.NewGuid().ToString("N");
+            string text = $"schedulelib-auth-{toString}";
+            string path2 = (string) text;
+            return path2;
         }
     }
 

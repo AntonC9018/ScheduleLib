@@ -202,7 +202,8 @@ public sealed class CliCommandContext : IDisposable
                 Warnings: warnings,
                 Errors: errors,
                 data);
-            Console.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            string value = JsonSerializer.Serialize(result, JsonOptions);
+            Console.WriteLine(value);
         }
         else if (Output.Jsonl)
         {
@@ -299,12 +300,17 @@ public sealed class CliCommandContext : IDisposable
         }
         while (_streamed < Artifacts.PublishedPaths.Count)
         {
-            var path = Artifacts.PublishedPaths[_streamed++];
+            global::System.Collections.Generic.List<string> list = Artifacts.PublishedPaths;
+            int index = _streamed++;
+            var path = list[index];
             Output.WriteHuman(path);
-            Output.EmitItem(
-                id: (string) $"artifact:{path}",
-                status: "completed",
-                new { path });
+            global::ScheduleLib.Cli.CliOutput cliOutput = Output;
+            string text = $"artifact:{path}";
+            string id2 = (string) text;
+            string status2 = "completed";
+            object item = new { path };
+            cliOutput.EmitItem(
+                id: id2, status: status2, item);
         }
     }
 
@@ -321,7 +327,9 @@ public sealed class CliCommandContext : IDisposable
             }
             catch (Exception error)
             {
-                Warnings.Add($"Could not publish partial output manifest: {error.Message}");
+                global::System.Collections.Generic.List<string> list = Warnings;
+                string item = $"Could not publish partial output manifest: {error.Message}";
+                list.Add(item);
             }
             StreamArtifacts();
         }

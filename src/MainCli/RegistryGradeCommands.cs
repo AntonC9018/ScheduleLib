@@ -118,16 +118,28 @@ public partial class RegistryCommands
             notices.AddRange(plan.Notices);
             foreach (var notice in notices)
             {
-                warnings.Add($"{notice.Kind}: {notice.Detail}");
+                global::System.Collections.Generic.List<string> list = warnings;
+                string item = $"{notice.Kind}: {notice.Detail}";
+                list.Add(item);
             }
 
             foreach (var action in plan.Actions)
             {
                 actionIndexes.Add(action, outcomes.Count);
+                global::ScheduleLib.OnlineRegistry.RegistryGradeAction action2 = action;
+                string status3;
+                if (apply.Apply)
+                {
+                    status3 = "not-attempted";
+                }
+                else
+                {
+                    status3 = "planned";
+                }
+
+                string? detail2 = null;
                 var initial = ToOutcome(
-                    action,
-                    status: apply.Apply ? "not-attempted" : "planned",
-                    detail: null);
+                    action2, status: status3, detail: detail2);
                 outcomes.Add(initial);
                 StreamOutcome(outcomes.Count - 1, initial);
             }
@@ -210,20 +222,28 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryGradeOutcome outcome)
         {
-            context.StreamItem(
-                id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                status: outcome.Status,
-                outcome,
-                renderHuman: () =>
+            global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string status2 = outcome.Status;
+            object item = outcome;
+            global::System.Action renderHuman2 = () =>
                 {
+                    string CalculateLine()
+                    {
+                        string line = $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}";
+                        return line;
+                    }
+
                     output.WriteHuman(
-                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}");
+                                            CalculateLine());
                     foreach (var grade in outcome.Grades)
                     {
                         output.WriteHuman(
                             $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})");
                     }
-                });
+                };
+            cliCommandContext.StreamItem(
+                id: id2, status: status2, item, renderHuman: renderHuman2);
         }
 
         int Finish(int exit, string[] errors)
@@ -274,7 +294,9 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        string line = $"{status}: {target.Destination} (account {target.Account})";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });

@@ -153,67 +153,67 @@ public sealed class ThesisListParser(
             switch (state.Action)
             {
                 case Action.MeaninglessHeaders:
-                {
-                    break;
-                }
+                    {
+                        break;
+                    }
                 case Action.MeaningfulHeaders:
-                {
-                    if (!TryReadHeaderRow(
-                            row: row,
-                            targetThesisType: targetThesisType,
-                            state: ref state))
                     {
-                        break;
-                    }
-
-                    state.Action = Action.Data;
-                    break;
-                }
-                case Action.Data:
-                {
-                    var thesis = new ThesisInParsing();
-                    var cells = row.CellsWithMergedAppearingOnce().ToArray();
-                    if (cells.All(x => x.Value.IsBlank))
-                    {
-                        break;
-                    }
-                    foreach (var cell in cells)
-                    {
-                        try
+                        if (!TryReadHeaderRow(
+                                row: row,
+                                targetThesisType: targetThesisType,
+                                state: ref state))
                         {
-                            if (!ParseColumn(cell, ref state, ref thesis))
+                            break;
+                        }
+
+                        state.Action = Action.Data;
+                        break;
+                    }
+                case Action.Data:
+                    {
+                        var thesis = new ThesisInParsing();
+                        var cells = row.CellsWithMergedAppearingOnce().ToArray();
+                        if (cells.All(x => x.Value.IsBlank))
+                        {
+                            break;
+                        }
+                        foreach (var cell in cells)
+                        {
+                            try
                             {
-                                break;
+                                if (!ParseColumn(cell, ref state, ref thesis))
+                                {
+                                    break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                throw cell.Exception("Error while parsing thesis list cell", ex);
                             }
                         }
-                        catch (Exception ex)
+                        // Won't fail if no students parsed, which is fine.
+                        foreach (var studentName in state.StudentNames)
                         {
-                            throw cell.Exception("Error while parsing thesis list cell", ex);
-                        }
-                    }
-                    // Won't fail if no students parsed, which is fine.
-                    foreach (var studentName in state.StudentNames)
-                    {
-                        if (thesis.TeacherName is null
-                            || thesis.TeacherName.Count == 0)
-                        {
-                            throw new InvalidOperationException("Teacher name is required");
-                        }
-                        foreach (var teacherName in thesis.TeacherName)
-                        {
-                            var mappedTeacherName = _teacherNameRemapper.RemapName(teacherName);
-                            state.Result.Add(new()
+                            if (thesis.TeacherName is null
+                                || thesis.TeacherName.Count == 0)
                             {
-                                GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
-                                StudentName = studentName,
-                                TeacherName = mappedTeacherName,
-                                ThesisNames = thesis.ThesisNames,
-                            });
+                                throw new InvalidOperationException("Teacher name is required");
+                            }
+                            foreach (var teacherName in thesis.TeacherName)
+                            {
+                                var mappedTeacherName = _teacherNameRemapper.RemapName(teacherName);
+                                state.Result.Add(new()
+                                {
+                                    GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                                    StudentName = studentName,
+                                    TeacherName = mappedTeacherName,
+                                    ThesisNames = thesis.ThesisNames,
+                                });
+                            }
                         }
+                        state.StudentNames.Clear();
+                        break;
                     }
-                    state.StudentNames.Clear();
-                    break;
-                }
             }
         }
         if (state.Action != Action.Data)
@@ -255,9 +255,15 @@ public sealed class ThesisListParser(
             }
         }
 
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Theses.Parsing.ThesisListParser.Column> CalculateOther()
+        {
+            global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Theses.Parsing.ThesisListParser.Column> other = GetRequiredHeaderColumns(targetThesisType);
+            return other;
+        }
+
         var missingRequiredColumns = presentColumns
-            .Flipped
-            .Intersect(GetRequiredHeaderColumns(targetThesisType));
+                    .Flipped
+                    .Intersect(CalculateOther());
         if (missingRequiredColumns.AreAnySet)
         {
             return false;
@@ -304,94 +310,94 @@ public sealed class ThesisListParser(
         switch (column)
         {
             case Column.Number:
-            {
-                return true;
-            }
+                {
+                    return true;
+                }
 
             case Column.StudentName:
-            {
-                if (GetStringForName() is not { } text)
                 {
-                    return false;
-                }
-                var parser = new SequenceReader(text);
-                try
-                {
-                    while (true)
+                    if (GetStringForName() is not { } text)
                     {
-                        parser.SkipWhitespace();
-                        while (TrySkipParenthesizedText(ref parser))
+                        return false;
+                    }
+                    var parser = new SequenceReader(text);
+                    try
+                    {
+                        while (true)
                         {
                             parser.SkipWhitespace();
-                        }
-                        if (parser.IsEmpty)
-                        {
-                            break;
-                        }
+                            while (TrySkipParenthesizedText(ref parser))
+                            {
+                                parser.SkipWhitespace();
+                            }
+                            if (parser.IsEmpty)
+                            {
+                                break;
+                            }
 
-                        var studentName = NameHelper.Parse(ref parser);
-                        studentName = _studentNameRemapper.RemapName(studentName);
-                        state.StudentNames.Add(studentName);
-                        if (!parser.SkipWhitespace().SkippedAny)
-                        {
-                            break;
+                            var studentName = NameHelper.Parse(ref parser);
+                            studentName = _studentNameRemapper.RemapName(studentName);
+                            state.StudentNames.Add(studentName);
+                            if (!parser.SkipWhitespace().SkippedAny)
+                            {
+                                break;
+                            }
                         }
                     }
+                    catch (NameParsingException) when (state.StudentNames.Count == 0)
+                    {
+                        return false;
+                    }
+                    if (!parser.IsEmpty)
+                    {
+                        throw new InvalidOperationException("Parser not empty after student name");
+                    }
+                    if (state.StudentNames.Count == 0)
+                    {
+                        return false;
+                    }
+                    break;
                 }
-                catch (NameParsingException) when (state.StudentNames.Count == 0)
-                {
-                    return false;
-                }
-                if (!parser.IsEmpty)
-                {
-                    throw new InvalidOperationException("Parser not empty after student name");
-                }
-                if (state.StudentNames.Count == 0)
-                {
-                    return false;
-                }
-                break;
-            }
             case Column.Mentor:
-            {
-                if (GetStringForName() is not { } text)
                 {
-                    return false;
+                    if (GetStringForName() is not { } text)
+                    {
+                        return false;
+                    }
+                    if (string.IsNullOrWhiteSpace(text))
+                    {
+                        return false;
+                    }
+                    thesis.TeacherName = ParseNames(text);
+                    break;
                 }
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    return false;
-                }
-                thesis.TeacherName = ParseNames(text);
-                break;
-            }
             case Column.Group:
-            {
-                if (!cell.TryGetValue(out string text))
                 {
-                    return false;
+                    if (!cell.TryGetValue(out string text))
+                    {
+                        return false;
+                    }
+                    thesis.GroupName = text.Trim();
+                    break;
                 }
-                thesis.GroupName = text.Trim();
-                break;
-            }
             case Column.ThesisNameRu
                 or Column.ThesisNameRo
                 or Column.ThesisNameEn:
-            {
-                var lang = column switch
                 {
-                    Column.ThesisNameRu => ThesisNameLanguage.Ru,
-                    Column.ThesisNameRo => ThesisNameLanguage.Ro,
-                    Column.ThesisNameEn => ThesisNameLanguage.En,
-                    _ => throw Unreachable(),
-                };
-                if (!cell.TryGetValue(out string text))
-                {
-                    return false;
+                    var lang = column switch
+                    {
+                        Column.ThesisNameRu => ThesisNameLanguage.Ru,
+                        Column.ThesisNameRo => ThesisNameLanguage.Ro,
+                        Column.ThesisNameEn => ThesisNameLanguage.En,
+                        _ => throw Unreachable(),
+                    };
+                    if (!cell.TryGetValue(out string text))
+                    {
+                        return false;
+                    }
+                    thesis.ThesisNames[lang] = text;
+                    break;
                 }
-                thesis.ThesisNames[lang] = text;
-                break;
-            }
         }
         return true;
     }

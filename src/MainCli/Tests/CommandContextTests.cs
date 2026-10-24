@@ -12,11 +12,15 @@ public sealed class CommandContextTests
             CancellationToken.None);
         var timeout = context.ClassifyInputFailure(new OperationCanceledException());
         Assert.Equal(expected: CliExit.IoFailure, actual: timeout.ExitCode);
-        Assert.Equal(expected: "Schedule provider request timed out.", actual: Assert.Single(timeout.Errors));
+        string expected2 = "Schedule provider request timed out.";
+        string actual2 = Assert.Single(timeout.Errors);
+        Assert.Equal(expected: expected2, actual: actual2);
         context.Cancellation.Cancel();
         var cancelled = context.ClassifyInputFailure(new OperationCanceledException());
         Assert.Equal(expected: CliExit.Cancelled, actual: cancelled.ExitCode);
-        Assert.Equal(expected: "Cancelled.", actual: Assert.Single(cancelled.Errors));
+        string expected3 = "Cancelled.";
+        string actual3 = Assert.Single(cancelled.Errors);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -26,16 +30,50 @@ public sealed class CommandContextTests
             "test",
             new(),
             CancellationToken.None);
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new JsonException()).ExitCode);
-        Assert.Equal(expected: CliExit.IoFailure, actual: context.ClassifyInputFailure(new IOException()).ExitCode);
-        Assert.Equal(expected: CliExit.InvalidArguments, actual: context.ClassifyInputFailure(new ArgumentException()).ExitCode);
+        int CalculateActual()
+        {
+            global::ScheduleLib.Cli.CliFailure classifyInputFailure = context.ClassifyInputFailure(new FileNotFoundException());
+            int actual2 = classifyInputFailure.ExitCode;
+            return actual2;
+        }
+
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual());
+        int CalculateActual2()
+        {
+            global::ScheduleLib.Cli.CliFailure classifyInputFailure2 = context.ClassifyInputFailure(new JsonException());
+            int actual3 = classifyInputFailure2.ExitCode;
+            return actual3;
+        }
+
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual2());
+        int CalculateActual3()
+        {
+            global::ScheduleLib.Cli.CliFailure classifyInputFailure3 = context.ClassifyInputFailure(new IOException());
+            int actual4 = classifyInputFailure3.ExitCode;
+            return actual4;
+        }
+
+        Assert.Equal(expected: CliExit.IoFailure, actual: CalculateActual3());
+        int CalculateActual4()
+        {
+            global::ScheduleLib.Cli.CliFailure classifyInputFailure4 = context.ClassifyInputFailure(new ArgumentException());
+            int actual5 = classifyInputFailure4.ExitCode;
+            return actual5;
+        }
+
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: CalculateActual4());
     }
 
     [Fact]
     public async Task PublishedArtifactsSurviveFailureWithPartialManifestAndReleaseTheirLease()
     {
-        var directory = Path.Combine(Path.GetTempPath(), $"cli-context-{Guid.NewGuid():N}");
+        string CalculatePath2()
+        {
+            string path2 = $"cli-context-{Guid.NewGuid():N}";
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         try
         {
             using (var context = new CliCommandContext(
@@ -60,22 +98,40 @@ public sealed class CommandContextTests
                             token);
                     },
                     CancellationToken.None);
-                var failure = context.ClassifyInputFailure(new IOException("Disk failure."), export: true);
+                global::System.IO.IOException CalculateError()
+                {
+                    global::System.IO.IOException error = new IOException("Disk failure.");
+                    return error;
+                }
+
+                var failure = context.ClassifyInputFailure(CalculateError(), export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: failure.ExitCode);
+                global::ScheduleLib.Cli.GeneralCliOutputStreamingException CalculateError2()
+                {
+                    global::ScheduleLib.Cli.GeneralCliOutputStreamingException error2 = new GeneralCliOutputStreamingException("Output failed.");
+                    return error2;
+                }
+
                 var renderingFailure = context.ClassifyInputFailure(
-                    new GeneralCliOutputStreamingException("Output failed."),
-                    export: true);
+                                    CalculateError2(),
+                                    export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: renderingFailure.ExitCode);
                 var paths = await context.CompleteArtifacts(failure.ExitCode);
                 Assert.Contains(context.Artifacts.ManifestPath, paths);
                 using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(context.Artifacts.ManifestPath));
                 Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
             }
+            string CalculateRunId()
+            {
+                string runId2 = Guid.NewGuid().ToString("N");
+                return runId2;
+            }
+
             using var next = await RunOutput.Create(
-                output: directory,
-                command: "test",
-                runId: Guid.NewGuid().ToString("N"),
-                CancellationToken.None);
+                            output: directory,
+                            command: "test",
+                            runId: CalculateRunId(),
+                            CancellationToken.None);
         }
         finally
         {

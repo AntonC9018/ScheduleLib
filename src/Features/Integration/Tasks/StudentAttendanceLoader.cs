@@ -73,11 +73,13 @@ public sealed partial class StudentAttendanceLoader
             using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var workbook = new XLWorkbook(stream);
             var parser = _parser;
-            parser.Parse(new(
+            global::OnlineRegistry.AttendanceExcel.AttendanceListsExcelParser attendanceListsExcelParser = parser;
+            global::OnlineRegistry.AttendanceExcel.ParseAttendanceListsExcelParams p = new(
                 parseParameters: parseParams,
                 builder: builder,
                 schedule: filteredSchedule,
-                workbook: workbook));
+                workbook: workbook);
+            attendanceListsExcelParser.Parse(p);
         }
 
         // Maybe configure this per workbook.

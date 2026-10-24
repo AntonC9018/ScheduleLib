@@ -58,7 +58,13 @@ public sealed class ScheduleLoaderSerializationTests
         Assert.Equal(expected: "Imported course", actual: Assert.Single(rebuilt.Schedule.Build().Courses).FullName);
         await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
-        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+        {
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
     }
 
     [Theory]
@@ -101,7 +107,13 @@ public sealed class ScheduleLoaderSerializationTests
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
         using var input = new MemoryStream(previous);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
-        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+        {
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
         // Cancellation/failure releases the loader's cache lock as well.
         component.OnApply = null;
         await loader.Load(CreateContext(),
@@ -130,7 +142,9 @@ public sealed class ScheduleLoaderSerializationTests
         public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            hasher.AppendData(Encoding.UTF8.GetBytes(Source));
+            global::System.Security.Cryptography.IncrementalHash incrementalHash = hasher;
+            byte[] data = Encoding.UTF8.GetBytes(Source);
+            incrementalHash.AppendData(data);
             return ValueTask.CompletedTask;
         }
 
@@ -146,11 +160,17 @@ public sealed class ScheduleLoaderSerializationTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
         public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
 
         public TempDirectory() => Directory.CreateDirectory(DirectoryPath);
         public void Dispose() => Directory.Delete(DirectoryPath, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
     }
 }

@@ -55,7 +55,17 @@ public static class DriveBundle
             return operationValue4;
         }
 
-        return output.PublishedPaths.Where(x => DriveSync.IsScheduleArtifact(Path.GetFileName(x)))
+        return output.PublishedPaths.Where(x =>
+        {
+            string name = Path.GetFileName(x);
+            bool isScheduleArtifact = DriveSync.IsScheduleArtifact(name);
+            if (isScheduleArtifact)
+            {
+                return true;
+            }
+
+            return false;
+        })
             .Select(ProjectValue).ToArray();
     }
 }

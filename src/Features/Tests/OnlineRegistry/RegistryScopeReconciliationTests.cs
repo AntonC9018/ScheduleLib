@@ -10,7 +10,13 @@ public sealed class RegistryScopeReconciliationTests
     public void UnspecifiedLegacyTypeStillUpdatesWhenTheOwnedAudienceTimeChanged()
     {
         var local = new[] { Local(id: 0, hour: 9) };
-        var saved = Remote(0, local[0].DateTime.AddHours(-1), "Old") with { LessonType = LessonType.Unspecified };
+        global::System.DateTime CalculateDate()
+        {
+            global::System.DateTime date = local[0].DateTime.AddHours(-1);
+            return date;
+        }
+
+        var saved = Remote(0, CalculateDate(), "Old") with { LessonType = LessonType.Unspecified };
         var inferred = new Dictionary<Uri, LessonType>();
         var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(), local, [saved],
             ["A"], Scope, new AnyDayDerivation(), inferredTypes: inferred);
@@ -39,8 +45,15 @@ public sealed class RegistryScopeReconciliationTests
     {
         var local = new[] { Local(id: 0, hour: 9) with { RegistryLessonType = LessonType.Curs } };
         var saved = Remote(0, local[0].DateTime, "Old (A)");
-        var commands = RegistryScopeReconciliation.Derive(new ScheduleBuilder().Build(), local, [saved],
-            Assign(local, [saved], false), Scope, new AnyDayDerivation()).ToArray();
+        global::ScheduleLib.Schedule schedule = new ScheduleBuilder().Build();
+        global::ScheduleLib.OnlineRegistry.LessonInstance[] local2 = local;
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance[] remote = [saved];
+        global::System.Collections.Generic.Dictionary<global::System.Uri, string> owners = Assign(local, [saved], false);
+        global::System.Collections.Generic.IReadOnlyDictionary<global::System.Uri, string> owners2 = owners;
+        global::System.Func<global::ScheduleLib.OnlineRegistry.LessonInstance, string> getScope = Scope;
+        global::ScheduleLib.OnlineRegistry.IEquationCommandsDerivation derivation = new AnyDayDerivation();
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> derive = RegistryScopeReconciliation.Derive(schedule, local2, remote, owners2, getScope, derivation);
+        var commands = derive.ToArray();
         Assert.DoesNotContain(commands, command => command.Type == LessonEquationCommandType.Update);
         Assert.Contains(commands, command => command.Type == LessonEquationCommandType.Create);
     }
@@ -54,7 +67,10 @@ public sealed class RegistryScopeReconciliationTests
         var saved = Remote(1, local[1].DateTime, "Second (B)");
         var owners = Assign(local, [saved], sameDay);
         Assert.Equal(expected: "B", actual: owners[saved.ViewUri]);
-        var first = Derivation(sameDay).DeriveCommands(new(new ScheduleBuilder().Build(), [], [local[0]])).ToArray();
+        global::ScheduleLib.OnlineRegistry.IEquationCommandsDerivation derivation = Derivation(sameDay);
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p = new(new ScheduleBuilder().Build(), [], [local[0]]);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> deriveCommands = derivation.DeriveCommands(p);
+        var first = deriveCommands.ToArray();
         Assert.Equal(expected: LessonEquationCommandType.Create, actual: Assert.Single(first).Type);
     }
 
@@ -68,7 +84,10 @@ public sealed class RegistryScopeReconciliationTests
         var duplicate = Remote(1, local[0].DateTime, "First");
         var owners = Assign(local, [first, duplicate], sameDay);
         Assert.Single(owners);
-        var commands = Derivation(sameDay).DeriveCommands(new(new ScheduleBuilder().Build(), [first, duplicate], local)).ToArray();
+        global::ScheduleLib.OnlineRegistry.IEquationCommandsDerivation derivation = Derivation(sameDay);
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p = new(new ScheduleBuilder().Build(), [first, duplicate], local);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> deriveCommands = derivation.DeriveCommands(p);
+        var commands = deriveCommands.ToArray();
         Assert.Contains(commands, command => command.Type == LessonEquationCommandType.Delete);
     }
 
@@ -76,20 +95,32 @@ public sealed class RegistryScopeReconciliationTests
     public void LegacyAssessmentCanUseUniqueSameDayAudienceWhenTimeChanged()
     {
         var local = new[] { Local(id: 0, hour: 9) };
-        var assessment = Remote(0, local[0].DateTime.AddHours(-1), "Atestare 1");
-        Assert.Equal(expected: "A", actual: Assign(local, [assessment], true)[assessment.ViewUri]);
+        int id2 = 0;
+        global::System.DateTime date = local[0].DateTime.AddHours(-1);
+        string topic = "Atestare 1";
+        var assessment = Remote(id2, date, topic);
+        string expected2 = "A";
+        global::System.Collections.Generic.Dictionary<global::System.Uri, string> assign = Assign(local, [assessment], true);
+        global::System.Uri key = assessment.ViewUri;
+        string actual2 = assign[key];
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
     public void AssessmentWithTwoSameDayAudiencesIsReportedOnceAndHasNoGuessedOwner()
     {
         var local = new[] { Local(id: 0, hour: 9), Local(id: 1, hour: 11) };
-        var assessment = Remote(0, local[0].DateTime.AddHours(-1), "Atestare 1");
+        int id2 = 0;
+        global::System.DateTime date = local[0].DateTime.AddHours(-1);
+        string topic = "Atestare 1";
+        var assessment = Remote(id2, date, topic);
         var unresolved = new List<RemoteLessonInstance>();
         var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(), local, [assessment],
             ["A", "B"], Scope, new SameDayDerivation(), unresolved.Add);
         Assert.Empty(owners);
-        Assert.Equal(expected: assessment, actual: Assert.Single(unresolved));
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance expected2 = assessment;
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance actual2 = Assert.Single(unresolved);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -103,7 +134,16 @@ public sealed class RegistryScopeReconciliationTests
     }
 
     private static Dictionary<Uri, string> Assign(LessonInstance[] local, RemoteLessonInstance[] remote, bool sameDay)
-        => RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(), local, remote, ["A", "B"], Scope, Derivation(sameDay));
+    {
+        global::ScheduleLib.Schedule schedule = new ScheduleBuilder().Build();
+        global::ScheduleLib.OnlineRegistry.LessonInstance[] local2 = local;
+        global::ScheduleLib.OnlineRegistry.RemoteLessonInstance[] remote2 = remote;
+        global::System.Collections.Generic.IReadOnlyCollection<string> knownScopes = ["A", "B"];
+        global::System.Func<global::ScheduleLib.OnlineRegistry.LessonInstance, string> getScope = Scope;
+        global::ScheduleLib.OnlineRegistry.IEquationCommandsDerivation derivation = Derivation(sameDay);
+        global::System.Collections.Generic.Dictionary<global::System.Uri, string> assign = RegistryScopeReconciliation.Assign(schedule, local2, remote2, knownScopes, getScope, derivation);
+        return assign;
+    }
 
     private static IEquationCommandsDerivation Derivation(bool sameDay) => sameDay ? new SameDayDerivation() : new AnyDayDerivation();
     private static string Scope(LessonInstance lesson) => lesson.LessonId.Id == 0 ? "A" : "B";
@@ -121,14 +161,26 @@ public sealed class RegistryScopeReconciliationTests
 
     private static RemoteLessonInstance Remote(int id, DateTime date, string topic)
     {
+        string CalculateUriString()
+        {
+            string uriString = $"https://registry.test/view/{id}";
+            return uriString;
+        }
+
+        string CalculateUriString2()
+        {
+            string uriString2 = $"https://registry.test/edit/{id}";
+            return uriString2;
+        }
+
         return new()
         {
             DateTime = date,
             Topic = topic,
             LessonType = LessonType.Lab,
             Attendance = [Attendance.NotPresent],
-            ViewUri = new($"https://registry.test/view/{id}"),
-            EditUri = new($"https://registry.test/edit/{id}"),
+            ViewUri = new(CalculateUriString()),
+            EditUri = new(CalculateUriString2()),
         };
     }
 }

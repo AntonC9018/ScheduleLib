@@ -248,45 +248,45 @@ public sealed class TreeEventDispatcher : IDispatcher
 
 public static class VolatileExtensions
 {
-    extension (Volatile)
+    extension(Volatile)
     {
         public static T Read<T>(ref T location) where T : struct, Enum
         {
             switch (Unsafe.SizeOf<T>())
             {
                 case 1:
-                {
-                    ref var x = ref Unsafe.As<T, byte>(ref location);
-                    byte ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<byte, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, byte>(ref location);
+                        byte ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<byte, T>(ref ret);
+                        return ret1;
+                    }
                 case 2:
-                {
-                    ref var x = ref Unsafe.As<T, short>(ref location);
-                    short ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<short, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, short>(ref location);
+                        short ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<short, T>(ref ret);
+                        return ret1;
+                    }
                 case 4:
-                {
-                    ref var x = ref Unsafe.As<T, int>(ref location);
-                    int ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<int, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, int>(ref location);
+                        int ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<int, T>(ref ret);
+                        return ret1;
+                    }
                 case 8:
-                {
-                    ref var x = ref Unsafe.As<T, long>(ref location);
-                    long ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<long, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, long>(ref location);
+                        long ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<long, T>(ref ret);
+                        return ret1;
+                    }
                 default:
-                {
-                    throw new NotSupportedException(
-                        $"Enum underlying type size {Unsafe.SizeOf<T>()} is not supported.");
-                }
+                    {
+                        throw new NotSupportedException(
+                            $"Enum underlying type size {Unsafe.SizeOf<T>()} is not supported.");
+                    }
             }
         }
     }

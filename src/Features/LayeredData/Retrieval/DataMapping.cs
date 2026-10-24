@@ -71,7 +71,10 @@ public sealed class DataMappingRegistry
                 {
                     throw new InvalidOperationException("Can't have a mapper between the same types.");
                 }
-                bool added = _mappers.TryAdd(to, new(m, from));
+                global::System.Collections.Generic.Dictionary<global::System.Type, global::Anton.LayeredData.Retrieval.DataMapping> dictionary = _mappers;
+                global::System.Type key = to;
+                global::Anton.LayeredData.Retrieval.DataMapping value = new(m, from);
+                bool added = dictionary.TryAdd(key, value);
                 if (!added)
                 {
                     throw new InvalidOperationException($"Mapper for config type `{to.Name}` already exists.");

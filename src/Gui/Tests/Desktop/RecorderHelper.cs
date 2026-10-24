@@ -122,7 +122,9 @@ public sealed class PropertyChangedRecorder : EventRecorderBase<PropertyChangedE
 
     public void Update(object? o, PropertyChangedEventArgs? args)
     {
-        _s.AddEvent(new(this, args));
+        global::Desktop.Tests.EventRecorderSource eventRecorderSource = _s;
+        global::Desktop.Tests.Ev ev = new(this, args);
+        eventRecorderSource.AddEvent(ev);
     }
 
     public override void Dispose()
@@ -147,7 +149,9 @@ public sealed class CanExecuteChangedRecorder : EventRecorderBase<EventArgs>
 
     public void Update(object? o, EventArgs? args)
     {
-        _s.AddEvent(new(this, args));
+        global::Desktop.Tests.EventRecorderSource eventRecorderSource = _s;
+        global::Desktop.Tests.Ev ev = new(this, args);
+        eventRecorderSource.AddEvent(ev);
     }
 
     public override void Dispose()
@@ -177,7 +181,12 @@ public sealed partial class EventRecorder<T> : EventRecorderBase<T>
         EventRecorderSource source,
         Event<T> e)
     {
-        _eventSub = e.Sub(x => source.AddEvent(new(this, x)));
+        _eventSub = e.Sub(x =>
+        {
+            global::Desktop.Tests.EventRecorderSource eventRecorderSource = source;
+            global::Desktop.Tests.Ev ev = new(this, x);
+            eventRecorderSource.AddEvent(ev);
+        });
     }
 
     public override void Dispose()
@@ -255,15 +264,15 @@ public readonly record struct ExpectHelperOne<T>(IEnumerable<Ev> Events, HelperO
         switch (Mode)
         {
             case HelperOneMode.OnlyOne:
-            {
-                Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
+                {
+                    Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                    break;
+                }
             case HelperOneMode.AtLeastOne:
-            {
-                Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
+                {
+                    Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                    break;
+                }
         }
     }
 }

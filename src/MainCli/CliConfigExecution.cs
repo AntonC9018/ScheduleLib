@@ -63,10 +63,12 @@ internal static class CliConfigExecution
         {
             for (var index = 0; index < profiles.Count; index++)
             {
-                cli.EmitItem(
-                    id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    status: "completed",
-                    new { profile = profiles[index] });
+                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string status2 = "completed";
+                object item = new { profile = profiles[index] };
+                cliOutput.EmitItem(
+                    id: id2, status: status2, item);
             }
 
             return context.Finish(new CliCompletion<T>(
@@ -84,7 +86,9 @@ internal static class CliConfigExecution
                         cli.WriteHuman(profile);
                     }
 
-                    cli.WriteHuman($"succeeded: {profiles.Count} profiles.");
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"succeeded: {profiles.Count} profiles.";
+                    cliOutput.WriteHuman(line);
                 },
             });
         }
@@ -101,7 +105,9 @@ internal static class CliConfigExecution
             {
                 if (data is not null)
                 {
-                    cli.WriteHuman(JsonSerializer.Serialize(data, HumanJson));
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = JsonSerializer.Serialize(data, HumanJson);
+                    cliOutput.WriteHuman(line);
                 }
             },
         });

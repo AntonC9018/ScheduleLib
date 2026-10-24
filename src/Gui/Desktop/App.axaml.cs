@@ -112,7 +112,7 @@ public sealed partial class App : Application
 
 public static class ServiceProviderExtensions
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void ValidateViewsAreNotDisposable()
         {
@@ -163,7 +163,7 @@ public static class ServiceProviderExtensions
             // });
         }
     }
-    extension (IServiceProvider sp)
+    extension(IServiceProvider sp)
     {
         public T GetRequiredView<T>(bool setViewModel = false) where T : Control
         {
@@ -195,7 +195,8 @@ public static class ServiceProviderExtensions
         {
             var viewModelType = ViewAndViewModelConverter.TypeFromViewToViewModel(view.GetType());
             Debug.Assert(viewModelType != null);
-            var viewModel = (ViewModelBase) sp.GetRequiredService(viewModelType);
+            object requiredService = sp.GetRequiredService(viewModelType);
+            var viewModel = (ViewModelBase) requiredService;
             view.DataContext = viewModel;
             return viewModel;
         }

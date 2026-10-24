@@ -198,7 +198,20 @@ public sealed class SettingsRemovalTests
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.NotEmpty(result.Error);
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
-        Assert.False(File.Exists((string) $"{files.ProjectFile}.lock"));
+        bool CalculateCondition()
+        {
+            string text = $"{files.ProjectFile}.lock";
+            string path2 = (string) text;
+            bool condition = File.Exists(path2);
+            if (condition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        Assert.False(CalculateCondition());
     }
 
     [Theory]
@@ -209,7 +222,14 @@ public sealed class SettingsRemovalTests
     public async Task HandEditedInvalidOperationsFailValidation(string operations)
     {
         using var files = new SettingsWriteTests.Fixture();
-        await File.WriteAllTextAsync(path: files.ProjectFile, contents: (string) $"{{\"schemaVersion\":1,\"operations\":{operations}}}");
+        string CalculateContents()
+        {
+            string text = $"{{\"schemaVersion\":1,\"operations\":{operations}}}";
+            string contents2 = (string) text;
+            return contents2;
+        }
+
+        await File.WriteAllTextAsync(path: files.ProjectFile, contents: CalculateContents());
         Assert.Equal(expected: 3, actual: (await files.Run("validate")).Exit);
     }
 }

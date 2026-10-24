@@ -113,7 +113,9 @@ public sealed class LessonTimeConfig
             {
                 break;
             }
-            output.Add(new(currentIndex));
+            global::System.Collections.Generic.List<global::TimeSlot> list = output;
+            global::TimeSlot item = new(currentIndex);
+            list.Add(item);
             currentIndex++;
         }
     }
@@ -167,7 +169,13 @@ public sealed class LessonTimeConfig
         {
             for (int i = 0; i < TimeSlotStarts.Length; i++)
             {
-                yield return GetTimeSlotInterval(new TimeSlot(i));
+                global::TimeSlot CalculateIndex()
+                {
+                    global::TimeSlot index = new TimeSlot(i);
+                    return index;
+                }
+
+                yield return GetTimeSlotInterval(CalculateIndex());
             }
         }
     }
@@ -188,10 +196,10 @@ public record struct TimeSlotInterval(TimeOnly Start, TimeSpan Duration)
 public record struct TimeSlot(int Index) : IComparable<TimeSlot>
 {
     public static TimeSlot First => new(0);
-    public static bool operator<(TimeSlot left, TimeSlot right) => left.Index < right.Index;
-    public static bool operator>(TimeSlot left, TimeSlot right) => left.Index > right.Index;
-    public static bool operator<=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
-    public static bool operator>=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
+    public static bool operator <(TimeSlot left, TimeSlot right) => left.Index < right.Index;
+    public static bool operator >(TimeSlot left, TimeSlot right) => left.Index > right.Index;
+    public static bool operator <=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
+    public static bool operator >=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
 
     public int CompareTo(TimeSlot other)
     {

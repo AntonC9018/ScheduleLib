@@ -36,7 +36,9 @@ public sealed partial class DataProvider
     private object? GetWrapper<T>(NodeDataKey key)
         where T : class
     {
-        return Get<T>(new(key));
+        global::Anton.LayeredData.NodeDataKey<T> key2 = new(key);
+        T? get = Get<T>(key2);
+        return get;
     }
 
     public T? Get<T>(NodeDataKey<T> key)
@@ -92,7 +94,7 @@ public sealed partial class DataProvider<T> where T : class
 
 public static class DataProviderHelper
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         private static Func<IServiceProvider, DataProvider<T>> Factory<T>(NodeDataKey<T> key)
             where T : class

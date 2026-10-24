@@ -65,7 +65,9 @@ public sealed class ElectiveCohortTests
                 Assert.Equal(expected: Parity.OddWeek, actual: l.Date.Parity);
             });
         var fallback = Assert.Single(lectures.Where(l => l.Base.Group.Alternative.Value == "Antreprenoriat inovativ"));
-        Assert.Equal(expected: ids[3], actual: Assert.Single(fallback.Base.Group.Groups));
+        global::ScheduleLib.GroupId expected2 = ids[3];
+        global::ScheduleLib.GroupId actual2 = Assert.Single(fallback.Base.Group.Groups);
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.All(lectures, l => Assert.Equal(expected: SubGroup.All, actual: l.Base.Group.SubGroup));
         var first = Assert.Single(lectures.Where(l => l.Base.Group.Alternative.Value == "Antreprenoriat Gr.1"));
         Assert.Equal(expected: new[]
@@ -104,8 +106,13 @@ public sealed class ElectiveCohortTests
             cohorts.Add);
 
         var lesson = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(expected: new("Antreprenoriat Gr.1"), actual: lesson.Base.Group.Alternative);
-        Assert.Equal(expected: context.GetOrAddCourse("Antreprenoriat inovativ".AsMemory()), actual: lesson.Base.General.Course);
+        global::ScheduleLib.Alternative expected2 = new("Antreprenoriat Gr.1");
+        global::ScheduleLib.Alternative actual2 = lesson.Base.Group.Alternative;
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.CourseId expected3 = context.GetOrAddCourse("Antreprenoriat inovativ".AsMemory());
+        global::ScheduleLib.CourseId? expected4 = expected3;
+        global::ScheduleLib.CourseId? actual3 = lesson.Base.General.Course;
+        Assert.Equal(expected: expected4, actual: actual3);
     }
 
     [Theory]
@@ -128,7 +135,9 @@ public sealed class ElectiveCohortTests
             var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(context,
                 [cell],
                 cohorts.Add));
-            var cellError = Assert.IsType<FormatException>(Assert.Single(error.InnerExceptions));
+            global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
+            object objectValue2 = objectValue;
+            var cellError = Assert.IsType<FormatException>(objectValue2);
             Assert.Equal(expected: "Cohort annotation on an unexpected course.", actual: cellError.InnerException!.Message);
             Assert.Empty(context.Schedule.WeeklyLessons.List);
             return;
@@ -140,7 +149,10 @@ public sealed class ElectiveCohortTests
 
         var lesson = Assert.Single(context.Schedule.WeeklyLessons.List);
         Assert.Equal(expected: default, actual: lesson.Base.Group.Alternative);
-        Assert.Equal(expected: context.GetOrAddCourse("HTML".AsMemory()), actual: lesson.Base.General.Course);
+        global::ScheduleLib.CourseId expected2 = context.GetOrAddCourse("HTML".AsMemory());
+        global::ScheduleLib.CourseId? expected3 = expected2;
+        global::ScheduleLib.CourseId? actual2 = lesson.Base.General.Course;
+        Assert.Equal(expected: expected3, actual: actual2);
     }
 
     private static ScheduleImportContext CreateContext()

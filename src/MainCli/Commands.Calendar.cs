@@ -189,7 +189,9 @@ public class CalendarCommands
                 {
                     if (data is not null)
                     {
-                        output.WriteHuman($"{status}: {data.Account} / {data.CalendarName}");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        string line = $"{status}: {data.Account} / {data.CalendarName}";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });
@@ -205,10 +207,19 @@ public class CalendarCommands
         var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            actions.Add(new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count));
+            global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list = actions;
+            global::ScheduleLib.Cli.CalendarDeleteAction item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
+            global::ScheduleLib.Cli.ICliMessage item2 = item;
+            list.Add(item2);
         }
-        actions.Add(new CalendarCreateAction(data.CalendarName));
-        actions.Add(new CalendarCreateEventsAction(data.DesiredEvents.Count));
+        global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list2 = actions;
+        global::ScheduleLib.Cli.CalendarCreateAction item3 = new CalendarCreateAction(data.CalendarName);
+        global::ScheduleLib.Cli.ICliMessage item4 = item3;
+        list2.Add(item4);
+        global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list3 = actions;
+        global::ScheduleLib.Cli.CalendarCreateEventsAction item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
+        global::ScheduleLib.Cli.ICliMessage item6 = item5;
+        list3.Add(item6);
         return actions.ToArray();
     }
 }

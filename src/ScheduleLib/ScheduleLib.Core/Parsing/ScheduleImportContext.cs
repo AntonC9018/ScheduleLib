@@ -23,7 +23,9 @@ public sealed class ScheduleImportContext
         var parser = ParserFactory.Create();
         parser.Lexer.Reset(enumerator);
         foreach (var lesson in parser.ParseLessons(new StringBuilder()))
+        {
             yield return lesson;
+        }
     }
     public ScheduleBuilder Schedule { get; }
     public LessonTimeConfig TimeConfig { get; }
@@ -85,14 +87,16 @@ public sealed class ScheduleImportContext
         s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
-        return new(
-            schedule: s,
-            timeConfig: timeConfig,
-            courseNameUnifierModule: new(p.CourseNameUnifierConfig),
-            dayNameParser: new DayNameParser(p.DayNameProvider),
-            parserFactory: p.ParserFactory,
-            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty,
-            subGroupMatcher: p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default);
+        global::ScheduleLib.Builders.ScheduleBuilder schedule2 = s;
+        global::LessonTimeConfig timeConfig2 = timeConfig;
+        global::ScheduleLib.Parsing.CourseName.CourseNameUnifierModule courseNameUnifierModule2 = new(p.CourseNameUnifierConfig);
+        global::ScheduleLib.Parsing.DayNameParser dayNameParser2 = new DayNameParser(p.DayNameProvider);
+        global::ScheduleLib.Parsing.Lesson.LessonParserFactory parserFactory2 = p.ParserFactory;
+        global::ScheduleLib.SpecializationRegistry specializationRegistry2 = p.SpecializationRegistry ?? SpecializationRegistry.Empty;
+        global::ScheduleLib.SubGroupPrefixMatcher subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
+        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = new(
+                    schedule: schedule2, timeConfig: timeConfig2, courseNameUnifierModule: courseNameUnifierModule2, dayNameParser: dayNameParser2, parserFactory: parserFactory2, specializationRegistry: specializationRegistry2, subGroupMatcher: subGroupMatcher2);
+        return scheduleImportContext;
     }
 
     public SubGroupStatus SetCommonProps(
@@ -143,7 +147,9 @@ public sealed class ScheduleImportContext
             {
                 // Future specialization labels are registered by their complete
                 // name, not by the built-in abbreviation table.
-                var remapped = Schedule.RemapSubGroup(new(parsedLesson.GroupName.ToString()));
+                global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder = Schedule;
+                global::ScheduleLib.SubGroup subGroup2 = new(parsedLesson.GroupName.ToString());
+                var remapped = scheduleBuilder.RemapSubGroup(subGroup2);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     groupNameIsLabel = true;
@@ -155,7 +161,9 @@ public sealed class ScheduleImportContext
         if (!parsedLesson.PartitionHint.IsEmpty)
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
-            var remapped = Schedule.RemapSubGroup(new(parsedLesson.PartitionHint.ToString()));
+            global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder2 = Schedule;
+            global::ScheduleLib.SubGroup subGroup3 = new(parsedLesson.PartitionHint.ToString());
+            var remapped = scheduleBuilder2.RemapSubGroup(subGroup3);
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)
@@ -335,7 +343,10 @@ public sealed class ScheduleImportContext
         }
         else
         {
-            builder.Group(Schedule.Group(lesson.GroupName.ToString()));
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = builder;
+            global::ScheduleLib.Builders.GroupBuilder group = Schedule.Group(lesson.GroupName.ToString());
+            global::ScheduleLib.GroupId group2 = group;
+            lessonBuilder.Group(group2);
         }
 
         if (MaybeMergeIntoAnExistingLesson())
@@ -440,7 +451,7 @@ public static class RomanianLanguageHelper
     // This is surprisingly common even though it's wrong.
     public static string? VariantWithOldLetter(string name)
     {
-        var middle = name.AsSpan()[1 .. ^1];
+        var middle = name.AsSpan()[1..^1];
         if (!middle.Contains('â'))
         {
             return null;
@@ -450,7 +461,7 @@ public static class RomanianLanguageHelper
         {
             Debug.Assert(name.Length <= 256);
             {
-                middle.Replace(output[1 .. ^1], oldValue: 'â', newValue: 'î');
+                middle.Replace(output[1..^1], oldValue: 'â', newValue: 'î');
             }
             output[0] = name[0];
             output[^1] = name[^1];

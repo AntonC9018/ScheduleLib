@@ -46,14 +46,23 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 {
                     OneOfGroupIds = [g.Id],
                 };
-                GenerateGroupPdf(g, $"{g.Item.Name}.pdf", groupFilter);
+                global::ScheduleLib.Accessor<global::ScheduleLib.Group, global::ScheduleLib.GroupId> g2 = g;
+                string fileName2 = $"{g.Item.Name}.pdf";
+                global::ScheduleLib.GroupFilter groupFilter2 = groupFilter;
+                GenerateGroupPdf(g2, fileName2, groupFilter2);
 
                 foreach (var combination in partitionInfoByGroup[g.Id].Combinations)
                 {
                     var sb = new StringBuilder();
                     sb.Append(g.Item.Name);
                     sb.Append('_');
-                    combination.AppendFileNamePart(new ListStringBuilder(sb, "-"));
+                    global::ScheduleLib.ListStringBuilder CalculateLb()
+                    {
+                        global::ScheduleLib.ListStringBuilder lb = new ListStringBuilder(sb, "-");
+                        return lb;
+                    }
+
+                    combination.AppendFileNamePart(CalculateLb());
                     sb.Append(".pdf");
                     var fileName = sb.ToStringAndClear();
 
@@ -124,7 +133,9 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
             }, filteredSchedule);
 
             if (p.PublishArtifact is { } publish)
+            {
                 await publish(name, Generate, p.CancellationToken);
+            }
             else
             {
                 using var outputFile = p.OutputDirectory!.OpenFile(name, FileMode.Create, FileAccess.Write);

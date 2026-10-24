@@ -9,9 +9,17 @@ public sealed class CurrentSourceMergeTests
     [Fact]
     public async Task WebsitePdfsAndOlderWordSourcesProduceTheSameMergeFromFreshAndCachedLoads()
     {
+        string CalculatePath2()
+        {
+            string toString = Guid.NewGuid().ToString("N");
+            string text = $"schedulelib-period-cache-{toString}";
+            string path2 = (string) text;
+            return path2;
+        }
+
         var cacheDirectory = Path.Combine(
-            Path.GetTempPath(),
-            (string) $"schedulelib-period-cache-{Guid.NewGuid().ToString("N")}");
+                    Path.GetTempPath(),
+                    CalculatePath2());
         Directory.CreateDirectory(cacheDirectory);
         try
         {
@@ -79,7 +87,8 @@ public sealed class CurrentSourceMergeTests
                 x => x.Date.Period == new PeriodId(2)
                     && x.Date.DayOfWeek == DayOfWeek.Tuesday
                     && x.Date.Parity == Parity.EveryWeek);
-            var cache = Assert.Single(Directory.EnumerateFiles(path: cacheDirectory, searchPattern: "*.json"));
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cacheDirectory, searchPattern: "*.json");
+            var cache = Assert.Single(collection);
             var originalCache = await File.ReadAllBytesAsync(cache);
             var cacheWriteTime = File.GetLastWriteTimeUtc(cache);
             var merged = await Load(
@@ -87,14 +96,18 @@ public sealed class CurrentSourceMergeTests
                 cacheDirectory: cacheDirectory,
                 enabled: true);
             Assert.Equal(expected: originalCache, actual: await File.ReadAllBytesAsync(cache));
-            Assert.Equal(expected: cacheWriteTime, actual: File.GetLastWriteTimeUtc(cache));
+            global::System.DateTime expected2 = cacheWriteTime;
+            global::System.DateTime actual2 = File.GetLastWriteTimeUtc(cache);
+            Assert.Equal(expected: expected2, actual: actual2);
             var fresh = await Load(
                 dataDirectory: sources,
                 cacheDirectory: cacheDirectory,
                 enabled: true,
                 bypass: true);
             Assert.Equal(expected: merged.AutomaticLabSubGroupMerges.ToArray(), actual: fresh.AutomaticLabSubGroupMerges.ToArray());
-            Assert.Equal(expected: Describe(merged), actual: Describe(fresh));
+            string[] expected3 = Describe(merged);
+            string[] actual3 = Describe(fresh);
+            Assert.Equal(expected: expected3, actual: actual3);
             Assert.Equal(
                 expected: Describe(raw),
                 actual: Describe(
@@ -164,7 +177,15 @@ public sealed class CurrentSourceMergeTests
     [Fact]
     public async Task WordPeriodAfterPdfRetainsOriginalElectivePolicyInFreshAndCachedLoads()
     {
-        var root = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-word-after-pdf-{Guid.NewGuid().ToString("N")}");
+        string CalculatePath2()
+        {
+            string toString = Guid.NewGuid().ToString("N");
+            string text = $"schedulelib-word-after-pdf-{toString}";
+            string path2 = (string) text;
+            return path2;
+        }
+
+        var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
         var sources = Path.Combine(root, "sources");
         var cache = Path.Combine(root, "cache");
         Directory.CreateDirectory(cache);
@@ -190,12 +211,13 @@ public sealed class CurrentSourceMergeTests
                 Directory.CreateDirectory(destination);
                 var file = date == "11.10.26" ? "orar2.pdf" : "Orar_An_II Lic.docx";
                 var sourceDate = date == "11.10.26" ? date : "01.09.26";
-                File.Copy(
-                    sourceFileName: Path.Combine(
+                string sourceFileName2 = Path.Combine(
                         packaged,
                         sourceDate,
-                        file),
-                    destFileName: Path.Combine(destination, file));
+                        file);
+                string destFileName2 = Path.Combine(destination, file);
+                File.Copy(
+                    sourceFileName: sourceFileName2, destFileName: destFileName2);
             }
             var fresh = await Load(
                 dataDirectory: sources,
@@ -211,7 +233,16 @@ public sealed class CurrentSourceMergeTests
             var later = fresh.EnumerateWeeklyLessons()
                 .Where(x => x.Date.Period == new PeriodId(2) && courses.Contains(x.Lesson.Course)).ToArray();
             Assert.NotEmpty(later);
-            Assert.All(later, x => Assert.Equal(expected: new Alternative("Antreprenoriat inovativ"), actual: x.Lesson.Alternative));
+            Assert.All(later, x =>
+            {
+                global::ScheduleLib.Alternative CalculateExpected()
+                {
+                    global::ScheduleLib.Alternative expected2 = new Alternative("Antreprenoriat inovativ");
+                    return expected2;
+                }
+
+                Assert.Equal(expected: CalculateExpected(), actual: x.Lesson.Alternative);
+            });
             Assert.Contains(
                 fresh.EnumerateWeeklyLessons(),
                 x => x.Date.Period == new PeriodId(1)
@@ -247,7 +278,11 @@ public sealed class CurrentSourceMergeTests
             options.EnrichWithFullNames = false;
             options.LoadConsultations = false;
         });
-        services.Configure<ScheduleDerivationOptions>(options => options.AutoMergeLabSubGroups = enabled);
+        services.Configure<ScheduleDerivationOptions>(options =>
+        {
+            global::ScheduleLib.Application.Config.ScheduleDerivationOptions scheduleDerivationOptions = options;
+            scheduleDerivationOptions.AutoMergeLabSubGroups = enabled;
+        });
         using var provider = AppConfiguration.BuildServiceProvider(services);
         AppConfiguration.ConfigureLayeredConfig(provider);
         await provider.InitializeSchedule(CancellationToken.None);

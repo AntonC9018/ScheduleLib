@@ -16,14 +16,15 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[]
+        bool condition = new[]
         {
             "IA2401.pdf",
             "IA2401_CV-I.pdf",
             "IA2401_CV-II.pdf",
             "IA2401_DJ-I.pdf",
             "IA2401_DJ-II.pdf",
-        }.SequenceEqual(files));
+        }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -33,14 +34,15 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[]
+        bool condition = new[]
         {
             "IA2401.pdf",
             "IA2401_A1-CV-I.pdf",
             "IA2401_A1-DJ-I.pdf",
             "IA2401_A2-CV-I.pdf",
             "IA2401_A2-DJ-I.pdf",
-        }.SequenceEqual(files));
+        }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     private static Schedule BuildWithAlternative()
@@ -58,11 +60,17 @@ public sealed class GroupPdfTests
         var course = builder.Course("Course");
 
         AddLesson();
-        AddLesson(subGroup: SubGroup.CreateNumeric(1));
+        global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.SubGroup? subGroup3 = subGroup2;
+        AddLesson(subGroup: subGroup3);
         AddLesson(specialization: Specialization.CV);
         AddLesson(specialization: Specialization.DJ);
-        AddLesson(alternative: new Alternative("A1"));
-        AddLesson(alternative: new Alternative("A2"));
+        global::ScheduleLib.Alternative alternative2 = new Alternative("A1");
+        global::ScheduleLib.Alternative? alternative3 = alternative2;
+        AddLesson(alternative: alternative3);
+        global::ScheduleLib.Alternative alternative4 = new Alternative("A2");
+        global::ScheduleLib.Alternative? alternative5 = alternative4;
+        AddLesson(alternative: alternative5);
 
         return builder.Build();
 
@@ -122,10 +130,27 @@ public sealed class GroupPdfTests
                 StringBuilder = new StringBuilder(),
             });
 
+            string text2 = text.BoldPrefix;
+            string text3 = $"{alternative}:";
+            string value = (string) text3;
+            global::System.StringComparison comparisonType = StringComparison.Ordinal;
+            bool condition;
+            if (text2.StartsWith(value, comparisonType))
+            {
+                condition = true;
+            }
+            else
+            {
+                string text4 = text.BoldPrefix;
+                string text5 = $"{alternative},";
+                string value2 = (string) text5;
+                global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                condition = text4.StartsWith(value2, comparisonType2);
+            }
+
+            string userMessage = $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'";
             Assert.True(
-                text.BoldPrefix.StartsWith((string) $"{alternative}:", StringComparison.Ordinal)
-                    || text.BoldPrefix.StartsWith((string) $"{alternative},", StringComparison.Ordinal),
-                $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'");
+                condition, userMessage);
         }
         Assert.True(seenAlternative);
     }
@@ -150,9 +175,13 @@ public sealed class GroupPdfTests
         lesson.Course(course);
         lesson.DayOfWeek(DayOfWeek.Monday);
         lesson.TimeSlot(TimeSlot.First);
-        lesson.SubGroup(SubGroup.CreateNumeric(1));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(1);
+        lessonBuilder.SubGroup(subGroup);
         lesson.Specialization(Specialization.CV);
-        lesson.Alternative(new Alternative("A1"));
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::ScheduleLib.Alternative alternative = new Alternative("A1");
+        lessonBuilder2.Alternative(alternative);
 
         var schedule = builder.Build();
         var accessor = schedule.EnumerateAllLessons().Single();
@@ -208,7 +237,8 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[] { "IA2401.pdf" }.SequenceEqual(files));
+        bool condition = new[] { "IA2401.pdf" }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     private static Schedule Build(bool withSplits)
@@ -228,8 +258,12 @@ public sealed class GroupPdfTests
         AddLesson();
         if (withSplits)
         {
-            AddLesson(subGroup: SubGroup.CreateNumeric(1));
-            AddLesson(subGroup: SubGroup.CreateNumeric(2));
+            global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
+            global::ScheduleLib.SubGroup? subGroup3 = subGroup2;
+            AddLesson(subGroup: subGroup3);
+            global::ScheduleLib.SubGroup subGroup4 = SubGroup.CreateNumeric(2);
+            global::ScheduleLib.SubGroup? subGroup5 = subGroup4;
+            AddLesson(subGroup: subGroup5);
             AddLesson(specialization: Specialization.CV);
             AddLesson(specialization: Specialization.DJ);
         }
@@ -258,7 +292,9 @@ public sealed class GroupPdfTests
 
     private static async Task<string[]> Generate(Schedule schedule)
     {
-        var root = Path.Combine(Path.GetTempPath(), $"ScheduleLib-pdf-tests-{Guid.NewGuid():N}");
+        string path1 = Path.GetTempPath();
+        string path2 = $"ScheduleLib-pdf-tests-{Guid.NewGuid():N}";
+        var root = Path.Combine(path1, path2);
         var output = new OutputDirectory(root);
         output.Initialize();
         try
@@ -285,7 +321,13 @@ public sealed class GroupPdfTests
                 .Select(x => x.Path)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            Assert.All(files, file => Assert.True(new FileInfo(output.BuildPath(file)).Length > 0));
+            Assert.All(files, file =>
+            {
+                string fileName = output.BuildPath(file);
+                global::System.IO.FileInfo fileInfo = new FileInfo(fileName);
+                bool condition = fileInfo.Length > 0;
+                Assert.True(condition);
+            });
             return files;
         }
         finally

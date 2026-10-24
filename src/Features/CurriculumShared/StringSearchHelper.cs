@@ -122,9 +122,11 @@ public static class StringSearchHelper
 
             if (str.Length != start)
             {
-                return SectionParseResult.CreatePartialMatch(
-                    sectionIndex,
-                    missingText: str.AsMemory(start));
+                int sectionType = sectionIndex;
+                global::System.ReadOnlyMemory<char> missingText2 = str.AsMemory(start);
+                global::ScheduleLib.Curriculum.SectionParseResult createPartialMatch = SectionParseResult.CreatePartialMatch(
+                sectionType, missingText: missingText2);
+                return createPartialMatch;
             }
 
             var x = extraStuffFromMatch.Array[sectionIndex];

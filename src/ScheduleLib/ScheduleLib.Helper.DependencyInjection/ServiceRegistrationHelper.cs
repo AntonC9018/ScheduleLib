@@ -120,10 +120,12 @@ public static class ServiceRegistrationHelper
         where TImpl : class, TService
     {
         _ = service;
-        builder._services.Add(new(
+        global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = builder._services;
+        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor item = new(
             typeof(TService),
             static sp => sp.GetRequiredService<TImpl>(),
-            builder._lifetime));
+            builder._lifetime);
+        iServiceCollection.Add(item);
         return builder;
     }
 }

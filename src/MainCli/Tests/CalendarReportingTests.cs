@@ -23,10 +23,18 @@ public sealed class CalendarReportingTests
                     Jsonl = jsonl,
                 },
                 default);
-            context.StreamUpdate(new CalendarReport(Id: "desired-0",
-                Status: "completed",
-                new { index = 0 },
-                new ProbeMessage(probe)));
+            global::ScheduleLib.Cli.CalendarReport CalculateUpdate()
+            {
+                string id = "desired-0";
+                string status = "completed";
+                object item = new { index = 0 };
+                global::CalendarReportingTests.ProbeMessage human = new ProbeMessage(probe);
+                global::ScheduleLib.Cli.ICliMessage human2 = human;
+                global::ScheduleLib.Cli.CalendarReport update = new CalendarReport(Id: id, Status: status, item, human2);
+                return update;
+            }
+
+            context.StreamUpdate(CalculateUpdate());
             bool CheckCondition()
             {
                 if (json)
@@ -42,7 +50,18 @@ public sealed class CalendarReportingTests
                 return false;
             }
 
-            Assert.Equal(expected: CheckCondition() ? 0 : 1, actual: probe.Calls);
+            int expected2;
+            if (CheckCondition())
+            {
+                expected2 = 0;
+            }
+            else
+            {
+                expected2 = 1;
+            }
+
+            int actual2 = probe.Calls;
+            Assert.Equal(expected: expected2, actual: actual2);
             if (jsonl)
             {
                 using var document = JsonDocument.Parse(text.ToString());
@@ -52,7 +71,19 @@ public sealed class CalendarReportingTests
             }
             else
             {
-                Assert.Equal(expected: json ? "" : (string) $"probe{Environment.NewLine}", actual: text.ToString());
+                string expected3;
+                if (json)
+                {
+                    expected3 = "";
+                }
+                else
+                {
+                    string text2 = $"probe{Environment.NewLine}";
+                    expected3 = (string) text2;
+                }
+
+                string actual3 = text.ToString();
+                Assert.Equal(expected: expected3, actual: actual3);
             }
         }
         finally
@@ -102,13 +133,19 @@ public sealed class CalendarReportingTests
     [Fact]
     public void RenderingUsesTheBoundaryCultureAndPreservesNullFields()
     {
+        global::System.TimeSpan CalculateOffset()
+        {
+            global::System.TimeSpan offset = TimeSpan.FromHours(3);
+            return offset;
+        }
+
         var start = new DateTimeOffset(year: 2026,
-            month: 10,
-            day: 18,
-            hour: 9,
-            minute: 0,
-            second: 0,
-            TimeSpan.FromHours(3));
+                    month: 10,
+                    day: 18,
+                    hour: 9,
+                    minute: 0,
+                    second: 0,
+                    CalculateOffset());
         var message = new CalendarDesiredEventMessage(0,
             null,
             Start: start,
@@ -121,7 +158,10 @@ public sealed class CalendarReportingTests
                  })
         {
             var culture = CultureInfo.GetCultureInfo(cultureName);
-            Assert.Equal(expected: $"Create event [0]: ; {start.ToString(culture)}–; ", actual: message.Format(culture));
+            string toString = start.ToString(culture);
+            string expected2 = $"Create event [0]: ; {toString}–; ";
+            string actual2 = message.Format(culture);
+            Assert.Equal(expected: expected2, actual: actual2);
         }
         Assert.Equal(expected: "create event: not-attempted; desired index 2",
             actual: new CalendarNotAttemptedMessage("create event", 2).Format(CultureInfo.InvariantCulture));

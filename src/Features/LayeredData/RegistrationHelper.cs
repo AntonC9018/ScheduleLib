@@ -137,10 +137,12 @@ public static class RegistrationHelper
 
         void ProcessChildren()
         {
-            var members = type
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .AsEnumerable<MemberInfo>()
-                .Concat(type.GetFields(BindingFlags.Public | BindingFlags.Instance));
+            global::System.Reflection.PropertyInfo[] properties = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            global::System.Collections.Generic.IEnumerable<global::System.Reflection.MemberInfo> asEnumerable = properties.AsEnumerable<MemberInfo>();
+            global::System.Reflection.FieldInfo[] second = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            global::System.Collections.Generic.IEnumerable<global::System.Reflection.MemberInfo> second2 = second;
+            var members = asEnumerable.Concat(second2);
             foreach (var m in members)
             {
                 Type mtype;
@@ -168,9 +170,9 @@ public static class RegistrationHelper
         Type service,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof (service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
+        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull((object) service, nameof(service));
+        ArgumentNullException.ThrowIfNull((object) implementationType, nameof(implementationType));
         ServiceDescriptor descriptor = ServiceDescriptor.Singleton(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
@@ -179,17 +181,17 @@ public static class RegistrationHelper
         Type service,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof (service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
+        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull((object) service, nameof(service));
+        ArgumentNullException.ThrowIfNull((object) implementationType, nameof(implementationType));
         ServiceDescriptor descriptor = ServiceDescriptor.Scoped(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
 
     private static bool TryAdd(this IServiceCollection collection, ServiceDescriptor descriptor)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) descriptor, nameof (descriptor));
+        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull((object) descriptor, nameof(descriptor));
         int count = collection.Count;
         for (int index = 0; index < count; ++index)
         {

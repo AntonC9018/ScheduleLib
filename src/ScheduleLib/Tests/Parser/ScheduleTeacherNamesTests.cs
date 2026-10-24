@@ -116,7 +116,9 @@ public sealed class ScheduleTeacherNamesTests
         var lookup = s.Lookup(null!);
 
         var t = s.Teacher("First Last");
-        Assert.Equal(expected: t.Id, actual: lookup.Teacher(lastName: "Last"));
+        global::ScheduleLib.TeacherId? expected2 = t.Id;
+        global::ScheduleLib.TeacherId? actual2 = lookup.Teacher(lastName: "Last");
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -128,8 +130,11 @@ public sealed class ScheduleTeacherNamesTests
         t.LastName("Otherlast");
         var lookup = s.Lookup(null!);
 
-        Assert.Null(lookup.Teacher(lastName: "Last"));
-        Assert.Equal(expected: t.Id, actual: lookup.Teacher(lastName: "Otherlast"));
+        global::ScheduleLib.TeacherId? value = lookup.Teacher(lastName: "Last");
+        Assert.Null(value);
+        global::ScheduleLib.TeacherId? expected2 = t.Id;
+        global::ScheduleLib.TeacherId? actual2 = lookup.Teacher(lastName: "Otherlast");
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 }
 
@@ -145,19 +150,43 @@ public sealed class TeacherFindIndexOfBestMatchTests : IClassFixture<Db>
     [Fact]
     public void FindBestMatch()
     {
-        _db.Check(CreateSinglePartNameWord("I."), 1);
-        _db.Check(CreateSinglePartNameWord("F."), 0);
-        _db.Check(CreateSinglePartNameWord("Fi."), 0);
-        _db.Check(CreateSinglePartNameWord("Rs"), -1);
-        _db.Check(CreateSinglePartNameWord("Rst"), 2);
-        _db.Check(CreateSinglePartNameWord("R."), 2);
-        _db.Check(CreateSinglePartNameWord("Unrelated"), -1);
+        global::ScheduleLib.ParserTests.Db db = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName = CreateSinglePartNameWord("I.");
+        int expected = 1;
+        db.Check(firstName, expected);
+        global::ScheduleLib.ParserTests.Db db2 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName2 = CreateSinglePartNameWord("F.");
+        int expected2 = 0;
+        db2.Check(firstName2, expected2);
+        global::ScheduleLib.ParserTests.Db db3 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName3 = CreateSinglePartNameWord("Fi.");
+        int expected3 = 0;
+        db3.Check(firstName3, expected3);
+        global::ScheduleLib.ParserTests.Db db4 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName4 = CreateSinglePartNameWord("Rs");
+        int expected4 = -1;
+        db4.Check(firstName4, expected4);
+        global::ScheduleLib.ParserTests.Db db5 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName5 = CreateSinglePartNameWord("Rst");
+        int expected5 = 2;
+        db5.Check(firstName5, expected5);
+        global::ScheduleLib.ParserTests.Db db6 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName6 = CreateSinglePartNameWord("R.");
+        int expected6 = 2;
+        db6.Check(firstName6, expected6);
+        global::ScheduleLib.ParserTests.Db db7 = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName7 = CreateSinglePartNameWord("Unrelated");
+        int expected7 = -1;
+        db7.Check(firstName7, expected7);
     }
 
     [Fact]
     public void SearchByFullFirstName_WithShortFirstNameInDb()
     {
-        _db.Check(CreateSinglePartNameWord("Other"), 3);
+        global::ScheduleLib.ParserTests.Db db = _db;
+        global::ScheduleLib.NameParts<global::Word> firstName = CreateSinglePartNameWord("Other");
+        int expected = 3;
+        db.Check(firstName, expected);
     }
 }
 

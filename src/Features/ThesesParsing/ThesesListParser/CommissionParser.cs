@@ -74,7 +74,13 @@ public static class CommissionParser
                             {
                                 continue;
                             }
-                            state.DateMappings.AddAt(cell.Position, new(date, cell.Size));
+                            global::ScheduleLib.Helper.SizedItem<global::System.DateOnly?> CalculateIt()
+                            {
+                                global::ScheduleLib.Helper.SizedItem<global::System.DateOnly?> it2 = new(date, cell.Size);
+                                return it2;
+                            }
+
+                            state.DateMappings.AddAt(cell.Position, CalculateIt());
                         }
                         if (!state.DateMappings.IsEmpty)
                         {
@@ -136,7 +142,13 @@ public static class CommissionParser
                                 throw new InvalidOperationException("Expected roman number after 'Comisia'");
                             }
                             int num = romanResult.Number;
-                            state.CommissionNumberMappings.AddAt(cell.Position, new(item: num, size: cell.Size));
+                            global::ScheduleLib.Helper.SizedItem<int> CalculateIt2()
+                            {
+                                global::ScheduleLib.Helper.SizedItem<int> it3 = new(item: num, size: cell.Size);
+                                return it3;
+                            }
+
+                            state.CommissionNumberMappings.AddAt(cell.Position, CalculateIt2());
                         }
                         if (state.CommissionNumberMappings.IsEmpty)
                         {
@@ -224,10 +236,10 @@ public static class CommissionParser
         {
             case Action.NameRow:
             case Action.FirstNameRow:
-            {
-                FinalizeCurrentCommissions();
-                break;
-            }
+                {
+                    FinalizeCurrentCommissions();
+                    break;
+                }
         }
         return new()
         {

@@ -115,7 +115,8 @@ public readonly record struct MatchScore(
     {
         int full = FullMatch.SetCount;
         int partial = PartialMatch.SetCount;
-        int ret = full + partial - UnmatchedCount;
+        int int32 = full + partial;
+        int ret = int32 - UnmatchedCount;
         return ret;
     }
 

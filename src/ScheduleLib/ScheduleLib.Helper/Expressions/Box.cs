@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
@@ -11,8 +11,14 @@ public sealed record class Box<T>(T Value)
     public (ConstantExpression Constant, MemberExpression Member) MakeExpressions()
     {
         var constant = Expression.Constant(this);
-        var member = Expression.MakeMemberAccess(constant, typeof(Box<T>)
-            .GetProperty(nameof(Value))!);
+        global::System.Reflection.PropertyInfo CalculateMember()
+        {
+            global::System.Reflection.PropertyInfo member2 = typeof(Box<T>)
+                        .GetProperty(nameof(Value))!;
+            return member2;
+        }
+
+        var member = Expression.MakeMemberAccess(constant, CalculateMember());
         return (constant, member);
     }
 }
@@ -22,10 +28,22 @@ public sealed record class Box<T, U>(T Value1, U Value2)
     public (ConstantExpression Constant, MemberExpression Member1, MemberExpression Member2) MakeExpressions()
     {
         var boxConstant = Expression.Constant(this);
-        var member1 = Expression.MakeMemberAccess(boxConstant, typeof(Box<T, U>)
-            .GetProperty(nameof(Value1))!);
-        var member2 = Expression.MakeMemberAccess(boxConstant, typeof(Box<T, U>)
-            .GetProperty(nameof(Value2))!);
+        global::System.Reflection.PropertyInfo CalculateMember()
+        {
+            global::System.Reflection.PropertyInfo member = typeof(Box<T, U>)
+                        .GetProperty(nameof(Value1))!;
+            return member;
+        }
+
+        var member1 = Expression.MakeMemberAccess(boxConstant, CalculateMember());
+        global::System.Reflection.PropertyInfo CalculateMember2()
+        {
+            global::System.Reflection.PropertyInfo member3 = typeof(Box<T, U>)
+                        .GetProperty(nameof(Value2))!;
+            return member3;
+        }
+
+        var member2 = Expression.MakeMemberAccess(boxConstant, CalculateMember2());
         return (boxConstant, member1, member2);
     }
 }

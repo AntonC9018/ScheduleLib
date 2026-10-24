@@ -31,7 +31,9 @@ public sealed class ElectiveCohorts
                     alternatives = [];
                     _byGroup.Add(id, alternatives);
                 }
-                alternatives.Add(new(cell.Alternative!));
+                global::System.Collections.Generic.HashSet<global::ScheduleLib.Alternative> hashSet = alternatives;
+                global::ScheduleLib.Alternative item = new(cell.Alternative!);
+                hashSet.Add(item);
             }
         }
         SplitConfig = CreateSplitConfig(context.Schedule.ImplicitSplitConfig ?? Config.ImplicitSplitConfig);

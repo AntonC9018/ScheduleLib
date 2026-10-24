@@ -29,14 +29,16 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Write(new(
+        global::ScheduleLib.Cli.ConfigEditRequest request = new(
             Verb: "set",
             Key: edit.Key,
             Value: edit.Value,
             scope,
             settings,
             output,
-            cancellationToken));
+            cancellationToken);
+        global::System.Threading.Tasks.Task<int> write = Write(request);
+        return write;
     }
 
     [Command("unset", Description = "Remove the chosen scope's override and restore inheritance.")]
@@ -47,14 +49,16 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Write(new(
+        global::ScheduleLib.Cli.ConfigEditRequest request = new(
             Verb: "unset",
             Key: key.Key,
             Value: null,
             scope,
             settings,
             output,
-            cancellationToken));
+            cancellationToken);
+        global::System.Threading.Tasks.Task<int> write = Write(request);
+        return write;
     }
 
     internal static async Task<int> Write(ConfigEditRequest request)
@@ -87,15 +91,30 @@ public sealed partial class ConfigCommands
                     request.Verb);
             }
 
+            string? CalculateOperation()
+            {
+                string? operation2;
+                if (request.Verb is "remove" or "clear")
+                {
+                    operation2 = request.Verb;
+                }
+                else
+                {
+                    operation2 = null;
+                }
+
+                return operation2;
+            }
+
             var result = await CliSettings.Edit(
-                request.Settings,
-                destination.Value,
-                key: request.Key,
-                value: request.Value,
-                request.Verb == "unset",
-                cancellation.Token,
-                operation: request.Verb is "remove" or "clear" ? request.Verb : null,
-                item: request.Item);
+                            request.Settings,
+                            destination.Value,
+                            key: request.Key,
+                            value: request.Value,
+                            request.Verb == "unset",
+                            cancellation.Token,
+                            operation: CalculateOperation(),
+                            item: request.Item);
             return CliConfigExecution.Finish(
                 context,
                 CliExit.Success,

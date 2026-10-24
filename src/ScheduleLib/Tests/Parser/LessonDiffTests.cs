@@ -93,8 +93,14 @@ public sealed class LessonDiffTests
         });
 
         var g = lesson1.Group.Groups;
-        Assert.Equal(expected: new GroupId(1), actual: g[0]);
-        Assert.Equal(expected: new GroupId(2), actual: g[1]);
-        Assert.Equal(expected: new GroupId(3), actual: g[2]);
+        global::ScheduleLib.GroupId expected2 = new GroupId(1);
+        global::ScheduleLib.GroupId actual2 = g[0];
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.GroupId expected3 = new GroupId(2);
+        global::ScheduleLib.GroupId actual3 = g[1];
+        Assert.Equal(expected: expected3, actual: actual3);
+        global::ScheduleLib.GroupId expected4 = new GroupId(3);
+        global::ScheduleLib.GroupId actual4 = g[2];
+        Assert.Equal(expected: expected4, actual: actual4);
     }
 }

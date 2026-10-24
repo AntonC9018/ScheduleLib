@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Anton.LayeredData;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.MvvmEssentials;

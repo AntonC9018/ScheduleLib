@@ -97,17 +97,37 @@ public sealed class HtmlTests
     {
         // Explicit null: no custom registry; only built-in specializations apply.
         var resolver = new GroupPartitionResolver(null);
-        var specialization = resolver.Resolve(MakeGroupForSearch("Spring"));
-        var numeric = resolver.Resolve(MakeGroupForSearch("I"));
+        global::ScheduleLib.OnlineRegistry.GroupForSearch CalculateGroupForSearch()
+        {
+            global::ScheduleLib.OnlineRegistry.GroupForSearch groupForSearch = MakeGroupForSearch("Spring");
+            return groupForSearch;
+        }
+
+        var specialization = resolver.Resolve(CalculateGroupForSearch());
+        global::ScheduleLib.OnlineRegistry.GroupForSearch CalculateGroupForSearch2()
+        {
+            global::ScheduleLib.OnlineRegistry.GroupForSearch groupForSearch2 = MakeGroupForSearch("I");
+            return groupForSearch2;
+        }
+
+        var numeric = resolver.Resolve(CalculateGroupForSearch2());
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
         registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
         var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
             MakeGroupForSearch(futureSpecialization.Value!));
 
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, Specialization.Spring), actual: specialization);
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), actual: numeric);
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, futureSpecialization), actual: future);
+        global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.Spring);
+        global::ScheduleLib.GroupPartitionKey actual2 = specialization;
+        Assert.Equal(expected: expected2, actual: actual2);
+        global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
+        global::ScheduleLib.Specialization specialization2 = Specialization.All;
+        global::ScheduleLib.GroupPartitionKey expected3 = new GroupPartitionKey(subGroup2, specialization2);
+        global::ScheduleLib.GroupPartitionKey actual3 = numeric;
+        Assert.Equal(expected: expected3, actual: actual3);
+        global::ScheduleLib.GroupPartitionKey expected4 = new GroupPartitionKey(SubGroup.All, futureSpecialization);
+        global::ScheduleLib.GroupPartitionKey actual4 = future;
+        Assert.Equal(expected: expected4, actual: actual4);
 
         static GroupForSearch MakeGroupForSearch(string subGroup)
         {
@@ -177,7 +197,8 @@ public sealed class HtmlTests
             addDoc = await browser.OpenAsync(req => req.Content(str).Address("https://test.com"));
         }
 
-        var students = HtmlSearch.FindStudents(HtmlSearch.FindAttendanceTable(addDoc));
+        global::AngleSharp.Html.Dom.IHtmlTableElement table = HtmlSearch.FindAttendanceTable(addDoc);
+        var students = HtmlSearch.FindStudents(table);
         var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present).ToArray();
         attendance[0] = Attendance.MotivatedAbsent;
         attendance[1] = Attendance.NotPresent;

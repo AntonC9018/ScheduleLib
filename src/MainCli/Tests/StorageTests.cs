@@ -54,11 +54,17 @@ public sealed class StorageTests
     public async Task InvalidAttendanceSourceReturnsInputError()
     {
         using var temp = new TempDirectory();
+        string CalculatePath()
+        {
+            string path = System.IO.Path.Combine(
+                            temp.Path,
+                            "2026_sem1",
+                            "bad");
+            return path;
+        }
+
         System.IO.Directory.CreateDirectory(
-            System.IO.Path.Combine(
-                temp.Path,
-                "2026_sem1",
-                "bad"));
+                    CalculatePath());
         var original = Console.Out;
         using var text = new StringWriter();
         try
@@ -100,7 +106,13 @@ public sealed class StorageTests
                 CancellationToken.None);
             await output.Complete("succeeded", CancellationToken.None);
         }
-        await File.WriteAllTextAsync(path: Path.Combine(temp.Path, "book.xlsx"), contents: "user changed it");
+        string CalculatePath()
+        {
+            string path2 = Path.Combine(temp.Path, "book.xlsx");
+            return path2;
+        }
+
+        await File.WriteAllTextAsync(path: CalculatePath(), contents: "user changed it");
         await using var next = await RunOutput.Create(
             output: temp.Path,
             command: "test",
@@ -146,14 +158,42 @@ public sealed class StorageTests
                  })
         {
             using var workbook = new XLWorkbook(Path.Combine(output, "all-teachers.xlsx"));
-            Assert.Equal(expected: "main", actual: workbook.Worksheet(1).Name);
-            var content = string.Join(" ", workbook.Worksheet(1).CellsUsed().Select(x => x.GetFormattedString()));
+            string CalculateActual()
+            {
+                global::ClosedXML.Excel.IXLWorksheet worksheet = workbook.Worksheet(1);
+                string actual2 = worksheet.Name;
+                return actual2;
+            }
+
+            Assert.Equal(expected: "main", actual: CalculateActual());
+            string separator = " ";
+            global::ClosedXML.Excel.IXLWorksheet worksheet3 = workbook.Worksheet(1);
+            global::ClosedXML.Excel.IXLCells cellsUsed = worksheet3.CellsUsed();
+            global::System.Func<global::ClosedXML.Excel.IXLCell, string> selector = x => x.GetFormattedString();
+            global::System.Collections.Generic.IEnumerable<string> values = cellsUsed.Select(selector);
+            var content = string.Join(separator, values);
             Assert.Contains(expectedSubstring: "423/4", actualString: content);
             Assert.Contains(expectedSubstring: "IA", actualString: content);
-            Assert.True(workbook.Worksheet(1).RowsUsed().Count() > 20);
-            Assert.True(File.Exists(Path.Combine(output, "schedulelib-manifest.json")));
+            bool CalculateCondition()
+            {
+                global::ClosedXML.Excel.IXLWorksheet worksheet2 = workbook.Worksheet(1);
+                global::ClosedXML.Excel.IXLRows rowsUsed = worksheet2.RowsUsed();
+                bool condition = rowsUsed.Count() > 20;
+                if (condition)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            Assert.True(CalculateCondition());
+            string path2 = Path.Combine(output, "schedulelib-manifest.json");
+            bool condition2 = File.Exists(path2);
+            Assert.True(condition2);
         }
-        var cached = Assert.Single(Directory.EnumerateFiles(path: cache, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        var cached = Assert.Single(collection);
         var publishedAt = File.GetLastWriteTimeUtc(cached);
         using (var query = Start(
                    "query",
@@ -163,7 +203,9 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        Assert.Equal(expected: publishedAt, actual: File.GetLastWriteTimeUtc(cached));
+        global::System.DateTime expected2 = publishedAt;
+        global::System.DateTime actual3 = File.GetLastWriteTimeUtc(cached);
+        Assert.Equal(expected: expected2, actual: actual3);
         var bypass = Path.Combine(temp.Path, "bypassed");
         using (var query = Start(
                    "query",
@@ -174,11 +216,14 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        Assert.False(Directory.Exists(bypass));
+        bool condition3 = Directory.Exists(bypass);
+        Assert.False(condition3);
         await using var input = File.OpenRead(cached);
         var model = await ScheduleSerializer.Deserialize(input, CancellationToken.None);
         Assert.NotNull(model);
-        Assert.Empty(Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> collection2 = Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp");
+        global::System.Collections.IEnumerable collection3 = collection2;
+        Assert.Empty(collection3);
     }
 
     [Fact]
@@ -208,9 +253,21 @@ public sealed class StorageTests
         Assert.NotEqual(expected: directories[0], actual: directories[1]);
         foreach (var directory in directories)
         {
-            Assert.Equal(expected: Path.Combine(temp.Path, "output"), actual: Path.GetDirectoryName(directory));
-            Assert.True(File.Exists(Path.Combine(directory, "all-teachers.xlsx")));
-            Assert.True(File.Exists(Path.Combine(directory, "schedulelib-manifest.json")));
+            string CalculateExpected()
+            {
+                string expected2 = Path.Combine(temp.Path, "output");
+                return expected2;
+            }
+
+            string expected3 = CalculateExpected();
+            string? actual2 = Path.GetDirectoryName(directory);
+            Assert.Equal(expected: expected3, actual: actual2);
+            string path = Path.Combine(directory, "all-teachers.xlsx");
+            bool condition = File.Exists(path);
+            Assert.True(condition);
+            string path2 = Path.Combine(directory, "schedulelib-manifest.json");
+            bool condition2 = File.Exists(path2);
+            Assert.True(condition2);
         }
     }
 
@@ -225,7 +282,9 @@ public sealed class StorageTests
                      searchPattern: "*",
                      SearchOption.AllDirectories))
         {
-            var destination = Path.Combine(source, Path.GetRelativePath(relativeTo: fixtures, path: file));
+            string path1 = source;
+            string path2 = Path.GetRelativePath(relativeTo: fixtures, path: file);
+            var destination = Path.Combine(path1, path2);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(sourceFileName: file, destFileName: destination);
         }
@@ -238,7 +297,8 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        var cacheFile = Assert.Single(Directory.EnumerateFiles(path: cache, searchPattern: "*.json"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        var cacheFile = Assert.Single(collection);
         var previous = await File.ReadAllBytesAsync(cacheFile);
         await File.WriteAllTextAsync(
             path: Path.Combine(
@@ -254,7 +314,13 @@ public sealed class StorageTests
         {
             var stdout = query.StandardOutput.ReadToEndAsync();
             var stderr = query.StandardError.ReadToEndAsync();
-            await query.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(60));
+            global::System.TimeSpan CalculateTimeout()
+            {
+                global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);
+                return timeout;
+            }
+
+            await query.WaitForExitAsync().WaitAsync(CalculateTimeout());
             Assert.NotEqual(expected: 0, actual: query.ExitCode);
             using var json = JsonDocument.Parse(await stdout);
             Assert.Equal(expected: "failed", actual: json.RootElement.GetProperty("status").GetString());
@@ -273,7 +339,13 @@ public sealed class StorageTests
         await File.WriteAllTextAsync(path: cacheFile, contents: "previous complete cache");
         using (var writer = Start("interrupt", cacheFile))
         {
-            Assert.Equal(expected: "staged", actual: await writer.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(30)));
+            global::System.TimeSpan CalculateTimeout()
+            {
+                global::System.TimeSpan timeout = TimeSpan.FromSeconds(30);
+                return timeout;
+            }
+
+            Assert.Equal(expected: "staged", actual: await writer.StandardOutput.ReadLineAsync().WaitAsync(CalculateTimeout()));
             Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
             writer.Kill(entireProcessTree: true);
             await writer.WaitForExitAsync();
@@ -284,7 +356,13 @@ public sealed class StorageTests
         }
         var lockPath = Path.Combine(temp.Path, ".schedulelib-output.lock");
         using var owner = Start("lock", lockPath);
-        Assert.Equal(expected: "locked", actual: await owner.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(30)));
+        global::System.TimeSpan CalculateTimeout2()
+        {
+            global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(30);
+            return timeout2;
+        }
+
+        Assert.Equal(expected: "locked", actual: await owner.StandardOutput.ReadLineAsync().WaitAsync(CalculateTimeout2()));
         try
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => RunOutput.Create(
@@ -332,7 +410,13 @@ public sealed class StorageTests
             },
             cancellation.Token));
         Assert.Equal(expected: "previous", actual: await File.ReadAllTextAsync(path));
-        Assert.Empty(Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+        {
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
     }
 
     private static Process Start(params string[] args)
@@ -361,7 +445,13 @@ public sealed class StorageTests
     {
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        global::System.TimeSpan CalculateTimeout()
+        {
+            global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);
+            return timeout;
+        }
+
+        await process.WaitForExitAsync().WaitAsync(CalculateTimeout());
         var result = (Exit: process.ExitCode, Output: await stdout, Error: await stderr);
         Assert.True(result.Exit == 0, result.Error);
         return result;
@@ -369,9 +459,15 @@ public sealed class StorageTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-storage-{Guid.NewGuid():N}");
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
         public TempDirectory() => Directory.CreateDirectory(Path);
         public void Dispose() => Directory.Delete(Path, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = $"schedulelib-storage-{Guid.NewGuid():N}";
+            return path2;
+        }
     }
 }

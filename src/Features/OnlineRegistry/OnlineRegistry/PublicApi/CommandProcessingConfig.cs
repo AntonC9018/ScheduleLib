@@ -96,7 +96,9 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         {
             var portion = value.CreatePortion(t);
 
-            sb.Append(Enum.GetName(t));
+            global::System.Text.StringBuilder stringBuilder = sb;
+            string? value2 = Enum.GetName(t);
+            stringBuilder.Append(value2);
             sb.Append('{');
 
             if (portion.AreAllSet)
@@ -141,7 +143,7 @@ public enum CommandProcessingConfigPortion
 
 public static class CommandProcessingConfigBuilderExtensions
 {
-    extension (ref CommandProcessingConfigBuilder b)
+    extension(ref CommandProcessingConfigBuilder b)
     {
         public OffsetBitArrayForEnumRef<LessonEquationCommandType> Portion(CommandProcessingConfigPortion portion)
         {
@@ -160,7 +162,7 @@ public static class CommandProcessingConfigBuilderExtensions
         public OffsetBitArrayForEnumRef<LessonEquationCommandType> Log() => b.Portion(CommandProcessingConfigPortion.Log);
     }
 
-    extension (OffsetBitArrayForEnumRef<LessonEquationCommandType> b)
+    extension(OffsetBitArrayForEnumRef<LessonEquationCommandType> b)
     {
         public void Set(LessonEquationCommandTypes mask)
         {
@@ -168,7 +170,7 @@ public static class CommandProcessingConfigBuilderExtensions
         }
     }
 
-    extension (LessonEquationCommandTypes mask)
+    extension(LessonEquationCommandTypes mask)
     {
         public EnumBitArray<LessonEquationCommandType> AsBitArray()
         {

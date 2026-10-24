@@ -35,7 +35,7 @@ public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>
 
 public partial class Extensions
 {
-    extension (NodeDataBuilder<LessonAttendanceConfig> builder)
+    extension(NodeDataBuilder<LessonAttendanceConfig> builder)
     {
         public void Source(Action<LessonAttendanceSource> configure)
         {

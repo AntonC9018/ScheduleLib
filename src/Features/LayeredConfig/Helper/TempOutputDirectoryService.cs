@@ -69,7 +69,8 @@ public sealed class OutputDirectory
             path: _directory,
             searchPattern: pattern,
             enumerationOptions: options);
-        var ret = files.Select(x => {
+        var ret = files.Select(x =>
+        {
             global::ScheduleLib.Application.Core.Helper.RelativeFilePath ProjectValue()
             {
                 var separatorLen = 1;
@@ -150,9 +151,9 @@ public sealed class OutputDirectory
         var outputFile = new FileStream(path, FileMode.Create, FileAccess.Write);
         await using var zip = new ZipArchive(outputFile, ZipArchiveMode.Create);
         foreach (var file in Files("*", new()
-                 {
-                     RecurseSubdirectories = false,
-                 }))
+        {
+            RecurseSubdirectories = false,
+        }))
         {
             var relPath = file.RelativePath;
             relPath = relPath.Replace('\\', '/');

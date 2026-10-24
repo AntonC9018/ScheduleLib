@@ -25,7 +25,7 @@ public readonly struct NodeDataBuilder<T>
 
 public static class BaseExtensions
 {
-    extension (NodeBuilder builder)
+    extension(NodeBuilder builder)
     {
         public NodeDataBuilder<T> Builder<T>()
             where T : class, INodeData<T>
@@ -51,7 +51,7 @@ public static class BaseExtensions
         }
     }
 
-    extension<T> (NodeDataBuilder<T> builder)
+    extension<T>(NodeDataBuilder<T> builder)
         where T : class
     {
         public void MutableGuard()

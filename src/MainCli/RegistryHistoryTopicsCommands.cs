@@ -24,8 +24,15 @@ public sealed partial class ConfiguredRegistryHistoryProvider
     {
         return WithHistoryContext(
             settings,
-            client => new RegistryHistoryTopicsReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance"))
-                .Discover(token),
+            client =>
+            {
+                global::System.Net.Http.HttpClient client2 = client;
+                global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsReader registryHistoryTopicsReader = new RegistryHistoryTopicsReader(client2, index);
+                global::System.Threading.CancellationToken token2 = token;
+                global::System.Threading.Tasks.Task<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsAnalysis> discover = registryHistoryTopicsReader.Discover(token2);
+                return discover;
+            },
             token);
     }
 }
@@ -85,37 +92,55 @@ public partial class RegistryCommands
             for (var yearIndex = 0; yearIndex < analysis.OfferedYears.Count; yearIndex++)
             {
                 var offeredYear = analysis.OfferedYears[yearIndex];
-                cli.WriteHuman($"Offered year {offeredYear}.");
-                cli.EmitItem(
-                    id: (string) $"year-{yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                    status: "completed",
-                    new { year = offeredYear });
+                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                string line = $"Offered year {offeredYear}.";
+                cliOutput.WriteHuman(line);
+                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text = $"year-{toString}";
+                string id2 = (string) text;
+                string status2 = "completed";
+                object item = new { year = offeredYear };
+                cliOutput2.EmitItem(
+                    id: id2, status: status2, item);
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
             {
                 var candidate = analysis.Selection.Candidates[candidateIndex];
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
-                cli.WriteHuman(
-                    $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.");
-                cli.EmitItem(
-                    id: (string) $"candidate-{candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                    status: "completed",
-                    new
-                    {
-                        historicalYear = candidate.Historical.Year,
-                        groups = groupCount,
-                        lessons = lessonCount,
-                    });
+                global::ScheduleLib.Cli.CliOutput cliOutput3 = cli;
+                string line2 = $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
+                cliOutput3.WriteHuman(
+                    line2);
+                global::ScheduleLib.Cli.CliOutput cliOutput4 = cli;
+                string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text2 = $"candidate-{toString2}";
+                string id3 = (string) text2;
+                string status3 = "completed";
+                object item2 = new
+                {
+                    historicalYear = candidate.Historical.Year,
+                    groups = groupCount,
+                    lessons = lessonCount,
+                };
+                cliOutput4.EmitItem(
+                id: id3, status: status3, item2);
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
-                cli.WriteHuman($"Unresolved {unresolvedIndex}: {unresolved.Reason}.");
-                cli.EmitItem(
-                    id: (string) $"unresolved-{unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                    status: "completed",
-                    new { reason = unresolved.Reason.ToString() });
+                global::ScheduleLib.Cli.CliOutput cliOutput5 = cli;
+                string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
+                cliOutput5.WriteHuman(line3);
+                global::ScheduleLib.Cli.CliOutput cliOutput6 = cli;
+                string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text3 = $"unresolved-{toString3}";
+                string id4 = (string) text3;
+                string status4 = "completed";
+                object item3 = new { reason = unresolved.Reason.ToString() };
+                cliOutput6.EmitItem(
+                    id: id4, status: status4, item3);
             }
             return Finish(
                 exit: CliExit.Success,
@@ -138,9 +163,11 @@ public partial class RegistryCommands
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            return Finish(
-                CliExit.IoFailure,
-                $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.");
+            int exit2 = CliExit.IoFailure;
+            string error2 = $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            int finish = Finish(
+            exit2, error2);
+            return finish;
         }
         catch (LocalOperationBusyException)
         {
@@ -188,8 +215,10 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        cli.WriteHuman(
-                            $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                        string line = $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

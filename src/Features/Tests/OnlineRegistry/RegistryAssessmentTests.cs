@@ -14,11 +14,31 @@ public sealed class RegistryAssessmentTests
     public void LineEndingNormalizationDoesNotCauseRepeatedTopicUpdates(bool changedText)
     {
         var lesson = Lessons()[0] with { Topic = "First line\nSecond line" };
-        var saved = Remote(lesson, changedText ? "First line\r\nChanged line" : "First line\r\nSecond line");
+        global::ScheduleLib.OnlineRegistry.LessonInstance lesson2 = lesson;
+        string topic;
+        if (changedText)
+        {
+            topic = "First line\r\nChanged line";
+        }
+        else
+        {
+            topic = "First line\r\nSecond line";
+        }
+
+        var saved = Remote(lesson2, topic);
         var schedule = new ScheduleBuilder().Build();
-        var commands = new AnyDayDerivation().DeriveCommands(new(schedule, [saved], [lesson])).ToArray();
-        if (changedText) Assert.Equal(expected: LessonEquationCommandType.Update, actual: Assert.Single(commands).Type);
-        else Assert.Empty(commands);
+        global::OnlineRegistry.OnlineRegistry.Impl.AnyDayDerivation anyDayDerivation = new AnyDayDerivation();
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p = new(schedule, [saved], [lesson]);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> deriveCommands = anyDayDerivation.DeriveCommands(p);
+        var commands = deriveCommands.ToArray();
+        if (changedText)
+        {
+            Assert.Equal(expected: LessonEquationCommandType.Update, actual: Assert.Single(commands).Type);
+        }
+        else
+        {
+            Assert.Empty(commands);
+        }
     }
 
     [Theory]
@@ -28,8 +48,12 @@ public sealed class RegistryAssessmentTests
     [InlineData("Unit testing", false)]
     [InlineData("Implementarea unui test", false)]
     [InlineData("", false)]
-    public void AssessmentLabelsAreRecognized(string topic, bool expected) =>
-        Assert.Equal(expected: expected, actual: RegistryAssessmentTopics.IsAssessment(topic));
+    public void AssessmentLabelsAreRecognized(string topic, bool expected)
+    {
+        bool expected2 = expected;
+        bool actual2 = RegistryAssessmentTopics.IsAssessment(topic);
+        Assert.Equal(expected: expected2, actual: actual2);
+    }
 
     [Fact]
     public void SharedDestinationUsesIndependentParentTopicSequences()
@@ -169,7 +193,11 @@ public sealed class RegistryAssessmentTests
         var merger = provider.GetRequiredService<IMerger<List<RegistryAssessmentRule>>>();
         var lessons = Lessons();
         var result = merger.Merge(@from: [Rule(lessons[2], lessons[3])], @into: [Rule(lessons[0], lessons[1])]);
-        Assert.Equal(expected: Rule(lessons[2], lessons[3]).Dates, actual: Assert.Single(result).Dates);
+        global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule rule = Rule(lessons[2], lessons[3]);
+        global::System.Collections.Generic.List<global::System.DateOnly> expected2 = rule.Dates;
+        global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule single = Assert.Single(result);
+        global::System.Collections.Generic.List<global::System.DateOnly> actual2 = single.Dates;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -200,12 +228,19 @@ public sealed class RegistryAssessmentTests
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[2], lessons[3])], Topic);
         var schedule = new ScheduleBuilder().Build();
         var derivation = new SameDayDerivation();
-        var commands = derivation.DeriveCommands(new(schedule, result.Remote, result.Local)).ToArray();
+        global::ScheduleLib.OnlineRegistry.Impl.SameDayDerivation sameDayDerivation = derivation;
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p = new(schedule, result.Remote, result.Local);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> deriveCommands = sameDayDerivation.DeriveCommands(p);
+        var commands = deriveCommands.ToArray();
         Assert.Equal(expected: 4, actual: commands.Length);
         Assert.All(commands, command => Assert.Equal(expected: LessonEquationCommandType.Update, actual: command.Type));
         var rerun = RegistryAssessments.Arrange(Lessons(), result.Local.Select(lesson => Remote(lesson, lesson.Topic!)).ToArray(),
             [Rule(lessons[2], lessons[3])], Topic);
-        Assert.Empty(derivation.DeriveCommands(new(schedule, rerun.Remote, rerun.Local)));
+        global::ScheduleLib.OnlineRegistry.Impl.SameDayDerivation sameDayDerivation2 = derivation;
+        global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p2 = new(schedule, rerun.Remote, rerun.Local);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> collection = sameDayDerivation2.DeriveCommands(p2);
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Fact]
@@ -219,15 +254,40 @@ public sealed class RegistryAssessmentTests
         var otherGroup = builder.Group("IA2602");
         var schedule = builder.Build();
         var rules = new[] { Rule(Lessons()[0]) };
-        Assert.Single(RegistryAssessments.Find(rules, schedule, course, [group], GroupPartitionKey.All));
-        Assert.Empty(RegistryAssessments.Find(rules, schedule, otherCourse, [group], GroupPartitionKey.All));
-        Assert.Empty(RegistryAssessments.Find(rules, schedule, course, [otherGroup], GroupPartitionKey.All));
-        Assert.Empty(RegistryAssessments.Find(rules, schedule, course, [group], new(new SubGroup("I"), Specialization.All)));
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection = RegistryAssessments.Find(rules, schedule, course, [group], GroupPartitionKey.All);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection2 = collection;
+        Assert.Single(collection2);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection3 = RegistryAssessments.Find(rules, schedule, otherCourse, [group], GroupPartitionKey.All);
+        global::System.Collections.IEnumerable collection4 = collection3;
+        Assert.Empty(collection4);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection5 = RegistryAssessments.Find(rules, schedule, course, [otherGroup], GroupPartitionKey.All);
+        global::System.Collections.IEnumerable collection6 = collection5;
+        Assert.Empty(collection6);
+        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+        {
+            global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+            global::ScheduleLib.Specialization specialization = Specialization.All;
+            global::ScheduleLib.GroupPartitionKey partition = new(subGroup, specialization);
+            return partition;
+        }
+
+        Assert.Empty(RegistryAssessments.Find(rules, schedule, course, [group], CalculatePartition()));
         var alternativeRule = Rule(Lessons()[0]);
         alternativeRule.Alternative = "Synthetic elective";
+        global::ScheduleLib.GroupPartitionKey CalculatePartition2()
+        {
+            global::ScheduleLib.SubGroup subGroup2 = SubGroup.All;
+            global::ScheduleLib.Specialization specialization2 = Specialization.All;
+            global::ScheduleLib.Alternative alternative = new Alternative("Synthetic elective");
+            global::ScheduleLib.GroupPartitionKey partition2 = new(subGroup2, specialization2, alternative);
+            return partition2;
+        }
+
         Assert.Single(RegistryAssessments.Find([alternativeRule], schedule, course, [group],
-            new(SubGroup.All, Specialization.All, new Alternative("Synthetic elective"))));
-        Assert.Empty(RegistryAssessments.Find([alternativeRule], schedule, course, [group], GroupPartitionKey.All));
+                    CalculatePartition2()));
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection7 = RegistryAssessments.Find([alternativeRule], schedule, course, [group], GroupPartitionKey.All);
+        global::System.Collections.IEnumerable collection8 = collection7;
+        Assert.Empty(collection8);
     }
 
     [Fact]

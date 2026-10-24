@@ -24,9 +24,15 @@ public sealed class ScheduleFromDocTestExclusive1
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var verify = helper.ScheduleVerify(schedule);
+        string CalculateFileName()
+        {
+            string fileName = VerifyScheduleSnapshotName(option);
+            return fileName;
+        }
+
         await verify
-            .DisableRequireUniquePrefix()
-            .UseFileName(VerifyScheduleSnapshotName(option));
+                    .DisableRequireUniquePrefix()
+                    .UseFileName(CalculateFileName());
     }
 
     [Theory]
@@ -34,13 +40,25 @@ public sealed class ScheduleFromDocTestExclusive1
     public async Task JsonAndWordModelsAreEquivalent(TestOption option)
     {
         using var helper = await Create(option);
+        string CalculateJsonPath()
+        {
+            string jsonPath = ScheduleSnapshotJsonPath(option);
+            return jsonPath;
+        }
+
         var jsonSchedule = await GetScheduleFromJson(
-            ScheduleSnapshotJsonPath(option),
-            helper.CancellationToken);
+                    CalculateJsonPath(),
+                    helper.CancellationToken);
         var verify = helper.ScheduleVerify(jsonSchedule);
+        string CalculateFileName()
+        {
+            string fileName = VerifyScheduleSnapshotName(option);
+            return fileName;
+        }
+
         await verify
-            .DisableRequireUniquePrefix()
-            .UseFileName(VerifyScheduleSnapshotName(option));
+                    .DisableRequireUniquePrefix()
+                    .UseFileName(CalculateFileName());
     }
 
     // Utility for regenerating the committed schedule json caches. Remove the Skip, run,
@@ -51,9 +69,15 @@ public sealed class ScheduleFromDocTestExclusive1
     {
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
+        string CalculatePath()
+        {
+            string path = ScheduleSnapshotJsonPath(option);
+            return path;
+        }
+
         await using var outputFile = new FileStream(
-            ScheduleSnapshotJsonPath(option),
-            FileMode.Create);
+                    CalculatePath(),
+                    FileMode.Create);
         await ScheduleSerializer.Serialize()
             .Input(schedule)
             .Output(outputFile)
@@ -64,7 +88,7 @@ public sealed class ScheduleFromDocTestExclusive1
 public sealed class EnumMembersDataAttribute<T> : MemberDataAttributeBase
     where T : struct, Enum
 {
-    public static IEnumerable<object[]> Members => Enum.GetValues<T>().Select(x => new object[]{x});
+    public static IEnumerable<object[]> Members => Enum.GetValues<T>().Select(x => new object[] { x });
 
     public EnumMembersDataAttribute() : base(nameof(Members), [])
     {
@@ -148,7 +172,13 @@ public sealed class ScheduleFromDocTests
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var settingsTask = helper.ScheduleVerify(schedule);
-        await settingsTask.UseFileName(ScheduleJsonSnapshotName(option));
+        string CalculateFileName()
+        {
+            string fileName = ScheduleJsonSnapshotName(option);
+            return fileName;
+        }
+
+        await settingsTask.UseFileName(CalculateFileName());
     }
 
     [Theory]

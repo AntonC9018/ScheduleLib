@@ -246,13 +246,44 @@ public static partial class ScheduleBuilderHelper
         static void AppendLesson(StringBuilder sb, ScheduleBuilder s, in WeeklyLessonBuilderModelData lesson)
         {
             var course = s.Courses.Ref(lesson.Base.General.Course!.Value.Id);
-            sb.Append('\'').Append(course.FullName).Append('\'')
-                .Append(" on ").Append(lesson.Date.DayOfWeek)
-                .Append(" slot ").Append(lesson.Date.TimeSlot!.Value.Index)
-                .Append(", ").Append(lesson.Date.Parity is { } parity ? parity.ToString() : "no parity")
-                .Append(", subgroup: ").Append(lesson.Base.Group.SubGroup.Value ?? "all")
-                .Append(", specialization: ").Append(lesson.Base.Group.Specialization.Value ?? "all")
-                .Append(", alternative: ").Append(lesson.Base.Group.Alternative.Value ?? "all");
+            global::System.Text.StringBuilder append = sb.Append('\'');
+            string value = course.FullName;
+            global::System.Text.StringBuilder append2 = append.Append(value);
+            char value2 = '\'';
+            global::System.Text.StringBuilder append3 = append2.Append(value2);
+            string value3 = " on ";
+            global::System.Text.StringBuilder append4 = append3.Append(value3);
+            object? value4 = lesson.Date.DayOfWeek;
+            global::System.Text.StringBuilder append5 = append4.Append(value4);
+            string value5 = " slot ";
+            global::System.Text.StringBuilder append6 = append5.Append(value5);
+            int value6 = lesson.Date.TimeSlot!.Value.Index;
+            global::System.Text.StringBuilder append7 = append6.Append(value6);
+            string value7 = ", ";
+            global::System.Text.StringBuilder append8 = append7.Append(value7);
+            string value8;
+            if (lesson.Date.Parity is { } parity)
+            {
+                value8 = parity.ToString();
+            }
+            else
+            {
+                value8 = "no parity";
+            }
+
+            global::System.Text.StringBuilder append9 = append8.Append(value8);
+            string value9 = ", subgroup: ";
+            global::System.Text.StringBuilder append10 = append9.Append(value9);
+            string value10 = lesson.Base.Group.SubGroup.Value ?? "all";
+            global::System.Text.StringBuilder append11 = append10.Append(value10);
+            string value11 = ", specialization: ";
+            global::System.Text.StringBuilder append12 = append11.Append(value11);
+            string value12 = lesson.Base.Group.Specialization.Value ?? "all";
+            global::System.Text.StringBuilder append13 = append12.Append(value12);
+            string value13 = ", alternative: ";
+            global::System.Text.StringBuilder append14 = append13.Append(value13);
+            string value14 = lesson.Base.Group.Alternative.Value ?? "all";
+            append14.Append(value14);
         }
     }
 }

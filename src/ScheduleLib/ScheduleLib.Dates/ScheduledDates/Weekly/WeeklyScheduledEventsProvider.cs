@@ -40,7 +40,9 @@ public readonly record struct Event
         int count,
         int interval)
     {
-        var days = interval * (count - 1);
+        int int32 = interval;
+        int int322 = count - 1;
+        var days = int32 * (int322);
         return first.AddDays(days);
     }
 
@@ -49,11 +51,13 @@ public readonly record struct Event
         int count,
         int interval)
     {
-        return new(
-            first: first,
-            last: FirstToLast(first, count: count, interval: interval),
-            count: count,
-            interval: interval);
+        global::System.DateOnly first2 = first;
+        global::System.DateOnly last2 = FirstToLast(first, count: count, interval: interval);
+        int count2 = count;
+        int interval2 = interval;
+        global::ScheduleLib.Dates.Event eventValue = new(
+                    first: first2, last: last2, count: count2, interval: interval2);
+        return eventValue;
     }
 
     public Event(
@@ -152,27 +156,42 @@ public static class ScheduledDatesToEventsTransformerHelper
             var date = hasValue ? dateE.Current : default;
             bool ShouldOutput()
             {
-               if (count == 0)
-               {
-                   return false;
-               }
-               if (!hasValue)
-               {
-                   return true;
-               }
-               if (date.DayNumber - prev.DayNumber != interval)
-               {
-                   return true;
-               }
-               return false;
+                if (count == 0)
+                {
+                    return false;
+                }
+                if (!hasValue)
+                {
+                    return true;
+                }
+                if (date.DayNumber - prev.DayNumber != interval)
+                {
+                    return true;
+                }
+                return false;
             }
             if (ShouldOutput())
             {
+                int CalculateInterval()
+                {
+                    int interval2;
+                    if (count > 1)
+                    {
+                        interval2 = interval;
+                    }
+                    else
+                    {
+                        interval2 = 0;
+                    }
+
+                    return interval2;
+                }
+
                 yield return new Event(
-                    first: first,
-                    last: prev,
-                    count: count,
-                    interval: count > 1 ? interval : 0);
+                                    first: first,
+                                    last: prev,
+                                    count: count,
+                                    interval: CalculateInterval());
                 first = default;
                 count = 0;
             }

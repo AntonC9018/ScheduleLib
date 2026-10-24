@@ -19,7 +19,11 @@ public sealed class ScopedManifestTests
     [InlineData(1, true, false, true)]
     public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(int? semester, bool enabled, bool unspecifiedLanguage, bool allowMissingLessonTypes)
     {
-        var directory = Path.Combine(Path.GetTempPath(), (string) $"scoped-topics-{Guid.NewGuid().ToString("N")}");
+        string path1 = Path.GetTempPath();
+        string toString = Guid.NewGuid().ToString("N");
+        string text = $"scoped-topics-{toString}";
+        string path2 = (string) text;
+        var directory = Path.Combine(path1, path2);
         Directory.CreateDirectory(directory);
         try
         {
@@ -58,13 +62,23 @@ public sealed class ScopedManifestTests
             scheduleBuilder.RefreshLookup();
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
-            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
+            byte[] CalculateBuffer()
+            {
+                byte[] buffer = Encoding.UTF8.GetBytes("""
                 {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
                 "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                """));
+                """);
+                return buffer;
+            }
+
+            await using var input = new MemoryStream(CalculateBuffer());
             var manifest = await ManifestSerializer.Deserialize(input, default);
             manifest.Documents[0].AllowMissingLessonTypes = allowMissingLessonTypes;
-            if (unspecifiedLanguage) manifest.Documents[0].Language = null;
+            if (unspecifiedLanguage)
+            {
+                manifest.Documents[0].Language = null;
+            }
+
             var builder = new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()), NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
             {
                 Semester = semester,
@@ -73,16 +87,61 @@ public sealed class ScopedManifestTests
             var topics = builder.Build();
             AttendanceLookupKey Key(CourseId courseId, GroupId groupId, GroupPartitionKey partition)
             {
-                return new(new FoundGroups {
+                return new(new FoundGroups
+                {
                     Value = [groupId],
                     IsWildcard = false
                 }, partition, courseId, LessonType.Lab, 0, default);
             }
-            Assert.Equal(expected: enabled ? "Synthetic topic" : null, actual: topics.Get(Key(course, group, GroupPartitionKey.All)));
+            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
+            {
+                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key = Key(course, group, GroupPartitionKey.All);
+                return key;
+            }
+
+            string? CalculateExpected()
+            {
+                string? expected2;
+                if (enabled)
+                {
+                    expected2 = "Synthetic topic";
+                }
+                else
+                {
+                    expected2 = null;
+                }
+
+                return expected2;
+            }
+
+            Assert.Equal(expected: CalculateExpected(), actual: topics.Get(CalculateKey()));
             Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with { LessonType = LessonType.Curs }));
-            Assert.Null(topics.Get(Key(course, otherGroup, GroupPartitionKey.All)));
-            Assert.Null(topics.Get(Key(otherCourse, group, GroupPartitionKey.All)));
-            Assert.Null(topics.Get(Key(course, group, new(new SubGroup("I"), Specialization.All))));
+            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
+            {
+                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(course, otherGroup, GroupPartitionKey.All);
+                return key2;
+            }
+
+            Assert.Null(topics.Get(CalculateKey2()));
+            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
+            {
+                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key3 = Key(otherCourse, group, GroupPartitionKey.All);
+                return key3;
+            }
+
+            Assert.Null(topics.Get(CalculateKey3()));
+            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey4()
+            {
+                global::ScheduleLib.CourseId courseId2 = course;
+                global::ScheduleLib.GroupId groupId2 = group;
+                global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
+                global::ScheduleLib.Specialization specialization = Specialization.All;
+                global::ScheduleLib.GroupPartitionKey partition2 = new(subGroup, specialization);
+                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key4 = Key(courseId2, groupId2, partition2);
+                return key4;
+            }
+
+            Assert.Null(topics.Get(CalculateKey4()));
         }
         finally
         {

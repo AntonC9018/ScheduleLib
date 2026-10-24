@@ -124,7 +124,10 @@ public sealed class DriveSyncTests
             default,
             lockRoot: temp.Path);
         Assert.Equal(expected: 4, actual: creation.ExitCode);
-        Assert.Equal(expected: "failed", actual: Assert.Single(creation.Outcomes).State);
+        string expected2 = "failed";
+        global::ScheduleLib.Cli.DriveOutcome single = Assert.Single(creation.Outcomes);
+        string actual2 = single.State;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(unauthorized.Writes);
     }
 
@@ -176,12 +179,18 @@ public sealed class DriveSyncTests
     {
         using var temp = new Temp();
         using var fake = new Fake();
+        string CalculatePath()
+        {
+            string path = DriveSync.LockPath(
+                                         root: temp.Path,
+                                         account: "actual-account",
+                                         folderId: "actual-folder");
+            return path;
+        }
+
         await using (var lease = await LocalFileLock.Acquire(
-                         DriveSync.LockPath(
-                             root: temp.Path,
-                             account: "actual-account",
-                             folderId: "actual-folder"),
-                         default))
+                                 CalculatePath(),
+                                 default))
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => DriveSync.Run(
                 fake,
@@ -235,7 +244,13 @@ public sealed class DriveSyncTests
     public async Task CommandBuildsRealBundleAndExcludesManifestsAndCallerFiles(bool apply)
     {
         using var temp = new Temp();
-        await File.WriteAllTextAsync(path: System.IO.Path.Combine(temp.Path, "caller.pdf"), contents: "untouched");
+        string CalculatePath()
+        {
+            string path2 = System.IO.Path.Combine(temp.Path, "caller.pdf");
+            return path2;
+        }
+
+        await File.WriteAllTextAsync(path: CalculatePath(), contents: "untouched");
         using var fake = new Fake();
         var original = Console.Out;
         using var text = new StringWriter();
@@ -277,7 +292,15 @@ public sealed class DriveSyncTests
                         Directory.GetFiles(path: temp.Path, searchPattern: "*.pdf").First(x => !x.EndsWith(
                             "caller.pdf",
                             StringComparison.Ordinal)))));
-            Assert.Contains(expectedSubstring: "BEGIN:VEVENT", actualString: await File.ReadAllTextAsync(Directory.GetFiles(path: temp.Path, searchPattern: "*.ics")[0]));
+            string CalculatePath2()
+            {
+                string[] files = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics");
+                int int32 = 0;
+                string path3 = files[int32];
+                return path3;
+            }
+
+            Assert.Contains(expectedSubstring: "BEGIN:VEVENT", actualString: await File.ReadAllTextAsync(CalculatePath2()));
             if (apply)
             {
                 Assert.Equal(expected: actions.Length, actual: fake.Writes.Count);
@@ -287,7 +310,13 @@ public sealed class DriveSyncTests
                 Assert.Empty(fake.Writes);
             }
 
-            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, "caller.pdf")));
+            string CalculatePath3()
+            {
+                string path4 = System.IO.Path.Combine(temp.Path, "caller.pdf");
+                return path4;
+            }
+
+            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(CalculatePath3()));
         }
         finally
         {
@@ -350,7 +379,11 @@ public sealed class DriveSyncTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -387,8 +420,16 @@ public sealed class DriveSyncTests
 
         private int _folderCalls;
 
-        public Task<DriveAccount> GetAccount(CancellationToken token) =>
-            Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
+        public Task<DriveAccount> GetAccount(CancellationToken token)
+        {
+            global::ScheduleLib.Cli.DriveAccount CalculateResult()
+            {
+                global::ScheduleLib.Cli.DriveAccount result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        }
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
         {
@@ -408,9 +449,21 @@ public sealed class DriveSyncTests
                 return true;
             }
 
-            return Task.FromResult(new DriveDestination(
-                                    Id: CheckCondition() ? "changed-folder" : "actual-folder",
-                                    Name: "Actual folder"));
+            string id;
+            if (CheckCondition())
+            {
+                id = "changed-folder";
+            }
+            else
+            {
+                id = "actual-folder";
+            }
+
+            string name2 = "Actual folder";
+            global::ScheduleLib.Cli.DriveDestination result = new DriveDestination(
+                                                Id: id, Name: name2);
+            global::System.Threading.Tasks.Task<global::ScheduleLib.Cli.DriveDestination> fromResult = Task.FromResult(result);
+            return fromResult;
         }
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
@@ -421,7 +474,14 @@ public sealed class DriveSyncTests
 
         public Task Delete(string id, CancellationToken token)
         {
-            Writes.Add((string) $"delete {id}");
+            string CalculateItem()
+            {
+                string text = $"delete {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             if (FailDelete)
             {
                 throw new Google.GoogleApiException(serviceName: "drive", message: "Rejected")
@@ -441,7 +501,14 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
-            Writes.Add((string) $"create {name}");
+            string CalculateItem()
+            {
+                string text = $"create {name}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             if (Fail == "lost")
             {
                 throw new IOException("Lost response");
@@ -478,7 +545,14 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
-            Writes.Add((string) $"update {id}");
+            string CalculateItem()
+            {
+                string text = $"update {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.FromResult(id);
         }
 
@@ -489,7 +563,7 @@ public sealed class DriveSyncTests
 
     private sealed class Temp : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
         public Temp() => Directory.CreateDirectory(Path);
 
@@ -516,5 +590,11 @@ public sealed class DriveSyncTests
         }
 
         public void Dispose() => Directory.Delete(Path, true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
     }
 }

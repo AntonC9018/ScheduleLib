@@ -20,7 +20,13 @@ public sealed class GoogleDriveProviderTests
     [InlineData(true, true)]
     public async Task AmbiguousFolderStopsPreviewAndApplyBeforeListingOrMutation(bool apply, bool splitPages)
     {
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(directory);
         var call = 0;
         using var handler = new Transport((request, _) =>
@@ -28,18 +34,44 @@ public sealed class GoogleDriveProviderTests
             Assert.Equal(expected: HttpMethod.Get, actual: request.Method);
             if (request.RequestUri!.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
             {
-                return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
+                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                {
+                    global::System.Net.Http.HttpResponseMessage result = Json("{\"user\":{\"permissionId\":\"account\"}}");
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
 
-            Assert.Contains(expectedSubstring: "mimeType", actualString: Uri.UnescapeDataString(request.RequestUri.Query));
+            string expectedSubstring2 = "mimeType";
+            string actualString2 = Uri.UnescapeDataString(request.RequestUri.Query);
+            Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
             call++;
-            return Task.FromResult(
-                Json(
-                    !splitPages
-                        ? "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}"
-                        : call == 1
-                            ? "{\"nextPageToken\":\"next\",\"files\":[{\"id\":\"one\",\"name\":\"Configured\"}]}"
-                            : "{\"files\":[{\"id\":\"two\",\"name\":\"Configured\"}]}"));
+            string json;
+            if (!splitPages)
+            {
+                json = "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}";
+            }
+            else
+            {
+                string text;
+                if (call == 1)
+                {
+                    text = "{\"nextPageToken\":\"next\",\"files\":[{\"id\":\"one\",\"name\":\"Configured\"}]}";
+                }
+                else
+                {
+                    text = "{\"files\":[{\"id\":\"two\",\"name\":\"Configured\"}]}";
+                }
+
+                json = text;
+            }
+
+            global::System.Net.Http.HttpResponseMessage result2 = Json(
+            json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
+            result2);
+            return fromResult;
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
@@ -52,18 +84,31 @@ public sealed class GoogleDriveProviderTests
                 apply,
                 default,
                 lockRoot: directory));
-            Assert.Equal(expected: splitPages ? 2 : 1, actual: call);
+            int expected2;
+            if (splitPages)
+            {
+                expected2 = 2;
+            }
+            else
+            {
+                expected2 = 1;
+            }
+
+            int actual2 = call;
+            Assert.Equal(expected: expected2, actual: actual2);
             if (splitPages)
             {
                 Assert.Contains(expectedSubstring: "pageToken=next", actualString: handler.Requests.Last().Uri);
             }
 
             Assert.All(handler.Requests, x => Assert.Equal(expected: "GET", actual: x.Method));
-            Assert.Empty(
-                Directory.GetFiles(
+            string[] collection = Directory.GetFiles(
                     path: directory,
                     searchPattern: "*.json",
-                    SearchOption.AllDirectories));
+                    SearchOption.AllDirectories);
+            global::System.Collections.IEnumerable collection2 = collection;
+            Assert.Empty(
+                collection2);
         }
         finally
         {
@@ -77,13 +122,35 @@ public sealed class GoogleDriveProviderTests
     public async Task FolderLookupScansRemainingPagesForSingleOrMissingMatch(bool found)
     {
         var call = 0;
-        using var handler = new Transport((_, _) => Task.FromResult(
-            Json(
-                ++call == 1
-                    ? "{\"nextPageToken\":\"next\",\"files\":[]}"
-                    : found
-                        ? "{\"files\":[{\"id\":\"only\",\"name\":\"Configured\"}]}"
-                        : "{\"files\":[]}")));
+        using var handler = new Transport((_, _) =>
+        {
+            int int32 = ++call;
+            string json;
+            if (int32 == 1)
+            {
+                json = "{\"nextPageToken\":\"next\",\"files\":[]}";
+            }
+            else
+            {
+                string text;
+                if (found)
+                {
+                    text = "{\"files\":[{\"id\":\"only\",\"name\":\"Configured\"}]}";
+                }
+                else
+                {
+                    text = "{\"files\":[]}";
+                }
+
+                json = text;
+            }
+
+            global::System.Net.Http.HttpResponseMessage result = Json(
+            json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
+            result);
+            return fromResult;
+        });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
         if (found)
@@ -106,16 +173,32 @@ public sealed class GoogleDriveProviderTests
     [InlineData("create", HttpStatusCode.Unauthorized)]
     public async Task ProductionMutationsSendExactlyOnceAndSurfaceHttpFailure(string action, HttpStatusCode status)
     {
-        using var handler = new Transport((request, _) => Task.FromResult(new HttpResponseMessage(status)
+        using var handler = new Transport((request, _) =>
         {
-            Content = new StringContent(
-                    (string) $"{("{\"error\":{\"code\":" + (int) status)},\"message\":\"Rejected\"}}}}",
-                    Encoding.UTF8,
-                    "application/json"),
-        }));
+            string CalculateContent()
+            {
+                string text = $"{("{\"error\":{\"code\":" + (int) status)},\"message\":\"Rejected\"}}}}";
+                string content = (string) text;
+                return content;
+            }
+
+            return Task.FromResult(new HttpResponseMessage(status)
+            {
+                Content = new StringContent(
+                                CalculateContent(),
+                                Encoding.UTF8,
+                                "application/json"),
+            });
+        });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("artifact bytes"));
+        byte[] CalculateBuffer()
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes("artifact bytes");
+            return buffer;
+        }
+
+        using var input = new MemoryStream(CalculateBuffer());
         await Assert.ThrowsAsync<Google.GoogleApiException>(async () =>
         {
             if (action == "delete")
@@ -139,7 +222,28 @@ public sealed class GoogleDriveProviderTests
             }
         });
         Assert.Single(handler.Requests);
-        Assert.Equal(expected: action == "create" ? "POST" : action == "update" ? "PATCH" : "DELETE", actual: handler.Requests[0].Method);
+        string expected2;
+        if (action == "create")
+        {
+            expected2 = "POST";
+        }
+        else
+        {
+            string text2;
+            if (action == "update")
+            {
+                text2 = "PATCH";
+            }
+            else
+            {
+                text2 = "DELETE";
+            }
+
+            expected2 = text2;
+        }
+
+        string actual2 = handler.Requests[0].Method;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -175,10 +279,25 @@ public sealed class GoogleDriveProviderTests
     [Fact]
     public async Task ProductionMultipartUploadsIncludeMetadataAndBytesAndRequireReturnedId()
     {
-        using var handler = new Transport((_, _) => Task.FromResult(Json("{\"id\":\"created-id\"}")));
+        using var handler = new Transport((_, _) =>
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = Json("{\"id\":\"created-id\"}");
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("fixture artifact bytes"));
+        byte[] CalculateBuffer()
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes("fixture artifact bytes");
+            return buffer;
+        }
+
+        using var input = new MemoryStream(CalculateBuffer());
         Assert.Equal(
             expected: "created-id",
             actual: await provider.Create(
@@ -191,7 +310,16 @@ public sealed class GoogleDriveProviderTests
         Assert.Contains(expectedSubstring: "\"name\":\"schedule.pdf\"", actualString: sent.Body);
         Assert.Contains(expectedSubstring: "\"parents\":[\"folder-id\"]", actualString: sent.Body);
         Assert.Contains(expectedSubstring: "fixture artifact bytes", actualString: sent.Body);
-        using var missingHandler = new Transport((_, _) => Task.FromResult(Json("{}")));
+        using var missingHandler = new Transport((_, _) =>
+        {
+            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            {
+                global::System.Net.Http.HttpResponseMessage result = Json("{}");
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
+        });
         using var missingService = Service(missingHandler);
         using var missing = new GoogleDriveSyncProvider(missingService);
         using var missingInput = new MemoryStream([1]);
@@ -222,7 +350,13 @@ public sealed class GoogleDriveProviderTests
         Assert.Equal(expected: "actual@example.test", actual: account.Email);
         Assert.Equal(expected: "folder-id", actual: (await provider.FindFolder("O'Brien", default)).Id);
         Assert.Equal(expected: 2, actual: (await provider.ListFiles("folder-id", default)).Count);
-        Assert.Contains(expectedSubstring: "O\\'Brien", actualString: Uri.UnescapeDataString(handler.Requests[1].Uri));
+        string CalculateActualString()
+        {
+            string actualString2 = Uri.UnescapeDataString(handler.Requests[1].Uri);
+            return actualString2;
+        }
+
+        Assert.Contains(expectedSubstring: "O\\'Brien", actualString: CalculateActualString());
         Assert.Contains(expectedSubstring: "pageToken=next", actualString: handler.Requests[3].Uri);
         Assert.All(handler.Requests, x => Assert.Equal(expected: "GET", actual: x.Method));
     }
@@ -397,7 +531,13 @@ public sealed class GoogleDriveProviderTests
         int driveRequests,
         int tokenRequests)
     {
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(directory);
         var original = Console.Out;
         var originalError = Console.Error;
@@ -637,7 +777,18 @@ public sealed class GoogleDriveProviderTests
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             }
             // One create then stop on failures; success uses an empty remote/local plan.
-            return Json(folderQuery ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}" : "{\"files\":[]}");
+            string json;
+            if (folderQuery)
+            {
+                json = "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}";
+            }
+            else
+            {
+                json = "{\"files\":[]}";
+            }
+
+            global::System.Net.Http.HttpResponseMessage json2 = Json(json);
+            return json2;
         });
         using var flow = new GoogleAuthorizationCodeFlow(
             new GoogleAuthorizationCodeFlow.Initializer
@@ -765,12 +916,29 @@ public sealed class GoogleDriveProviderTests
             Assert.Equal(expected: driveRequests, actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
             if (scenario.Contains("real-", StringComparison.Ordinal))
             {
+                bool condition;
+                if (scenario.StartsWith("apply-after-create", StringComparison.Ordinal))
+                {
+                    condition = true;
+                }
+                else
+                {
+                    condition = scenario == "write-sent-real-deadline";
+                }
+
+                int expected2;
+                if (condition)
+                {
+                    expected2 = 1;
+                }
+                else
+                {
+                    expected2 = 0;
+                }
+
+                int actual2 = handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com" && x.Method != "GET");
                 Assert.Equal(
-                    expected: scenario.StartsWith("apply-after-create", StringComparison.Ordinal)
-                    || scenario == "write-sent-real-deadline"
-                        ? 1
-                        : 0,
-                    actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com" && x.Method != "GET"));
+                    expected: expected2, actual: actual2);
             }
 
             var refreshes = handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com");
@@ -825,13 +993,44 @@ public sealed class GoogleDriveProviderTests
     [InlineData("")]
     public async Task SdkRefreshPersistsOmittedScopesAndHonorsExplicitGrants(string? responseScope)
     {
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(directory);
-        using var handler = new Transport((request, _) => Task.FromResult(
-            Json(
-                request.RequestUri!.Host == "oauth2.googleapis.com"
-                    ? (string) $"{{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"{(responseScope is null ? "" : (string) $",\"scope\":\"{responseScope}\"")}}}"
-                    : "{\"id\":\"created\"}")));
+        using var handler = new Transport((request, _) =>
+        {
+            string json;
+            if (request.RequestUri!.Host == "oauth2.googleapis.com")
+            {
+                string text;
+                if (responseScope is null)
+                {
+                    text = "";
+                }
+                else
+                {
+                    string text2 = $",\"scope\":\"{responseScope}\"";
+                    text = (string) text2;
+                }
+
+                string text3 = $"{{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"{(text)}}}";
+                json = (string) text3;
+            }
+            else
+            {
+                json = "{\"id\":\"created\"}";
+            }
+
+            global::System.Net.Http.HttpResponseMessage result = Json(
+            json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
+            result);
+            return fromResult;
+        });
         using var tokens = new SdkTokens(handler);
         using var auth = new GoogleAuthentication(directory, tokens);
         using var services = new ServiceCollection().BuildServiceProvider();
@@ -861,11 +1060,13 @@ public sealed class GoogleDriveProviderTests
                     default));
             var expected = responseScope ?? string.Join(' ', GoogleAuthentication.LoginScopes);
             Assert.Equal(expected: expected, actual: credential.Token.Scope);
-            var file = Assert.Single(
-                Directory.GetFiles(
+            string[] collection = Directory.GetFiles(
                     path: directory,
                     searchPattern: "*.json",
-                    SearchOption.AllDirectories));
+                    SearchOption.AllDirectories);
+            global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+            var file = Assert.Single(
+                collection2);
             var persisted = await new AtomicTokenStore(file).GetAsync<TokenResponse>("fixture");
             Assert.Equal(expected: expected, actual: persisted.Scope);
             Assert.Equal(expected: "refresh", actual: persisted.RefreshToken);
@@ -900,9 +1101,19 @@ public sealed class GoogleDriveProviderTests
                     default));
             }
 
+            int expected2;
+            if (responseScope is null)
+            {
+                expected2 = 2;
+            }
+            else
+            {
+                expected2 = 1;
+            }
+
+            int actual2 = handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com");
             Assert.Equal(
-                expected: responseScope is null ? 2 : 1,
-                actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+                expected: expected2, actual: actual2);
             Assert.Single(handler.Requests.Where(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
         }
         finally
@@ -933,7 +1144,13 @@ public sealed class GoogleDriveProviderTests
         int readsAndWrites,
         int writes)
     {
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(directory);
         var original = Console.Out;
         var originalError = Console.Error;
@@ -945,13 +1162,25 @@ public sealed class GoogleDriveProviderTests
             Assert.NotEqual(expected: "oauth2.googleapis.com", actual: request.RequestUri!.Host);
             if (request.RequestUri.AbsolutePath.EndsWith("/about", StringComparison.Ordinal))
             {
-                return Task.FromResult(Json("{\"user\":{\"permissionId\":\"account\"}}"));
+                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                {
+                    global::System.Net.Http.HttpResponseMessage result = Json("{\"user\":{\"permissionId\":\"account\"}}");
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
 
             if (request.Method == HttpMethod.Delete)
             {
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                global::System.Net.Http.HttpResponseMessage CalculateResult2()
+                {
+                    global::System.Net.Http.HttpResponseMessage result2 = new HttpResponseMessage(HttpStatusCode.NoContent);
+                    return result2;
+                }
+
+                return Task.FromResult(CalculateResult2());
             }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
@@ -960,11 +1189,31 @@ public sealed class GoogleDriveProviderTests
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             }
 
-            return Task.FromResult(
-                Json(
-                    folderQuery ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}"
-                    : stage == "after-completed" ? "{\"files\":[{\"id\":\"obsolete\",\"name\":\"obsolete.pdf\"}]}"
-                    : "{\"files\":[]}"));
+            string json;
+            if (folderQuery)
+            {
+                json = "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}";
+            }
+            else
+            {
+                string text;
+                if (stage == "after-completed")
+                {
+                    text = "{\"files\":[{\"id\":\"obsolete\",\"name\":\"obsolete.pdf\"}]}";
+                }
+                else
+                {
+                    text = "{\"files\":[]}";
+                }
+
+                json = text;
+            }
+
+            global::System.Net.Http.HttpResponseMessage result3 = Json(
+            json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
+            result3);
+            return fromResult;
         });
         using var tokens = new SdkTokens(handler, refreshToken: null);
         using var auth = new GoogleAuthentication(Path.Combine(directory, "auth"), tokens);

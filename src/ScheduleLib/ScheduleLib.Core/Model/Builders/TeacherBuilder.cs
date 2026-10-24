@@ -96,13 +96,13 @@ public static class TeacherLookupHelper
                 switch (i)
                 {
                     case FirstNameComparison.AllFull:
-                    {
-                        return onlyContainsFullNames;
-                    }
+                        {
+                            return onlyContainsFullNames;
+                        }
                     case FirstNameComparison.AllAsShort:
-                    {
-                        return true;
-                    }
+                        {
+                            return true;
+                        }
                     case FirstNameComparison.EitherFullOrShort:
                         {
                             if (!onlyContainsFullNames)
@@ -113,13 +113,13 @@ public static class TeacherLookupHelper
                             return false;
                         }
                     case FirstNameComparison.MatchFullAgainstShort:
-                    {
-                        return onlyContainsFullNames;
-                    }
+                        {
+                            return onlyContainsFullNames;
+                        }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
             }
 
@@ -164,29 +164,29 @@ public static class TeacherLookupHelper
                             return false;
                         }
                     case FirstNameComparison.AllAsShort:
-                    {
-                        var shortCount = teacherName.Count(x => x.Short != null);
-                        if (shortCount != nonEmptyCount)
                         {
-                            return false;
-                        }
+                            var shortCount = teacherName.Count(x => x.Short != null);
+                            if (shortCount != nonEmptyCount)
+                            {
+                                return false;
+                            }
 
-                        return teacherName.EachEquals(name, (existingPart, newPart) =>
-                        {
-                            if (existingPart.Short is not { } teacherShort)
+                            return teacherName.EachEquals(name, (existingPart, newPart) =>
                             {
-                                return true;
-                            }
-                            if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
-                                    // Ignore the separators as well
-                                    x: newPart.Span.Shortened.Value,
-                                    y: new WordSpan(teacherShort).Shortened.Value))
-                            {
-                                return true;
-                            }
-                            return false;
-                        });
-                    }
+                                if (existingPart.Short is not { } teacherShort)
+                                {
+                                    return true;
+                                }
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
+                                        // Ignore the separators as well
+                                        x: newPart.Span.Shortened.Value,
+                                        y: new WordSpan(teacherShort).Shortened.Value))
+                                {
+                                    return true;
+                                }
+                                return false;
+                            });
+                        }
                     case FirstNameComparison.EitherFullOrShort:
                         {
                             if (FullOrShort(teacherName, name))
@@ -235,9 +235,9 @@ public static class TeacherLookupHelper
                             return false;
                         }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
 
                 static bool FullOrShort(
@@ -596,7 +596,13 @@ public static class TeacherNameHelper
         // If only a single name has been given, it's the last name.
         if (reader.IsEmpty)
         {
-            ret.LastName = new(MakeSureWithoutShortName(nameA));
+            global::ScheduleLib.NameParts<string?> CalculateParts()
+            {
+                global::ScheduleLib.NameParts<string?> parts = MakeSureWithoutShortName(nameA);
+                return parts;
+            }
+
+            ret.LastName = new(CalculateParts());
             return ret;
         }
 
@@ -619,7 +625,13 @@ public static class TeacherNameHelper
         {
             throw new ArgumentException("The last name must be provided.");
         }
-        ret.LastName = new(MakeSureWithoutShortName(nameB));
+        global::ScheduleLib.NameParts<string?> CalculateParts2()
+        {
+            global::ScheduleLib.NameParts<string?> parts2 = MakeSureWithoutShortName(nameB);
+            return parts2;
+        }
+
+        ret.LastName = new(CalculateParts2());
 
         return ret;
 

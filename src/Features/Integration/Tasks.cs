@@ -86,7 +86,7 @@ public static class TasksHelper
                 Debug.Assert(lastSegmentStart != -1);
                 lastSegmentStart += 1;
 
-                var lastSegment = x.AsSpan()[lastSegmentStart ..];
+                var lastSegment = x.AsSpan()[lastSegmentStart..];
 
                 if (!DateOnly.TryParseExact(
                         s: lastSegment,
@@ -132,14 +132,20 @@ public static class TasksHelper
 #pragma warning restore CA2000
                 var stagingDirectory = stagingOwner.DirectoryPath;
                 {
-                    var stagedInput = Path.Combine(stagingDirectory, Path.GetFileName(filePath));
+                    string path1 = stagingDirectory;
+                    string path2 = Path.GetFileName(filePath);
+                    var stagedInput = Path.Combine(path1, path2);
                     File.Copy(sourceFileName: filePath, destFileName: stagedInput);
                     var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
                     if (!await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput, outputPath: outputPath, cancellationToken))
+                    {
                         throw new IOException("Could not convert doc to docx. Windows with Microsoft Word is required.");
+                    }
+
                     using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
                     context.SetPeriod(period);
-                    WordScheduleParser.ParseToSchedule(new() {
+                    WordScheduleParser.ParseToSchedule(new()
+                    {
                         Context = context,
                         Document = document
                     });
@@ -149,7 +155,12 @@ public static class TasksHelper
             foreach (var filePath in Directory.EnumerateFiles(path: dirName, searchPattern: "*.docx", SearchOption.TopDirectoryOnly))
             {
                 // A paired legacy source was already parsed from its staged conversion.
-                if (File.Exists(Path.ChangeExtension(path: filePath, @extension: ".doc"))) continue;
+                string path3 = Path.ChangeExtension(path: filePath, @extension: ".doc");
+                if (File.Exists(path3))
+                {
+                    continue;
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
                 using var document = WordprocessingDocument.Open(filePath, isEditable: false);
                 context.SetPeriod(period);
@@ -164,15 +175,28 @@ public static class TasksHelper
             context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson: firstWeeklyLesson, firstOneTimeLesson: firstOneTimeLesson);
 
             var pdfs = Directory.EnumerateFiles(path: dirName, searchPattern: "*.pdf", SearchOption.TopDirectoryOnly).Order().ToArray();
-            if (pdfs.Length == 0) return;
+            if (pdfs.Length == 0)
+            {
+                return;
+            }
+
             var cells = new List<PdfScheduleCell>();
             foreach (var filePath in pdfs)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using var stream = File.OpenRead(filePath);
-                cells.AddRange(PdfScheduleImporter.Read(stream, Path.GetFileName(filePath)));
+                global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfScheduleCell> list = cells;
+                global::System.IO.Stream pdf = stream;
+                string source = Path.GetFileName(filePath);
+                global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> collection = PdfScheduleImporter.Read(pdf, source);
+                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> collection2 = collection;
+                list.AddRange(collection2);
             }
-            if (cells.Count == 0) throw new FormatException($"No schedule cells in PDF sources under {dirName}.");
+            if (cells.Count == 0)
+            {
+                throw new FormatException($"No schedule cells in PDF sources under {dirName}.");
+            }
+
             var cohorts = new ElectiveCohorts(context, cells);
             context.Schedule.ImplicitSplitConfig = cohorts.SplitConfig;
             context.SetPeriod(period);

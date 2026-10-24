@@ -24,7 +24,7 @@ public static class DiacriticsHelper
             }
         }
 
-        return buffer.Span[.. writePos]
+        return buffer.Span[..writePos]
             .ToString()
             .Normalize(NormalizationForm.FormC);
     }

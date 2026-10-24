@@ -425,7 +425,13 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         writer.WriteStartObject();
         foreach (var (key, val) in value)
         {
-            writer.WritePropertyName(Enum.GetName(key)!);
+            string CalculatePropertyName()
+            {
+                string propertyName = Enum.GetName(key)!;
+                return propertyName;
+            }
+
+            writer.WritePropertyName(CalculatePropertyName());
             JsonSerializer.Serialize(writer, val, options);
         }
         writer.WriteEndObject();
@@ -448,7 +454,7 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         TEnum e;
         if (len != -1)
         {
-            var name = buf[.. len];
+            var name = buf[..len];
             e = Enum.Parse<TEnum>(name);
         }
         else

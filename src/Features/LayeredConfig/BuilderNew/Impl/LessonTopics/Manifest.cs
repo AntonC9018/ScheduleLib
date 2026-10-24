@@ -62,10 +62,16 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
 
             var manifestDir = Path.GetDirectoryName(manifestPath);
             // Might want another layer here that just gathers the manifests.
+            global::ScheduleLib.Application.Config.ManifestAtLocation CalculateM()
+            {
+                global::ScheduleLib.Application.Config.ManifestAtLocation m = new(manifest, manifestDir);
+                return m;
+            }
+
             await builder.AddFromManifest(
-                new(manifest, manifestDir),
-                _lookup,
-                cancellationToken);
+                            CalculateM(),
+                            _lookup,
+                            cancellationToken);
         }
     }
 }
@@ -114,7 +120,7 @@ public static class ManifestFileSourceHelper
 
         public ManifestSource CreateManifestSource(IManifestFileSource s)
         {
-            return ActivatorUtilities.CreateInstance<ManifestSource>(sp, [ s ]);
+            return ActivatorUtilities.CreateInstance<ManifestSource>(sp, [s]);
         }
 
         public ManifestDirectoryTeacherSource CreateManifestDirectoryTeacherSource(
@@ -160,7 +166,10 @@ public sealed partial class ManifestFileSource : IManifestFileSource
                 TeacherNameMismatchLog(Expected: _teacherName, Found: manifest.Teacher);
             }
         }
-        return new(manifest, Path.GetDirectoryName(_path));
+        global::ScheduleLib.Application.Core.Topics.Manifest manifest2 = manifest;
+        string? directoryPath = Path.GetDirectoryName(_path);
+        global::ScheduleLib.Application.Config.ManifestAtLocation manifestAtLocation = new(manifest2, directoryPath);
+        return manifestAtLocation;
     }
 
     [LoggerMessage(LogLevel.Warning, "Teacher name in the specified file doesn't match the expected one: {Expected}, {Found}")]

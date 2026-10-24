@@ -95,7 +95,9 @@ public sealed class CourseNameParserConfig
             var b = ImmutableArray.CreateBuilder<ShortenedWord>(p.IgnoredShortenedWords.Length);
             foreach (var x in p.IgnoredShortenedWords)
             {
-                b.Add(new(x));
+                global::System.Collections.Immutable.ImmutableArray<global::ShortenedWord>.Builder builder = b;
+                global::ShortenedWord item = new(x);
+                builder.Add(item);
             }
             IgnoredShortenedWords = b.MoveToImmutable();
         }
@@ -431,28 +433,28 @@ public static class CourseNameParsing
             switch (wordType)
             {
                 case WordType.Plain:
-                {
-                    if (InitialsIndex != 0)
                     {
-                        return default;
+                        if (InitialsIndex != 0)
+                        {
+                            return default;
+                        }
+                        return CurrentSegment.Word;
                     }
-                    return CurrentSegment.Word;
-                }
                 case WordType.Letter:
-                {
-                    var s = CurrentSegment;
-                    if (!s.Flags.IsInitials)
                     {
-                        return default;
+                        var s = CurrentSegment;
+                        if (!s.Flags.IsInitials)
+                        {
+                            return default;
+                        }
+                        var all = s.GetInitials();
+                        var singleLetterSlice = all.Slice(start: InitialsIndex, length: 1);
+                        return new(singleLetterSlice);
                     }
-                    var all = s.GetInitials();
-                    var singleLetterSlice = all.Slice(start: InitialsIndex, length: 1);
-                    return new(singleLetterSlice);
-                }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
 
@@ -462,27 +464,27 @@ public static class CourseNameParsing
             switch (t)
             {
                 case WordType.Plain:
-                {
-                    Debug.Assert(InitialsIndex == 0);
-                    Index++;
-                    break;
-                }
-                case WordType.Letter:
-                {
-                    Debug.Assert(s.Flags.IsInitials);
-                    InitialsIndex++;
-                    if (InitialsIndex < s.GetInitials().Length)
                     {
-                        return;
+                        Debug.Assert(InitialsIndex == 0);
+                        Index++;
+                        break;
                     }
-                    InitialsIndex = 0;
-                    Index++;
-                    break;
-                }
+                case WordType.Letter:
+                    {
+                        Debug.Assert(s.Flags.IsInitials);
+                        InitialsIndex++;
+                        if (InitialsIndex < s.GetInitials().Length)
+                        {
+                            return;
+                        }
+                        InitialsIndex = 0;
+                        Index++;
+                        break;
+                    }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
 

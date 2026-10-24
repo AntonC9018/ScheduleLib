@@ -79,7 +79,14 @@ public static partial class CliSettings
                 }
 
                 RejectSecrets(action["item"], file);
-                ResolvePaths(action["item"], Path.GetDirectoryName(Path.GetFullPath(file))!);
+                string CalculateDirectory()
+                {
+                    string path = Path.GetFullPath(file);
+                    string directory = Path.GetDirectoryName(path)!;
+                    return directory;
+                }
+
+                ResolvePaths(action["item"], CalculateDirectory());
             }
         }
     }
@@ -92,7 +99,9 @@ public static partial class CliSettings
         JsonSerializerOptions json)
     {
         var parts = key.Split('.');
-        var block = NodeDataKey.Registry.TryGetTypeFromKey(new(parts[0]));
+        global::Anton.LayeredData.NodeDataKeyRegistry nodeDataKeyRegistry = NodeDataKey.Registry;
+        global::Anton.LayeredData.NodeDataKey key2 = new(parts[0]);
+        var block = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
         if (block is null || !SupportedBlocks.Contains(parts[0]))
         {
             throw new JsonException($"Unsupported setting key: {key}");
@@ -167,13 +176,24 @@ public static partial class CliSettings
 
             try
             {
+                global::System.Text.Json.Nodes.JsonNode node = item;
+                global::System.Type[] genericArguments = path.Value.GetGenericArguments();
+                int int32 = 0;
+                global::System.Type type = genericArguments[int32];
+                global::System.Text.Json.JsonSerializerOptions json2 = json;
+                string file = "operation item";
                 NormalizeInheritance(
-                    item,
-                    path.Value.GetGenericArguments()[0],
-                    json,
-                    "operation item");
-                _ = item.Deserialize(path.Value.GetGenericArguments()[0], json)
-                    ?? throw new JsonException("item cannot be null.");
+                    node, type, json2, file);
+                global::System.Type CalculateReturnType()
+                {
+                    global::System.Type[] genericArguments2 = path.Value.GetGenericArguments();
+                    int int322 = 0;
+                    global::System.Type returnType = genericArguments2[int322];
+                    return returnType;
+                }
+
+                _ = item.Deserialize(CalculateReturnType(), json)
+                                    ?? throw new JsonException("item cannot be null.");
             }
             catch (Exception error) when (error is JsonException
                                               or ArgumentException
@@ -221,7 +241,9 @@ public static partial class CliSettings
         }
 
         var element = path.Value.GetGenericArguments()[0];
-        var comparer = settings.Services.GetService(typeof(IKeyEqualityComparer<>).MakeGenericType(element));
+        global::System.IServiceProvider iServiceProvider = settings.Services;
+        global::System.Type serviceType = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
+        var comparer = iServiceProvider.GetService(serviceType);
         if (comparer is null)
         {
             throw new JsonException("Collection has no registered item key.");
@@ -233,7 +255,13 @@ public static partial class CliSettings
         }
 
         var descriptor = action["item"]!.DeepClone();
-        ResolvePaths(descriptor, Path.GetDirectoryName(file)!);
+        string CalculateDirectory()
+        {
+            string directory = Path.GetDirectoryName(file)!;
+            return directory;
+        }
+
+        ResolvePaths(descriptor, CalculateDirectory());
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
         if (values is null
@@ -269,8 +297,22 @@ public static partial class CliSettings
         bool conditionResult;
         if (path.Members.Length != 0)
         {
+            global::System.Type CalculateTypeArguments()
+            {
+                global::System.Type[] genericArguments = path.Value.GetGenericArguments();
+                int int32 = 0;
+                global::System.Type typeArguments = genericArguments[int32];
+                return typeArguments;
+            }
+
+            global::System.Type CalculateServiceType()
+            {
+                global::System.Type serviceType = typeof(IKeyEqualityComparer<>).MakeGenericType(CalculateTypeArguments());
+                return serviceType;
+            }
+
             object? conditionValue = provider.GetService(
-                typeof(IKeyEqualityComparer<>).MakeGenericType(path.Value.GetGenericArguments()[0]));
+                                        CalculateServiceType());
             conditionResult = conditionValue is null;
         }
         else
@@ -294,8 +336,18 @@ public static partial class CliSettings
         IServiceProvider provider,
         JsonSerializerOptions json) where T : class
     {
-        var updates = node.GetOrAdd(new NodeDataKey<T>(new(action["key"]!.GetValue<string>().Split('.')[0])))
-            .UpdateActions;
+        global::Anton.LayeredData.NodeDataKey<T> CalculateKey()
+        {
+            string[] split = action["key"]!.GetValue<string>().Split('.');
+            int int32 = 0;
+            string value2 = split[int32];
+            global::Anton.LayeredData.NodeDataKey value3 = new(value2);
+            global::Anton.LayeredData.NodeDataKey<T> key = new NodeDataKey<T>(value3);
+            return key;
+        }
+
+        var updates = node.GetOrAdd(CalculateKey())
+                    .UpdateActions;
         var operation = action["operation"]!.GetValue<string>();
         if (members.Length == 0)
         {
@@ -321,14 +373,18 @@ public static partial class CliSettings
             if (operation == "clear")
             {
                 // The registered basic operation defines collection reset semantics.
-                var basic = sp.GetRequiredService(
-                    typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType));
+                global::System.IServiceProvider iServiceProvider = sp;
+                global::System.Type serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
+                var basic = iServiceProvider.GetRequiredService(
+                    serviceType);
                 basic.GetType().GetMethod("Reset")!.Invoke(basic, [list]);
             }
             else
             {
                 var element = members[^1].PropertyType.GetGenericArguments()[0];
-                var comparer = sp.GetRequiredService(typeof(IKeyEqualityComparer<>).MakeGenericType(element));
+                global::System.IServiceProvider iServiceProvider2 = sp;
+                global::System.Type serviceType2 = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
+                var comparer = iServiceProvider2.GetRequiredService(serviceType2);
                 var item = action["item"]!.Deserialize(element, json)!;
                 for (var i = list.Count - 1; i >= 0; i--)
                 {
@@ -402,7 +458,11 @@ public static partial class CliSettings
             }
             else
             {
-                if (actionKey.StartsWith((string) $"{key}.", StringComparison.Ordinal))
+                string text = actionKey;
+                string text2 = $"{key}.";
+                string value = (string) text2;
+                global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                if (text.StartsWith(value, comparisonType))
                 {
                     conditionResult = true;
                 }
@@ -410,7 +470,12 @@ public static partial class CliSettings
                 {
                     if (includeAncestors)
                     {
-                        conditionResult = key.StartsWith((string) $"{actionKey}.", StringComparison.Ordinal);
+                        string text3 = key;
+                        string text4 = $"{actionKey}.";
+                        string value2 = (string) text4;
+                        global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                        bool startsWith = text3.StartsWith(value2, comparisonType2);
+                        conditionResult = startsWith;
                     }
                     else
                     {

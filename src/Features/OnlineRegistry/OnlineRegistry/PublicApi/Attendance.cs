@@ -413,14 +413,22 @@ public readonly struct AllStudentAttendanceListBuilder()
                         LessonType = lessonType,
                     };
 
-                    var value = new StudentAttendanceList.BetterAttendances(
-                        Attendance: new(perLessonBuilder.DrainToImmutable()),
-                        StudentNames: namesDb,
-                        Dates: x.Dates is { } dates
-                            ? lessonTypes.Select((type, index) => (Type: type, Index: index))
+                    global::ScheduleLib.OnlineRegistry.AttendanceLists attendance = new(perLessonBuilder.DrainToImmutable());
+                    global::ScheduleLib.OnlineRegistry.NamesInDb studentNames = namesDb;
+                    global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.AttendanceDate>? dates2;
+                    if (x.Dates is { } dates)
+                    {
+                        dates2 = lessonTypes.Select((type, index) => (Type: type, Index: index))
                                 .Where(column => column.Type == lessonType)
-                                .Select(column => dates[column.Index]).ToImmutableArray()
-                            : null);
+                                .Select(column => dates[column.Index]).ToImmutableArray();
+                    }
+                    else
+                    {
+                        dates2 = null;
+                    }
+
+                    var value = new StudentAttendanceList.BetterAttendances(
+                        Attendance: attendance, StudentNames: studentNames, Dates: dates2);
                     map.Add(key1, value);
                 }
             }
@@ -471,7 +479,10 @@ public readonly struct StudentAttendanceList
         }
 
         if (conditionResult)
+        {
             return NamesInDb.Empty;
+        }
+
         return NamesInDb.Create([.. ParentLists(key).SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
             .Select(student => student.Key))]);
     }
@@ -495,15 +506,25 @@ public readonly struct StudentAttendanceList
         }
 
         if (conditionResult)
+        {
             yield break;
+        }
+
         foreach (var parent in ParentLists(key))
+        {
             yield return (key.WithGroups(new LessonGroups { parent.Parent }), parent.Attendance.StudentNames);
+        }
     }
 
     private IEnumerable<(GroupId Parent, BetterAttendances Attendance)> ParentLists(StudentsLookupKey key)
     {
         foreach (var parent in key.Groups.Ordered())
-            if (_map.TryGetValue(key.WithGroups(new LessonGroups { parent }), out var list)) yield return (parent, list);
+        {
+            if (_map.TryGetValue(key.WithGroups(new LessonGroups { parent }), out var list))
+            {
+                yield return (parent, list);
+            }
+        }
     }
 
     public DayAttendanceList Get(AttendanceLookupKey key)
@@ -514,7 +535,10 @@ public readonly struct StudentAttendanceList
             groupPartition: key.GroupPartition,
             lessonType: key.LessonType);
         if (_map.TryGetValue(attendanceKey, out var list))
+        {
             return GetDay(key, list);
+        }
+
         bool conditionResult;
         if (attendanceKey.Groups.IsSingleGroup)
         {
@@ -526,7 +550,10 @@ public readonly struct StudentAttendanceList
         }
 
         if (conditionResult)
+        {
             return new([]);
+        }
+
         var attendance = ImmutableArray.CreateBuilder<Attendance>();
         foreach (var parent in ParentLists(attendanceKey))
         {
@@ -544,9 +571,13 @@ public readonly struct StudentAttendanceList
 
             var day = conditionResult2 ? GetDay(key, parent.Attendance).AsArray() : [];
             if (day.Length == parent.Attendance.StudentNames.Count)
+            {
                 attendance.AddRange(day);
+            }
             else
+            {
                 attendance.AddRange(Enumerable.Repeat(Attendance.None, parent.Attendance.StudentNames.Count));
+            }
         }
         return new(attendance.ToImmutable());
     }
@@ -661,7 +692,13 @@ internal readonly struct StudentNameRemapHelper
     {
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
-            aliases.Add(key: NameHelper.Parse(alias.Key), value: NameHelper.Parse(alias.Value));
+        {
+            global::System.Collections.Generic.Dictionary<global::ScheduleLib.Parsing.Name, global::ScheduleLib.Parsing.Name> dictionary = aliases;
+            global::ScheduleLib.Parsing.Name key2 = NameHelper.Parse(alias.Key);
+            global::ScheduleLib.Parsing.Name value2 = NameHelper.Parse(alias.Value);
+            dictionary.Add(key: key2, value: value2);
+        }
+
         var dbToHtmlIndexMap = new OptionalIndex[namesInDb.Count];
         var count = namesInHtml.Length;
         Array.Fill(dbToHtmlIndexMap, OptionalIndex.Invalid);

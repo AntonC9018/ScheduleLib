@@ -127,8 +127,8 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
     IEqualityComparer<NameParts<string?>>,
     IComparer<NameParts<string?>>
 
-    // This is just too much code duplication
-    // IAlternateEqualityComparer<ReadOnlySpan<char>, NameParts<LastNamePartSpan>>
+// This is just too much code duplication
+// IAlternateEqualityComparer<ReadOnlySpan<char>, NameParts<LastNamePartSpan>>
 {
     public static readonly IgnoreDiacriticsAndCase_Name_Comparer Instance = new();
 

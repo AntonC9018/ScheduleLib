@@ -88,7 +88,11 @@ public sealed class EnumMembersTests
     [Fact]
     public void GetOffsetTest()
     {
-        Assert.Equal(expected: 0, actual: EnumMembers<TestEnum>.GetOffset(TestEnum.First));
-        Assert.Equal(expected: 1, actual: EnumMembers<TestEnum>.GetOffset(TestEnum.Second));
+        int expected2 = 0;
+        int actual2 = EnumMembers<TestEnum>.GetOffset(TestEnum.First);
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3 = 1;
+        int actual3 = EnumMembers<TestEnum>.GetOffset(TestEnum.Second);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 }

@@ -6,7 +6,7 @@ namespace ScheduleLib.Application.Config;
 
 public partial class Extensions
 {
-    extension (NodeDataBuilder<LessonTopicsConfig> builder)
+    extension(NodeDataBuilder<LessonTopicsConfig> builder)
     {
         public void Manifest(Action<ManifestSourceBuilder>? configure = null)
         {

@@ -23,8 +23,17 @@ file static class DateOnlyExtensions
     public static DateTimeOffset ToDateTimeOffset(
         this DateOnly dateOnly)
     {
-        var dateTime = dateOnly.ToDateTime(time: new TimeOnly(0));
-        return new DateTimeOffset(dateTime, offset: new TimeSpan(0));
+        global::System.TimeOnly CalculateTime()
+        {
+            global::System.TimeOnly time2 = new TimeOnly(0);
+            return time2;
+        }
+
+        var dateTime = dateOnly.ToDateTime(time: CalculateTime());
+        global::System.DateTime dateTime2 = dateTime;
+        global::System.TimeSpan offset2 = new TimeSpan(0);
+        global::System.DateTimeOffset dateTimeOffset = new DateTimeOffset(dateTime2, offset: offset2);
+        return dateTimeOffset;
     }
 
     public static DateOnly ToDateOnly(

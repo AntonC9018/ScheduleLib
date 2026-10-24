@@ -199,10 +199,13 @@ public class DriveCommands
                 if (streamedArtifacts.Add(path))
                 {
                     cli.WriteHuman(path);
-                    cli.EmitItem(
-                        id: (string) $"artifact:{path}",
-                        status: "completed",
-                        new { path });
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string text = $"artifact:{path}";
+                    string id2 = (string) text;
+                    string status2 = "completed";
+                    object item = new { path };
+                    cliOutput.EmitItem(
+                        id: id2, status: status2, item);
                 }
             }
         }
@@ -269,8 +272,10 @@ public class DriveCommands
                 {
                     if (data is not null)
                     {
-                        cli.WriteHuman(
-                            $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                        string line = $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

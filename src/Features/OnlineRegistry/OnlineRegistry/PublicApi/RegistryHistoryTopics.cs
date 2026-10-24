@@ -49,12 +49,18 @@ public static class RegistryHistoryTopicsHtml
             || InspectTextEquals(table.Rows[0].Cells[0].TextContent)
             || InspectTextEquals2(table.Rows[0].Cells[1].TextContent)
             || table.Rows[0].Cells[2].TextContent.Trim() != "Redactare")
+        {
             throw InvalidMarkup();
+        }
+
         var result = new List<RegistryHistoryTopic>();
         foreach (var row in table.Rows.Skip(1))
         {
             if (row.Cells.Length != 3 || row.Cells.Take(2).Any(x => x.LocalName != "td"))
+            {
                 throw InvalidMarkup();
+            }
+
             var dateCell = row.Cells[0];
             var anchors = dateCell.Children.OfType<IHtmlAnchorElement>().ToArray();
             bool conditionResult;
@@ -68,11 +74,17 @@ public static class RegistryHistoryTopicsHtml
             }
 
             if (conditionResult)
+            {
                 throw InvalidMarkup();
+            }
+
             var anchor = anchors[0];
             if (!DateTime.TryParseExact(s: anchor.TextContent.Trim(), format: "dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out var date))
+            {
                 throw InvalidMarkup();
+            }
+
             var typeText = string.Concat(dateCell.ChildNodes.Where(x => x != anchor).Select(x => x.TextContent)).Trim();
             var type = typeText switch
             {
@@ -84,10 +96,15 @@ public static class RegistryHistoryTopicsHtml
             var raw = row.Cells[1].TextContent.AsSpan().TrimStart();
             var numberLength = 0;
             while (numberLength < raw.Length && char.IsAsciiDigit(raw[numberLength]))
+            {
                 numberLength++;
+            }
             // Observed leading registry sequence number is separated by whitespace.
             if (numberLength > 0 && numberLength < raw.Length && char.IsWhiteSpace(raw[numberLength]))
+            {
                 raw = raw[numberLength..].TrimStart();
+            }
+
             result.Add(new(date, type, raw.TrimEnd().ToString()));
         }
         return result;
@@ -108,24 +125,56 @@ public static class RegistryHistoryTopicSelection
     public static int AcademicYearStart(string year)
     {
         if (year.Length != 7)
+        {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        }
+
         if (year[4] != '/')
+        {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        }
+
         bool conditionValue = int.TryParse(year.AsSpan(start: 0, length: 4), NumberStyles.None, CultureInfo.InvariantCulture, out var start);
         if (!conditionValue)
+        {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        }
+
         bool conditionValue2 = int.TryParse(year.AsSpan(start: 5, length: 2), NumberStyles.None, CultureInfo.InvariantCulture, out var end);
         if (!conditionValue2)
+        {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        }
+
         if ((start + 1) % 100 != end)
+        {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
+        }
+
         return start;
     }
 
     public static bool Matches(RegistryHistoryCourse current, RegistryHistoryCourse historical)
     {
-        return current.Semester == historical.Semester
-            && StringComparer.OrdinalIgnoreCase.Equals(x: NormalizeCourseName(current.Name), y: NormalizeCourseName(historical.Name));
+        bool condition;
+        if (current.Semester == historical.Semester)
+        {
+            global::System.StringComparer stringComparer = StringComparer.OrdinalIgnoreCase;
+            string x2 = NormalizeCourseName(current.Name);
+            string y2 = NormalizeCourseName(historical.Name);
+            condition = stringComparer.Equals(x: x2, y: y2);
+        }
+        else
+        {
+            condition = false;
+        }
+
+        if (condition)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static RegistryHistoryTopicSelectionResult Select(string currentYear, IReadOnlyList<string> offeredYears,
@@ -140,7 +189,9 @@ public static class RegistryHistoryTopicSelection
         {
             if (currentCourses.Count(x => Matches(current: course, historical: x)) != 1)
             {
-                unresolved.Add(new(course, RegistryHistoryTopicMappingFailure.AmbiguousCourse));
+                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse> list = unresolved;
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse item = new(course, RegistryHistoryTopicMappingFailure.AmbiguousCourse);
+                list.Add(item);
                 continue;
             }
             var found = false;
@@ -148,20 +199,48 @@ public static class RegistryHistoryTopicSelection
             foreach (var year in previous)
             {
                 var matches = historical.Where(x => x.Year == year.Year && Matches(current: course, historical: x.Course)).ToArray();
-                if (matches.Length == 0) continue;
+                if (matches.Length == 0)
+                {
+                    continue;
+                }
+
                 found = true;
                 if (matches.Length > 1)
                 {
-                    unresolved.Add(new(course, RegistryHistoryTopicMappingFailure.AmbiguousCourse));
+                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse> list2 = unresolved;
+                    global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse item2 = new(course, RegistryHistoryTopicMappingFailure.AmbiguousCourse);
+                    list2.Add(item2);
                     resolved = true;
                     break;
                 }
-                if (!matches[0].Groups.Any(g => g.Lessons.Any(l => !string.IsNullOrWhiteSpace(l.Topic) && !RegistryAssessmentTopics.IsAssessment(l.Topic)))) continue;
-                candidates.Add(new(course, matches[0]));
+                if (!matches[0].Groups.Any(g => g.Lessons.Any(l => !string.IsNullOrWhiteSpace(l.Topic) && !RegistryAssessmentTopics.IsAssessment(l.Topic))))
+                {
+                    continue;
+                }
+
+                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate> list3 = candidates;
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicCandidate item3 = new(course, matches[0]);
+                list3.Add(item3);
                 resolved = true;
                 break;
             }
-            if (!resolved) unresolved.Add(new(course, found ? RegistryHistoryTopicMappingFailure.NoTopics : RegistryHistoryTopicMappingFailure.NoHistoricalCourse));
+            if (!resolved)
+            {
+                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse> list4 = unresolved;
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryCourse currentCourse = course;
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicMappingFailure reason;
+                if (found)
+                {
+                    reason = RegistryHistoryTopicMappingFailure.NoTopics;
+                }
+                else
+                {
+                    reason = RegistryHistoryTopicMappingFailure.NoHistoricalCourse;
+                }
+
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryUnresolvedCourse item4 = new(currentCourse, reason);
+                list4.Add(item4);
+            }
         }
         return new(currentYear, candidates, unresolved);
     }
@@ -182,7 +261,11 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             .Where(x => x.Start < currentStart).OrderByDescending(x => x.Start).ToArray();
         var currentCourses = RegistryHistoryHtml.Courses(initial, index);
         var current = new List<RegistryHistoryCourseTopics>();
-        foreach (var course in currentCourses) current.Add(await ReadCourse(currentYear, course));
+        foreach (var course in currentCourses)
+        {
+            current.Add(await ReadCourse(currentYear, course));
+        }
+
         var historical = new List<RegistryHistoryCourseTopics>();
         var pending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other)) == 1).ToList();
         var ambiguousPending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other)) > 1)
@@ -200,11 +283,17 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             }
 
             if (conditionResult)
+            {
                 break;
+            }
+
             using var document = await reader.Read(year.Year.Uri, token);
             if (!RegistryHistoryHtml.Years(document, index).Any(x => x.Selected && x.Value == year.Year.Value))
+            {
                 throw new RegistryHistoryException("Registry did not confirm the requested academic year; topic discovery stopped.", RegistryHistoryFailure.YearNotConfirmed,
-                    RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelectionNotConfirmed);
+                RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelectionNotConfirmed);
+            }
+
             var yearCourses = RegistryHistoryHtml.Courses(document, index);
             var matching = yearCourses.Where(course => pending.Any(currentCourse => RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course))
                 || ambiguousPending.Any(currentCourse => RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course))).ToArray();
@@ -224,7 +313,12 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
                 && snapshot.Groups.Any(group => group.Lessons.Any(lesson => !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic)))));
         }
         var offered = years.Select(x => x.Value).ToArray();
-        return new(offered, Current: current, RegistryHistoryTopicSelection.Select(currentYear, offered, currentCourses, historical), Historical: historical);
+        global::System.Collections.Generic.IReadOnlyList<string> offeredYears = offered;
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryCourseTopics> current2 = current;
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicSelectionResult selection = RegistryHistoryTopicSelection.Select(currentYear, offered, currentCourses, historical);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryCourseTopics> historical2 = historical;
+        global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsAnalysis registryHistoryTopicsAnalysis = new(offeredYears, Current: current2, selection, Historical: historical2);
+        return registryHistoryTopicsAnalysis;
 
         async Task<RegistryHistoryCourseTopics> ReadCourse(string year, RegistryHistoryCourse course)
         {
@@ -233,7 +327,12 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             foreach (var group in RegistryHistoryHtml.Groups(document, course.Uri))
             {
                 using var lessons = await reader.Read(group.Uri, token);
-                groups.Add(new(group.Name, group.Uri, RegistryHistoryTopicsHtml.Lessons(lessons)));
+                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryHistoryGroupTopics> list = groups;
+                string name = group.Name;
+                global::System.Uri uri = group.Uri;
+                global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopic> lessons2 = RegistryHistoryTopicsHtml.Lessons(lessons);
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryGroupTopics item = new(name, uri, lessons2);
+                list.Add(item);
             }
             return new(year, course, groups);
         }

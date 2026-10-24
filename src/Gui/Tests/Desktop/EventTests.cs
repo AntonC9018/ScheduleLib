@@ -194,10 +194,10 @@ public sealed class Context : IAsyncDisposable
             var recorderSource = new EventRecorderSource();
             var main = sp.GetRequiredService<MainWindowViewModel>();
 
-    #pragma warning disable CA2000
+#pragma warning disable CA2000
             var tags = new AllRecorders(recorderSource, main);
             _ = tags;
-    #pragma warning restore CA2000
+#pragma warning restore CA2000
 
             var treeOutputProvider = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
             var teacherNamesProvider = (MockTeacherNamesProvider) sp.GetRequiredService<IAllTeacherNamesProvider>();

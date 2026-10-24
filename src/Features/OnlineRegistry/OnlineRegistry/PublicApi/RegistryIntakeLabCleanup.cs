@@ -16,16 +16,29 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             var destinations = new List<(GroupLink Group, RegistryLessonSelection Selection)>();
             var visited = new HashSet<Uri>();
             foreach (var assignment in assignments)
-            foreach (var group in await navigator.GetGroups(assignment))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!visited.Add(group.Uri)) continue;
-                var filter = new LessonSearchFilter(course.CourseId, group.Groups, group.GroupPartition);
-                var selection = RegistryLessonRouting.Candidates(config, new(filter, _lookup.LessonsByCourse, _schedule));
-                var decision = lessonFilter.Filter(new(filter, _schedule, selection.Lessons));
-                if (decision.Decision is LessonValidityDecision.Skip or LessonValidityDecision.Error) continue;
-                destinations.Add((Group: group, Selection: selection));
+                foreach (var group in await navigator.GetGroups(assignment))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!visited.Add(group.Uri))
+                    {
+                        continue;
+                    }
+
+                    var filter = new LessonSearchFilter(course.CourseId, group.Groups, group.GroupPartition);
+                    global::ScheduleLib.OnlineRegistry.BuiltRegistryConfig config2 = config;
+                    global::ScheduleLib.OnlineRegistry.LessonMatchParams parameters = new(filter, _lookup.LessonsByCourse, _schedule);
+                    var selection = RegistryLessonRouting.Candidates(config2, parameters);
+                    var decision = lessonFilter.Filter(new(filter, _schedule, selection.Lessons));
+                    if (decision.Decision is LessonValidityDecision.Skip or LessonValidityDecision.Error)
+                    {
+                        continue;
+                    }
+
+                    destinations.Add((Group: group, Selection: selection));
+                }
             }
+
             var routed = RegistryLessonRouting.Prioritize(_schedule, destinations, diagnostics);
             foreach (var destination in destinations)
             {
@@ -51,13 +64,19 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
 
                 if (CheckCondition())
+                {
                     continue;
+                }
+
                 if (!destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
+                {
                     continue;
+                }
+
                 if (destination.Selection.Lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab
-                    && _schedule.Get(id).Lesson.Groups.Where(group.Groups.Value.Contains).Any(parent =>
-                        !destinations.Where(candidate => candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
-                            .Any(candidate => routed[candidate.Group.Uri].TryGetValue(id, out var covered) && covered.Contains(parent)))))
+                                    && _schedule.Get(id).Lesson.Groups.Where(group.Groups.Value.Contains).Any(parent =>
+                                        !destinations.Where(candidate => candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
+                                            .Any(candidate => routed[candidate.Group.Uri].TryGetValue(id, out var covered) && covered.Contains(parent)))))
                 {
                     diagnostics.Add(kind: "registry-lab-routing-unresolved", course: _schedule.Get(course.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule), detail: "Unresolved lab routing prevents intake cleanup.");
@@ -75,8 +94,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var remote = await ReadLessons(group.Uri);
                 var unwanted = remote.Where(lesson => lesson.LessonType == LessonType.Lab).ToArray();
                 var marks = unwanted.Sum(lesson => lesson.Attendance.Count(IsRecordedMark));
-                diagnostics.Add(kind: "unsafe-registry-lab-cleanup", course: courseName, @group: groupNames,
-                    detail: $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.");
+                global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics registrySyncDiagnostics = diagnostics;
+                string kind2 = "unsafe-registry-lab-cleanup";
+                string course2 = courseName;
+                string group2 = groupNames;
+                string detail2 = $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.";
+                registrySyncDiagnostics.Add(kind: kind2, course: course2, @group: group2, detail: detail2);
                 var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: "delete", destination: group.Uri.ToString(),
                     course: courseName, groups: groupNames, lesson.DateTime, topic: lesson.Topic, lesson.Attendance.Count(IsRecordedMark),
                     enabled: true, omission: null, async token =>
@@ -88,12 +111,20 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             // A changed date, type, topic or attendance requires a fresh preview.
                             var current = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
                             if (current.Length != 1 || !Unchanged(expected: lesson, actual: current[0]))
+                            {
                                 throw new InvalidOperationException("Registry lab changed after cleanup planning; preview again before deleting it.");
+                            }
+
                             var document = await navigator.GetHtml(lesson.ViewUri);
                             token.ThrowIfCancellationRequested();
                             Exception? submissionError = null;
                             try
-                            { await navigator.SubmitDelete(document, () => submissionStarted = true); }
+                            {
+                                await navigator.SubmitDelete(document, () =>
+                                {
+                                    submissionStarted = true;
+                                });
+                            }
                             catch (Exception error) when (error is IOException or RegistrySubmissionRejectedException or RegistryDeletionRefusedException)
                             {
                                 // A refused or unconfirmed response must be resolved through reads, never another POST.
@@ -101,15 +132,22 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             }
                             var after = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
                             if (after.Length == 1 && Unchanged(expected: lesson, actual: after[0]))
+                            {
                                 throw new RegistryDeletionRefusedException();
+                            }
+
                             if (after.Length != 0)
+                            {
                                 throw new IOException("Registry lab changed during deletion; inspect the destination before retrying.", submissionError);
+                            }
                         }
                         catch (OperationCanceledException error) { throw new RegistryActionCancelledException(submissionStarted, error); }
                         catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
                     })).ToArray();
                 if (!await onGroupPlanned(actions))
+                {
                     return;
+                }
             }
         }
 
@@ -120,7 +158,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             {
                 Document = document,
                 ErrorHandler = _errorHandler,
-                GetAddLessonDocument = () => navigator.GetHtml(HtmlSearch.ScanForLessonAddLink(document)),
+                GetAddLessonDocument = () =>
+                {
+                    global::ScheduleLib.OnlineRegistry.IRegistrySyncNavigator iRegistrySyncNavigator = navigator;
+                    global::System.Uri uri = HtmlSearch.ScanForLessonAddLink(document);
+                    global::System.Threading.Tasks.Task<global::AngleSharp.Dom.IDocument> html = iRegistrySyncNavigator.GetHtml(uri);
+                    return html;
+                },
             });
             return scan.Lessons.ToArray();
         }

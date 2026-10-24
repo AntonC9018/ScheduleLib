@@ -20,10 +20,16 @@ public sealed class RegistryHistoryCommandTests
     [Fact]
     public async Task SummaryIsLocalAndConsoleContainsOnlyCounts()
     {
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
         var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+                    Path.GetTempPath(),
+                    CalculatePath2(),
+                    ".registry-history");
         var original = Console.Out;
         using var output = new StringWriter();
         try
@@ -43,23 +49,29 @@ public sealed class RegistryHistoryCommandTests
             Assert.DoesNotContain(expectedSubstring: "private-group", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion").GetInt32());
-            var file = Assert.Single(Directory.GetFiles(directory));
+            string[] collection = Directory.GetFiles(directory);
+            global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+            var file = Assert.Single(collection2);
             var summary = await File.ReadAllTextAsync(file);
             Assert.Contains(expectedSubstring: "private-course", actualString: summary);
             Assert.Contains(expectedSubstring: "2024/25", actualString: summary);
             Assert.DoesNotContain(expectedSubstring: "Uri", actualString: summary);
             if (!OperatingSystem.IsWindows())
             {
-                Assert.Equal(expected: UnixFileMode.UserRead | UnixFileMode.UserWrite, actual: File.GetUnixFileMode(file));
+                global::System.IO.UnixFileMode expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                global::System.IO.UnixFileMode actual2 = File.GetUnixFileMode(file);
+                Assert.Equal(expected: expected2, actual: actual2);
+                global::System.IO.UnixFileMode expected3 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+                global::System.IO.UnixFileMode actual3 = File.GetUnixFileMode(directory);
                 Assert.Equal(
-                    expected: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
-                    actual: File.GetUnixFileMode(directory));
+                    expected: expected3, actual: actual3);
             }
         }
         finally
         {
             Console.SetOut(original);
-            if (Directory.Exists(Path.GetDirectoryName(directory)))
+            string? path = Path.GetDirectoryName(directory);
+            if (Directory.Exists(path))
             {
                 Directory.Delete(Path.GetDirectoryName(directory)!, true);
             }
@@ -74,7 +86,13 @@ public sealed class RegistryHistoryCommandTests
             return;
         }
 
-        var parent = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var parent = Path.Combine(Path.GetTempPath(), CalculatePath2());
         var target = Path.Combine(parent, "target");
         var directory = Path.Combine(parent, ".registry-history");
         Directory.CreateDirectory(target);
@@ -105,7 +123,13 @@ public sealed class RegistryHistoryCommandTests
             return;
         }
 
-        var parent = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var parent = Path.Combine(Path.GetTempPath(), CalculatePath2());
         var target = Path.Combine(parent, "target");
         var link = Path.Combine(parent, "link");
         Directory.CreateDirectory(target);

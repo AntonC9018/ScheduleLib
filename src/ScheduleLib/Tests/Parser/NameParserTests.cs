@@ -64,7 +64,8 @@ public sealed class NameParserTests
         var p = new Helper.Parsing.SequenceReader("Last First Patro (ABC) Extra Stuff");
         var s = NameHelper.Parse(ref p);
         _ = s;
-        Assert.True(p.ConsumeExactString(" (ABC) Extra Stuff"));
+        bool condition = p.ConsumeExactString(" (ABC) Extra Stuff");
+        Assert.True(condition);
     }
 
     [Fact]

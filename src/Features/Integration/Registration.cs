@@ -50,8 +50,20 @@ public static class Registration
                 builder = builder.Enrich.FromLogContext();
                 builder.WriteTo.Logger(w =>
                 {
-                    w = w.Enrich.With(new RemovePropertyEnricher("EventId"));
-                    w = w.Enrich.With(new RemovePropertyEnricher("SourceContext"));
+                    global::ScheduleLib.Application.Config.RemovePropertyEnricher CalculateEnrichers()
+                    {
+                        global::ScheduleLib.Application.Config.RemovePropertyEnricher enrichers = new RemovePropertyEnricher("EventId");
+                        return enrichers;
+                    }
+
+                    w = w.Enrich.With(CalculateEnrichers());
+                    global::ScheduleLib.Application.Config.RemovePropertyEnricher CalculateEnrichers2()
+                    {
+                        global::ScheduleLib.Application.Config.RemovePropertyEnricher enrichers2 = new RemovePropertyEnricher("SourceContext");
+                        return enrichers2;
+                    }
+
+                    w = w.Enrich.With(CalculateEnrichers2());
                     w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose, outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
                 });

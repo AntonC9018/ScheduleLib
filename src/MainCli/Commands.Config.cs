@@ -124,12 +124,14 @@ public sealed partial class ConfigCommands
                 settings,
                 cancellationToken: cancellation.Token,
                 overrides: overrides);
-            return CliConfigExecution.Finish(
-                context,
-                CliExit.Success,
-                [],
-                inspect(resolved),
-                verb);
+            global::ScheduleLib.Cli.CliCommandContext context2 = context;
+            int exit = CliExit.Success;
+            string[] errors = [];
+            object data = inspect(resolved);
+            string verb2 = verb;
+            int finish = CliConfigExecution.Finish(
+            context2, exit, errors, data, verb2);
+            return finish;
         }
         catch (Exception error)
         {

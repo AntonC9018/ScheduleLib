@@ -108,11 +108,23 @@ public readonly struct ListStringBuilder(
         {
             if (value is ISpanFormattable spanFormattable)
             {
-                AppendFormatted(spanFormattable.ToString(format, CultureInfo.InvariantCulture));
+                string CalculateValue()
+                {
+                    string value2 = spanFormattable.ToString(format, CultureInfo.InvariantCulture);
+                    return value2;
+                }
+
+                AppendFormatted(CalculateValue());
             }
             else if (value is IFormattable formattable)
             {
-                AppendFormatted(formattable.ToString(format, CultureInfo.InvariantCulture));
+                string CalculateValue2()
+                {
+                    string value3 = formattable.ToString(format, CultureInfo.InvariantCulture);
+                    return value3;
+                }
+
+                AppendFormatted(CalculateValue2());
             }
             else if (value is not null)
             {

@@ -36,7 +36,9 @@ public static class AttendanceLabMerges
         }
 
         if (CheckCondition())
+        {
             return false;
+        }
 
         var group = source.Groups[0];
         var partition = source.GroupPartition;
@@ -44,7 +46,9 @@ public static class AttendanceLabMerges
             && merge.Group == group && merge.Specialization == partition.Specialization
             && merge.Alternative == partition.Alternative);
         if (!automatic && RegistryLabMerges.Find(rules, schedule, source.CourseId, source.Groups, destination) is null)
+        {
             return false;
+        }
 
         // Do not invent a source partition merely because a merge exists.
         if (schedule.WeeklyLessons.Any(item => item.Base.Data.Course == source.CourseId
@@ -67,13 +71,35 @@ public static class AttendanceLabMerges
         var sources = new Dictionary<StudentsLookupKey, List<StudentAttendanceList.BetterAttendances>>();
         foreach (var entry in attendance.OrderBy(entry => entry.Key.GroupPartition.SubGroup.Value, StringComparer.Ordinal))
         {
-            if (!TryDestination(schedule, rules, entry.Key, out var partition)) continue;
+            if (!TryDestination(schedule, rules, entry.Key, out var partition))
+            {
+                continue;
+            }
+
             var key = entry.Key with { GroupPartition = partition };
-            if (result.ContainsKey(key)) continue; // An explicitly supplied whole-group sheet takes precedence.
-            if (!sources.TryGetValue(key, out var lists)) sources.Add(key, lists = []);
+            if (result.ContainsKey(key))
+            {
+                continue; // An explicitly supplied whole-group sheet takes precedence.
+            }
+
+            if (!sources.TryGetValue(key, out var lists))
+            {
+                global::System.Collections.Generic.Dictionary<global::ScheduleLib.OnlineRegistry.StudentsLookupKey, global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances>> dictionary = sources;
+                global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = key;
+                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances> value = lists = [];
+                dictionary.Add(key2, value);
+            }
+
             lists.Add(entry.Value);
         }
-        foreach (var entry in sources) result.Add(entry.Key, Combine(entry.Value));
+        foreach (var entry in sources)
+        {
+            global::System.Collections.Generic.Dictionary<global::ScheduleLib.OnlineRegistry.StudentsLookupKey, global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances> dictionary2 = result;
+            global::ScheduleLib.OnlineRegistry.StudentsLookupKey key3 = entry.Key;
+            global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances value2 = Combine(entry.Value);
+            dictionary2.Add(key3, value2);
+        }
+
         return new(result);
     }
 
@@ -82,13 +108,24 @@ public static class AttendanceLabMerges
     {
         var dated = sources[0].Dates is not null;
         if (sources.Any(source => (source.Dates is not null) != dated))
+        {
             throw new InvalidOperationException("Merged lab attendance cannot mix dated and ordinal sources.");
+        }
+
         var names = NamesInDb.Create([.. sources.SelectMany(source => source.StudentNames
             .OrderBy(student => student.Value).Select(student => student.Key))]);
-        ImmutableArray<AttendanceDate>? dates = dated
-            ? [.. sources.SelectMany(source => source.Dates!.Value).Distinct()
-                .OrderBy(date => date.Year).ThenBy(date => date.Month).ThenBy(date => date.Day).ThenBy(date => date.Time)]
-            : null;
+        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.AttendanceDate>? nullable;
+        if (dated)
+        {
+            nullable = [.. sources.SelectMany(source => source.Dates!.Value).Distinct()
+                .OrderBy(date => date.Year).ThenBy(date => date.Month).ThenBy(date => date.Day).ThenBy(date => date.Time)];
+        }
+        else
+        {
+            nullable = null;
+        }
+
+        ImmutableArray<AttendanceDate>? dates = nullable;
         var dayCount = dates?.Length ?? sources.Max(source => source.Attendance.DayCount);
         var days = ImmutableArray.CreateBuilder<DayAttendanceList>(dayCount);
         for (int index = 0; index < dayCount; index++)
@@ -104,11 +141,22 @@ public static class AttendanceLabMerges
                     day = matches.Length == 1 ? matches[0].Position : -1;
                 }
                 if (day >= 0 && day < source.Attendance.DayCount)
+                {
                     marks.AddRange(source.Attendance.Day(day).AsArray());
-                else marks.AddRange(Enumerable.Repeat(Attendance.None, source.StudentNames.Count));
+                }
+                else
+                {
+                    marks.AddRange(Enumerable.Repeat(Attendance.None, source.StudentNames.Count));
+                }
             }
-            days.Add(new(marks.MoveToImmutable()));
+            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.DayAttendanceList>.Builder builder = days;
+            global::ScheduleLib.OnlineRegistry.DayAttendanceList item = new(marks.MoveToImmutable());
+            builder.Add(item);
         }
-        return new(new(days.MoveToImmutable()), names, dates);
+        global::ScheduleLib.OnlineRegistry.AttendanceLists attendance = new(days.MoveToImmutable());
+        global::ScheduleLib.OnlineRegistry.NamesInDb studentNames = names;
+        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.AttendanceDate>? dates2 = dates;
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList.BetterAttendances betterAttendances = new(attendance, studentNames, dates2);
+        return betterAttendances;
     }
 }

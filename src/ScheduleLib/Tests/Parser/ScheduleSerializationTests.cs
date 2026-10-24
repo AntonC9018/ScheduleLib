@@ -13,11 +13,14 @@ public sealed class ScheduleSerializationTests
     {
         using var temp = new TempDirectory();
         using var stream = new MemoryStream();
-        var builder = ScheduleSerializer.Serialize().Input(CreateSchedule("Course"));
+        global::ScheduleLib.ScheduleSerializationBuilder serialize = ScheduleSerializer.Serialize();
+        global::ScheduleLib.Schedule schedule = CreateSchedule("Course");
+        var builder = serialize.Input(schedule);
         if (usePath)
         {
             builder.Output(temp.FilePath);
-            Assert.False(File.Exists(temp.FilePath));
+            bool condition = File.Exists(temp.FilePath);
+            Assert.False(condition);
         }
         else
         {
@@ -96,19 +99,33 @@ public sealed class ScheduleSerializationTests
         using var temp = new TempDirectory();
         using var replaced = new MemoryStream();
         using var final = new MemoryStream();
-        var builder = ScheduleSerializer.Serialize()
-            .Input(CreateSchedule("Old"))
-            .Input(CreateSchedule("New"))
-            .Output(replaced)
-            .Output(temp.FilePath)
-            .Hash("old")
-            .Hash("cache identity");
+        global::ScheduleLib.ScheduleSerializationBuilder serialize = ScheduleSerializer.Serialize();
+        global::ScheduleLib.Schedule schedule = CreateSchedule("Old");
+        global::ScheduleLib.ScheduleSerializationBuilder input = serialize.Input(schedule);
+        global::ScheduleLib.Schedule schedule2 = CreateSchedule("New");
+        global::ScheduleLib.ScheduleSerializationBuilder input2 = input.Input(schedule2);
+        global::System.IO.Stream stream = replaced;
+        global::ScheduleLib.ScheduleSerializationBuilder output = input2.Output(stream);
+        string path2 = temp.FilePath;
+        global::ScheduleLib.ScheduleSerializationBuilder output2 = output.Output(path2);
+        string hash = "old";
+        global::ScheduleLib.ScheduleSerializationBuilder hash2 = output2.Hash(hash);
+        string hash3 = "cache identity";
+        var builder = hash2.Hash(hash3);
         await builder.ExecuteAsync();
         var first = await File.ReadAllBytesAsync(temp.FilePath);
         // A shorter second result must replace rather than leave trailing bytes.
         await builder.Input(Schedule.Empty).Hash("").ExecuteAsync();
-        Assert.True(new FileInfo(temp.FilePath).Length < first.Length);
-        await builder.Input(CreateSchedule("New")).Hash("cache identity").Output(final).ExecuteAsync();
+        global::System.IO.FileInfo fileInfo = new FileInfo(temp.FilePath);
+        bool condition = fileInfo.Length < first.Length;
+        Assert.True(condition);
+        global::ScheduleLib.Schedule CalculateSchedule()
+        {
+            global::ScheduleLib.Schedule schedule3 = CreateSchedule("New");
+            return schedule3;
+        }
+
+        await builder.Input(CalculateSchedule()).Hash("cache identity").Output(final).ExecuteAsync();
         Assert.Equal(expected: first, actual: final.ToArray());
         Assert.Equal(expected: 0, actual: replaced.Length);
         Assert.True(replaced.CanWrite);
@@ -116,7 +133,9 @@ public sealed class ScheduleSerializationTests
         var model = await ScheduleSerializer.Deserialize(final, CancellationToken.None);
         Assert.Equal(expected: "cache identity", actual: model.Hash);
         Assert.Equal(expected: "New", actual: Assert.Single(model.Courses).Names[0]);
-        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
     }
 
     [Fact]
@@ -144,7 +163,11 @@ public sealed class ScheduleSerializationTests
     {
         using var temp = new TempDirectory();
         using var stream = new MemoryStream();
-        var builder = ScheduleSerializer.Serialize().Input(CreateSchedule("Course")).Hash("identity");
+        global::ScheduleLib.ScheduleSerializationBuilder serialize = ScheduleSerializer.Serialize();
+        global::ScheduleLib.Schedule schedule = CreateSchedule("Course");
+        global::ScheduleLib.ScheduleSerializationBuilder input = serialize.Input(schedule);
+        string hash = "identity";
+        var builder = input.Hash(hash);
         if (usePath)
         {
             builder.Output(temp.FilePath);
@@ -186,7 +209,9 @@ public sealed class ScheduleSerializationTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExecuteAsync(cancellation.Token));
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
         Assert.Equal(expected: previous, actual: stream.ToArray());
-        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         stream.Position = 0;
         stream.SetLength(0);
         await builder.ExecuteAsync();
@@ -248,7 +273,9 @@ public sealed class ScheduleSerializationTests
         var builder = ScheduleSerializer.Serialize().Input(Schedule.Empty).Output(temp.FilePath);
         await Assert.ThrowsAnyAsync<IOException>(() => builder.ExecuteAsync());
         Assert.Equal(expected: "previous complete output", actual: await File.ReadAllTextAsync(sentinel));
-        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
+        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+        global::System.Collections.IEnumerable collection2 = collection;
+        Assert.Empty(collection2);
         File.Delete(sentinel);
         Directory.Delete(temp.FilePath);
         await builder.ExecuteAsync();
@@ -286,11 +313,17 @@ public sealed class ScheduleSerializationTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
         public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
 
         public TempDirectory() => Directory.CreateDirectory(DirectoryPath);
         public void Dispose() => Directory.Delete(DirectoryPath, recursive: true);
+
+        private static string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
     }
 }

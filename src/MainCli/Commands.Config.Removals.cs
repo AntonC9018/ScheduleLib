@@ -22,7 +22,7 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Write(new(
+        global::ScheduleLib.Cli.ConfigEditRequest request = new(
             Verb: "remove",
             Key: key.Key,
             Value: null,
@@ -30,7 +30,9 @@ public sealed partial class ConfigCommands
             settings,
             output,
             cancellationToken,
-            Item: item.Item));
+            Item: item.Item);
+        global::System.Threading.Tasks.Task<int> write = Write(request);
+        return write;
     }
 
     [Command("clear", Description = "Explicitly empty an inherited collection in an explicit scope.")]
@@ -41,13 +43,15 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Write(new(
+        global::ScheduleLib.Cli.ConfigEditRequest request = new(
             Verb: "clear",
             Key: key.Key,
             Value: null,
             scope,
             settings,
             output,
-            cancellationToken));
+            cancellationToken);
+        global::System.Threading.Tasks.Task<int> write = Write(request);
+        return write;
     }
 }

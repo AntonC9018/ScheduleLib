@@ -12,12 +12,28 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((key, ["Synthetic Ana", "Synthetic Boris", "Synthetic Carla", "Synthetic Elena"])), null);
-        coverage.Observe(Roster("Synthetic Ana", "Synthetic Boris", "Synthetic Dina"), routedKeys: [key], membershipKeys: [key]);
-        coverage.Observe(Roster("Synthetic Carla", "Synthetic Dina"), routedKeys: [key], membershipKeys: [key]);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((key, ["Synthetic Ana", "Synthetic Boris", "Synthetic Carla", "Synthetic Elena"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Ana", "Synthetic Boris", "Synthetic Dina");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [key];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Carla", "Synthetic Dina");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [key];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
         var diagnostics = fixture.Report(coverage);
-        Assert.StartsWith(expectedStartString: "1 attendance students", actualString: Assert.Single(diagnostics.Items, item => item.Kind == "attendance-students-not-in-registry").Detail);
-        Assert.StartsWith(expectedStartString: "1 registry students", actualString: Assert.Single(diagnostics.Items, item => item.Kind == "unmatched-attendance-students").Detail);
+        string expectedStartString2 = "1 attendance students";
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(diagnostics.Items, item => item.Kind == "attendance-students-not-in-registry");
+        string actualString2 = single.Detail;
+        Assert.StartsWith(expectedStartString: expectedStartString2, actualString: actualString2);
+        string expectedStartString3 = "1 registry students";
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single2 = Assert.Single(diagnostics.Items, item => item.Kind == "unmatched-attendance-students");
+        string actualString3 = single2.Detail;
+        Assert.StartsWith(expectedStartString: expectedStartString3, actualString: actualString3);
         Assert.All(diagnostics.Items, item => Assert.DoesNotContain(expectedSubstring: "Synthetic", actualString: item.Detail));
     }
 
@@ -26,11 +42,27 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((key, ["Synthetic Ana", "Synthetic Boris"])),
-            new Dictionary<string, string> { ["Synthetic Anna"] = "Synthetic Ana" });
-        coverage.Observe(Roster("Synthetic Anna"), routedKeys: [key], membershipKeys: [key]);
-        coverage.Observe(Roster("Synthetic Anna", "Synthetic Boris"), routedKeys: [key], membershipKeys: [key]);
-        Assert.Empty(fixture.Report(coverage).Items);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList CalculateAttendance()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((key, ["Synthetic Ana", "Synthetic Boris"]));
+            return attendance;
+        }
+
+        var coverage = new RegistryStudentCoverage(CalculateAttendance(),
+                    new Dictionary<string, string> { ["Synthetic Anna"] = "Synthetic Ana" });
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Anna");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [key];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Anna", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [key];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.IEnumerable collection = report.Items;
+        Assert.Empty(collection);
     }
 
     [Fact]
@@ -38,11 +70,27 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((key, ["Synthetic Boris"])),
-            new Dictionary<string, string> { ["Synthetic Anna"] = "Synthetic Ana" });
-        coverage.Observe(Roster("Synthetic Anna", "Synthetic Boris"), routedKeys: [key], membershipKeys: [key]);
-        coverage.Observe(Roster("Synthetic Ana"), routedKeys: [key], membershipKeys: [key]);
-        var missing = Assert.Single(fixture.Report(coverage).Items);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList CalculateAttendance()
+        {
+            global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((key, ["Synthetic Boris"]));
+            return attendance;
+        }
+
+        var coverage = new RegistryStudentCoverage(CalculateAttendance(),
+                    new Dictionary<string, string> { ["Synthetic Anna"] = "Synthetic Ana" });
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Anna", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [key];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Ana");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [key];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [key];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        var missing = Assert.Single(collection);
         Assert.Equal(expected: "unmatched-attendance-students", actual: missing.Kind);
         Assert.StartsWith(expectedStartString: "1 registry students", actualString: missing.Detail);
     }
@@ -53,9 +101,19 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"])), null);
-        coverage.Observe(Roster("Synthetic Boris"), routedKeys: [first], membershipKeys: [first]);
-        coverage.Observe(Roster("Synthetic Boris"), routedKeys: [second], membershipKeys: [second]);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [first];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [second];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [second];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
         var diagnostics = fixture.Report(coverage);
         Assert.Equal(expected: 2, actual: diagnostics.Items.Count);
         Assert.All(diagnostics.Items, item => Assert.Equal(expected: "IA2601", actual: item.Group));
@@ -68,10 +126,22 @@ public sealed class RegistryStudentCoverageTests
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
         var combined = first.WithGroups([fixture.First, fixture.Second]);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"])), null);
-        coverage.Observe(Roster("Synthetic Ana", "Synthetic Boris"), routedKeys: [second], membershipKeys: [combined]);
-        coverage.Observe(Roster("Synthetic Ana"), routedKeys: [first], membershipKeys: [first]);
-        Assert.Empty(fixture.Report(coverage).Items);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Ana", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [second];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [combined];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Ana");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [first];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.IEnumerable collection = report.Items;
+        Assert.Empty(collection);
     }
 
     [Fact]
@@ -81,10 +151,22 @@ public sealed class RegistryStudentCoverageTests
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
         var combined = first.WithGroups([fixture.First, fixture.Second]);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"])), null);
-        coverage.Observe(Roster("Synthetic Boris"), routedKeys: [first], membershipKeys: [first]);
-        coverage.Observe(Roster("Synthetic Ana", "Synthetic Boris"), routedKeys: [combined], membershipKeys: [combined]);
-        var missing = Assert.Single(fixture.Report(coverage).Items);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [first];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Ana", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [combined];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [combined];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        var missing = Assert.Single(collection);
         Assert.Equal(expected: "unmatched-attendance-students", actual: missing.Kind);
         Assert.StartsWith(expectedStartString: "1 registry students", actualString: missing.Detail);
     }
@@ -95,10 +177,23 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
         var lecture = lab with { LessonType = LessonType.Curs };
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((lab, ["Synthetic Ana"]), (lecture, ["Synthetic Ana"])), null);
-        coverage.Observe(Roster("Synthetic Dina"), routedKeys: [lab], membershipKeys: [lab]);
-        coverage.Observe(Roster("Synthetic Ana"), routedKeys: [lecture], membershipKeys: [lecture]);
-        var missing = Assert.Single(fixture.Report(coverage).Items, item => item.Kind == "attendance-students-not-in-registry");
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Ana"]), (lecture, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Dina");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [lab];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [lab];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Ana");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [lecture];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [lecture];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        global::System.Predicate<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> predicate = item => item.Kind == "attendance-students-not-in-registry";
+        var missing = Assert.Single(collection, predicate);
         Assert.Contains(expectedSubstring: "Lab", actualString: missing.Detail);
     }
 
@@ -108,11 +203,24 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
         var lecture = lab with { LessonType = LessonType.Curs };
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"])), null);
-        coverage.Observe(Roster("Synthetic Ana", "Synthetic Boris"), routedKeys: [lab], membershipKeys: [lab]);
-        coverage.Observe(Roster("Synthetic Boris"), routedKeys: [lecture], membershipKeys: [lecture]);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Ana", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [lab];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [lab];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [lecture];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [lecture];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
         var diagnostics = fixture.Report(coverage).Items;
-        Assert.Contains(expectedSubstring: "Curs", actualString: Assert.Single(diagnostics, item => item.Kind == "attendance-students-not-in-registry").Detail);
+        string expectedSubstring2 = "Curs";
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(diagnostics, item => item.Kind == "attendance-students-not-in-registry");
+        string actualString2 = single.Detail;
+        Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
         var unknown = diagnostics.Where(item => item.Kind == "unmatched-attendance-students").ToArray();
         Assert.Equal(expected: 2, actual: unknown.Length);
         Assert.Contains(unknown, item => item.Detail.Contains("for Curs", StringComparison.Ordinal));
@@ -125,9 +233,20 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
         var lecture = lab with { LessonType = LessonType.Curs };
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"])), null);
-        coverage.Observe(Roster("Synthetic Boris"), routedKeys: [lecture], membershipKeys: [lab, lecture]);
-        Assert.Equal(expected: "attendance-students-not-in-registry", actual: Assert.Single(fixture.Report(coverage).Items).Kind);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [lecture];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [lab, lecture];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        string expected2 = "attendance-students-not-in-registry";
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(collection);
+        string actual2 = single.Kind;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -136,9 +255,19 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var first = fixture.Key(fixture.First) with { GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All) };
         var second = first with { GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All) };
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"])), null);
-        coverage.Observe(Roster("Synthetic Dina"), routedKeys: [first], membershipKeys: [first]);
-        coverage.Observe(Roster("Synthetic Elena"), routedKeys: [second], membershipKeys: [second]);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Dina");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [first];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Elena");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [second];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [second];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
         var unknown = fixture.Report(coverage).Items.Where(item => item.Kind == "unmatched-attendance-students").ToArray();
         Assert.Equal(expected: 2, actual: unknown.Length);
         Assert.Contains(unknown, item => item.Detail.Contains("(subgroup I)", StringComparison.Ordinal));
@@ -151,10 +280,23 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var first = fixture.Key(fixture.First) with { GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All) };
         var second = first with { GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All) };
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Ana"])), null);
-        coverage.Observe(Roster("Synthetic Dina"), routedKeys: [first], membershipKeys: [first]);
-        coverage.Observe(Roster("Synthetic Ana"), routedKeys: [second], membershipKeys: [second]);
-        var missing = Assert.Single(fixture.Report(coverage).Items, item => item.Kind == "attendance-students-not-in-registry");
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Dina");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [first];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage2 = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students2 = Roster("Synthetic Ana");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [second];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [second];
+        registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        global::System.Predicate<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> predicate = item => item.Kind == "attendance-students-not-in-registry";
+        var missing = Assert.Single(collection, predicate);
         Assert.Contains(expectedSubstring: "subgroup I", actualString: missing.Detail);
     }
 
@@ -164,12 +306,24 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var first = fixture.Key(fixture.First);
         var combined = first.WithGroups([fixture.First, fixture.Second]);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"])), null);
-        coverage.Observe(Roster("Synthetic Ana", "Synthetic Boris"), routedKeys: [first], membershipKeys: [combined]);
-        Assert.Empty(fixture.Report(coverage).Items);
-        var expelled = new RegistryStudentCoverage(fixture.Attendance((first, ["Synthetic Ana"])), null);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
+        global::ScheduleLib.OnlineRegistry.RegistryStudentCoverage registryStudentCoverage = coverage;
+        global::ScheduleLib.OnlineRegistry.HtmlStudent[] students = Roster("Synthetic Ana", "Synthetic Boris");
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys2 = [first];
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys2 = [combined];
+        registryStudentCoverage.Observe(students, routedKeys: routedKeys2, membershipKeys: membershipKeys2);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.IEnumerable collection = report.Items;
+        Assert.Empty(collection);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance2 = fixture.Attendance((first, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases2 = null;
+        var expelled = new RegistryStudentCoverage(attendance2, aliases2);
         expelled.Observe([new("Synthetic Ana", false), new("Synthetic Dina", true)], routedKeys: [first], membershipKeys: [first]);
-        Assert.Empty(fixture.Report(expelled).Items);
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report2 = fixture.Report(expelled);
+        global::System.Collections.IEnumerable collection2 = report2.Items;
+        Assert.Empty(collection2);
     }
 
     [Fact]
@@ -177,9 +331,16 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
-        var coverage = new RegistryStudentCoverage(fixture.Attendance((key, ["Synthetic Ana"])), null);
+        global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((key, ["Synthetic Ana"]));
+        global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
+        var coverage = new RegistryStudentCoverage(attendance, aliases);
         coverage.Observe([], routedKeys: [key], membershipKeys: [key]);
-        Assert.Equal(expected: "attendance-students-not-in-registry", actual: Assert.Single(fixture.Report(coverage).Items).Kind);
+        string expected2 = "attendance-students-not-in-registry";
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostics report = fixture.Report(coverage);
+        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic> collection = report.Items;
+        global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(collection);
+        string actual2 = single.Kind;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     private static HtmlStudent[] Roster(params string[] names) => names.Select(name => new HtmlStudent(name, false)).ToArray();
@@ -210,7 +371,10 @@ public sealed class RegistryStudentCoverageTests
             foreach (var source in sources)
             {
                 var list = builder.List(source.Key);
-                foreach (var name in source.Names) list.Student(NameHelper.Parse(name)).Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
+                foreach (var name in source.Names)
+                {
+                    list.Student(NameHelper.Parse(name)).Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
+                }
             }
             return builder.Build();
         }

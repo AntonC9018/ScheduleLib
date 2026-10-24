@@ -22,8 +22,14 @@ public static class TestBuilderHelper
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
-                x.ProcessingFlags(CommandProcessingConfig.Process
-                    .WithLog(LessonEquationCommandTypes.All));
+                global::ScheduleLib.OnlineRegistry.CommandProcessingConfig CalculateFlags()
+                {
+                    global::ScheduleLib.OnlineRegistry.CommandProcessingConfig flags = CommandProcessingConfig.Process
+                                        .WithLog(LessonEquationCommandTypes.All);
+                    return flags;
+                }
+
+                x.ProcessingFlags(CalculateFlags());
             });
 
             // Adds default source.
@@ -55,15 +61,22 @@ public static class TestBuilderHelper
                 x.ProcessingFlags(CommandProcessingConfig.None);
             });
 
+            string CalculateFilePath()
+            {
+                string path12 = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string path22 = "Desktop";
+                string path32 = "lipse.xlsx";
+                string filePath = Path.Join(
+                                    path1: path12, path2: path22, path3: path32);
+                return filePath;
+            }
+
             t.LessonAttendance().Source(
-                Path.Join(
-                    path1: Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    path2: "Desktop",
-                    path3: "lipse.xlsx"),
-                attendance =>
-                {
-                    attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                });
+                            CalculateFilePath(),
+                            attendance =>
+                            {
+                                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+                            });
             t.LessonTopics().Configure(topics =>
             {
                 topics.Manifest();

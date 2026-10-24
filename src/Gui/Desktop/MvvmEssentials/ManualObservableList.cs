@@ -31,10 +31,16 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
         //     callerId,
         //     x => PropertyChanged?.Invoke(this, x),
         //     new(nameof(Count))));
+        global::System.Collections.Specialized.NotifyCollectionChangedEventArgs CalculateArg()
+        {
+            global::System.Collections.Specialized.NotifyCollectionChangedEventArgs arg = new(NotifyCollectionChangedAction.Reset);
+            return arg;
+        }
+
         _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
-            callerId,
-            x => CollectionChanged?.Invoke(this, x),
-            new(NotifyCollectionChangedAction.Reset)));
+                    callerId,
+                    x => CollectionChanged?.Invoke(this, x),
+                    CalculateArg()));
     }
 
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();

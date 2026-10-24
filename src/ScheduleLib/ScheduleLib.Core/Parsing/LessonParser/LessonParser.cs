@@ -46,19 +46,37 @@ public struct WhiteSpaceContext
 
     // TODO: refine these
     public readonly WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, start: StartPosition, end: EndPosition(skipLaterProcessing));
+    {
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Default;
+        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
+        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        return create;
+    }
 
     public readonly WhiteSpaceResult DefaultAll()
         => WhiteSpaceResult.Create(WhiteSpaceAction.Default, start: Lexer.Position, end: Lexer.Position);
 
     public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, start: StartPosition, end: EndPosition(skipLaterProcessing));
+    {
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Insert;
+        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
+        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        return create;
+    }
 
     public readonly WhiteSpaceResult InsertAll()
         => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, start: Lexer.Position, end: Lexer.Position);
 
     public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, start: StartPosition, end: EndPosition(skipLaterProcessing));
+    {
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.DontInsert;
+        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
+        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        return create;
+    }
 
     public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
         => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, start: Lexer.Position, end: Lexer.Position, inclusive);
@@ -579,181 +597,181 @@ public static class LessonParsingHelper
         {
             case ParsingStep.TimeOverride:
             case ParsingStep.Start:
-            {
-                if (ParseTime(ref c.Lexer) is { } time)
                 {
-                    c.State.CommonLesson.StartTime = time;
-                }
+                    if (ParseTime(ref c.Lexer) is { } time)
+                    {
+                        c.State.CommonLesson.StartTime = time;
+                    }
 
-                c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
-                break;
-            }
-            case ParsingStep.OptionalStarBeforeLessonName:
-            {
-                if (c.Lexer.TryConsume('*'))
-                {
-                    c.State.CommonLesson.HasStar = true;
-                }
-                c.State.Step = ParsingStep.OptionalSubGroupBeforeLessonName;
-                break;
-            }
-            case ParsingStep.LessonName:
-            {
-                var endPosition = FindPositionOfLastModifierGroup(c.Lexer);
-                var name = CleanName(
-                    c.Params.ProcessSpacesCourseName,
-                    c.Lexer.Until(endPosition),
-                    c.Params.StringBuilder);
-                if (name.Length == 0)
-                {
-                    WrongFormatException.ThrowEmptyCourseName();
-                }
-                c.State.LessonsInParsing.Add().LessonName = name.AsMemory();
-                c.State.Step = ParsingStep.OptionalParens;
-                c.Lexer.MoveTo(endPosition);
-                break;
-            }
-            case ParsingStep.OptionalParens:
-            case ParsingStep.OptionalParensBeforeRoom:
-            {
-                if (EarlyExitNextStep(c))
-                {
+                    c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                     break;
                 }
-
-                var unparsedModifiers = new List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)>();
-                foreach (var l in c.Lexer.List())
+            case ParsingStep.OptionalStarBeforeLessonName:
                 {
-                    var lexer = l;
-                    if (lexer.IsEmpty)
+                    if (c.Lexer.TryConsume('*'))
                     {
-                        WrongFormatException.EmptyListItem();
+                        c.State.CommonLesson.HasStar = true;
                     }
-                    lexer.TryConsume(TokenType.Whitespace);
-                    unparsedModifiers.Add((lexer, default));
+                    c.State.Step = ParsingStep.OptionalSubGroupBeforeLessonName;
+                    break;
                 }
-
-                var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
-                    unparsedModifiers,
-                    c);
-                if (!defaultSubGroup.IsEmpty)
+            case ParsingStep.LessonName:
                 {
-                    c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(defaultSubGroup);
+                    var endPosition = FindPositionOfLastModifierGroup(c.Lexer);
+                    var name = CleanName(
+                        c.Params.ProcessSpacesCourseName,
+                        c.Lexer.Until(endPosition),
+                        c.Params.StringBuilder);
+                    if (name.Length == 0)
+                    {
+                        WrongFormatException.ThrowEmptyCourseName();
+                    }
+                    c.State.LessonsInParsing.Add().LessonName = name.AsMemory();
+                    c.State.Step = ParsingStep.OptionalParens;
+                    c.Lexer.MoveTo(endPosition);
+                    break;
                 }
-
-                static ReadOnlyMemory<char> DetermineDefaultSubGroupByParsingSbShortForm(
-                    List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)> unparsedModifiers,
-                    ParsingContext c)
+            case ParsingStep.OptionalParens:
+            case ParsingStep.OptionalParensBeforeRoom:
                 {
-                    ReadOnlyMemory<char> defaultSubGroup = default;
-                    int i = 0;
-                    while (true)
+                    if (EarlyExitNextStep(c))
                     {
-                        if (i >= unparsedModifiers.Count)
+                        break;
+                    }
+
+                    var unparsedModifiers = new List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)>();
+                    foreach (var l in c.Lexer.List())
+                    {
+                        var lexer = l;
+                        if (lexer.IsEmpty)
                         {
-                            break;
+                            WrongFormatException.EmptyListItem();
+                        }
+                        lexer.TryConsume(TokenType.Whitespace);
+                        unparsedModifiers.Add((lexer, default));
+                    }
+
+                    var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
+                        unparsedModifiers,
+                        c);
+                    if (!defaultSubGroup.IsEmpty)
+                    {
+                        c.State.LastModiferIndex = c.State.DefaultModifiers.FindOrAdd(defaultSubGroup);
+                    }
+
+                    static ReadOnlyMemory<char> DetermineDefaultSubGroupByParsingSbShortForm(
+                        List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)> unparsedModifiers,
+                        ParsingContext c)
+                    {
+                        ReadOnlyMemory<char> defaultSubGroup = default;
+                        int i = 0;
+                        while (true)
+                        {
+                            if (i >= unparsedModifiers.Count)
+                            {
+                                break;
+                            }
+
+                            ref var l = ref CollectionsMarshal.AsSpan(unparsedModifiers)[i];
+                            var subGroup = DefaultSubGroupForm(ref l.Lexer);
+                            if (subGroup.IsEmpty)
+                            {
+                                i++;
+                                continue;
+                            }
+
+                            l.SubGroup = subGroup;
+                            l.Lexer.TryConsume(TokenType.Whitespace);
+
+                            if (!l.Lexer.IsEmpty)
+                            {
+                                i++;
+                                continue;
+                            }
+                            // if (l.Lexer.IsEmpty
+                            //     && subGroup != default)
+                            // {
+                            // }
+                            if (IsParsingInsideSubgroupAlready(c))
+                            {
+                                throw new GeneralWrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
+                            }
+                            if (!defaultSubGroup.IsEmpty)
+                            {
+                                throw new GeneralWrongFormatException("Cannot specify the subgrou inside the modifier list twice");
+                            }
+                            defaultSubGroup = subGroup;
+
+                            // Don't increment!
+                            unparsedModifiers.RemoveAt(i);
+                        }
+                        return defaultSubGroup;
+                    }
+
+                    foreach (var t in unparsedModifiers)
+                    {
+                        var lexer = t.Lexer;
+
+                        // Check if it's the subgroup form.
+                        // ROMAN-modifier
+                        // OR
+                        // sb NUMBER modifier
+                        SubLessonModifiersKey key;
+                        if (!t.SubGroup.IsEmpty)
+                        {
+                            key = new()
+                            {
+                                SubGroup = t.SubGroup,
+                            };
+                        }
+                        else
+                        {
+                            key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
                         }
 
-                        ref var l = ref CollectionsMarshal.AsSpan(unparsedModifiers)[i];
-                        var subGroup = DefaultSubGroupForm(ref l.Lexer);
-                        if (subGroup.IsEmpty)
+                        ref var modifiers = ref GetCurrentModifiers(c, key);
+                        lexer.TryConsume(TokenType.Whitespace);
+                        // The sb1 form without a modifier has been handled already.
+                        var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
+                        bool somethingSet = modifiers.Set(modifierValue);
+                        if (!somethingSet)
                         {
-                            i++;
-                            continue;
+                            throw new GeneralWrongFormatException("Modifier group that did nothing");
                         }
 
-                        l.SubGroup = subGroup;
-                        l.Lexer.TryConsume(TokenType.Whitespace);
-
-                        if (!l.Lexer.IsEmpty)
+                        lexer.TryConsume(TokenType.Whitespace);
+                        if (!lexer.IsEmpty)
                         {
-                            i++;
-                            continue;
+                            WrongFormatException.ExtraWordsInModifier();
                         }
-                        // if (l.Lexer.IsEmpty
-                        //     && subGroup != default)
-                        // {
-                        // }
-                        if (IsParsingInsideSubgroupAlready(c))
+                    }
+
+                    break;
+
+                    static bool EarlyExitNextStep(ParsingContext c)
+                    {
+                        if (c.Lexer.TryConsume('('))
                         {
-                            throw new GeneralWrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
+                            return false;
                         }
-                        if (!defaultSubGroup.IsEmpty)
+                        if (c.State.Step == ParsingStep.OptionalParensBeforeRoom)
                         {
-                            throw new GeneralWrongFormatException("Cannot specify the subgrou inside the modifier list twice");
+                            c.Lexer.TryConsume(',');
+                            c.State.Step = ParsingStep.OptionalRoomName;
+                            return true;
                         }
-                        defaultSubGroup = subGroup;
 
-                        // Don't increment!
-                        unparsedModifiers.RemoveAt(i);
-                    }
-                    return defaultSubGroup;
-                }
-
-                foreach (var t in unparsedModifiers)
-                {
-                    var lexer = t.Lexer;
-
-                    // Check if it's the subgroup form.
-                    // ROMAN-modifier
-                    // OR
-                    // sb NUMBER modifier
-                    SubLessonModifiersKey key;
-                    if (!t.SubGroup.IsEmpty)
-                    {
-                        key = new()
+                        c.State.Step = ParsingStep.OptionalSubGroupBeforeTeacher;
+                        if (!c.Lexer.TryConsume(','))
                         {
-                            SubGroup = t.SubGroup,
-                        };
-                    }
-                    else
-                    {
-                        key = ParseOutKey(ref lexer, c.Params.LessonTypeParser);
-                    }
+                            return true;
+                        }
 
-                    ref var modifiers = ref GetCurrentModifiers(c, key);
-                    lexer.TryConsume(TokenType.Whitespace);
-                    // The sb1 form without a modifier has been handled already.
-                    var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
-                    bool somethingSet = modifiers.Set(modifierValue);
-                    if (!somethingSet)
-                    {
-                        throw new GeneralWrongFormatException("Modifier group that did nothing");
-                    }
-
-                    lexer.TryConsume(TokenType.Whitespace);
-                    if (!lexer.IsEmpty)
-                    {
-                        WrongFormatException.ExtraWordsInModifier();
-                    }
-                }
-
-                break;
-
-                static bool EarlyExitNextStep(ParsingContext c)
-                {
-                    if (c.Lexer.TryConsume('('))
-                    {
-                        return false;
-                    }
-                    if (c.State.Step == ParsingStep.OptionalParensBeforeRoom)
-                    {
-                        c.Lexer.TryConsume(',');
-                        c.State.Step = ParsingStep.OptionalRoomName;
-                        return true;
-                    }
-
-                    c.State.Step = ParsingStep.OptionalSubGroupBeforeTeacher;
-                    if (!c.Lexer.TryConsume(','))
-                    {
-                        return true;
-                    }
-
-                    // Keep parsing assuming the comma isn't a lesson separator.
-                    // NOTE:
-                    // This is only done when there are modifiers,
-                    // in order to disambiguate lessons with commas in name.
-                    if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
+                        // Keep parsing assuming the comma isn't a lesson separator.
+                        // NOTE:
+                        // This is only done when there are modifiers,
+                        // in order to disambiguate lessons with commas in name.
+                        if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
                         {
                             c.StateStack.Push();
                             bool conditionResult;
@@ -791,544 +809,544 @@ public static class LessonParsingHelper
 
                         // Default to another lesson name.
                         c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
-                    return true;
-                }
+                        return true;
+                    }
 
-                static SubLessonModifiersKey ParseOutKey(
-                    ref LimitedLexerScope lexer,
-                    LessonTypeParser lessonTypeParser)
-                {
-                    if (!lexer.CanPeek(2))
+                    static SubLessonModifiersKey ParseOutKey(
+                        ref LimitedLexerScope lexer,
+                        LessonTypeParser lessonTypeParser)
                     {
+                        if (!lexer.CanPeek(2))
+                        {
+                            return new();
+                        }
+                        if (RegularModifierForm(ref lexer) is { } regRet)
+                        {
+                            return regRet;
+                        }
                         return new();
-                    }
-                    if (RegularModifierForm(ref lexer) is { } regRet)
-                    {
-                        return regRet;
-                    }
-                    return new();
 
 
-                    SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
-                    {
-                        if (!lexer.Peek(2).Is('-'))
+                        SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                         {
-                            return null;
-                        }
+                            if (!lexer.Peek(2).Is('-'))
+                            {
+                                return null;
+                            }
 
-                        var token = lexer.Peek(1);
-                        if (token.Type != LessonTokenType.Word)
-                        {
-                            WrongFormatException.ExpectedWordToken();
-                        }
+                            var token = lexer.Peek(1);
+                            if (token.Type != LessonTokenType.Word)
+                            {
+                                WrongFormatException.ExpectedWordToken();
+                            }
 
-                        if (lessonTypeParser.Parse(token.Value.Span) is { } lessonType)
-                        {
+                            if (lessonTypeParser.Parse(token.Value.Span) is { } lessonType)
+                            {
+                                // Skip both the word and the -
+                                lexer.Move(2);
+                                return new()
+                                {
+                                    LessonType = lessonType,
+                                };
+                            }
+
+                            // Narrow exact support for legacy dashed labels, which the
+                            // word-number split would otherwise leave partially unconsumed.
+                            if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashed))
+                            {
+                                return new()
+                                {
+                                    SubGroup = dashed.Value.AsMemory(),
+                                };
+                            }
+
                             // Skip both the word and the -
                             lexer.Move(2);
+                            LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
+                            return new()
+                            {
+                                SubGroup = token.Value,
+                            };
+                        }
+                    }
+
+                    // A standalone subgroup label in a modifier list. The sb.1 form
+                    // is normalized to Roman numerals, while UI-1 and UI-2 retain
+                    // their exact configured legacy spelling.
+                    static ReadOnlyMemory<char> DefaultSubGroupForm(ref LimitedLexerScope lexer)
+                    {
+                        if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashedSubGroup))
+                        {
+                            return dashedSubGroup.Value.AsMemory();
+                        }
+
+                        var sbToken = lexer.Current;
+                        if (!sbToken.IsAnyWord())
+                        {
+                            return default;
+                        }
+                        var word = new WordSpan(sbToken.Value.Span);
+                        bool wordIsSb = word.Shortened.Value.Equals("sb", StringComparison.Ordinal);
+                        if (!wordIsSb)
+                        {
+                            return default;
+                        }
+
+                        bool hadDot = sbToken.Type == LessonTokenType.ShortWord;
+                        lexer.Move();
+
+                        lexer.TryConsume(TokenType.Whitespace);
+
+                        if (!hadDot)
+                        {
+                            lexer.TryConsume('.');
+                            lexer.TryConsume(TokenType.Whitespace);
+                        }
+
+                        if (lexer.IsEmpty)
+                        {
+                            WrongFormatException.ExpectedArabSubGroup();
+                        }
+
+                        var tokNum = lexer.Current;
+                        if (tokNum.Type != LessonTokenType.Number)
+                        {
+                            WrongFormatException.ExpectedArabSubGroup();
+                        }
+                        if (tokNum.Value.Length != 1)
+                        {
+                            WrongFormatException.ExpectedSubGroupNumberToBeOneDigit();
+                        }
+                        lexer.Move();
+                        var number = tokNum.Value.Span[0] - '0';
+                        return SubGroup.CreateNumeric(number).Value.AsMemory();
+                    }
+
+                    static bool IsParsingInsideSubgroupAlready(ParsingContext c)
+                    {
+                        return c.State.Step == ParsingStep.OptionalParensBeforeRoom;
+                    }
+
+                    static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubLessonModifiersKey key)
+                    {
+                        if (!IsParsingInsideSubgroupAlready(c))
+                        {
+                            ref var modifiers = ref c.State.CurrentSubLesson.Modifiers.Ref(key).General;
+                            return ref modifiers;
+                        }
+
+                        if (key != SubLessonModifiersKey.Default)
+                        {
+                            throw new GeneralWrongFormatException();
+                        }
+
+                        return ref c.State.LastModifiers.General;
+                    }
+
+                    static MaybeGeneralModifiersValue ParseOutModifier(
+                        ParsingContext c,
+                        ref LimitedLexerScope lexer,
+                        StringBuilder sb)
+                    {
+                        if (lexer.IsEmpty)
+                        {
+                            WrongFormatException.LexerEmpty();
+                        }
+                        var t = lexer.Current;
+                        if (!t.IsAnyWord())
+                        {
+                            WrongFormatException.InvalidToken(t);
+                        }
+                        LessonParsingHelper.RejectExplicitNonBeginners(t.Value.Span);
+
+                        if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
+                        {
+                            lexer.Move();
                             return new()
                             {
                                 LessonType = lessonType,
                             };
                         }
-
-                        // Narrow exact support for legacy dashed labels, which the
-                        // word-number split would otherwise leave partially unconsumed.
-                        if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashed))
+                        if (c.Params.ParityParser.Parse(t.Value.Span) is { } parity1)
                         {
+                            lexer.Move();
                             return new()
                             {
-                                SubGroup = dashed.Value.AsMemory(),
+                                Parity = parity1,
                             };
                         }
 
-                        // Skip both the word and the -
-                        lexer.Move(2);
-                        LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
+                        var groupName = lexer.ConcatWithSpaceReplacement(new()
+                        {
+                            StringBuilder = sb,
+                            ConcattedTypes = [LessonTokenType.Word, LessonTokenType.ShortWord, LessonTokenType.Number],
+                            WhitespaceReplacer = " ",
+                        });
+                        Debug.Assert(!groupName.IsEmpty);
                         return new()
                         {
-                            SubGroup = token.Value,
+                            GroupName = groupName,
                         };
                     }
                 }
-
-                // A standalone subgroup label in a modifier list. The sb.1 form
-                // is normalized to Roman numerals, while UI-1 and UI-2 retain
-                // their exact configured legacy spelling.
-                static ReadOnlyMemory<char> DefaultSubGroupForm(ref LimitedLexerScope lexer)
-                {
-                    if (TryConsumeDashedLegacySubGroup(ref lexer, out var dashedSubGroup))
-                    {
-                        return dashedSubGroup.Value.AsMemory();
-                    }
-
-                    var sbToken = lexer.Current;
-                    if (!sbToken.IsAnyWord())
-                    {
-                        return default;
-                    }
-                    var word = new WordSpan(sbToken.Value.Span);
-                    bool wordIsSb = word.Shortened.Value.Equals("sb", StringComparison.Ordinal);
-                    if (!wordIsSb)
-                    {
-                        return default;
-                    }
-
-                    bool hadDot = sbToken.Type == LessonTokenType.ShortWord;
-                    lexer.Move();
-
-                    lexer.TryConsume(TokenType.Whitespace);
-
-                    if (!hadDot)
-                    {
-                        lexer.TryConsume('.');
-                        lexer.TryConsume(TokenType.Whitespace);
-                    }
-
-                    if (lexer.IsEmpty)
-                    {
-                        WrongFormatException.ExpectedArabSubGroup();
-                    }
-
-                    var tokNum = lexer.Current;
-                    if (tokNum.Type != LessonTokenType.Number)
-                    {
-                        WrongFormatException.ExpectedArabSubGroup();
-                    }
-                    if (tokNum.Value.Length != 1)
-                    {
-                        WrongFormatException.ExpectedSubGroupNumberToBeOneDigit();
-                    }
-                    lexer.Move();
-                    var number = tokNum.Value.Span[0] - '0';
-                    return SubGroup.CreateNumeric(number).Value.AsMemory();
-                }
-
-                static bool IsParsingInsideSubgroupAlready(ParsingContext c)
-                {
-                    return c.State.Step == ParsingStep.OptionalParensBeforeRoom;
-                }
-
-                static ref GeneralModifiersValue GetCurrentModifiers(ParsingContext c, SubLessonModifiersKey key)
-                {
-                    if (!IsParsingInsideSubgroupAlready(c))
-                    {
-                        ref var modifiers = ref c.State.CurrentSubLesson.Modifiers.Ref(key).General;
-                        return ref modifiers;
-                    }
-
-                    if (key != SubLessonModifiersKey.Default)
-                    {
-                        throw new GeneralWrongFormatException();
-                    }
-
-                    return ref c.State.LastModifiers.General;
-                }
-
-                static MaybeGeneralModifiersValue ParseOutModifier(
-                    ParsingContext c,
-                    ref LimitedLexerScope lexer,
-                    StringBuilder sb)
-                {
-                    if (lexer.IsEmpty)
-                    {
-                        WrongFormatException.LexerEmpty();
-                    }
-                    var t = lexer.Current;
-                    if (!t.IsAnyWord())
-                    {
-                        WrongFormatException.InvalidToken(t);
-                    }
-                    LessonParsingHelper.RejectExplicitNonBeginners(t.Value.Span);
-
-                    if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
-                    {
-                        lexer.Move();
-                        return new()
-                        {
-                            LessonType = lessonType,
-                        };
-                    }
-                    if (c.Params.ParityParser.Parse(t.Value.Span) is { } parity1)
-                    {
-                        lexer.Move();
-                        return new()
-                        {
-                            Parity = parity1,
-                        };
-                    }
-
-                    var groupName = lexer.ConcatWithSpaceReplacement(new()
-                    {
-                        StringBuilder = sb,
-                        ConcattedTypes = [LessonTokenType.Word, LessonTokenType.ShortWord, LessonTokenType.Number],
-                        WhitespaceReplacer = " ",
-                    });
-                    Debug.Assert(!groupName.IsEmpty);
-                    return new()
-                    {
-                        GroupName = groupName,
-                    };
-                }
-            }
             case ParsingStep.OptionalSubGroupBeforeLessonName:
             case ParsingStep.OptionalSubGroupBeforeTeacher:
             case ParsingStep.MaybeSubGroupAgain:
-            {
-                if (c.State.Step == ParsingStep.OptionalSubGroupBeforeTeacher)
                 {
-                    // Lesson names might be delimited by a comma.
-                    if (c.Lexer.TryConsume(','))
+                    if (c.State.Step == ParsingStep.OptionalSubGroupBeforeTeacher)
                     {
-                        c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
+                        // Lesson names might be delimited by a comma.
+                        if (c.Lexer.TryConsume(','))
+                        {
+                            c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
+                            break;
+                        }
+                    }
+                    else if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
+                    {
+                        // Just ignore the comma if we're here again.
+                        // This handles the case where there are multiple subgroups.
+                        if (c.Lexer.TryConsume(','))
+                        {
+                            // Skip whitespace
+                            break;
+                        }
+
+                        if (c.State.SubGroupAppliedBeforeLessonName)
+                        {
+                            c.State.Step = ParsingStep.Output;
+                            break;
+                        }
+                    }
+
+                    var subgroupStartLexer = c.Lexer;
+                    var lexer = c.Lexer;
+                    if (SkipSubGroup(ref lexer) is not { } subGroupEndPos)
+                    {
+                        SetNoSubgroup(c);
                         break;
                     }
-                }
-                else if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
-                {
-                    // Just ignore the comma if we're here again.
-                    // This handles the case where there are multiple subgroups.
-                    if (c.Lexer.TryConsume(','))
-                    {
-                        // Skip whitespace
-                        break;
-                    }
 
-                    if (c.State.SubGroupAppliedBeforeLessonName)
-                    {
-                        c.State.Step = ParsingStep.Output;
-                        break;
-                    }
-                }
-
-                var subgroupStartLexer = c.Lexer;
-                var lexer = c.Lexer;
-                if (SkipSubGroup(ref lexer) is not { } subGroupEndPos)
-                {
-                    SetNoSubgroup(c);
-                    break;
-                }
-
-                if (c.State.Step == ParsingStep.OptionalSubGroupBeforeLessonName)
-                {
-                    c.State.SubGroupAppliedBeforeLessonName = true;
-                }
-
-                var sb = c.Params.StringBuilder;
-                sb.Clear();
-                var subGroupStr = subgroupStartLexer
-                    .Until(subGroupEndPos)
-                    .Concat(sb);
-                LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
-                c.State.SetDefaultModifier(subGroupStr);
-
-                c.Lexer.MoveTo(lexer.Position);
-
-                c.State.Step = c.State.Step switch
-                {
-                    ParsingStep.OptionalSubGroupBeforeLessonName
-                        => ParsingStep.LessonName,
-                    ParsingStep.MaybeSubGroupAgain or ParsingStep.OptionalSubGroupBeforeTeacher
-                        => ParsingStep.OptionalTeacherNameOrRoomName,
-                    _ => throw Unreachable(),
-                };
-                break;
-
-                static LexerPosition? SkipSubGroup(ref LexerScope lexer)
-                {
-                    var t = lexer.Current;
-                    if (t.Type != LessonTokenType.Word)
-                    {
-                        return null;
-                    }
-                    if (ConsumeDashedLegacy(ref lexer) is { } dpos)
-                    {
-                        return dpos;
-                    }
-                    if (ConsumeS(ref lexer) is { } spos)
-                    {
-                        return spos;
-                    }
-                    if (VerifyColonOrDot(ref lexer) is { } cpos)
-                    {
-                        return cpos;
-                    }
-                    return null;
-
-                    // Format UI-1, UI-2: the narrow configured dashed legacy labels,
-                    // whose hyphen is otherwise treated as a separator.
-                    static LexerPosition? ConsumeDashedLegacy(ref LexerScope lexer)
-                    {
-                        if (!TryConsumeDashedLegacySubGroup(ref lexer, out _))
-                        {
-                            return null;
-                        }
-                        return lexer.Position;
-                    }
-
-                    // Format S{Number}{OptionalNumber}
-                    LexerPosition? ConsumeS(ref LexerScope lexer)
-                    {
-                        var lexerCopy = lexer;
-                        if (!lexerCopy.ConsumeExactWord("S"))
-                        {
-                            return null;
-                        }
-                        if (lexerCopy.IsEmpty)
-                        {
-                            return null;
-                        }
-
-                        var t = lexerCopy.Current;
-                        if (t.Type != LessonTokenType.Number)
-                        {
-                            return null;
-                        }
-                        if (t.Value.Length > 2)
-                        {
-                            return null;
-                        }
-                        lexerCopy.Move();
-
-                        lexer.MoveTo(lexerCopy.Position);
-                        return lexer.Position;
-                    }
-                }
-
-                static LexerPosition? VerifyColonOrDot(ref LexerScope lexer)
-                {
-                    lexer.Move();
-
-                    // TODO:
-                    // This feels kinda dirty, but it would work because of the fact
-                    // that spaces or separator would separate normally.
-                    while (lexer.TryConsumeAny([LessonTokenType.Number, LessonTokenType.Word]))
-                    {
-                    }
-
-                    if (lexer.IsEmpty)
-                    {
-                        return null;
-                    }
-                    var endPos = lexer.Position;
-                    if (lexer.TryConsume(':'))
-                    {
-                        lexer.TryConsume(TokenType.Whitespace);
-                        return endPos;
-                    }
-                    if (!lexer.TryConsume('.'))
-                    {
-                        return null;
-                    }
-                    if (!lexer.TryConsume(TokenType.Whitespace))
-                    {
-                        return null;
-                    }
-                    return endPos;
-                }
-
-                static void SetNoSubgroup(ParsingContext c)
-                {
-                    if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
-                    {
-                        c.State.Step = ParsingStep.Output;
-                        return;
-                    }
                     if (c.State.Step == ParsingStep.OptionalSubGroupBeforeLessonName)
                     {
-                        c.State.Step = ParsingStep.LessonName;
-                        return;
+                        c.State.SubGroupAppliedBeforeLessonName = true;
                     }
-                    // Maybe should check how it was added and give an error if it was
-                    // added through "subgroup:" rather than "subgroup-modifier" syntax.
-                    c.State.SetDefaultModifier(default);
-                    c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
+
+                    var sb = c.Params.StringBuilder;
+                    sb.Clear();
+                    var subGroupStr = subgroupStartLexer
+                        .Until(subGroupEndPos)
+                        .Concat(sb);
+                    LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
+                    c.State.SetDefaultModifier(subGroupStr);
+
+                    c.Lexer.MoveTo(lexer.Position);
+
+                    c.State.Step = c.State.Step switch
+                    {
+                        ParsingStep.OptionalSubGroupBeforeLessonName
+                            => ParsingStep.LessonName,
+                        ParsingStep.MaybeSubGroupAgain or ParsingStep.OptionalSubGroupBeforeTeacher
+                            => ParsingStep.OptionalTeacherNameOrRoomName,
+                        _ => throw Unreachable(),
+                    };
+                    break;
+
+                    static LexerPosition? SkipSubGroup(ref LexerScope lexer)
+                    {
+                        var t = lexer.Current;
+                        if (t.Type != LessonTokenType.Word)
+                        {
+                            return null;
+                        }
+                        if (ConsumeDashedLegacy(ref lexer) is { } dpos)
+                        {
+                            return dpos;
+                        }
+                        if (ConsumeS(ref lexer) is { } spos)
+                        {
+                            return spos;
+                        }
+                        if (VerifyColonOrDot(ref lexer) is { } cpos)
+                        {
+                            return cpos;
+                        }
+                        return null;
+
+                        // Format UI-1, UI-2: the narrow configured dashed legacy labels,
+                        // whose hyphen is otherwise treated as a separator.
+                        static LexerPosition? ConsumeDashedLegacy(ref LexerScope lexer)
+                        {
+                            if (!TryConsumeDashedLegacySubGroup(ref lexer, out _))
+                            {
+                                return null;
+                            }
+                            return lexer.Position;
+                        }
+
+                        // Format S{Number}{OptionalNumber}
+                        LexerPosition? ConsumeS(ref LexerScope lexer)
+                        {
+                            var lexerCopy = lexer;
+                            if (!lexerCopy.ConsumeExactWord("S"))
+                            {
+                                return null;
+                            }
+                            if (lexerCopy.IsEmpty)
+                            {
+                                return null;
+                            }
+
+                            var t = lexerCopy.Current;
+                            if (t.Type != LessonTokenType.Number)
+                            {
+                                return null;
+                            }
+                            if (t.Value.Length > 2)
+                            {
+                                return null;
+                            }
+                            lexerCopy.Move();
+
+                            lexer.MoveTo(lexerCopy.Position);
+                            return lexer.Position;
+                        }
+                    }
+
+                    static LexerPosition? VerifyColonOrDot(ref LexerScope lexer)
+                    {
+                        lexer.Move();
+
+                        // TODO:
+                        // This feels kinda dirty, but it would work because of the fact
+                        // that spaces or separator would separate normally.
+                        while (lexer.TryConsumeAny([LessonTokenType.Number, LessonTokenType.Word]))
+                        {
+                        }
+
+                        if (lexer.IsEmpty)
+                        {
+                            return null;
+                        }
+                        var endPos = lexer.Position;
+                        if (lexer.TryConsume(':'))
+                        {
+                            lexer.TryConsume(TokenType.Whitespace);
+                            return endPos;
+                        }
+                        if (!lexer.TryConsume('.'))
+                        {
+                            return null;
+                        }
+                        if (!lexer.TryConsume(TokenType.Whitespace))
+                        {
+                            return null;
+                        }
+                        return endPos;
+                    }
+
+                    static void SetNoSubgroup(ParsingContext c)
+                    {
+                        if (c.State.Step == ParsingStep.MaybeSubGroupAgain)
+                        {
+                            c.State.Step = ParsingStep.Output;
+                            return;
+                        }
+                        if (c.State.Step == ParsingStep.OptionalSubGroupBeforeLessonName)
+                        {
+                            c.State.Step = ParsingStep.LessonName;
+                            return;
+                        }
+                        // Maybe should check how it was added and give an error if it was
+                        // added through "subgroup:" rather than "subgroup-modifier" syntax.
+                        c.State.SetDefaultModifier(default);
+                        c.State.Step = ParsingStep.OptionalTeacherNameOrRoomName;
+                    }
                 }
-            }
             case ParsingStep.RequiredTeacherNameOrRoomName:
             case ParsingStep.OptionalTeacherNameOrRoomName:
             case ParsingStep.OptionalFullTeacherNameOrRoomNameOrSubGroup:
-            {
-                if (TryParseAndSetRoomName(c))
                 {
-                    c.Lexer.TryConsume(TokenType.Whitespace);
-                    if (c.Lexer.IsEmpty)
+                    if (TryParseAndSetRoomName(c))
                     {
+                        c.Lexer.TryConsume(TokenType.Whitespace);
+                        if (c.Lexer.IsEmpty)
+                        {
+                            AdvanceStepAfterRoom(c);
+                            break;
+                        }
+                        if (c.Lexer.TryConsume(','))
+                        {
+                            // Continue the list.
+                            c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
+                            break;
+                        }
+
                         AdvanceStepAfterRoom(c);
                         break;
                     }
-                    if (c.Lexer.TryConsume(','))
-                    {
-                        // Continue the list.
-                        c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
-                        break;
-                    }
 
-                    AdvanceStepAfterRoom(c);
+                    var lexer = c.Lexer;
+                    bool success = Teacher(
+                        c,
+                        ref lexer,
+                        onlyAllowFullForm: c.State.Step == ParsingStep.OptionalFullTeacherNameOrRoomNameOrSubGroup);
+                    if (success)
+                    {
+                        c.State.Step = NextStep(ref lexer);
+                        c.Lexer.MoveTo(lexer.Position);
+
+                        static ParsingStep NextStep(ref LexerScope lexer)
+                        {
+                            if (lexer.TryConsume(TokenType.EndOfLine))
+                            {
+                                return ParsingStep.OptionalRoomName;
+                            }
+                            ParsingStep? ret = null;
+                            if (lexer.TryConsume(TokenType.Whitespace))
+                            {
+                                ret = ParsingStep.OptionalParensBeforeRoom;
+                            }
+                            if (lexer.TryConsume(','))
+                            {
+                                ret = ParsingStep.RequiredTeacherNameOrRoomName;
+                            }
+                            if (ret is not { } step)
+                            {
+                                WrongFormatException.InvalidToken(lexer.Current);
+                                return default;
+                            }
+                            return step;
+                        }
+                    }
+                    else
+                    {
+                        if (c.State.Step == ParsingStep.RequiredTeacherNameOrRoomName)
+                        {
+                            throw new GeneralWrongFormatException("Required teacher name after comma");
+                        }
+
+                        // We've already tried for room name.
+                        AdvanceStepAfterRoom(c);
+                    }
                     break;
-                }
 
-                var lexer = c.Lexer;
-                bool success = Teacher(
-                    c,
-                    ref lexer,
-                    onlyAllowFullForm: c.State.Step == ParsingStep.OptionalFullTeacherNameOrRoomNameOrSubGroup);
-                if (success)
-                {
-                    c.State.Step = NextStep(ref lexer);
-                    c.Lexer.MoveTo(lexer.Position);
-
-                    static ParsingStep NextStep(ref LexerScope lexer)
+                    static bool Teacher(
+                        ParsingContext c,
+                        ref LexerScope lexer,
+                        bool onlyAllowFullForm)
                     {
-                        if (lexer.TryConsume(TokenType.EndOfLine))
-                        {
-                            return ParsingStep.OptionalRoomName;
-                        }
-                        ParsingStep? ret = null;
-                        if (lexer.TryConsume(TokenType.Whitespace))
-                        {
-                            ret = ParsingStep.OptionalParensBeforeRoom;
-                        }
-                        if (lexer.TryConsume(','))
-                        {
-                            ret = ParsingStep.RequiredTeacherNameOrRoomName;
-                        }
-                        if (ret is not { } step)
-                        {
-                            WrongFormatException.InvalidToken(lexer.Current);
-                            return default;
-                        }
-                        return step;
-                    }
-                }
-                else
-                {
-                    if (c.State.Step == ParsingStep.RequiredTeacherNameOrRoomName)
-                    {
-                        throw new GeneralWrongFormatException("Required teacher name after comma");
-                    }
-
-                    // We've already tried for room name.
-                    AdvanceStepAfterRoom(c);
-                }
-                break;
-
-                static bool Teacher(
-                    ParsingContext c,
-                    ref LexerScope lexer,
-                    bool onlyAllowFullForm)
-                {
-                    TeacherName result = new();
-                    if (!ParseTeacherName(
-                            c,
-                            ref result,
-                            ref lexer,
-                            onlyAllowFullForm))
-                    {
-                        return false;
-                    }
-
-                    ValidateNotShort(result.LastName);
-                    MakeAllShortIfOneShort(ref result.FirstName);
-
-                    {
-                        var copy = lexer;
-                        copy.TryConsume(TokenType.Whitespace);
-                        if (copy.TryConsume(':'))
+                        TeacherName result = new();
+                        if (!ParseTeacherName(
+                                c,
+                                ref result,
+                                ref lexer,
+                                onlyAllowFullForm))
                         {
                             return false;
                         }
-                    }
 
-                    if (c.State.LastModiferIndex == -1)
-                    {
-                        c.State.SetDefaultModifier(default);
-                    }
-                    ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
-                    teacher = result;
-                    return true;
-                }
+                        ValidateNotShort(result.LastName);
+                        MakeAllShortIfOneShort(ref result.FirstName);
 
-                static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
-                {
-                    if (name.Any(x => { if (!(!x.IsEmpty)) { return false; } if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter)) { return false; } return true; }))
-                    {
-                        WrongFormatException.InvalidLastName();
-                    }
-                }
-
-                static void MakeAllShortIfOneShort(ref NameParts<ReadOnlyMemory<char>> name)
-                {
-                    bool oneIsShort = name.Any(x =>
-                    {
-                        if (x.IsEmpty)
                         {
-                            return false;
+                            var copy = lexer;
+                            copy.TryConsume(TokenType.Whitespace);
+                            if (copy.TryConsume(':'))
+                            {
+                                return false;
+                            }
                         }
-                        var w = new WordSpan(x.Span);
-                        if (w.LooksFull)
+
+                        if (c.State.LastModiferIndex == -1)
                         {
-                            return false;
+                            c.State.SetDefaultModifier(default);
                         }
+                        ref var teacher = ref c.State.LastModifiers.Specific.NewTeacher();
+                        teacher = result;
                         return true;
-                    });
-                    if (oneIsShort)
+                    }
+
+                    static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
                     {
-                        foreach (ref var x in name)
+                        if (name.Any(x => { if (!(!x.IsEmpty)) { return false; } if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter)) { return false; } return true; }))
+                        {
+                            WrongFormatException.InvalidLastName();
+                        }
+                    }
+
+                    static void MakeAllShortIfOneShort(ref NameParts<ReadOnlyMemory<char>> name)
+                    {
+                        bool oneIsShort = name.Any(x =>
                         {
                             if (x.IsEmpty)
                             {
-                                break;
+                                return false;
                             }
                             var w = new WordSpan(x.Span);
                             if (w.LooksFull)
                             {
-                                x = $"{x.Span}{WordHelper.ShortenedWordCharacter}".AsMemory();
+                                return false;
+                            }
+                            return true;
+                        });
+                        if (oneIsShort)
+                        {
+                            foreach (ref var x in name)
+                            {
+                                if (x.IsEmpty)
+                                {
+                                    break;
+                                }
+                                var w = new WordSpan(x.Span);
+                                if (w.LooksFull)
+                                {
+                                    x = $"{x.Span}{WordHelper.ShortenedWordCharacter}".AsMemory();
+                                }
                             }
                         }
                     }
-                }
 
-                static bool ParseTeacherName(
-                    ParsingContext c,
-                    ref TeacherName res,
-                    ref LexerScope lexer,
-                    bool onlyAllowFullForm)
-                {
-                    var copy = lexer;
+                    static bool ParseTeacherName(
+                        ParsingContext c,
+                        ref TeacherName res,
+                        ref LexerScope lexer,
+                        bool onlyAllowFullForm)
+                    {
+                        var copy = lexer;
 
-                    var name1 = Name(ref copy);
-                    if (name1 == default)
-                    {
-                        return false;
-                    }
-                    if (onlyAllowFullForm)
-                    {
-                        var n = name1.LastNotEmpty();
-                        if (n.Length > 3)
+                        var name1 = Name(ref copy);
+                        if (name1 == default)
                         {
                             return false;
                         }
-                        var w = new WordSpan(n.Span);
-                        if (w.LooksFull)
-                        {
-                            return false;
-                        }
-                    }
-
-                    bool FullFormReturn(ref LexerScope lexer)
-                    {
                         if (onlyAllowFullForm)
                         {
-                            return false;
+                            var n = name1.LastNotEmpty();
+                            if (n.Length > 3)
+                            {
+                                return false;
+                            }
+                            var w = new WordSpan(n.Span);
+                            if (w.LooksFull)
+                            {
+                                return false;
+                            }
                         }
-                        lexer.MoveTo(copy.Position);
-                        return true;
-                    }
 
-                    res.LastName = name1;
+                        bool FullFormReturn(ref LexerScope lexer)
+                        {
+                            if (onlyAllowFullForm)
+                            {
+                                return false;
+                            }
+                            lexer.MoveTo(copy.Position);
+                            return true;
+                        }
 
-                    if (WhitespaceHandling_IsDone(c, ref copy))
+                        res.LastName = name1;
+
+                        if (WhitespaceHandling_IsDone(c, ref copy))
                         {
                             if (FullFormReturn(ref lexer))
                             {
@@ -1339,7 +1357,7 @@ public static class LessonParsingHelper
                         }
 
                         var name2 = Name(ref copy);
-                    if (name2 == default)
+                        if (name2 == default)
                         {
                             if (FullFormReturn(ref lexer))
                             {
@@ -1350,52 +1368,52 @@ public static class LessonParsingHelper
                         }
 
                         if (onlyAllowFullForm)
-                    {
-                        if (name2[0].Span[^1] == WordHelper.ShortenedWordCharacter)
                         {
-                            return false;
-                        }
-                    }
-
-                    lexer.MoveTo(copy.Position);
-                    res.FirstName = name1;
-                    res.LastName = name2;
-                    return true;
-
-                    static bool WhitespaceHandling_IsDone(ParsingContext c, ref LexerScope lexer)
-                    {
-                        if (lexer.IsEmpty)
-                        {
-                            return true;
-                        }
-                        var t = lexer.Current;
-                        if (t.Type != TokenType.Whitespace)
-                        {
-                            return false;
+                            if (name2[0].Span[^1] == WordHelper.ShortenedWordCharacter)
+                            {
+                                return false;
+                            }
                         }
 
-                        var copy = lexer;
-                        // Skip whitespace
-                        copy.Move();
-                        // If the next token is a room, it's not last name.
-                        if (c.Params.RoomParser.TryParseRoom(ref copy))
-                        {
-                            return true;
-                        }
-
-                        // Apply skip whitespace
                         lexer.MoveTo(copy.Position);
+                        res.FirstName = name1;
+                        res.LastName = name2;
+                        return true;
 
-                        return false;
+                        static bool WhitespaceHandling_IsDone(ParsingContext c, ref LexerScope lexer)
+                        {
+                            if (lexer.IsEmpty)
+                            {
+                                return true;
+                            }
+                            var t = lexer.Current;
+                            if (t.Type != TokenType.Whitespace)
+                            {
+                                return false;
+                            }
+
+                            var copy = lexer;
+                            // Skip whitespace
+                            copy.Move();
+                            // If the next token is a room, it's not last name.
+                            if (c.Params.RoomParser.TryParseRoom(ref copy))
+                            {
+                                return true;
+                            }
+
+                            // Apply skip whitespace
+                            lexer.MoveTo(copy.Position);
+
+                            return false;
+                        }
                     }
                 }
-            }
             case ParsingStep.OptionalRoomName:
-            {
-                TryParseAndSetRoomName(c);
-                AdvanceStepAfterRoom(c);
-                break;
-            }
+                {
+                    TryParseAndSetRoomName(c);
+                    AdvanceStepAfterRoom(c);
+                    break;
+                }
         }
 
         static string CleanName(
@@ -1418,7 +1436,10 @@ public static class LessonParsingHelper
                 {
                     if (ShouldRefreshWhiteSpace())
                     {
-                        whiteSpaceResult = processSpaces(new(lexer));
+                        global::ScheduleLib.Parsing.Lesson.ProcessSpaces processSpaces2 = processSpaces;
+                        global::ScheduleLib.Parsing.Lesson.WhiteSpaceContext context = new(lexer);
+                        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult invoke = processSpaces2(context);
+                        whiteSpaceResult = invoke;
                     }
                     if (!ProcessCurrentToken())
                     {
@@ -1491,20 +1512,20 @@ public static class LessonParsingHelper
                     switch (whiteSpaceResult.Action)
                     {
                         case WhiteSpaceAction.Default:
-                        {
-                            shouldAppendWhitespace = defaultShouldAppendWhitespace;
-                            return;
-                        }
+                            {
+                                shouldAppendWhitespace = defaultShouldAppendWhitespace;
+                                return;
+                            }
                         case WhiteSpaceAction.Insert:
-                        {
-                            shouldAppendWhitespace = true;
-                            return;
-                        }
+                            {
+                                shouldAppendWhitespace = true;
+                                return;
+                            }
                         case WhiteSpaceAction.DontInsert:
-                        {
-                            shouldAppendWhitespace = false;
-                            return;
-                        }
+                            {
+                                shouldAppendWhitespace = false;
+                                return;
+                            }
                     }
                 }
 
@@ -1865,21 +1886,21 @@ public sealed class RoomParser
             switch (r)
             {
                 case MediacorParseProgress.Ok:
-                {
-                    return true;
-                }
+                    {
+                        return true;
+                    }
                 case MediacorParseProgress.BeforeConfirmFail:
-                {
-                    return false;
-                }
+                    {
+                        return false;
+                    }
                 case MediacorParseProgress.AfterConfirmFail:
-                {
-                    throw new GeneralWrongFormatException();
-                }
+                    {
+                        throw new GeneralWrongFormatException();
+                    }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
         else
@@ -1999,8 +2020,8 @@ public sealed class RoomParser
     {
         Debug.Assert(lexer.Current.Value.Span[0] == Mediacor[0]);
         {
-            var mediacorEnd = Mediacor.AsSpan()[1 ..];
-            if (!lexer.Current.Value.Span[1 ..].SequenceEqual(mediacorEnd))
+            var mediacorEnd = Mediacor.AsSpan()[1..];
+            if (!lexer.Current.Value.Span[1..].SequenceEqual(mediacorEnd))
             {
                 return MediacorParseProgress.BeforeConfirmFail;
             }
@@ -2477,7 +2498,7 @@ internal struct ListWithCapacity<T>() : IBasic<ListWithCapacity<T>>
         _count = 0;
     }
 
-    public readonly Span<T> Items => CollectionsMarshal.AsSpan(_items)[.. _count];
+    public readonly Span<T> Items => CollectionsMarshal.AsSpan(_items)[.._count];
 
     public int Count => _count;
 

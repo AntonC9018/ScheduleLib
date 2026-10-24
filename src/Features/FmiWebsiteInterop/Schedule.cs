@@ -269,6 +269,9 @@ public static class WebsiteJsonScheduleHelper
     private static int MondayBasedIndex(DayOfWeek day)
     {
         const int weekDayCount = 7;
-        return ((int) day - (int) DayOfWeek.Monday + weekDayCount) % weekDayCount;
+        int int32 = (int) day - (int) DayOfWeek.Monday;
+        int int322 = int32 + weekDayCount;
+        int int323 = (int322) % weekDayCount;
+        return int323;
     }
 }

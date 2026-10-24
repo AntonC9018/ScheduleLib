@@ -43,7 +43,10 @@ public static partial class ScheduleBuilderHelper
         }
 
         if (conditionResult)
+        {
             return;
+        }
+
         s.Preprocess();
         s.Validate();
         s.ClassifySubGroups();

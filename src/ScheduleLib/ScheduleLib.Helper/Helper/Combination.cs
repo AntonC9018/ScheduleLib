@@ -79,7 +79,19 @@ public static class CombinationHelper
 
     public static IEnumerable<T[]> Generate<T>(T[] items, T[] resultMem)
     {
-        foreach (var x in Generate(items: new ArraySegment<T>(items), resultMem: new(resultMem)))
+        global::System.ArraySegment<T> CalculateItems()
+        {
+            global::System.ArraySegment<T> items2 = new ArraySegment<T>(items);
+            return items2;
+        }
+
+        global::System.ArraySegment<T> CalculateResultMem()
+        {
+            global::System.ArraySegment<T> resultMem2 = new(resultMem);
+            return resultMem2;
+        }
+
+        foreach (var x in Generate(items: CalculateItems(), resultMem: CalculateResultMem()))
         {
             _ = x;
             yield return resultMem;
@@ -100,8 +112,8 @@ public static class CombinationHelper
 
         {
             resultMem[0] = items[0];
-            var items1 = items[1 ..];
-            var resultMem1 = resultMem[1 ..];
+            var items1 = items[1..];
+            var resultMem1 = resultMem[1..];
             foreach (var x1 in Generate(items: items1, resultMem: resultMem1))
             {
                 _ = x1;
@@ -111,7 +123,7 @@ public static class CombinationHelper
 
         if (items.Count > resultMem.Count)
         {
-            var items1 = items[1 ..];
+            var items1 = items[1..];
             foreach (var x1 in Generate(items: items1, resultMem: resultMem))
             {
                 _ = x1;

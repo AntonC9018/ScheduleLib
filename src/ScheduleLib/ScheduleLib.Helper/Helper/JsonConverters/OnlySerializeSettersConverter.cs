@@ -21,16 +21,21 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
     private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
-        return _propertyCache.GetOrAdd(new(namingPolicy), np =>
-        {
-            var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-            foreach (var prop in _writableProperties)
-            {
-                string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
-                dict[name] = prop;
-            }
-            return dict;
-        });
+        global::System.Collections.Concurrent.ConcurrentDictionary<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key, global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>> concurrentDictionary = _propertyCache;
+        global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key key = new(namingPolicy);
+        global::System.Func<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key, global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>> valueFactory = np =>
+                {
+                    var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var prop in _writableProperties)
+                    {
+                        string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
+                        dict[name] = prop;
+                    }
+
+                    return dict;
+                };
+        global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo> orAdd = concurrentDictionary.GetOrAdd(key, valueFactory);
+        return orAdd;
     }
 
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

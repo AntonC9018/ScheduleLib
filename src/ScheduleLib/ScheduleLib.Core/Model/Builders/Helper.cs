@@ -33,7 +33,9 @@ public readonly struct ListBuilder<T>()
         var builder = ImmutableArray.CreateBuilder<U>(List.Count);
         foreach (var item in List)
         {
-            builder.Add(f(item));
+            global::System.Collections.Immutable.ImmutableArray<U>.Builder builder2 = builder;
+            U? item2 = f(item);
+            builder2.Add(item2);
         }
         return builder.ToImmutable();
     }

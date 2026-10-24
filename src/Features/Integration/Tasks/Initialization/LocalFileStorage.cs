@@ -9,14 +9,30 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
 
     public static async Task<LocalFileLock> Acquire(string path, CancellationToken token, bool wait = false)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        string CalculatePath()
+        {
+            string path2 = Path.GetFullPath(path);
+            string path3 = Path.GetDirectoryName(path2)!;
+            return path3;
+        }
+
+        Directory.CreateDirectory(CalculatePath());
         while (true)
         {
             token.ThrowIfCancellationRequested();
-            try { return new(new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)); }
-            catch (IOException e) when (e.HResult == unchecked((int)0x80070020) || (e.HResult & 0xffff) == 11)
+            try
             {
-                if (!wait) throw new LocalOperationBusyException($"Another operation owns {path}", e);
+                global::System.IO.FileStream stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                global::ScheduleLib.Application.Core.LocalFileLock localFileLock = new(stream);
+                return localFileLock;
+            }
+            catch (IOException e) when (e.HResult == unchecked((int) 0x80070020) || (e.HResult & 0xffff) == 11)
+            {
+                if (!wait)
+                {
+                    throw new LocalOperationBusyException($"Another operation owns {path}", e);
+                }
+
                 await Task.Delay(100, token);
             }
         }

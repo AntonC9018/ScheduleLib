@@ -44,7 +44,13 @@ public sealed class CommandSurfaceTests
     [MemberData(nameof(Operations))]
     public async Task EveryOperationHasHelpWithoutReadingEvenInvalidProjectSettings(string operation)
     {
-        var directory = Path.Combine(Path.GetTempPath(), $"schedulelib-help-{Guid.NewGuid():N}");
+        string CalculatePath2()
+        {
+            string path2 = $"schedulelib-help-{Guid.NewGuid():N}";
+            return path2;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
         Directory.CreateDirectory(directory);
         var config = Path.Combine(directory, "schedulelib.json");
         await File.WriteAllTextAsync(path: config, contents: "invalid settings must not be loaded by help");
@@ -58,10 +64,17 @@ public sealed class CommandSurfaceTests
             Console.SetError(error);
             var arguments = operation.Split(' ').Concat(["--project", directory, "--help"]).ToArray();
             Assert.Equal(expected: 0, actual: await CliHost.Run(arguments));
-            Assert.Contains(expectedSubstring: $"schedulelib {operation}", actualString: output.ToString());
+            string CalculateExpectedSubstring()
+            {
+                string expectedSubstring2 = $"schedulelib {operation}";
+                return expectedSubstring2;
+            }
+
+            Assert.Contains(expectedSubstring: CalculateExpectedSubstring(), actualString: output.ToString());
             Assert.Contains(expectedSubstring: "--json", actualString: output.ToString());
             Assert.Equal(expected: "invalid settings must not be loaded by help", actual: await File.ReadAllTextAsync(config));
-            Assert.Single(Directory.EnumerateFileSystemEntries(directory));
+            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFileSystemEntries(directory);
+            Assert.Single(collection);
             Assert.Empty(error.ToString());
         }
         finally

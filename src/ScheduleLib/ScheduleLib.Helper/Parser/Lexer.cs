@@ -18,7 +18,7 @@ public struct TokenSpan
 
 public record struct Token
 {
-    public readonly ReadOnlyMemory<char> Value => WholeLineMem[Span.ColStart.Index .. Span.ColEnd.Index];
+    public readonly ReadOnlyMemory<char> Value => WholeLineMem[Span.ColStart.Index..Span.ColEnd.Index];
 
     public required ReadOnlyMemory<char> WholeLineMem;
     public required TokenType Type;
@@ -226,7 +226,7 @@ public static class StructLexerExtensions
 
     }
 
-    extension (LimitedLexerScope lexer)
+    extension(LimitedLexerScope lexer)
     {
         public ReadOnlyMemory<char> Concat(
             StringBuilder? maybeUsedStringBuilder = null,
@@ -256,7 +256,7 @@ public static class StructLexerExtensions
                 Debug.Assert(startTok.WholeLineMem.Equals(prevTok.WholeLineMem));
                 var startPos = startTok.Span.ColStart;
                 var prevEndPos = prevTok.Span.ColEnd;
-                var untilNowStr = startTok.WholeLineMem[startPos.Index .. prevEndPos.Index];
+                var untilNowStr = startTok.WholeLineMem[startPos.Index..prevEndPos.Index];
                 return untilNowStr;
             }
 
@@ -532,7 +532,7 @@ public sealed class Lexer : ILexer
         sb.Append("[");
         var list = new ListStringBuilder(sb, ", ");
         var span = CollectionsMarshal.AsSpan(_queue);
-        var spanSlice = span[start.Value .. end.Value];
+        var spanSlice = span[start.Value..end.Value];
         foreach (var t in spanSlice)
         {
             var type = TokenTypeLabels.Get(t.Type);
@@ -761,7 +761,7 @@ public static class LexerHelper
         return new(builder.ToImmutable());
     }
 
-    extension (LexerScope lexer)
+    extension(LexerScope lexer)
     {
         public void Apply(ref SequenceReader reader)
         {
@@ -787,7 +787,7 @@ public static class LexerHelper
     {
         void* bStart = Unsafe.AsPointer(ref MemoryMarshal.GetReference(b));
         void* aStart = Unsafe.AsPointer(ref MemoryMarshal.GetReference(a));
-        void* bEnd   = Unsafe.AsPointer(ref Unsafe.Add(ref MemoryMarshal.GetReference(b), b.Length));
+        void* bEnd = Unsafe.AsPointer(ref Unsafe.Add(ref MemoryMarshal.GetReference(b), b.Length));
 
         if (aStart < bStart || aStart > bEnd)
         {
@@ -830,7 +830,8 @@ public struct LimitedLexerScope : ILexer
     public readonly bool CanPeek(int offset = 1)
     {
         // Check doesn't exceed end
-        int i = _lexer.Position.Value + offset - 1;
+        int int32 = _lexer.Position.Value + offset;
+        int i = int32 - 1;
         if (i >= _endPosition.Value)
         {
             return false;

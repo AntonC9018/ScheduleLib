@@ -76,13 +76,13 @@ public sealed class ManualWeeklyScheduledDateProvider
                 switch (p.Parity)
                 {
                     case Parity.EveryWeek:
-                    {
-                        return true;
-                    }
+                        {
+                            return true;
+                        }
                     case Parity.OddWeek:
-                    {
-                        return e.Week.IsOddWeek;
-                    }
+                        {
+                            return e.Week.IsOddWeek;
+                        }
                     case Parity.EvenWeek:
                         {
                             if (!e.Week.IsOddWeek)
@@ -93,9 +93,9 @@ public sealed class ManualWeeklyScheduledDateProvider
                             return false;
                         }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
             }
         }

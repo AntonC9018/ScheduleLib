@@ -81,10 +81,25 @@ public partial class RegistryCommands
         bool cleanupIntakeLabs,
         CancellationToken cancellationToken)
     {
+        string CalculateCommand()
+        {
+            string command;
+            if (cleanupIntakeLabs)
+            {
+                command = "registry cleanup-intake-labs";
+            }
+            else
+            {
+                command = "registry sync";
+            }
+
+            return command;
+        }
+
         using var context = new CliCommandContext(
-            cleanupIntakeLabs ? "registry cleanup-intake-labs" : "registry sync",
-            result,
-            cancellationToken);
+                    CalculateCommand(),
+                    result,
+                    cancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -98,10 +113,19 @@ public partial class RegistryCommands
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = context.Warnings;
-        warnings.Add(
-            cleanupIntakeLabs
-                ? "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected."
-                : "Existing positional matching is used; updates are not a semantic minimum patch.");
+        global::System.Collections.Generic.List<string> list = warnings;
+        string item2;
+        if (cleanupIntakeLabs)
+        {
+            item2 = "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected.";
+        }
+        else
+        {
+            item2 = "Existing positional matching is used; updates are not a semantic minimum patch.";
+        }
+
+        list.Add(
+            item2);
         var attempted = false;
         var finalExit = CliExit.Unexpected;
         string[] finalErrors = ["Unexpected registry failure."];
@@ -152,10 +176,30 @@ public partial class RegistryCommands
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
+                    global::ScheduleLib.OnlineRegistry.RegistrySyncAction action2 = action;
+                    string status2;
+                    if (!action.Enabled)
+                    {
+                        status2 = "omitted";
+                    }
+                    else
+                    {
+                        string text;
+                        if (apply.Apply)
+                        {
+                            text = "not-attempted";
+                        }
+                        else
+                        {
+                            text = "planned";
+                        }
+
+                        status2 = text;
+                    }
+
+                    string? detail2 = action.Omission;
                     var initial = ToOutcome(
-                        action,
-                        status: !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned",
-                        detail: action.Omission);
+                        action2, status: status2, detail: detail2);
                     outcomes.Add(initial);
                     StreamOutcome(outcomes.Count - 1, initial);
                 }
@@ -260,15 +304,23 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryActionOutcome outcome)
         {
-            context.StreamItem(
-                id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                status: outcome.Status,
-                outcome,
-                renderHuman: () =>
+            global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string status2 = outcome.Status;
+            object item = outcome;
+            global::System.Action renderHuman2 = () =>
                 {
+                    string CalculateLine()
+                    {
+                        string line = $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}";
+                        return line;
+                    }
+
                     output.WriteHuman(
-                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}");
-                });
+                                            CalculateLine());
+                };
+            cliCommandContext.StreamItem(
+                id: id2, status: status2, item, renderHuman: renderHuman2);
         }
 
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
@@ -346,7 +398,9 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        string line = $"{status}: {target.Destination} (account {target.Account})";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });

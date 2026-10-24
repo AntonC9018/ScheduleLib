@@ -99,12 +99,30 @@ public static class Config
             x.StudyYear = new(2026);
             x.Grade = new(2);
             x.Qualification = QualificationType.Licenta;
-            x.Alternative("Disciplină umanistică opțională: Antreprenoriat inovativ", new("Antreprenoriat inovativ"));
-            x.Alternative("Antreprenoriat inovativ", new("Antreprenoriat inovativ"));
-            x.Alternative("Disciplină umanistică opțională: Psihologie", new("Psihologie"));
-            x.Alternative("Psihologie", new("Psihologie"));
-            x.Alternative("Opț. ped.", new("Opț. ped."));
-            x.Alternative("Cult. comun.", new("Cult. comun."));
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder = x;
+            string course = "Disciplină umanistică opțională: Antreprenoriat inovativ";
+            global::ScheduleLib.Alternative alternative = new("Antreprenoriat inovativ");
+            implicitSplitScopeBuilder.Alternative(course, alternative);
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder2 = x;
+            string course2 = "Antreprenoriat inovativ";
+            global::ScheduleLib.Alternative alternative2 = new("Antreprenoriat inovativ");
+            implicitSplitScopeBuilder2.Alternative(course2, alternative2);
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder3 = x;
+            string course3 = "Disciplină umanistică opțională: Psihologie";
+            global::ScheduleLib.Alternative alternative3 = new("Psihologie");
+            implicitSplitScopeBuilder3.Alternative(course3, alternative3);
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder4 = x;
+            string course4 = "Psihologie";
+            global::ScheduleLib.Alternative alternative4 = new("Psihologie");
+            implicitSplitScopeBuilder4.Alternative(course4, alternative4);
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder5 = x;
+            string course5 = "Opț. ped.";
+            global::ScheduleLib.Alternative alternative5 = new("Opț. ped.");
+            implicitSplitScopeBuilder5.Alternative(course5, alternative5);
+            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder6 = x;
+            string course6 = "Cult. comun.";
+            global::ScheduleLib.Alternative alternative6 = new("Cult. comun.");
+            implicitSplitScopeBuilder6.Alternative(course6, alternative6);
         });
         return builder.Build();
     }
@@ -373,23 +391,49 @@ public static class Config
         });
 
         var subgroup = remap.SubGroupNameRemappings;
-        subgroup.Add(new("AG"), Specialization.AlgoritmicaGrafurilor);
-        subgroup.Add(new("GR"), Specialization.GA2D);
-        subgroup.Add(new("SAWM"), Specialization.DezvoltareaAplicatiilor);
-        subgroup.Add(new("DAS-S"), Specialization.DezvoltareaAplicatiilor);
-        subgroup.Add(new("UI/UX"), Specialization.UI);
-        subgroup.Add(new("RVA"), Specialization.DJ);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings = subgroup;
+        string from2 = new("AG");
+        global::ScheduleLib.Specialization to2 = Specialization.AlgoritmicaGrafurilor;
+        subGroupNameRemappings.Add(from2, to2);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings2 = subgroup;
+        string from3 = new("GR");
+        global::ScheduleLib.Specialization to3 = Specialization.GA2D;
+        subGroupNameRemappings2.Add(from3, to3);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings3 = subgroup;
+        string from4 = new("SAWM");
+        global::ScheduleLib.Specialization to4 = Specialization.DezvoltareaAplicatiilor;
+        subGroupNameRemappings3.Add(from4, to4);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings4 = subgroup;
+        string from5 = new("DAS-S");
+        global::ScheduleLib.Specialization to5 = Specialization.DezvoltareaAplicatiilor;
+        subGroupNameRemappings4.Add(from5, to5);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings5 = subgroup;
+        string from6 = new("UI/UX");
+        global::ScheduleLib.Specialization to6 = Specialization.UI;
+        subGroupNameRemappings5.Add(from6, to6);
+        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings6 = subgroup;
+        string from7 = new("RVA");
+        global::ScheduleLib.Specialization to7 = Specialization.DJ;
+        subGroupNameRemappings6.Add(from7, to7);
         // "Node" is a grade-2 subgroup label aliasing the UI specialization
         // (see docs/subgroup-model-update-spec.md and docs/domain-model.md).
         // It is unrelated to the grade-3 "Node.js" course ("Dezv. apl.
         // server-side cu Node.js"), whose server-side track maps to
         // Specialization.DezvoltareaAplicatiilor via the ImplicitSplitConfig
         // "Server-side" entry above.
-        subgroup.Add(new("Node"), Specialization.UI);
+        string CalculateFrom()
+        {
+            string from8 = new("Node");
+            return from8;
+        }
+
+        subgroup.Add(CalculateFrom(), Specialization.UI);
 
         for (int i = 1; i <= 10; i++)
         {
-            var from = $"{(char) ('a' + i - 1)}";
+            int int32 = 'a' + i;
+            int int322 = int32 - 1;
+            var from = $"{(char) (int322)}";
             var to = NumberHelper.ToRoman(i);
             subgroup.Add(key: from, value: to);
         }
@@ -416,7 +460,9 @@ public static class Config
                     for (int i = 1; i <= 3; i++)
                     {
                         var r = x.Range();
-                        r.Grade(new(i));
+                        global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = r;
+                        global::ScheduleLib.Grade grade = new(i);
+                        yearDateRangeBuilder.Grade(grade);
                     }
                 }
                 {
@@ -427,17 +473,23 @@ public static class Config
                     x.Range(r =>
                     {
                         r.LessonsEndInclusive(month: 5, day: 1);
-                        r.Grade(new(2));
+                        global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = r;
+                        global::ScheduleLib.Grade grade = new(2);
+                        yearDateRangeBuilder.Grade(grade);
                     });
                     x.Range(r =>
                     {
                         r.LessonsEndInclusive(month: 5, day: 1);
-                        r.Grade(new(1));
+                        global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = r;
+                        global::ScheduleLib.Grade grade = new(1);
+                        yearDateRangeBuilder.Grade(grade);
                     });
 
                     x.Range(r =>
                     {
-                        r.Grade(new(3));
+                        global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = r;
+                        global::ScheduleLib.Grade grade = new(3);
+                        yearDateRangeBuilder.Grade(grade);
                         r.LessonsStart(month: 2, day: 22);
                         r.LessonsEndInclusive(month: 4, day: 11);
                     });
@@ -452,8 +504,16 @@ public static class Config
 
             // Reduced-attendance calendars have several short teaching blocks and do not fit
             // this single-range model. Keep the academic-year envelope until the model supports them.
-            x.LessonsStart(new DateOnly(year: 2026, month: 9, day: 1));
-            x.LessonsEndInclusive(new DateOnly(year: 2027, month: 8, day: 31));
+            global::System.DateOnly CalculateStart()
+            {
+                global::System.DateOnly start = new DateOnly(year: 2026, month: 9, day: 1);
+                return start;
+            }
+
+            x.LessonsStart(CalculateStart());
+            global::ScheduleLib.Dates.YearDateRangeBuilderScope yearDateRangeBuilderScope = x;
+            global::System.DateOnly end = new DateOnly(year: 2027, month: 8, day: 31);
+            yearDateRangeBuilderScope.LessonsEndInclusive(end);
 
             foreach (var sem in new EnumMembers<Semester>())
             {
@@ -461,7 +521,9 @@ public static class Config
                 for (int i = 1; i <= 3; i++)
                 {
                     var r = x.Range();
-                    r.Grade(new(i));
+                    global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = r;
+                    global::ScheduleLib.Grade grade = new(i);
+                    yearDateRangeBuilder.Grade(grade);
                 }
             }
         });
@@ -480,37 +542,205 @@ public static class Config
     {
         get
         {
+            global::System.DateOnly CalculateMonday()
+            {
+                global::System.DateOnly monday2 = new(year: 2026, month: 8, day: 31);
+                return monday2;
+            }
+
+            global::System.DateOnly CalculateMonday2()
+            {
+                global::System.DateOnly monday3 = new(year: 2026, month: 9, day: 7);
+                return monday3;
+            }
+
+            global::System.DateOnly CalculateMonday3()
+            {
+                global::System.DateOnly monday4 = new(year: 2026, month: 9, day: 14);
+                return monday4;
+            }
+
+            global::System.DateOnly CalculateMonday4()
+            {
+                global::System.DateOnly monday5 = new(year: 2026, month: 9, day: 21);
+                return monday5;
+            }
+
+            global::System.DateOnly CalculateMonday5()
+            {
+                global::System.DateOnly monday6 = new(year: 2026, month: 9, day: 28);
+                return monday6;
+            }
+
+            global::System.DateOnly CalculateMonday6()
+            {
+                global::System.DateOnly monday7 = new(year: 2026, month: 10, day: 5);
+                return monday7;
+            }
+
+            global::System.DateOnly CalculateMonday7()
+            {
+                global::System.DateOnly monday8 = new(year: 2026, month: 10, day: 12);
+                return monday8;
+            }
+
+            global::System.DateOnly CalculateMonday8()
+            {
+                global::System.DateOnly monday9 = new(year: 2026, month: 10, day: 19);
+                return monday9;
+            }
+
+            global::System.DateOnly CalculateMonday9()
+            {
+                global::System.DateOnly monday10 = new(year: 2026, month: 10, day: 26);
+                return monday10;
+            }
+
+            global::System.DateOnly CalculateMonday10()
+            {
+                global::System.DateOnly monday11 = new(year: 2026, month: 11, day: 2);
+                return monday11;
+            }
+
+            global::System.DateOnly CalculateMonday11()
+            {
+                global::System.DateOnly monday12 = new(year: 2026, month: 11, day: 9);
+                return monday12;
+            }
+
+            global::System.DateOnly CalculateMonday12()
+            {
+                global::System.DateOnly monday13 = new(year: 2026, month: 11, day: 16);
+                return monday13;
+            }
+
+            global::System.DateOnly CalculateMonday13()
+            {
+                global::System.DateOnly monday14 = new(year: 2026, month: 11, day: 23);
+                return monday14;
+            }
+
+            global::System.DateOnly CalculateMonday14()
+            {
+                global::System.DateOnly monday15 = new(year: 2026, month: 11, day: 30);
+                return monday15;
+            }
+
+            global::System.DateOnly CalculateMonday15()
+            {
+                global::System.DateOnly monday16 = new(year: 2026, month: 12, day: 7);
+                return monday16;
+            }
+
+            global::System.DateOnly CalculateMonday16()
+            {
+                global::System.DateOnly monday17 = new(year: 2027, month: 2, day: 1);
+                return monday17;
+            }
+
+            global::System.DateOnly CalculateMonday17()
+            {
+                global::System.DateOnly monday18 = new(year: 2027, month: 2, day: 8);
+                return monday18;
+            }
+
+            global::System.DateOnly CalculateMonday18()
+            {
+                global::System.DateOnly monday19 = new(year: 2027, month: 2, day: 15);
+                return monday19;
+            }
+
+            global::System.DateOnly CalculateMonday19()
+            {
+                global::System.DateOnly monday20 = new(year: 2027, month: 2, day: 22);
+                return monday20;
+            }
+
+            global::System.DateOnly CalculateMonday20()
+            {
+                global::System.DateOnly monday21 = new(year: 2027, month: 3, day: 1);
+                return monday21;
+            }
+
+            global::System.DateOnly CalculateMonday21()
+            {
+                global::System.DateOnly monday22 = new(year: 2027, month: 3, day: 8);
+                return monday22;
+            }
+
+            global::System.DateOnly CalculateMonday22()
+            {
+                global::System.DateOnly monday23 = new(year: 2027, month: 3, day: 15);
+                return monday23;
+            }
+
+            global::System.DateOnly CalculateMonday23()
+            {
+                global::System.DateOnly monday24 = new(year: 2027, month: 3, day: 22);
+                return monday24;
+            }
+
+            global::System.DateOnly CalculateMonday24()
+            {
+                global::System.DateOnly monday25 = new(year: 2027, month: 3, day: 29);
+                return monday25;
+            }
+
+            global::System.DateOnly CalculateMonday25()
+            {
+                global::System.DateOnly monday26 = new(year: 2027, month: 4, day: 5);
+                return monday26;
+            }
+
+            global::System.DateOnly CalculateMonday26()
+            {
+                global::System.DateOnly monday27 = new(year: 2027, month: 4, day: 12);
+                return monday27;
+            }
+
+            global::System.DateOnly CalculateMonday27()
+            {
+                global::System.DateOnly monday28 = new(year: 2027, month: 4, day: 19);
+                return monday28;
+            }
+
+            global::System.DateOnly CalculateMonday28()
+            {
+                global::System.DateOnly monday29 = new(year: 2027, month: 4, day: 26);
+                return monday29;
+            }
+
             return [
-                // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
-                new(monday: new(year: 2026, month: 8, day: 31), isOddWeek: false),
-                new(monday: new(year: 2026, month: 9, day: 7), isOddWeek: true),
-                new(monday: new(year: 2026, month: 9, day: 14), isOddWeek: false),
-                new(monday: new(year: 2026, month: 9, day: 21), isOddWeek: true),
-                new(monday: new(year: 2026, month: 9, day: 28), isOddWeek: false),
-                new(monday: new(year: 2026, month: 10, day: 5), isOddWeek: true),
-                new(monday: new(year: 2026, month: 10, day: 12), isOddWeek: false),
-                new(monday: new(year: 2026, month: 10, day: 19), isOddWeek: true),
-                new(monday: new(year: 2026, month: 10, day: 26), isOddWeek: false),
-                new(monday: new(year: 2026, month: 11, day: 2), isOddWeek: true),
-                new(monday: new(year: 2026, month: 11, day: 9), isOddWeek: false),
-                new(monday: new(year: 2026, month: 11, day: 16), isOddWeek: true),
-                new(monday: new(year: 2026, month: 11, day: 23), isOddWeek: false),
-                new(monday: new(year: 2026, month: 11, day: 30), isOddWeek: true),
-                new(monday: new(year: 2026, month: 12, day: 7), isOddWeek: false),
+                                                                                                                                                                                                                                                                                                                                                                // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
+                                                                                                                                                                                                                                                                                                                                                                new(monday: CalculateMonday(), isOddWeek: false),
+                new(monday: CalculateMonday2(), isOddWeek: true),
+                new(monday: CalculateMonday3(), isOddWeek: false),
+                new(monday: CalculateMonday4(), isOddWeek: true),
+                new(monday: CalculateMonday5(), isOddWeek: false),
+                new(monday: CalculateMonday6(), isOddWeek: true),
+                new(monday: CalculateMonday7(), isOddWeek: false),
+                new(monday: CalculateMonday8(), isOddWeek: true),
+                new(monday: CalculateMonday9(), isOddWeek: false),
+                new(monday: CalculateMonday10(), isOddWeek: true),
+                new(monday: CalculateMonday11(), isOddWeek: false),
+                new(monday: CalculateMonday12(), isOddWeek: true),
+                new(monday: CalculateMonday13(), isOddWeek: false),
+                new(monday: CalculateMonday14(), isOddWeek: true),
+                new(monday: CalculateMonday15(), isOddWeek: false),
                 // Semestrul II: 13 weeks, numbering continues from the fall term.
-                new(monday: new(year: 2027, month: 2, day: 1), isOddWeek: true),
-                new(monday: new(year: 2027, month: 2, day: 8), isOddWeek: false),
-                new(monday: new(year: 2027, month: 2, day: 15), isOddWeek: true),
-                new(monday: new(year: 2027, month: 2, day: 22), isOddWeek: false),
-                new(monday: new(year: 2027, month: 3, day: 1), isOddWeek: true),
-                new(monday: new(year: 2027, month: 3, day: 8), isOddWeek: false),
-                new(monday: new(year: 2027, month: 3, day: 15), isOddWeek: true),
-                new(monday: new(year: 2027, month: 3, day: 22), isOddWeek: false),
-                new(monday: new(year: 2027, month: 3, day: 29), isOddWeek: true),
-                new(monday: new(year: 2027, month: 4, day: 5), isOddWeek: false),
-                new(monday: new(year: 2027, month: 4, day: 12), isOddWeek: true),
-                new(monday: new(year: 2027, month: 4, day: 19), isOddWeek: false),
-                new(monday: new(year: 2027, month: 4, day: 26), isOddWeek: true),
+                new(monday: CalculateMonday16(), isOddWeek: true),
+                new(monday: CalculateMonday17(), isOddWeek: false),
+                new(monday: CalculateMonday18(), isOddWeek: true),
+                new(monday: CalculateMonday19(), isOddWeek: false),
+                new(monday: CalculateMonday20(), isOddWeek: true),
+                new(monday: CalculateMonday21(), isOddWeek: false),
+                new(monday: CalculateMonday22(), isOddWeek: true),
+                new(monday: CalculateMonday23(), isOddWeek: false),
+                new(monday: CalculateMonday24(), isOddWeek: true),
+                new(monday: CalculateMonday25(), isOddWeek: false),
+                new(monday: CalculateMonday26(), isOddWeek: true),
+                new(monday: CalculateMonday27(), isOddWeek: false),
+                new(monday: CalculateMonday28(), isOddWeek: true),
             ];
         }
     }
@@ -520,11 +750,47 @@ public static class Config
         get
         {
             HolidayPeriod[] holidayPeriods;
+            global::System.DateOnly CalculateSingleDay()
+            {
+                global::System.DateOnly singleDay = new(year: 2026, month: 10, day: 14);
+                return singleDay;
+            }
+
+            global::System.DateOnly CalculateStart()
+            {
+                global::System.DateOnly start2 = new(year: 2027, month: 1, day: 1);
+                return start2;
+            }
+
+            global::System.DateOnly CalculateEndExclusive()
+            {
+                global::System.DateOnly endExclusive2 = new(year: 2027, month: 1, day: 25);
+                return endExclusive2;
+            }
+
+            global::System.DateOnly CalculateSingleDay2()
+            {
+                global::System.DateOnly singleDay2 = new(year: 2027, month: 5, day: 1);
+                return singleDay2;
+            }
+
+            global::System.DateOnly CalculateStart2()
+            {
+                global::System.DateOnly start3 = new(year: 2027, month: 5, day: 2);
+                return start3;
+            }
+
+            global::System.DateOnly CalculateEndExclusive2()
+            {
+                global::System.DateOnly endExclusive3 = new(year: 2027, month: 5, day: 11);
+                return endExclusive3;
+            }
+
             holidayPeriods = [
-                new(new(year: 2026, month: 10, day: 14)),
-                new(start: new(year: 2027, month: 1, day: 1), endExclusive: new(year: 2027, month: 1, day: 25)),
-                new(new(year: 2027, month: 5, day: 1)),
-                new(start: new(year: 2027, month: 5, day: 2), endExclusive: new(year: 2027, month: 5, day: 11)),
+                                                                                        new(CalculateSingleDay()),
+                new(start: CalculateStart(), endExclusive: CalculateEndExclusive()),
+                new(CalculateSingleDay2()),
+                new(start: CalculateStart2(), endExclusive: CalculateEndExclusive2()),
             ];
             return holidayPeriods;
         }

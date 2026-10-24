@@ -17,7 +17,11 @@ internal static class RegistryScopeReconciliation
             if (RegistryTopicScope.TrySplit(topic: row.Topic, knownScopes, baseTopic: out _, scope: out var scope))
             {
                 var owner = resolveScope is null ? scope : resolveScope(row, scope!);
-                if (owner is not null) owners[row.ViewUri] = owner;
+                if (owner is not null)
+                {
+                    owners[row.ViewUri] = owner;
+                }
+
                 continue;
             }
             if (!RegistryAssessmentTopics.IsAssessment(row.Topic))
@@ -28,24 +32,45 @@ internal static class RegistryScopeReconciliation
             var candidates = local.Where(lesson => lesson.DateTime == row.DateTime
                 && MatchesType(lesson, row)).Select(getScope).Distinct().ToArray();
             if (candidates.Length == 0)
+            {
                 candidates = local.Where(lesson => lesson.DateTime.Date == row.DateTime.Date
-                    && MatchesType(lesson, row)).Select(getScope).Distinct().ToArray();
-            if (candidates.Length == 1) owners[row.ViewUri] = candidates[0];
-            else if (candidates.Length > 1) unresolvedAssessment?.Invoke(row);
+                && MatchesType(lesson, row)).Select(getScope).Distinct().ToArray();
+            }
+
+            if (candidates.Length == 1)
+            {
+                owners[row.ViewUri] = candidates[0];
+            }
+            else if (candidates.Length > 1)
+            {
+                unresolvedAssessment?.Invoke(row);
+            }
         }
         // Preserve normal duplicate and legacy pairing, while preventing scoped rows from crossing audiences.
         var attributionTopic = "registry-scope-attribution";
-        while (remote.Any(row => row.Topic == attributionTopic)) attributionTopic += "_";
+        while (remote.Any(row => row.Topic == attributionTopic))
+        {
+            attributionTopic += "_";
+        }
+
         var legacyLocal = local.Where(lesson => !remote.Any(row => { if (!(owners.TryGetValue(row.ViewUri, out var scope))) { return false; } if (!(scope == getScope(lesson))) { return false; } if (!(row.DateTime == lesson.DateTime)) { return false; } if (!(MatchesType(lesson, row))) { return false; } return true; }))
             .Select(lesson => lesson with { Topic = attributionTopic, Attendance = null }).ToArray();
         foreach (var type in legacy.GroupBy(row => row.LessonType))
-        foreach (var command in derivation.DeriveCommands(new(schedule, type,
+        {
+            foreach (var command in derivation.DeriveCommands(new(schedule, type,
             legacyLocal.Where(lesson => type.Key == LessonType.Unspecified || lesson.RegistryLessonType == type.Key))))
-            if (command.Type == LessonEquationCommandType.Update)
             {
-                owners[command.Remote.ViewUri] = getScope(command.Local);
-                if (inferredTypes is not null) inferredTypes[command.Remote.ViewUri] = command.Local.RegistryLessonType;
+                if (command.Type == LessonEquationCommandType.Update)
+                {
+                    owners[command.Remote.ViewUri] = getScope(command.Local);
+                    if (inferredTypes is not null)
+                    {
+                        inferredTypes[command.Remote.ViewUri] = command.Local.RegistryLessonType;
+                    }
+                }
             }
+        }
+
         return owners;
     }
 
@@ -65,11 +90,20 @@ internal static class RegistryScopeReconciliation
                         : audience.Any(lesson => lesson.DateTime == row.DateTime)
                             || local.Where(lesson => getScope(lesson) == audience.Key.Scope)
                                 .Select(lesson => lesson.RegistryLessonType).Distinct().Count() == 1))).ToArray();
-            foreach (var row in matching) consumed.Add(row.ViewUri);
-            foreach (var command in derivation.DeriveCommands(new(schedule, matching, audience))) yield return command;
+            foreach (var row in matching)
+            {
+                consumed.Add(row.ViewUri);
+            }
+
+            foreach (var command in derivation.DeriveCommands(new(schedule, matching, audience)))
+            {
+                yield return command;
+            }
         }
         foreach (var row in remote.Where(row => !consumed.Contains(row.ViewUri) && !RegistryAssessmentTopics.IsAssessment(row.Topic)))
+        {
             yield return LessonEquationCommand.Delete(row);
+        }
     }
 
     private static bool MatchesType(LessonInstance local, RemoteLessonInstance remote)

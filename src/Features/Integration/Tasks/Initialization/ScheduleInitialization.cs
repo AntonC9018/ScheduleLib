@@ -39,11 +39,17 @@ public sealed class ScheduleProvider
         _builder.RefreshLookup();
         var schedule = LabSubGroupMerges.Project(raw, _options.Value.AutoMergeLabSubGroups);
         foreach (var diagnostic in schedule.LabSubGroupMergeDiagnostics)
+        {
             _logger.LogWarning("Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
-                schedule.Get(diagnostic.Course).FullName, schedule.Get(diagnostic.Group).Name,
-                diagnostic.Specialization.Value, diagnostic.Alternative.Value, diagnostic.Reason);
+            schedule.Get(diagnostic.Course).FullName, schedule.Get(diagnostic.Group).Name,
+            diagnostic.Specialization.Value, diagnostic.Alternative.Value, diagnostic.Reason);
+        }
+
         if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
+        {
             _logger.LogInformation("Derived {Count} automatic lab subgroup merges for the semester", schedule.AutomaticLabSubGroupMerges.Length);
+        }
+
         return schedule;
     }
 }
@@ -88,12 +94,17 @@ public static class TeacherProfileScheduleLookup
     public static TeacherId? Find(LookupFacade lookup, Name profileName)
     {
         if (lookup.Teacher(profileName.ToNameModel()) is { } found)
+        {
             return found;
+        }
 
         // The registry credential profile predates the spelling in the current schedule.
         if (profileName.ToString() == "Visnevschi Vlada")
         {
-            var result = lookup.Teacher(NameHelper.Parse("Vișnevschii Vlada").ToNameModel());
+            global::ScheduleLib.Builders.LookupFacade lookupFacade = lookup;
+            global::ScheduleLib.Parsing.Name parse = NameHelper.Parse("Vișnevschii Vlada");
+            global::ScheduleLib.Builders.TeacherBuilderModel.NameModel name = parse.ToNameModel();
+            var result = lookupFacade.Teacher(name);
             if (result is not null)
             {
                 return result;

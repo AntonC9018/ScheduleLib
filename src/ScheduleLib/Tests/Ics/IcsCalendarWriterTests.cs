@@ -35,7 +35,10 @@ public sealed class IcsCalendarWriterTests
 
     private static string WriteText(IcsCalendar calendar)
     {
-        return Encoding.UTF8.GetString(IcsCalendarWriter.Write(calendar));
+        global::System.Text.Encoding encoding = Encoding.UTF8;
+        byte[] bytes = IcsCalendarWriter.Write(calendar);
+        string stringValue = encoding.GetString(bytes);
+        return stringValue;
     }
 
     [Fact]
@@ -70,17 +73,22 @@ public sealed class IcsCalendarWriterTests
     {
         var text = WriteText(Calendar());
 
-        Assert.DoesNotContain(expectedSubstring: "\n", actualString: text.Replace("\r\n", ""));
+        string expectedSubstring2 = "\n";
+        string actualString2 = text.Replace("\r\n", "");
+        Assert.DoesNotContain(expectedSubstring: expectedSubstring2, actualString: actualString2);
         Assert.EndsWith(expectedEndString: "\r\n", actualString: text);
     }
 
     [Fact]
     public void Event_HasRequiredPropertiesWithTimezone()
     {
-        var lines = PhysicalLines(Calendar(Event()));
+        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var lines = PhysicalLines(calendar);
 
         Assert.Contains("BEGIN:VEVENT", lines);
-        Assert.Matches(expectedRegexPattern: @"DTSTAMP:\d{8}T\d{6}Z", actualString: SingleLine(lines, "DTSTAMP"));
+        string expectedRegexPattern2 = @"DTSTAMP:\d{8}T\d{6}Z";
+        string actualString2 = SingleLine(lines, "DTSTAMP");
+        Assert.Matches(expectedRegexPattern: expectedRegexPattern2, actualString: actualString2);
         Assert.Contains("DTSTART;TZID=Europe/Chisinau:20260907T080000", lines);
         Assert.Contains("DTEND;TZID=Europe/Chisinau:20260907T093000", lines);
         Assert.Contains("SUMMARY:Programare orientată obiect (Curs)", lines);
@@ -92,7 +100,8 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Event_HasNoValarm()
     {
-        var lines = PhysicalLines(Calendar(Event()));
+        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var lines = PhysicalLines(calendar);
 
         Assert.DoesNotContain(lines, l => l.StartsWith("BEGIN:VALARM"));
     }
@@ -100,19 +109,49 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Uid_IsStableForSameContent()
     {
-        var first = WriteText(Calendar(Event()));
-        var second = WriteText(Calendar(Event()));
+        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var first = WriteText(calendar);
+        global::ScheduleLib.Generation.Ics.IcsCalendar calendar2 = Calendar(Event());
+        var second = WriteText(calendar2);
 
-        Assert.Equal(expected: UidOf(first), actual: UidOf(second));
+        string expected2 = UidOf(first);
+        string actual2 = UidOf(second);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
     public void Uid_DiffersForDifferentContent()
     {
-        var a = WriteText(Calendar(Event("Curs A")));
-        var b = WriteText(Calendar(Event("Curs B")));
+        global::ScheduleLib.Generation.Ics.IcsEvent CalculateEvents()
+        {
+            global::ScheduleLib.Generation.Ics.IcsEvent events = Event("Curs A");
+            return events;
+        }
 
-        Assert.NotEqual(expected: UidOf(a), actual: UidOf(b));
+        global::ScheduleLib.Generation.Ics.IcsCalendar CalculateCalendar()
+        {
+            global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(CalculateEvents());
+            return calendar;
+        }
+
+        var a = WriteText(CalculateCalendar());
+        global::ScheduleLib.Generation.Ics.IcsEvent CalculateEvents2()
+        {
+            global::ScheduleLib.Generation.Ics.IcsEvent events2 = Event("Curs B");
+            return events2;
+        }
+
+        global::ScheduleLib.Generation.Ics.IcsCalendar CalculateCalendar2()
+        {
+            global::ScheduleLib.Generation.Ics.IcsCalendar calendar2 = Calendar(CalculateEvents2());
+            return calendar2;
+        }
+
+        var b = WriteText(CalculateCalendar2());
+
+        string expected2 = UidOf(a);
+        string actual2 = UidOf(b);
+        Assert.NotEqual(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -126,7 +165,10 @@ public sealed class IcsCalendarWriterTests
             Uid = "explicit@schedulelib",
         });
 
-        Assert.Contains("UID:explicit@schedulelib", PhysicalLines(calendar));
+        string expected = "UID:explicit@schedulelib";
+        string[] collection = PhysicalLines(calendar);
+        global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+        Assert.Contains(expected, collection2);
     }
 
     [Fact]
@@ -200,12 +242,18 @@ public sealed class IcsCalendarWriterTests
         Assert.True(summaryLines.Length > 1, "expected the summary to be folded");
         foreach (var line in summaryLines)
         {
-            Assert.True(Encoding.UTF8.GetByteCount(line) <= 75, $"'{line}' exceeds 75 octets");
+            int byteCount = Encoding.UTF8.GetByteCount(line);
+            bool condition = byteCount <= 75;
+            string userMessage = $"'{line}' exceeds 75 octets";
+            Assert.True(condition, userMessage);
         }
 
         var unfolded = string.Join("", summaryLines
             .Select((l, i) => i == 0 ? l : l[1..]));
-        Assert.Equal(expected: (string) $"SUMMARY:{longText}", actual: unfolded);
+        string text = $"SUMMARY:{longText}";
+        string expected2 = (string) text;
+        string actual2 = unfolded;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -213,13 +261,17 @@ public sealed class IcsCalendarWriterTests
     {
         // 74 ASCII chars then an emoji: the pair does not fit in the first
         // segment, so it must move to the continuation line whole.
-        var line = (string) $"SUMMARY:{(new string('a', 67))}🏝️";
+        string text = new string('a', 67);
+        string text2 = $"SUMMARY:{(text)}🏝️";
+        var line = (string) text2;
 
         var folded = IcsCalendarWriter.Fold(line);
         var segments = folded.Split("\r\n");
 
         Assert.Equal(expected: 2, actual: segments.Length);
-        Assert.Equal(expected: 75, actual: Encoding.UTF8.GetByteCount(segments[0]));
+        int expected2 = 75;
+        int actual2 = Encoding.UTF8.GetByteCount(segments[0]);
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: " 🏝️", actual: segments[1]);
     }
 

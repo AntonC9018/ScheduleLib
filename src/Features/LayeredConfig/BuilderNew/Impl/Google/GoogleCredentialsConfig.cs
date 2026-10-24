@@ -118,7 +118,13 @@ public readonly struct BuiltGoogleCredentialsConfig
 public sealed class GoogleCredentialResolver : IDisposable
 {
     private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
-    public void Dispose() { foreach (var flow in _flows) flow.Dispose(); }
+    public void Dispose()
+    {
+        foreach (var flow in _flows)
+        {
+            flow.Dispose();
+        }
+    }
     private readonly CurrentUserNameProvider _userNameProvider;
     private readonly IServiceProvider _sp;
     public GoogleCredentialResolver(CurrentUserNameProvider userNameProvider, IServiceProvider sp)
@@ -133,12 +139,17 @@ public sealed class GoogleCredentialResolver : IDisposable
         CancellationToken cancellationToken)
     {
         if (_sp.GetService<IGoogleCredentialAuthorization>() is { } authorization)
+        {
             return await authorization.Resolve(config, requiredScopes, _userNameProvider.Get(), _sp, cancellationToken);
+        }
 
         // Legacy hosts may refresh provisioned credentials, but never initiate consent.
         var user = _userNameProvider.Get();
         if (config.CredentialsPath is null)
+        {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
         ClientSecrets secrets;
         try
         { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
@@ -155,7 +166,10 @@ public sealed class GoogleCredentialResolver : IDisposable
         }
 
         if (conditionResult)
+        {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = secrets,
@@ -165,12 +179,17 @@ public sealed class GoogleCredentialResolver : IDisposable
         _flows.Add(flow);
         var token = await flow.LoadTokenAsync(user, cancellationToken);
         if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? []).Any())
+        {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
         var credential = new UserCredential(flow, user, token);
         try
         {
             if (token.IsStale && !await credential.RefreshTokenAsync(cancellationToken))
+            {
                 throw new AuthenticationRequiredException(provider: "google", teacher: user);
+            }
         }
         catch (TokenResponseException) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
         return credential;

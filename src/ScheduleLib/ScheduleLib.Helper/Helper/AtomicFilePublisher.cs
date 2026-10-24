@@ -9,7 +9,14 @@ public static class AtomicFilePublisher
         Func<Stream, CancellationToken, Task> write,
         CancellationToken token)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
+        string CalculatePath()
+        {
+            string path = Path.GetFullPath(destination);
+            string path2 = Path.GetDirectoryName(path)!;
+            return path2;
+        }
+
+        Directory.CreateDirectory(CalculatePath());
         var staged = (string) $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
         try
         {

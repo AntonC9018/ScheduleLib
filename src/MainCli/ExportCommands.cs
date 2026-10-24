@@ -79,7 +79,9 @@ public partial class ExportCommands
             var omitted = all.EnumerateWeeklyLessons().Count() - lessonCount;
             if (omitted > 0)
             {
-                warnings.Add($"Latest-period selection omits {omitted} weekly lessons from other periods.");
+                global::System.Collections.Generic.List<string> list = warnings;
+                string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
+                list.Add(item);
             }
 
             if (teacherCount == 0)
@@ -90,13 +92,17 @@ public partial class ExportCommands
             var teacherless = schedule.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                warnings.Add($"The teacher workbook omits {teacherless} weekly lessons with no teacher.");
+                global::System.Collections.Generic.List<string> list2 = warnings;
+                string item2 = $"The teacher workbook omits {teacherless} weekly lessons with no teacher.";
+                list2.Add(item2);
             }
 
             var sundays = schedule.EnumerateWeeklyLessons().Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
             if (sundays > 0)
             {
-                warnings.Add($"The existing Monday-Saturday layout omits {sundays} Sunday lessons.");
+                global::System.Collections.Generic.List<string> list3 = warnings;
+                string item3 = $"The existing Monday-Saturday layout omits {sundays} Sunday lessons.";
+                list3.Add(item3);
             }
 
             var seminar = scope.ServiceProvider.GetRequiredService<RegularSeminarDateProvider>().Get();
@@ -104,8 +110,10 @@ public partial class ExportCommands
                 x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
             if (seminarLessons > 0)
             {
-                warnings.Add(
-                    $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.");
+                global::System.Collections.Generic.List<string> list4 = warnings;
+                string item4 = $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.";
+                list4.Add(
+                    item4);
             }
 
             var handler = scope.ServiceProvider.GetRequiredService<GenerateAllTeachersExcelTaskHandler>();
@@ -153,13 +161,19 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
+            global::ScheduleLib.Cli.TeachersExcelResult CalculateData()
+            {
+                global::ScheduleLib.Cli.TeachersExcelResult data = new(
+                                    output?.DirectoryPath,
+                                    LessonCount: lessonCount,
+                                    TeacherCount: teacherCount);
+                return data;
+            }
+
             return context.Finish(new CliCompletion<TeachersExcelResult>(
-                exit,
-                errors,
-                new(
-                    output?.DirectoryPath,
-                    LessonCount: lessonCount,
-                    TeacherCount: teacherCount))
+                            exit,
+                            errors,
+                            CalculateData())
             {
                 Summary = new
                 {
@@ -171,8 +185,13 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    string line = $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                    line);
+                },
             });
         }
     }

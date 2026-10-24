@@ -121,7 +121,10 @@ internal static class MatchLessonHelper
     internal static bool MatchesPartition(Schedule schedule, LessonData lesson, GroupPartitionKey partition)
     {
         if (lesson.GroupPartitionKey == partition)
+        {
             return true;
+        }
+
         bool CheckCondition()
         {
             if (partition != GroupPartitionKey.All)
@@ -148,12 +151,24 @@ internal static class MatchLessonHelper
         }
 
         if (CheckCondition())
+        {
             return false;
+        }
         // The ordinary registry destination represents the parent's teaching language;
         // another language subgroup has its own destination.
         if (lesson.SubGroup.IsLanguageSubGroup()
-           && lesson.Groups.All(group => schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
-               && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup))
+           && lesson.Groups.All(group =>
+           {
+               global::ScheduleLib.Language CalculateLang()
+               {
+                   global::ScheduleLib.Group get = schedule.Get(group);
+                   global::ScheduleLib.Language lang = get.Language;
+                   return lang;
+               }
+
+               return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                              && SpecialSubGroups.FromLanguage(CalculateLang()) == lesson.SubGroup;
+           }))
         {
             return true;
         }
@@ -168,10 +183,24 @@ internal static class MatchLessonHelper
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
-            if (!p.Schedule.IsLessonActive(lessonId)) continue;
+            if (!p.Schedule.IsLessonActive(lessonId))
+            {
+                continue;
+            }
+
             var lesson = p.Schedule.Get(lessonId);
-            if (p.Filter.Groups.IsCombined ? lesson.Lesson.GroupPartitionKey != groupPartition
-                : !MatchesPartition(p.Schedule, lesson.Lesson, groupPartition))
+            bool condition;
+            if (p.Filter.Groups.IsCombined)
+            {
+                condition = lesson.Lesson.GroupPartitionKey != groupPartition;
+            }
+            else
+            {
+                bool matchesPartition = MatchesPartition(p.Schedule, lesson.Lesson, groupPartition);
+                condition = !matchesPartition;
+            }
+
+            if (condition)
             {
                 continue;
             }

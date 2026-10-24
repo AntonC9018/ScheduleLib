@@ -138,7 +138,9 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             }
             if (genericTypeDef == typeof(List<>))
             {
-                return (TCollection) (object) new List<TElement>(items);
+                global::System.Collections.Generic.List<TElement> list = new List<TElement>(items);
+                TCollection tCollection = (TCollection) (object) list;
+                return tCollection;
             }
             if (genericTypeDef == typeof(IEnumerable<>)
                 || genericTypeDef == typeof(ICollection<>)

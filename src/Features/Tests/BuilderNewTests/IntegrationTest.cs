@@ -90,10 +90,12 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
-        services.Replace(new(
+        global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = services;
+        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = new(
             serviceType: typeof(IScheduleInitializer),
             implementationType: typeof(ScheduleBuilderInitializer),
-            ServiceLifetime.Singleton));
+            ServiceLifetime.Singleton);
+        serviceCollection.Replace(descriptor);
 
         var serviceProvider = services.BuildServiceProvider(options: new()
         {

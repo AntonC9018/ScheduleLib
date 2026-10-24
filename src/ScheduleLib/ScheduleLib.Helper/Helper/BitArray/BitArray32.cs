@@ -16,7 +16,15 @@ public readonly struct Interval
         EndInclusive = endInclusive;
     }
 
-    public int Length => EndInclusive - Start + 1;
+    public int Length
+    {
+        get
+        {
+            int int32 = EndInclusive - Start;
+            int int322 = int32 + 1;
+            return int322;
+        }
+    }
 }
 
 public record struct BitArray32
@@ -283,7 +291,12 @@ public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
             return false;
         }
 
-        _current = (sizeof(uint) * 8) - BitOperations.LeadingZeroCount(_bits) - 1;
+        int int32 = sizeof(uint) * 8;
+        int int322 = (int32);
+        int leadingZeroCount = BitOperations.LeadingZeroCount(_bits);
+        int int323 = int322 - leadingZeroCount;
+        int int324 = int323 - 1;
+        _current = int324;
         _bits &= ~(1u << _current);
         return true;
     }
@@ -394,7 +407,16 @@ public readonly struct SlidingWindowLowToHighEnumerable : IEnumerable<SliceAndOf
 
         object IEnumerator.Current => Current;
 
-        public SliceAndOffset Current => new(_offset, _e._source.Slice(offset: _offset, length: _e._length));
+        public SliceAndOffset Current
+        {
+            get
+            {
+                int offset2 = _offset;
+                global::BitArray32 slice = _e._source.Slice(offset: _offset, length: _e._length);
+                global::SliceAndOffset sliceAndOffset = new(offset2, slice);
+                return sliceAndOffset;
+            }
+        }
 
         public void Dispose()
         {

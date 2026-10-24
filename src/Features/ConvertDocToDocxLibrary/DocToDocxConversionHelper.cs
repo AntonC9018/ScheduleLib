@@ -10,15 +10,23 @@ public static class DocToDocxConversionHelper
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsWindows())
+        {
             throw new PlatformNotSupportedException("Legacy .doc conversion requires Windows and Microsoft Word. Supply DOCX sources on Linux.");
+        }
+
         var converterPath = Path.Combine(AppContext.BaseDirectory, "ConvertDocToDocx.exe");
         if (!File.Exists(converterPath))
+        {
             throw new PlatformNotSupportedException("Legacy .doc conversion requires the bundled Windows converter and Microsoft Word. Supply DOCX sources instead.");
+        }
 
         var existingWord = new HashSet<int>();
         foreach (var word in Process.GetProcessesByName("WINWORD"))
         {
-            using (word) existingWord.Add(word.Id);
+            using (word)
+            {
+                existingWord.Add(word.Id);
+            }
         }
         using var staging = OwnedConversionDirectory.Create(Path.GetTempPath());
         var cancellationPath = Path.Combine(staging.DirectoryPath, "cancel");
@@ -29,7 +37,10 @@ public static class DocToDocxConversionHelper
             RedirectStandardOutput = true,
         };
         foreach (var argument in new[] { Path.GetFullPath(inputPath), Path.GetFullPath(outputPath), nonce, cancellationPath })
+        {
             processInfo.ArgumentList.Add(argument);
+        }
+
         using var process = Process.Start(processInfo) ?? throw Unreachable();
         return await WaitForConverter(process, nonce: nonce, existingWord, cancellationPath: cancellationPath, cancellationToken);
     }
@@ -53,18 +64,33 @@ public static class DocToDocxConversionHelper
                 { File.WriteAllText(path: cancellationPath, contents: "cancel"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
-                var converterExited = await WaitForExitBounded(process, TimeSpan.FromSeconds(2));
+                global::System.TimeSpan CalculateTimeout()
+                {
+                    global::System.TimeSpan timeout = TimeSpan.FromSeconds(2);
+                    return timeout;
+                }
+
+                var converterExited = await WaitForExitBounded(process, CalculateTimeout());
                 // A blocked COM call cannot observe cooperative cancellation; a
                 // failing Quit can also leave Word behind after the converter exits.
                 // Never terminate an unknown, preexisting, or recycled PID.
                 ownershipReadCancellation.Cancel();
                 ownedWord = await ownership;
                 if (ownedWord is not null)
+                {
                     TerminateProcess(ownedWord.SafeHandle, 130);
+                }
+
                 if (!converterExited)
                 {
                     TryKillConverter(process);
-                    await WaitForExitBounded(process, TimeSpan.FromSeconds(3));
+                    global::System.TimeSpan CalculateTimeout2()
+                    {
+                        global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(3);
+                        return timeout2;
+                    }
+
+                    await WaitForExitBounded(process, CalculateTimeout2());
                 }
                 throw;
             }
@@ -90,14 +116,27 @@ public static class DocToDocxConversionHelper
         try
         {
             var message = await converter.StandardOutput.ReadLineAsync(cancellationToken);
-            if (!WordConverterProtocol.TryReadOwnership(message: message, nonce: nonce, out var pid, out var ticks)) return null;
+            if (!WordConverterProtocol.TryReadOwnership(message: message, nonce: nonce, out var pid, out var ticks))
+            {
+                return null;
+            }
+
             word = Process.GetProcessById(pid);
             // Opening the handle before reading identity keeps it attached to this
             // process object even if the PID is subsequently recycled.
             _ = word.SafeHandle;
-            if (WordConverterProtocol.IsOwnedProcess(pid: pid, reportedTicks: ticks, actualTicks: word.StartTime.ToUniversalTime().Ticks,
-                    converterTicks: converter.StartTime.ToUniversalTime().Ticks, session: word.SessionId, converterSession: converter.SessionId,
-                    word.ProcessName, existingWord.Contains(pid))) return word;
+            int pid2 = pid;
+            long reportedTicks2 = ticks;
+            long actualTicks2 = word.StartTime.ToUniversalTime().Ticks;
+            long converterTicks2 = converter.StartTime.ToUniversalTime().Ticks;
+            int session2 = word.SessionId;
+            int converterSession2 = converter.SessionId;
+            string processName = word.ProcessName;
+            bool existedBeforeConversion = existingWord.Contains(pid);
+            if (WordConverterProtocol.IsOwnedProcess(pid: pid2, reportedTicks: reportedTicks2, actualTicks: actualTicks2, converterTicks: converterTicks2, session: session2, converterSession: converterSession2, processName, existedBeforeConversion))
+            {
+                return word;
+            }
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException or OperationCanceledException)
         {
@@ -119,7 +158,13 @@ public static class DocToDocxConversionHelper
 
     private static void TryKillConverter(Process process)
     {
-        try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
         catch (InvalidOperationException) { }
         catch (System.ComponentModel.Win32Exception) { }
     }
@@ -131,7 +176,10 @@ public static class DocToDocxConversionHelper
     internal static bool ClassifyConverterExit(int exitCode)
     {
         if (exitCode == WordConverterProtocol.MissingWordExitCode)
+        {
             throw new PlatformNotSupportedException(WordConverterProtocol.MissingWordMessage);
+        }
+
         return exitCode == 0;
     }
 }

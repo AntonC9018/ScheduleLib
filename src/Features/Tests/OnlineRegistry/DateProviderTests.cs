@@ -8,13 +8,19 @@ public sealed class DateProviderTests
     public void TestHoliday()
     {
         var monday = new DateOnly(year: 2025, month: 4, day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
+        global::System.DateOnly CalculateEndExclusive()
+        {
+            global::System.DateOnly endExclusive2 = monday.AddDays(5);
+            return endExclusive2;
+        }
+
         var provider = new ManualWeeklyScheduledDateProvider(
-            studyWeeks: [
-                new StudyWeek(monday, isOddWeek: true),
-            ],
-            holidays: [
-                new HolidayPeriod(start: monday, endExclusive: monday.AddDays(5)),
-            ]);
+                    studyWeeks: [
+                        new StudyWeek(monday, isOddWeek: true),
+                    ],
+                    holidays: [
+                        new HolidayPeriod(start: monday, endExclusive: CalculateEndExclusive()),
+                    ]);
         var ret = provider.Dates(new()
         {
             Day = DayOfWeek.Monday,

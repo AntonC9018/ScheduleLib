@@ -150,7 +150,10 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
     {
         var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
         if (html.StatusCode != HttpStatusCode.OK)
+        {
             return false;
+        }
+
         if (GetInput(_formConfig.LoginName) is not { } loginInput)
         {
             return false;
@@ -239,7 +242,9 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
 
         IHtmlInputElement? GetInput(string name)
         {
-            var ret = html.QuerySelector<IHtmlInputElement>($"""input[name="{name}"]""");
+            global::AngleSharp.Dom.IDocument iDocument = html;
+            string selectors = $"""input[name="{name}"]""";
+            var ret = iDocument.QuerySelector<IHtmlInputElement>(selectors);
             if (ret is null)
             {
                 ErrorNotFoundInPage(name);

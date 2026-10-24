@@ -46,7 +46,10 @@ public sealed class CalendarSyncTests
             }));
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
-        Assert.Equal(expected: "completed", actual: Assert.Single(failure.PartialResult.Outcomes).State);
+        string expected2 = "completed";
+        global::ScheduleLib.Cli.CalendarActionOutcome single = Assert.Single(failure.PartialResult.Outcomes);
+        string actual2 = single.State;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.IsType<InvalidOperationException>(failure.InnerException!.InnerException);
     }
 
@@ -67,15 +70,21 @@ public sealed class CalendarSyncTests
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
             using var provider = new Fake();
+            global::System.TimeSpan CalculateOffset()
+            {
+                global::System.TimeSpan offset = TimeSpan.FromHours(3);
+                return offset;
+            }
+
             DateTimeOffset? start = missingDates
-                ? null
-                : new(year: 2026,
-                    month: 10,
-                    day: 18,
-                    hour: 9,
-                    minute: 0,
-                    second: 0,
-                    TimeSpan.FromHours(3));
+                            ? null
+                            : new(year: 2026,
+                                month: 10,
+                                day: 18,
+                                hour: 9,
+                                minute: 0,
+                                second: 0,
+                                CalculateOffset());
             var end = start?.AddMinutes(90);
             var recurrence = new List<string>
             {
@@ -120,30 +129,55 @@ public sealed class CalendarSyncTests
             Assert.Equal(expected: "Desired / Știință", actual: message.Summary);
             Assert.Equal(expected: start, actual: message.Start);
             Assert.Equal(expected: end, actual: message.End);
-            Assert.Equal(expected: missingDates
-                    ? []
-                    : new[]
+            string[] expected2;
+            if (missingDates)
+            {
+                expected2 = [];
+            }
+            else
+            {
+                expected2 = new[]
                     {
                         "RRULE:FREQ=WEEKLY;COUNT=2",
                         "EXDATE:20261025T060000Z",
-                    },
-                actual: message.Recurrence);
-            Assert.Equal(expected: expected, actual: message.Format(CultureInfo.CurrentCulture));
+                    };
+            }
+
+            global::System.Collections.Generic.IEnumerable<string> expected3 = expected2;
+            global::System.Collections.Generic.IEnumerable<string> actual4 = message.Recurrence;
+            Assert.Equal(expected: expected3, actual: actual4);
+            string CalculateActual()
+            {
+                string actual2 = message.Format(CultureInfo.CurrentCulture);
+                return actual2;
+            }
+
+            Assert.Equal(expected: expected, actual: CalculateActual());
             var deleted = Assert.IsType<CalendarDeletedEventMessage>(reports.Single(x => x.Id == "deleted-0").Human);
             Assert.Equal(expected: "old-event", actual: deleted.Id);
             Assert.Equal(expected: "Old", actual: deleted.Summary);
-            Assert.Equal(expected: "Delete event old-event: Old", actual: deleted.Format(CultureInfo.CurrentCulture));
+            string CalculateActual2()
+            {
+                string actual3 = deleted.Format(CultureInfo.CurrentCulture);
+                return actual3;
+            }
+
+            Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
             Assert.Equal(expected: ["0", "1", "2"], actual: reports.Where(x => x.Status == "planned").Select(x => x.Id));
+            string expected4 = "create event: planned; calendar ; event ; desired index 0";
+            string actual5 = reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture);
             Assert.Equal(
-                expected: "create event: planned; calendar ; event ; desired index 0",
-                actual: reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture));
+                expected: expected4, actual: actual5);
             Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
                 actual: item.EnumerateObject().Select(x => x.Name));
             Assert.Equal(expected: start?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("start").GetString());
             Assert.Equal(expected: end?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("end").GetString());
             Assert.Equal(expected: missingDates ? JsonValueKind.Null : JsonValueKind.Array,
                 actual: item.GetProperty("recurrence").ValueKind);
-            Assert.Same(expected: desired, actual: Assert.Single(result.DesiredEvents));
+            object expected5 = desired;
+            global::Google.Apis.Calendar.v3.Data.Event actual6 = Assert.Single(result.DesiredEvents);
+            object actual7 = actual6;
+            Assert.Same(expected: expected5, actual: actual7);
             Assert.Equal(expected: "Changed", actual: desired.Summary);
             Assert.Empty(provider.Writes);
         }
@@ -165,8 +199,14 @@ public sealed class CalendarSyncTests
             default);
         Assert.Equal(expected: "actual@example.test", actual: result.Account);
         Assert.Equal(expected: "old", actual: result.ReplacedCalendar!.Id);
-        Assert.Equal(expected: "old-event", actual: Assert.Single(result.DeletedEvents).Id);
-        Assert.Equal(expected: "Desired", actual: Assert.Single(result.DesiredEvents).Summary);
+        string expected2 = "old-event";
+        global::ScheduleLib.Cli.CalendarEventIdentity single = Assert.Single(result.DeletedEvents);
+        string actual2 = single.Id;
+        Assert.Equal(expected: expected2, actual: actual2);
+        string expected3 = "Desired";
+        global::Google.Apis.Calendar.v3.Data.Event single2 = Assert.Single(result.DesiredEvents);
+        string actual3 = single2.Summary;
+        Assert.Equal(expected: expected3, actual: actual3);
         Assert.Empty(provider.Writes);
         Assert.Empty(result.Outcomes);
     }
@@ -217,7 +257,18 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: writes, actual: provider.Writes.Count);
         Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State);
         Assert.Equal(expected: "completed", actual: result.Outcomes.First().State);
-        Assert.Equal(expected: fail == "calendar" ? null : "new", actual: result.CreatedCalendarId);
+        string? expected2;
+        if (fail == "calendar")
+        {
+            expected2 = null;
+        }
+        else
+        {
+            expected2 = "new";
+        }
+
+        string? actual2 = result.CreatedCalendarId;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -235,8 +286,17 @@ public sealed class CalendarSyncTests
             true,
             default);
         Assert.Equal(expected: 5, actual: result.ExitCode);
-        Assert.Equal(expected: "failed", actual: Assert.Single(result.Outcomes).State);
-        Assert.Equal(expected: "calendar", actual: Assert.Single(provider.Writes));
+        string expected2 = "failed";
+        global::ScheduleLib.Cli.CalendarActionOutcome single = Assert.Single(result.Outcomes);
+        string actual3 = single.State;
+        Assert.Equal(expected: expected2, actual: actual3);
+        string CalculateActual()
+        {
+            string actual2 = Assert.Single(provider.Writes);
+            return actual2;
+        }
+
+        Assert.Equal(expected: "calendar", actual: CalculateActual());
     }
 
     [Fact]
@@ -286,7 +346,13 @@ public sealed class CalendarSyncTests
     [Fact]
     public async Task ActualAccountAndDestinationLockBlocksAliasesBeforeRemoteStateRead()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string CalculatePath2()
+        {
+            string path2 = Guid.NewGuid().ToString("N");
+            return path2;
+        }
+
+        var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
         try
         {
             await using var lease = await LocalFileLock.Acquire(
@@ -420,7 +486,11 @@ public sealed class CalendarSyncTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -475,7 +545,14 @@ public sealed class CalendarSyncTests
 
         public Task DeleteCalendar(string id, CancellationToken token)
         {
-            Writes.Add((string) $"delete {id}");
+            string CalculateItem()
+            {
+                string text = $"delete {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             return Task.CompletedTask;
         }
 
@@ -503,7 +580,14 @@ public sealed class CalendarSyncTests
             Event ev,
             CancellationToken token)
         {
-            Writes.Add((string) $"event {id}");
+            string CalculateItem()
+            {
+                string text = $"event {id}";
+                string item = (string) text;
+                return item;
+            }
+
+            Writes.Add(CalculateItem());
             _events++;
             if (Fail == "cancel-second" && _events == 2)
             {

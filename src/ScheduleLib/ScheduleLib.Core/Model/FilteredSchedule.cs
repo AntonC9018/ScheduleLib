@@ -122,7 +122,7 @@ public static class FilterHelper
         {
             TeacherFilter = new()
             {
-                IncludeIds = [..prevIds, teacher],
+                IncludeIds = [.. prevIds, teacher],
             },
         };
     }
@@ -134,7 +134,7 @@ public static class FilterHelper
         {
             CourseFilter = new()
             {
-                IncludeIds = [..prevIds, courseId],
+                IncludeIds = [.. prevIds, courseId],
             },
         };
     }
@@ -594,7 +594,8 @@ public static class FilterHelper
             var min = FindMin();
             var max = FindMax();
 
-            var len = max.Index - min.Index + 1;
+            int int32 = max.Index - min.Index;
+            var len = int32 + 1;
             var ret = new TimeSlot[len];
             for (int i = min.Index; i <= max.Index; i++)
             {

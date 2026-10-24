@@ -32,10 +32,10 @@ public sealed class NodeDataKeyRegistry
 
 public readonly record struct NodeDataKey<T>(NodeDataKey Value) where T : class
 {
-    public static bool operator==(NodeDataKey<T> self, NodeDataKey other) => self.Value == other;
-    public static bool operator!=(NodeDataKey<T> self, NodeDataKey other) => !(self == other);
-    public static bool operator==(NodeDataKey self, NodeDataKey<T> other) => other == self;
-    public static bool operator!=(NodeDataKey self, NodeDataKey<T> other) => other != self;
+    public static bool operator ==(NodeDataKey<T> self, NodeDataKey other) => self.Value == other;
+    public static bool operator !=(NodeDataKey<T> self, NodeDataKey other) => !(self == other);
+    public static bool operator ==(NodeDataKey self, NodeDataKey<T> other) => other == self;
+    public static bool operator !=(NodeDataKey self, NodeDataKey<T> other) => other != self;
 }
 public readonly record struct NodeDataKey(string Value) : ICreateFromString<NodeDataKey>
 {

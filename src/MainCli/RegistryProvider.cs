@@ -60,11 +60,13 @@ public sealed class RegistryAccountLock : IRegistryAccountLock
         // Coordinate both registry commands on the same real account and registry, across project/profile aliases.
         var hash = Convert.ToHexStringLower(
             SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{target.Destination.TrimEnd('/')}\n{target.Account}")));
+        string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string path2 = "ScheduleLib";
+        string path3 = "locks";
+        string text = $"registry-{hash}.lock";
+        string path4 = (string) text;
         var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ScheduleLib",
-            "locks",
-            (string) $"registry-{hash}.lock");
+            path1, path2, path3, path4);
         return await LocalFileLock.Acquire(path, token);
     }
 }
@@ -153,12 +155,14 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                 throw new RegistryAuthenticationException(
                     "Registry authentication failed using configured credentials.");
             }
-            return new Session(
-                resolved,
-                provider,
-                scope,
-                context,
-                new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl));
+            global::ScheduleLib.Cli.ResolvedSettings settings2 = resolved;
+            global::Microsoft.Extensions.DependencyInjection.ServiceProvider provider2 = provider;
+            global::Microsoft.Extensions.DependencyInjection.AsyncServiceScope scope2 = scope;
+            global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = context;
+            global::ScheduleLib.Cli.RegistryDestination target = new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl);
+            global::ScheduleLib.Cli.ConfiguredRegistryProvider.Session session = new Session(
+            settings2, provider2, scope2, context2, target);
+            return session;
         }
         catch
         {
@@ -195,30 +199,40 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
 
         public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token)
         {
-            return scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
-                .Plan(CreateNavigator(token), token);
+            global::ScheduleLib.Application.Core.AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler requiredService = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+            global::ScheduleLib.OnlineRegistry.OnlineRegistryNavigator navigator = CreateNavigator(token);
+            global::ScheduleLib.OnlineRegistry.IRegistrySyncNavigator navigator2 = navigator;
+            global::System.Threading.CancellationToken cancellationToken = token;
+            global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistrySyncAction>> plan = requiredService.Plan(navigator2, cancellationToken);
+            return plan;
         }
 
         public Task PlanGroups(
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
             CancellationToken token)
         {
-            return scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
-                .PlanGroups(
-                    CreateNavigator(token),
-                    onGroupPlanned,
-                    token);
+            global::ScheduleLib.Application.Core.AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler requiredService = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+            global::ScheduleLib.OnlineRegistry.OnlineRegistryNavigator navigator = CreateNavigator(token);
+            global::ScheduleLib.OnlineRegistry.IRegistrySyncNavigator navigator2 = navigator;
+            global::System.Func<global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistrySyncAction>, global::System.Threading.Tasks.Task<bool>> onGroupPlanned2 = onGroupPlanned;
+            global::System.Threading.CancellationToken cancellationToken = token;
+            global::System.Threading.Tasks.Task planGroups = requiredService.PlanGroups(
+            navigator2, onGroupPlanned2, cancellationToken);
+            return planGroups;
         }
 
         public Task PlanIntakeLabCleanup(
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
             CancellationToken token)
         {
-            return Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
-                .PlanIntakeLabCleanup(
-                    CreateNavigator(token),
-                    onGroupPlanned,
-                    token);
+            global::ScheduleLib.Application.Core.AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler requiredService = Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
+            global::ScheduleLib.OnlineRegistry.OnlineRegistryNavigator navigator = CreateNavigator(token);
+            global::ScheduleLib.OnlineRegistry.IRegistrySyncNavigator navigator2 = navigator;
+            global::System.Func<global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistrySyncAction>, global::System.Threading.Tasks.Task<bool>> onGroupPlanned2 = onGroupPlanned;
+            global::System.Threading.CancellationToken cancellationToken = token;
+            global::System.Threading.Tasks.Task planIntakeLabCleanup = requiredService.PlanIntakeLabCleanup(
+            navigator2, onGroupPlanned2, cancellationToken);
+            return planIntakeLabCleanup;
         }
 
         public async ValueTask DisposeAsync()

@@ -14,7 +14,7 @@ public static class LayerQueries
         }
     }
 
-    extension (MutableNode node)
+    extension(MutableNode node)
     {
         public DfsEnumerable Dfs(Action<DfsEnumerable>? contextBuilder = null)
         {

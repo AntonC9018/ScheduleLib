@@ -12,11 +12,33 @@ public sealed class RegistrySyncDiagnostics
 
     public static string DescribePartition(GroupPartitionKey partition)
     {
-        if (partition == GroupPartitionKey.All) return "whole group";
+        if (partition == GroupPartitionKey.All)
+        {
+            return "whole group";
+        }
+
         var parts = new List<string>();
-        if (partition.SubGroup != SubGroup.All) parts.Add($"subgroup {partition.SubGroup.Value}");
-        if (partition.Specialization != Specialization.All) parts.Add($"specialization {partition.Specialization.Value}");
-        if (partition.Alternative != Alternative.All) parts.Add($"alternative {partition.Alternative.Value}");
+        if (partition.SubGroup != SubGroup.All)
+        {
+            global::System.Collections.Generic.List<string> list = parts;
+            string item = $"subgroup {partition.SubGroup.Value}";
+            list.Add(item);
+        }
+
+        if (partition.Specialization != Specialization.All)
+        {
+            global::System.Collections.Generic.List<string> list2 = parts;
+            string item2 = $"specialization {partition.Specialization.Value}";
+            list2.Add(item2);
+        }
+
+        if (partition.Alternative != Alternative.All)
+        {
+            global::System.Collections.Generic.List<string> list3 = parts;
+            string item3 = $"alternative {partition.Alternative.Value}";
+            list3.Add(item3);
+        }
+
         return string.Join(", ", parts);
     }
 
@@ -42,8 +64,15 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
     {
         foreach (var target in _remaining.Where(target => !courses.Contains(target.Course)).ToArray())
         {
-            diagnostics.Add(kind: "missing-registry-course", course: schedule.Get(target.Course).FullName, @group: schedule.Get(target.Group).Name,
-                detail: "Ask the registry administrator to assign this scheduled course to the teacher.");
+            string CalculateGroup()
+            {
+                global::ScheduleLib.Group get = schedule.Get(target.Group);
+                string group2 = get.Name;
+                return group2;
+            }
+
+            diagnostics.Add(kind: "missing-registry-course", course: schedule.Get(target.Course).FullName, @group: CalculateGroup(),
+                            detail: "Ask the registry administrator to assign this scheduled course to the teacher.");
             _remaining.Remove(target);
         }
     }
@@ -54,7 +83,8 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
         IReadOnlyList<RegistryGroupMatchRule> rules)
     {
         var source = schedule.Get(lessonId);
-        Cover(new(source.Lesson.Course, parent, partition));
+        global::ScheduleLib.OnlineRegistry.RegistryExpectedTarget target2 = new(source.Lesson.Course, parent, partition);
+        Cover(target2);
         bool CheckCondition()
         {
             if (source.Lesson.Type is not (LessonType.Curs or LessonType.Prelegere))
@@ -76,15 +106,22 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
         }
 
         if (CheckCondition())
+        {
             return;
+        }
 
         var host = schedule.Get(parent);
         if (host.Language is not (Language.Ro or Language.Ru))
+        {
             return;
+        }
+
         var intake = schedule.EnumerateGroups().Where(group => SameIntake(first: host, second: group.Item)).ToArray();
         if (intake.Any(group => group.Item.Language == Language.None)
             || intake.GroupBy(group => group.Item.Language).Any(groups => groups.Count() > 1))
+        {
             return;
+        }
 
         foreach (var target in _remaining.Where(target => target.Course == source.Lesson.Course).ToArray())
         {
@@ -113,7 +150,9 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
             }
 
             if (CheckCondition2())
+            {
                 continue;
+            }
 
             // Language partitions in a separate parent can attend the exact same lecture.
             // Its existing parent-language destination already synchronizes that event.
@@ -123,7 +162,9 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
                 && (candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }) == source.Lesson
                 && SameDate(first: source, second: candidate));
             if (shared)
+            {
                 Cover(target);
+            }
         }
     }
 
@@ -164,8 +205,15 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
         foreach (var target in _remaining.Where(target => target.Course == course).ToArray())
         {
             var partition = RegistrySyncDiagnostics.DescribePartition(target.Partition);
-            diagnostics.Add(kind: "missing-registry-group", course: schedule.Get(course).FullName, @group: schedule.Get(target.Group).Name,
-                detail: $"No registry destination matched the scheduled partition {partition}. Ask the registry administrator to add or correct its group assignment.");
+            string CalculateGroup()
+            {
+                global::ScheduleLib.Group get = schedule.Get(target.Group);
+                string group2 = get.Name;
+                return group2;
+            }
+
+            diagnostics.Add(kind: "missing-registry-group", course: schedule.Get(course).FullName, @group: CalculateGroup(),
+                            detail: $"No registry destination matched the scheduled partition {partition}. Ask the registry administrator to add or correct its group assignment.");
             _remaining.Remove(target);
         }
     }

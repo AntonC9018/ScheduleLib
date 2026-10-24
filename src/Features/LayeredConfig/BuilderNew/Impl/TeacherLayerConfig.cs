@@ -25,7 +25,7 @@ public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
 
 public partial class Extensions
 {
-    extension (NodeBuilder builder)
+    extension(NodeBuilder builder)
     {
         public NodeBuilder TeacherLayer(
             string nameStr,

@@ -9,7 +9,7 @@ public static class LayerKeys
 }
 public static partial class Extensions
 {
-    extension (NodeBuilder builder)
+    extension(NodeBuilder builder)
     {
         public NodeDataBuilder<LessonTopicsConfig> LessonTopics() => builder.Builder<LessonTopicsConfig>();
         public NodeDataBuilder<MoodleConfig> Moodle() => builder.Builder<MoodleConfig>();

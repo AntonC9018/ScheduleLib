@@ -13,6 +13,7 @@ using ScheduleLib.Parsing.WordDoc;
 using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace ScheduleLib.Curriculum;
+
 using NameModel = TeacherBuilderModel.NameModel;
 
 public sealed class CurriculumGroupKey
@@ -584,7 +585,8 @@ public static class CurriculumDirectoryHelper
         var dirs = Directory.EnumerateDirectories(directory.FullPath);
         foreach (var dirFullPath in dirs)
         {
-            var lastSegmentStart = dirFullPath.IndexOf(Path.DirectorySeparatorChar) + 1;
+            int indexOf = dirFullPath.IndexOf(Path.DirectorySeparatorChar);
+            var lastSegmentStart = indexOf + 1;
             var parser = new SequenceReader(dirFullPath);
             parser.Move(lastSegmentStart);
             var groupKey = CurriculumNameParser.ParseGroupKey(ref parser);
@@ -603,7 +605,8 @@ public static class CurriculumDirectoryHelper
     internal static ParsedCurriculumKey1? ParseCurriculumFileKey(string filePath)
     {
         Debug.Assert(filePath.EndsWith(CurriculumDocumentExtension));
-        var lastSegmentStart = filePath.IndexOf(Path.DirectorySeparatorChar) + 1;
+        int indexOf = filePath.IndexOf(Path.DirectorySeparatorChar);
+        var lastSegmentStart = indexOf + 1;
         var parser = new SequenceReader(filePath);
         parser.Move(lastSegmentStart);
         var key = CurriculumNameParser.TryParseCurriculumKey(ref parser);
@@ -651,7 +654,8 @@ public sealed class CurriculumCache
     public static CurriculumCache CreateDefault()
     {
         var rootPath = Path.GetFullPath(CurriculumDirectoryHelper.DefaultRootDirName);
-        var ret = new CurriculumCache(new(rootPath));
+        global::ScheduleLib.Curriculum.RootCurriculumDirectory rootDirectory = new(rootPath);
+        var ret = new CurriculumCache(rootDirectory);
         return ret;
     }
 
@@ -682,8 +686,10 @@ public sealed class CurriculumCache
                 var facultyInitialsParsed = new ParsedCourseName();
                 foreach (var letter in g.Faculty.Name)
                 {
-                    facultyInitialsParsed.Segments.Add(
-                        CourseNameSegment.AsInitials(letter));
+                    global::System.Collections.Generic.List<global::ScheduleLib.Parsing.CourseName.CourseNameSegment> list = facultyInitialsParsed.Segments;
+                    global::ScheduleLib.Parsing.CourseName.CourseNameSegment item = CourseNameSegment.AsInitials(letter);
+                    list.Add(
+                        item);
                 }
                 var facultyParsed = CourseNameParsing.Parse(new(new()), group.Key.Name.Value.AsMemory(), new()
                 {
@@ -863,17 +869,17 @@ internal static class ThesisName
             switch (parsingState.CurrentSectionType)
             {
                 case SectionType.PreliminaryPassage:
-                {
-                    var t = PreliminarySectionProcessing.Process(ref parsingState, items);
-                    parsingState.Curriculum.Preliminary = t;
-                    break;
-                }
+                    {
+                        var t = PreliminarySectionProcessing.Process(ref parsingState, items);
+                        parsingState.Curriculum.Preliminary = t;
+                        break;
+                    }
                 case SectionType.DisciplineProvisions:
-                {
-                    var t = DisciplineProvisionsProcessing.Process(ref parsingState, items);
-                    parsingState.Curriculum.DisciplineProvisions = t;
-                    break;
-                }
+                    {
+                        var t = DisciplineProvisionsProcessing.Process(ref parsingState, items);
+                        parsingState.Curriculum.DisciplineProvisions = t;
+                        break;
+                    }
             }
         }
 
@@ -1974,29 +1980,29 @@ internal static class DisciplineProvisionsProcessing
                 switch (mapping)
                 {
                     case Column.AttendanceMode:
-                    {
-                        var para = x.Cell.Descendants<Paragraph>().Single();
-                        var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), AttendanceModeStrings);
-                        StringSearchHelper.DefaultHandleError(attendanceResult);
-                        if (attendanceResult.IsNotEmpty)
                         {
-                            throw new NotSupportedException("Attendance mode must not be empty");
-                        }
+                            var para = x.Cell.Descendants<Paragraph>().Single();
+                            var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), AttendanceModeStrings);
+                            StringSearchHelper.DefaultHandleError(attendanceResult);
+                            if (attendanceResult.IsNotEmpty)
+                            {
+                                throw new NotSupportedException("Attendance mode must not be empty");
+                            }
 
-                        // Possible?
-                        if (attendanceResult.MatchIndex == -1)
-                        {
-                            throw new NotSupportedException("Unrecognized attendance mode");
-                        }
+                            // Possible?
+                            if (attendanceResult.MatchIndex == -1)
+                            {
+                                throw new NotSupportedException("Unrecognized attendance mode");
+                            }
 
-                        state.AttendanceMode = (AttendanceMode) attendanceResult.MatchIndex;
-                        break;
-                    }
+                            state.AttendanceMode = (AttendanceMode) attendanceResult.MatchIndex;
+                            break;
+                        }
                     case Column.CourseName:
-                    {
-                        //TODO:
-                        throw null!;
-                    }
+                        {
+                            //TODO:
+                            throw null!;
+                        }
                 }
             }
 
@@ -2085,26 +2091,26 @@ internal static class DisciplineProvisionsProcessing
                 {
                     case >= Column.Distribution_First
                         and <= Column.Distribution_Last:
-                    {
-                        var itemThereCurrently = state.ColumnMappings.Find(colPosition);
-                        if (itemThereCurrently is not Column.Unknown
-                            and not Column.DistributionHeader)
                         {
-                            throw new NotSupportedException("The distribution columns must be either standalone, or inside an hours column.");
+                            var itemThereCurrently = state.ColumnMappings.Find(colPosition);
+                            if (itemThereCurrently is not Column.Unknown
+                                and not Column.DistributionHeader)
+                            {
+                                throw new NotSupportedException("The distribution columns must be either standalone, or inside an hours column.");
+                            }
+                            ReplaceItem(ref state);
+                            break;
                         }
-                        ReplaceItem(ref state);
-                        break;
-                    }
                     default:
-                    {
-                        var itemThereCurrently = state.ColumnMappings.Find(colPosition);
-                        if (itemThereCurrently != Column.Unknown)
                         {
-                            throw new NotSupportedException("Something weird with the columns?");
+                            var itemThereCurrently = state.ColumnMappings.Find(colPosition);
+                            if (itemThereCurrently != Column.Unknown)
+                            {
+                                throw new NotSupportedException("Something weird with the columns?");
+                            }
+                            ReplaceItem(ref state);
+                            break;
                         }
-                        ReplaceItem(ref state);
-                        break;
-                    }
                 }
                 continue;
 

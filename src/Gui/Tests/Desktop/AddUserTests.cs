@@ -10,131 +10,157 @@ public sealed class AddUserTests
     [Fact]
     public void FirstAndLastSingleLetterMatch()
     {
-        DoScoreFunctionTest(new(
-            Input: "C A",
-            Person: "Curmanschii Anton",
-            FullyMatched: new(NameField.First, NameField.Last)));
+        string input = "C A";
+        string person = "Curmanschii Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First, NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void FirstSingleLetterMatch()
     {
-        DoScoreFunctionTest(new(
-            Input: "C",
-            Person: "Curmanschii Anton",
-            FullyMatched: new(NameField.Last)));
+        string input = "C";
+        string person = "Curmanschii Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void FirstAndLastSame_SameSingleLetter_OneWordMatch()
     {
-        DoScoreFunctionTest(new(
-            Input: "A",
-            Person: "Anton Antonov",
-            FullyMatched: new(NameField.Last, NameField.First)));
+        string input = "A";
+        string person = "Anton Antonov";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last, NameField.First);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void LastMatches_FirstUnmatches_SingleLetter()
     {
-        DoScoreFunctionTest(new(
-            Input: "C X",
-            Person: "Curmanschii Anton",
-            FullyMatched: new(NameField.Last),
-            UnmatchedCount: 1));
+        string input = "C X";
+        string person = "Curmanschii Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
+        int unmatchedCount = 1;
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched, UnmatchedCount: unmatchedCount);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void FirstMatches_SingleLetter()
     {
-        DoScoreFunctionTest(new(
-            Input: "A",
-            Person: "Curmanschii Anton",
-            FullyMatched: new(NameField.First)));
+        string input = "A";
+        string person = "Curmanschii Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void FirstMatches_LastUnmatches_SingleLetters()
     {
-        DoScoreFunctionTest(new(
-            Input: "A X",
-            Person: "Curmanschii Anton",
-            FullyMatched: new(NameField.First),
-            UnmatchedCount: 1));
+        string input = "A X";
+        string person = "Curmanschii Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
+        int unmatchedCount = 1;
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched, UnmatchedCount: unmatchedCount);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void DoubleNameNotMatches_WhenPersonHasSingleName()
     {
-        DoScoreFunctionTest(new(
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
             Input: "A-C",
             Person: "Curmanschii Anton",
             FullyMatched: new(),
             UnmatchedCount: 1,
-            ExpectedScorePositive: false));
+            ExpectedScorePositive: false);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void EmptyNoMatch()
     {
-        DoScoreFunctionTest(new(
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
             Input: "",
             Person: "Curmanschii Anton",
-            ExpectedScorePositive: false));
+            ExpectedScorePositive: false);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void ShortLastNameOfPerson_MatchesLongerQuery()
     {
-        DoScoreFunctionTest(new(
-            Input: "Curm",
-            Person: "C. Anton",
-            PartiallyMatched: new(NameField.Last)));
+        string input = "Curm";
+        string person = "C. Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void ShortenedQueryMatches_ShortenedLastNameInPerson_ThatIsDifferent_LastNameLonger()
     {
-        DoScoreFunctionTest(new(
-            Input: "C.",
-            Person: "Curm. Anton",
-            FullyMatched: new(NameField.Last)));
+        string input = "C.";
+        string person = "Curm. Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void ShortenedQueryMatches_ShortenedLastNameInPerson_ThatIsDifferent_InputLonger()
     {
-        DoScoreFunctionTest(new(
-            Input: "Curm.",
-            Person: "C. Anton",
-            PartiallyMatched: new(NameField.Last)));
+        string input = "Curm.";
+        string person = "C. Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void ShortenedFirstNameMatchesFirstName()
     {
-        DoScoreFunctionTest(new(
-            Input: "A.",
-            Person: "Curm Anton",
-            FullyMatched: new(NameField.First)));
+        string input = "A.";
+        string person = "Curm Anton";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void LastNameMatchCheck()
     {
-        DoScoreFunctionTest(new(
-            Input: "Titu",
-            Person: "Capcelea Titu",
-            FullyMatched: new(NameField.First)));
+        string input = "Titu";
+        string person = "Capcelea Titu";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, FullyMatched: fullyMatched);
+        DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void SearchedLastNameLonger()
     {
-        DoScoreFunctionTest(new(
-            Input: "Capceleaa",
-            Person: "Capcelea Titu",
-            PartiallyMatched: new(NameField.Last)));
+        string input = "Capceleaa";
+        string person = "Capcelea Titu";
+        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
+        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        DoScoreFunctionTest(data);
     }
 
     public sealed record class TestDataRecord(
