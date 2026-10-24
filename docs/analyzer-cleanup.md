@@ -12,9 +12,19 @@ location, severity, rule and message, removing the repeated MSBuild summary and
 duplicate compilation of shared sources. Different findings on the same line
 remain distinct. Package advisories without source locations are retained.
 
-The 2026-10-24 AWS baseline has **7,707 unique findings** across both targets.
+The 2026-10-24 AWS baseline has **7,712 unique findings** across both targets:
+7,642 source warnings and 70 package-advisory rows. An earlier inventory missed
+five advisory rows because restore and build emit different project suffixes;
+the parser now handles both forms, with regression tests for deduplication.
 The solution alone has 5,066 unique findings; its MSBuild summary reports 5,139
 warnings and zero errors. These are different measurements.
+
+The first packaged pass (named arguments, interpolation and layout) changes 289
+files and reduces source warnings to **3,335**, with zero build errors in both
+targets. All 3,694 CR0500 findings disappear. The package advisories are unchanged.
+The corrected candidate comes from CodingRules `d8803f6`, which fixes the
+unbound-generic CR0500 crash found during this rollout. All 1,370 CodingRules
+analyzer, fixer and packaged-consumer tests pass on AWS.
 
 ## Patterns to discuss
 

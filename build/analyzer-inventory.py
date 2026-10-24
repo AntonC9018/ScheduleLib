@@ -8,7 +8,7 @@ import re
 
 
 def inventory(logs, root):
-    pattern = re.compile(r'^(.*?)(?:\((\d+),(\d+)\))?\s*:\s*(warning|error)\s+(\w+):\s*(.*?)\s*\[([^\]]+)\]\s*$')
+    pattern = re.compile(r'^(.*?)(?:\((\d+),(\d+)\))?\s*:\s*(warning|error)\s+(\w+):\s*(.*?)(?:\s*\[([^\]]+\.(?:csproj|fsproj|vbproj|sln|slnx|proj))\])?\s*$')
     findings = {}
     for log in logs:
         for line in log.read_text(errors='replace').splitlines():
@@ -16,6 +16,8 @@ def inventory(logs, root):
             if not match:
                 continue
             path, row, column, severity, rule, message, project = match.groups()
+            if project is None:
+                project = path if path.endswith(('.csproj', '.fsproj', '.vbproj')) else ''
             path = path.removeprefix(root.rstrip('/') + '/')
             project = project.removeprefix(root.rstrip('/') + '/')
             item = dict(path=path, line=int(row or 0), column=int(column or 0),
