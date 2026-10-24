@@ -28,5 +28,6 @@ python3 build/aws-runner/tf.py destroy -auto-approve
 
 State, plans, SSH private keys and variable values are ignored. Keep state until
 cleanup succeeds. Bootstrap installs pinned .NET 11 SDK and the .NET 10 runtime
-host required by repository tooling. Use `cloud-init status --wait` remotely to
+host required by repository tooling, plus the hash-verified netstandard 2.1
+reference pack needed by CodingRules tests. Use `cloud-init status --wait` remotely to
 verify setup; inspect cloud-init-output.log if setup fails.
