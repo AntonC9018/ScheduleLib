@@ -287,7 +287,7 @@ public sealed class CliCommandContext : IDisposable
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            throw new CliOutputStreamingException("Output streaming failed.", error);
+            throw new GeneralCliOutputStreamingException("Output streaming failed.", error);
         }
     }
 

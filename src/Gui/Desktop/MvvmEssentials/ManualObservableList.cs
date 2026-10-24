@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using Desktop.MvvmEssentials;
 
 namespace Desktop.MainWindow;
@@ -42,27 +41,21 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public void Add(T item) => _items.Add(item);
-    public int Add(object? value) => throw new NotSupportedException();
+    int IList.Add(object? value) => throw new NotSupportedException();
 
     public void Clear() => _items.Clear();
-    public bool Contains(object? value) => throw new NotSupportedException();
-    public int IndexOf(object? value) => throw new NotSupportedException();
-    [SuppressMessage(category: "Readability", checkId: "CR1001",
-        Justification = "Collection interface signatures cannot be replaced by a builder.")]
-    public void Insert(int index, object? value) => throw new NotSupportedException();
-    public void Remove(object? value) => throw new NotSupportedException();
+    bool IList.Contains(object? value) => throw new NotSupportedException();
+    int IList.IndexOf(object? value) => throw new NotSupportedException();
+    void IList.Insert(int index, object? value) => throw new NotSupportedException();
+    void IList.Remove(object? value) => throw new NotSupportedException();
     public bool Contains(T item) => _items.Contains(item);
-    [SuppressMessage(category: "Readability", checkId: "CR1001",
-        Justification = "Collection interface signatures cannot be replaced by a builder.")]
     public void CopyTo(T[] array, int arrayIndex) => throw new NotSupportedException();
     public bool Remove(T item) => throw new NotSupportedException();
-    [SuppressMessage(category: "Readability", checkId: "CR1001",
-        Justification = "Collection interface signatures cannot be replaced by a builder.")]
-    public void CopyTo(Array array, int index) => throw new NotSupportedException();
+    void ICollection.CopyTo(Array array, int index) => throw new NotSupportedException();
 
     public int Count => _items.Count;
-    public bool IsSynchronized => false;
-    public object SyncRoot => this;
+    bool ICollection.IsSynchronized => false;
+    object ICollection.SyncRoot => this;
     public bool IsReadOnly => false;
     object? IList.this[int index]
     {
@@ -71,11 +64,9 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
     }
 
     public int IndexOf(T item) => _items.IndexOf(item);
-    [SuppressMessage(category: "Readability", checkId: "CR1001",
-        Justification = "Collection interface signatures cannot be replaced by a builder.")]
     public void Insert(int index, T item) => throw new NotSupportedException();
     public void RemoveAt(int index) => throw new NotSupportedException();
-    public bool IsFixedSize => false;
+    bool IList.IsFixedSize => false;
 
     public T this[int index]
     {

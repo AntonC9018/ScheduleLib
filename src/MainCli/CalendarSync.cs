@@ -185,7 +185,7 @@ public static class CalendarSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw StreamingFailure(new CliOutputStreamingException("Calendar output streaming failed.", ex));
+                throw StreamingFailure(new GeneralCliOutputStreamingException("Calendar output streaming failed.", ex));
             }
         }
 

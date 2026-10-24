@@ -157,7 +157,7 @@ public static class DriveSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw StreamingFailure(new CliOutputStreamingException("Drive output streaming failed.", ex));
+                throw StreamingFailure(new GeneralCliOutputStreamingException("Drive output streaming failed.", ex));
             }
         }
 

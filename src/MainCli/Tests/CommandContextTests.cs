@@ -63,7 +63,7 @@ public sealed class CommandContextTests
                 var failure = context.ClassifyInputFailure(new IOException("Disk failure."), export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: failure.ExitCode);
                 var renderingFailure = context.ClassifyInputFailure(
-                    new CliOutputStreamingException("Output failed."),
+                    new GeneralCliOutputStreamingException("Output failed."),
                     export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: renderingFailure.ExitCode);
                 var paths = await context.CompleteArtifacts(failure.ExitCode);

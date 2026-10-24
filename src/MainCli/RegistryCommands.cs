@@ -290,7 +290,7 @@ public partial class RegistryCommands
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw new CliOutputStreamingException("Output streaming failed.", ex);
+                throw new GeneralCliOutputStreamingException("Output streaming failed.", ex);
             }
         }
 

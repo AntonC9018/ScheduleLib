@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredData.Retrieval;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ public sealed partial class Commands
 [Command(
     "calendar",
     Description = "Preview or apply named Google Calendar replacement using provisioned authorization.")]
+[SuppressMessage(category: "Readability", checkId: "CR1400",
+    Justification = "Virtual command seams await architecture review in issue #247.")]
 public class CalendarCommands
 {
     protected virtual void ConfigureServices(IServiceCollection services) =>

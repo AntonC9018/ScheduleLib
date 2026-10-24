@@ -331,9 +331,17 @@ public sealed class CliOutput
 /// uncertainty: the remote operation already completed and must not be retried
 /// or duplicated. Callers stop further work when this escapes an output callback.
 /// </summary>
-public class CliOutputStreamingException : Exception
+public abstract class CliOutputStreamingException : Exception
 {
-    public CliOutputStreamingException(string message, Exception? inner = null)
+    protected CliOutputStreamingException(string message, Exception? inner = null)
+        : base(message, inner)
+    {
+    }
+}
+
+public sealed class GeneralCliOutputStreamingException : CliOutputStreamingException
+{
+    public GeneralCliOutputStreamingException(string message, Exception? inner = null)
         : base(message, inner)
     {
     }

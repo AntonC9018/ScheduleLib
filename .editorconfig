@@ -11,6 +11,7 @@ rulers = 120
 
 # Microsoft .NET properties
 csharp_new_line_before_members_in_object_initializers = true
+csharp_space_after_cast = true
 
 # Roslyn braces rule (IDE0011), aligned with the ReSharper rules below.
 # build/format.sh applies braces through the shared cleanup profile. See docs/formatting.md.
@@ -109,6 +110,7 @@ csharp_new_line_before_finally = true
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_between_query_expression_clauses = true
 csharp_new_line_before_members_in_object_initializers = true
+csharp_space_after_cast = true
 
 # Indentation options
 csharp_indent_case_contents = true

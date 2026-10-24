@@ -178,7 +178,7 @@ public static class LessonParsingHelper
                 x: label,
                 y: SpecialSubGroups.NonBeginners.Value.AsSpan()))
         {
-            throw new WrongFormatException(
+            throw new GeneralWrongFormatException(
                 "The non-beginner subgroup is derived during schedule normalization and may not be written in the source.");
         }
     }
@@ -286,7 +286,7 @@ public static class LessonParsingHelper
             ref var state = ref stateStack.First();
             if (!state.IsTerminalState)
             {
-                throw new WrongFormatException();
+                throw new GeneralWrongFormatException();
             }
 
             // Special case
@@ -380,7 +380,7 @@ public static class LessonParsingHelper
                             {
                                 if (mod.General.LessonType != LessonType.Unspecified)
                                 {
-                                    throw new WrongFormatException();
+                                    throw new GeneralWrongFormatException();
                                 }
 
                                 v.General.LessonType = mod.Key.LessonType;
@@ -676,11 +676,11 @@ public static class LessonParsingHelper
                         // }
                         if (IsParsingInsideSubgroupAlready(c))
                         {
-                            throw new WrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
+                            throw new GeneralWrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
                         }
                         if (!defaultSubGroup.IsEmpty)
                         {
-                            throw new WrongFormatException("Cannot specify the subgrou inside the modifier list twice");
+                            throw new GeneralWrongFormatException("Cannot specify the subgrou inside the modifier list twice");
                         }
                         defaultSubGroup = subGroup;
 
@@ -718,7 +718,7 @@ public static class LessonParsingHelper
                     bool somethingSet = modifiers.Set(modifierValue);
                     if (!somethingSet)
                     {
-                        throw new WrongFormatException("Modifier group that did nothing");
+                        throw new GeneralWrongFormatException("Modifier group that did nothing");
                     }
 
                     lexer.TryConsume(TokenType.Whitespace);
@@ -919,7 +919,7 @@ public static class LessonParsingHelper
 
                     if (key != SubLessonModifiersKey.Default)
                     {
-                        throw new WrongFormatException();
+                        throw new GeneralWrongFormatException();
                     }
 
                     return ref c.State.LastModifiers.General;
@@ -1205,7 +1205,7 @@ public static class LessonParsingHelper
                 {
                     if (c.State.Step == ParsingStep.RequiredTeacherNameOrRoomName)
                     {
-                        throw new WrongFormatException("Required teacher name after comma");
+                        throw new GeneralWrongFormatException("Required teacher name after comma");
                     }
 
                     // We've already tried for room name.
@@ -1874,7 +1874,7 @@ public sealed class RoomParser
                 }
                 case MediacorParseProgress.AfterConfirmFail:
                 {
-                    throw new WrongFormatException();
+                    throw new GeneralWrongFormatException();
                 }
                 default:
                 {
@@ -2619,54 +2619,60 @@ public sealed class RoomAlreadySpecifiedException : WrongFormatException
     }
 }
 
-// TODO: Should be abstract
-public class WrongFormatException : Exception
+public sealed class GeneralWrongFormatException : WrongFormatException
 {
-    internal WrongFormatException(string? s = null) : base(s)
+    internal GeneralWrongFormatException(string? message = null) : base(message)
+    {
+    }
+}
+
+public abstract class WrongFormatException : Exception
+{
+    protected WrongFormatException(string? s = null) : base(s)
     {
     }
 
     [DoesNotReturn]
-    internal static void InvalidToken(Token token) => throw new WrongFormatException($"Invalid Token `{token}`");
+    internal static void InvalidToken(Token token) => throw new GeneralWrongFormatException($"Invalid Token `{token}`");
 
     [DoesNotReturn]
-    internal static void LexerEmpty() => throw new WrongFormatException("Lexer is empty");
+    internal static void LexerEmpty() => throw new GeneralWrongFormatException("Lexer is empty");
 
     [DoesNotReturn]
-    internal static void ExtraWordsInModifier() => throw new WrongFormatException("Extra words in a modifier item");
+    internal static void ExtraWordsInModifier() => throw new GeneralWrongFormatException("Extra words in a modifier item");
 
     [DoesNotReturn]
-    internal static void ExpectedWordToken() => throw new WrongFormatException("Expected name token");
+    internal static void ExpectedWordToken() => throw new GeneralWrongFormatException("Expected name token");
 
     [DoesNotReturn]
-    internal static void InvalidCharactersInTeacherName() => throw new WrongFormatException("Invalid characters in teacher name");
+    internal static void InvalidCharactersInTeacherName() => throw new GeneralWrongFormatException("Invalid characters in teacher name");
 
     [DoesNotReturn]
-    internal static void ThrowEmptyCourseName() => throw new WrongFormatException("Empty course name");
+    internal static void ThrowEmptyCourseName() => throw new GeneralWrongFormatException("Empty course name");
 
     [DoesNotReturn]
     internal static void ThrowRoomAlreadySpecified() => throw new RoomAlreadySpecifiedException();
 
     [DoesNotReturn]
-    internal static void ThrowUnclosedParenInLessonName() => throw new WrongFormatException("Unclosed paren in lesson name");
+    internal static void ThrowUnclosedParenInLessonName() => throw new GeneralWrongFormatException("Unclosed paren in lesson name");
 
     [DoesNotReturn]
-    internal static void NestedParenInLessonName() => throw new WrongFormatException("Nested paren in lesson name");
+    internal static void NestedParenInLessonName() => throw new GeneralWrongFormatException("Nested paren in lesson name");
 
     [DoesNotReturn]
-    internal static void EmptyListItem() => throw new WrongFormatException("Empty list item");
+    internal static void EmptyListItem() => throw new GeneralWrongFormatException("Empty list item");
 
     [DoesNotReturn]
-    internal static void UnclosedParens() => throw new WrongFormatException("Unclosed parens");
+    internal static void UnclosedParens() => throw new GeneralWrongFormatException("Unclosed parens");
 
     [DoesNotReturn]
-    internal static void InvalidLastName() => throw new WrongFormatException($"Last name must not be short");
+    internal static void InvalidLastName() => throw new GeneralWrongFormatException($"Last name must not be short");
 
     [DoesNotReturn]
-    internal static void ExpectedArabSubGroup() => throw new WrongFormatException("Expected subgroup number as a arab numeral");
+    internal static void ExpectedArabSubGroup() => throw new GeneralWrongFormatException("Expected subgroup number as a arab numeral");
 
     [DoesNotReturn]
-    internal static void ExpectedSubGroupNumberToBeOneDigit() => throw new WrongFormatException("Expected a one-digit number for the group");
+    internal static void ExpectedSubGroupNumberToBeOneDigit() => throw new GeneralWrongFormatException("Expected a one-digit number for the group");
 }
 
 internal ref struct ParsingContext
