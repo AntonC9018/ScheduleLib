@@ -75,7 +75,7 @@ public record struct BitArray64
     public readonly int GetUnsetAfter(int index)
     {
         Debug.Assert(index <= _len);
-        return _array.GetUnsetAfter(index, _len);
+        return _array.GetUnsetAfter(index: index, length: _len);
     }
     [Pure]
     public readonly int GetUnsetAtOrAfter(int index)
@@ -135,7 +135,7 @@ public record struct BitArray64
     {
         Debug.Assert(CanSlice(offset, length));
 
-        var ret = _array.Slice(offset, length);
+        var ret = _array.Slice(offset: offset, length: length);
         return ret;
     }
     [Pure]
@@ -155,7 +155,7 @@ public record struct BitArray64
     [Pure]
     public readonly BitArray64 IntersectAtOffset(BitArray64 other, int offset)
     {
-        var slice = Slice(offset, other.Len);
+        var slice = Slice(offset: offset, length: other.Len);
         return slice.Intersect(other);
     }
     [Pure]
@@ -224,7 +224,7 @@ public record struct BitArray64
         {
             var firstSetBit = SetBitIndicesLowToHigh.First();
             var lastSetBit = SetBitIndicesHighToLow.First();
-            return new Interval(firstSetBit, lastSetBit);
+            return new Interval(start: firstSetBit, endInclusive: lastSetBit);
         }
     }
 
@@ -366,7 +366,7 @@ public readonly struct SlidingWindowLowToHighEnumerable64 : IEnumerable<SliceAnd
         {
             _offset++;
 
-            if (!_e._source.CanSlice(_offset, _e._length))
+            if (!_e._source.CanSlice(offset: _offset, length: _e._length))
             {
                 return false;
             }
@@ -380,7 +380,7 @@ public readonly struct SlidingWindowLowToHighEnumerable64 : IEnumerable<SliceAnd
 
         object IEnumerator.Current => Current;
 
-        public SliceAndOffset64 Current => new(_offset, _e._source.Slice(_offset, _e._length));
+        public SliceAndOffset64 Current => new(_offset, _e._source.Slice(offset: _offset, length: _e._length));
 
         public void Dispose()
         {

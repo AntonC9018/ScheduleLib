@@ -18,9 +18,7 @@ public sealed class ConflictingImplicitAssignmentException : ScheduleBuildExcept
         string? assignedValue)
     {
         return new(
-            $"The lesson for course '{courseName}' has the explicit specialization "
-            + $"'{explicitValue}', but the implicit split configuration "
-            + $"assigns '{assignedValue}'.");
+            (string) $"{($"The lesson for course '{courseName}' has the explicit specialization ")}{($"'{explicitValue}', but the implicit split configuration ")}{($"assigns '{assignedValue}'.")}");
     }
 
     public static ConflictingImplicitAssignmentException ForExplicitAlternativeConflict(
@@ -29,9 +27,7 @@ public sealed class ConflictingImplicitAssignmentException : ScheduleBuildExcept
         string? assignedValue)
     {
         return new(
-            $"The lesson for course '{courseName}' has the explicit alternative "
-            + $"'{explicitValue}', but the implicit split configuration "
-            + $"assigns '{assignedValue}'.");
+            (string) $"{($"The lesson for course '{courseName}' has the explicit alternative ")}{($"'{explicitValue}', but the implicit split configuration ")}{($"assigns '{assignedValue}'.")}");
     }
 
     /// <summary>
@@ -46,8 +42,7 @@ public sealed class ConflictingImplicitAssignmentException : ScheduleBuildExcept
         string courseName)
     {
         return new(
-            $"The implicit split configuration assigns conflicting {dimension}s "
-            + $"'{prev}' and '{next}' to course '{courseName}'.");
+            (string) $"{($"The implicit split configuration assigns conflicting {dimension}s ")}{($"'{prev}' and '{next}' to course '{courseName}'.")}");
     }
 }
 
@@ -77,9 +72,6 @@ public sealed class MissingImplicitSplitStudyYearException : ScheduleBuildExcept
     public static MissingImplicitSplitStudyYearException ForNoMatchingWallClockYear(StudyYear currentYear)
     {
         return new(
-            "The implicit split configuration pins scopes to a study year, but no scope "
-            + $"matches the wall-clock-derived study year {currentYear}. The assignments "
-            + "would be silently skipped; set ScheduleBuilder.GroupParseContext explicitly "
-            + "(before adding groups) to pin the study year, or remove the StudyYear pins.");
+            (string) $"The implicit split configuration pins scopes to a study year, but no scope {($"matches the wall-clock-derived study year {currentYear}. The assignments ")}would be silently skipped; set ScheduleBuilder.GroupParseContext explicitly  (before adding groups) to pin the study year, or remove the StudyYear pins.");
     }
 }

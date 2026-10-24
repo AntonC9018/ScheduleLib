@@ -49,8 +49,8 @@ public sealed class CliCommandContext : IDisposable
     {
         var runId = Guid.NewGuid().ToString("N");
         Output = new CliOutput(
-            command,
-            runId,
+            command: command,
+            runId: runId,
             arguments);
         Cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
         _previousOutput = CliAmbient.Current;
@@ -61,26 +61,13 @@ public sealed class CliCommandContext : IDisposable
         };
     }
 
-    public CliOutput Output
-    {
-        get;
-    }
+    public CliOutput Output { get; }
 
-    public CancellationTokenSource Cancellation
-    {
-        get;
-    }
+    public CancellationTokenSource Cancellation { get; }
 
-    public List<string> Warnings
-    {
-        get;
-    } = [];
+    public List<string> Warnings { get; } = [];
 
-    public RunOutput? Artifacts
-    {
-        get;
-        set;
-    }
+    public RunOutput? Artifacts { get; set; }
 
     public string Command => Output.Command;
     public string RunId => Output.RunId;
@@ -155,15 +142,15 @@ public sealed class CliCommandContext : IDisposable
                     .ToArray();
             }
             var result = new CommandResult<T>(
-                1,
-                Command,
-                RunId,
-                jsonStatus ?? status,
-                exit,
-                paths ?? [],
-                actions ?? [],
-                warnings,
-                errors,
+                SchemaVersion: 1,
+                Command: Command,
+                RunId: RunId,
+                Status: jsonStatus ?? status,
+                ExitCode: exit,
+                Outputs: paths ?? [],
+                Actions: actions ?? [],
+                Warnings: warnings,
+                Errors: errors,
                 data);
             Console.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
         }
@@ -172,8 +159,8 @@ public sealed class CliCommandContext : IDisposable
             Output.EmitFinal(
                 status,
                 exit,
-                warnings,
-                errors,
+                warnings: warnings,
+                errors: errors,
                 summary);
         }
         else
@@ -244,8 +231,8 @@ public sealed class CliCommandContext : IDisposable
         {
             renderHuman();
             Output.EmitItem(
-                id,
-                status,
+                id: id,
+                status: status,
                 item);
         }
         catch (Exception error) when (error is not OperationCanceledException)
@@ -265,8 +252,8 @@ public sealed class CliCommandContext : IDisposable
             var path = Artifacts.PublishedPaths[_streamed++];
             Output.WriteHuman(path);
             Output.EmitItem(
-                "artifact:" + path,
-                "completed",
+                id: (string) $"artifact:{path}",
+                status: "completed",
                 new { path });
         }
     }

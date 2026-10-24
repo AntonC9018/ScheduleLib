@@ -23,17 +23,11 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
     private readonly string _runId;
     private readonly Dictionary<string, string> _owned;
 
-    public string DirectoryPath
-    {
-        get;
-    }
+    public string DirectoryPath { get; }
 
     public string ManifestPath => Path.Combine(DirectoryPath, "schedulelib-manifest.json");
 
-    public List<string> PublishedPaths
-    {
-        get;
-    } = [];
+    public List<string> PublishedPaths { get; } = [];
 
     private RunOutput(
         string directory,
@@ -105,10 +99,10 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                 }
             }
             return new(
-                directory,
+                directory: directory,
                 lease,
-                command,
-                runId,
+                command: command,
+                runId: runId,
                 owned);
         }
         catch
@@ -131,7 +125,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         }
 
         if (File.Exists(destination)
-            && (!_owned.TryGetValue(name, out var hash) || hash != await Fingerprint(destination, token)))
+            && (!_owned.TryGetValue(key: name, value: out var hash) || hash != await Fingerprint(destination, token)))
         {
             throw new IOException($"Output collision with an unrelated or modified file: {destination}");
         }
@@ -148,10 +142,10 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
     {
         var manifest = new OutputManifest(
             1,
-            _command,
-            _runId,
-            status,
-            _owned.Select(x => new OwnedArtifact(x.Key, x.Value)).ToArray());
+            Command: _command,
+            RunId: _runId,
+            Status: status,
+            _owned.Select(x => new OwnedArtifact(Name: x.Key, Sha256: x.Value)).ToArray());
         await AtomicFile.Publish(
             ManifestPath,
             (stream, ct) => JsonSerializer.SerializeAsync(

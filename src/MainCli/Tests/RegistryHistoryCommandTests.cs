@@ -9,12 +9,12 @@ public sealed class RegistryHistoryCommandTests
         var provider = new Provider();
         var commands = new Commands(provider);
         Assert.Equal(
-            2,
-            await commands.History(
+            expected: 2,
+            actual: await commands.History(
                 new() { Profile = "synthetic" },
                 new(),
                 new()));
-        Assert.Equal(0, provider.Calls);
+        Assert.Equal(expected: 0, actual: provider.Calls);
     }
 
     [Fact]
@@ -30,8 +30,8 @@ public sealed class RegistryHistoryCommandTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                0,
-                await new Commands(new Provider()).History(
+                expected: 0,
+                actual: await new Commands(new Provider()).History(
                     new() { Profile = "synthetic" },
                     new()
                     {
@@ -39,21 +39,21 @@ public sealed class RegistryHistoryCommandTests
                         Year = "2024/25",
                     },
                     new() { Json = true }));
-            Assert.DoesNotContain("private-course", output.ToString());
-            Assert.DoesNotContain("private-group", output.ToString());
+            Assert.DoesNotContain(expectedSubstring: "private-course", actualString: output.ToString());
+            Assert.DoesNotContain(expectedSubstring: "private-group", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(1, result.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion").GetInt32());
             var file = Assert.Single(Directory.GetFiles(directory));
             var summary = await File.ReadAllTextAsync(file);
-            Assert.Contains("private-course", summary);
-            Assert.Contains("2024/25", summary);
-            Assert.DoesNotContain("Uri", summary);
+            Assert.Contains(expectedSubstring: "private-course", actualString: summary);
+            Assert.Contains(expectedSubstring: "2024/25", actualString: summary);
+            Assert.DoesNotContain(expectedSubstring: "Uri", actualString: summary);
             if (!OperatingSystem.IsWindows())
             {
-                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(file));
+                Assert.Equal(expected: UnixFileMode.UserRead | UnixFileMode.UserWrite, actual: File.GetUnixFileMode(file));
                 Assert.Equal(
-                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
-                    File.GetUnixFileMode(directory));
+                    expected: UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    actual: File.GetUnixFileMode(directory));
             }
         }
         finally
@@ -78,17 +78,17 @@ public sealed class RegistryHistoryCommandTests
         var target = Path.Combine(parent, "target");
         var directory = Path.Combine(parent, ".registry-history");
         Directory.CreateDirectory(target);
-        Directory.CreateSymbolicLink(directory, target);
+        Directory.CreateSymbolicLink(path: directory, pathToTarget: target);
         try
         {
             var provider = new Provider();
             Assert.Equal(
-                2,
-                await new Commands(provider).History(
+                expected: 2,
+                actual: await new Commands(provider).History(
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = directory },
                     new()));
-            Assert.Equal(0, provider.Calls);
+            Assert.Equal(expected: 0, actual: provider.Calls);
         }
         finally
         {
@@ -109,17 +109,17 @@ public sealed class RegistryHistoryCommandTests
         var target = Path.Combine(parent, "target");
         var link = Path.Combine(parent, "link");
         Directory.CreateDirectory(target);
-        Directory.CreateSymbolicLink(link, target);
+        Directory.CreateSymbolicLink(path: link, pathToTarget: target);
         try
         {
             var provider = new Provider();
             Assert.Equal(
-                2,
-                await new Commands(provider).History(
+                expected: 2,
+                actual: await new Commands(provider).History(
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = Path.Combine(link, ".registry-history") },
                     new()));
-            Assert.Equal(0, provider.Calls);
+            Assert.Equal(expected: 0, actual: provider.Calls);
         }
         finally
         {
@@ -137,12 +137,12 @@ public sealed class RegistryHistoryCommandTests
         {
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(new Provider { Fail = true }).History(
+                expected: 5,
+                actual: await new Commands(new Provider { Fail = true }).History(
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
                     new()));
-            Assert.DoesNotContain("canary", error.ToString());
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
         }
         finally
         {
@@ -162,14 +162,14 @@ public sealed class RegistryHistoryCommandTests
         {
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(new Provider { Failure = failure }).History(
+                expected: 5,
+                actual: await new Commands(new Provider { Failure = failure }).History(
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
                     new()));
-            Assert.Contains(failure.ToString(), error.ToString());
-            Assert.Contains("phase Unknown; diagnostic None; HTTP unknown", error.ToString());
-            Assert.DoesNotContain("canary", error.ToString());
+            Assert.Contains(expectedSubstring: failure.ToString(), actualString: error.ToString());
+            Assert.Contains(expectedSubstring: "phase Unknown; diagnostic None; HTTP unknown", actualString: error.ToString());
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
         }
         finally
         {
@@ -186,8 +186,8 @@ public sealed class RegistryHistoryCommandTests
         {
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(
+                expected: 5,
+                actual: await new Commands(
                     new Provider
                     {
                         Failure = RegistryHistoryFailure.AccessRejected,
@@ -198,9 +198,9 @@ public sealed class RegistryHistoryCommandTests
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
                     new()));
-            Assert.Contains("AccessRejected; phase Login; diagnostic HttpRejected; HTTP 403", error.ToString());
-            Assert.DoesNotContain("canary", error.ToString());
-            Assert.DoesNotContain("https://", error.ToString());
+            Assert.Contains(expectedSubstring: "AccessRejected; phase Login; diagnostic HttpRejected; HTTP 403", actualString: error.ToString());
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
+            Assert.DoesNotContain(expectedSubstring: "https://", actualString: error.ToString());
         }
         finally
         {
@@ -220,8 +220,8 @@ public sealed class RegistryHistoryCommandTests
             Console.SetOut(output);
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(
+                expected: 5,
+                actual: await new Commands(
                     new Provider
                     {
                         Failure = RegistryHistoryFailure.MarkupContract,
@@ -231,14 +231,14 @@ public sealed class RegistryHistoryCommandTests
                     new() { Profile = "synthetic" },
                     new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
                     new() { Json = true }));
-            Assert.Contains("diagnostic GroupLayout", error.ToString());
+            Assert.Contains(expectedSubstring: "diagnostic GroupLayout", actualString: error.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             var errors = result.RootElement.GetProperty("errors");
-            Assert.Equal(1, errors.GetArrayLength());
+            Assert.Equal(expected: 1, actual: errors.GetArrayLength());
             var jsonError = errors[0].GetString();
-            Assert.Contains("diagnostic GroupLayout", jsonError);
-            Assert.DoesNotContain("canary", output.ToString() + error);
-            Assert.DoesNotContain("https://", output.ToString() + error);
+            Assert.Contains(expectedSubstring: "diagnostic GroupLayout", actualString: jsonError);
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: output.ToString() + error);
+            Assert.DoesNotContain(expectedSubstring: "https://", actualString: output.ToString() + error);
         }
         finally
         {
@@ -254,41 +254,17 @@ public sealed class RegistryHistoryCommandTests
 
     private sealed class Provider : IRegistryHistoryProvider
     {
-        public int Calls
-        {
-            get;
-            private set;
-        }
+        public int Calls { get; private set; }
 
-        public bool Fail
-        {
-            get;
-            init;
-        }
+        public bool Fail { get; init; }
 
-        public RegistryHistoryFailure? Failure
-        {
-            get;
-            init;
-        }
+        public RegistryHistoryFailure? Failure { get; init; }
 
-        public RegistryHistoryPhase Phase
-        {
-            get;
-            init;
-        } = RegistryHistoryPhase.Unknown;
+        public RegistryHistoryPhase Phase { get; init; } = RegistryHistoryPhase.Unknown;
 
-        public RegistryHistoryDiagnostic Diagnostic
-        {
-            get;
-            init;
-        } = RegistryHistoryDiagnostic.None;
+        public RegistryHistoryDiagnostic Diagnostic { get; init; } = RegistryHistoryDiagnostic.None;
 
-        public int? StatusCode
-        {
-            get;
-            init;
-        }
+        public int? StatusCode { get; init; }
 
         public Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(
             SettingsArguments settings,

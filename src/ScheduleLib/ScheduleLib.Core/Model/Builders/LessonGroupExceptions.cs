@@ -34,16 +34,13 @@ public sealed class InconsistentLanguageSplitException : ScheduleBuildException
     public static InconsistentLanguageSplitException ForMixedSplit(string groups, string course)
     {
         return new(
-            $"The lesson for groups '{groups}' and course '{course}' "
-            + "mixes groups with and without the language proficiency split for that course. "
-            + "One stored subgroup value could not represent both meanings.");
+            (string) $"{($"The lesson for groups '{groups}' and course '{course}' ")}mixes groups with and without the language proficiency split for that course.  One stored subgroup value could not represent both meanings.");
     }
 
     public static InconsistentLanguageSplitException ForMissingCounterpart(string group, string course)
     {
         return new(
-            $"The beginner subgroup lesson for group '{group}' and course '{course}' "
-            + "has no unannotated counterpart lesson for the same group and course.");
+            (string) $"{($"The beginner subgroup lesson for group '{group}' and course '{course}' ")}has no unannotated counterpart lesson for the same group and course.");
     }
 }
 
@@ -62,15 +59,13 @@ public sealed class InvalidSubGroupPartitionException : ScheduleBuildException
     public static InvalidSubGroupPartitionException ForNonContiguousPrefix(string groupName, int missing, int occurring)
     {
         return new(
-            $"The numeric subgroups of group '{groupName}' must form a contiguous prefix starting at I. "
-            + $"Missing '{NumberHelper.ToRoman(missing)}' while '{NumberHelper.ToRoman(occurring)}' occurs.");
+            (string) $"{($"The numeric subgroups of group '{groupName}' must form a contiguous prefix starting at I. ")}{($"Missing '{NumberHelper.ToRoman(missing)}' while '{NumberHelper.ToRoman(occurring)}' occurs.")}");
     }
 
     public static InvalidSubGroupPartitionException ForSingleLanguageSubgroup(string groupName)
     {
         return new(
-            $"The group '{groupName}' has a single language subgroup, but a group "
-            + "must have either zero observed language subgroups or at least two.");
+            (string) $"{($"The group '{groupName}' has a single language subgroup, but a group ")}must have either zero observed language subgroups or at least two.");
     }
 }
 
@@ -129,11 +124,7 @@ public sealed class UnknownSubGroupException : ScheduleBuildException
         string registryContext)
     {
         return new(
-            $"Invalid subgroup '{subGroupValue}' for group '{groupContext}'. "
-            + "Specialization registry context: "
-            + registryContext
-            + ". "
-            + "The configured subgroup selector accepts numeric values and configured special subgroups.");
+            (string) $"{($"Invalid subgroup '{subGroupValue}' for group '{groupContext}'. ")}Specialization registry context: {registryContext}.  The configured subgroup selector accepts numeric values and configured special subgroups.");
     }
 }
 
@@ -168,7 +159,6 @@ public sealed class OverlappingLessonsException : ScheduleBuildException
     public static OverlappingLessonsException ForOverlaps(IReadOnlyCollection<string> errors)
     {
         return new(
-            $"The schedule has {errors.Count} overlapping lesson pairs:\n"
-            + string.Join("\n", errors));
+            (string) $"{($"The schedule has {errors.Count} overlapping lesson pairs:\n")}{string.Join("\n", errors)}");
     }
 }

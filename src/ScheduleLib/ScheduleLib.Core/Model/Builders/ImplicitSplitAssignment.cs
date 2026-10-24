@@ -29,7 +29,7 @@ public static partial class ScheduleBuilderHelper
         s.Preprocess();
         s.Validate();
         s.ClassifySubGroups();
-        AssignImplicitSplits(s, config, firstWeeklyLesson, firstOneTimeLesson);
+        AssignImplicitSplits(s, config, firstWeeklyLesson: firstWeeklyLesson, firstOneTimeLesson: firstOneTimeLesson);
         s.RefreshLookup();
     }
 
@@ -237,7 +237,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "specialization", prev: prev.Value, next: value.Value, courseName: courseName);
                 }
                 assigned = value;
             }
@@ -257,7 +257,7 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "alternative", prev: prev.Value, next: value.Value, courseName: courseName);
                 }
                 assigned = value;
             }
@@ -273,7 +273,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Specialization != Specialization.All
                     && group.Specialization != spec)
                 {
-                    throw ConflictingImplicitAssignmentException.ForExplicitSpecializationConflict(courseName, group.Specialization.Value, spec.Value);
+                    throw ConflictingImplicitAssignmentException.ForExplicitSpecializationConflict(courseName: courseName, explicitValue: group.Specialization.Value, assignedValue: spec.Value);
                 }
                 group.Specialization = spec;
             }
@@ -282,7 +282,7 @@ public static partial class ScheduleBuilderHelper
                 if (group.Alternative != Alternative.All
                     && group.Alternative != alt)
                 {
-                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(courseName, group.Alternative.Value, alt.Value);
+                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(courseName: courseName, explicitValue: group.Alternative.Value, assignedValue: alt.Value);
                 }
                 group.Alternative = alt;
             }
@@ -324,7 +324,7 @@ file sealed class SplitAccumulator
     {
         if (SeenSpec is { } prev && prev != spec)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, spec.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "specialization", prev: prev.Value, next: spec.Value, courseName: courseName);
         }
         SeenSpec ??= spec;
     }
@@ -333,7 +333,7 @@ file sealed class SplitAccumulator
     {
         if (SeenAlt is { } prev && prev != alt)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, alt.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "alternative", prev: prev.Value, next: alt.Value, courseName: courseName);
         }
         SeenAlt ??= alt;
     }
@@ -345,8 +345,8 @@ file sealed class SplitAccumulator
         // call states that null-handling intent; lifted == would resolve the same way
         // but hides it behind operator lifting.
         int partIndex = Parts.FindIndex(p =>
-            Nullable.Equals(p.Spec, spec)
-            && Nullable.Equals(p.Alt, alt));
+            Nullable.Equals(n1: p.Spec, n2: spec)
+            && Nullable.Equals(n1: p.Alt, n2: alt));
         if (partIndex == -1)
         {
             var partGroups = new LessonGroups();

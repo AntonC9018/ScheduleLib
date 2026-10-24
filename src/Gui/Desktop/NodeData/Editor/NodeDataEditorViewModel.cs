@@ -14,9 +14,15 @@ public sealed partial class NodeDataEditorViewModel(
 {
     private NullableOwnedViewModel _selectedViewModel;
     public ObservableObject? SelectedNodeEditorViewModel => _selectedViewModel.Value;
-    public IReadOnlyList<ConfigType> ConfigTypes => field ??= _configTypesProvider
-        .ConfigTypes
-        .Where(x => _modelResolver.Supported.Contains(x.Key)).ToArray();
+    public IReadOnlyList<ConfigType> ConfigTypes
+    {
+        get
+        {
+            return field ??= _configTypesProvider
+                .ConfigTypes
+                .Where(x => _modelResolver.Supported.Contains(x.Key)).ToArray();
+        }
+    }
 
     [ObservableProperty]
     public partial ConfigType? CurrentConfigType { get; set; }

@@ -635,7 +635,7 @@ public static class WordScheduleParser
                 skippedSize1 += size;
                 MoveToNextCellForGroupRow();
             }
-            return new(skippedCount1, skippedSize1);
+            return new(Count: skippedCount1, Size: skippedSize1);
         }
 
         SkippedHeaderColumnsInfo TrySecondFormat()
@@ -664,7 +664,7 @@ public static class WordScheduleParser
 
             MoveToNextCellForGroupRow();
 
-            return new(1, skippedWidth);
+            return new(Count: 1, Size: skippedWidth);
         }
 
         // Returns the size of the column.

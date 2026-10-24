@@ -101,16 +101,16 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2403", courseName: "RVA");
-            AddLesson(s, "IA2403", courseName: "Cloud");
+            AddLesson(s, groupName: "IA2403", courseName: "RVA");
+            AddLesson(s, groupName: "IA2403", courseName: "Cloud");
         });
 
         Assert.Equal(
-            Specialization.DJ,
-            SpecializationOf(schedule, "RVA"));
+            expected: Specialization.DJ,
+            actual: SpecializationOf(schedule, "RVA"));
         Assert.Equal(
-            Specialization.All,
-            SpecializationOf(schedule, "Cloud"));
+            expected: Specialization.All,
+            actual: SpecializationOf(schedule, "Cloud"));
     }
 
     [Fact]
@@ -118,19 +118,19 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2403", courseName: "Antreprenoriat inovativ");
+            AddLesson(s, groupName: "IA2403", courseName: "Antreprenoriat inovativ");
         });
 
         Assert.Equal(
-            new Alternative("Antreprenoriat"),
-            AlternativeOf(schedule, "Antreprenoriat inovativ"));
+            expected: new Alternative("Antreprenoriat"),
+            actual: AlternativeOf(schedule, "Antreprenoriat inovativ"));
     }
 
     [Fact]
     public void SplitsSharedLessonsWhenOnlySomeGroupsAreCovered()
     {
         var builder = CreateBuilder();
-        AddLesson(builder, "IA2403", courseName: "RVA");
+        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
         var shared = builder.RegularLesson();
         shared.Course(builder.Course("SAWM"));
         shared.Groups([builder.Group("IA2403"), builder.Group("M2403")]);
@@ -139,23 +139,23 @@ public sealed class ImplicitSplitAssignmentTests
 
         var schedule = builder.Build();
 
-        Assert.Equal(Specialization.DJ, SpecializationOf(schedule, "RVA"));
+        Assert.Equal(expected: Specialization.DJ, actual: SpecializationOf(schedule, "RVA"));
 
         // The covered groups get the specialization; the rest keep the lesson without
         // one, so the lesson is split in two, both parts keeping the shared time.
         var sawm = LessonsOf(schedule, "SAWM");
-        Assert.Equal(2, sawm.Count);
+        Assert.Equal(expected: 2, actual: sawm.Count);
         var stamped = sawm.Single(x => x.Lesson.Specialization == Specialization.DJ);
         var unstamped = sawm.Single(x => x.Lesson.Specialization == Specialization.All);
-        Assert.Equal(["IA2403"], GroupNamesOf(stamped, schedule));
-        Assert.Equal(["M2403"], GroupNamesOf(unstamped, schedule));
-        Assert.Equal(stamped.Lesson.Room, unstamped.Lesson.Room);
+        Assert.Equal(expected: ["IA2403"], actual: GroupNamesOf(stamped, schedule));
+        Assert.Equal(expected: ["M2403"], actual: GroupNamesOf(unstamped, schedule));
+        Assert.Equal(expected: stamped.Lesson.Room, actual: unstamped.Lesson.Room);
         Assert.Equal(
-            stamped.Weekly!.Value.Date.DayOfWeek,
-            unstamped.Weekly!.Value.Date.DayOfWeek);
+            expected: stamped.Weekly!.Value.Date.DayOfWeek,
+            actual: unstamped.Weekly!.Value.Date.DayOfWeek);
         Assert.Equal(
-            stamped.Weekly!.Value.Date.TimeSlot,
-            unstamped.Weekly!.Value.Date.TimeSlot);
+            expected: stamped.Weekly!.Value.Date.TimeSlot,
+            actual: unstamped.Weekly!.Value.Date.TimeSlot);
     }
 
     [Fact]
@@ -193,8 +193,8 @@ public sealed class ImplicitSplitAssignmentTests
         var schedule = builder.Build();
 
         Assert.Equal(
-            Specialization.DJ,
-            SpecializationOf(schedule, "Realitate virtuală și augmentată"));
+            expected: Specialization.DJ,
+            actual: SpecializationOf(schedule, "Realitate virtuală și augmentată"));
     }
 
     [Fact]
@@ -211,13 +211,13 @@ public sealed class ImplicitSplitAssignmentTests
             x.Specialization("RVA", Specialization.DJ);
         });
         builder.ImplicitSplitConfig = scopeBuilder.Build();
-        AddLesson(builder, "IA2403", courseName: "RVA");
+        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
 
         var schedule = builder.Build();
 
         Assert.Equal(
-            Specialization.All,
-            SpecializationOf(schedule, "RVA"));
+            expected: Specialization.All,
+            actual: SpecializationOf(schedule, "RVA"));
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public sealed class ImplicitSplitAssignmentTests
             ImplicitSplitConfig = scopeBuilder.Build(),
         };
         builder.EnableLookupModule();
-        AddLesson(builder, "IA2403", courseName: "RVA");
+        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
 
         Assert.Throws<MissingImplicitSplitStudyYearException>(() => builder.Build());
     }
@@ -250,7 +250,7 @@ public sealed class ImplicitSplitAssignmentTests
         var builder = CreateBuilder();
         AddLesson(
             builder,
-            "IA2403",
+            groupName: "IA2403",
             courseName: "RVA",
             specialization: "CV");
 
@@ -263,15 +263,15 @@ public sealed class ImplicitSplitAssignmentTests
         var builder = CreateBuilder();
         AddLesson(
             builder,
-            "IA2403",
+            groupName: "IA2403",
             courseName: "RVA",
             specialization: "DJ");
 
         var schedule = builder.Build();
 
         Assert.Equal(
-            Specialization.DJ,
-            SpecializationOf(schedule, "RVA"));
+            expected: Specialization.DJ,
+            actual: SpecializationOf(schedule, "RVA"));
     }
 
     [Fact]

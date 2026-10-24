@@ -49,7 +49,7 @@ public static class RegistryHistoryHtml
         {
             if (option.IsDisabled || string.IsNullOrWhiteSpace(option.Value)) continue;
             if (result.Any(x => x.Value == option.Value)) continue;
-            result.Add(new(option.Value, option.IsSelected, new(action.AbsoluteUri + "?AnUniv=" + Uri.EscapeDataString(option.Value))));
+            result.Add(new(option.Value, option.IsSelected, new((string) $"{action.AbsoluteUri}?AnUniv={Uri.EscapeDataString(option.Value)}")));
         }
         if (result.Count == 0 || result.Count(x => x.Selected) != 1)
             throw new RegistryHistoryException("Academic-year selection is empty or ambiguous.", phase: RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.YearSelection);
@@ -69,7 +69,7 @@ public static class RegistryHistoryHtml
             foreach (var anchor in expected)
             {
                 var uri = SafeUri(address, anchor.GetAttribute("href"));
-                if (!uri.AbsolutePath.StartsWith(Root(address) + "LessonAttendance/groups/", StringComparison.Ordinal))
+                if (!uri.AbsolutePath.StartsWith((string) $"{Root(address)}LessonAttendance/groups/", StringComparison.Ordinal))
                     throw new RegistryHistoryException("Course link route is unsupported.", phase: RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.CourseLink);
                 var name = anchor.TextContent.Trim();
                 if (name.Length == 0) throw new RegistryHistoryException("Course link has no name.", phase: RegistryHistoryPhase.Index, diagnostic: RegistryHistoryDiagnostic.CourseName);
@@ -96,7 +96,7 @@ public static class RegistryHistoryHtml
             var anchors = row.QuerySelectorAll("a");
             if (anchors.Length != 2) throw new RegistryHistoryException("Group row has an unsupported link layout.", phase: RegistryHistoryPhase.Groups, diagnostic: RegistryHistoryDiagnostic.GroupRowLinks);
             var uri = SafeUri(address, anchors[0].GetAttribute("href"));
-            if (!uri.AbsolutePath.StartsWith(Root(address) + "LessonAttendance/LessonsList/", StringComparison.Ordinal))
+            if (!uri.AbsolutePath.StartsWith((string) $"{Root(address)}LessonAttendance/LessonsList/", StringComparison.Ordinal))
                 throw new RegistryHistoryException("Group link route is unsupported.", phase: RegistryHistoryPhase.Groups, diagnostic: RegistryHistoryDiagnostic.GroupLink);
             var name = anchors[0].TextContent.Trim();
             if (name.Length == 0) throw new RegistryHistoryException("Group link has no name.", phase: RegistryHistoryPhase.Groups, diagnostic: RegistryHistoryDiagnostic.GroupName);
@@ -127,7 +127,7 @@ public static class RegistryHistoryHtml
 
     private static Uri SafeUri(Uri address, string? href)
     {
-        if (string.IsNullOrWhiteSpace(href) || !Uri.TryCreate(address, href, out var uri)
+        if (string.IsNullOrWhiteSpace(href) || !Uri.TryCreate(baseUri: address, href, result: out var uri)
             || uri.Scheme != address.Scheme || uri.Authority != address.Authority || uri.UserInfo.Length != 0
             || !uri.AbsolutePath.StartsWith(Root(address), StringComparison.Ordinal) || uri.Fragment.Length != 0)
             throw new RegistryHistoryException("Registry navigation link is missing or outside the configured registry.", diagnostic: RegistryHistoryDiagnostic.RequestPolicy);
@@ -138,7 +138,7 @@ public static class RegistryHistoryHtml
 /// <summary>One global request gate covers authentication and reads across history accounts in this process.</summary>
 public sealed class RegistryHistoryRequestHandler : DelegatingHandler
 {
-    private static readonly SemaphoreSlim Gate = new(1, 1);
+    private static readonly SemaphoreSlim Gate = new(initialCount: 1, maxCount: 1);
     private static DateTimeOffset _lastCompletion;
     private readonly Uri _index;
     private readonly Uri _login;
@@ -165,7 +165,7 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
             var login = !_authenticated && !_loginAttempted && request.Method == HttpMethod.Post && uri == _login;
             var phase = login ? RegistryHistoryPhase.Login : uri is not null && IsLessonList(uri)
                 ? RegistryHistoryPhase.Lessons : uri is not null
-                && uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(_index) + "LessonAttendance/groups/", StringComparison.Ordinal)
+                && uri.AbsolutePath.StartsWith((string) $"{RegistryHistoryHtml.Root(_index)}LessonAttendance/groups/", StringComparison.Ordinal)
                     ? RegistryHistoryPhase.Groups
                     : uri == _index || uri is not null && uri.AbsolutePath == _index.AbsolutePath
                         ? RegistryHistoryPhase.Index
@@ -214,9 +214,12 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
         finally { Gate.Release(); }
     }
 
-    private bool AllowedRead(Uri uri) => IsIndex(uri)
-        || IsNumericRoute(uri, "groups", allowGroupQuery: false)
-        || IsLessonList(uri);
+    private bool AllowedRead(Uri uri)
+    {
+        return IsIndex(uri)
+            || IsNumericRoute(uri, "groups", allowGroupQuery: false)
+            || IsLessonList(uri);
+    }
 
     private bool IsIndex(Uri uri)
     {
@@ -225,27 +228,27 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
         const string yearQuery = "?AnUniv=";
         if (!uri.Query.StartsWith(yearQuery, StringComparison.Ordinal)) return false;
         var value = Uri.UnescapeDataString(uri.Query[yearQuery.Length..]);
-        if (value.Length != 7 || value[4] != '/' || value.AsSpan(0, 4).IndexOfAnyExceptInRange('0', '9') >= 0
-            || value.AsSpan(5, 2).IndexOfAnyExceptInRange('0', '9') >= 0) return false;
-        var start = int.Parse(value.AsSpan(0, 4), System.Globalization.CultureInfo.InvariantCulture);
-        var end = int.Parse(value.AsSpan(5, 2), System.Globalization.CultureInfo.InvariantCulture);
-        return (start + 1) % 100 == end && uri.Query == yearQuery + Uri.EscapeDataString(value);
+        if (value.Length != 7 || value[4] != '/' || value.AsSpan(start: 0, length: 4).IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0
+            || value.AsSpan(start: 5, length: 2).IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0) return false;
+        var start = int.Parse(value.AsSpan(start: 0, length: 4), System.Globalization.CultureInfo.InvariantCulture);
+        var end = int.Parse(value.AsSpan(start: 5, length: 2), System.Globalization.CultureInfo.InvariantCulture);
+        return (start + 1) % 100 == end && uri.Query == (string) $"{yearQuery}{Uri.EscapeDataString(value)}";
     }
 
     private bool IsLessonList(Uri uri) => IsNumericRoute(uri, "LessonsList", allowGroupQuery: true);
 
     private bool IsNumericRoute(Uri uri, string route, bool allowGroupQuery)
     {
-        var prefix = RegistryHistoryHtml.Root(_index) + "LessonAttendance/" + route + "/";
+        var prefix = (string) $"{RegistryHistoryHtml.Root(_index)}LessonAttendance/{route}/";
         if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) || uri.Fragment.Length != 0) return false;
         var id = uri.AbsolutePath.AsSpan(prefix.Length);
-        if (id.Length == 0 || id.IndexOfAnyExceptInRange('0', '9') >= 0) return false;
+        if (id.Length == 0 || id.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') >= 0) return false;
         if (uri.Query.Length == 0) return true;
         if (!allowGroupQuery) return false;
         const string groupQuery = "?groupId=";
         if (!uri.Query.StartsWith(groupQuery, StringComparison.Ordinal)) return false;
         var groupId = uri.Query.AsSpan(groupQuery.Length);
-        return groupId.Length > 0 && groupId.IndexOfAnyExceptInRange('0', '9') < 0;
+        return groupId.Length > 0 && groupId.IndexOfAnyExceptInRange(lowInclusive: '0', highInclusive: '9') < 0;
     }
 }
 
@@ -298,7 +301,10 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
         return document;
     }
 
-    private RegistryHistoryPhase Phase(Uri uri) => uri.AbsolutePath == index.AbsolutePath ? RegistryHistoryPhase.Index
-        : uri.AbsolutePath.StartsWith(RegistryHistoryHtml.Root(index) + "LessonAttendance/groups/", StringComparison.Ordinal)
-            ? RegistryHistoryPhase.Groups : RegistryHistoryPhase.Lessons;
+    private RegistryHistoryPhase Phase(Uri uri)
+    {
+        return uri.AbsolutePath == index.AbsolutePath ? RegistryHistoryPhase.Index
+            : uri.AbsolutePath.StartsWith((string) $"{RegistryHistoryHtml.Root(index)}LessonAttendance/groups/", StringComparison.Ordinal)
+                ? RegistryHistoryPhase.Groups : RegistryHistoryPhase.Lessons;
+    }
 }

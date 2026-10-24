@@ -58,10 +58,7 @@ public interface IDriveSyncProvider : IDisposable
 public sealed class DriveStreamingException(DriveSyncResult PartialResult, Exception? Inner = null)
     : CliOutputStreamingException("Drive output streaming failed.", Inner)
 {
-    public DriveSyncResult PartialResult
-    {
-        get;
-    } = PartialResult;
+    public DriveSyncResult PartialResult { get; } = PartialResult;
 }
 
 public static class DriveSync
@@ -69,9 +66,12 @@ public static class DriveSync
     public static string LockPath(
         string root,
         string account,
-        string folderId) => Path.Combine(
+        string folderId)
+    {
+        return Path.Combine(
         root,
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(account + "\n" + folderId))) + ".lock");
+        (string) $"{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{account}\n{folderId}")))}.lock");
+    }
 
     public static async Task<DriveSyncResult> Run(
         IDriveSyncProvider provider,
@@ -87,14 +87,14 @@ public static class DriveSync
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
-                    lockRoot
+                    root: lockRoot
                     ?? Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ScheduleLib",
                         "remote-locks",
                         "drive"),
-                    account.Id,
-                    folder.Id),
+                    account: account.Id,
+                    folderId: folder.Id),
                 token)
             : null;
         // Folder identity is resolved before locking; reread it under the lease and refuse a changed destination.
@@ -116,22 +116,22 @@ public static class DriveSync
         // Preserve legacy matching: every duplicate remote name is updated, unmatched remote files are deleted.
         actions.AddRange(
             remote.Where(x => !local.ContainsKey(x.Name)).Select(x => new DriveAction(
-                "delete",
-                x.Name,
-                x.Id,
-                null)));
+                Action: "delete",
+                Name: x.Name,
+                FileId: x.Id,
+                LocalPath: null)));
         actions.AddRange(
             local.Values.Where(x => !cloudNames.Contains(x.Name)).Select(x => new DriveAction(
-                "create",
-                x.Name,
-                null,
-                x.Path)));
+                Action: "create",
+                Name: x.Name,
+                FileId: null,
+                LocalPath: x.Path)));
         actions.AddRange(
             remote.Where(x => local.ContainsKey(x.Name)).Select(x => new DriveAction(
-                "update",
-                x.Name,
-                x.Id,
-                local[x.Name].Path)));
+                Action: "update",
+                Name: x.Name,
+                FileId: x.Id,
+                LocalPath: local[x.Name].Path)));
         var warnings = new[]
         {
             "All unmatched remote files are deleted, including unrelated files in the configured folder. Matching is case-insensitive; every matching remote file is updated. No rollback is provided. Local locks coordinate only this machine.",
@@ -176,12 +176,12 @@ public static class DriveSync
         {
             var planned = new DriveOutcome(
                 action,
-                "planned",
-                null);
+                State: "planned",
+                ResultFileId: null);
             Report(
-                PlanId(index),
+                id: PlanId(index),
                 planned,
-                $"{action.Action} {action.Name}: {planned.State}");
+                human: $"{action.Action} {action.Name}: {planned.State}");
         }
 
         void AddOutcome(DriveOutcome outcome)
@@ -194,9 +194,9 @@ public static class DriveSync
             outcomes.Add(outcome);
             var index = outcomes.Count - 1;
             Report(
-                PlanId(index),
+                id: PlanId(index),
                 outcome,
-                $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}");
+                human: $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}");
         }
 
         token.ThrowIfCancellationRequested();
@@ -224,8 +224,8 @@ public static class DriveSync
                     await provider.Delete(action.FileId!, token);
                     AddOutcome(new(
                         action,
-                        "completed",
-                        action.FileId));
+                        State: "completed",
+                        ResultFileId: action.FileId));
                 }
                 else
                 {
@@ -234,8 +234,8 @@ public static class DriveSync
                     attempted = true;
                     var id = action.Action == "create"
                         ? await provider.Create(
-                            folder.Id,
-                            action.Name,
+                            folderId: folder.Id,
+                            name: action.Name,
                             input,
                             token)
                         : await provider.Update(
@@ -244,8 +244,8 @@ public static class DriveSync
                             token);
                     AddOutcome(new(
                         action,
-                        "completed",
-                        id));
+                        State: "completed",
+                        ResultFileId: id));
                 }
             }
             catch (CliOutputStreamingException)
@@ -259,8 +259,8 @@ public static class DriveSync
             {
                 AddOutcome(new(
                     action,
-                    attempted ? "uncertain" : "not-attempted",
-                    null));
+                    State: attempted ? "uncertain" : "not-attempted",
+                    ResultFileId: null));
                 AddRemaining();
                 return Result(
                     130,
@@ -272,8 +272,8 @@ public static class DriveSync
             {
                 AddOutcome(new(
                     action,
-                    "failed",
-                    null));
+                    State: "failed",
+                    ResultFileId: null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State == "completed") ? 6 : 5,
@@ -291,8 +291,8 @@ public static class DriveSync
             {
                 AddOutcome(new(
                     action,
-                    "failed",
-                    null));
+                    State: "failed",
+                    ResultFileId: null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State == "completed") ? 6 : (int) e.HttpStatusCode == 401 ? 4 : 5,
@@ -302,8 +302,8 @@ public static class DriveSync
             {
                 AddOutcome(new(
                     action,
-                    attempted ? "uncertain" : "failed",
-                    null));
+                    State: attempted ? "uncertain" : "failed",
+                    ResultFileId: null));
                 AddRemaining();
                 return Result(
                     outcomes.Any(x => x.State is "completed" or "uncertain") ? 6 : 5,
@@ -322,27 +322,33 @@ public static class DriveSync
             {
                 AddOutcome(new(
                     action,
-                    "not-attempted",
-                    null));
+                    State: "not-attempted",
+                    ResultFileId: null));
             }
         }
 
-        DriveSyncResult Result(int exit, string[] errors) => new(
-            account.Id,
-            account.Email,
-            folder,
-            actions,
-            outcomes,
-            exit,
-            errors,
-            warnings);
+        DriveSyncResult Result(int exit, string[] errors)
+        {
+            return new(
+                Account: account.Id,
+                AccountEmail: account.Email,
+                folder,
+                actions,
+                outcomes,
+                exit,
+                Errors: errors,
+                Warnings: warnings);
+        }
     }
 
-    public static bool IsScheduleArtifact(string name) => name == Path.GetFileName(name)
-        && new[]
-        {
-            ".xlsx",
-            ".pdf",
-            ".ics",
-        }.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+    public static bool IsScheduleArtifact(string name)
+    {
+        return name == Path.GetFileName(name)
+            && new[]
+            {
+                ".xlsx",
+                ".pdf",
+                ".ics",
+            }.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+    }
 }

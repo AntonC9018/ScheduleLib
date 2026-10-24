@@ -44,7 +44,7 @@ public sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
         int lastNullStart = -1;
         for (int i = 0; i < value.Length; i++)
         {
-            if (!EqualityComparer<T>.Default.Equals(value[i], default))
+            if (!EqualityComparer<T>.Default.Equals(x: value[i], y: default))
             {
                 lastNullStart = -1;
                 continue;

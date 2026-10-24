@@ -20,31 +20,31 @@ public sealed class PdfImportTests
         var missing = expected.Select(Key).Except(actual.Select(Key)).ToArray();
         var extra = actual.Select(Key).Except(expected.Select(Key)).ToArray();
         Assert.True(missing.Length == 0 && extra.Length == 0,
-            "Missing:\n" + string.Join("\n---\n", missing) + "\nUnexpected:\n" + string.Join("\n---\n", extra));
-        Assert.Equal(expected.Length, actual.Count);
+            (string) $"Missing:\n{string.Join("\n---\n", missing)}\nUnexpected:\n{string.Join("\n---\n", extra)}");
+        Assert.Equal(expected: expected.Length, actual: actual.Count);
     }
 
     [Fact]
     public void PartialBorderSeparatesSharedLectureFromTwoLabs()
     {
-        var actual = PdfTableReader.RecoverPartialBorders([new(0, 0, 200, 100)], [new(true, 100, 50, 100)]);
-        Assert.Equal(new PdfBox[] { new(0, 0, 200, 50), new(0, 50, 100, 100), new(100, 50, 200, 100) }, actual);
+        var actual = PdfTableReader.RecoverPartialBorders([new(Left: 0, Top: 0, Right: 200, Bottom: 100)], [new(true, Position: 100, Start: 50, End: 100)]);
+        Assert.Equal(expected: new PdfBox[] { new(Left: 0, Top: 0, Right: 200, Bottom: 50), new(Left: 0, Top: 50, Right: 100, Bottom: 100), new(Left: 100, Top: 50, Right: 200, Bottom: 100) }, actual: actual);
     }
 
     [Theory]
     [InlineData("Progr.C++ (lab,I-imp,II-par))\nA.Curmanscii 143/4", "Progr.C++ (lab, I-imp, II-par)\nA.Curmanscii 143/4")]
     [InlineData("Design audio și efecte\nvizuale (curs)", "Design audio și efecte vizuale (curs)")]
     [InlineData("Intel.artif.(lab,)", "Intel.artif.(lab)")]
-    public void NormalizesPdfWrappingAndPunctuation(string text, string expected) => Assert.Equal(expected, PdfTextNormalizer.Normalize(text));
+    public void NormalizesPdfWrappingAndPunctuation(string text, string expected) => Assert.Equal(expected: expected, actual: PdfTextNormalizer.Normalize(text));
 
     [Fact]
     public void ParityRepairIsScopedAndIdempotent()
     {
-        var cell = new PdfScheduleCell("test", 1, ["I2502(ru)"], "Vineri", "11:30", "Baze de date(lab)\nCr.Ulmanu 218/4a");
+        var cell = new PdfScheduleCell(Source: "test", 1, ["I2502(ru)"], Day: "Vineri", Start: "11:30", Text: "Baze de date(lab)\nCr.Ulmanu 218/4a");
         var repaired = PdfTextNormalizer.RepairMissingParity(cell);
-        Assert.Equal("Baze de date(lab, imp)\nCr.Ulmanu 218/4a", repaired.Text);
-        Assert.Equal(repaired, PdfTextNormalizer.RepairMissingParity(repaired));
+        Assert.Equal(expected: "Baze de date(lab, imp)\nCr.Ulmanu 218/4a", actual: repaired.Text);
+        Assert.Equal(expected: repaired, actual: PdfTextNormalizer.RepairMissingParity(repaired));
         var monday = cell with { Day = "Luni" };
-        Assert.Equal(monday, PdfTextNormalizer.RepairMissingParity(monday));
+        Assert.Equal(expected: monday, actual: PdfTextNormalizer.RepairMissingParity(monday));
     }
 }

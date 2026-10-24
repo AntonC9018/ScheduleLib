@@ -141,10 +141,16 @@ public static class ParserHelper
         public bool SkippedAny;
         public readonly bool Satisfied => SkippedAny && !EndOfInput;
 
-        public static SkipResult EndOfInputResult => new()
+        public static SkipResult EndOfInputResult
         {
-            EndOfInput = true,
-        };
+            get
+            {
+                return new()
+                {
+                    EndOfInput = true,
+                };
+            }
+        }
     }
 
     public static SkipResult SkipWindow<T>(

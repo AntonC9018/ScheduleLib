@@ -105,9 +105,9 @@ public sealed class HtmlTests
         var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
             MakeGroupForSearch(futureSpecialization.Value!));
 
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.Spring), specialization);
-        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, futureSpecialization), future);
+        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, Specialization.Spring), actual: specialization);
+        Assert.Equal(expected: new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), actual: numeric);
+        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, futureSpecialization), actual: future);
 
         static GroupForSearch MakeGroupForSearch(string subGroup)
         {

@@ -336,15 +336,15 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(a: x.LastName, b: y.LastName);
             if (t != 0)
             {
                 return t;
             }
         }
         var ret = NamePartHelper.CompareEach(
-            x.FirstName,
-            y.FirstName,
+            a: x.FirstName,
+            b: y.FirstName,
             Comparer.Instance);
         return ret;
     }
@@ -356,7 +356,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 
         public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
-            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(a: x.Longer, b: y.Longer);
         }
     }
 }

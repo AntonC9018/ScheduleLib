@@ -73,9 +73,9 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
@@ -180,11 +180,11 @@ public partial class ExportCommands
                 exit,
                 errors,
                 new(
-                    output?.DirectoryPath,
+                    OutputDirectory: output?.DirectoryPath,
                     files.Count,
-                    zipPath,
-                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                    omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+                    ZipPath: zipPath,
+                    MissingSlugs: missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    OmittedEmpty: omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
             {
                 Summary = new
                 {
@@ -250,9 +250,9 @@ public partial class ExportCommands
             services.AddSingleton(thesisWarnings);
             services.AddSingleton<ILoggerProvider, ThesisWarningLoggerProvider>();
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
@@ -351,9 +351,9 @@ public partial class ExportCommands
                 exit,
                 errors,
                 new(
-                    output?.DirectoryPath,
+                    OutputDirectory: output?.DirectoryPath,
                     files.Count,
-                    zipPath,
+                    ZipPath: zipPath,
                     missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
             {
                 Summary = new
@@ -478,18 +478,17 @@ public partial class ExportCommands
 
     private sealed class ThesisWarningCollector
     {
-        public List<string> Messages
-        {
-            get;
-        } = [];
+        public List<string> Messages { get; } = [];
     }
 
     private sealed class ThesisWarningLoggerProvider(ThesisWarningCollector collector) : ILoggerProvider
     {
-        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) =>
-            categoryName.Contains("ThesesConversion", StringComparison.Ordinal)
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+        {
+            return categoryName.Contains("ThesesConversion", StringComparison.Ordinal)
                 ? new ThesisWarningLogger(collector)
                 : new NullWebsiteLogger();
+        }
 
         public void Dispose()
         {

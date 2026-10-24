@@ -203,7 +203,7 @@ internal static class HtmlSearch
     {
         var anchor = doc
             .QuerySelectorAll<IHtmlAnchorElement>("div > a")
-            .First(a => IgnoreDiacriticsAndCaseComparer.Instance.Equals(a.TextContent, "Adaugare"));
+            .First(a => IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: a.TextContent, y: "Adaugare"));
         var href = anchor.Href;
         var uri = new Uri(href);
         return uri;

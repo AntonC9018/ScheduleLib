@@ -60,11 +60,11 @@ public struct PermutationActionEnumerator(int count) : IEnumerator<SwapAction>, 
             {
                 if ((_index & 1) == 0)
                 {
-                    Current = new(0, _index);
+                    Current = new(Index0: 0, Index1: _index);
                 }
                 else
                 {
-                    Current = new(_stack[_index], _index);
+                    Current = new(Index0: _stack[_index], Index1: _index);
                 }
                 _stack[_index]++;
                 _index = 1;
@@ -116,7 +116,7 @@ public struct PermutationEnumerator<T> : IEnumerator<T[]>, IDisposable
             return false;
         }
         var c = _actionEnumerator.Current;
-        SwapAt(c.Index0, c.Index1);
+        SwapAt(a: c.Index0, b: c.Index1);
         return true;
     }
 

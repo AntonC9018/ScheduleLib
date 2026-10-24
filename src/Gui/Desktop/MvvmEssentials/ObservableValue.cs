@@ -10,7 +10,7 @@ public struct ObservableValueSource<T>(T initialValue, IDispatcher<T> dispatcher
         get => _value;
         set
         {
-            if (!EqualityComparer<T>.Default.Equals(_value, value))
+            if (!EqualityComparer<T>.Default.Equals(x: _value, y: value))
             {
                 _value = value;
                 Event.Invoke(value);

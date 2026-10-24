@@ -42,7 +42,7 @@ public static partial class ScheduleBuilderHelper
         {
             for (int j = i + 1; j < lessons.Count; j++)
             {
-                if (DescribeOverlapIfConflicting(s, config, lessons[i].Data, lessons[j].Data) is { } error)
+                if (DescribeOverlapIfConflicting(s, config, a: lessons[i].Data, b: lessons[j].Data) is { } error)
                 {
                     errors.Add(error);
                 }
@@ -69,24 +69,24 @@ public static partial class ScheduleBuilderHelper
         {
             return null;
         }
-        if (!ParitiesIntersect(a.Date.Parity, b.Date.Parity))
+        if (!ParitiesIntersect(a: a.Date.Parity, b: b.Date.Parity))
         {
             return null;
         }
-        var shared = SharedGroup(a.Base.Group.Groups, b.Base.Group.Groups);
+        var shared = SharedGroup(a: a.Base.Group.Groups, b: b.Base.Group.Groups);
         if (shared is null)
         {
             return null;
         }
-        if (!SplitDimensionsIntersect(a.Base.Group, b.Base.Group))
+        if (!SplitDimensionsIntersect(a: a.Base.Group, b: b.Base.Group))
         {
             return null;
         }
-        if (IsAllowlisted(config.Allowlist, s, a, b, shared.Value))
+        if (IsAllowlisted(config.Allowlist, s, a: a, b: b, shared.Value))
         {
             return null;
         }
-        return Describe(s, a, b, shared.Value);
+        return Describe(s, a: a, b: b, shared.Value);
     }
 
     private static bool ParitiesIntersect(Parity? a, Parity? b)
@@ -106,8 +106,8 @@ public static partial class ScheduleBuilderHelper
         foreach (var dimension in PartitionDimensions.All)
         {
             if (!ValuesIntersect(
-                aKey.GetPartitionDimension(dimension).Value,
-                bKey.GetPartitionDimension(dimension).Value))
+                a: aKey.GetPartitionDimension(dimension).Value,
+                b: bKey.GetPartitionDimension(dimension).Value))
             {
                 return false;
             }
@@ -119,11 +119,11 @@ public static partial class ScheduleBuilderHelper
         => a is null || b is null || a == b;
 
     private static bool Intersects(SubGroup a, SubGroup b)
-        => ValuesIntersect(a.Value, b.Value);
+        => ValuesIntersect(a: a.Value, b: b.Value);
     private static bool Intersects(Specialization a, Specialization b)
-        => ValuesIntersect(a.Value, b.Value);
+        => ValuesIntersect(a: a.Value, b: b.Value);
     private static bool Intersects(Alternative a, Alternative b)
-        => ValuesIntersect(a.Value, b.Value);
+        => ValuesIntersect(a: a.Value, b: b.Value);
 
     private static GroupId? SharedGroup(in LessonGroups a, in LessonGroups b)
     {

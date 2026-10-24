@@ -139,7 +139,7 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
                 {
                     return false;
                 }
-                return CheckEquality(c.Value.GetValue(), config);
+                return CheckEquality(existing: c.Value.GetValue(), @scoped: config);
             })
             .FirstOrDefault();
         if (c.IsNull)

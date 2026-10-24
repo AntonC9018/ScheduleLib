@@ -68,7 +68,7 @@ public sealed class ThesisListParser(
         {
             var mapperTeacher = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
             var mapperStudent = sp.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Student);
-            return new(mapperTeacher, mapperStudent);
+            return new(_teacherNameRemapper: mapperTeacher, _studentNameRemapper: mapperStudent);
         });
     }
 
@@ -116,11 +116,11 @@ public sealed class ThesisListParser(
             switch (targetThesisType)
             {
                 case ThesisType.An:
-                    return comparer.Contains(s.Name, "an");
+                    return comparer.Contains(x: s.Name, y: "an");
                 case ThesisType.Licenta:
-                    return comparer.Contains(s.Name, "licenta");
+                    return comparer.Contains(x: s.Name, y: "licenta");
                 case ThesisType.Master:
-                    return comparer.Contains(s.Name, "master");
+                    return comparer.Contains(x: s.Name, y: "master");
                 default:
                     throw Unreachable();
             }
@@ -433,7 +433,7 @@ public sealed class ThesisListParser(
             var it = _headerKeys[index];
             if (it.ExactString is { } exactString)
             {
-                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(text, exactString))
+                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: text, y: exactString))
                 {
                     return column;
                 }
@@ -563,18 +563,24 @@ file static class ConfusableNamesHelper
 {
     private static readonly IReadOnlyDictionary<char, char> Confusable = new Dictionary<char, char>
     {
-        ['А']='A', ['а']='a',
-        ['В']='B',
-        ['Е']='E', ['е']='e',
-        ['К']='K',
-        ['М']='M',
-        ['Н']='H',
-        ['О']='O', ['о']='o',
-        ['Р']='P', ['р']='p',
-        ['С']='C', ['с']='c',
-        ['Т']='T',
-        ['Х']='X', ['х']='x',
-        ['у']='y',
+        ['А'] = 'A',
+        ['а'] = 'a',
+        ['В'] = 'B',
+        ['Е'] = 'E',
+        ['е'] = 'e',
+        ['К'] = 'K',
+        ['М'] = 'M',
+        ['Н'] = 'H',
+        ['О'] = 'O',
+        ['о'] = 'o',
+        ['Р'] = 'P',
+        ['р'] = 'p',
+        ['С'] = 'C',
+        ['с'] = 'c',
+        ['Т'] = 'T',
+        ['Х'] = 'X',
+        ['х'] = 'x',
+        ['у'] = 'y',
     };
 
     public static string ReplaceConfusableRussianChars(string s)
@@ -582,7 +588,7 @@ file static class ConfusableNamesHelper
         var chars = s.ToCharArray();
         for (int i = 0; i < chars.Length; i++)
         {
-            if (Confusable.TryGetValue(chars[i], out var latin))
+            if (Confusable.TryGetValue(key: chars[i], value: out var latin))
             {
                 chars[i] = latin;
             }

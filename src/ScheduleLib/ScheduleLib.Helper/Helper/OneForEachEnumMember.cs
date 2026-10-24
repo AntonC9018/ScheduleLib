@@ -199,7 +199,7 @@ public readonly struct OneForEachEnumMemberArrayBuilder<TEnum, TValue>()
         var notSet = new EnumBitArray<TEnum>();
         foreach (var x in _arr)
         {
-            if (EqualityComparer<TValue>.Default.Equals(x.Value, default))
+            if (EqualityComparer<TValue>.Default.Equals(x: x.Value, y: default))
             {
                 notSet.Set(x.Key);
             }
@@ -237,7 +237,7 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
         comparer ??= EqualityComparer<TValue>.Default;
         foreach (var x in this)
         {
-            if (comparer.Equals(value, x.Value))
+            if (comparer.Equals(x: value, y: x.Value))
             {
                 return x.Key;
             }

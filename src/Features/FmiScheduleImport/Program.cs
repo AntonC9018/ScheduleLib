@@ -17,10 +17,10 @@ var result = await updater.RunAsync(args[0], async (update, token) =>
 {
     var root = Path.GetFullPath(args[1]);
     Directory.CreateDirectory(root);
-    var staging = Path.Combine(root, ".import-" + Guid.NewGuid().ToString("N"));
+    var staging = Path.Combine(root, (string) $".import-{Guid.NewGuid().ToString("N")}");
     await FmiPdfImport.GenerateAsync(update, staging, args.Contains("--strict"), token);
     generated = Path.Combine(root, $"fmi-{update.PeriodStart:yyyy-MM-dd}-{Guid.NewGuid():N}");
-    Directory.Move(staging, generated);
+    Directory.Move(sourceDirName: staging, destDirName: generated);
 }, cancellation.Token);
 Console.WriteLine(result.Updated
     ? $"Imported period {result.PeriodStart:yyyy-MM-dd} into {generated}. Hash checkpoint saved."

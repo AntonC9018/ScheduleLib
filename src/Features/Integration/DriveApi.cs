@@ -50,7 +50,7 @@ public static class GoogleApiHelper1
                 const double maxJitter = 1.0;
                 const double backoffScalar = 1.0;
                 double jitter = random.NextDouble() * maxJitter;
-                var backoff = Math.Pow(2, attempt) * backoffScalar;
+                var backoff = Math.Pow(x: 2, y: attempt) * backoffScalar;
                 var delay = TimeSpan.FromSeconds(jitter + backoff);
                 await Task.Delay(delay);
 
@@ -88,7 +88,7 @@ public static class DriveApiHelper
         List<BasicDriveFile> fileIdsToDelete,
         CancellationToken cancellationToken)
     {
-        var batchCount = CeilDiv(fileIdsToDelete.Count, MaxBatchSize);
+        var batchCount = CeilDiv(x: fileIdsToDelete.Count, y: MaxBatchSize);
         return new(Tasks(), batchCount);
 
         IEnumerable<Func<Task>> Tasks()
@@ -213,7 +213,7 @@ public static class DriveApiHelper
 
         async Task Impl()
         {
-            var request = driveService.Files.Update(null, fileId.Value, inputFile, "application/octet-stream");
+            var request = driveService.Files.Update(null, fileId: fileId.Value, inputFile, contentType: "application/octet-stream");
             await request.UploadAsync(cancellationToken);
         }
     }

@@ -122,8 +122,8 @@ public static class ServiceProviderExtensions
             var offending = services
                 .Where(d =>
                 {
-                    if (!disposableType.IsAssignableFrom(d.ImplementationType) &&
-                        !asyncDisposableType.IsAssignableFrom(d.ImplementationType))
+                    if (!disposableType.IsAssignableFrom(d.ImplementationType)
+                        && !asyncDisposableType.IsAssignableFrom(d.ImplementationType))
                     {
                         return false;
                     }

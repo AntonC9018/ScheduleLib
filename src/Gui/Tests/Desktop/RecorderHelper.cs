@@ -163,7 +163,7 @@ public static partial class RecorderHelper
         PropertyChangedRecorder rec,
         Action<PropertyChangedEventArgs?> a)
     {
-        Assert.Same(rec, e.Recorder);
+        Assert.Same(expected: rec, actual: e.Recorder);
         a((PropertyChangedEventArgs?) e.Payload);
     }
 }
@@ -284,7 +284,7 @@ public static partial class RecorderHelper
         Action<T> a)
     {
         _ = rec;
-        Assert.Same(rec, e.Recorder);
+        Assert.Same(expected: rec, actual: e.Recorder);
         a((T) e.Payload!);
     }
 
@@ -299,7 +299,7 @@ public static partial class RecorderHelper
         this EventRecorderSource s,
         EventRecorderBase<T> rec)
     {
-        var x = s.Where(e => ReferenceEquals(e.Recorder, rec));
+        var x = s.Where(e => ReferenceEquals(objA: e.Recorder, objB: rec));
         return new(x);
     }
 }

@@ -22,7 +22,7 @@ public static class CallMergerHelper
         var merger1 = (IMerger<T>) merger;
         var from1 = (T) from;
         var into1 = (T?) into;
-        var ret = merger1.Merge(from1, into1);
+        var ret = merger1.Merge(@from: from1, @into: into1);
         return ret!;
     }
 
@@ -30,7 +30,7 @@ public static class CallMergerHelper
     {
         var mergerType = merger.GetType();
         var mergeDelegate = _callHelper.Get(mergerType);
-        return mergeDelegate(merger, from, into);
+        return mergeDelegate(merger: merger, @from: from, @into: into);
     }
 
     public static T MergeUsingService<T>(IServiceProvider sp, T from, T? into)
@@ -38,7 +38,7 @@ public static class CallMergerHelper
         var t = from!.GetType();
         var mergerType = typeof(IMerger<>).MakeGenericType(t);
         var merger = sp.GetRequiredService(mergerType);
-        var ret = Merge(merger, from, into);
+        var ret = Merge(merger: merger, @from: from, @into: into);
         return (T) ret;
     }
 }
@@ -50,14 +50,14 @@ public static class CallCopyHelper
         var fromType = from!.GetType();
         var basicOperationsType = typeof(IBasicOperations<>).MakeGenericType(fromType);
         var operations = sp.GetRequiredService(basicOperationsType);
-        return (T) Copy(operations, from);
+        return (T) Copy(operations: operations, @from: from);
     }
 
     public static object Copy(object operations, object from)
     {
         var operationsType = operations.GetType();
         var copyDelegate = _callHelper.Get(operationsType);
-        return copyDelegate(operations, from);
+        return copyDelegate(operations: operations, @from: from);
     }
 
     private delegate object CopyDelegate(object operations, object from);

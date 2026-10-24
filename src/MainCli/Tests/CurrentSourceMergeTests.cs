@@ -11,32 +11,32 @@ public sealed class CurrentSourceMergeTests
     {
         var cacheDirectory = Path.Combine(
             Path.GetTempPath(),
-            "schedulelib-period-cache-" + Guid.NewGuid().ToString("N"));
+            (string) $"schedulelib-period-cache-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(cacheDirectory);
         try
         {
             var sources = Path.Combine(AppContext.BaseDirectory, "data");
             var raw = await Load(
-                sources,
-                cacheDirectory,
+                dataDirectory: sources,
+                cacheDirectory: cacheDirectory,
                 enabled: false);
             Assert.Equal(
-                new[]
+                expected: new[]
                 {
                     new DateOnly(
-                        2026,
-                        9,
-                        1),
+                        year: 2026,
+                        month: 9,
+                        day: 1),
                     new DateOnly(
-                        2026,
-                        9,
-                        21),
+                        year: 2026,
+                        month: 9,
+                        day: 21),
                     new DateOnly(
-                        2026,
-                        10,
-                        11),
+                        year: 2026,
+                        month: 10,
+                        day: 11),
                 },
-                raw.Periods.Select(x => x.Start));
+                actual: raw.Periods.Select(x => x.Start));
             var cloudLabs = raw.EnumerateWeeklyLessons().Where(x =>
                     x.Lesson.Type == LessonType.Lab
                     && x.Lesson.Groups.IsSingleGroup
@@ -55,28 +55,28 @@ public sealed class CurrentSourceMergeTests
                 x => x.Date.Period == new PeriodId(2)
                     && x.Date.DayOfWeek == DayOfWeek.Tuesday
                     && x.Date.Parity == Parity.EveryWeek);
-            var cache = Assert.Single(Directory.EnumerateFiles(cacheDirectory, "*.json"));
+            var cache = Assert.Single(Directory.EnumerateFiles(path: cacheDirectory, searchPattern: "*.json"));
             var originalCache = await File.ReadAllBytesAsync(cache);
             var cacheWriteTime = File.GetLastWriteTimeUtc(cache);
             var merged = await Load(
-                sources,
-                cacheDirectory,
+                dataDirectory: sources,
+                cacheDirectory: cacheDirectory,
                 enabled: true);
-            Assert.Equal(originalCache, await File.ReadAllBytesAsync(cache));
-            Assert.Equal(cacheWriteTime, File.GetLastWriteTimeUtc(cache));
+            Assert.Equal(expected: originalCache, actual: await File.ReadAllBytesAsync(cache));
+            Assert.Equal(expected: cacheWriteTime, actual: File.GetLastWriteTimeUtc(cache));
             var fresh = await Load(
-                sources,
-                cacheDirectory,
+                dataDirectory: sources,
+                cacheDirectory: cacheDirectory,
                 enabled: true,
                 bypass: true);
-            Assert.Equal(merged.AutomaticLabSubGroupMerges.ToArray(), fresh.AutomaticLabSubGroupMerges.ToArray());
-            Assert.Equal(Describe(merged), Describe(fresh));
+            Assert.Equal(expected: merged.AutomaticLabSubGroupMerges.ToArray(), actual: fresh.AutomaticLabSubGroupMerges.ToArray());
+            Assert.Equal(expected: Describe(merged), actual: Describe(fresh));
             Assert.Equal(
-                Describe(raw),
-                Describe(
+                expected: Describe(raw),
+                actual: Describe(
                     await Load(
-                        sources,
-                        cacheDirectory,
+                        dataDirectory: sources,
+                        cacheDirectory: cacheDirectory,
                         enabled: false)));
 
             var ai = Assert.Single(
@@ -95,7 +95,7 @@ public sealed class CurrentSourceMergeTests
                 labs,
                 lesson =>
                 {
-                    Assert.Equal(SubGroup.All, lesson.Lesson.SubGroup);
+                    Assert.Equal(expected: SubGroup.All, actual: lesson.Lesson.SubGroup);
                     Assert.True(lesson.Date.Period.IsUnspecified);
                 });
             Assert.Contains(
@@ -118,19 +118,18 @@ public sealed class CurrentSourceMergeTests
                 LessonTimeConfig.CreateDefault(),
                 ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider());
             var dates = new ScheduledDateTimeProvider(weekly, helper)
-                .Get(
-                    new()
-                    {
-                        Lessons = labs.Select(x => x.Id.AsAny()),
-                        Semester = Semester.Sem1,
-                    }).ToArray();
+                .Get(new()
+                {
+                    Lessons = labs.Select(x => x.Id.AsAny()),
+                    Semester = Semester.Sem1,
+                }).ToArray();
             Assert.NotEmpty(dates);
             Assert.True(
                 dates.Min(x => x.DateTime)
                 < new DateTime(
-                    2026,
-                    10,
-                    11));
+                    year: 2026,
+                    month: 10,
+                    day: 11));
         }
         finally
         {
@@ -141,7 +140,7 @@ public sealed class CurrentSourceMergeTests
     [Fact]
     public async Task WordPeriodAfterPdfRetainsOriginalElectivePolicyInFreshAndCachedLoads()
     {
-        var root = Path.Combine(Path.GetTempPath(), "schedulelib-word-after-pdf-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-word-after-pdf-{Guid.NewGuid().ToString("N")}");
         var sources = Path.Combine(root, "sources");
         var cache = Path.Combine(root, "cache");
         Directory.CreateDirectory(cache);
@@ -168,17 +167,17 @@ public sealed class CurrentSourceMergeTests
                 var file = date == "11.10.26" ? "orar2.pdf" : "Orar_An_II Lic.docx";
                 var sourceDate = date == "11.10.26" ? date : "01.09.26";
                 File.Copy(
-                    Path.Combine(
+                    sourceFileName: Path.Combine(
                         packaged,
                         sourceDate,
                         file),
-                    Path.Combine(destination, file));
+                    destFileName: Path.Combine(destination, file));
             }
             var fresh = await Load(
-                sources,
-                cache,
+                dataDirectory: sources,
+                cacheDirectory: cache,
                 enabled: false);
-            Assert.Equal(3, fresh.Periods.Length);
+            Assert.Equal(expected: 3, actual: fresh.Periods.Length);
             var older = fresh.EnumerateWeeklyLessons().Where(x =>
                     x.Date.Period == new PeriodId(0)
                     && x.Lesson.Alternative == new Alternative("Antreprenoriat inovativ"))
@@ -188,18 +187,18 @@ public sealed class CurrentSourceMergeTests
             var later = fresh.EnumerateWeeklyLessons()
                 .Where(x => x.Date.Period == new PeriodId(2) && courses.Contains(x.Lesson.Course)).ToArray();
             Assert.NotEmpty(later);
-            Assert.All(later, x => Assert.Equal(new Alternative("Antreprenoriat inovativ"), x.Lesson.Alternative));
+            Assert.All(later, x => Assert.Equal(expected: new Alternative("Antreprenoriat inovativ"), actual: x.Lesson.Alternative));
             Assert.Contains(
                 fresh.EnumerateWeeklyLessons(),
                 x => x.Date.Period == new PeriodId(1)
                     && x.Lesson.Alternative.Value is { } alternative
                     && alternative.StartsWith("Antreprenoriat Gr.", StringComparison.Ordinal));
             Assert.Equal(
-                Describe(fresh),
-                Describe(
+                expected: Describe(fresh),
+                actual: Describe(
                     await Load(
-                        sources,
-                        cache,
+                        dataDirectory: sources,
+                        cacheDirectory: cache,
                         enabled: false)));
         }
         finally
@@ -232,7 +231,10 @@ public sealed class CurrentSourceMergeTests
         return scope.ServiceProvider.GetRequiredService<Schedule>();
     }
 
-    private static string[] Describe(Schedule schedule) => schedule.EnumerateWeeklyLessons().Select(x =>
+    private static string[] Describe(Schedule schedule)
+    {
+        return schedule.EnumerateWeeklyLessons().Select(x =>
             $"{x.Id}|{x.Lesson.Course}|{x.Lesson.Groups.ToString(schedule)}|{x.Lesson.GroupPartitionKey}|{x.Lesson.Type}|{x.Date}")
-        .ToArray();
+            .ToArray();
+    }
 }

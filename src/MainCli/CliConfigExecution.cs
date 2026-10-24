@@ -21,26 +21,32 @@ internal static class CliConfigExecution
         WriteIndented = true,
     };
 
-    internal static CliFailure ClassifyRead(Exception error) => error switch
+    internal static CliFailure ClassifyRead(Exception error)
     {
-        OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
-        JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        IOException e => new(CliExit.IoFailure, [e.Message]),
-        UnauthorizedAccessException e => new(CliExit.IoFailure, [e.Message]),
-        _ => new(CliExit.Unexpected, [error.Message]),
-    };
+        return error switch
+        {
+            OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
+            JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            IOException e => new(CliExit.IoFailure, [e.Message]),
+            UnauthorizedAccessException e => new(CliExit.IoFailure, [e.Message]),
+            _ => new(CliExit.Unexpected, [error.Message]),
+        };
+    }
 
-    internal static CliFailure ClassifyWrite(Exception error) => error switch
+    internal static CliFailure ClassifyWrite(Exception error)
     {
-        OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
-        JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        LocalOperationBusyException e => new(CliExit.Busy, [e.Message]),
-        IOException e => new(CliExit.IoFailure, [e.Message]),
-        UnauthorizedAccessException e => new(CliExit.IoFailure, [e.Message]),
-        _ => new(CliExit.Unexpected, [error.Message]),
-    };
+        return error switch
+        {
+            OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
+            JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            LocalOperationBusyException e => new(CliExit.Busy, [e.Message]),
+            IOException e => new(CliExit.IoFailure, [e.Message]),
+            UnauthorizedAccessException e => new(CliExit.IoFailure, [e.Message]),
+            _ => new(CliExit.Unexpected, [error.Message]),
+        };
+    }
 
     internal static int Finish<T>(
         CliCommandContext context,
@@ -58,8 +64,8 @@ internal static class CliConfigExecution
             for (var index = 0; index < profiles.Count; index++)
             {
                 cli.EmitItem(
-                    index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    status: "completed",
                     new { profile = profiles[index] });
             }
 

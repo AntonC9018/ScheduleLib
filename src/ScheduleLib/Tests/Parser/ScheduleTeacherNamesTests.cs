@@ -25,7 +25,7 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = "F.",
         });
-        Assert.Equal(expected, t.Model.Name.FirstName);
+        Assert.Equal(expected: expected, actual: t.Model.Name.FirstName);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class ScheduleTeacherNamesTests
             Short = "L.",
         });
         Assert.Throws<ArgumentException>(() => t.FirstName(newName));
-        Assert.Equal(nameBefore, t.Model.Name.FirstName);
+        Assert.Equal(expected: nameBefore, actual: t.Model.Name.FirstName);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ScheduleTeacherNamesTests
         // Doesn't throw
         t.ShortFirstName(name);
 
-        Assert.Equal("Fi.", t.Model.Name.FirstName[0].Short);
+        Assert.Equal(expected: "Fi.", actual: t.Model.Name.FirstName[0].Short);
     }
 
     [Fact]
@@ -76,14 +76,14 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
+        Assert.Equal(expected: "First", actual: t.Model.Name.FirstName[0].Full);
 
         t.FirstName(CreateSinglePartName(new()
         {
             Full = "Fist",
             Short = null,
         }));
-        Assert.Equal("Fist", t.Model.Name.FirstName[0].Full);
+        Assert.Equal(expected: "Fist", actual: t.Model.Name.FirstName[0].Full);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class ScheduleTeacherNamesTests
             Full = "First",
             Short = null,
         }));
-        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
+        Assert.Equal(expected: "First", actual: t.Model.Name.FirstName[0].Full);
 
         Assert.Throws<ArgumentException>(() =>
             t.FirstName(CreateSinglePartName(new()
@@ -105,7 +105,7 @@ public sealed class ScheduleTeacherNamesTests
                 Full = "Irst",
                 Short = null,
             })));
-        Assert.Equal("First", t.Model.Name.FirstName[0].Full);
+        Assert.Equal(expected: "First", actual: t.Model.Name.FirstName[0].Full);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class ScheduleTeacherNamesTests
         var lookup = s.Lookup(null!);
 
         var t = s.Teacher("First Last");
-        Assert.Equal(t.Id, lookup.Teacher(lastName: "Last"));
+        Assert.Equal(expected: t.Id, actual: lookup.Teacher(lastName: "Last"));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class ScheduleTeacherNamesTests
         var lookup = s.Lookup(null!);
 
         Assert.Null(lookup.Teacher(lastName: "Last"));
-        Assert.Equal(t.Id, lookup.Teacher(lastName: "Otherlast"));
+        Assert.Equal(expected: t.Id, actual: lookup.Teacher(lastName: "Otherlast"));
     }
 }
 
@@ -224,7 +224,7 @@ public sealed class Db
             _teachers,
             _ids,
             firstName);
-        Assert.Equal(expected, i);
+        Assert.Equal(expected: expected, actual: i);
     }
 
     private static TeacherBuilderModel Create(string lastName, NameParts<OptionalNamePart> name)

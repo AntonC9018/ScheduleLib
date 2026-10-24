@@ -8,53 +8,21 @@ namespace ScheduleLib.Cli;
 /// <summary>Provider-specific public messages; exception details stay private.</summary>
 internal sealed record GoogleFailureMessages
 {
-    public required string Timeout
-    {
-        get;
-        init;
-    }
+    public required string Timeout { get; init; }
 
-    public required string Network
-    {
-        get;
-        init;
-    }
+    public required string Network { get; init; }
 
-    public required string Busy
-    {
-        get;
-        init;
-    }
+    public required string Busy { get; init; }
 
-    public required string Io
-    {
-        get;
-        init;
-    }
+    public required string Io { get; init; }
 
-    public required string Access
-    {
-        get;
-        init;
-    }
+    public required string Access { get; init; }
 
-    public required string Rejected
-    {
-        get;
-        init;
-    }
+    public required string Rejected { get; init; }
 
-    public required string Unexpected
-    {
-        get;
-        init;
-    }
+    public required string Unexpected { get; init; }
 
-    public bool IncludeIoDetails
-    {
-        get;
-        init;
-    }
+    public bool IncludeIoDetails { get; init; }
 }
 
 internal static class CliRemoteFailure
@@ -78,7 +46,7 @@ internal static class CliRemoteFailure
         if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException
             || error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
         {
-            var authenticationError = new AuthenticationRequiredException("google", profile ?? "");
+            var authenticationError = new AuthenticationRequiredException(provider: "google", teacher: profile ?? "");
             return new(CliExit.AuthenticationRequired, [authenticationError.Message]);
         }
         var ioExit = CliExit.IoFailure;

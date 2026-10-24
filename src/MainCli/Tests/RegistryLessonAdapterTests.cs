@@ -81,8 +81,8 @@ public sealed class RegistryLessonAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitDelete(document));
         }
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(scenario is "unexpected" or "identity" ? 1 : 2, handler.Reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: scenario is "unexpected" or "identity" ? 1 : 2, actual: handler.Reads);
     }
 
     public static IEnumerable<object[]> FailedResponses()
@@ -146,23 +146,23 @@ public sealed class RegistryLessonAdapterTests
             new(context),
             services,
             default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+        var document = await navigator.GetHtml(new((string) $"https://registry.test/{kind}"));
         var started = false;
         var error = await Assert.ThrowsAnyAsync<Exception>(() => Submit(
             navigator,
             document,
             kind,
             () => started = true));
-        Assert.Equal(rejected, error is RegistrySubmissionRejectedException);
+        Assert.Equal(expected: rejected, actual: error is RegistrySubmissionRejectedException);
         if (!rejected)
         {
             Assert.IsAssignableFrom<IOException>(error);
         }
 
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(1, handler.Reads);
-        Assert.Equal(0, auth.Calls);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Reads);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     [Theory]
@@ -186,7 +186,7 @@ public sealed class RegistryLessonAdapterTests
             new(context),
             services,
             default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+        var document = await navigator.GetHtml(new((string) $"https://registry.test/{kind}"));
         var started = false;
         await Submit(
             navigator,
@@ -194,7 +194,7 @@ public sealed class RegistryLessonAdapterTests
             kind,
             () => started = true);
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -218,7 +218,7 @@ public sealed class RegistryLessonAdapterTests
             new(context),
             services,
             default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+        var document = await navigator.GetHtml(new((string) $"https://registry.test/{kind}"));
         var started = false;
         await Assert.ThrowsAsync<InvalidOperationException>(() => Submit(
             navigator,
@@ -226,7 +226,7 @@ public sealed class RegistryLessonAdapterTests
             kind,
             () => started = true));
         Assert.False(started);
-        Assert.Equal(0, handler.Posts);
+        Assert.Equal(expected: 0, actual: handler.Posts);
     }
 
     [Theory]
@@ -280,10 +280,7 @@ public sealed class RegistryLessonAdapterTests
                     $"<tr><td>03.09.2026 13:15 curs</td><td>Synthetic topic</td><td><a href='{edit}'>Edit</a></td></tr>";
                 return Response(
                     HttpStatusCode.OK,
-                    "<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>"
-                    + (scenario == "missing" ? "" : row)
-                    + (scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")
-                    + "</table>");
+                    (string) $"<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>{(scenario == "missing" ? "" : row)}{(scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")}</table>");
             }
             if (request.RequestUri.AbsolutePath.Contains("/Edit/"))
             {
@@ -335,11 +332,11 @@ public sealed class RegistryLessonAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitLesson(document));
         }
 
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
         Assert.Equal(
-            scenario == "foreign" ? 1 : scenario is "missing" or "list-login" ? 2 : scenario == "duplicate" ? 4 : 3,
-            handler.Reads);
-        Assert.Equal(0, auth.Calls);
+            expected: scenario == "foreign" ? 1 : scenario is "missing" or "list-login" ? 2 : scenario == "duplicate" ? 4 : 3,
+            actual: handler.Reads);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     private static Task Submit(
@@ -349,13 +346,16 @@ public sealed class RegistryLessonAdapterTests
         Action started) =>
         kind == "delete" ? navigator.SubmitDelete(document, started) : navigator.SubmitLesson(document, started);
 
-    private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)
+    private static HttpResponseMessage Response(HttpStatusCode status, string body)
     {
-        Content = new StringContent(
-            body,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(status)
+        {
+            Content = new StringContent(
+                body,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 
     private sealed class Auth : IAuthHandler
     {

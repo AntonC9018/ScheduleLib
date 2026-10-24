@@ -42,7 +42,7 @@ public sealed class QueryTests
     {
         // The invocation directory contains no schedule data; these must still succeed/fail as parsing requires.
         var exit = await CliHost.Run(args);
-        Assert.Equal(expected, exit);
+        Assert.Equal(expected: expected, actual: exit);
     }
 
     [Fact]
@@ -64,8 +64,8 @@ public sealed class QueryTests
         Assert.NotEmpty(filtered.GetProperty("data").EnumerateArray());
         foreach (var lesson in filtered.GetProperty("data").EnumerateArray())
         {
-            Assert.Equal(room, lesson.GetProperty("room").GetString());
-            Assert.Equal(day.ToString(), lesson.GetProperty("day").GetString());
+            Assert.Equal(expected: room, actual: lesson.GetProperty("room").GetString());
+            Assert.Equal(expected: day.ToString(), actual: lesson.GetProperty("day").GetString());
             Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity").GetString()!).IsMatch(parity));
             Assert.True(lesson.GetProperty("slot").GetInt32() <= first.GetProperty("slot").GetInt32());
         }
@@ -76,8 +76,8 @@ public sealed class QueryTests
     public async Task MissingInputReturnsConfigurationError()
     {
         Assert.Equal(
-            3,
-            await new FixtureQuery().Lessons(
+            expected: 3,
+            actual: await new FixtureQuery().Lessons(
                 new(),
                 new() { DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()) },
                 new()));
@@ -97,14 +97,14 @@ public sealed class QueryTests
         var output = Path.Combine(directory, "source.docx");
         try
         {
-            await File.WriteAllTextAsync(input, "original document bytes");
+            await File.WriteAllTextAsync(path: input, contents: "original document bytes");
             var hash = SHA256.HashData(await File.ReadAllBytesAsync(input));
             await Assert.ThrowsAsync<PlatformNotSupportedException>(() =>
                 DocToDocxConversionHelper.TryConvertFile(
-                    input,
-                    output,
+                    inputPath: input,
+                    outputPath: output,
                     CancellationToken.None));
-            Assert.Equal(hash, SHA256.HashData(await File.ReadAllBytesAsync(input)));
+            Assert.Equal(expected: hash, actual: SHA256.HashData(await File.ReadAllBytesAsync(input)));
             Assert.False(File.Exists(output));
         }
         finally
@@ -125,13 +125,13 @@ public sealed class QueryTests
         try
         {
             File.Copy(
-                Path.Combine(
+                sourceFileName: Path.Combine(
                     AppContext.BaseDirectory,
                     "fixtures",
                     "2025_sem2",
                     "zi",
                     "master.xlsx"),
-                Path.Combine(zi, "master.xlsx"));
+                destFileName: Path.Combine(zi, "master.xlsx"));
             Assert.NotEmpty((await Execute(new(), directory)).GetProperty("data").EnumerateArray());
         }
         finally
@@ -144,8 +144,8 @@ public sealed class QueryTests
     public async Task CancelledQueryReturns130BeforeLoading()
     {
         Assert.Equal(
-            130,
-            await new FixtureQuery().Lessons(
+            expected: 130,
+            actual: await new FixtureQuery().Lessons(
                 new(),
                 new(),
                 new(),
@@ -160,9 +160,9 @@ public sealed class QueryTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(2, await CliHost.Run(["query", "lessons", "--day", "invalid", "--json"]));
+            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--day", "invalid", "--json"]));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(2, document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 2, actual: document.RootElement.GetProperty("exitCode").GetInt32());
         }
         finally
         {
@@ -209,7 +209,7 @@ public sealed class QueryTests
                     NoCache = true,
                     DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 };
-                var destination = new OutputArguments { Directory = Path.Combine(directory, command + failure) };
+                var destination = new OutputArguments { Directory = Path.Combine(directory, (string) $"{command}{failure}") };
                 var result = new ResultArguments { Json = true };
                 Console.SetOut(stdout);
                 var exit = command switch
@@ -257,15 +257,15 @@ public sealed class QueryTests
                     _ => throw new InvalidOperationException(),
                 };
                 using var json = JsonDocument.Parse(stdout.ToString());
-                Assert.Equal(failure == "cancel" ? 130 : 5, exit);
-                Assert.Equal(exit, json.RootElement.GetProperty("exitCode").GetInt32());
-                Assert.Equal("failed", json.RootElement.GetProperty("status").GetString());
+                Assert.Equal(expected: failure == "cancel" ? 130 : 5, actual: exit);
+                Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode").GetInt32());
+                Assert.Equal(expected: "failed", actual: json.RootElement.GetProperty("status").GetString());
                 Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
                 Assert.True(initializer.Called);
                 Assert.Empty(
                     Directory.EnumerateFiles(
-                        directory,
-                        "*.json",
+                        path: directory,
+                        searchPattern: "*.json",
                         SearchOption.AllDirectories));
             }
         }
@@ -283,7 +283,7 @@ public sealed class QueryTests
         var identity = Convert.ToHexStringLower(
             SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(fixtures))));
         var cache = Path.Combine(fixtures, $"{identity}_schedule_2025_2.json");
-        await File.WriteAllTextAsync(cache, "{}");
+        await File.WriteAllTextAsync(path: cache, contents: "{}");
         try
         {
             await Assert.ThrowsAsync<Xunit.Sdk.EmptyException>(() => Execute(new()));
@@ -298,11 +298,7 @@ public sealed class QueryTests
 
     private sealed class FailingInitializer(Exception failure, Action? beforeFailure) : IScheduleInitializer
     {
-        public bool Called
-        {
-            get;
-            private set;
-        }
+        public bool Called { get; private set; }
 
         public Task Initialize(ScheduleBuilder builder, CancellationToken cancellationToken)
         {
@@ -346,15 +342,15 @@ public sealed class QueryTests
                     DataDirectory = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 },
                 new() { Json = true });
-            Assert.Equal(0, exit);
+            Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal("query lessons", document.RootElement.GetProperty("command").GetString());
-            Assert.Equal(cwd, Environment.CurrentDirectory);
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(expected: "query lessons", actual: document.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
             Assert.Empty(
                 Directory.EnumerateFiles(
-                    Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                    "*schedule_*.json",
+                    path: Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    searchPattern: "*schedule_*.json",
                     SearchOption.AllDirectories));
             return document.RootElement.Clone();
         }

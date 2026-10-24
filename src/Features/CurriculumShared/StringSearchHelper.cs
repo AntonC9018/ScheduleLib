@@ -60,7 +60,7 @@ public static class StringSearchHelper
                     shorter = t;
                 }
 
-                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(x: longer, y: shorter))
                 {
                     // TODO: This is pretty hard to implement correctly.
                     // I need to get the character positions IN THE ORIGINAL string.

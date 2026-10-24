@@ -17,13 +17,15 @@ internal static class WordConverterProtocol
         pid = 0;
         startTicks = 0;
         var fields = message?.Split('|');
-        return fields is { Length: 4 } && fields[0] == "WORD1" && fields[1] == nonce &&
-            int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out pid) && pid > 0 &&
-            long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out startTicks) && startTicks > 0;
+        return fields is { Length: 4 } && fields[0] == "WORD1" && fields[1] == nonce
+            && int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out pid) && pid > 0
+            && long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out startTicks) && startTicks > 0;
     }
 
     internal static bool IsOwnedProcess(int pid, long reportedTicks, long actualTicks, long converterTicks,
-        int session, int converterSession, string processName, bool existedBeforeConversion) =>
-        pid > 0 && !existedBeforeConversion && reportedTicks == actualTicks && actualTicks >= converterTicks &&
-        session == converterSession && string.Equals(processName, "WINWORD", System.StringComparison.OrdinalIgnoreCase);
+        int session, int converterSession, string processName, bool existedBeforeConversion)
+    {
+        return pid > 0 && !existedBeforeConversion && reportedTicks == actualTicks && actualTicks >= converterTicks
+        && session == converterSession && string.Equals(processName, "WINWORD", System.StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -34,7 +34,7 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
         CancellationToken cancellationToken)
     {
         var manifests = Directory.GetFiles(
-            manifestDirector,
+            path: manifestDirector,
             searchOption: SearchOption.AllDirectories,
             searchPattern: "*.json");
         foreach (var manifestPath in manifests)
@@ -157,7 +157,7 @@ public sealed partial class ManifestFileSource : IManifestFileSource
             }
             else if (!manifest.Teacher.Equals(_teacherName))
             {
-                TeacherNameMismatchLog(_teacherName, manifest.Teacher);
+                TeacherNameMismatchLog(Expected: _teacherName, Found: manifest.Teacher);
             }
         }
         return new(manifest, Path.GetDirectoryName(_path));

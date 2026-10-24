@@ -23,18 +23,10 @@ public sealed class SettingsArguments : IArgumentModel
     [Option(
         "project",
         Description = "Existing project directory; otherwise discover the nearest schedulelib.json upward.")]
-    public string? Project
-    {
-        get;
-        set;
-    }
+    public string? Project { get; set; }
 
     [Option("profile", Description = "Code-defined teacher identity; user/project settings overlay this teacher.")]
-    public string? Profile
-    {
-        get;
-        set;
-    }
+    public string? Profile { get; set; }
 }
 
 public sealed class ConfigOverrideArguments : IArgumentModel
@@ -42,11 +34,7 @@ public sealed class ConfigOverrideArguments : IArgumentModel
     [Option(
         "calendar-name",
         Description = "Inspect a typed GoogleCalendarConfig calendar-name override for this invocation.")]
-    public string? CalendarName
-    {
-        get;
-        set;
-    }
+    public string? CalendarName { get; set; }
 }
 
 public sealed record SettingsSource(string Name, string? File, IReadOnlyList<string> Keys);
@@ -63,35 +51,17 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     internal JsonSerializerOptions Json => _json;
     internal IServiceProvider Services => _provider;
 
-    public TreeBuilder Tree
-    {
-        get;
-    }
+    public TreeBuilder Tree { get; }
 
-    public NodePath Path
-    {
-        get;
-    }
+    public NodePath Path { get; }
 
-    public string? ProjectDirectory
-    {
-        get;
-    }
+    public string? ProjectDirectory { get; }
 
-    public string? Profile
-    {
-        get;
-    }
+    public string? Profile { get; }
 
-    public IReadOnlyList<string> Profiles
-    {
-        get;
-    }
+    public IReadOnlyList<string> Profiles { get; }
 
-    public IReadOnlyList<SettingsSource> Sources
-    {
-        get;
-    }
+    public IReadOnlyList<SettingsSource> Sources { get; }
 
     internal ResolvedSettings(
         ServiceProvider provider,
@@ -134,10 +104,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
 
     MarkerData IMarkerDataHelper.GetMarkerData(IServiceProvider sp) => new(sp.GetRequiredService<TeacherLayerConfig>());
 
-    NodePath? IMarkerDataHelper.GetCurrentPath(MarkerData data) =>
-        data.Value is TeacherLayerConfig { TeacherName: { } name }
+    NodePath? IMarkerDataHelper.GetCurrentPath(MarkerData data)
+    {
+        return data.Value is TeacherLayerConfig { TeacherName: { } name }
             ? _profilePaths.GetValueOrDefault(name.ToString())
             : Path;
+    }
 
     public IReadOnlyDictionary<string, SettingsValue> Inspect()
     {
@@ -173,15 +145,18 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         return new(value?.DeepClone(), ContributingSources(key));
     }
 
-    private IReadOnlyList<SettingsSource> ContributingSources(string key) => Sources
-        .Select(source => source with
-        {
-            Keys = source.Keys.Where(x =>
-                x == key
-                || x.StartsWith(key + ".", StringComparison.Ordinal)
-                || key.StartsWith(x + ".", StringComparison.Ordinal)).Order().ToArray(),
-        })
-        .Where(source => source.Keys.Count != 0).ToArray();
+    private IReadOnlyList<SettingsSource> ContributingSources(string key)
+    {
+        return Sources
+            .Select(source => source with
+            {
+                Keys = source.Keys.Where(x =>
+                    x == key
+                    || x.StartsWith((string) $"{key}.", StringComparison.Ordinal)
+                    || key.StartsWith((string) $"{x}.", StringComparison.Ordinal)).Order().ToArray(),
+            })
+            .Where(source => source.Keys.Count != 0).ToArray();
+    }
 
     private JsonNode? GetNode<T>(NodeDataKey key) where T : class
     {
@@ -235,10 +210,16 @@ public static partial class CliSettings
         "ScheduleDerivationConfig",
     };
 
-    public static string UserFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ScheduleLib",
-        FileName);
+    public static string UserFile
+    {
+        get
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ScheduleLib",
+                FileName);
+        }
+    }
 
     public static async Task<ResolvedSettings> Load(
         SettingsArguments arguments,
@@ -246,12 +227,14 @@ public static partial class CliSettings
         string? userFile = null,
         CancellationToken cancellationToken = default,
         ConfigOverrideArguments? overrides = null)
-        => await LoadCore(
-            arguments,
-            invocationDirectory,
-            userFile,
-            cancellationToken,
-            overrides);
+    {
+        return await LoadCore(
+                arguments,
+                invocationDirectory: invocationDirectory,
+                userFile: userFile,
+                cancellationToken,
+                overrides);
+    }
 
     private static async Task<ResolvedSettings> LoadCore(
         SettingsArguments arguments,
@@ -262,7 +245,7 @@ public static partial class CliSettings
         (string Path, JsonObject Envelope)? replacement = null)
     {
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
-        var project = DiscoverProject(arguments.Project, cwd);
+        var project = DiscoverProject(explicitProject: arguments.Project, invocationDirectory: cwd);
         var services = new ServiceCollection();
         // Registration only: never initialize schedules, credential resolvers, provider clients, or user secrets.
         services.AddConfigsServices();
@@ -339,23 +322,23 @@ public static partial class CliSettings
                 path.Add(coded.Value);
                 sources.Add(
                     CodeSource(
-                        "code profile: " + coded.Key,
+                        (string) $"code profile: {coded.Key}",
                         coded.Value,
                         json));
                 AddOverlay(
                     path,
                     sources,
                     user,
-                    "user profile: " + coded.Key,
+                    name: (string) $"user profile: {coded.Key}",
                     user?.Profiles.GetValueOrDefault(coded.Key),
-                    coded.Key);
+                    profile: coded.Key);
                 AddOverlay(
                     path,
                     sources,
                     local,
-                    "project profile: " + coded.Key,
+                    name: (string) $"project profile: {coded.Key}",
                     local?.Profiles.GetValueOrDefault(coded.Key),
-                    coded.Key);
+                    profile: coded.Key);
                 AddCli(path, sources);
                 profilePaths.Add(coded.Key, new(path.ToImmutable()));
                 if (arguments.Profile == coded.Key)
@@ -373,14 +356,14 @@ public static partial class CliSettings
             var resolved = new ResolvedSettings(
                 provider,
                 tree,
-                new(selectedPath),
+                path: new(selectedPath),
                 json,
-                project,
-                arguments.Profile,
+                projectDirectory: project,
+                profile: arguments.Profile,
                 codeProfiles.Keys.Order().ToArray(),
                 selectedSources,
                 profilePaths,
-                new(defaultsPath.ToImmutable()));
+                globalPath: new(defaultsPath.ToImmutable()));
             resolved.Validate();
             return resolved;
 
@@ -431,8 +414,8 @@ public static partial class CliSettings
                 }
 
                 sources.Add(new(
-                    name,
-                    file.Path,
+                    Name: name,
+                    File: file.Path,
                     LeafKeys(values).Concat(
                             actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [])
                         .ToArray()));
@@ -449,8 +432,8 @@ public static partial class CliSettings
                 new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x => x.CalendarName = calendar);
                 path.Add(node);
                 sources.Add(new(
-                    "CLI arguments",
-                    null,
+                    Name: "CLI arguments",
+                    File: null,
                     ["GoogleCalendarConfig.calendarName"]));
             }
         }
@@ -468,7 +451,7 @@ public static partial class CliSettings
             string full;
             try
             {
-                full = Path.GetFullPath(selected, invocationDirectory);
+                full = Path.GetFullPath(path: selected, basePath: invocationDirectory);
             }
             catch (ArgumentException)
             {
@@ -584,7 +567,7 @@ public static partial class CliSettings
                     throw new JsonException($"Unknown teacher profile '{entry.Key}' in {path}.");
                 }
 
-                profiles.Add(entry.Key, ReadBlock(entry.Value, "profiles." + entry.Key));
+                profiles.Add(entry.Key, ReadBlock(entry.Value, (string) $"profiles.{entry.Key}"));
             }
         }
         var operations = ReadOperations(
@@ -594,9 +577,9 @@ public static partial class CliSettings
             teachers);
         return new(
             Path.GetFullPath(path),
-            defaults,
+            Defaults: defaults,
             profiles,
-            operations);
+            Operations: operations);
 
         JsonObject? ReadBlock(JsonNode? block, string location)
         {
@@ -816,7 +799,7 @@ public static partial class CliSettings
                 {
                     try
                     {
-                        obj[entry.Key] = Path.GetFullPath(path, directory);
+                        obj[entry.Key] = Path.GetFullPath(path: path, basePath: directory);
                     }
                     catch (ArgumentException)
                     {
@@ -863,8 +846,8 @@ public static partial class CliSettings
             }
         }
         return new(
-            name,
-            null,
+            Name: name,
+            File: null,
             keys);
     }
 
@@ -879,7 +862,7 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                foreach (var key in LeafKeys(entry.Value, prefix.Length == 0 ? entry.Key : prefix + "." + entry.Key))
+                foreach (var key in LeafKeys(entry.Value, prefix.Length == 0 ? entry.Key : (string) $"{prefix}.{entry.Key}"))
                 {
                     yield return key;
                 }
@@ -891,11 +874,14 @@ public static partial class CliSettings
         }
     }
 
-    private static bool IsSecret(string key) => key.Contains("password", StringComparison.OrdinalIgnoreCase)
-        || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
-        || key.Contains("token", StringComparison.OrdinalIgnoreCase)
-        || key.Equals("apiKey", StringComparison.OrdinalIgnoreCase)
-        || key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
+    private static bool IsSecret(string key)
+    {
+        return key.Contains("password", StringComparison.OrdinalIgnoreCase)
+            || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
+            || key.Contains("token", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("apiKey", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
+    }
 
     internal static JsonNode? Redact(JsonNode? node)
     {

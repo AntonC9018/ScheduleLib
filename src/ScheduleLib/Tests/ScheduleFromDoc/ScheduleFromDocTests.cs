@@ -137,7 +137,7 @@ public sealed class ScheduleFromDocTests
         {
             var text1 = await File.ReadAllTextAsync(outputPath, helper.CancellationToken);
             var text2 = await File.ReadAllTextAsync(otherOutputPath, helper.CancellationToken);
-            Assert.Equal(text1, text2);
+            Assert.Equal(expected: text1, actual: text2);
         }
     }
 
@@ -171,7 +171,7 @@ public sealed class ScheduleFromDocTests
             foreach (var name in course.Item.Names)
             {
                 var id = lookup.Course(name.AsMemory());
-                Assert.Equal(course.Id, id);
+                Assert.Equal(expected: course.Id, actual: id);
             }
         }
         foreach (var teacher in schedule.EnumerateTeachers())
@@ -182,7 +182,7 @@ public sealed class ScheduleFromDocTests
         foreach (var group in schedule.EnumerateGroups())
         {
             var id = lookup.Group(group.Item.Name);
-            Assert.Equal(group.Id, id);
+            Assert.Equal(expected: group.Id, actual: id);
         }
     }
 }

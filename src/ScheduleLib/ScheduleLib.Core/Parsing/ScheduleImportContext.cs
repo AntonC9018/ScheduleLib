@@ -160,7 +160,7 @@ public sealed class ScheduleImportContext
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw ConflictingSpecializationException.ForConflictingValues(prevSpec.Value, spec.Value);
+                    throw ConflictingSpecializationException.ForConflictingValues(first: prevSpec.Value, second: spec.Value);
                 }
                 specialization = spec;
             }
@@ -169,7 +169,7 @@ public sealed class ScheduleImportContext
                 var label = remapped;
                 if (subGroup is { } prevSub)
                 {
-                    throw ConflictingSubGroupException.ForConflictingValues(prevSub.Value, label.Value);
+                    throw ConflictingSubGroupException.ForConflictingValues(first: prevSub.Value, second: label.Value);
                 }
                 subGroup = label;
             }
@@ -253,7 +253,7 @@ public sealed class ScheduleImportContext
                 {
                     return a ?? b;
                 }
-                var ret = DiacriticsHelper.SelectWithDiacritics(a, b);
+                var ret = DiacriticsHelper.SelectWithDiacritics(a: a, b: b);
                 return ret;
             });
 
@@ -354,8 +354,8 @@ public sealed class ScheduleImportContext
                     // Course = true,
                 };
                 var diff = LessonBuilderHelper.Diff(
-                    builder.Model.Data,
-                    model.Data,
+                    a: builder.Model.Data,
+                    b: model.Data,
                     diffMask);
                 if (diff.TheyDiffer)
                 {
@@ -434,7 +434,7 @@ public static class RomanianLanguageHelper
         {
             Debug.Assert(name.Length <= 256);
             {
-                middle.Replace(output[1 .. ^1], 'â', 'î');
+                middle.Replace(output[1 .. ^1], oldValue: 'â', newValue: 'î');
             }
             output[0] = name[0];
             output[^1] = name[^1];

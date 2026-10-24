@@ -9,7 +9,7 @@ public sealed class OwnedConversionDirectory : IDisposable
 
     public static OwnedConversionDirectory Create(string parent)
     {
-        var path = Path.Combine(Path.GetFullPath(parent), "schedulelib-doc-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(Path.GetFullPath(parent), (string) $"schedulelib-doc-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(path);
         return new OwnedConversionDirectory(path);
     }

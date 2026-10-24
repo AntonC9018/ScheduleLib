@@ -15,7 +15,7 @@ public sealed class LessonDiffTests
         {
             AllGroups = true,
         };
-        Assert.NotEqual(a, b);
+        Assert.NotEqual(expected: a, actual: b);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class LessonDiffTests
                 Course = new(2),
             },
         };
-        var diff = LessonBuilderHelper.Diff(lesson1, lesson2, new()
+        var diff = LessonBuilderHelper.Diff(a: lesson1, b: lesson2, new()
         {
             Room = true,
             Course = true,
@@ -63,11 +63,11 @@ public sealed class LessonDiffTests
                 Teachers = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(ref lesson1, lesson2, new()
+        LessonBuilderHelper.Merge(to: ref lesson1, @from: lesson2, new()
         {
             Teachers = true,
         });
-        Assert.Equal([new(1), new(2), new(3)], lesson1.General.Teachers);
+        Assert.Equal(expected: [new(1), new(2), new(3)], actual: lesson1.General.Teachers);
     }
 
     [Fact]
@@ -87,14 +87,14 @@ public sealed class LessonDiffTests
                 Groups = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(ref lesson1, lesson2, new()
+        LessonBuilderHelper.Merge(to: ref lesson1, @from: lesson2, new()
         {
             Groups = true,
         });
 
         var g = lesson1.Group.Groups;
-        Assert.Equal(new GroupId(1), g[0]);
-        Assert.Equal(new GroupId(2), g[1]);
-        Assert.Equal(new GroupId(3), g[2]);
+        Assert.Equal(expected: new GroupId(1), actual: g[0]);
+        Assert.Equal(expected: new GroupId(2), actual: g[1]);
+        Assert.Equal(expected: new GroupId(3), actual: g[2]);
     }
 }

@@ -10,7 +10,7 @@ public static class AtomicFilePublisher
         CancellationToken token)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
-        var staged = destination + $".{Guid.NewGuid():N}.tmp";
+        var staged = (string) $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
         try
         {
             await using (var stream = new FileStream(staged,

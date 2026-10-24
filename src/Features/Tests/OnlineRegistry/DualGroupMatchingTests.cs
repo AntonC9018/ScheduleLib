@@ -25,7 +25,7 @@ public sealed class DualGroupMatchingTests
             builder.Group(group);
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         var match = GroupsNavigator.FindGroupMatch(builder.Build(), parsed);
-        Assert.Equal(new GroupId(expectedGroup), Assert.Single(match));
+        Assert.Equal(expected: new GroupId(expectedGroup), actual: Assert.Single(match));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class DualGroupMatchingTests
         builder.Group("DU2501");
         builder.Group("IA2501");
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2501DU");
-        Assert.Equal(2, parsed.Grade.Value);
-        Assert.Equal(new GroupId(0), Assert.Single(GroupsNavigator.FindGroupMatch(builder.Build(), parsed)));
+        Assert.Equal(expected: 2, actual: parsed.Grade.Value);
+        Assert.Equal(expected: new GroupId(0), actual: Assert.Single(GroupsNavigator.FindGroupMatch(builder.Build(), parsed)));
     }
 }

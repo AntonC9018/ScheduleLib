@@ -162,8 +162,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                     {
                         var gradientPos = (float) i / deadlinesExcelConfig.LessonDelayLimit;
                         var color = ColorHelper.Lerp(
-                            deadlinesExcelConfig.GoodColor,
-                            deadlinesExcelConfig.BadColor,
+                            a: deadlinesExcelConfig.GoodColor,
+                            b: deadlinesExcelConfig.BadColor,
                             gradientPos);
                         var xlColor = XLColor.FromColor(color);
                         var conditionalFormat = worksheet.AddConditionalFormat();
@@ -178,7 +178,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                     {
                         p.CancellationToken.ThrowIfCancellationRequested();
                         string leftCellRef = worksheet
-                            .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
+                            .Cell(row: cell.Address.RowNumber, column: cell.Address.ColumnNumber - 1)
                             .Address
                             .ToStringRelative();
                         if (cell.Value.IsBlank)

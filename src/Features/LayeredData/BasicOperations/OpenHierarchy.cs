@@ -23,7 +23,7 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool b))
         {
             return b;
         }
@@ -34,7 +34,7 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
             return false;
         }
 
-        var ret = KeyEqualityCallHelper.CompareUsingService(_serviceProvider, x, y);
+        var ret = KeyEqualityCallHelper.CompareUsingService(_serviceProvider, x: x, y: y);
         return ret;
     }
 
@@ -65,13 +65,13 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsDefault(x, y, out bool bothDefault))
+        if (ComparisonHelper.AtLeastOneIsDefault(x: x, y: y, out bool bothDefault))
         {
             return bothDefault;
         }
         var keyx = _keyGetter(x);
         var keyy = _keyGetter(y);
-        return _propEquality.Equals(keyx, keyy);
+        return _propEquality.Equals(x: keyx, y: keyy);
     }
 
     public int GetHashCode([DisallowNull] T obj)
@@ -132,7 +132,7 @@ public readonly struct OpenHierarchyConfigurer<TBase>(IServiceCollection service
 {
     public DerivedTypeConfig<T> AddDerived<T>() where T : class, TBase
     {
-        services.ConfigureOpenHierarchy(x => x.AddDerivedType(typeof(TBase), typeof(T)));
+        services.ConfigureOpenHierarchy(x => x.AddDerivedType(root: typeof(TBase), derived: typeof(T)));
         return new(services);
     }
 
@@ -232,7 +232,7 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
         }
         // Types match.
         {
-            var ret = CallMergerHelper.MergeUsingService(_sp, from, into);
+            var ret = CallMergerHelper.MergeUsingService(_sp, @from: from, @into: into);
             return ret;
         }
     }
@@ -244,27 +244,27 @@ internal static class KeyEqualityCallHelper
     public static bool CompareUsingService(IServiceProvider sp, object x, object y)
     {
         var comparer = GetService(sp, x);
-        return Compare(comparer, x, y);
+        return Compare(comparer: comparer, x: x, y: y);
     }
 
     public static bool Compare(object comparer, object x, object y)
     {
         var comparerType = comparer.GetType();
         var compareDelegate = _compareCallHelper.Get(comparerType);
-        return compareDelegate(comparer, x, y);
+        return compareDelegate(comparer: comparer, x: x, y: y);
     }
 
     public static int GetHashCodeUsingService(IServiceProvider sp, object x)
     {
         var comparer = GetService(sp, x);
-        return GetHashCode(comparer, x);
+        return GetHashCode(comparer: comparer, x: x);
     }
 
     public static int GetHashCode(object comparer, object x)
     {
         var comparerType = comparer.GetType();
         var compareDelegate = _getHashCodeCallHelper.Get(comparerType);
-        return compareDelegate(comparer, x);
+        return compareDelegate(comparer: comparer, x: x);
     }
 
     private static object GetService(IServiceProvider sp, object x)
@@ -287,7 +287,7 @@ internal static class KeyEqualityCallHelper
         var comparer1 = (IKeyEqualityComparer<T>) comparer;
         var x1 = (T) x;
         var y1 = (T) y;
-        var ret = comparer1.Equals(x1, y1);
+        var ret = comparer1.Equals(x: x1, y: y1);
         return ret!;
     }
 

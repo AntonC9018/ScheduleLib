@@ -294,7 +294,7 @@ public static class CourseNameParsing
                     var copy = a;
                     copy.Move(w.Type);
 
-                    if (IsEqualRecursion(copy, b))
+                    if (IsEqualRecursion(a: copy, b: b))
                     {
                         return true;
                     }
@@ -303,11 +303,11 @@ public static class CourseNameParsing
             return false;
         }
 
-        if (TryIngore(a, b))
+        if (TryIngore(a: a, b: b))
         {
             return true;
         }
-        if (TryIngore(b, a))
+        if (TryIngore(a: b, b: a))
         {
             return true;
         }
@@ -344,7 +344,7 @@ public static class CourseNameParsing
                 var bcopy = b;
                 acopy.Move(wa.Type);
                 bcopy.Move(wb.Type);
-                if (IsEqualRecursion(acopy, bcopy))
+                if (IsEqualRecursion(a: acopy, b: bcopy))
                 {
                     return true;
                 }
@@ -358,7 +358,7 @@ public static class CourseNameParsing
     {
         var iself = new CourseIter(self);
         var iother = new CourseIter(other);
-        return IsEqualRecursion(iself, iother);
+        return IsEqualRecursion(a: iself, b: iother);
     }
 
     private struct CourseIter(ParsedCourseName c)
@@ -392,7 +392,7 @@ public static class CourseNameParsing
                         return default;
                     }
                     var all = s.GetInitials();
-                    var singleLetterSlice = all.Slice(InitialsIndex, 1);
+                    var singleLetterSlice = all.Slice(start: InitialsIndex, length: 1);
                     return new(singleLetterSlice);
                 }
                 default:
@@ -651,7 +651,7 @@ internal readonly ref struct WordEnumerable
         {
             get
             {
-                return _e._str.Slice(_startIndex, length: _count);
+                return _e._str.Slice(start: _startIndex, length: _count);
             }
         }
     }

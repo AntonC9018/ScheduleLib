@@ -96,7 +96,7 @@ public sealed partial class AttendanceListsExcelParser
                     throw Unreachable();
                 }
             }
-            var lessonName = p.ParseParameters.WorksheetNames.TryGetValue(sheet.Name, out var mappedName)
+            var lessonName = p.ParseParameters.WorksheetNames.TryGetValue(key: sheet.Name, value: out var mappedName)
                 ? mappedName : sheet.Name;
             if (helper.LookupLessonByExcelName(lessonName, additionallyIgnoredFields, p.ParseParameters.LabMerges) is not { } lesson)
             {
@@ -530,7 +530,7 @@ public sealed partial class AttendanceListsExcelParser
                 if (requiredPartition is { } partition && lesson.Lesson.GroupPartitionKey != partition) continue;
                 if (result != default)
                 {
-                    var differences = LessonBuilderHelper.Diff(lesson.Lesson, result, resultDiffMask);
+                    var differences = LessonBuilderHelper.Diff(a: lesson.Lesson, b: result, resultDiffMask);
                     if (differences.Intersect(diffMask).TheyDiffer)
                     {
                         continue;
@@ -543,14 +543,14 @@ public sealed partial class AttendanceListsExcelParser
                 }
                 {
 
-                    var differences = LessonBuilderHelper.Diff(lesson.Lesson, diffLesson, diffMask);
+                    var differences = LessonBuilderHelper.Diff(a: lesson.Lesson, b: diffLesson, diffMask);
                     if (!differences.TheyAreEqual)
                     {
                         continue;
                     }
                     result = lesson.Lesson;
                     lessonId = lesson.Id;
-                    var x = LessonBuilderHelper.Diff(lesson.Lesson, diffLesson, diffMask);
+                    var x = LessonBuilderHelper.Diff(a: lesson.Lesson, b: diffLesson, diffMask);
                     _ = x;
                 }
             }
@@ -862,7 +862,9 @@ public sealed partial class AttendanceListsExcelParser
             var value = cell.Value.GetDateTime();
             date = new()
             {
-                Month = value.Month, Day = value.Day, Year = value.Year,
+                Month = value.Month,
+                Day = value.Day,
+                Year = value.Year,
                 Time = value.TimeOfDay == TimeSpan.Zero ? null : TimeOnly.FromDateTime(value),
             };
             return true;
@@ -985,7 +987,7 @@ public sealed partial class AttendanceListsExcelParser
             var row = rowE.Current;
 
             var lastColumn = Math.Max(studentNameColumn, row.LastCellUsed()?.Address.ColumnNumber ?? studentNameColumn);
-            using var cells = row.Cells(studentNameColumn, lastColumn).GetEnumerator();
+            using var cells = row.Cells(firstColumn: studentNameColumn, lastColumn: lastColumn).GetEnumerator();
             if (!cells.MoveNext())
             {
                 break;

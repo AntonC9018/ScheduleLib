@@ -45,7 +45,7 @@ public struct ItemOwner<T>
 
     public T Borrow()
     {
-        if (Interlocked.CompareExchange(ref _isInUse, true, false) != false)
+        if (Interlocked.CompareExchange(location1: ref _isInUse, value: true, comparand: false) != false)
         {
             throw new InvalidOperationException("Cannot get this, it's being used already.");
         }
@@ -55,7 +55,7 @@ public struct ItemOwner<T>
 
     public void Return()
     {
-        if (Interlocked.CompareExchange(ref _isInUse, false, true) != true)
+        if (Interlocked.CompareExchange(location1: ref _isInUse, value: false, comparand: true) != true)
         {
             throw new InvalidOperationException("Trying to return item not in use.");
         }

@@ -11,12 +11,12 @@ public sealed class CommandContextTests
             new(),
             CancellationToken.None);
         var timeout = context.ClassifyInputFailure(new OperationCanceledException());
-        Assert.Equal(CliExit.IoFailure, timeout.ExitCode);
-        Assert.Equal("Schedule provider request timed out.", Assert.Single(timeout.Errors));
+        Assert.Equal(expected: CliExit.IoFailure, actual: timeout.ExitCode);
+        Assert.Equal(expected: "Schedule provider request timed out.", actual: Assert.Single(timeout.Errors));
         context.Cancellation.Cancel();
         var cancelled = context.ClassifyInputFailure(new OperationCanceledException());
-        Assert.Equal(CliExit.Cancelled, cancelled.ExitCode);
-        Assert.Equal("Cancelled.", Assert.Single(cancelled.Errors));
+        Assert.Equal(expected: CliExit.Cancelled, actual: cancelled.ExitCode);
+        Assert.Equal(expected: "Cancelled.", actual: Assert.Single(cancelled.Errors));
     }
 
     [Fact]
@@ -26,10 +26,10 @@ public sealed class CommandContextTests
             "test",
             new(),
             CancellationToken.None);
-        Assert.Equal(CliExit.InvalidConfiguration, context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
-        Assert.Equal(CliExit.InvalidConfiguration, context.ClassifyInputFailure(new JsonException()).ExitCode);
-        Assert.Equal(CliExit.IoFailure, context.ClassifyInputFailure(new IOException()).ExitCode);
-        Assert.Equal(CliExit.InvalidArguments, context.ClassifyInputFailure(new ArgumentException()).ExitCode);
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new JsonException()).ExitCode);
+        Assert.Equal(expected: CliExit.IoFailure, actual: context.ClassifyInputFailure(new IOException()).ExitCode);
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: context.ClassifyInputFailure(new ArgumentException()).ExitCode);
     }
 
     [Fact]
@@ -44,9 +44,9 @@ public sealed class CommandContextTests
                        CancellationToken.None))
             {
                 context.Artifacts = await RunOutput.Create(
-                    directory,
-                    context.Command,
-                    context.RunId,
+                    output: directory,
+                    command: context.Command,
+                    runId: context.RunId,
                     CancellationToken.None);
                 await context.Artifacts.Publish(
                     "example.txt",
@@ -61,20 +61,20 @@ public sealed class CommandContextTests
                     },
                     CancellationToken.None);
                 var failure = context.ClassifyInputFailure(new IOException("Disk failure."), export: true);
-                Assert.Equal(CliExit.Partial, failure.ExitCode);
+                Assert.Equal(expected: CliExit.Partial, actual: failure.ExitCode);
                 var renderingFailure = context.ClassifyInputFailure(
                     new CliOutputStreamingException("Output failed."),
                     export: true);
-                Assert.Equal(CliExit.Partial, renderingFailure.ExitCode);
+                Assert.Equal(expected: CliExit.Partial, actual: renderingFailure.ExitCode);
                 var paths = await context.CompleteArtifacts(failure.ExitCode);
                 Assert.Contains(context.Artifacts.ManifestPath, paths);
                 using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(context.Artifacts.ManifestPath));
-                Assert.Equal("partial", manifest.RootElement.GetProperty("Status").GetString());
+                Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
             }
             using var next = await RunOutput.Create(
-                directory,
-                "test",
-                Guid.NewGuid().ToString("N"),
+                output: directory,
+                command: "test",
+                runId: Guid.NewGuid().ToString("N"),
                 CancellationToken.None);
         }
         finally

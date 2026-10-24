@@ -6,11 +6,7 @@ namespace ScheduleLib.Cli;
 public sealed class QuizArguments : IArgumentModel
 {
     [Option("quiz-id", Description = "Required positive numeric Moodle quiz ID.")]
-    public string? QuizId
-    {
-        get;
-        set;
-    }
+    public string? QuizId { get; set; }
 
     internal bool IsValid =>
         QuizId is { Length: > 0 } && QuizId.All(x => x is >= '0' and <= '9') && QuizId.Any(x => x != '0');
@@ -105,8 +101,8 @@ public partial class RegistryCommands
                 actionIndexes.Add(action, outcomes.Count);
                 var initial = ToOutcome(
                     action,
-                    apply.Apply ? "not-attempted" : "planned",
-                    null);
+                    status: apply.Apply ? "not-attempted" : "planned",
+                    detail: null);
                 outcomes.Add(initial);
                 StreamOutcome(outcomes.Count - 1, initial);
             }
@@ -126,8 +122,8 @@ public partial class RegistryCommands
                 attempted |= outcome.SubmissionStarted;
                 Record(
                     action,
-                    outcome.Status,
-                    outcome.Detail);
+                    status: outcome.Status,
+                    detail: outcome.Detail);
                 if (outcome.Cancelled)
                 {
                     throw new OperationCanceledException();
@@ -164,13 +160,13 @@ public partial class RegistryCommands
             string? detail)
         {
             return new(
-                action.Destination,
-                action.Course,
-                action.Groups,
+                Destination: action.Destination,
+                Course: action.Course,
+                Groups: action.Groups,
                 action.TestNumber,
                 action.Grades,
-                status,
-                detail);
+                Status: status,
+                Detail: detail);
         }
 
         void Record(
@@ -181,8 +177,8 @@ public partial class RegistryCommands
             var index = actionIndexes[action];
             var outcome = ToOutcome(
                 action,
-                status,
-                detail);
+                status: status,
+                detail: detail);
             outcomes[index] = outcome;
             StreamOutcome(index, outcome);
         }
@@ -190,8 +186,8 @@ public partial class RegistryCommands
         void StreamOutcome(int index, RegistryGradeOutcome outcome)
         {
             context.StreamItem(
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                outcome.Status,
+                id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                status: outcome.Status,
                 outcome,
                 renderHuman: () =>
                 {

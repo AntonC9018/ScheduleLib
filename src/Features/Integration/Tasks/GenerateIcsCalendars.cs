@@ -55,7 +55,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         foreach (var g in _schedule.EnumerateGroups())
         {
             var calendarName = GroupCalendarName(g.Item, semester);
-            await WriteGroupCalendar($"{g.Item.Name}.ics", calendarName, new()
+            await WriteGroupCalendar(fileName: $"{g.Item.Name}.ics", calendarName: calendarName, new()
             {
                 OneOfGroupIds = [g.Id],
             });
@@ -69,7 +69,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 sb.Append(".ics");
                 var fileName = sb.ToStringAndClear();
 
-                await WriteGroupCalendar(fileName, calendarName, combination.ToGroupFilter(g.Id));
+                await WriteGroupCalendar(fileName: fileName, calendarName: calendarName, combination.ToGroupFilter(g.Id));
             }
         }
 
@@ -81,7 +81,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             sb1.Append(".ics");
             var fileName = sb1.ToStringAndClear();
 
-            await WriteCalendar(fileName, TeacherCalendarName(teacher), isTeacherCalendar: true, new()
+            await WriteCalendar(fileName: fileName, calendarName: TeacherCalendarName(teacher), isTeacherCalendar: true, new()
             {
                 TeacherFilter = new()
                 {
@@ -93,7 +93,7 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
         async Task WriteGroupCalendar(string fileName, string calendarName, GroupFilter groupFilter)
         {
-            await WriteCalendar(fileName, calendarName, isTeacherCalendar: false, new()
+            await WriteCalendar(fileName: fileName, calendarName: calendarName, isTeacherCalendar: false, new()
             {
                 GroupFilter = groupFilter,
             });

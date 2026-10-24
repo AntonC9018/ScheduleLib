@@ -27,10 +27,10 @@ public sealed class AuthenticationTests
                 Teacher,
                 fixture.Services,
                 default));
-        Assert.Equal("schedulelib auth login google --profile \"Curmanschii Anton\"", missing.LoginCommand);
-        Assert.Equal(0, fixture.Tokens.Consents);
-        Assert.Equal(0, fixture.Tokens.Refreshes);
-        Assert.DoesNotContain("client-secret", missing.Message);
+        Assert.Equal(expected: "schedulelib auth login google --profile \"Curmanschii Anton\"", actual: missing.LoginCommand);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Consents);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
+        Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: missing.Message);
         Assert.Empty((await auth.Status(Teacher, default)).Accounts);
     }
 
@@ -44,41 +44,41 @@ public sealed class AuthenticationTests
             Teacher,
             fixture.Services,
             default);
-        Assert.Equal(1, fixture.Tokens.Consents);
+        Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         var credential = await auth.Resolve(
             fixture.Config,
             Scopes,
             Teacher,
             fixture.Services,
             default);
-        Assert.Equal("access-secret", credential.Token.AccessToken);
-        Assert.Equal(0, fixture.Tokens.Refreshes);
+        Assert.Equal(expected: "access-secret", actual: credential.Token.AccessToken);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
         var file = Assert.Single(
             Directory.GetFiles(
-                fixture.Root,
-                "*.json",
+                path: fixture.Root,
+                searchPattern: "*.json",
                 SearchOption.AllDirectories));
         var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
         stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
         await new AtomicTokenStore(file).Write(stored, default);
-        Assert.Equal("refreshable", Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
+        Assert.Equal(expected: "refreshable", actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
         var refreshed = await auth.Resolve(
             fixture.Config,
             Scopes,
             Teacher,
             fixture.Services,
             default);
-        Assert.Equal("refreshed-secret", refreshed.Token.AccessToken);
-        Assert.Equal("refresh-secret", refreshed.Token.RefreshToken);
-        Assert.Equal(1, fixture.Tokens.Refreshes);
-        Assert.Equal(1, fixture.Tokens.Consents);
-        Assert.Equal("authorized", Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
+        Assert.Equal(expected: "refreshed-secret", actual: refreshed.Token.AccessToken);
+        Assert.Equal(expected: "refresh-secret", actual: refreshed.Token.RefreshToken);
+        Assert.Equal(expected: 1, actual: fixture.Tokens.Refreshes);
+        Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
+        Assert.Equal(expected: "authorized", actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
         Assert.Equal(
-            "refreshed-secret",
-            (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
+            expected: "refreshed-secret",
+            actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
         if (!OperatingSystem.IsWindows())
         {
-            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(file));
+            Assert.Equal(expected: UnixFileMode.UserRead | UnixFileMode.UserWrite, actual: File.GetUnixFileMode(file));
         }
     }
 
@@ -100,8 +100,8 @@ public sealed class AuthenticationTests
             default));
         var file = Assert.Single(
             Directory.GetFiles(
-                fixture.Root,
-                "*.json",
+                path: fixture.Root,
+                searchPattern: "*.json",
                 SearchOption.AllDirectories));
         var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
         stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
@@ -113,10 +113,10 @@ public sealed class AuthenticationTests
             Teacher,
             fixture.Services,
             default));
-        Assert.DoesNotContain("access-secret", error.ToString());
-        Assert.DoesNotContain("client-secret", error.ToString());
-        Assert.Equal(1, fixture.Tokens.Consents);
-        Assert.Equal("access-secret", (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.ToString());
+        Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.ToString());
+        Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
+        Assert.Equal(expected: "access-secret", actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
     }
 
     [Fact]
@@ -145,13 +145,13 @@ public sealed class AuthenticationTests
             Teacher,
             fixture.Services,
             default);
-        Assert.Equal(2, fixture.Tokens.Consents);
+        Assert.Equal(expected: 2, actual: fixture.Tokens.Consents);
         await auth.Login(
             fixture.Config,
             "Nartea Nichita",
             fixture.Services,
             default);
-        Assert.Equal(2, (await auth.Status(Teacher, default)).Accounts.Count);
+        Assert.Equal(expected: 2, actual: (await auth.Status(Teacher, default)).Accounts.Count);
         Assert.Single((await auth.Status("Nartea Nichita", default)).Accounts);
         var first = await auth.Resolve(
             fixture.Config,
@@ -165,7 +165,7 @@ public sealed class AuthenticationTests
         await Assert.ThrowsAsync<IOException>(() => first.Flow.DataStore.StoreAsync(Teacher, first.Token));
         Assert.Empty((await auth.Status(Teacher, default)).Accounts);
         await auth.Logout(Teacher, default);
-        Assert.Equal(0, fixture.Tokens.Refreshes);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
     }
 
     [Fact]
@@ -208,13 +208,13 @@ public sealed class AuthenticationTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.Write(
             new TokenResponse { AccessToken = "cancelled" },
             cancelled.Token));
-        Assert.Equal("old", (await store.GetAsync<TokenResponse>(Teacher)).AccessToken);
-        var writes = Enumerable.Range(0, 12).Select(i => store.Write(
+        Assert.Equal(expected: "old", actual: (await store.GetAsync<TokenResponse>(Teacher)).AccessToken);
+        var writes = Enumerable.Range(start: 0, count: 12).Select(i => store.Write(
             new TokenResponse { AccessToken = i.ToString() },
             default));
         await Task.WhenAll(writes);
         Assert.NotNull(await store.GetAsync<TokenResponse>(Teacher));
-        Assert.Empty(Directory.GetFiles(fixture.Root, "*.tmp"));
+        Assert.Empty(Directory.GetFiles(path: fixture.Root, searchPattern: "*.tmp"));
     }
 
     [Theory]
@@ -247,9 +247,9 @@ public sealed class AuthenticationTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(2, await CliHost.Run(args));
+            Assert.Equal(expected: 2, actual: await CliHost.Run(args));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(2, result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode").GetInt32());
         }
         finally
         {
@@ -267,9 +267,9 @@ public sealed class AuthenticationTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(3, await CliHost.Run(["auth", verb, "google", "--json"]));
+            Assert.Equal(expected: 3, actual: await CliHost.Run(["auth", verb, "google", "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Contains("--profile", result.RootElement.GetProperty("errors")[0].GetString());
+            Assert.Contains(expectedSubstring: "--profile", actualString: result.RootElement.GetProperty("errors")[0].GetString());
         }
         finally
         {
@@ -287,14 +287,14 @@ public sealed class AuthenticationTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                0,
-                await CliHost.Run(
+                expected: 0,
+                actual: await CliHost.Run(
                     ["auth", "status", "google", "--profile", Teacher, "--project", fixture.Root, "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal("auth status google", result.RootElement.GetProperty("command").GetString());
-            Assert.Equal(Teacher, result.RootElement.GetProperty("data").GetProperty("profile").GetString());
+            Assert.Equal(expected: "auth status google", actual: result.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: Teacher, actual: result.RootElement.GetProperty("data").GetProperty("profile").GetString());
             Assert.Empty(Directory.GetFileSystemEntries(fixture.Root));
-            Assert.DoesNotContain("secret", output.ToString());
+            Assert.DoesNotContain(expectedSubstring: "secret", actualString: output.ToString());
         }
         finally
         {
@@ -308,20 +308,19 @@ public sealed class AuthenticationTests
         using var fixture = new Fixture();
         using var settings = await CliSettings.Load(
             new() { Profile = Teacher },
-            fixture.Root,
-            Path.Combine(fixture.Root, "missing-settings.json"));
+            invocationDirectory: fixture.Root,
+            userFile: Path.Combine(fixture.Root, "missing-settings.json"));
         var services = new ServiceCollection();
         services.AddConfigsServices();
         services.AddOnlineRegistry();
         settings.ConfigureServices(services);
         services.AddScoped<CurrentUserNameProvider>();
         services.AddScoped<GoogleCredentialResolver>();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?>
-            {
-                ["Google:ClientId"] = "configured-client",
-                ["Google:ClientSecret"] = "configured-client-secret",
-            }).Build());
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Google:ClientId"] = "configured-client",
+            ["Google:ClientSecret"] = "configured-client-secret",
+        }).Build());
         services.AddSingleton<IGoogleCredentialAuthorization>(_ => fixture.Auth);
         await using var container = services.BuildServiceProvider();
         await using var scope = container.CreateAsyncScope();
@@ -339,13 +338,13 @@ public sealed class AuthenticationTests
             scope.ServiceProvider,
             default);
         Assert.Equal(
-            "access-secret",
-            (await resolver.Resolve(
+            expected: "access-secret",
+            actual: (await resolver.Resolve(
                 config,
                 Scopes,
                 default)).Token.AccessToken);
-        Assert.Equal(1, fixture.Tokens.Consents);
-        Assert.Equal(0, fixture.Tokens.Refreshes);
+        Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
     }
 
     [Theory]
@@ -359,16 +358,16 @@ public sealed class AuthenticationTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                130,
-                await new AuthCommands().Status(
+                expected: 130,
+                actual: await new AuthCommands().Status(
                     new() { Provider = provider },
                     new() { Profile = Teacher },
                     new() { Json = true },
                     new CancellationToken(true)));
             using var json = JsonDocument.Parse(output.ToString());
-            Assert.Equal("cancelled", json.RootElement.GetProperty("status").GetString());
-            Assert.Equal(130, json.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("data").ValueKind);
+            Assert.Equal(expected: "cancelled", actual: json.RootElement.GetProperty("status").GetString());
+            Assert.Equal(expected: 130, actual: json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: JsonValueKind.Null, actual: json.RootElement.GetProperty("data").ValueKind);
         }
         finally
         {
@@ -378,27 +377,15 @@ public sealed class AuthenticationTests
 
     private sealed class Fixture : IDisposable
     {
-        public string Root
-        {
-            get;
-        } = Path.Combine(Path.GetTempPath(), "schedulelib-auth-" + Guid.NewGuid().ToString("N"));
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-auth-{Guid.NewGuid().ToString("N")}");
 
-        public FakeTokens Tokens
-        {
-            get;
-        } = new();
+        public FakeTokens Tokens { get; } = new();
 
         public GoogleAuthentication Auth => new(Root, Tokens);
 
-        public ServiceProvider Services
-        {
-            get;
-        } = new ServiceCollection().BuildServiceProvider();
+        public ServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
 
-        public BuiltGoogleCredentialsConfig Config
-        {
-            get;
-        } = new()
+        public BuiltGoogleCredentialsConfig Config { get; } = new()
         {
             CredentialsPath = "ignored-project-token-path",
             ApiKeysSource = new ManualGoogleApiKeysSource
@@ -424,29 +411,13 @@ public sealed class AuthenticationTests
     {
         private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
 
-        public int Consents
-        {
-            get;
-            private set;
-        }
+        public int Consents { get; private set; }
 
-        public int Refreshes
-        {
-            get;
-            private set;
-        }
+        public int Refreshes { get; private set; }
 
-        public bool FailRefresh
-        {
-            get;
-            set;
-        }
+        public bool FailRefresh { get; set; }
 
-        public bool CancelConsent
-        {
-            get;
-            set;
-        }
+        public bool CancelConsent { get; set; }
 
         public Task<TokenResponse> Consent(
             ClientSecrets secrets,

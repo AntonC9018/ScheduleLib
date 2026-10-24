@@ -585,7 +585,7 @@ internal readonly struct StudentNameRemapHelper
     {
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
-            aliases.Add(NameHelper.Parse(alias.Key), NameHelper.Parse(alias.Value));
+            aliases.Add(key: NameHelper.Parse(alias.Key), value: NameHelper.Parse(alias.Value));
         var dbToHtmlIndexMap = new OptionalIndex[namesInDb.Count];
         var count = namesInHtml.Length;
         Array.Fill(dbToHtmlIndexMap, OptionalIndex.Invalid);
@@ -594,7 +594,7 @@ internal readonly struct StudentNameRemapHelper
         {
             var parser = new SequenceReader(namesInHtml[i].Name);
             var name = NameHelper.Parse(ref parser);
-            var sourceName = aliases.GetValueOrDefault(name, name);
+            var sourceName = aliases.GetValueOrDefault(key: name, defaultValue: name);
             var remappedIndex = namesInDb.NameToIndex(sourceName);
             if (!remappedIndex.IsInvalid)
             {

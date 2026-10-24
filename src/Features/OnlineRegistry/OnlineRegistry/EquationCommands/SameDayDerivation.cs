@@ -314,7 +314,7 @@ internal struct MatchingContext
     public MatchingContext(MatchingLists lists)
     {
         _lists = lists;
-        _matches = new(lists.AllToday.Count, _lists.ExistingToday.Count);
+        _matches = new(allLen: lists.AllToday.Count, existingLen: _lists.ExistingToday.Count);
     }
 
     public void AddMatch(Mapping m)

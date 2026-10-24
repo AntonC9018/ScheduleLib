@@ -22,7 +22,7 @@ public sealed class RegistryTopicScopeTests
     {
         var (schedule, groups) = ScheduleWith("DJ2602(en)", "DJ2601(ru)");
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
-        Assert.Equal("DJ2601 (ru), DJ2602 (en)", scope);
+        Assert.Equal(expected: "DJ2601 (ru), DJ2602 (en)", actual: scope);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class RegistryTopicScopeTests
     {
         var (schedule, groups) = ScheduleWith("IA2501");
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
-        Assert.Equal("IA2501 (ro)", scope);
+        Assert.Equal(expected: "IA2501 (ro)", actual: scope);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class RegistryTopicScopeTests
         var groups = new LessonGroups();
         groups.Add(group.Id);
         var scope = RegistryTopicScope.Format(builder.Build(), groups, GroupPartitionKey.All);
-        Assert.Equal("IA2501", scope);
+        Assert.Equal(expected: "IA2501", actual: scope);
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var partition = new GroupPartitionKey(SubGroup.CreateNumeric(number), Specialization.All);
         var scope = RegistryTopicScope.Format(schedule, groups, partition);
-        Assert.Equal($"DJ2601 (ru) {suffix}", scope);
+        Assert.Equal(expected: $"DJ2601 (ru) {suffix}", actual: scope);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var partition = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
         var scope = RegistryTopicScope.Format(schedule, groups, partition);
-        Assert.Equal("DJ2601 (ru) /en", scope);
+        Assert.Equal(expected: "DJ2601 (ru) /en", actual: scope);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class RegistryTopicScopeTests
             new Specialization("DJ"),
             new Alternative("Antreprenoriat"));
         var scope = RegistryTopicScope.Format(schedule, groups, partition);
-        Assert.Equal("DJ2601 (ru) /alt:Antreprenoriat /spec:DJ /I", scope);
+        Assert.Equal(expected: "DJ2601 (ru) /alt:Antreprenoriat /spec:DJ /I", actual: scope);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var partition = new GroupPartitionKey(SpecialSubGroups.Beginners, Specialization.All);
         var scope = RegistryTopicScope.Format(schedule, groups, partition);
-        Assert.StartsWith("DJ2601 (ru) /sub:", scope);
+        Assert.StartsWith(expectedStartString: "DJ2601 (ru) /sub:", actualString: scope);
     }
 
     [Fact]
@@ -93,11 +93,11 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
-        var appended = RegistryTopicScope.Append("Curs introductiv", scope, known);
-        Assert.Equal($"Curs introductiv ({scope})", appended);
-        Assert.True(RegistryTopicScope.TrySplit(appended, known, out var baseTopic, out var splitScope));
-        Assert.Equal("Curs introductiv", baseTopic);
-        Assert.Equal(scope, splitScope);
+        var appended = RegistryTopicScope.Append(topic: "Curs introductiv", scope: scope, known);
+        Assert.Equal(expected: $"Curs introductiv ({scope})", actual: appended);
+        Assert.True(RegistryTopicScope.TrySplit(topic: appended, known, baseTopic: out var baseTopic, scope: out var splitScope));
+        Assert.Equal(expected: "Curs introductiv", actual: baseTopic);
+        Assert.Equal(expected: scope, actual: splitScope);
     }
 
     [Fact]
@@ -106,10 +106,10 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)", "DJ2602(en)");
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
-        var appended = RegistryTopicScope.Append("Laborator", scope, known);
-        Assert.True(RegistryTopicScope.TrySplit(appended, known, out var baseTopic, out var splitScope));
-        Assert.Equal("Laborator", baseTopic);
-        Assert.Equal(scope, splitScope);
+        var appended = RegistryTopicScope.Append(topic: "Laborator", scope: scope, known);
+        Assert.True(RegistryTopicScope.TrySplit(topic: appended, known, baseTopic: out var baseTopic, scope: out var splitScope));
+        Assert.Equal(expected: "Laborator", actual: baseTopic);
+        Assert.Equal(expected: scope, actual: splitScope);
     }
 
     [Fact]
@@ -121,12 +121,12 @@ public sealed class RegistryTopicScopeTests
             new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All));
         var known = (IReadOnlyCollection<string>) [oldScope, newScope];
 
-        var replaced = RegistryTopicScope.Append($"Baza ({oldScope})", newScope, known);
-        Assert.Equal($"Baza ({newScope})", replaced);
+        var replaced = RegistryTopicScope.Append(topic: $"Baza ({oldScope})", scope: newScope, known);
+        Assert.Equal(expected: $"Baza ({newScope})", actual: replaced);
 
-        var first = RegistryTopicScope.Append("Baza", newScope, known);
-        var second = RegistryTopicScope.Append(first, newScope, known);
-        Assert.Equal(first, second);
+        var first = RegistryTopicScope.Append(topic: "Baza", scope: newScope, known);
+        var second = RegistryTopicScope.Append(topic: first, scope: newScope, known);
+        Assert.Equal(expected: first, actual: second);
     }
 
     [Fact]
@@ -136,14 +136,14 @@ public sealed class RegistryTopicScopeTests
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
 
-        Assert.False(RegistryTopicScope.TrySplit("Feature (optional)", known, out var baseTopic, out var splitScope));
+        Assert.False(RegistryTopicScope.TrySplit(topic: "Feature (optional)", known, baseTopic: out var baseTopic, scope: out var splitScope));
         Assert.Null(baseTopic);
         Assert.Null(splitScope);
 
-        Assert.False(RegistryTopicScope.TrySplit("Topic (unrelated audience)", known, out _, out _));
+        Assert.False(RegistryTopicScope.TrySplit(topic: "Topic (unrelated audience)", known, baseTopic: out _, scope: out _));
 
-        var appended = RegistryTopicScope.Append("Feature (optional)", scope, known);
-        Assert.Equal($"Feature (optional) ({scope})", appended);
+        var appended = RegistryTopicScope.Append(topic: "Feature (optional)", scope: scope, known);
+        Assert.Equal(expected: $"Feature (optional) ({scope})", actual: appended);
     }
 
     [Fact]
@@ -153,13 +153,13 @@ public sealed class RegistryTopicScopeTests
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
 
-        Assert.False(RegistryTopicScope.TrySplit("Intro (part 1) rest", known, out _, out _));
+        Assert.False(RegistryTopicScope.TrySplit(topic: "Intro (part 1) rest", known, baseTopic: out _, scope: out _));
 
-        var appended = RegistryTopicScope.Append("Intro (part 1)", scope, known);
-        Assert.Equal($"Intro (part 1) ({scope})", appended);
-        Assert.True(RegistryTopicScope.TrySplit(appended, known, out var baseTopic, out var splitScope));
-        Assert.Equal("Intro (part 1)", baseTopic);
-        Assert.Equal(scope, splitScope);
+        var appended = RegistryTopicScope.Append(topic: "Intro (part 1)", scope: scope, known);
+        Assert.Equal(expected: $"Intro (part 1) ({scope})", actual: appended);
+        Assert.True(RegistryTopicScope.TrySplit(topic: appended, known, baseTopic: out var baseTopic, scope: out var splitScope));
+        Assert.Equal(expected: "Intro (part 1)", actual: baseTopic);
+        Assert.Equal(expected: scope, actual: splitScope);
     }
 
     [Fact]
@@ -169,8 +169,8 @@ public sealed class RegistryTopicScopeTests
         var full = RegistryTopicScope.Format(schedule, groups,
             new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All));
         var known = (IReadOnlyCollection<string>) [full];
-        Assert.False(RegistryTopicScope.TrySplit("Baza (DJ2601)", known, out _, out _));
-        Assert.False(RegistryTopicScope.TrySplit("Baza (DJ2601 (ru))", known, out _, out _));
+        Assert.False(RegistryTopicScope.TrySplit(topic: "Baza (DJ2601)", known, baseTopic: out _, scope: out _));
+        Assert.False(RegistryTopicScope.TrySplit(topic: "Baza (DJ2601 (ru))", known, baseTopic: out _, scope: out _));
     }
 
     [Theory]
@@ -182,8 +182,8 @@ public sealed class RegistryTopicScopeTests
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var scope = RegistryTopicScope.Format(schedule, groups, GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
-        Assert.Equal(topic, RegistryTopicScope.Append(topic, scope, known));
-        Assert.False(RegistryTopicScope.TrySplit(topic, known, out _, out _));
+        Assert.Equal(expected: topic, actual: RegistryTopicScope.Append(topic: topic, scope: scope, known));
+        Assert.False(RegistryTopicScope.TrySplit(topic: topic, known, baseTopic: out _, scope: out _));
     }
 
     [Theory]
@@ -194,12 +194,12 @@ public sealed class RegistryTopicScopeTests
     {
         var known = (IReadOnlyCollection<string>) [canonical];
         var topic = $"Baza ({alias})";
-        Assert.True(RegistryTopicScope.TrySplit(topic, known, out var baseTopic, out var splitScope));
-        Assert.Equal("Baza", baseTopic);
-        Assert.Equal(canonical, splitScope);
+        Assert.True(RegistryTopicScope.TrySplit(topic: topic, known, baseTopic: out var baseTopic, scope: out var splitScope));
+        Assert.Equal(expected: "Baza", actual: baseTopic);
+        Assert.Equal(expected: canonical, actual: splitScope);
 
-        var replaced = RegistryTopicScope.Append(topic, canonical, known);
-        Assert.Equal($"Baza ({canonical})", replaced);
+        var replaced = RegistryTopicScope.Append(topic: topic, scope: canonical, known);
+        Assert.Equal(expected: $"Baza ({canonical})", actual: replaced);
     }
 
     [Fact]
@@ -210,8 +210,8 @@ public sealed class RegistryTopicScopeTests
             new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All));
         var known = (IReadOnlyCollection<string>) [scope];
         var lower = $"Baza ({scope.ToLowerInvariant()})";
-        Assert.True(RegistryTopicScope.TrySplit(lower, known, out var baseTopic, out var splitScope));
-        Assert.Equal("Baza", baseTopic);
-        Assert.Equal(scope, splitScope);
+        Assert.True(RegistryTopicScope.TrySplit(topic: lower, known, baseTopic: out var baseTopic, scope: out var splitScope));
+        Assert.Equal(expected: "Baza", actual: baseTopic);
+        Assert.Equal(expected: scope, actual: splitScope);
     }
 }

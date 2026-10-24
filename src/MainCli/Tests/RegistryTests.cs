@@ -43,21 +43,20 @@ public sealed class RegistryTests
                     IsWildcard = false,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                new("https://registry.test/group"),
-                new("https://registry.test/evaluation")));
+                uri: new("https://registry.test/group"),
+                evaluationUri: new("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
-        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
-            new()
-            {
-                Navigator = navigator,
-                Attendance = new([]),
-                LessonTopics = NoLessonTopics.Instance,
-                Semester = Semester.Sem2,
-                Diagnostics = diagnostics,
-            });
+        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
+        {
+            Navigator = navigator,
+            Attendance = new([]),
+            LessonTopics = NoLessonTopics.Instance,
+            Semester = Semester.Sem2,
+            Diagnostics = diagnostics,
+        });
         Assert.Empty(plan);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-schedule-dates");
-        Assert.Equal(0, navigator.Submissions);
+        Assert.Equal(expected: 0, actual: navigator.Submissions);
     }
 
     [Theory]
@@ -88,7 +87,7 @@ public sealed class RegistryTests
         },
         2)]
     public async Task RoutingRejectsIrrelevantArguments(string[] args, int exit) =>
-        Assert.Equal(exit, await CliHost.Run(args));
+        Assert.Equal(expected: exit, actual: await CliHost.Run(args));
 
     [Theory]
     [InlineData(false, false)]
@@ -131,8 +130,8 @@ public sealed class RegistryTests
                     Value = destinationGroups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                new("https://registry.test/group"),
-                new("https://registry.test/evaluation")));
+                uri: new("https://registry.test/group"),
+                evaluationUri: new("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
@@ -148,9 +147,9 @@ public sealed class RegistryTests
             explicitApply: true);
         Assert.NotEmpty(plan);
         Assert.Contains(plan, action => action.Kind == "create");
-        Assert.Equal(0, navigator.Submissions);
+        Assert.Equal(expected: 0, actual: navigator.Submissions);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
-        Assert.Equal(hasAttendanceSources, diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
+        Assert.Equal(expected: hasAttendanceSources, actual: diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
         Assert.NotEmpty(topics.Keys);
         Assert.All(topics.Keys, key => Assert.True(key.Groups.Value.IsSubSetOf(destinationGroups)));
@@ -197,8 +196,8 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                new("https://registry.test/group"),
-                new("https://registry.test/evaluation"))) { TwoGroups = true };
+                uri: new("https://registry.test/group"),
+                evaluationUri: new("https://registry.test/evaluation"))) { TwoGroups = true };
         var delivered = 0;
         await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(
             new()
@@ -211,13 +210,13 @@ public sealed class RegistryTests
             actions =>
             {
                 Assert.NotEmpty(actions);
-                Assert.Equal(++delivered, navigator.GroupReads);
+                Assert.Equal(expected: ++delivered, actual: navigator.GroupReads);
                 return Task.FromResult(continueScanning);
             },
             explicitApply: true);
-        Assert.Equal(continueScanning ? 2 : 1, delivered);
-        Assert.Equal(delivered, navigator.GroupReads);
-        Assert.Equal(0, navigator.Submissions);
+        Assert.Equal(expected: continueScanning ? 2 : 1, actual: delivered);
+        Assert.Equal(expected: delivered, actual: navigator.GroupReads);
+        Assert.Equal(expected: 0, actual: navigator.Submissions);
     }
 
     [Theory]
@@ -245,21 +244,21 @@ public sealed class RegistryTests
         await using var fake = new IncrementalProvider { FailSubmission = failSubmission };
         using var capture = new Capture();
         Assert.Equal(
-            exit,
-            await new TestCommands(fake).Sync(
+            expected: exit,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = apply }));
-        Assert.Equal(apply ? 1 : 0, fake.Submissions);
-        Assert.Equal(!failSubmission, fake.LaterScanStarted);
+        Assert.Equal(expected: apply ? 1 : 0, actual: fake.Submissions);
+        Assert.Equal(expected: !failSubmission, actual: fake.LaterScanStarted);
         var result = capture.Result();
-        Assert.Equal(apply ? "partial" : "failed", result.GetProperty("status").GetString());
+        Assert.Equal(expected: apply ? "partial" : "failed", actual: result.GetProperty("status").GetString());
         var outcomes = result.GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(1, outcomes.GetArrayLength());
+        Assert.Equal(expected: 1, actual: outcomes.GetArrayLength());
         Assert.Equal(
-            actionStatus == "preview" ? "planned" : actionStatus,
-            outcomes[0].GetProperty("status").GetString());
+            expected: actionStatus == "preview" ? "planned" : actionStatus,
+            actual: outcomes[0].GetProperty("status").GetString());
     }
 
     [Theory]
@@ -296,8 +295,8 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                new("https://registry.test/group"),
-                new("https://registry.test/evaluation")));
+                uri: new("https://registry.test/group"),
+                evaluationUri: new("https://registry.test/evaluation")));
         var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
         var parameters = new AddLessonsToOnlineRegistryTaskHandler.RunParams
         {
@@ -313,23 +312,23 @@ public sealed class RegistryTests
             using var capture = new Capture();
             await using var session = new PlannedProvider(plan);
             Assert.Equal(
-                5,
-                await new TestCommands(session).Sync(
+                expected: 5,
+                actual: await new TestCommands(session).Sync(
                     new(),
                     new() { Profile = "test" },
                     new() { Json = true },
                     new() { Apply = true }));
             var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-            Assert.Equal("failed", outcomes[0].GetProperty("status").GetString());
-            Assert.Equal("not-attempted", outcomes[1].GetProperty("status").GetString());
-            Assert.Equal(0, navigator.Submissions);
-            Assert.Equal(1, navigator.FormReads);
+            Assert.Equal(expected: "failed", actual: outcomes[0].GetProperty("status").GetString());
+            Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
+            Assert.Equal(expected: 0, actual: navigator.Submissions);
+            Assert.Equal(expected: 1, actual: navigator.FormReads);
         }
         else
         {
             await handler.Run(parameters);
             Assert.True(navigator.FormReads > 1);
-            Assert.Equal(navigator.FormReads - 1, navigator.Submissions);
+            Assert.Equal(expected: navigator.FormReads - 1, actual: navigator.Submissions);
         }
     }
 
@@ -366,26 +365,25 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                new("https://registry.test/group"),
-                new("https://registry.test/evaluation")))
+                uri: new("https://registry.test/group"),
+                evaluationUri: new("https://registry.test/evaluation")))
         {
             InvalidFirstForm = false,
             ReadFailure = !submitted,
             SubmissionFailure = submitted,
         };
         var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(() =>
-            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Run(
-                new()
-                {
-                    Navigator = navigator,
-                    Attendance = new([]),
-                    LessonTopics = NoLessonTopics.Instance,
-                    Semester = Semester.Sem2,
-                }));
-        Assert.Equal(submitted, error.SubmissionStarted);
+            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Run(new()
+            {
+                Navigator = navigator,
+                Attendance = new([]),
+                LessonTopics = NoLessonTopics.Instance,
+                Semester = Semester.Sem2,
+            }));
+        Assert.Equal(expected: submitted, actual: error.SubmissionStarted);
         Assert.IsType<InvalidOperationException>(error.InnerException);
-        Assert.Equal(1, navigator.FormReads);
-        Assert.Equal(submitted ? 1 : 0, navigator.Submissions);
+        Assert.Equal(expected: 1, actual: navigator.FormReads);
+        Assert.Equal(expected: submitted ? 1 : 0, actual: navigator.Submissions);
     }
 
     [Fact]
@@ -394,20 +392,20 @@ public sealed class RegistryTests
         await using var fake = new FakeProvider();
         using var capture = new Capture();
         Assert.Equal(
-            0,
-            await new TestCommands(fake).Sync(
+            expected: 0,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher-alias" },
                 new() { Json = true },
                 new()));
-        Assert.Equal(0, fake.Navigator.Submissions);
-        Assert.Equal(1, fake.Plans);
+        Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
+        Assert.Equal(expected: 1, actual: fake.Plans);
         var result = capture.Result();
-        Assert.Equal("preview", result.GetProperty("status").GetString());
+        Assert.Equal(expected: "preview", actual: result.GetProperty("status").GetString());
         Assert.Equal(
-            "actual-account",
-            result.GetProperty("data").GetProperty("target").GetProperty("account").GetString());
-        Assert.Equal(3, result.GetProperty("data").GetProperty("outcomes").GetArrayLength());
+            expected: "actual-account",
+            actual: result.GetProperty("data").GetProperty("target").GetProperty("account").GetString());
+        Assert.Equal(expected: 3, actual: result.GetProperty("data").GetProperty("outcomes").GetArrayLength());
     }
 
     [Fact]
@@ -417,26 +415,26 @@ public sealed class RegistryTests
         await using var locks = new FakeLock();
         var commands = new TestCommands(fake, locks);
         Assert.Equal(
-            0,
-            await commands.Sync(
+            expected: 0,
+            actual: await commands.Sync(
                 new(),
                 new() { Profile = "first-alias" },
                 new(),
                 new()));
         using var capture = new Capture();
         Assert.Equal(
-            0,
-            await commands.Sync(
+            expected: 0,
+            actual: await commands.Sync(
                 new(),
                 new() { Profile = "other-alias" },
                 new() { Json = true },
                 new() { Apply = true }));
-        Assert.Equal(2, fake.Plans);
-        Assert.Equal(3, fake.Navigator.Submissions);
-        Assert.Equal(fake.Target, locks.Target);
+        Assert.Equal(expected: 2, actual: fake.Plans);
+        Assert.Equal(expected: 3, actual: fake.Navigator.Submissions);
+        Assert.Equal(expected: fake.Target, actual: locks.Target);
         Assert.All(
             capture.Result().GetProperty("data").GetProperty("outcomes").EnumerateArray(),
-            x => Assert.Equal("completed", x.GetProperty("status").GetString()));
+            x => Assert.Equal(expected: "completed", actual: x.GetProperty("status").GetString()));
     }
 
     [Fact]
@@ -445,15 +443,15 @@ public sealed class RegistryTests
         await using var fake = new FakeProvider { FailSubmission = true };
         using var capture = new Capture();
         Assert.Equal(
-            6,
-            await new TestCommands(fake).Sync(
+            expected: 6,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        Assert.Equal(1, fake.Navigator.Submissions);
+        Assert.Equal(expected: 1, actual: fake.Navigator.Submissions);
         var outcome = capture.Result().GetProperty("data").GetProperty("outcomes")[0];
-        Assert.Equal("uncertain", outcome.GetProperty("status").GetString());
+        Assert.Equal(expected: "uncertain", actual: outcome.GetProperty("status").GetString());
     }
 
     [Fact]
@@ -462,15 +460,15 @@ public sealed class RegistryTests
         await using var fake = new FakeProvider { CancelSecond = true };
         using var capture = new Capture();
         Assert.Equal(
-            130,
-            await new TestCommands(fake).Sync(
+            expected: 130,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
         var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal("completed", outcomes[0].GetProperty("status").GetString());
-        Assert.Equal("uncertain", outcomes[1].GetProperty("status").GetString());
+        Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("status").GetString());
+        Assert.Equal(expected: "uncertain", actual: outcomes[1].GetProperty("status").GetString());
     }
 
     [Theory]
@@ -495,15 +493,15 @@ public sealed class RegistryTests
         };
         using var capture = new Capture();
         Assert.Equal(
-            exit,
-            await new TestCommands(fake).Sync(
+            expected: exit,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
         var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(status, outcomes[0].GetProperty("status").GetString());
-        Assert.Equal("not-attempted", outcomes[1].GetProperty("status").GetString());
+        Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status").GetString());
+        Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
     }
 
     [Fact]
@@ -512,13 +510,13 @@ public sealed class RegistryTests
         await using var fake = new FakeProvider { DisposeFailure = true };
         using var capture = new Capture();
         Assert.Equal(
-            6,
-            await new TestCommands(fake).Sync(
+            expected: 6,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        Assert.Equal("partial", capture.Result().GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: capture.Result().GetProperty("status").GetString());
     }
 
     [Theory]
@@ -534,19 +532,19 @@ public sealed class RegistryTests
                     : new IOException("read failed"),
         };
         Assert.Equal(
-            expected,
-            await new TestCommands(fake).Sync(
+            expected: expected,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new(),
                 new() { Apply = true }));
-        Assert.Equal(0, fake.Navigator.Submissions);
+        Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
     }
 
     [Fact]
     public async Task AccountLockConflictsAcrossProfileAliases()
     {
-        var account = new RegistryDestination("test-" + Guid.NewGuid(), "https://registry.test/");
+        var account = new RegistryDestination(Account: "test-" + Guid.NewGuid(), Destination: "https://registry.test/");
         var locks = new RegistryAccountLock();
         await using var first = await locks.Acquire(account, default);
         await Assert.ThrowsAsync<ScheduleLib.Application.Core.LocalOperationBusyException>(() =>
@@ -560,14 +558,14 @@ public sealed class RegistryTests
     {
         await using var fake = new FakeProvider();
         fake.DiagnosticItems.Add(new(
-            "missing-registry-group",
-            "Synthetic course",
-            "IA2502",
-            "Ask the registry administrator to add the English subgroup."));
+            Kind: "missing-registry-group",
+            Course: "Synthetic course",
+            Group: "IA2502",
+            Detail: "Ask the registry administrator to add the English subgroup."));
         using var capture = new Capture();
         Assert.Equal(
-            0,
-            await new TestCommands(fake).Sync(
+            expected: 0,
+            actual: await new TestCommands(fake).Sync(
                 new(),
                 new() { Profile = "teacher" },
                 new()
@@ -578,9 +576,9 @@ public sealed class RegistryTests
                 new()));
         var final = jsonl ? capture.FinalRecord() : capture.Result();
         var data = final.GetProperty("data");
-        Assert.Equal("IA2502", data.GetProperty("diagnostics")[0].GetProperty("group").GetString());
-        Assert.Contains("English subgroup", final.GetProperty("warnings")[1].GetString());
-        Assert.Equal(0, fake.Navigator.Submissions);
+        Assert.Equal(expected: "IA2502", actual: data.GetProperty("diagnostics")[0].GetProperty("group").GetString());
+        Assert.Contains(expectedSubstring: "English subgroup", actualString: final.GetProperty("warnings")[1].GetString());
+        Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
     }
 
     private sealed class TestCommands(IRegistryProvider provider, FakeLock? accountLock = null) : RegistryCommands
@@ -608,10 +606,7 @@ public sealed class RegistryTests
         public int Submissions;
         public bool LaterScanStarted;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("test", "https://registry.test/");
+        public RegistryDestination Target { get; } = new(Account: "test", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -626,18 +621,18 @@ public sealed class RegistryTests
             CancellationToken token)
         {
             var action = new RegistrySyncAction(
-                "create",
-                Target.Destination,
-                "course",
-                "group",
+                kind: "create",
+                destination: Target.Destination,
+                course: "course",
+                groups: "group",
                 new(
-                    2026,
-                    1,
-                    1),
-                "topic",
+                    year: 2026,
+                    month: 1,
+                    day: 1),
+                topic: "topic",
                 0,
                 true,
-                null,
+                omission: null,
                 _ =>
                 {
                     Submissions++;
@@ -663,10 +658,7 @@ public sealed class RegistryTests
     private sealed class PlannedProvider(IReadOnlyList<RegistrySyncAction> actions)
         : IRegistryProvider, IRegistrySession
     {
-        public RegistryDestination Target
-        {
-            get;
-        } = new("test", "https://registry.test/");
+        public RegistryDestination Target { get; } = new(Account: "test", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -687,17 +679,11 @@ public sealed class RegistryTests
         public Exception? BeforePlanFailure;
         public Exception? ActionFailure;
 
-        public List<RegistrySyncDiagnostic> DiagnosticItems
-        {
-            get;
-        } = [];
+        public List<RegistrySyncDiagnostic> DiagnosticItems { get; } = [];
 
         public IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => DiagnosticItems;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("actual-account", "https://registry.test/");
+        public RegistryDestination Target { get; } = new(Account: "actual-account", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -718,18 +704,18 @@ public sealed class RegistryTests
                 "update",
                 "delete",
             }.Select(kind => new RegistrySyncAction(
-                kind,
-                Target.Destination,
-                "course",
-                "group",
+                kind: kind,
+                destination: Target.Destination,
+                course: "course",
+                groups: "group",
                 new(
-                    2026,
-                    1,
-                    Plans),
-                "topic",
+                    year: 2026,
+                    month: 1,
+                    day: Plans),
+                topic: "topic",
                 2,
                 true,
-                null,
+                omission: null,
                 async ct =>
                 {
                     if (ActionFailure is not null)
@@ -795,10 +781,7 @@ public sealed class RegistryTests
 
     private sealed class RecordingTopics : ILessonTopics
     {
-        public List<AttendanceLookupKey> Keys
-        {
-            get;
-        } = [];
+        public List<AttendanceLookupKey> Keys { get; } = [];
 
         public string? Get(in AttendanceLookupKey key)
         {
@@ -816,17 +799,20 @@ public sealed class RegistryTests
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
             Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
 
-        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>(
-            TwoGroups
-                ?
-                [
-                    group, new(
-                        group.Groups,
-                        group.GroupPartition,
-                        new("https://registry.test/group2"),
-                        group.EvaluationUri),
-                ]
-                : [group]);
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
+        {
+            return Task.FromResult<IEnumerable<GroupLink>>(
+                TwoGroups
+                    ?
+                    [
+                        group, new(
+                            group.Groups,
+                            group.GroupPartition,
+                            uri: new("https://registry.test/group2"),
+                            evaluationUri: group.EvaluationUri),
+                    ]
+                    : [group]);
+        }
 
         public async Task<IDocument> GetHtml(Uri uri)
         {
@@ -891,9 +877,7 @@ public sealed class RegistryTests
 
             var extraStudent = InvalidFirstForm && FormReads == 1 ? "<tr><td>Extra student</td></tr>" : "";
             return await new HtmlParser().ParseDocumentAsync(
-                "<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>"
-                + extraStudent
-                + "</table></form>");
+                (string) $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>{extraStudent}</table></form>");
         }
 
         public Task SubmitLesson(IDocument document)

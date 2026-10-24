@@ -22,12 +22,12 @@ public sealed class EventTests
         c.RecorderSource
             .Expect(c.Tags.SelectedLevel)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(LayerLevel.UiUser, x));
+            .WithValue(x => Assert.Equal(expected: LayerLevel.UiUser, actual: x));
 
         c.RecorderSource
             .Expect(c.Tags.SelectedLayer)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(UiLayerHelper.UiTeacherLayer, x));
+            .WithValue(x => Assert.Equal(expected: UiLayerHelper.UiTeacherLayer, actual: x));
 
         var mainEvents = c.RecorderSource.Expect(c.Tags.Main);
         mainEvents
@@ -110,7 +110,7 @@ public sealed class EventTests
             .Expect(c.Tags.TreeChangedRecorder)
             .SingleEvent();
 
-        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
+        Assert.Equal(expected: "Curmanschii Anton", actual: c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
     }
 }
 

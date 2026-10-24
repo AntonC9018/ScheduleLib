@@ -60,7 +60,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public bool Equals(string? x, string? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool b))
         {
             return b;
         }
@@ -79,7 +79,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
     {
         var x1 = DiacriticsHelper.RemoveDiacritics(x.ToString());
         var y1 = DiacriticsHelper.RemoveDiacritics(y.ToString());
-        return Equals(x1, y1);
+        return Equals(x: x1, y: y1);
     }
 
     public bool StartsWith(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
@@ -113,7 +113,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
         var x1 = DiacriticsHelper.RemoveDiacritics(a);
         var y1 = DiacriticsHelper.RemoveDiacritics(b);
-        return string.Compare(x1, y1, StringComparison.OrdinalIgnoreCase);
+        return string.Compare(strA: x1, strB: y1, StringComparison.OrdinalIgnoreCase);
     }
 
     public bool Equals(ReadOnlySpan<char> alternate, string other)

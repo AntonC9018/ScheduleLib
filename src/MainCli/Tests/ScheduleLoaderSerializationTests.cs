@@ -24,7 +24,7 @@ public sealed class ScheduleLoaderSerializationTests
             Components = [component],
         };
         await loader.Load(CreateContext(), CancellationToken.None);
-        Assert.Equal(1, component.ApplyCount);
+        Assert.Equal(expected: 1, actual: component.ApplyCount);
         var first = await File.ReadAllBytesAsync(temp.FilePath);
         using (var input = new MemoryStream(first))
         {
@@ -33,9 +33,9 @@ public sealed class ScheduleLoaderSerializationTests
         }
         var cached = CreateContext();
         await loader.Load(cached, CancellationToken.None);
-        Assert.Equal(1, component.ApplyCount);
-        Assert.Equal("Imported course", Assert.Single(cached.Schedule.Build().Courses).FullName);
-        Assert.Equal(first, await File.ReadAllBytesAsync(temp.FilePath));
+        Assert.Equal(expected: 1, actual: component.ApplyCount);
+        Assert.Equal(expected: "Imported course", actual: Assert.Single(cached.Schedule.Build().Courses).FullName);
+        Assert.Equal(expected: first, actual: await File.ReadAllBytesAsync(temp.FilePath));
 
         switch (change)
         {
@@ -49,16 +49,16 @@ public sealed class ScheduleLoaderSerializationTests
                 await ScheduleSerializer.Serialize().Input(Schedule.Empty).Output(temp.FilePath).ExecuteAsync();
                 break;
             case "corrupt-json":
-                await File.WriteAllTextAsync(temp.FilePath, "{corrupt");
+                await File.WriteAllTextAsync(path: temp.FilePath, contents: "{corrupt");
                 break;
         }
         var rebuilt = CreateContext();
         await loader.Load(rebuilt, CancellationToken.None);
-        Assert.Equal(2, component.ApplyCount);
-        Assert.Equal("Imported course", Assert.Single(rebuilt.Schedule.Build().Courses).FullName);
+        Assert.Equal(expected: 2, actual: component.ApplyCount);
+        Assert.Equal(expected: "Imported course", actual: Assert.Single(rebuilt.Schedule.Build().Courses).FullName);
         await loader.Load(CreateContext(), CancellationToken.None);
-        Assert.Equal(2, component.ApplyCount);
-        Assert.Empty(Directory.EnumerateFiles(temp.DirectoryPath, "*.tmp"));
+        Assert.Equal(expected: 2, actual: component.ApplyCount);
+        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
     }
 
     [Theory]
@@ -98,10 +98,10 @@ public sealed class ScheduleLoaderSerializationTests
                 cancellation.Token,
                 bypassCache: true).AsTask());
         }
-        Assert.Equal(previous, await File.ReadAllBytesAsync(temp.FilePath));
+        Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
         using var input = new MemoryStream(previous);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
-        Assert.Empty(Directory.EnumerateFiles(temp.DirectoryPath, "*.tmp"));
+        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
         // Cancellation/failure releases the loader's cache lock as well.
         component.OnApply = null;
         await loader.Load(CreateContext(),
@@ -121,23 +121,11 @@ public sealed class ScheduleLoaderSerializationTests
 
     private sealed class Component : IScheduleLoaderComponent
     {
-        public string Source
-        {
-            get;
-            set;
-        } = "source v1";
+        public string Source { get; set; } = "source v1";
 
-        public int ApplyCount
-        {
-            get;
-            private set;
-        }
+        public int ApplyCount { get; private set; }
 
-        public Action? OnApply
-        {
-            get;
-            set;
-        }
+        public Action? OnApply { get; set; }
 
         public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
         {
@@ -158,10 +146,7 @@ public sealed class ScheduleLoaderSerializationTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string DirectoryPath
-        {
-            get;
-        } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
         public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
 

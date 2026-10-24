@@ -107,7 +107,7 @@ public static partial class RegistryScraping
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
             QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
-            AttendanceMode = AttendanceModeHelper.FromFlags(suffixes.ReducedAttendance, suffixes.Dual),
+            AttendanceMode = AttendanceModeHelper.FromFlags(isFr: suffixes.ReducedAttendance, isDual: suffixes.Dual),
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,

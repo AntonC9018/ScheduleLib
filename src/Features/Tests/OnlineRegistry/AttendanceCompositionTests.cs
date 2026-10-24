@@ -12,7 +12,7 @@ public sealed class AttendanceCompositionTests
         var helper = StudentNameRemapHelper.Create([new HtmlStudent("Synthetic Alphaa", false), new HtmlStudent("Unlisted Beta", false)],
             names, unknown, new Dictionary<string, string> { ["Synthetic Alphaa"] = "Synthetic Alpha" });
         Assert.Single(unknown);
-        Assert.Equal(new[] { Attendance.NotPresent, Attendance.None }, helper.RemapToHtml([Attendance.NotPresent]));
+        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.None }, actual: helper.RemapToHtml([Attendance.NotPresent]));
     }
 
     [Fact]
@@ -28,22 +28,36 @@ public sealed class AttendanceCompositionTests
         var list = builder.Build(Attendance.None);
         var groups = new LessonGroups { first, second };
         var names = list.StudentNames(new(groups, partition, course, LessonType.Lab));
-        Assert.Equal(2, names.Count);
-        Assert.Equal(0, names.NameToIndex(NameHelper.Parse("Synthetic Alpha")).Value);
-        Assert.Equal(1, names.NameToIndex(NameHelper.Parse("Synthetic Beta")).Value);
-        Assert.Equal(new[] { Attendance.NotPresent, Attendance.None }, Day(2));
-        Assert.Equal(new[] { Attendance.None, Attendance.Present }, Day(9));
-        Assert.All(Day(16), value => Assert.Equal(Attendance.None, value));
-        var inactive = list.Get(new AttendanceLookupKey(new FoundGroups { Value = groups, IsWildcard = true },
-            partition, course, LessonType.Lab, 0, new DateTime(2026, 9, 2)) { ActiveGroups = new LessonGroups { second } });
-        Assert.All(inactive.AsArray(), value => Assert.Equal(Attendance.None, value));
+        Assert.Equal(expected: 2, actual: names.Count);
+        Assert.Equal(expected: 0, actual: names.NameToIndex(NameHelper.Parse("Synthetic Alpha")).Value);
+        Assert.Equal(expected: 1, actual: names.NameToIndex(NameHelper.Parse("Synthetic Beta")).Value);
+        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.None }, actual: Day(2));
+        Assert.Equal(expected: new[] { Attendance.None, Attendance.Present }, actual: Day(9));
+        Assert.All(Day(16), value => Assert.Equal(expected: Attendance.None, actual: value));
+        var inactive = list.Get(new AttendanceLookupKey(new FoundGroups {
+            Value = groups,
+            IsWildcard = true
+        },
+            partition, course, LessonType.Lab, 0, new DateTime(year: 2026, month: 9, day: 2)) { ActiveGroups = new LessonGroups { second } });
+        Assert.All(inactive.AsArray(), value => Assert.Equal(expected: Attendance.None, actual: value));
 
-        Attendance[] Day(int day) => list.Get(new(new FoundGroups { Value = groups, IsWildcard = true },
-            partition, course, LessonType.Lab, 0, new DateTime(2026, 9, day))).AsArray().ToArray();
+        Attendance[] Day(int day)
+        {
+            return list.Get(new(new FoundGroups {
+                Value = groups,
+                IsWildcard = true
+            },
+                partition, course, LessonType.Lab, 0, new DateTime(year: 2026, month: 9, day: day))).AsArray().ToArray();
+        }
+
         void Add(GroupId parent, string name, int day, Attendance attendance)
         {
             var parentList = builder.List(new(new LessonGroups { parent }, partition, course, LessonType.Lab));
-            parentList.AddAttendanceDates([new AttendanceDate { Year = 2026, Month = 9, Day = day }]);
+            parentList.AddAttendanceDates([new AttendanceDate {
+            Year = 2026,
+            Month = 9,
+            Day = day
+            }]);
             parentList.Student(NameHelper.Parse(name)).Day(attendance);
         }
     }

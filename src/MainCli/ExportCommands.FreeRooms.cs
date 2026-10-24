@@ -51,9 +51,9 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);

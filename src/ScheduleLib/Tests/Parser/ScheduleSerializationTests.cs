@@ -26,7 +26,7 @@ public sealed class ScheduleSerializationTests
         await builder.ExecuteAsync();
         var bytes = usePath ? await File.ReadAllBytesAsync(temp.FilePath) : stream.ToArray();
         using var json = JsonDocument.Parse(bytes);
-        Assert.Equal(new[]
+        Assert.Equal(expected: new[]
             {
                 "Hash",
                 "OneTimeLessons",
@@ -36,17 +36,17 @@ public sealed class ScheduleSerializationTests
                 "Courses",
                 "Periods",
             }.Order(),
-            json.RootElement.EnumerateObject().Select(x => x.Name).Order());
+            actual: json.RootElement.EnumerateObject().Select(x => x.Name).Order());
         using var input = new MemoryStream(bytes);
         var model = await ScheduleSerializer.Deserialize(input, CancellationToken.None);
-        Assert.Equal("", model.Hash);
+        Assert.Equal(expected: "", actual: model.Hash);
         var restored = new ScheduleBuilder();
         ScheduleSerializer.AddToBuilder(restored, model);
         var rebuilt = restored.Build();
-        Assert.Equal("Course", Assert.Single(rebuilt.Courses).FullName);
+        Assert.Equal(expected: "Course", actual: Assert.Single(rebuilt.Courses).FullName);
         using var second = new MemoryStream();
         await ScheduleSerializer.Serialize().Input(rebuilt).Output(second).ExecuteAsync();
-        Assert.Equal(bytes, second.ToArray());
+        Assert.Equal(expected: bytes, actual: second.ToArray());
         Assert.True(stream.CanWrite);
         if (usePath)
         {
@@ -83,8 +83,8 @@ public sealed class ScheduleSerializationTests
             builder.Output(stream);
         }
         var error = await Assert.ThrowsAsync<MissingSerializationConfigurationException>(() => builder.ExecuteAsync());
-        Assert.Equal(missing, error.Configuration);
-        Assert.Equal(0, stream.Length);
+        Assert.Equal(expected: missing, actual: error.Configuration);
+        Assert.Equal(expected: 0, actual: stream.Length);
         // The same builder remains usable after correcting its missing configuration.
         await builder.Input(Schedule.Empty).Output(stream).ExecuteAsync();
         Assert.True(stream.Length > 0);
@@ -109,14 +109,14 @@ public sealed class ScheduleSerializationTests
         await builder.Input(Schedule.Empty).Hash("").ExecuteAsync();
         Assert.True(new FileInfo(temp.FilePath).Length < first.Length);
         await builder.Input(CreateSchedule("New")).Hash("cache identity").Output(final).ExecuteAsync();
-        Assert.Equal(first, final.ToArray());
-        Assert.Equal(0, replaced.Length);
+        Assert.Equal(expected: first, actual: final.ToArray());
+        Assert.Equal(expected: 0, actual: replaced.Length);
         Assert.True(replaced.CanWrite);
         final.Position = 0;
         var model = await ScheduleSerializer.Deserialize(final, CancellationToken.None);
-        Assert.Equal("cache identity", model.Hash);
-        Assert.Equal("New", Assert.Single(model.Courses).Names[0]);
-        Assert.Empty(Directory.EnumerateFiles(temp.DirectoryPath, "*.tmp"));
+        Assert.Equal(expected: "cache identity", actual: model.Hash);
+        Assert.Equal(expected: "New", actual: Assert.Single(model.Courses).Names[0]);
+        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public sealed class ScheduleSerializationTests
         Assert.Throws<ArgumentNullException>(() => builder.Hash(null!));
         await builder.ExecuteAsync();
         stream.Position = 0;
-        Assert.Equal("identity", (await ScheduleSerializer.Deserialize(stream, CancellationToken.None)).Hash);
+        Assert.Equal(expected: "identity", actual: (await ScheduleSerializer.Deserialize(stream, CancellationToken.None)).Hash);
     }
 
     [Theory]
@@ -159,7 +159,7 @@ public sealed class ScheduleSerializationTests
         stream.SetLength(0);
         await builder.ExecuteAsync();
         var second = usePath ? await File.ReadAllBytesAsync(temp.FilePath) : stream.ToArray();
-        Assert.Equal(first, second);
+        Assert.Equal(expected: first, actual: second);
     }
 
     [Theory]
@@ -184,9 +184,9 @@ public sealed class ScheduleSerializationTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExecuteAsync(cancellation.Token));
-        Assert.Equal(previous, await File.ReadAllBytesAsync(temp.FilePath));
-        Assert.Equal(previous, stream.ToArray());
-        Assert.Empty(Directory.EnumerateFiles(temp.DirectoryPath, "*.tmp"));
+        Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
+        Assert.Equal(expected: previous, actual: stream.ToArray());
+        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
         stream.Position = 0;
         stream.SetLength(0);
         await builder.ExecuteAsync();
@@ -205,12 +205,12 @@ public sealed class ScheduleSerializationTests
         {
             var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 builder.ExecuteAsync(cancellation.Token));
-            Assert.Equal(cancellation.Token, error.CancellationToken);
+            Assert.Equal(expected: cancellation.Token, actual: error.CancellationToken);
         }
         else
         {
             var error = await Assert.ThrowsAsync<IOException>(() => builder.ExecuteAsync());
-            Assert.Same(stream.Error, error);
+            Assert.Same(expected: stream.Error, actual: error);
         }
         Assert.True(stream.CanWrite);
         Assert.True(stream.Length > 0);
@@ -232,7 +232,7 @@ public sealed class ScheduleSerializationTests
         stream.Position = prefix.Length;
         var builder = ScheduleSerializer.Serialize().Input(Schedule.Empty).Output(stream);
         await builder.ExecuteAsync();
-        Assert.Equal(prefix.Concat(expected.ToArray()).Concat(suffix).ToArray(), stream.ToArray());
+        Assert.Equal(expected: prefix.Concat(expected.ToArray()).Concat(suffix).ToArray(), actual: stream.ToArray());
         // Disposing a previously configured stream still fails at execution.
         stream.Dispose();
         await Assert.ThrowsAsync<ObjectDisposedException>(() => builder.ExecuteAsync());
@@ -244,11 +244,11 @@ public sealed class ScheduleSerializationTests
         using var temp = new TempDirectory();
         Directory.CreateDirectory(temp.FilePath);
         var sentinel = Path.Combine(temp.FilePath, "previous");
-        await File.WriteAllTextAsync(sentinel, "previous complete output");
+        await File.WriteAllTextAsync(path: sentinel, contents: "previous complete output");
         var builder = ScheduleSerializer.Serialize().Input(Schedule.Empty).Output(temp.FilePath);
         await Assert.ThrowsAnyAsync<IOException>(() => builder.ExecuteAsync());
-        Assert.Equal("previous complete output", await File.ReadAllTextAsync(sentinel));
-        Assert.Empty(Directory.EnumerateFiles(temp.DirectoryPath, "*.tmp"));
+        Assert.Equal(expected: "previous complete output", actual: await File.ReadAllTextAsync(sentinel));
+        Assert.Empty(Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp"));
         File.Delete(sentinel);
         Directory.Delete(temp.FilePath);
         await builder.ExecuteAsync();
@@ -268,10 +268,7 @@ public sealed class ScheduleSerializationTests
 
     private sealed class InterruptedStream(CancellationTokenSource cancellation, bool cancel) : MemoryStream
     {
-        public IOException Error
-        {
-            get;
-        } = new("write interrupted");
+        public IOException Error { get; } = new("write interrupted");
 
         public override async ValueTask WriteAsync(
             ReadOnlyMemory<byte> buffer,
@@ -289,10 +286,7 @@ public sealed class ScheduleSerializationTests
 
     private sealed class TempDirectory : IDisposable
     {
-        public string DirectoryPath
-        {
-            get;
-        } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
         public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
 

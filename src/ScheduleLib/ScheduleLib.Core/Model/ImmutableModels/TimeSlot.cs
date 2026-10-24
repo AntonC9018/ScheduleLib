@@ -138,13 +138,13 @@ public sealed class LessonTimeConfig
         }
 
         return [
-            New(8, 00),
-            New(9, 45),
-            New(11, 30),
-            New(13, 15),
-            New(15, 00),
-            New(16, 45),
-            New(18, 30),
+            New(hour: 8, min: 00),
+            New(hour: 9, min: 45),
+            New(hour: 11, min: 30),
+            New(hour: 13, min: 15),
+            New(hour: 15, min: 00),
+            New(hour: 16, min: 45),
+            New(hour: 18, min: 30),
         ];
     }
 

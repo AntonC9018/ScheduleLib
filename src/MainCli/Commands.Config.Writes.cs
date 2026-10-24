@@ -5,28 +5,16 @@ namespace ScheduleLib.Cli;
 public sealed class ConfigScopeArguments : IArgumentModel
 {
     [Option("scope", Description = "Required destination: user or project.")]
-    public string? Scope
-    {
-        get;
-        set;
-    }
+    public string? Scope { get; set; }
 }
 
 public sealed class ConfigSetArguments : IArgumentModel
 {
     [Operand("key", Description = "Registered block and optional camelCase member path.")]
-    public string Key
-    {
-        get;
-        set;
-    } = null!;
+    public string Key { get; set; } = null!;
 
     [Operand("value", Description = "Typed JSON value, including JSON quotes for strings.")]
-    public string Value
-    {
-        get;
-        set;
-    } = null!;
+    public string Value { get; set; } = null!;
 }
 
 public sealed partial class ConfigCommands
@@ -39,15 +27,17 @@ public sealed partial class ConfigCommands
         ConfigScopeArguments scope,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Write(new(
-            "set",
-            edit.Key,
-            edit.Value,
+        CancellationToken cancellationToken = default)
+    {
+        return Write(new(
+            Verb: "set",
+            Key: edit.Key,
+            Value: edit.Value,
             scope,
             settings,
             output,
             cancellationToken));
+    }
 
     [Command("unset", Description = "Remove the chosen scope's override and restore inheritance.")]
     public Task<int> Unset(
@@ -55,19 +45,21 @@ public sealed partial class ConfigCommands
         ConfigScopeArguments scope,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Write(new(
-            "unset",
-            key.Key,
-            null,
+        CancellationToken cancellationToken = default)
+    {
+        return Write(new(
+            Verb: "unset",
+            Key: key.Key,
+            Value: null,
             scope,
             settings,
             output,
             cancellationToken));
+    }
 
     internal static async Task<int> Write(ConfigEditRequest request)
     {
-        var command = "config " + request.Verb;
+        var command = (string) $"config {request.Verb}";
         using var context = new CliCommandContext(
             command,
             request.Output,
@@ -98,8 +90,8 @@ public sealed partial class ConfigCommands
             var result = await CliSettings.Edit(
                 request.Settings,
                 destination.Value,
-                request.Key,
-                request.Value,
+                key: request.Key,
+                value: request.Value,
                 request.Verb == "unset",
                 cancellation.Token,
                 operation: request.Verb is "remove" or "clear" ? request.Verb : null,

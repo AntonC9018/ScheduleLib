@@ -14,8 +14,8 @@ public sealed class TeacherProfileScheduleLookupTests
         schedule.RefreshLookup();
         var lookup = schedule.Lookup(null!);
 
-        Assert.Equal(vlada.Id, TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
-        Assert.NotEqual(other.Id, TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
+        Assert.Equal(expected: vlada.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
+        Assert.NotEqual(expected: other.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
     }
 
     [Fact]
@@ -28,8 +28,8 @@ public sealed class TeacherProfileScheduleLookupTests
         schedule.RefreshLookup();
         var lookup = schedule.Lookup(null!);
 
-        Assert.Equal(oldSpelling.Id, TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
-        Assert.Equal(natalia.Id, TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Plesca Natalia")));
+        Assert.Equal(expected: oldSpelling.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Visnevschi Vlada")));
+        Assert.Equal(expected: natalia.Id, actual: TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Plesca Natalia")));
         Assert.Null(TeacherProfileScheduleLookup.Find(lookup, NameHelper.Parse("Unknown Teacher")));
     }
 }

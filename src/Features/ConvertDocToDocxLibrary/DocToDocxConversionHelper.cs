@@ -31,7 +31,7 @@ public static class DocToDocxConversionHelper
         foreach (var argument in new[] { Path.GetFullPath(inputPath), Path.GetFullPath(outputPath), nonce, cancellationPath })
             processInfo.ArgumentList.Add(argument);
         using var process = Process.Start(processInfo) ?? throw Unreachable();
-        return await WaitForConverter(process, nonce, existingWord, cancellationPath, cancellationToken);
+        return await WaitForConverter(process, nonce: nonce, existingWord, cancellationPath: cancellationPath, cancellationToken);
     }
 
     internal static async Task<bool> WaitForConverter(Process process, string nonce, HashSet<int> existingWord,
@@ -49,7 +49,7 @@ public static class DocToDocxConversionHelper
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                try { File.WriteAllText(cancellationPath, "cancel"); }
+                try { File.WriteAllText(path: cancellationPath, contents: "cancel"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
                 var converterExited = await WaitForExitBounded(process, TimeSpan.FromSeconds(2));
@@ -82,13 +82,13 @@ public static class DocToDocxConversionHelper
         try
         {
             var message = await converter.StandardOutput.ReadLineAsync(cancellationToken);
-            if (!WordConverterProtocol.TryReadOwnership(message, nonce, out var pid, out var ticks)) return null;
+            if (!WordConverterProtocol.TryReadOwnership(message: message, nonce: nonce, out var pid, out var ticks)) return null;
             word = Process.GetProcessById(pid);
             // Opening the handle before reading identity keeps it attached to this
             // process object even if the PID is subsequently recycled.
             _ = word.SafeHandle;
-            if (WordConverterProtocol.IsOwnedProcess(pid, ticks, word.StartTime.ToUniversalTime().Ticks,
-                    converter.StartTime.ToUniversalTime().Ticks, word.SessionId, converter.SessionId,
+            if (WordConverterProtocol.IsOwnedProcess(pid: pid, reportedTicks: ticks, actualTicks: word.StartTime.ToUniversalTime().Ticks,
+                    converterTicks: converter.StartTime.ToUniversalTime().Ticks, session: word.SessionId, converterSession: converter.SessionId,
                     word.ProcessName, existingWord.Contains(pid))) return word;
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException or OperationCanceledException)

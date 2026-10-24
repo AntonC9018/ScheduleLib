@@ -478,7 +478,7 @@ public static class LessonBuilderHelper
                     if (g0.AttendanceMode.IsZi() != ami.IsZi()
                         || g0.AttendanceMode.IsFr() != ami.IsFr())
                     {
-                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(g0.AttendanceMode, gi.AttendanceMode, g0.Name, gi.Name);
+                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(firstMode: g0.AttendanceMode, secondMode: gi.AttendanceMode, firstGroup: g0.Name, secondGroup: gi.Name);
                     }
                 }
             }
@@ -580,7 +580,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllTeachers)
         {
-            if (AllTeachersNotEqual(a, b))
+            if (AllTeachersNotEqual(a: a, b: b))
             {
                 ret.AllTeachers = true;
             }
@@ -634,7 +634,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllGroups)
         {
-            if (AllGroupsNotEqual(a, b))
+            if (AllGroupsNotEqual(a: a, b: b))
             {
                 ret.AllGroups = true;
             }
@@ -694,7 +694,7 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(in a.Base, in b.Base, whatToDiff);
+            var other = Diff(a: in a.Base, b: in b.Base, whatToDiff);
             ret = ret.Union(other);
         }
 
@@ -746,7 +746,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.AllTeachers)
         {
-            if (AllTeachersNotEqual(a, b))
+            if (AllTeachersNotEqual(a: a, b: b))
             {
                 ret.AllTeachers = true;
             }
@@ -817,7 +817,7 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(a.Lesson, b.Lesson, whatToDiff);
+            var other = Diff(a: a.Lesson, b: b.Lesson, whatToDiff);
             ret = ret.Union(other);
         }
 
@@ -911,6 +911,6 @@ public static class LessonBuilderHelper
         in WeeklyLessonBuilderModelData from,
         LessonModelMergeMask merge)
     {
-        Merge(ref to.Base, from.Base, merge);
+        Merge(to: ref to.Base, @from: from.Base, merge);
     }
 }

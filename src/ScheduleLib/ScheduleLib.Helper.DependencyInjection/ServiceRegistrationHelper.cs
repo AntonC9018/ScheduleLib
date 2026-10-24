@@ -102,7 +102,7 @@ public static class ServiceRegistrationHelper
         ServiceDescriptor d;
         if (factory is null)
         {
-            d = new(typeof(TImpl), typeof(TImpl), lifetime);
+            d = new(serviceType: typeof(TImpl), implementationType: typeof(TImpl), lifetime);
         }
         else
         {

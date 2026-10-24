@@ -9,8 +9,8 @@ public static class CurriculaDownloadTasks
 {
     public static readonly string[] ApiRequiredScopes = ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
     // Existing source configuration is intentionally retained; this slice does not discover newer academic years.
-    public static CurriculaSource ConfiguredSource { get; } = new("titu.capcelea@usm.md",
-        "Curricula DI anul universitar 2024-2025/Curricula per program studii");
+    public static CurriculaSource ConfiguredSource { get; } = new(Owner: "titu.capcelea@usm.md",
+        Path: "Curricula DI anul universitar 2024-2025/Curricula per program studii");
 
     public static Task PullCurriculaToDisk(MicrosoftAuthConfig config, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("Use schedulelib curricula download --profile TEACHER after explicit schedulelib auth login microsoft --profile TEACHER. Legacy implicit Microsoft consent is disabled.");
@@ -44,7 +44,7 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
                 while (documents is not null)
                 {
                     foreach (var document in documents.Where(x => x.File is not null))
-                        files.Add(new(group.Name, document.Name, document.Id, driveId));
+                        files.Add(new(Group: group.Name, Name: document.Name, Id: document.Id, DriveId: driveId));
                     documents = documents.NextPageRequest is { } nextDocuments ? await nextDocuments.GetAsync(token) : null;
                 }
             }

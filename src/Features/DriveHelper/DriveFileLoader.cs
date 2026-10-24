@@ -64,7 +64,7 @@ public sealed class DriveFileLoader : IDisposable
         if (meta.MimeType == nativeGoogleSheetTypeString)
         {
             // do conversion
-            var exportRequest = _driveService.Files.Export(fileId, uploadedFileTypeString);
+            var exportRequest = _driveService.Files.Export(fileId: fileId, mimeType: uploadedFileTypeString);
             var progress = await exportRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }

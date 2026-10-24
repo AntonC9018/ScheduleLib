@@ -53,9 +53,9 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
                 _ = StudentNameRemapHelper.Create(roster, names, [], aliases, source.Matched);
             var missing = source.Names.Count(student => !source.Matched.Contains(student));
             if (missing == 0) continue;
-            diagnostics.Add("attendance-students-not-in-registry", schedule.Get(course).FullName,
-                key.Groups.ToString(schedule),
-                $"{missing} attendance students have no matching student in any relevant registry roster for {key.LessonType} ({RegistrySyncDiagnostics.DescribePartition(key.GroupPartition)}). Check enrollment and name mappings.");
+            diagnostics.Add(kind: "attendance-students-not-in-registry", course: schedule.Get(course).FullName,
+                @group: key.Groups.ToString(schedule),
+                detail: $"{missing} attendance students have no matching student in any relevant registry roster for {key.LessonType} ({RegistrySyncDiagnostics.DescribePartition(key.GroupPartition)}). Check enrollment and name mappings.");
         }
 
         // Related lists share one diagnostic, while each roster is checked only against
@@ -91,9 +91,9 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
             var partitions = string.Join("; ", sources.Keys.Select(key => RegistrySyncDiagnostics.DescribePartition(key.GroupPartition))
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
             var types = string.Join(", ", sources.Keys.Select(key => key.LessonType).Distinct().Order());
-            diagnostics.Add("unmatched-attendance-students", schedule.Get(course).FullName,
-                groups,
-                $"{count} registry students have no matching attendance row after all relevant rosters were considered for {types} ({partitions}). Check attendance worksheets and name mappings.");
+            diagnostics.Add(kind: "unmatched-attendance-students", course: schedule.Get(course).FullName,
+                @group: groups,
+                detail: $"{count} registry students have no matching attendance row after all relevant rosters were considered for {types} ({partitions}). Check attendance worksheets and name mappings.");
         }
     }
 

@@ -53,10 +53,7 @@ public interface ICalendarSyncProvider : IDisposable
 public sealed class CalendarStreamingException(CalendarSyncResult PartialResult, Exception? Inner = null)
     : CliOutputStreamingException("Calendar output streaming failed.", Inner)
 {
-    public CalendarSyncResult PartialResult
-    {
-        get;
-    } = PartialResult;
+    public CalendarSyncResult PartialResult { get; } = PartialResult;
 }
 
 public static class CalendarSync
@@ -64,9 +61,12 @@ public static class CalendarSync
     public static string LockPath(
         string root,
         string account,
-        string name) => Path.Combine(
+        string name)
+    {
+        return Path.Combine(
         root,
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(account + "\n" + name))) + ".lock");
+        (string) $"{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{account}\n{name}")))}.lock");
+    }
 
     public static async Task<CalendarSyncResult> Run(
         ICalendarSyncProvider provider,
@@ -87,14 +87,14 @@ public static class CalendarSync
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
-                    lockRoot
+                    root: lockRoot
                     ?? Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ScheduleLib",
                         "remote-locks",
                         "calendar"),
-                    account,
-                    name),
+                    account: account,
+                    name: name),
                 token)
             : null;
         // Every invocation recomputes. Apply reads the current destination only after owning its lock.
@@ -128,22 +128,19 @@ public static class CalendarSync
         var plan = new List<CalendarPlanStep>();
         if (existing is not null)
         {
-            plan.Add(
-                new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     Action: "delete calendar",
                     CalendarId: existing.Id,
                     DesiredEventIndex: null));
         }
 
-        plan.Add(
-            new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 Action: "create calendar",
                 CalendarId: null,
                 DesiredEventIndex: null));
         for (var planIndex = 0; planIndex < desired.Count; planIndex++)
         {
-            plan.Add(
-                new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            plan.Add(new(Id: plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     Action: "create event",
                     CalendarId: null,
                     DesiredEventIndex: planIndex));
@@ -157,8 +154,8 @@ public static class CalendarSync
         {
             try
             {
-                onOutcome?.Invoke(new(id,
-                    status,
+                onOutcome?.Invoke(new(Id: id,
+                    Status: status,
                     item,
                     human));
             }
@@ -187,14 +184,14 @@ public static class CalendarSync
         void ReportPlanned(CalendarPlanStep step)
         {
             var outcome = new CalendarActionOutcome(
-                step.Action,
-                step.CalendarId,
-                null,
-                "planned",
+                Action: step.Action,
+                CalendarId: step.CalendarId,
+                EventId: null,
+                State: "planned",
                 step.DesiredEventIndex);
             Report(
-                step.Id,
-                outcome.State,
+                id: step.Id,
+                status: outcome.State,
                 outcome,
                 new CalendarActionMessage(outcome));
         }
@@ -205,8 +202,8 @@ public static class CalendarSync
             // rendering failure cannot change it or trigger another mutation.
             outcomes.Add(outcome);
             Report(
-                PlanId(outcome),
-                outcome.State,
+                id: PlanId(outcome),
+                status: outcome.State,
                 outcome,
                 new CalendarActionMessage(outcome));
         }
@@ -234,17 +231,17 @@ public static class CalendarSync
         {
             var identity = deleted[deletedIndex];
             Report(
-                "deleted-" + deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                "completed",
+                id: (string) $"deleted-{deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                status: "completed",
                 identity,
-                new CalendarDeletedEventMessage(identity.Id, identity.Summary));
+                new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary));
         }
         for (var index = 0; index < desired.Count; index++)
         {
             var ev = desired[index];
             Report(
-                "desired-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                "completed",
+                id: (string) $"desired-{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                status: "completed",
                 new
                 {
                     index,
@@ -260,8 +257,8 @@ public static class CalendarSync
                 new CalendarDesiredEventMessage(
                     index,
                     ev.Summary,
-                    ev.Start?.DateTimeDateTimeOffset,
-                    ev.End?.DateTimeDateTimeOffset,
+                    Start: ev.Start?.DateTimeDateTimeOffset,
+                    End: ev.End?.DateTimeDateTimeOffset,
                     (ev.Recurrence ?? []).ToImmutableArray()));
         }
         if (!apply)
@@ -281,10 +278,10 @@ public static class CalendarSync
                 attempted = true;
                 await provider.DeleteCalendar(existing.Id, token);
                 AddOutcome(new(
-                    action,
-                    existing.Id,
-                    null,
-                    "completed"));
+                    Action: action,
+                    CalendarId: existing.Id,
+                    EventId: null,
+                    State: "completed"));
             }
             action = "create calendar";
             attempted = false;
@@ -297,10 +294,10 @@ public static class CalendarSync
             }
 
             AddOutcome(new(
-                action,
-                created,
-                null,
-                "completed"));
+                Action: action,
+                CalendarId: created,
+                EventId: null,
+                State: "completed"));
             for (var index = 0; index < desired.Count; index++)
             {
                 var ev = desired[index];
@@ -320,10 +317,10 @@ public static class CalendarSync
                 }
 
                 AddOutcome(new(
-                    action,
-                    created,
-                    eventId,
-                    "completed",
+                    Action: action,
+                    CalendarId: created,
+                    EventId: eventId,
+                    State: "completed",
                     desiredIndex));
             }
             return Result(0, []);
@@ -340,10 +337,10 @@ public static class CalendarSync
             if (attempted)
             {
                 AddOutcome(new(
-                    action,
-                    action == "delete calendar" ? existing?.Id : created,
-                    eventId,
-                    "uncertain",
+                    Action: action,
+                    CalendarId: action == "delete calendar" ? existing?.Id : created,
+                    EventId: eventId,
+                    State: "uncertain",
                     desiredIndex));
             }
 
@@ -357,10 +354,10 @@ public static class CalendarSync
         {
             var partial = outcomes.Any(x => x.State == "completed");
             AddOutcome(new(
-                action,
-                action == "delete calendar" ? existing?.Id : created,
-                eventId,
-                "failed",
+                Action: action,
+                CalendarId: action == "delete calendar" ? existing?.Id : created,
+                EventId: eventId,
+                State: "failed",
                 desiredIndex));
             return Result(
                 partial ? 6 : 5,
@@ -384,10 +381,10 @@ public static class CalendarSync
         {
             var partial = outcomes.Any(x => x.State == "completed");
             AddOutcome(new(
-                action,
-                action == "delete calendar" ? existing?.Id : created,
-                eventId,
-                "failed",
+                Action: action,
+                CalendarId: action == "delete calendar" ? existing?.Id : created,
+                EventId: eventId,
+                State: "failed",
                 desiredIndex));
             return Result(
                 partial ? 6 : 5,
@@ -398,10 +395,10 @@ public static class CalendarSync
             if (attempted)
             {
                 AddOutcome(new(
-                    action,
-                    action == "delete calendar" ? existing?.Id : created,
-                    eventId,
-                    "uncertain",
+                    Action: action,
+                    CalendarId: action == "delete calendar" ? existing?.Id : created,
+                    EventId: eventId,
+                    State: "uncertain",
                     desiredIndex));
             }
 
@@ -416,12 +413,12 @@ public static class CalendarSync
         {
             var partial = outcomes.Any(x => x.State == "completed");
             AddOutcome(new(
-                action,
-                action == "delete calendar" ? existing?.Id : created,
-                eventId,
-                "failed",
+                Action: action,
+                CalendarId: action == "delete calendar" ? existing?.Id : created,
+                EventId: eventId,
+                State: "failed",
                 desiredIndex));
-            return Result(partial ? 6 : 4, [new AuthenticationRequiredException("google", profile ?? "").Message]);
+            return Result(partial ? 6 : 4, [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
         }
 
         CalendarSyncResult Result(
@@ -435,29 +432,29 @@ public static class CalendarSync
                 foreach (var step in plan.Where(step => !finished.Contains(step.Id)))
                 {
                     var skipped = new CalendarActionOutcome(
-                        step.Action,
-                        step.CalendarId,
-                        null,
-                        "not-attempted",
+                        Action: step.Action,
+                        CalendarId: step.CalendarId,
+                        EventId: null,
+                        State: "not-attempted",
                         step.DesiredEventIndex);
                     Report(
-                        step.Id,
-                        skipped.State,
+                        id: step.Id,
+                        status: skipped.State,
                         skipped,
                         new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex));
                 }
             }
             return new(
-                account,
-                name,
+                Account: account,
+                CalendarName: name,
                 existing,
                 deleted,
                 desired,
-                created,
+                CreatedCalendarId: created,
                 outcomes,
                 exit,
-                errors,
-                warnings.ToArray());
+                Errors: errors,
+                Warnings: warnings.ToArray());
         }
     }
 }

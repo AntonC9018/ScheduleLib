@@ -123,8 +123,8 @@ public sealed class GroupPdfTests
             });
 
             Assert.True(
-                text.BoldPrefix.StartsWith(alternative + ":", StringComparison.Ordinal)
-                    || text.BoldPrefix.StartsWith(alternative + ",", StringComparison.Ordinal),
+                text.BoldPrefix.StartsWith((string) $"{alternative}:", StringComparison.Ordinal)
+                    || text.BoldPrefix.StartsWith((string) $"{alternative},", StringComparison.Ordinal),
                 $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'");
         }
         Assert.True(seenAlternative);
@@ -174,7 +174,7 @@ public sealed class GroupPdfTests
             StringBuilder = new StringBuilder(),
         });
 
-        Assert.Equal("A1, CV, I: ", text.BoldPrefix);
+        Assert.Equal(expected: "A1, CV, I: ", actual: text.BoldPrefix);
     }
 
     private sealed class RecordingRichText : IRichText

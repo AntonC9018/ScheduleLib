@@ -70,22 +70,22 @@ public static class WordHelper
 
     public static bool IsEqual(this WordSpan a, WordSpan b)
     {
-        var ret = Compare(a.Shortened, b.Shortened);
+        var ret = Compare(a: a.Shortened, b: b.Shortened);
         return ret.IsEqual();
     }
 
     public static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
     {
-        var r = Compare(a.Shortened, b);
+        var r = Compare(a: a.Shortened, b: b);
         return r.IsEqual();
     }
 
     public static CompareShortenedWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
     {
-        int len = int.Min(a.Value.Length, b.Value.Length);
+        int len = int.Min(x: a.Value.Length, y: b.Value.Length);
         var a1 = a.Value[.. len];
         var b1 = b.Value[.. len];
-        if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(a1, b1))
+        if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: a1, y: b1))
         {
             return CompareShortenedWordsResult.NotEqual;
         }

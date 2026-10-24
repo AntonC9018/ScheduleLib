@@ -18,14 +18,16 @@ public partial class ExportCommands
         ResultArguments result,
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
-        => ExportSchedule(
-            new(
-                source,
-                destination,
-                result,
-                settings ?? new()),
-            ScheduleExportKind.Pdf,
-            cancellationToken);
+    {
+        return ExportSchedule(
+                new(
+                    source,
+                    destination,
+                    result,
+                    settings ?? new()),
+                ScheduleExportKind.Pdf,
+                cancellationToken);
+    }
 
     [Command(
         "ics",
@@ -37,14 +39,16 @@ public partial class ExportCommands
         ResultArguments result,
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
-        => ExportSchedule(
-            new(
-                source,
-                destination,
-                result,
-                settings ?? new()),
-            ScheduleExportKind.Ics,
-            cancellationToken);
+    {
+        return ExportSchedule(
+                new(
+                    source,
+                    destination,
+                    result,
+                    settings ?? new()),
+                ScheduleExportKind.Ics,
+                cancellationToken);
+    }
 
     private async Task<int> ExportSchedule(
         ExportRequest request,
@@ -86,11 +90,11 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
-                resolvedSettings.ProjectDirectory);
+                projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
@@ -173,8 +177,8 @@ public partial class ExportCommands
                 errors,
                 new(
                     output?.DirectoryPath,
-                    lessonCount,
-                    teacherCount))
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount))
             {
                 Summary = new
                 {

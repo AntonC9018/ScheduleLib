@@ -64,11 +64,16 @@ public sealed class RegistryDiagnosticsTests
         var coverage = new RegistryTargetCoverage(schedule,
             [new(course, parent, GroupPartitionKey.All), new(course, english, partition)], diagnostics);
         coverage.CoverLesson(new WeeklyLessonId(0).AsAny(), parent, GroupPartitionKey.All,
-            enableRule ? [new() { Faculty = "DJ", SubGroup = "eng", Language = Language.En,
-                MatchByLanguage = true, AllowParentGroup = true }] : []);
+            enableRule ? [new() {
+            Faculty = "DJ",
+            SubGroup = "eng",
+            Language = Language.En,
+                MatchByLanguage = true,
+                AllowParentGroup = true
+                }] : []);
         coverage.ReportMissingGroups(course);
         if (covered) Assert.Empty(diagnostics.Items);
-        else Assert.Equal(schedule.Get(english).Name, Assert.Single(diagnostics.Items).Group);
+        else Assert.Equal(expected: schedule.Get(english).Name, actual: Assert.Single(diagnostics.Items).Group);
     }
 
     [Fact]
@@ -96,10 +101,10 @@ public sealed class RegistryDiagnosticsTests
         coverage.Cover(new(course, first, partition));
         coverage.ReportMissingGroups(course);
         var gap = Assert.Single(diagnostics.Items);
-        Assert.Equal("missing-registry-group", gap.Kind);
-        Assert.Equal("IA2502", gap.Group);
-        Assert.Contains("eng", gap.Detail);
-        Assert.Contains("administrator", gap.Detail);
+        Assert.Equal(expected: "missing-registry-group", actual: gap.Kind);
+        Assert.Equal(expected: "IA2502", actual: gap.Group);
+        Assert.Contains(expectedSubstring: "eng", actualString: gap.Detail);
+        Assert.Contains(expectedSubstring: "administrator", actualString: gap.Detail);
     }
 
     [Fact]
@@ -116,11 +121,11 @@ public sealed class RegistryDiagnosticsTests
         var errors = new RegistryErrorLogger(new CapturingLogger(), diagnostics);
         errors.GroupNotFound("Synthetic course", "IA2502(en)");
         errors.GroupNotFound("Synthetic course", "IA2502(en)");
-        Assert.Equal(2, diagnostics.Items.Count);
-        Assert.Equal("missing-registry-course", diagnostics.Items[0].Kind);
-        Assert.Equal("Synthetic course", diagnostics.Items[0].Course);
-        Assert.Equal("IA2501", diagnostics.Items[0].Group);
-        Assert.Equal("IA2502(en)", diagnostics.Items[1].Group);
+        Assert.Equal(expected: 2, actual: diagnostics.Items.Count);
+        Assert.Equal(expected: "missing-registry-course", actual: diagnostics.Items[0].Kind);
+        Assert.Equal(expected: "Synthetic course", actual: diagnostics.Items[0].Course);
+        Assert.Equal(expected: "IA2501", actual: diagnostics.Items[0].Group);
+        Assert.Equal(expected: "IA2502(en)", actual: diagnostics.Items[1].Group);
     }
 
     private sealed class CapturingLogger : ILogger<RegistryErrorLogger>

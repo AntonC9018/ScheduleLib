@@ -12,14 +12,14 @@ public sealed class SettingsRemovalTests
             "GoogleCalendarConfig",
             "--scope",
             "project");
-        Assert.Equal("", await files.Get("GoogleCalendarConfig"));
-        Assert.Contains("operations", await File.ReadAllTextAsync(files.ProjectFile));
+        Assert.Equal(expected: "", actual: await files.Get("GoogleCalendarConfig"));
+        Assert.Contains(expectedSubstring: "operations", actualString: await File.ReadAllTextAsync(files.ProjectFile));
         await files.Success(
             "unset",
             "GoogleCalendarConfig",
             "--scope",
             "project");
-        Assert.Equal("inherited", await files.Get("GoogleCalendarConfig.calendarName"));
+        Assert.Equal(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "remove",
             "GoogleCalendarConfig",
@@ -28,12 +28,12 @@ public sealed class SettingsRemovalTests
             "--profile",
             "Curmanschii Anton");
         Assert.Equal(
-            "",
-            await files.Get(
+            expected: "",
+            actual: await files.Get(
                 "GoogleCalendarConfig",
                 "--profile",
                 "Curmanschii Anton"));
-        Assert.Equal("inherited", await files.Get("GoogleCalendarConfig.calendarName"));
+        Assert.Equal(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "unset",
             "GoogleCalendarConfig",
@@ -42,8 +42,8 @@ public sealed class SettingsRemovalTests
             "--profile",
             "Curmanschii Anton");
         Assert.NotEqual(
-            "",
-            await files.Get(
+            expected: "",
+            actual: await files.Get(
                 "GoogleCalendarConfig",
                 "--profile",
                 "Curmanschii Anton"));
@@ -79,14 +79,14 @@ public sealed class SettingsRemovalTests
             "[]",
             "--scope",
             "project");
-        Assert.Contains(first, await files.Get("LessonAttendanceConfig.sources"));
+        Assert.Contains(expectedSubstring: first, actualString: await files.Get("LessonAttendanceConfig.sources"));
         await files.Success(
             "set",
             "LessonAttendanceConfig.sources",
             "null",
             "--scope",
             "project");
-        Assert.Contains(second, await files.Get("LessonAttendanceConfig.sources"));
+        Assert.Contains(expectedSubstring: second, actualString: await files.Get("LessonAttendanceConfig.sources"));
         await files.Success(
             "remove",
             "LessonAttendanceConfig.sources",
@@ -95,28 +95,28 @@ public sealed class SettingsRemovalTests
             "--scope",
             "project");
         var remaining = await files.Get("LessonAttendanceConfig.sources");
-        Assert.DoesNotContain(first, remaining);
-        Assert.Contains(second, remaining);
+        Assert.DoesNotContain(expectedSubstring: first, actualString: remaining);
+        Assert.Contains(expectedSubstring: second, actualString: remaining);
         await files.Success(
             "unset",
             "LessonAttendanceConfig.sources",
             "--scope",
             "project");
-        Assert.Contains(first, await files.Get("LessonAttendanceConfig.sources"));
+        Assert.Contains(expectedSubstring: first, actualString: await files.Get("LessonAttendanceConfig.sources"));
         await files.Success(
             "clear",
             "LessonAttendanceConfig.sources",
             "--scope",
             "project");
         Assert.Equal(
-            "[]",
-            (await files.Get("LessonAttendanceConfig.sources")).Replace(" ", "").Replace("\n", "").Replace("\r", ""));
+            expected: "[]",
+            actual: (await files.Get("LessonAttendanceConfig.sources")).Replace(" ", "").Replace("\n", "").Replace("\r", ""));
         await files.Success(
             "unset",
             "LessonAttendanceConfig.sources",
             "--scope",
             "project");
-        Assert.Contains(second, await files.Get("LessonAttendanceConfig.sources"));
+        Assert.Contains(expectedSubstring: second, actualString: await files.Get("LessonAttendanceConfig.sources"));
     }
 
 
@@ -126,33 +126,31 @@ public sealed class SettingsRemovalTests
         using var files = new SettingsWriteTests.Fixture();
         var manifest = Path.Combine(files.Root, "topics.json");
         await files.User(
-            "{\"schemaVersion\":1,\"defaults\":{\"LessonTopicsConfig\":{\"sources\":[{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":"
-            + JsonSerializer.Serialize(manifest)
-            + "}]},\"GoogleCalendarConfig\":{\"calendarName\":\"inherited\"}}}");
+            (string) $"{{\"schemaVersion\":1,\"defaults\":{{\"LessonTopicsConfig\":{{\"sources\":[{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}]}},\"GoogleCalendarConfig\":{{\"calendarName\":\"inherited\"}}}}}}");
         await files.Success(
             "remove",
             "LessonTopicsConfig.sources",
             "--item",
-            "{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":" + JsonSerializer.Serialize(manifest) + "}",
+            (string) $"{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}",
             "--scope",
             "project");
-        Assert.DoesNotContain(manifest, await files.Get("LessonTopicsConfig.sources"));
+        Assert.DoesNotContain(expectedSubstring: manifest, actualString: await files.Get("LessonTopicsConfig.sources"));
         await files.Success(
             "unset",
             "LessonTopicsConfig.sources",
             "--scope",
             "project");
-        Assert.Contains(manifest, await files.Get("LessonTopicsConfig.sources"));
+        Assert.Contains(expectedSubstring: manifest, actualString: await files.Get("LessonTopicsConfig.sources"));
         await File.WriteAllTextAsync(
-            files.ProjectFile,
-            """{"schemaVersion":1,"operations":{"defaults":[{"operation":"reset","key":"GoogleCalendarConfig"}]}}""");
-        Assert.NotEqual("inherited", await files.Get("GoogleCalendarConfig.calendarName"));
+            path: files.ProjectFile,
+            contents: """{"schemaVersion":1,"operations":{"defaults":[{"operation":"reset","key":"GoogleCalendarConfig"}]}}""");
+        Assert.NotEqual(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "unset",
             "GoogleCalendarConfig",
             "--scope",
             "project");
-        Assert.Equal("inherited", await files.Get("GoogleCalendarConfig.calendarName"));
+        Assert.Equal(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
     }
 
     [Theory]
@@ -183,7 +181,7 @@ public sealed class SettingsRemovalTests
     {
         using var files = new SettingsWriteTests.Fixture();
         const string original = """{"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"valid"}}}""";
-        await File.WriteAllTextAsync(files.ProjectFile, original);
+        await File.WriteAllTextAsync(path: files.ProjectFile, contents: original);
         var args = new List<string>
         {
             verb,
@@ -197,10 +195,10 @@ public sealed class SettingsRemovalTests
         }
 
         var result = await files.Run(args.ToArray());
-        Assert.Equal(3, result.Exit);
+        Assert.Equal(expected: 3, actual: result.Exit);
         Assert.NotEmpty(result.Error);
-        Assert.Equal(original, await File.ReadAllTextAsync(files.ProjectFile));
-        Assert.False(File.Exists(files.ProjectFile + ".lock"));
+        Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
+        Assert.False(File.Exists((string) $"{files.ProjectFile}.lock"));
     }
 
     [Theory]
@@ -211,7 +209,7 @@ public sealed class SettingsRemovalTests
     public async Task HandEditedInvalidOperationsFailValidation(string operations)
     {
         using var files = new SettingsWriteTests.Fixture();
-        await File.WriteAllTextAsync(files.ProjectFile, "{\"schemaVersion\":1,\"operations\":" + operations + "}");
-        Assert.Equal(3, (await files.Run("validate")).Exit);
+        await File.WriteAllTextAsync(path: files.ProjectFile, contents: (string) $"{{\"schemaVersion\":1,\"operations\":{operations}}}");
+        Assert.Equal(expected: 3, actual: (await files.Run("validate")).Exit);
     }
 }

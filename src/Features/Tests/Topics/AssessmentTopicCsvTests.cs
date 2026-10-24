@@ -11,6 +11,6 @@ public sealed class AssessmentTopicCsvTests
         var names = new List<string>();
         await foreach (var topic in LessonTopicCsvSerializer.Deserialize(input, new(), CancellationToken.None))
             names.Add(topic.Name);
-        Assert.Equal(new[] { "Synthetic first", "Synthetic second" }, names);
+        Assert.Equal(expected: new[] { "Synthetic first", "Synthetic second" }, actual: names);
     }
 }

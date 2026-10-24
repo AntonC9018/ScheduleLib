@@ -10,8 +10,8 @@ public readonly struct RentedBuffer<T> : IDisposable
     public readonly T[] Array;
     public readonly int Len;
 
-    public Span<T> Span => Array.AsSpan(0, Len);
-    public Memory<T> Memory => Array.AsMemory(0, Len);
+    public Span<T> Span => Array.AsSpan(start: 0, length: Len);
+    public Memory<T> Memory => Array.AsMemory(start: 0, length: Len);
 
     internal RentedBuffer(T[] arr, int len)
     {
@@ -72,7 +72,7 @@ public static class RentedEnumerableExtensions
                     if (written == arr.Length)
                     {
                         var bigger = ArrayPool<T>.Shared.Rent(arr.Length * 2);
-                        arr.AsSpan(0, written).CopyTo(bigger);
+                        arr.AsSpan(start: 0, length: written).CopyTo(bigger);
                         ArrayPool<T>.Shared.Return(arr);
                         arr = bigger;
                     }

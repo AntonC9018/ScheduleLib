@@ -105,7 +105,7 @@ public readonly struct SizedItemArray<T>
         for (int index = 0; index < _items.Count; index++)
         {
             var it = _items[index];
-            if (EqualityComparer<T>.Default.Equals(it.Item, item))
+            if (EqualityComparer<T>.Default.Equals(x: it.Item, y: item))
             {
                 return colIndex;
             }
@@ -124,7 +124,7 @@ public readonly struct SizedItemArray<T>
         var totalSize = TotalSize;
         if (position < totalSize)
         {
-            throw new ArgumentException("Must be after the last element", nameof(position));
+            throw new ArgumentException(message: "Must be after the last element", paramName: nameof(position));
         }
 
         var diff = position - totalSize;
@@ -326,7 +326,7 @@ public readonly struct SizedItemArray<T>
                     return false;
                 }
                 var v = Current;
-                if (EqualityComparer<T>.Default.Equals(v.Item, _empty))
+                if (EqualityComparer<T>.Default.Equals(x: v.Item, y: _empty))
                 {
                     continue;
                 }
@@ -382,7 +382,7 @@ public static class SizedItemArrayExtensions
         {
             foreach (var e in items.EnumerateWithPosition())
             {
-                if (!EqualityComparer<T>.Default.Equals(e.Item, otherValue))
+                if (!EqualityComparer<T>.Default.Equals(x: e.Item, y: otherValue))
                 {
                     return e.Position;
                 }

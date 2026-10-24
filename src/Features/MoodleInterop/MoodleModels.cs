@@ -345,7 +345,10 @@ public class EssayQuestionBuilder
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText { Format = "html", Text = string.Empty },
+            GeneralFeedback = new FormattedText {
+                Format = "html",
+                Text = string.Empty
+            },
             DefaultGrade = _question.DefaultGrade,
             Penalty = 0.0m,
             Hidden = 0,
@@ -359,8 +362,14 @@ public class EssayQuestionBuilder
             AttachmentsRequired = 0,
             MaxBytes = 0,
             FileTypesList = string.Empty,
-            GraderInfo = new FormattedText { Format = "html", Text = string.Empty },
-            ResponseTemplate = new FormattedText { Format = "html", Text = string.Empty },
+            GraderInfo = new FormattedText {
+                Format = "html",
+                Text = string.Empty
+            },
+            ResponseTemplate = new FormattedText {
+                Format = "html",
+                Text = string.Empty
+            },
         };
     }
 }
@@ -460,7 +469,10 @@ public class MultiChoiceQuestionBuilder
                 Fraction = fraction,
                 Format = "html",
                 Text = answer.Text,
-                Feedback = new FormattedText { Format = "html", Text = string.Empty },
+                Feedback = new FormattedText {
+                    Format = "html",
+                    Text = string.Empty
+                },
             });
         }
 
@@ -473,7 +485,10 @@ public class MultiChoiceQuestionBuilder
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText { Format = "html", Text = string.Empty },
+            GeneralFeedback = new FormattedText {
+                Format = "html",
+                Text = string.Empty
+            },
             DefaultGrade = _question.DefaultGrade,
             Penalty = 0.3333333m,
             Hidden = 0,

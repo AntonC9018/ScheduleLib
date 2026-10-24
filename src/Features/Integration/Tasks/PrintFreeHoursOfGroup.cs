@@ -139,13 +139,13 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         {
             if (!e.MoveNext())
             {
-                yield return new(start, prev);
+                yield return new(Start: start, EndInclusive: prev);
                 yield break;
             }
             var c = e.Current;
             if (c.Index - prev.Index > 1)
             {
-                yield return new(start, prev);
+                yield return new(Start: start, EndInclusive: prev);
                 start = c;
             }
             prev = c;

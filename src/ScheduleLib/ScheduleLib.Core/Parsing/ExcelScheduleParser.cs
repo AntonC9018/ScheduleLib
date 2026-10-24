@@ -26,22 +26,35 @@ public static class ExcelScheduleParser
         }
     }
 
-    public static Config FrConfig => new()
+    public static Config FrConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
-        AllowedQualificationTypes = new(QualificationType.Licenta),
-        AddLessonHandler = FrScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeekAndDate,
-        ExpectBullshitRow = true,
-    };
-    public static Config MasterConfig => new()
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
+                AllowedQualificationTypes = new(QualificationType.Licenta),
+                AddLessonHandler = FrScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeekAndDate,
+                ExpectBullshitRow = true,
+            };
+        }
+    }
+
+    public static Config MasterConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
-        AllowedQualificationTypes = new(QualificationType.Master),
-        AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeek,
-        ExpectBullshitRow = false,
-    };
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
+                AllowedQualificationTypes = new(QualificationType.Master),
+                AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeek,
+                ExpectBullshitRow = false,
+            };
+        }
+    }
 
     public static ValueTask ParseFrIntoSchedule(Params p)
     {

@@ -141,7 +141,7 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var ev in desired)
         {
-            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (token) =>
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (token) =>
             {
                 await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
                 {

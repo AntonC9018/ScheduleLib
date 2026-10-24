@@ -37,15 +37,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         !destinations.Where(candidate => candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
                             .Any(candidate => routed[candidate.Group.Uri].TryGetValue(id, out var covered) && covered.Contains(parent)))))
                 {
-                    diagnostics.Add("registry-lab-routing-unresolved", _schedule.Get(course.CourseId).FullName,
-                        group.Groups.Value.ToString(_schedule), "Unresolved lab routing prevents intake cleanup.");
+                    diagnostics.Add(kind: "registry-lab-routing-unresolved", course: _schedule.Get(course.CourseId).FullName,
+                        @group: group.Groups.Value.ToString(_schedule), detail: "Unresolved lab routing prevents intake cleanup.");
                     continue;
                 }
                 if (routed[group.Uri].Keys.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
                 {
-                    diagnostics.Add("registry-lab-fallback-preserved", _schedule.Get(course.CourseId).FullName,
-                        group.Groups.Value.ToString(_schedule),
-                        "This list is needed for scoped fallback labs. Intake cleanup leaves its lesson columns and attendance unchanged.");
+                    diagnostics.Add(kind: "registry-lab-fallback-preserved", course: _schedule.Get(course.CourseId).FullName,
+                        @group: group.Groups.Value.ToString(_schedule),
+                        detail: "This list is needed for scoped fallback labs. Intake cleanup leaves its lesson columns and attendance unchanged.");
                     continue;
                 }
                 var courseName = _schedule.Get(course.CourseId).FullName;
@@ -53,10 +53,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var remote = await ReadLessons(group.Uri);
                 var unwanted = remote.Where(lesson => lesson.LessonType == LessonType.Lab).ToArray();
                 var marks = unwanted.Sum(lesson => lesson.Attendance.Count(IsRecordedMark));
-                diagnostics.Add("unsafe-registry-lab-cleanup", courseName, groupNames,
-                    $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.");
-                var actions = unwanted.Select(lesson => new RegistrySyncAction("delete", group.Uri.ToString(),
-                    courseName, groupNames, lesson.DateTime, lesson.Topic, lesson.Attendance.Count(IsRecordedMark),
+                diagnostics.Add(kind: "unsafe-registry-lab-cleanup", course: courseName, @group: groupNames,
+                    detail: $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.");
+                var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: "delete", destination: group.Uri.ToString(),
+                    course: courseName, groups: groupNames, lesson.DateTime, topic: lesson.Topic, lesson.Attendance.Count(IsRecordedMark),
                     enabled: true, omission: null, async token =>
                     {
                         var submissionStarted = false;
@@ -65,7 +65,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             token.ThrowIfCancellationRequested();
                             // A changed date, type, topic or attendance requires a fresh preview.
                             var current = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
-                            if (current.Length != 1 || !Unchanged(lesson, current[0]))
+                            if (current.Length != 1 || !Unchanged(expected: lesson, actual: current[0]))
                                 throw new InvalidOperationException("Registry lab changed after cleanup planning; preview again before deleting it.");
                             var document = await navigator.GetHtml(lesson.ViewUri);
                             token.ThrowIfCancellationRequested();
@@ -77,7 +77,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 submissionError = error;
                             }
                             var after = (await ReadLessons(group.Uri)).Where(candidate => candidate.ViewUri == lesson.ViewUri).ToArray();
-                            if (after.Length == 1 && Unchanged(lesson, after[0]))
+                            if (after.Length == 1 && Unchanged(expected: lesson, actual: after[0]))
                                 throw new RegistryDeletionRefusedException();
                             if (after.Length != 0)
                                 throw new IOException("Registry lab changed during deletion; inspect the destination before retrying.", submissionError);
@@ -94,7 +94,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             var document = await navigator.GetHtml(uri);
             var scan = await HtmlSearch.ScanLessonsDocumentForLessonInstances(new()
             {
-                Document = document, ErrorHandler = _errorHandler,
+                Document = document,
+                ErrorHandler = _errorHandler,
                 GetAddLessonDocument = () => navigator.GetHtml(HtmlSearch.ScanForLessonAddLink(document)),
             });
             return scan.Lessons.ToArray();
@@ -104,7 +105,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             => attendance is Attendance.NotPresent or Attendance.MotivatedAbsent or Attendance.NotApplicable or Attendance.Grade;
 
         static bool Unchanged(RemoteLessonInstance expected, RemoteLessonInstance actual)
-            => actual.LessonType == expected.LessonType && actual.DateTime == expected.DateTime
-                && actual.Topic == expected.Topic && actual.Attendance.SequenceEqual(expected.Attendance);
+        {
+            return actual.LessonType == expected.LessonType && actual.DateTime == expected.DateTime
+                        && actual.Topic == expected.Topic && actual.Attendance.SequenceEqual(expected.Attendance);
+        }
     }
 }

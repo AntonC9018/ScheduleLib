@@ -16,7 +16,7 @@ public static class ExcelLibExtensions
     }
     public static ExcelSheetException Exception(this IXLWorksheet sheet, string message, Exception? inner = null)
     {
-        return new(sheet.Name, message, inner);
+        return new(sheetName: sheet.Name, message: message, inner);
     }
 
     public static int ColumnCount(this IXLCell cell)
@@ -44,7 +44,7 @@ public static class ExcelLibExtensions
         foreach (var cell in row.Cells())
         {
             var range = cell.ActualRange();
-            if (ReferenceEquals(currentRange, range))
+            if (ReferenceEquals(objA: currentRange, objB: range))
             {
                 continue;
             }

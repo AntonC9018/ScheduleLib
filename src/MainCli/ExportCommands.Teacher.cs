@@ -26,14 +26,16 @@ public partial class ExportCommands
         ResultArguments resultArgs,
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
-        => TeacherExport(
-            new(
-                source,
-                destination,
-                resultArgs,
-                settings),
-            TeacherExportKind.LabDeadlines,
-            cancellationToken);
+    {
+        return TeacherExport(
+                new(
+                    source,
+                    destination,
+                    resultArgs,
+                    settings),
+                TeacherExportKind.LabDeadlines,
+                cancellationToken);
+    }
 
     [Command(
         "pre-defense",
@@ -44,14 +46,16 @@ public partial class ExportCommands
         ResultArguments resultArgs,
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
-        => TeacherExport(
-            new(
-                null,
-                destination,
-                resultArgs,
-                settings),
-            TeacherExportKind.PreDefense,
-            cancellationToken);
+    {
+        return TeacherExport(
+                new(
+                    null,
+                    destination,
+                    resultArgs,
+                    settings),
+                TeacherExportKind.PreDefense,
+                cancellationToken);
+    }
 
     private async Task<int> TeacherExport(
         ExportRequest request,
@@ -167,9 +171,9 @@ public partial class ExportCommands
                 }
 
                 output = context.Artifacts = await RunOutput.Create(
-                    destination.Directory,
-                    context.Command,
-                    context.RunId,
+                    output: destination.Directory,
+                    command: context.Command,
+                    runId: context.RunId,
                     cancellation.Token,
                     projectDirectory: resolvedSettings.ProjectDirectory);
                 var workbooks = await handler.BuildWorkbooks(ThesisType.An, cancellation.Token);
@@ -228,9 +232,9 @@ public partial class ExportCommands
                     }
                 }
                 output = context.Artifacts = await RunOutput.Create(
-                    destination.Directory,
-                    context.Command,
-                    context.RunId,
+                    output: destination.Directory,
+                    command: context.Command,
+                    runId: context.RunId,
                     cancellation.Token,
                     projectDirectory: resolvedSettings.ProjectDirectory);
                 var handler = scope.ServiceProvider.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
@@ -278,8 +282,8 @@ public partial class ExportCommands
                 exit,
                 errors,
                 new(
-                    output?.DirectoryPath,
-                    teacher,
+                    OutputDirectory: output?.DirectoryPath,
+                    Teacher: teacher,
                     workbookCount))
             {
                 Summary = new

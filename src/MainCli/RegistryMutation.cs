@@ -4,56 +4,24 @@ namespace ScheduleLib.Cli;
 
 internal sealed record RegistryMutationRequest(Func<CancellationToken, Task> Submit, CancellationToken Token)
 {
-    public required string CancellationPolicy
-    {
-        get;
-        init;
-    }
+    public required string CancellationPolicy { get; init; }
 
-    public bool AllowRefusedDeletion
-    {
-        get;
-        init;
-    }
+    public bool AllowRefusedDeletion { get; init; }
 }
 
 internal sealed record RegistryMutationOutcome
 {
-    public required string Status
-    {
-        get;
-        init;
-    }
+    public required string Status { get; init; }
 
-    public string? Detail
-    {
-        get;
-        init;
-    }
+    public string? Detail { get; init; }
 
-    public bool SubmissionStarted
-    {
-        get;
-        init;
-    }
+    public bool SubmissionStarted { get; init; }
 
-    public bool Cancelled
-    {
-        get;
-        init;
-    }
+    public bool Cancelled { get; init; }
 
-    public bool DeletionRefused
-    {
-        get;
-        init;
-    }
+    public bool DeletionRefused { get; init; }
 
-    public string[] Errors
-    {
-        get;
-        init;
-    } = [];
+    public string[] Errors { get; init; } = [];
 
     public bool Stop => Cancelled || Errors.Length > 0;
 }

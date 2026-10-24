@@ -61,7 +61,7 @@ public sealed class SelectionHelper<TParent, TProperty> : SelectionHelper<TPrope
             }
 
             AnyNullable<TProperty> setVal;
-            if (value is null || ReferenceEquals(value, Named<TProperty>.Default))
+            if (value is null || ReferenceEquals(objA: value, objB: Named<TProperty>.Default))
             {
                 setVal = new(HasValue: false);
             }
@@ -112,7 +112,7 @@ public readonly record struct PropertyAccess<TParent, TProperty>(
     Action<TParent, AnyNullable<TProperty>> Setter)
 {
     public static implicit operator PropertyAccess<TProperty>(PropertyAccess<TParent, TProperty> a)
-        => new(a.Getter, a.Setter);
+        => new(Getter: a.Getter, Setter: a.Setter);
 }
 
 internal static class PropertyAccess
@@ -146,7 +146,7 @@ internal static class PropertyAccess
         // (nullableX) => nullableX.Value
         var nullableValueAccessor = AccessExpression.Create((AnyNullable<TProperty> x) => x.Value);
         // parent.X = nullableX.Value
-        var setterBody = Expression.Assign(access.Access, nullableValueAccessor.Access);
+        var setterBody = Expression.Assign(left: access.Access, right: nullableValueAccessor.Access);
         // ('parent', 'nullableX') => 'parent.X = nullableX.Value',
         var setter = Expression.Lambda<Action<TParent, AnyNullable<TProperty>>>(
             setterBody,
@@ -167,7 +167,7 @@ internal static class PropertyAccess
 
         var backward = AccessExpression.Create((AnyNullable<TProperty> x) => (TProperty?) (x.HasValue ? x.Value : null));
         // 'parent.X = backward(nullableX)'
-        var setterBody = Expression.Assign(access.Access, backward.Access);
+        var setterBody = Expression.Assign(left: access.Access, right: backward.Access);
         // ('parent', 'nullableX') => 'parent.X = backward(nullableX)'
         var setter = Expression.Lambda<Action<TParent, AnyNullable<TProperty>>>(
             setterBody,

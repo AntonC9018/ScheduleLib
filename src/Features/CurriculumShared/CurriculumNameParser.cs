@@ -947,17 +947,19 @@ internal static class ThesisName
 
     private static ImmutableArray<string> SectionStrings => CreateSectionStrings();
     private static ImmutableArray<string> CreateSectionStrings()
-        => StringSearchHelper.SetupSearchArray<SectionType>(b =>
-        {
-            b.Set(SectionType.Bibliography, "bibliografie recomandata");
-            b.Set(SectionType.Competences, "competente generale, profesionale si rezultatele invatarii");
-            b.Set(SectionType.Labs, "lucrul individual al studentului");
-            b.Set(SectionType.Suggestions, "sugestii metodologice de predare-invatare-evaluare");
-            b.Set(SectionType.DisciplineProvisions, "administrarea disciplinei");
-            b.Set(SectionType.LessonPlans, "tematica si repartizarea orientativa a orelor");
-            b.Set(SectionType.PreliminaryPassage, "preliminarii");
-            b.Set(SectionType.StudyUnits, "unitati de invatare");
-        });
+    {
+        return StringSearchHelper.SetupSearchArray<SectionType>(b =>
+            {
+                b.Set(SectionType.Bibliography, "bibliografie recomandata");
+                b.Set(SectionType.Competences, "competente generale, profesionale si rezultatele invatarii");
+                b.Set(SectionType.Labs, "lucrul individual al studentului");
+                b.Set(SectionType.Suggestions, "sugestii metodologice de predare-invatare-evaluare");
+                b.Set(SectionType.DisciplineProvisions, "administrarea disciplinei");
+                b.Set(SectionType.LessonPlans, "tematica si repartizarea orientativa a orelor");
+                b.Set(SectionType.PreliminaryPassage, "preliminarii");
+                b.Set(SectionType.StudyUnits, "unitati de invatare");
+            });
+    }
 
     private struct PreprocessIgnoreRomanOnce() : IPreprocess
     {
@@ -1345,11 +1347,11 @@ internal static class ThesisName
 
             static QualificationType GetQualificationType(ReadOnlySpan<char> name)
             {
-                if (Equals1(name, "licenta"))
+                if (Equals1(name: name, label: "licenta"))
                 {
                     return QualificationType.Licenta;
                 }
-                else if (Equals1(name, "master"))
+                else if (Equals1(name: name, label: "master"))
                 {
                     return QualificationType.Master;
                 }
@@ -1361,7 +1363,7 @@ internal static class ThesisName
 
             static bool Equals1(ReadOnlySpan<char> name, ReadOnlySpan<char> label)
             {
-                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(name, label))
+                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: name, y: label))
                 {
                     return true;
                 }
@@ -1770,14 +1772,16 @@ internal static class PreliminarySectionProcessing
 
 
     private static readonly ImmutableArray<string> PreliminaryFieldStrings = CreatePreliminaryFieldStrings();
-    private static ImmutableArray<string> CreatePreliminaryFieldStrings() =>
-        StringSearchHelper.SetupSearchArray<PreliminaryField>(b =>
+    private static ImmutableArray<string> CreatePreliminaryFieldStrings()
+    {
+        return StringSearchHelper.SetupSearchArray<PreliminaryField>(b =>
         {
             b.Set(PreliminaryField.Overview, "Prezentarea generală a cursului");
             b.Set(PreliminaryField.Importance, "Locul și rolul cursului în formarea rezultatelor învățării ale specialității și misiunea curriculumului în formarea profesională");
             b.Set(PreliminaryField.Languages, "Limba de predare a cursului");
             b.Set(PreliminaryField.Beneficiaries, "Beneficiarii");
         });
+    }
 }
 
 internal struct PreprocessDoNothing() : IPreprocess
@@ -1924,7 +1928,7 @@ internal static class DisciplineProvisionsProcessing
             }
         }
 
-        headerState.ColumnMappings.Replace(Column.DistributionHeader, Column.Unknown);
+        headerState.ColumnMappings.Replace(oldItem: Column.DistributionHeader, newItem: Column.Unknown);
 
         var state = new DisciplineProvisionInParsing();
 

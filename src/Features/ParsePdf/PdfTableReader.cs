@@ -24,9 +24,9 @@ public static class PdfTableReader
             foreach (var line in subpath.Commands.OfType<PdfSubpath.Line>())
             {
                 if (Math.Abs(line.From.X - line.To.X) < 1)
-                    raw.Add(new(true, line.From.X, page.Height - Math.Max(line.From.Y, line.To.Y), page.Height - Math.Min(line.From.Y, line.To.Y)));
+                    raw.Add(new(true, Position: line.From.X, Start: page.Height - Math.Max(line.From.Y, line.To.Y), End: page.Height - Math.Min(line.From.Y, line.To.Y)));
                 else if (Math.Abs(line.From.Y - line.To.Y) < 1)
-                    raw.Add(new(false, page.Height - line.From.Y, Math.Min(line.From.X, line.To.X), Math.Max(line.From.X, line.To.X)));
+                    raw.Add(new(false, Position: page.Height - line.From.Y, Start: Math.Min(line.From.X, line.To.X), End: Math.Max(line.From.X, line.To.X)));
             }
         }
         var borders = JoinBorders(raw.Where(b => b.End - b.Start >= 3));
@@ -84,13 +84,13 @@ public static class PdfTableReader
             bool found = false;
             foreach (var bottom in below)
             {
-                if (!Connects(vertical, point.X, point.Y, bottom.Y)) continue;
+                if (!Connects(vertical, position: point.X, start: point.Y, end: bottom.Y)) continue;
                 foreach (var end in right)
                 {
-                    if (!Connects(horizontal, point.Y, point.X, end.X)
-                        || !Connects(vertical, end.X, point.Y, bottom.Y)
-                        || !Connects(horizontal, bottom.Y, point.X, end.X)) continue;
-                    result.Add(new(point.X, point.Y, end.X, bottom.Y));
+                    if (!Connects(horizontal, position: point.Y, start: point.X, end: end.X)
+                        || !Connects(vertical, position: end.X, start: point.Y, end: bottom.Y)
+                        || !Connects(horizontal, position: bottom.Y, start: point.X, end: end.X)) continue;
+                    result.Add(new(Left: point.X, Top: point.Y, Right: end.X, Bottom: bottom.Y));
                     found = true;
                     break;
                 }
@@ -119,7 +119,7 @@ public static class PdfTableReader
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
                     .Select(b => b.Position).Append(box.Left).Append(box.Right).Distinct().Order().ToArray();
                 for (int column = 1; column < xs.Length; column++)
-                    result.Add(new(xs[column - 1], ys[row - 1], xs[column], ys[row]));
+                    result.Add(new(Left: xs[column - 1], Top: ys[row - 1], Right: xs[column], Bottom: ys[row]));
             }
         }
         return result.Distinct().ToArray();
@@ -128,8 +128,8 @@ public static class PdfTableReader
     private static string ReadText(Page page, PdfBox bounds)
     {
         var letters = page.Letters.Where(l => bounds.Contains(
-            (l.BoundingBox.Left + l.BoundingBox.Right) / 2,
-            page.Height - (l.BoundingBox.Top + l.BoundingBox.Bottom) / 2)).ToArray();
+            x: (l.BoundingBox.Left + l.BoundingBox.Right) / 2,
+            y: page.Height - (l.BoundingBox.Top + l.BoundingBox.Bottom) / 2)).ToArray();
         if (letters.Length == 0) return "";
         // Rotated day labels read from the bottom of the page towards the top.
         if (letters.Count(l => Math.Abs(l.EndBaseLine.Y - l.StartBaseLine.Y) > Math.Abs(l.EndBaseLine.X - l.StartBaseLine.X)) > letters.Length / 2)

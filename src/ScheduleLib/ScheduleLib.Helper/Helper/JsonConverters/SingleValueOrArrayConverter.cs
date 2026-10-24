@@ -20,13 +20,13 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         if (typeToConvert.IsGenericType)
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
-            return genericTypeDef == typeof(ImmutableArray<>) ||
-                   genericTypeDef == typeof(List<>) ||
-                   genericTypeDef == typeof(IEnumerable<>) ||
-                   genericTypeDef == typeof(ICollection<>) ||
-                   genericTypeDef == typeof(IList<>) ||
-                   genericTypeDef == typeof(IReadOnlyCollection<>) ||
-                   genericTypeDef == typeof(IReadOnlyList<>);
+            return genericTypeDef == typeof(ImmutableArray<>)
+                   || genericTypeDef == typeof(List<>)
+                   || genericTypeDef == typeof(IEnumerable<>)
+                   || genericTypeDef == typeof(ICollection<>)
+                   || genericTypeDef == typeof(IList<>)
+                   || genericTypeDef == typeof(IReadOnlyCollection<>)
+                   || genericTypeDef == typeof(IReadOnlyList<>);
         }
 
         return false;
@@ -101,11 +101,11 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             {
                 return (TCollection) (object) new List<TElement>(items);
             }
-            if (genericTypeDef == typeof(IEnumerable<>) ||
-                genericTypeDef == typeof(ICollection<>) ||
-                genericTypeDef == typeof(IList<>) ||
-                genericTypeDef == typeof(IReadOnlyCollection<>) ||
-                genericTypeDef == typeof(IReadOnlyList<>))
+            if (genericTypeDef == typeof(IEnumerable<>)
+                || genericTypeDef == typeof(ICollection<>)
+                || genericTypeDef == typeof(IList<>)
+                || genericTypeDef == typeof(IReadOnlyCollection<>)
+                || genericTypeDef == typeof(IReadOnlyList<>))
             {
                 return (TCollection) (object) items;
             }

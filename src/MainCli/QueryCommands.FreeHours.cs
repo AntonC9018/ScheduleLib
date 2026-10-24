@@ -10,11 +10,7 @@ public sealed class FreeHoursArguments : IArgumentModel
         "group",
         Description =
             "Group name from the schedule, for example IA2301. Repeat it for several groups. Unknown or ambiguous names fail before execution.")]
-    public string[] Groups
-    {
-        get;
-        set;
-    } = [];
+    public string[] Groups { get; set; } = [];
 }
 
 public sealed record FreeHoursIntervalResult(string Start, string End);
@@ -89,7 +85,7 @@ public partial class QueryCommands
             var unknown = names.Where(name => !known.Contains(name, StringComparer.Ordinal)).ToArray();
             if (unknown.Length > 0)
             {
-                return Finish(CliExit.InvalidArguments, [UnknownGroups(unknown, known)]);
+                return Finish(CliExit.InvalidArguments, [UnknownGroups(unknown: unknown, known: known)]);
             }
 
             var ambiguous = names.Where(name => known.Count(x => x == name) > 1).ToArray();
@@ -138,8 +134,8 @@ public partial class QueryCommands
             {
                 var section = data.Sections[i];
                 context.StreamItem(
-                    i.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    status: "completed",
                     section,
                     renderHuman: () =>
                     {
@@ -180,10 +176,12 @@ public partial class QueryCommands
             });
         }
 
-        static string Describe(string mode) =>
-            mode == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
+        static string Describe(string mode)
+        {
+            return mode == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
                 ? "whole-group lessons and unspecialized optional lessons occupy their slot"
                 : "every lesson occupies its slot";
+        }
 
         static string UnknownGroups(string[] unknown, string[] known)
         {
@@ -195,7 +193,7 @@ public partial class QueryCommands
                         x,
                         name,
                         StringComparison.OrdinalIgnoreCase));
-                    return $"Unknown group '{name}'." + (suggestion is null ? "" : $" Did you mean '{suggestion}'?");
+                    return (string) $"{($"Unknown group '{name}'.")}{(suggestion is null ? "" : $" Did you mean '{suggestion}'?")}";
                 }));
         }
     }

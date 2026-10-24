@@ -59,14 +59,14 @@ public static class FmiPdfImport
             // A source import must preserve conflicts rather than silently change lesson
             // times or membership. All other model validation still runs on the retry.
             sourceConflicts = e.Message;
-            Console.Error.WriteLine("Source conflicts retained in generated documents:\n" + sourceConflicts);
+            Console.Error.WriteLine((string) $"Source conflicts retained in generated documents:\n{sourceConflicts}");
             context.Schedule.OverlapValidationConfig = null;
             schedule = context.Schedule.Build();
         }
         var output = new OutputDirectory(Path.GetFullPath(outputPath));
         output.Initialize();
-        await File.WriteAllTextAsync(Path.Combine(outputPath, "import-report.json"),
-            JsonSerializer.Serialize(new
+        await File.WriteAllTextAsync(path: Path.Combine(outputPath, "import-report.json"),
+            contents: JsonSerializer.Serialize(new
             {
                 PeriodStart = start,
                 Cells = cells.Count,
@@ -85,12 +85,15 @@ public static class FmiPdfImport
             new(new SubGroupNumberDisplayHandler(), new ParityDisplayHandler(), new LessonTypeDisplayHandler()),
             context.TimeConfig, new TimeSlotDisplayHandler(), new DayNameProvider(),
             Config.SpecializationRegistry, schedule);
-        await handler.Run(new() { CancellationToken = cancellationToken, OutputDirectory = output });
+        await handler.Run(new() {
+            CancellationToken = cancellationToken,
+            OutputDirectory = output
+        });
         var sourceDirectory = Path.Combine(outputPath, "sources");
         Directory.CreateDirectory(sourceDirectory);
         foreach (var source in update.Downloads)
             await File.WriteAllBytesAsync(Path.Combine(sourceDirectory, $"orar{source.Link.Year}.pdf"), source.Content, cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "cells.json"), JsonSerializer.Serialize(cells, new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "sources.json"), JsonSerializer.Serialize(update.Sources, new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+        await File.WriteAllTextAsync(path: Path.Combine(sourceDirectory, "cells.json"), contents: JsonSerializer.Serialize(cells, new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+        await File.WriteAllTextAsync(path: Path.Combine(sourceDirectory, "sources.json"), contents: JsonSerializer.Serialize(update.Sources, new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
     }
 }

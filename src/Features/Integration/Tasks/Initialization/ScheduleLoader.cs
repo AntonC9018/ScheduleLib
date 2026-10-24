@@ -33,7 +33,7 @@ public sealed class ScheduleLoader
         // One local writer owns a cache key through the entire rebuild. Readers wait
         // and reopen after publication; the live file is never truncated in place.
         await using var cacheLock = CachedPath is { } cachePath
-            ? await LocalFileLock.Acquire(cachePath + ".lock", cancellationToken, wait: true)
+            ? await LocalFileLock.Acquire((string) $"{cachePath}.lock", cancellationToken, wait: true)
             : null;
         string? hashHex = null;
         {
@@ -71,7 +71,7 @@ public sealed class ScheduleLoader
                 // Cache models already contain the explicit PDF cohort assignments;
                 // reuse the same import policy before the builder validates them.
                 if (Components.OfType<DirectoryScheduleLoaderComponent>().Any(component =>
-                    Directory.EnumerateFiles(component.DirectoryPath.Value, "*.pdf", SearchOption.AllDirectories).Any()))
+                    Directory.EnumerateFiles(path: component.DirectoryPath.Value, searchPattern: "*.pdf", SearchOption.AllDirectories).Any()))
                     context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
                         context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
                 return;
@@ -101,11 +101,7 @@ public interface IScheduleLoaderComponent
 
 public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 {
-    public required AbsolutePath DirectoryPath
-    {
-        get;
-        init;
-    }
+    public required AbsolutePath DirectoryPath { get; init; }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
@@ -201,7 +197,7 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
 
     public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*.xlsx", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(path: DirectoryPath.Value, searchPattern: "*.xlsx", SearchOption.AllDirectories))
         {
             await using var inputFile = new FileStream(
                 filePath,
@@ -340,7 +336,7 @@ public sealed class ConsultationsLoaderComponent(
                     {
                         var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
                         var consultationDuration = _timeConfig.LessonDuration;
-                        interval = new(startTime, startTime.Add(consultationDuration));
+                        interval = new(Start: startTime, End: startTime.Add(consultationDuration));
                     }
                     else
                     {
@@ -395,7 +391,7 @@ public sealed class ConsultationsLoaderComponent(
 
         const int dataRowStart = headerRowNumber + 1;
         int potentialDataRowEnd = worksheet.LastRowUsed()!.RowNumber();
-        var dataRows = worksheet.Rows(dataRowStart, potentialDataRowEnd);
+        var dataRows = worksheet.Rows(firstRow: dataRowStart, lastRow: potentialDataRowEnd);
         var processor = new Processor(context.TimeConfig, context.DayNameParser);
         foreach (var dataRow in dataRows)
         {
@@ -524,33 +520,33 @@ public static class HashHelper
             static int CompareScopes(ImplicitSplitScope x, ImplicitSplitScope y)
             {
                 int c;
-                if ((c = Nullable.Compare(x.StudyYear?.Value, y.StudyYear?.Value)) != 0)
+                if ((c = Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value)) != 0)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.Grade?.Value, y.Grade?.Value)) != 0)
+                if ((c = Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value)) != 0)
                 {
                     return c;
                 }
-                if ((c = string.Compare(x.Faculty?.Name, y.Faculty?.Name, StringComparison.Ordinal)) != 0)
+                if ((c = string.Compare(strA: x.Faculty?.Name, strB: y.Faculty?.Name, StringComparison.Ordinal)) != 0)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.AttendanceMode, y.AttendanceMode)) != 0)
+                if ((c = Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode)) != 0)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.Qualification, y.Qualification)) != 0)
+                if ((c = Nullable.Compare(n1: x.Qualification, n2: y.Qualification)) != 0)
                 {
                     return c;
                 }
                 if ((c = CompareCourses(
-                        x.SpecializationCourses, y.SpecializationCourses, static s => s.Value)) != 0)
+                        xs: x.SpecializationCourses, ys: y.SpecializationCourses, static s => s.Value)) != 0)
                 {
                     return c;
                 }
                 return CompareCourses(
-                    x.AlternativeCourses, y.AlternativeCourses, static a => a.Value);
+                    xs: x.AlternativeCourses, ys: y.AlternativeCourses, static a => a.Value);
             }
 
             static int CompareCourses<T>(
@@ -567,13 +563,13 @@ public static class HashHelper
                 using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
                 while (xe.MoveNext() && ye.MoveNext())
                 {
-                    int c = string.Compare(xe.Current.Key, ye.Current.Key, StringComparison.Ordinal);
+                    int c = string.Compare(strA: xe.Current.Key, strB: ye.Current.Key, StringComparison.Ordinal);
                     if (c != 0)
                     {
                         return c;
                     }
                     c = string.Compare(
-                        value(xe.Current.Value), value(ye.Current.Value), StringComparison.Ordinal);
+                        strA: value(xe.Current.Value), strB: value(ye.Current.Value), StringComparison.Ordinal);
                     if (c != 0)
                     {
                         return c;
@@ -593,7 +589,7 @@ public static class HashHelper
             Debug.Assert(srcFullPath == Path.GetFullPath(srcFullPath));
 
             var filePaths = Directory.GetFiles(
-                    srcFullPath,
+                    path: srcFullPath,
                     searchPattern: searchPattern,
                     SearchOption.AllDirectories)
                 .OrderBy(p => p)

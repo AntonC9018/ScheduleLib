@@ -49,7 +49,7 @@ public sealed class SettingsTests
         using var files = new SettingsFixture();
         await files.Project(document);
         var error = await Assert.ThrowsAsync<JsonException>(() => files.Load(new()));
-        Assert.Contains("global", error.Message);
+        Assert.Contains(expectedSubstring: "global", actualString: error.Message);
     }
 
     [Fact]
@@ -69,11 +69,11 @@ public sealed class SettingsTests
         using var settings = await files.Load(new() { Profile = "Curmanschii Anton" });
         var source = Assert.Single(settings.Get(LessonAttendanceConfig.Key)!.Sources);
         Assert.Equal(
-            Path.Combine(
+            expected: Path.Combine(
                 files.Root,
                 "project",
                 "private-attendance.xlsx"),
-            source.FilePath);
+            actual: source.FilePath);
     }
 
     [Theory]
@@ -86,14 +86,14 @@ public sealed class SettingsTests
         using var files = new SettingsFixture();
         using var settings = await files.Load(new() { Profile = teacher });
         Assert.Contains(teacher, settings.Profiles);
-        Assert.Equal(teacher, settings.Profile);
-        Assert.Equal(ExtraLessonInstanceAction.LeaveAlone, settings.Get(RegistryConfig.Key)!.ExtraLessonInstanceAction);
+        Assert.Equal(expected: teacher, actual: settings.Profile);
+        Assert.Equal(expected: ExtraLessonInstanceAction.LeaveAlone, actual: settings.Get(RegistryConfig.Key)!.ExtraLessonInstanceAction);
         var services = new ServiceCollection();
         services.AddConfigsServices();
         settings.ConfigureServices(services);
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        Assert.Equal(teacher, scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName.ToString());
+        Assert.Equal(expected: teacher, actual: scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName.ToString());
     }
 
     [Fact]
@@ -111,19 +111,19 @@ public sealed class SettingsTests
             "profiles":{"Curmanschii Anton":{"GoogleCalendarConfig":{"calendarName":"project-profile"}}}}
             """);
         using var global = await files.Load(new());
-        Assert.Equal("project", global.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        Assert.Equal(expected: "project", actual: global.Get(GoogleCalendarConfig.Key)!.CalendarName);
         Assert.Equal(
-            Path.Combine(
+            expected: Path.Combine(
                 files.Root,
                 "user",
                 "user-tokens"),
-            global.Get(GoogleCalendarConfig.Key)!.Credentials!.CredentialsPath);
+            actual: global.Get(GoogleCalendarConfig.Key)!.Credentials!.CredentialsPath);
         using var teacher = await files.Load(new() { Profile = "Curmanschii Anton" });
-        Assert.Equal("project-profile", teacher.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        Assert.Equal(expected: "project-profile", actual: teacher.Get(GoogleCalendarConfig.Key)!.CalendarName);
         using var cli = await files.Load(new() { Profile = "Curmanschii Anton" }, new() { CalendarName = "CLI" });
-        Assert.Equal("CLI", cli.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        Assert.Equal(expected: "CLI", actual: cli.Get(GoogleCalendarConfig.Key)!.CalendarName);
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 "code defaults",
                 "user defaults",
@@ -132,7 +132,7 @@ public sealed class SettingsTests
                 "project profile: Curmanschii Anton",
                 "CLI arguments",
             },
-            cli.Inspect("GoogleCalendarConfig.calendarName").Sources.Select(x => x.Name));
+            actual: cli.Inspect("GoogleCalendarConfig.calendarName").Sources.Select(x => x.Name));
         var services = new ServiceCollection();
         services.AddConfigsServices();
         services.AddOnlineRegistry();
@@ -140,21 +140,21 @@ public sealed class SettingsTests
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
         Assert.Equal(
-            "project-profile",
-            scope.ServiceProvider.GetRequiredService<DataProvider>().Get(GoogleCalendarConfig.Key)!.CalendarName);
+            expected: "project-profile",
+            actual: scope.ServiceProvider.GetRequiredService<DataProvider>().Get(GoogleCalendarConfig.Key)!.CalendarName);
         Assert.Equal(
-            "project-profile",
-            scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>().Get()!.CalendarName);
+            expected: "project-profile",
+            actual: scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>().Get()!.CalendarName);
         Assert.Equal(
-            "Curmanschii Anton",
-            scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName.ToString());
+            expected: "Curmanschii Anton",
+            actual: scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName.ToString());
         // Switching teacher scopes uses that teacher's path, rather than reusing the selected teacher's settings.
         await using var other = provider.CreateMarkerScope(x =>
             x.TeacherName = ScheduleLib.Parsing.NameHelper.Parse("Nartea Nichita"));
         Assert.Null(other.ServiceProvider.GetRequiredService<DataProvider>().Get(GoogleDriveConfig.Key));
         Assert.Equal(
-            "project",
-            other.ServiceProvider.GetRequiredService<DataProvider>().Get(GoogleCalendarConfig.Key)!.CalendarName);
+            expected: "project",
+            actual: other.ServiceProvider.GetRequiredService<DataProvider>().Get(GoogleCalendarConfig.Key)!.CalendarName);
     }
 
     [Fact]
@@ -173,19 +173,19 @@ public sealed class SettingsTests
             "LessonTopicsConfig":{"sources":[{"$type":"ManifestLessonTopicSourceDefinition","path":"topics"}]}}}
             """);
         using var settings = await files.Load(new());
-        Assert.Equal("user", settings.Get(GoogleCalendarConfig.Key)!.CalendarName);
-        Assert.Equal(8, settings.Get(DeadlinesExcelConfig.Key)!.LessonDelayLimit);
-        Assert.Equal(System.Drawing.Color.Blue, settings.Get(DeadlinesExcelConfig.Key)!.GoodColor);
+        Assert.Equal(expected: "user", actual: settings.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        Assert.Equal(expected: 8, actual: settings.Get(DeadlinesExcelConfig.Key)!.LessonDelayLimit);
+        Assert.Equal(expected: System.Drawing.Color.Blue, actual: settings.Get(DeadlinesExcelConfig.Key)!.GoodColor);
         var attendance = settings.Get(LessonAttendanceConfig.Key)!;
-        Assert.Equal(2, attendance.Sources.Count);
+        Assert.Equal(expected: 2, actual: attendance.Sources.Count);
         var shared = Assert.Single(
             attendance.Sources.Where(x => x.FilePath
                 == Path.Combine(
                     files.Root,
                     "user",
                     "shared.xlsx")));
-        Assert.Equal("IgnoreGrade", shared.CellValueFormat.ToString());
-        Assert.Equal("Error", shared.RepeatedCourseBehavior.ToString());
+        Assert.Equal(expected: "IgnoreGrade", actual: shared.CellValueFormat.ToString());
+        Assert.Equal(expected: "Error", actual: shared.RepeatedCourseBehavior.ToString());
         Assert.Contains(
             attendance.Sources,
             x => x.FilePath
@@ -213,24 +213,24 @@ public sealed class SettingsTests
             "project",
             "nested");
         Directory.CreateDirectory(Path.Combine(nested, "child"));
-        await File.WriteAllTextAsync(Path.Combine(nested, CliSettings.FileName), """{"schemaVersion":1}""");
+        await File.WriteAllTextAsync(path: Path.Combine(nested, CliSettings.FileName), contents: """{"schemaVersion":1}""");
         var cwd = Environment.CurrentDirectory;
         using var nearest = await CliSettings.Load(
             new(),
-            Path.Combine(nested, "child"),
-            files.UserFile);
-        Assert.Equal(nested, nearest.ProjectDirectory);
+            invocationDirectory: Path.Combine(nested, "child"),
+            userFile: files.UserFile);
+        Assert.Equal(expected: nested, actual: nearest.ProjectDirectory);
         using var explicitRoot = await CliSettings.Load(
             new() { Project = "../../user" },
-            Path.Combine(nested, "child"),
-            files.UserFile);
+            invocationDirectory: Path.Combine(nested, "child"),
+            userFile: files.UserFile);
         Assert.Equal(
-            Path.Combine(
+            expected: Path.Combine(
                 files.Root,
                 "project",
                 "user"),
-            explicitRoot.ProjectDirectory);
-        Assert.Equal(cwd, Environment.CurrentDirectory);
+            actual: explicitRoot.ProjectDirectory);
+        Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
     }
 
     [Theory]
@@ -265,9 +265,9 @@ public sealed class SettingsTests
         await files.Project(
             """{"schemaVersion":1,"defaults":{"RegistryLessonFilterConfig":{"skipAttendance":"Zi"}}}""");
         using var global = await files.Load(new());
-        Assert.Equal("Zi", global.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance.ToString());
+        Assert.Equal(expected: "Zi", actual: global.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance.ToString());
         using var teacher = await files.Load(new() { Profile = "Iatasina Tamara" });
-        Assert.Equal("FrecventaRedusa", teacher.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance.ToString());
+        Assert.Equal(expected: "FrecventaRedusa", actual: teacher.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance.ToString());
     }
 
     [Fact]
@@ -285,8 +285,8 @@ public sealed class SettingsTests
                 },
             });
         var inspected = settings.Inspect("MoodleConfig").Value!.ToJsonString();
-        Assert.DoesNotContain("never-print-this", inspected);
-        Assert.Contains("[redacted]", inspected);
+        Assert.DoesNotContain(expectedSubstring: "never-print-this", actualString: inspected);
+        Assert.Contains(expectedSubstring: "[redacted]", actualString: inspected);
     }
 
     [Fact]
@@ -300,15 +300,15 @@ public sealed class SettingsTests
         using var provider = services.BuildServiceProvider();
         var json = provider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>().Get(TreeSerializer.ServiceKey);
         Assert.Null(json.PropertyNamingPolicy);
-        Assert.Equal(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Skip, json.UnmappedMemberHandling);
+        Assert.Equal(expected: System.Text.Json.Serialization.JsonUnmappedMemberHandling.Skip, actual: json.UnmappedMemberHandling);
         var tree = provider.GetRequiredService<TreeBuilder>();
         tree.Defaults.GoogleCalendar().ConfigureValue(x => x.CalendarName = "desktop");
         using var output = new MemoryStream();
         await provider.GetRequiredService<TreeSerializer>().SerializeValues([tree.BaseNode], output);
         using var document = JsonDocument.Parse(output.ToArray());
         Assert.Equal(
-            "desktop",
-            document.RootElement[0].GetProperty("GoogleCalendarConfig").GetProperty("CalendarName").GetString());
+            expected: "desktop",
+            actual: document.RootElement[0].GetProperty("GoogleCalendarConfig").GetProperty("CalendarName").GetString());
         Assert.True(document.RootElement[0].TryGetProperty("$LayerName", out _));
     }
 
@@ -345,17 +345,17 @@ public sealed class SettingsTests
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
-        Assert.Equal(0, process.ExitCode);
-        Assert.Equal("", await stderr);
+        Assert.Equal(expected: 0, actual: process.ExitCode);
+        Assert.Equal(expected: "", actual: await stderr);
         using var document = JsonDocument.Parse(await stdout);
-        Assert.Equal("CLI-process", document.RootElement.GetProperty("data").GetProperty("value").GetString());
-        Assert.Equal("config get", document.RootElement.GetProperty("command").GetString());
+        Assert.Equal(expected: "CLI-process", actual: document.RootElement.GetProperty("data").GetProperty("value").GetString());
+        Assert.Equal(expected: "config get", actual: document.RootElement.GetProperty("command").GetString());
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 CliSettings.FileName,
             },
-            Directory.GetFiles(Path.Combine(files.Root, "project")).Select(Path.GetFileName));
+            actual: Directory.GetFiles(Path.Combine(files.Root, "project")).Select(Path.GetFileName));
     }
 
     [Theory]
@@ -384,9 +384,9 @@ public sealed class SettingsTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(expected, await CliHost.Run(arguments));
+            Assert.Equal(expected: expected, actual: await CliHost.Run(arguments));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(2, document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 2, actual: document.RootElement.GetProperty("exitCode").GetInt32());
         }
         finally
         {
@@ -403,15 +403,15 @@ public sealed class SettingsTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                1,
-                await CliHost.RunCore(
+                expected: 1,
+                actual: await CliHost.RunCore(
                     ["config", "profiles", "--json"],
                     runner =>
                         runner.Configure(builder => builder.UseMiddleware(
                             (_, _) => throw new InvalidOperationException("startup failure"),
                             CommandDotNet.Execution.MiddlewareSteps.InvokeCommand - 2))));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(1, document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("exitCode").GetInt32());
         }
         finally
         {
@@ -431,8 +431,8 @@ public sealed class SettingsTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                0,
-                await new SettingsFixtureExport().TeachersExcel(
+                expected: 0,
+                actual: await new SettingsFixtureExport().TeachersExcel(
                     new()
                     {
                         DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
@@ -443,9 +443,9 @@ public sealed class SettingsTests
                     settings: new() { Project = project }));
             using var document = JsonDocument.Parse(output.ToString());
             var directory = document.RootElement.GetProperty("data").GetProperty("outputDirectory").GetString()!;
-            Assert.StartsWith(Path.Combine(project, "output") + Path.DirectorySeparatorChar, directory);
+            Assert.StartsWith(expectedStartString: Path.Combine(project, "output") + Path.DirectorySeparatorChar, actualString: directory);
             Assert.True(File.Exists(Path.Combine(directory, "all-teachers.xlsx")));
-            Assert.Equal(cwd, Environment.CurrentDirectory);
+            Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
         }
         finally
         {
@@ -474,7 +474,7 @@ public sealed class SettingsTests
             new
             {
                 schemaVersion = 1,
-                defaults = new { GoogleCalendarConfig = new { calendarName = "replacement" + value } },
+                defaults = new { GoogleCalendarConfig = new { calendarName = (string) $"replacement{value}" } },
             });
         await files.Project(before);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -485,20 +485,20 @@ public sealed class SettingsTests
             {
                 using var settings = await CliSettings.Load(
                     new(),
-                    Path.Combine(files.Root, "project"),
-                    files.UserFile,
+                    invocationDirectory: Path.Combine(files.Root, "project"),
+                    userFile: files.UserFile,
                     cancellationToken: deadline.Token);
                 Assert.Contains(
                     settings.Get(GoogleCalendarConfig.Key)!.CalendarName,
                     new[]
                     {
                         value,
-                        "replacement" + value,
+                        (string) $"replacement{value}",
                     });
             }
         }
 
-        var readers = Enumerable.Range(0, 4).Select(_ => Read()).ToArray();
+        var readers = Enumerable.Range(start: 0, count: 4).Select(_ => Read()).ToArray();
         for (var i = 0; i < 8; i++)
         {
             await AtomicFile.Publish(
@@ -530,15 +530,18 @@ public sealed class SettingsTests
 
     private sealed class SettingsFixture : IDisposable
     {
-        public string Root
-        {
-            get;
-        } = Path.Combine(Path.GetTempPath(), "schedulelib-settings-" + Guid.NewGuid().ToString("N"));
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), (string) $"schedulelib-settings-{Guid.NewGuid().ToString("N")}");
 
-        public string UserFile => Path.Combine(
-            Root,
-            "user",
-            CliSettings.FileName);
+        public string UserFile
+        {
+            get
+            {
+                return Path.Combine(
+                    Root,
+                    "user",
+                    CliSettings.FileName);
+            }
+        }
 
         public SettingsFixture()
         {
@@ -551,21 +554,26 @@ public sealed class SettingsTests
                     "user"));
         }
 
-        public Task User(string value) => File.WriteAllTextAsync(UserFile, value);
+        public Task User(string value) => File.WriteAllTextAsync(path: UserFile, contents: value);
 
-        public Task Project(string value) => File.WriteAllTextAsync(
-            Path.Combine(
-                Root,
-                "project",
-                CliSettings.FileName),
-            value);
+        public Task Project(string value)
+        {
+            return File.WriteAllTextAsync(
+                path: Path.Combine(
+                    Root,
+                    "project",
+                    CliSettings.FileName),
+                contents: value);
+        }
 
-        public Task<ResolvedSettings> Load(SettingsArguments arguments, ConfigOverrideArguments? overrides = null) =>
-            CliSettings.Load(
+        public Task<ResolvedSettings> Load(SettingsArguments arguments, ConfigOverrideArguments? overrides = null)
+        {
+            return CliSettings.Load(
                 arguments,
-                Path.Combine(Root, "project"),
-                UserFile,
+                invocationDirectory: Path.Combine(Root, "project"),
+                userFile: UserFile,
                 overrides: overrides);
+        }
 
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }

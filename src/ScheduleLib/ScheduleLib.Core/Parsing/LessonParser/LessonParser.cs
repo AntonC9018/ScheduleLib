@@ -46,22 +46,22 @@ public struct WhiteSpaceContext
 
     // TODO: refine these
     public readonly WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, StartPosition, EndPosition(skipLaterProcessing));
+        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, start: StartPosition, end: EndPosition(skipLaterProcessing));
 
     public readonly WhiteSpaceResult DefaultAll()
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, Lexer.Position, Lexer.Position);
+        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, start: Lexer.Position, end: Lexer.Position);
 
     public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, StartPosition, EndPosition(skipLaterProcessing));
+        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, start: StartPosition, end: EndPosition(skipLaterProcessing));
 
     public readonly WhiteSpaceResult InsertAll()
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, Lexer.Position, Lexer.Position);
+        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, start: Lexer.Position, end: Lexer.Position);
 
     public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, StartPosition, EndPosition(skipLaterProcessing));
+        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, start: StartPosition, end: EndPosition(skipLaterProcessing));
 
     public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, Lexer.Position, Lexer.Position, inclusive);
+        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, start: Lexer.Position, end: Lexer.Position, inclusive);
 }
 public readonly record struct WhiteSpaceResult(
     WhiteSpaceAction Action,
@@ -82,8 +82,8 @@ public readonly record struct WhiteSpaceResult(
 
         return new WhiteSpaceResult(
             action,
-            start,
-            end);
+            LastAppliedPosition: start,
+            LastSkippedPosition: end);
     }
 }
 
@@ -175,8 +175,8 @@ public static class LessonParsingHelper
     public static void RejectExplicitNonBeginners(ReadOnlySpan<char> label)
     {
         if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
-                label,
-                SpecialSubGroups.NonBeginners.Value.AsSpan()))
+                x: label,
+                y: SpecialSubGroups.NonBeginners.Value.AsSpan()))
         {
             throw new WrongFormatException(
                 "The non-beginner subgroup is derived during schedule normalization and may not be written in the source.");
@@ -243,7 +243,7 @@ public static class LessonParsingHelper
         {
             return false;
         }
-        if (!TryGetExactDashedLegacySubGroup(word.Value.Span, number.Value.Span, out subGroup))
+        if (!TryGetExactDashedLegacySubGroup(word: word.Value.Span, number: number.Value.Span, out subGroup))
         {
             return false;
         }
@@ -368,7 +368,7 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        yield return Output(mod.Key.SubGroup, v, lessonsE.Current.LessonName);
+                        yield return Output(subGroup: mod.Key.SubGroup, v, lessonName: lessonsE.Current.LessonName);
                     }
                 }
 
@@ -398,7 +398,7 @@ public static class LessonParsingHelper
                     v.General.UpdateIfNotDefault(defaultMod.General);
                     v.Specific.UpdateIfNotDefault(defaultMod.Specific);
 
-                    yield return Output(defaultMod.SubGroup, v, lesson1.LessonName);
+                    yield return Output(subGroup: defaultMod.SubGroup, v, lessonName: lesson1.LessonName);
                 }
 
                 {
@@ -409,9 +409,9 @@ public static class LessonParsingHelper
                         && state3.DefaultModifiers.IsEmpty)
                     {
                         yield return Output(
-                            default,
+                            subGroup: default,
                             allFallback,
-                            lesson1.LessonName);
+                            lessonName: lesson1.LessonName);
                     }
                 }
             }
@@ -1320,8 +1320,8 @@ public static class LessonParsingHelper
             // Just a dummy by default, so it doesn't break on check.
             var whiteSpaceResult = WhiteSpaceResult.Create(
                 WhiteSpaceAction.Default,
-                lexer.Position,
-                lexer.Position,
+                start: lexer.Position,
+                end: lexer.Position,
                 inclusive: false);
             bool defaultShouldAppendWhitespace = false;
             bool shouldAppendWhitespace = false;

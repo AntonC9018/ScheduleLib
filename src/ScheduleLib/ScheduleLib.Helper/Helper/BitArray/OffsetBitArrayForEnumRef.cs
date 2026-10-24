@@ -123,7 +123,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public void ClearAll()
     {
-        var shiftedMask = UnsizedBitArray64.GetOffsetMask(_offset, Length);
+        var shiftedMask = UnsizedBitArray64.GetOffsetMask(offset: _offset, length: Length);
         _impl.ClearArray(shiftedMask);
     }
 

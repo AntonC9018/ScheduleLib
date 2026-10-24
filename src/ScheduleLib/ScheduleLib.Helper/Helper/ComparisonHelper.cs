@@ -13,8 +13,8 @@ public static class ComparisonHelper
         out bool areBothDefault)
     {
         var comparer = EqualityComparer<T?>.Default;
-        bool xdefault = comparer.Equals(x, default);
-        bool ydefault = comparer.Equals(y, default);
+        bool xdefault = comparer.Equals(x: x, y: default);
+        bool ydefault = comparer.Equals(x: y, y: default);
         if (xdefault && ydefault)
         {
             areBothDefault = true;
@@ -65,7 +65,7 @@ public static class ComparisonHelper
         out bool areBothNull)
         where T : class
     {
-        if (ReferenceEquals(x, y))
+        if (ReferenceEquals(objA: x, objB: y))
         {
             areBothNull = true;
             return true;
@@ -88,11 +88,11 @@ public static class ComparisonHelper
         Func<T, T, bool> comparer)
         where T : class
     {
-        if (AtLeastOneIsNull(x, y, out bool bothNull))
+        if (AtLeastOneIsNull(x: x, y: y, out bool bothNull))
         {
             return bothNull;
         }
-        return comparer(x, y);
+        return comparer(arg1: x, arg2: y);
     }
 }
 
@@ -116,7 +116,7 @@ public static class StructComparisonHelper
         {
             return false;
         }
-        var ret = comparer(xv, yv);
+        var ret = comparer(arg1: xv, arg2: yv);
         return ret;
     }
 

@@ -35,6 +35,6 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
         return this == arr;
     }
     public static bool operator!=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => !(a == b);
-    public static bool operator==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => Equals(a, b);
+    public static bool operator==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => Equals(objA: a, objB: b);
     public override int GetHashCode() => Array.GetHashCode();
 }

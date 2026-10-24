@@ -54,8 +54,8 @@ public sealed class HttpClientContext : IDisposable
 
             var httpClient = new HttpClient(handler);
 
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
-            httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+            httpClient.DefaultRequestHeaders.Add(name: "User-Agent", value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
+            httpClient.DefaultRequestHeaders.Add(name: "Accept-Language", value: "en-US,en;q=0.9");
 
             return new(
                 cookieProvider: cookieProvider,
@@ -114,12 +114,14 @@ public sealed class ScrapingContext : IDisposable
     }
 
     /// <summary>Suppresses authentication replay and redirect navigation for this explicit mutation.</summary>
-    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null) =>
-        _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
+    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null)
+    {
+        return _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
         {
             token.ThrowIfCancellationRequested();
             onSubmissionStarted?.Invoke();
         });
+    }
 
     public void Dispose()
     {
@@ -291,7 +293,7 @@ internal sealed class HttpClientRequester : BaseRequester
 
             foreach (var header in request.Headers)
             {
-                bool added = ret.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                bool added = ret.Headers.TryAddWithoutValidation(name: header.Key, value: header.Value);
                 if (added)
                 {
                     continue;
@@ -299,7 +301,7 @@ internal sealed class HttpClientRequester : BaseRequester
 
                 if (ret.Content is { } c)
                 {
-                    bool addedToContent = c.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    bool addedToContent = c.Headers.TryAddWithoutValidation(name: header.Key, value: header.Value);
                     Debug.Assert(addedToContent);
                     continue;
                 }
@@ -325,7 +327,7 @@ internal sealed class HttpClientRequester : BaseRequester
         {
             ret.Address = requestUrl;
             ret.Content = stream;
-            ret.Headers = response.Headers.ToDictionary(x => x.Key, x => string.Join(", ", x.Value));
+            ret.Headers = response.Headers.ToDictionary(keySelector: x => x.Key, elementSelector: x => string.Join(", ", x.Value));
             ret.StatusCode = response.StatusCode;
         }
         catch

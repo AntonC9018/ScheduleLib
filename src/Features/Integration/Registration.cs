@@ -95,8 +95,8 @@ public static class Registration
         public void AddDynamicConfigurationBinders()
         {
             services.AddScoped<IMarkedConfigurationSectionResolver, MarkedConfigurationSectionResolver>();
-            services.AddScoped(typeof(MarkedDynamicOptionsResolver<>), typeof(MarkedDynamicOptionsResolver<>));
-            services.AddScoped(typeof(DynamicOptionsBinder<>), typeof(DynamicOptionsBinder<>));
+            services.AddScoped(serviceType: typeof(MarkedDynamicOptionsResolver<>), implementationType: typeof(MarkedDynamicOptionsResolver<>));
+            services.AddScoped(serviceType: typeof(DynamicOptionsBinder<>), implementationType: typeof(DynamicOptionsBinder<>));
         }
 
         public void AddScheduleServices()

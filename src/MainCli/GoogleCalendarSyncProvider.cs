@@ -24,8 +24,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability",
-        "CA2000",
+        category: "Reliability",
+        checkId: "CA2000",
         Justification = "Ownership transfers to the returned disposable provider.")]
     public static async Task<ICalendarSyncProvider> Connect(
         IServiceProvider services,
@@ -57,8 +57,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var response = await request.ExecuteAsync(token);
             result.AddRange(
                 (response.Items ?? []).Select(x => new CalendarDestination(
-                    x.Id,
-                    x.Summary,
+                    Id: x.Id,
+                    Summary: x.Summary,
                     x.Primary == true)));
             page = response.NextPageToken;
         } while (page is not null);
@@ -74,7 +74,7 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var request = _service.Events.List(calendarId);
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            result.AddRange((response.Items ?? []).Select(x => new CalendarEventIdentity(x.Id, x.Summary)));
+            result.AddRange((response.Items ?? []).Select(x => new CalendarEventIdentity(Id: x.Id, Summary: x.Summary)));
             page = response.NextPageToken;
         } while (page is not null);
         return result;

@@ -125,15 +125,23 @@ public static class LabSubGroupMerges
                 lessons[item.Id.Id] = lesson;
             }
 
-            void Diagnose(string reason) => diagnostics.Add(new(
-                key.Course, key.Group, key.Specialization, key.Alternative, reason));
+            void Diagnose(string reason)
+            {
+                diagnostics.Add(new(
+                    key.Course, key.Group, key.Specialization, key.Alternative, reason));
+            }
         }
         return new()
         {
-            WeeklyLessons = lessons.ToImmutable(), OneTimeLessons = source.OneTimeLessons,
-            Groups = source.Groups, Teachers = source.Teachers, Courses = source.Courses, Periods = source.Periods,
+            WeeklyLessons = lessons.ToImmutable(),
+            OneTimeLessons = source.OneTimeLessons,
+            Groups = source.Groups,
+            Teachers = source.Teachers,
+            Courses = source.Courses,
+            Periods = source.Periods,
             AutomaticLabSubGroupMerges = merges.ToImmutable(),
-            LabSubGroupMergeDiagnostics = diagnostics.ToImmutable(), SuppressedWeeklyLessons = suppressed.ToImmutable(),
+            LabSubGroupMergeDiagnostics = diagnostics.ToImmutable(),
+            SuppressedWeeklyLessons = suppressed.ToImmutable(),
         };
     }
 

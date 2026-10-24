@@ -24,9 +24,15 @@ public sealed class ParentContext() : IDfsEnumerationContext
         }
     }
 
-    public MutableNode? Parent => _stack.Count > 0
-        ? _stack.Peek()
-        : null;
+    public MutableNode? Parent
+    {
+        get
+        {
+            return _stack.Count > 0
+                ? _stack.Peek()
+                : null;
+        }
+    }
 }
 
 public static class ParentEnumerationExtensions

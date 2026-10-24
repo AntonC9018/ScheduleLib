@@ -56,9 +56,9 @@ public sealed class RegistryGradePreflightTests
         await Run(
             defect,
             apply,
-            invalidForm,
-            5,
-            0,
+            invalidForm: invalidForm,
+            exit: 5,
+            posts: 0,
             []);
     }
 
@@ -126,9 +126,9 @@ public sealed class RegistryGradePreflightTests
         await Run(
             defect,
             true,
-            0,
-            exit,
-            posts,
+            invalidForm: 0,
+            exit: exit,
+            posts: posts,
             statuses);
     }
 
@@ -269,26 +269,26 @@ public sealed class RegistryGradePreflightTests
                 Assert.True(accountLock.Held);
                 cancellation.Cancel();
             }
-            Assert.Equal(exit, await task.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.Equal(posts, handler.Posts);
+            Assert.Equal(expected: exit, actual: await task.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Equal(expected: posts, actual: handler.Posts);
             Assert.False(accountLock.Held);
             Assert.True(session.Disposed);
             using var result = JsonDocument.Parse(output.ToString());
             var root = result.RootElement;
-            Assert.Equal(exit, root.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: exit, actual: root.GetProperty("exitCode").GetInt32());
             Assert.Equal(
-                exit == 130 ? "cancelled" : posts == 0 ? "failed" : "partial",
-                root.GetProperty("status").GetString());
+                expected: exit == 130 ? "cancelled" : posts == 0 ? "failed" : "partial",
+                actual: root.GetProperty("status").GetString());
             Assert.Equal(
-                statuses,
-                root.GetProperty("data").GetProperty("outcomes").EnumerateArray()
+                expected: statuses,
+                actual: root.GetProperty("data").GetProperty("outcomes").EnumerateArray()
                     .Select(x => x.GetProperty("status").GetString()));
             if (invalidForm != 0)
             {
-                Assert.Equal(invalidForm, navigator.Documents.Count);
+                Assert.Equal(expected: invalidForm, actual: navigator.Documents.Count);
                 Assert.All(
                     navigator.Documents.SelectMany(x => x.QuerySelectorAll<IHtmlInputElement>("input")),
-                    x => Assert.Equal("5", x.Value));
+                    x => Assert.Equal(expected: "5", actual: x.Value));
             }
         }
         finally
@@ -305,27 +305,27 @@ public sealed class RegistryGradePreflightTests
         LessonGroups groups,
         GroupPartitionKey partition) : IRegistryGradeNavigator
     {
-        public List<IDocument> Documents
-        {
-            get;
-        } = [];
+        public List<IDocument> Documents { get; } = [];
 
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
         {
-            Assert.Equal(Semester.Sem2, semester);
+            Assert.Equal(expected: Semester.Sem2, actual: semester);
             return Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
         }
 
-        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>(
-            Enumerable.Range(1, 2).Select(i => new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = false,
-                    Value = groups,
-                },
-                partition,
-                new($"https://registry.test/group{i}"),
-                new($"https://registry.test/evaluation{i}"))));
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
+        {
+            return Task.FromResult<IEnumerable<GroupLink>>(
+                Enumerable.Range(start: 1, count: 2).Select(i => new GroupLink(
+                    new FoundGroups
+                    {
+                        IsWildcard = false,
+                        Value = groups,
+                    },
+                    partition,
+                    uri: new($"https://registry.test/group{i}"),
+                    evaluationUri: new($"https://registry.test/evaluation{i}"))));
+        }
 
         public async Task<IDocument> GetHtml(Uri uri)
         {
@@ -341,10 +341,13 @@ public sealed class RegistryGradePreflightTests
         public Task SubmitGrades(
             IDocument document,
             CancellationToken token,
-            Action? onSubmissionStarted = null) => adapter.SubmitGrades(
+            Action? onSubmissionStarted = null)
+        {
+            return adapter.SubmitGrades(
             document,
             token,
             onSubmissionStarted);
+        }
     }
 
     private sealed class Planner(
@@ -358,15 +361,14 @@ public sealed class RegistryGradePreflightTests
             string quizId,
             CancellationToken token)
         {
-            var plan = await handler.Plan(
-                new()
-                {
-                    Quiz = quiz,
-                    RegistryNavigator = navigator,
-                    Semester = Semester.Sem2,
-                    CancellationToken = token,
-                });
-            Assert.Equal(2, plan.Actions.Count);
+            var plan = await handler.Plan(new()
+            {
+                Quiz = quiz,
+                RegistryNavigator = navigator,
+                Semester = Semester.Sem2,
+                CancellationToken = token,
+            });
+            Assert.Equal(expected: 2, actual: plan.Actions.Count);
             if (defect.StartsWith("mutate", StringComparison.Ordinal))
             {
                 navigator.Documents[defect == "mutate-first" ? 0 : 1].QuerySelector<IHtmlInputElement>("input")!
@@ -388,10 +390,7 @@ public sealed class RegistryGradePreflightTests
     {
         public bool Disposed;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("test-account", "https://registry.test/");
+        public RegistryDestination Target { get; } = new(Account: "test-account", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -452,11 +451,14 @@ public sealed class RegistryGradePreflightTests
         }
     }
 
-    private static HttpResponseMessage Response(string html) => new(HttpStatusCode.OK)
+    private static HttpResponseMessage Response(string html)
     {
-        Content = new StringContent(
-            html,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                html,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 }

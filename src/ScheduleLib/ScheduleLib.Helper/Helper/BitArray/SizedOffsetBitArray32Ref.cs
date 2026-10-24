@@ -50,7 +50,7 @@ public ref struct SizedOffsetBitArray32Ref
 
     public readonly int Length => _length;
 
-    private readonly BitArray32 Slice => _array.Slice(Offset, _length);
+    private readonly BitArray32 Slice => _array.Slice(offset: Offset, length: _length);
 
     public readonly int SetCount => Slice.SetCount;
 
@@ -80,7 +80,7 @@ public ref struct SizedOffsetBitArray32Ref
 
     public void ClearAll()
     {
-        var shiftedMask = UnsizedBitArray32.GetOffsetMask(Offset, _length);
+        var shiftedMask = UnsizedBitArray32.GetOffsetMask(offset: Offset, length: _length);
         _array.ClearArray(shiftedMask);
     }
 
@@ -107,12 +107,12 @@ public static partial class BitArrayExtensions
 {
     public static SizedOffsetBitArray32Ref PortionRef(ref this BitArray32 arr, int offset, int len)
     {
-        return SizedOffsetBitArray32Ref.Create(ref arr, offset, len);
+        return SizedOffsetBitArray32Ref.Create(ref arr, offset: offset, len: len);
     }
 
     public static SizedOffsetBitArray32Ref PortionRef(ref this UnsizedBitArray32 arr, int offset, int len)
     {
-        return new(ref arr, offset, len);
+        return new(ref arr, offset: offset, length: len);
     }
 
     // Compute bounds

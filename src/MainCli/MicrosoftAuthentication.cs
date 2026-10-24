@@ -29,9 +29,12 @@ public interface IMicrosoftTokenProvider
 /// <summary>Uses only supported MSAL APIs. Silent acquisition has no interactive fallback.</summary>
 public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
 {
-    private static IPublicClientApplication Application(MicrosoftAuthConfig config) => PublicClientApplicationBuilder
-        .Create(config.ClientId).WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
-        .WithRedirectUri("http://localhost").Build();
+    private static IPublicClientApplication Application(MicrosoftAuthConfig config)
+    {
+        return PublicClientApplicationBuilder
+            .Create(config.ClientId).WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
+            .WithRedirectUri("http://localhost").Build();
+    }
 
     public async Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)
     {
@@ -53,7 +56,7 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
         var account = await app.GetAccountAsync(accountId);
         if (account is null)
         {
-            throw new MsalUiRequiredException("missing_account", "Explicit login is required.");
+            throw new MsalUiRequiredException(errorCode: "missing_account", errorMessage: "Explicit login is required.");
         }
 
         var result = await app.AcquireTokenSilent(CurriculaDownloadTasks.ApiRequiredScopes, account)
@@ -61,21 +64,19 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
         return ToToken(serialized, result);
     }
 
-    private static MicrosoftToken ToToken(SupportedCache cache, AuthenticationResult result) =>
-        new(
-            result.Account.HomeAccountId.Identifier,
-            result.AccessToken,
+    private static MicrosoftToken ToToken(SupportedCache cache, AuthenticationResult result)
+    {
+        return new(
+            AccountId: result.Account.HomeAccountId.Identifier,
+            AccessToken: result.AccessToken,
             result.ExpiresOn,
             result.Scopes.ToArray(),
             cache.Bytes);
+    }
 
     private sealed class SupportedCache
     {
-        public byte[] Bytes
-        {
-            get;
-            private set;
-        }
+        public byte[] Bytes { get; private set; }
 
         public SupportedCache(IPublicClientApplication app, byte[] initial)
         {
@@ -127,14 +128,20 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
     private string ProfileDirectory(string profile) => Path.Combine(_root, Key(profile));
     private string BindingFile(string profile) => Path.Combine(ProfileDirectory(profile), "account.json");
 
-    private string TokenFile(string profile, Binding binding) => Path.Combine(
-        ProfileDirectory(profile),
-        Key(binding.TenantId + "\n" + binding.ClientId),
-        Key(binding.AccountId) + ".json");
+    private string TokenFile(string profile, Binding binding)
+    {
+        return Path.Combine(
+            ProfileDirectory(profile),
+            Key((string) $"{binding.TenantId}\n{binding.ClientId}"),
+            (string) $"{Key(binding.AccountId)}.json");
+    }
 
-    private Task<LocalFileLock> Lease(string profile, CancellationToken token) => LocalFileLock.Acquire(
-        Path.Combine(ProfileDirectory(profile), ".operation.lock"),
-        token);
+    private Task<LocalFileLock> Lease(string profile, CancellationToken token)
+    {
+        return LocalFileLock.Acquire(
+            Path.Combine(ProfileDirectory(profile), ".operation.lock"),
+            token);
+    }
 
     public async Task Login(
         MicrosoftAuthConfig config,
@@ -154,14 +161,14 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
         catch (Exception)
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
         EnsureUsable(authorization, profile);
         var binding = new Binding(
             1,
-            config.TenantId,
-            config.ClientId,
-            authorization.AccountId);
+            TenantId: config.TenantId,
+            ClientId: config.ClientId,
+            AccountId: authorization.AccountId);
         await Write(
             TokenFile(profile, binding),
             new CachedAuthorization(
@@ -191,13 +198,13 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             || binding.ClientId != config.ClientId
             || string.IsNullOrWhiteSpace(binding.AccountId))
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
         if (cached is null || cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 })
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
         MicrosoftToken authorization;
@@ -215,12 +222,12 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
         catch (Exception)
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
         EnsureUsable(authorization, profile);
         if (authorization.AccountId != binding.AccountId)
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
         await Write(
@@ -241,8 +248,8 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         if (binding is null)
         {
             return new(
-                "microsoft",
-                profile,
+                Provider: "microsoft",
+                Profile: profile,
                 []);
         }
 
@@ -262,15 +269,15 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
 
         return new(
-            "microsoft",
-            profile,
+            Provider: "microsoft",
+            Profile: profile,
             cached is null
                 ? []
                 :
                 [
                     new(
-                        binding.AccountId,
-                        cached.ExpiresOn > DateTimeOffset.UtcNow ? "authorized" : "refreshable",
+                        AccountId: binding.AccountId,
+                        State: cached.ExpiresOn > DateTimeOffset.UtcNow ? "authorized" : "refreshable",
                         cached.Scopes),
                 ]);
     }
@@ -281,8 +288,8 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         token.ThrowIfCancellationRequested();
         // Delete only this provider/profile's owned state; keep lock files and other teachers.
         foreach (var file in Directory.EnumerateFiles(
-                     ProfileDirectory(profile),
-                     "*.json",
+                     path: ProfileDirectory(profile),
+                     searchPattern: "*.json",
                      SearchOption.AllDirectories))
         {
             File.Delete(file);
@@ -293,7 +300,7 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
     {
         if (string.IsNullOrWhiteSpace(config.TenantId) || string.IsNullOrWhiteSpace(config.ClientId))
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
     }
 
@@ -306,7 +313,7 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             || CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
                 .Any())
         {
-            throw new AuthenticationRequiredException("microsoft", profile);
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
     }
 

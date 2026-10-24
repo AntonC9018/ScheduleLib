@@ -8,7 +8,7 @@ public sealed class WordEnumerableTests
     public void CountTest()
     {
         var e = new WordEnumerable("hello world", opts: new());
-        Assert.Equal(2, e.Count());
+        Assert.Equal(expected: 2, actual: e.Count());
     }
 
     [Fact]
@@ -20,8 +20,8 @@ public sealed class WordEnumerableTests
                 IgnorePunctuation = false,
             });
         Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public sealed class WordEnumerableTests
                 IgnorePunctuation = true,
             });
         Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
@@ -60,8 +60,8 @@ public sealed class WordEnumerableTests
                 IgnorePunctuation = true,
             });
         Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
@@ -73,8 +73,8 @@ public sealed class WordEnumerableTests
                 IgnorePunctuation = true,
             });
         Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public sealed class WordEnumerableTests
                 IgnorePunctuation = false,
             });
         Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello.", s1),
-            s2 => Assert.Equal("world", s2));
+            s1 => Assert.Equal(expected: "hello.", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 }
 

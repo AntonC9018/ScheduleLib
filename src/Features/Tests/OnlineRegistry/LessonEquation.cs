@@ -9,12 +9,18 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class LessonEquationTests
 {
-    private LessonConfig DefaultLesson => new()
+    private LessonConfig DefaultLesson
     {
-        Day = DayOfWeek.Monday,
-        Type = LessonType.Lab,
-        TimeSlot = new(0),
-    };
+        get
+        {
+            return new()
+            {
+                Day = DayOfWeek.Monday,
+                Type = LessonType.Lab,
+                TimeSlot = new(0),
+            };
+        }
+    }
 
     [Fact]
     public void SingleExactMatch_ProducesNoCommands()
@@ -39,7 +45,7 @@ public sealed class LessonEquationTests
         Assert.Collection(result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
             });
     }
 
@@ -56,7 +62,7 @@ public sealed class LessonEquationTests
         Assert.Collection(result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
             });
     }
 
@@ -74,8 +80,8 @@ public sealed class LessonEquationTests
         Assert.Collection(result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Delete, c.Type);
-                Assert.Equal(new(1), c.Existing.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
+                Assert.Equal(expected: new(1), actual: c.Existing.TimeSlot);
             });
     }
 
@@ -111,8 +117,8 @@ public sealed class LessonEquationTests
         var result = ctx.Resolve();
 
         var c = Assert.Single(result);
-        Assert.Equal(LessonEquationCommandType.Update, c.Type);
-        Assert.Equal(new(0), c.Existing.TimeSlot);
+        Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+        Assert.Equal(expected: new(0), actual: c.Existing.TimeSlot);
     }
 
     [Fact]
@@ -129,7 +135,7 @@ public sealed class LessonEquationTests
         Assert.Collection(result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Create, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Create, actual: c.Type);
             });
     }
 
@@ -152,8 +158,8 @@ public sealed class LessonEquationTests
         var result = ctx.Resolve();
 
         var c = Assert.Single(result);
-        Assert.Equal(LessonEquationCommandType.Create, c.Type);
-        Assert.Equal(DayOfWeek.Tuesday, c.All.Day);
+        Assert.Equal(expected: LessonEquationCommandType.Create, actual: c.Type);
+        Assert.Equal(expected: DayOfWeek.Tuesday, actual: c.All.Day);
     }
 
     [Fact]
@@ -205,20 +211,20 @@ public sealed class LessonEquationTests
         Assert.Collection(result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
-                Assert.Equal(new(1), c.Existing.TimeSlot);
-                Assert.Equal(LessonType.Curs, c.Existing.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+                Assert.Equal(expected: new(1), actual: c.Existing.TimeSlot);
+                Assert.Equal(expected: LessonType.Curs, actual: c.Existing.Type);
             },
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
-                Assert.Equal(new(3), c.Existing.TimeSlot);
-                Assert.Equal(new(2), c.All.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+                Assert.Equal(expected: new(3), actual: c.Existing.TimeSlot);
+                Assert.Equal(expected: new(2), actual: c.All.TimeSlot);
             },
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Delete, c.Type);
-                Assert.Equal(new(4), c.Existing.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
+                Assert.Equal(expected: new(4), actual: c.Existing.TimeSlot);
             });
     }
 
@@ -230,7 +236,7 @@ public sealed class LessonEquationTests
             {
                 var date = TestContext.GetDate(day);
                 var actualDay = date.DayOfWeek;
-                Assert.Equal(day, actualDay);
+                Assert.Equal(expected: day, actual: actualDay);
             }
 
             Check(DayOfWeek.Sunday);
@@ -245,8 +251,8 @@ public sealed class LessonEquationTests
                 var dateTime = new DateTime(date, time);
 
                 var (actualDay, actualTs) = TestContext.ReverseEngineerDateTime(dateTime);
-                Assert.Equal(day, actualDay);
-                Assert.Equal(ts, actualTs);
+                Assert.Equal(expected: day, actual: actualDay);
+                Assert.Equal(expected: ts, actual: actualTs);
             }
 
             Check(DayOfWeek.Sunday, new(0));
@@ -421,8 +427,7 @@ file sealed class TestContext
         }
 
         var derivationAlgorithm = new SameDayDerivation();
-        var result = derivationAlgorithm.DeriveCommands(
-            new(schedule, existing, scheduled));
+        var result = derivationAlgorithm.DeriveCommands(new(schedule, existing, scheduled));
         return result.Select(x =>
         {
             var ret = new ResolvedCommand(x.Type);

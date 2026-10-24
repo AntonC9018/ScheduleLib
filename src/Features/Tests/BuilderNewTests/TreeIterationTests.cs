@@ -15,9 +15,9 @@ public sealed class TreeIterationTests
 
         // Assert
         Assert.Collection(states,
-            s1 => Assert.Equal(S(DfsVisitationState.BeforeProcess), s1),
-            s2 => Assert.Equal(S(DfsVisitationState.Process), s2),
-            s3 => Assert.Equal(S(DfsVisitationState.AfterProcess), s3));
+            s1 => Assert.Equal(expected: S(DfsVisitationState.BeforeProcess), actual: s1),
+            s2 => Assert.Equal(expected: S(DfsVisitationState.Process), actual: s2),
+            s3 => Assert.Equal(expected: S(DfsVisitationState.AfterProcess), actual: s3));
         VisitRecord S(DfsVisitationState state) => new("Root", state);
     }
 
@@ -45,7 +45,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, states);
+        VisitSequence.AssertInOrder(expected: expected, actual: states);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, states);
+        VisitSequence.AssertInOrder(expected: expected, actual: states);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class TreeIterationTests
             new("Root", DfsVisitationState.Process),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected: expected, actual: recorder.Records);
     }
 
     [Fact]
@@ -139,14 +139,14 @@ public sealed class TreeIterationTests
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected: expected, actual: recorder.Records);
     }
 
     [Fact]
     public void MultipleChildren_AllVisited()
     {
         // Arrange
-        var children = Enumerable.Range(1, 5)
+        var children = Enumerable.Range(start: 1, count: 5)
             .Select(i => CreateLayer($"Child{i}"))
             .ToArray();
         var root = CreateLayer("Root", children);
@@ -160,7 +160,7 @@ public sealed class TreeIterationTests
         }
 
         // Assert
-        Assert.Equal(6, visitedLayers.Count); // Root + 5 children
+        Assert.Equal(expected: 6, actual: visitedLayers.Count); // Root + 5 children
         for (int i = 1; i <= 5; i++)
         {
             Assert.Contains($"Child{i}", visitedLayers);
@@ -181,7 +181,7 @@ public sealed class TreeIterationTests
 
         // Assert
         Assert.True(result);
-        Assert.Equal(DfsVisitationState.AfterProcess, enumerator.Current.State);
+        Assert.Equal(expected: DfsVisitationState.AfterProcess, actual: enumerator.Current.State);
     }
 
     private MutableNode CreateLayer(string name, params ReadOnlySpan<MutableNode> children)
@@ -258,19 +258,14 @@ file static class VisitSequence
         if (filtered.Count != expected.Count)
         {
             Assert.Fail(
-                $"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."
-                + $" Expected: {string.Join(", ", expected)}."
-                + $" Recorded sequence: {string.Join(", ", actual)}");
+                (string) $"{($"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count}).")}{($" Expected: {string.Join(", ", expected)}.")}{($" Recorded sequence: {string.Join(", ", actual)}")}");
         }
         for (int i = 0; i < expected.Count; i++)
         {
             if (filtered[i] != expected[i])
             {
                 Assert.Fail(
-                    $"The expected visits did not match exactly."
-                    + $" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."
-                    + $" Expected: {string.Join(", ", expected)}."
-                    + $" Recorded sequence: {string.Join(", ", actual)}");
+                    (string) $"{($"The expected visits did not match exactly.")}{($" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}.")}{($" Expected: {string.Join(", ", expected)}.")}{($" Recorded sequence: {string.Join(", ", actual)}")}");
             }
         }
     }

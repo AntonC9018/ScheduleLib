@@ -177,7 +177,7 @@ public static class FilterHelper
             producer);
     }
 
-    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
+    [SuppressMessage(category: "ReSharper", checkId: "PossibleMultipleEnumeration")]
     public static FilteredSchedule Filter(this Schedule schedule, in ScheduleFilter filter)
     {
         var lessons = GetRegularLessons(filter).ToArray();
@@ -390,21 +390,27 @@ public static class FilterHelper
                     }
                 }
 
-                PartitionKey[]? SelectedValues(PartitionDimension dimension) => dimension switch
+                PartitionKey[]? SelectedValues(PartitionDimension dimension)
                 {
-                    PartitionDimension.SubGroup => selections.SubGroup,
-                    PartitionDimension.Specialization => selections.Specialization,
-                    PartitionDimension.Alternative => selections.Alternative,
-                    _ => throw Unreachable(),
-                };
+                    return dimension switch
+                    {
+                        PartitionDimension.SubGroup => selections.SubGroup,
+                        PartitionDimension.Specialization => selections.Specialization,
+                        PartitionDimension.Alternative => selections.Alternative,
+                        _ => throw Unreachable(),
+                    };
+                }
 
-                Dictionary<GroupId, int>? ObservedCounts(PartitionDimension dimension) => dimension switch
+                Dictionary<GroupId, int>? ObservedCounts(PartitionDimension dimension)
                 {
-                    PartitionDimension.SubGroup => null,
-                    PartitionDimension.Specialization => specializationCounts ??= CountObservedValues(schedule, dimension),
-                    PartitionDimension.Alternative => alternativeCounts ??= CountObservedValues(schedule, dimension),
-                    _ => throw Unreachable(),
-                };
+                    return dimension switch
+                    {
+                        PartitionDimension.SubGroup => null,
+                        PartitionDimension.Specialization => specializationCounts ??= CountObservedValues(schedule, dimension),
+                        PartitionDimension.Alternative => alternativeCounts ??= CountObservedValues(schedule, dimension),
+                        _ => throw Unreachable(),
+                    };
+                }
 
                 static Dictionary<GroupId, int> CountObservedValues(Schedule schedule, PartitionDimension dimension)
                 {

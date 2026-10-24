@@ -42,11 +42,11 @@ public sealed partial class LabsMappingProvider
             {
                 if (s.Key == val!.Key)
                 {
-                    LogDuplicateKeys(s.Key, val.Key);
+                    LogDuplicateKeys(KeyA: s.Key, KeyB: val.Key);
                 }
                 else
                 {
-                    LogCourseNamesMatch(s.Key.CourseName, val.Key.CourseName);
+                    LogCourseNamesMatch(CourseNameA: s.Key.CourseName, CourseNameB: val.Key.CourseName);
                 }
             }
             val = s;

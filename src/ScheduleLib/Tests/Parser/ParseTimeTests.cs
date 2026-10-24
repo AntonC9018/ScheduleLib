@@ -19,6 +19,6 @@ public sealed class ParseTimeTests
     [Fact]
     public void ValidTimeParses()
     {
-        Assert.Equal(new TimeOnly(15, 30), Parse("15:30"));
+        Assert.Equal(expected: new TimeOnly(hour: 15, minute: 30), actual: Parse("15:30"));
     }
 }

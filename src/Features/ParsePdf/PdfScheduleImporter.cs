@@ -49,8 +49,8 @@ public static class PdfScheduleImporter
                 var groups = columns.Where(c => box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right).Select(c => c.Name).ToArray();
                 if (day.Length != 1 || time.Length != 1 || groups.Length == 0)
                     throw new FormatException($"{source}, page {table.Page}: unmapped cell {box}: {cell.Text}");
-                var resolved = new PdfScheduleCell(source, table.Page, groups, day[0].Text, Time.Match(time[0].Text).Groups[1].Value,
-                    PdfTextNormalizer.Normalize(cell.Text), RawText: cell.Text, Bounds: box);
+                var resolved = new PdfScheduleCell(Source: source, table.Page, groups, Day: day[0].Text, Start: Time.Match(time[0].Text).Groups[1].Value,
+                    Text: PdfTextNormalizer.Normalize(cell.Text), RawText: cell.Text, Bounds: box);
                 result.AddRange(PdfTextNormalizer.ExpandCohorts(resolved).Select(PdfTextNormalizer.RepairMissingParity));
             }
         }

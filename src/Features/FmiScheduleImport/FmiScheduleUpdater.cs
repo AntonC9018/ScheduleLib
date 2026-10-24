@@ -23,7 +23,7 @@ public sealed class FmiScheduleUpdater(
         stateFile = Path.GetFullPath(stateFile);
         Directory.CreateDirectory(Path.GetDirectoryName(stateFile)!);
         // FileShare.None rejects concurrent writers before either starts downloading.
-        await using var gate = new FileStream(stateFile + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        await using var gate = new FileStream((string) $"{stateFile}.lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         ScheduleUpdateState? previous = null;
         if (File.Exists(stateFile))
         {
@@ -39,8 +39,8 @@ public sealed class FmiScheduleUpdater(
         var downloads = await download(cancellationToken);
         if (!downloads.Select(d => d.Link.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
             throw new FormatException("An update requires all three bachelor schedules.");
-        var sources = downloads.Select(d => new ScheduleSourceHash(d.Link.Year, d.Link.Url.AbsoluteUri,
-            Convert.ToHexStringLower(SHA256.HashData(d.Content)), d.Link.UploadDate)).ToArray();
+        var sources = downloads.Select(d => new ScheduleSourceHash(d.Link.Year, Url: d.Link.Url.AbsoluteUri,
+            Sha256: Convert.ToHexStringLower(SHA256.HashData(d.Content)), d.Link.UploadDate)).ToArray();
         var changed = sources.Where(s => !string.Equals(
             previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256, s.Sha256, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)
@@ -52,7 +52,7 @@ public sealed class FmiScheduleUpdater(
         if (period > today) throw new FormatException($"Schedule upload date {period:yyyy-MM-dd} is in the future.");
         await importAndExport(new(period, downloads, sources), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var temporary = stateFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        var temporary = (string) $"{stateFile}.{Guid.NewGuid().ToString("N")}.tmp";
         try
         {
             await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -60,7 +60,7 @@ public sealed class FmiScheduleUpdater(
                 await JsonSerializer.SerializeAsync(output, new ScheduleUpdateState(1, period, sources), Json, cancellationToken);
                 output.Flush(flushToDisk: true);
             }
-            File.Move(temporary, stateFile, overwrite: true);
+            File.Move(sourceFileName: temporary, destFileName: stateFile, overwrite: true);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
         return new(true, period);

@@ -507,7 +507,7 @@ public sealed class Lexer : ILexer
             return;
         }
 
-        _queue.RemoveRange(0, amount);
+        _queue.RemoveRange(index: 0, count: amount);
     }
 
     internal string ToStringImpl(
@@ -768,7 +768,7 @@ public static class LexerHelper
             {
                 var t = lexer.Current;
                 var source = t.Value;
-                if (FindOffset(source.Span, reader.PeekSpanUntilEnd()) is not { } offset)
+                if (FindOffset(a: source.Span, b: reader.PeekSpanUntilEnd()) is not { } offset)
                 {
                     throw new InvalidOperationException("Cannot apply displacement to this parser, because the lexer is on a different line now");
                 }
@@ -844,8 +844,8 @@ public struct LimitedLexerScope : ILexer
     public readonly override string ToString()
     {
         return _lexer._lexer.ToStringImpl(
-            _lexer._position,
-            _endPosition);
+            start: _lexer._position,
+            end: _endPosition);
     }
 }
 

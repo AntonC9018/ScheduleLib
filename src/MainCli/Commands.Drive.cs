@@ -9,11 +9,7 @@ namespace ScheduleLib.Cli;
 public sealed partial class Commands
 {
     [Subcommand]
-    public DriveCommands Drive
-    {
-        get;
-        set;
-    } = new();
+    public DriveCommands Drive { get; set; } = new();
 }
 
 [Command(
@@ -28,10 +24,12 @@ public class DriveCommands
         IServiceProvider services,
         BuiltGoogleDriveConfig config,
         CancellationToken token)
-        => GoogleDriveSyncProvider.Connect(
-            services,
-            config,
-            token);
+    {
+        return GoogleDriveSyncProvider.Connect(
+                services,
+                config,
+                token);
+    }
 
     [Command(
         "publish",
@@ -128,11 +126,11 @@ public class DriveCommands
                 config,
                 cancellation.Token);
             outputLease = await RunOutput.Create(
-                outputDirectory,
-                "drive publish",
-                context.RunId,
+                output: outputDirectory,
+                command: "drive publish",
+                runId: context.RunId,
                 cancellation.Token,
-                resolved.ProjectDirectory);
+                projectDirectory: resolved.ProjectDirectory);
             output = outputLease;
             var artifacts = await DriveBundle.Generate(
                 scope.ServiceProvider,
@@ -154,7 +152,7 @@ public class DriveCommands
             return await Finish(
                 data.ExitCode,
                 data.ExitCode == CliExit.AuthenticationRequired
-                    ? [new AuthenticationRequiredException("google", resolved.Profile).Message]
+                    ? [new AuthenticationRequiredException(provider: "google", teacher: resolved.Profile).Message]
                     : data.Errors);
         }
         catch (DriveStreamingException ex)
@@ -202,8 +200,8 @@ public class DriveCommands
                 {
                     cli.WriteHuman(path);
                     cli.EmitItem(
-                        "artifact:" + path,
-                        "completed",
+                        id: (string) $"artifact:{path}",
+                        status: "completed",
                         new { path });
                 }
             }

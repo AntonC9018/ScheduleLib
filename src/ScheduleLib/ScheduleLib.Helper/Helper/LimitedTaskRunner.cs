@@ -49,7 +49,7 @@ public sealed class LimitedTaskRunner : IDisposable
 
     public void Add(Func<CancellationToken, Task> taskFactory)
     {
-        var t = Task.Run([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async () =>
+        var t = Task.Run([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async () =>
         {
             await _semaphore.WaitAsync(CancellationToken);
             try

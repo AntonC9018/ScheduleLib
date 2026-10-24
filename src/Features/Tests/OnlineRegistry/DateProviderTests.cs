@@ -13,7 +13,7 @@ public sealed class DateProviderTests
                 new StudyWeek(monday, isOddWeek: true),
             ],
             holidays: [
-                new HolidayPeriod(monday, monday.AddDays(5)),
+                new HolidayPeriod(start: monday, endExclusive: monday.AddDays(5)),
             ]);
         var ret = provider.Dates(new()
         {

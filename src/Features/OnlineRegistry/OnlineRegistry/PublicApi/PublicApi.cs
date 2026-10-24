@@ -368,11 +368,11 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var origin = new Uri(document.Url);
         var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
             .Select(anchor => new Uri(anchor.Href))
-            .Where(uri => SameOrigin(origin, uri) && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+            .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
             .Distinct().ToArray();
         if (redirect.Location is null || listLinks.Length != 1)
             throw new IOException("Registry lesson confirmation destination is unavailable.");
-        var destination = new Uri(origin, redirect.Location);
+        var destination = new Uri(baseUri: origin, relativeUri: redirect.Location);
         if (destination != listLinks[0])
             throw new IOException("Registry lesson confirmation destination is unexpected.");
 
@@ -394,7 +394,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var editLinks = table.Rows.Where(row => row.Cells.Length >= 3 && row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))
             .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
             .Select(anchor => new Uri(anchor.Href))
-            .Where(uri => SameOrigin(origin, uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
+            .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
             .Distinct().ToArray();
         var matches = 0;
         foreach (var edit in editLinks)
@@ -446,9 +446,9 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 var lessonId = form.QuerySelector<IHtmlInputElement>("input[name=lessonId]")?.Value;
                 if (error.Location is null || listLinks.Length != 1
                     || string.IsNullOrWhiteSpace(lessonId) || !lessonId.All(char.IsAsciiDigit)
-                    || !origin.AbsolutePath.EndsWith("/LessonAttendance/LessonDetail/" + lessonId, StringComparison.Ordinal))
+                    || !origin.AbsolutePath.EndsWith((string) $"/LessonAttendance/LessonDetail/{lessonId}", StringComparison.Ordinal))
                     throw new IOException("Registry deletion confirmation identity is unavailable.");
-                var destination = new Uri(origin, error.Location);
+                var destination = new Uri(baseUri: origin, relativeUri: error.Location);
                 if (destination != listLinks[0])
                     throw new IOException("Registry deletion confirmation destination is unexpected.");
                 var list = await GetHtml(destination);
@@ -463,8 +463,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     throw new IOException("Registry deletion confirmation page is unrecognized.");
                 if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]").Any(anchor =>
                         new Uri(anchor.Href).AbsolutePath is var path
-                        && (path.EndsWith("/LessonDetail/" + lessonId, StringComparison.Ordinal)
-                            || path.EndsWith("/Edit/" + lessonId, StringComparison.Ordinal))))
+                        && (path.EndsWith((string) $"/LessonDetail/{lessonId}", StringComparison.Ordinal)
+                            || path.EndsWith((string) $"/Edit/{lessonId}", StringComparison.Ordinal))))
                     throw new RegistryDeletionRefusedException();
             }
         }
@@ -604,7 +604,7 @@ public static partial class RegistryScraping
     internal static readonly TimeSpan RegistryRequestSpacing = BuiltRegistryConfig.DefaultHttpCallDelay;
 
     /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(category: "Reliability", checkId: "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
     public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token, TimeSpan? delay = null)
     {
         var spacing = delay ?? RegistryRequestSpacing;
@@ -616,9 +616,12 @@ public static partial class RegistryScraping
         try
         {
             var cookieProvider = new AngleSharp.Io.MemoryCookieProvider();
-            handler = new HttpClientHandler { CookieContainer = cookieProvider.Container, AllowAutoRedirect = false };
-            var guard = new RegistryHistoryRequestHandler(handler, new(BaseUrl + "LessonAttendance"),
-                DefaultTokenNames.LoginUrl, spacing);
+            handler = new HttpClientHandler {
+                CookieContainer = cookieProvider.Container,
+                AllowAutoRedirect = false
+            };
+            var guard = new RegistryHistoryRequestHandler(handler, index: new(BaseUrl + "LessonAttendance"),
+                login: DefaultTokenNames.LoginUrl, spacing);
             handler = guard;
             client = new HttpClient(guard);
             transport = new HttpClientContext(cookieProvider, client, guard);

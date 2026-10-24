@@ -14,7 +14,7 @@ internal static class RegistryScopeReconciliation
         var legacy = new List<RemoteLessonInstance>();
         foreach (var row in remote)
         {
-            if (RegistryTopicScope.TrySplit(row.Topic, knownScopes, out _, out var scope))
+            if (RegistryTopicScope.TrySplit(topic: row.Topic, knownScopes, baseTopic: out _, scope: out var scope))
             {
                 var owner = resolveScope is null ? scope : resolveScope(row, scope!);
                 if (owner is not null) owners[row.ViewUri] = owner;

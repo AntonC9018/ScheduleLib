@@ -11,7 +11,7 @@ internal static class RegistryLessonRouting
         var lessons = MatchLessonHelper.MatchLessonCandidates(parameters)
             .Where(id => IsCurrentLab(config, parameters.Schedule, parameters.Schedule.Get(id).Lesson)
                 && (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab
-                    || ContainsPartition(filter.GroupPartition, ProjectPartition(config, parameters.Schedule, parameters.Schedule.Get(id).Lesson))))
+                    || ContainsPartition(destination: filter.GroupPartition, source: ProjectPartition(config, parameters.Schedule, parameters.Schedule.Get(id).Lesson))))
             .ToHashSet();
         foreach (var id in parameters.Lookup[filter.CourseId])
         {
@@ -25,23 +25,27 @@ internal static class RegistryLessonRouting
                 && !filter.Groups.Value.IsSubSetOf(lesson.Groups)) continue;
             // A parent list can contain sessions of its subgroups; the topic identifies the audience.
             var partition = ProjectPartition(config, parameters.Schedule, lesson);
-            if (ContainsPartition(filter.GroupPartition, partition))
+            if (ContainsPartition(destination: filter.GroupPartition, source: partition))
                 lessons.Add(id);
         }
         return new(lessons.ToList(), filter.GroupPartition);
     }
 
     internal static GroupPartitionKey ProjectPartition(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
-        => ManualMerge(config, schedule, lesson) is not null
-            ? lesson.GroupPartitionKey with { SubGroup = SubGroup.All } : lesson.GroupPartitionKey;
+    {
+        return ManualMerge(config, schedule, lesson) is not null
+                ? lesson.GroupPartitionKey with { SubGroup = SubGroup.All } : lesson.GroupPartitionKey;
+    }
 
     private static bool IsCurrentLab(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
         => ManualMerge(config, schedule, lesson) is not { } merge || lesson.SubGroup == new SubGroup(merge.SourceSubGroup);
 
     private static RegistryLabMergeRule? ManualMerge(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
-        => lesson.Type == LessonType.Lab && lesson.Groups.IsSingleGroup
-            ? RegistryLabMerges.Find(config.LabMerges, schedule, lesson.Course, lesson.Groups,
-                lesson.GroupPartitionKey with { SubGroup = SubGroup.All }) : null;
+    {
+        return lesson.Type == LessonType.Lab && lesson.Groups.IsSingleGroup
+                ? RegistryLabMerges.Find(config.LabMerges, schedule, lesson.Course, lesson.Groups,
+                    lesson.GroupPartitionKey with { SubGroup = SubGroup.All }) : null;
+    }
 
     private static bool ContainsPartition(GroupPartitionKey destination, GroupPartitionKey source)
     {
@@ -93,9 +97,9 @@ internal static class RegistryLessonRouting
                     if (winners.Length > 1)
                     {
                         hasUnresolvedAudience = true;
-                        diagnostics?.Add("ambiguous-registry-destination", schedule.Get(lesson.Course).FullName,
-                            schedule.Get(parent).Name,
-                            "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
+                        diagnostics?.Add(kind: "ambiguous-registry-destination", course: schedule.Get(lesson.Course).FullName,
+                            @group: schedule.Get(parent).Name,
+                            detail: "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
                         continue;
                     }
                     foreach (var destination in winners)

@@ -22,8 +22,11 @@ public sealed class Schedule
     public ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics { get; init; } = [];
     public ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons { get; init; } = [];
 
-    public bool IsLessonActive(AnyLessonId id) => id.Regularity != LessonRegularity.Weekly
-        || !SuppressedWeeklyLessons.Contains(new(id.Id));
+    public bool IsLessonActive(AnyLessonId id)
+    {
+        return id.Regularity != LessonRegularity.Weekly
+            || !SuppressedWeeklyLessons.Contains(new(id.Id));
+    }
 
     public static readonly Schedule Empty = new()
     {
@@ -271,9 +274,16 @@ public readonly record struct AllLessonsEnumerable
             _index = -1;
         }
 
-        public AnyLessonAccessor Current => new(
-            new AnyLessonId(_regularity, _index),
-            _arrays);
+        public AnyLessonAccessor Current
+        {
+            get
+            {
+                return new(
+                    new AnyLessonId(_regularity, _index),
+                    _arrays);
+            }
+        }
+
         public bool MoveNext()
         {
             _index++;
@@ -608,20 +618,32 @@ public static class PartitionDimensions
     /// <summary>
     /// Every dimension in storage order.
     /// </summary>
-    public static ReadOnlySpan<PartitionDimension> All => [
-        PartitionDimension.SubGroup,
-        PartitionDimension.Specialization,
-        PartitionDimension.Alternative,
-    ];
+    public static ReadOnlySpan<PartitionDimension> All
+    {
+        get
+        {
+            return [
+                PartitionDimension.SubGroup,
+                PartitionDimension.Specialization,
+                PartitionDimension.Alternative,
+            ];
+        }
+    }
 
     /// <summary>
     /// Alternative first, then specialization, then subgroup.
     /// </summary>
-    public static ReadOnlySpan<PartitionDimension> DisplayOrder => [
-        PartitionDimension.Alternative,
-        PartitionDimension.Specialization,
-        PartitionDimension.SubGroup,
-    ];
+    public static ReadOnlySpan<PartitionDimension> DisplayOrder
+    {
+        get
+        {
+            return [
+                PartitionDimension.Alternative,
+                PartitionDimension.Specialization,
+                PartitionDimension.SubGroup,
+            ];
+        }
+    }
 }
 
 /// <summary>
@@ -646,13 +668,16 @@ public static class LessonDataExtensions
         /// <summary>
         /// The key's value on one partition dimension.
         /// </summary>
-        public PartitionKey GetPartitionDimension(PartitionDimension dimension) => dimension switch
+        public PartitionKey GetPartitionDimension(PartitionDimension dimension)
         {
-            PartitionDimension.SubGroup => key.SubGroup,
-            PartitionDimension.Specialization => key.Specialization,
-            PartitionDimension.Alternative => key.Alternative,
-            _ => throw Unreachable(),
-        };
+            return dimension switch
+            {
+                PartitionDimension.SubGroup => key.SubGroup,
+                PartitionDimension.Specialization => key.Specialization,
+                PartitionDimension.Alternative => key.Alternative,
+                _ => throw Unreachable(),
+            };
+        }
 
         /// <summary>
         /// Alternative first, then the specialization, then the subgroup.
@@ -963,13 +988,16 @@ public static class AttendanceModeHelper
     public static bool IsDual(this AttendanceMode mode) =>
         mode is AttendanceMode.DualZi or AttendanceMode.DualFr;
 
-    public static AttendanceMode FromFlags(bool isFr, bool isDual) => (isFr, isDual) switch
+    public static AttendanceMode FromFlags(bool isFr, bool isDual)
     {
-        (false, false) => AttendanceMode.Zi,
-        (true, false) => AttendanceMode.FrecventaRedusa,
-        (false, true) => AttendanceMode.DualZi,
-        (true, true) => AttendanceMode.DualFr,
-    };
+        return (isFr, isDual) switch
+        {
+            (false, false) => AttendanceMode.Zi,
+            (true, false) => AttendanceMode.FrecventaRedusa,
+            (false, true) => AttendanceMode.DualZi,
+            (true, true) => AttendanceMode.DualFr,
+        };
+    }
 }
 
 public record struct OneForEachAttendanceMode<T>

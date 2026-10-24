@@ -157,7 +157,7 @@ public static partial class ScheduleBuilderHelper
             var registryContext = s.SpecializationRegistry is { } registry
                 ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
                 : "no specialization registry configured";
-            throw UnknownSubGroupException.ForInvalid(subGroup.Value, groupContext, registryContext);
+            throw UnknownSubGroupException.ForInvalid(subGroupValue: subGroup.Value, groupContext: groupContext, registryContext: registryContext);
         }
 
         string DescribeGroup(GroupId id)
@@ -167,8 +167,7 @@ public static partial class ScheduleBuilderHelper
                 return id.Value.ToString();
             }
             var group = s.Groups.List[id.Value];
-            return $"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "
-                + $"attendance {group.AttendanceMode}, qualification {group.QualificationType})";
+            return (string) $"{($"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, ")}{($"attendance {group.AttendanceMode}, qualification {group.QualificationType})")}";
         }
 
         string DescribeRegistryContext(SpecializationRegistry registry, GroupId id)
@@ -263,7 +262,7 @@ public static partial class ScheduleBuilderHelper
 
         var periods = s.Periods.Build(x =>
         {
-            var ret = new Period(x.Start, x.EndExclusive);
+            var ret = new Period(start: x.Start, end: x.EndExclusive);
             return ret;
         });
 
@@ -378,7 +377,7 @@ public static partial class ScheduleBuilderHelper
 
         var val = subGroup.Value;
         Debug.Assert(val != null);
-        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(val, val);
+        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(key: val, defaultValue: val);
         return new(remapped);
     }
 

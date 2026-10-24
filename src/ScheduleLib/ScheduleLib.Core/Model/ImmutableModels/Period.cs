@@ -87,7 +87,7 @@ public static class PeriodHelper
             }
         }
 
-        return new(min, max);
+        return new(item1: min, item2: max);
     }
 
     public static PeriodId LatestPeriodId(this Schedule schedule)

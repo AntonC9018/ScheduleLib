@@ -110,12 +110,12 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        LessonsStart(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
+        LessonsStart(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day));
     }
 
     public void LessonsEndInclusive(int month, int day)
     {
-        LessonsEndInclusive(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month, day));
+        LessonsEndInclusive(new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day));
     }
 }
 
@@ -158,8 +158,8 @@ public sealed class YearDateRangeBuilderScope
     public void QualificationType(QualificationType type) => _builder.QualificationType(type);
     public void Grade(Grade grade) => _builder.Grade(grade);
     public void Year(int year) => _builder.Year(year);
-    public void LessonsStart(int month, int day) => _builder.LessonsStart(month, day);
-    public void LessonsEndInclusive(int month, int day) => _builder.LessonsEndInclusive(month, day);
+    public void LessonsStart(int month, int day) => _builder.LessonsStart(month: month, day: day);
+    public void LessonsEndInclusive(int month, int day) => _builder.LessonsEndInclusive(month: month, day: day);
 }
 
 public sealed class CurrentYearSemesterIntervalBuilder
@@ -328,7 +328,7 @@ public sealed class CurrentYearSemesterIntervalProvider
 
 file static class Helper
 {
-    public static DateOnly WithYear(this DateOnly d, int year) => new(year, d.Month, d.Day);
+    public static DateOnly WithYear(this DateOnly d, int year) => new(year: year, month: d.Month, day: d.Day);
     public static DateOnly WithYearIfNoYear(this DateOnly d, int year)
     {
         if (d.Year == YearDateRangeBuilderModel.MinYearInExistingDate)

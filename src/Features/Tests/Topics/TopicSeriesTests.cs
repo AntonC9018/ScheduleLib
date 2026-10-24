@@ -14,11 +14,11 @@ public sealed class TopicSeriesTests
     [Fact]
     public async Task ManifestTypeAndLanguageFilterInterleavedCsvRows()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "topic-interleaved-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), (string) $"topic-interleaved-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(Path.Combine(directory, "course.csv"), """
+            await File.WriteAllTextAsync(path: Path.Combine(directory, "course.csv"), contents: """
                 name,lessonType,language
                 Russian lecture,Curs,Ru
                 Russian lab,Lab,Ru
@@ -62,16 +62,22 @@ public sealed class TopicSeriesTests
             await builder.AddFromManifest(new(manifest, directory), lookup, default);
             var topics = builder.Build();
 
-            AttendanceLookupKey Key(GroupId group, LessonType type) => new(
-                new FoundGroups { Value = [group], IsWildcard = false },
-                GroupPartitionKey.All,
-                course,
-                type,
-                0,
-                default);
+            AttendanceLookupKey Key(GroupId group, LessonType type)
+            {
+                return new(
+                    new FoundGroups {
+                        Value = [group],
+                        IsWildcard = false
+                    },
+                    GroupPartitionKey.All,
+                    course,
+                    type,
+                    0,
+                    default);
+            }
 
-            Assert.Equal("Russian lab", topics.Get(Key(russian, LessonType.Lab)));
-            Assert.Equal("English lab", topics.Get(Key(english, LessonType.Lab)));
+            Assert.Equal(expected: "Russian lab", actual: topics.Get(Key(russian, LessonType.Lab)));
+            Assert.Equal(expected: "English lab", actual: topics.Get(Key(english, LessonType.Lab)));
             Assert.Null(topics.Get(Key(russian, LessonType.Curs)));
             Assert.Null(topics.Get(Key(english, LessonType.Curs)));
         }
@@ -84,11 +90,11 @@ public sealed class TopicSeriesTests
     [Fact]
     public async Task InterleavedSeriesPreserveTypesLanguagesPartitionsAndSequenceOrder()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "topic-series-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), (string) $"topic-series-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(Path.Combine(directory, "course.csv"), """
+            await File.WriteAllTextAsync(path: Path.Combine(directory, "course.csv"), contents: """
                 name,lessonType,language,series
                 Lecture one,Curs,Ru,curs-ru
                 Russian lab one,Lab,Ru,lab-ru
@@ -128,19 +134,22 @@ public sealed class TopicSeriesTests
             var builder = new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()), NullLogger<AllLessonTopicsDatabaseBuilder>.Instance);
             await builder.AddFromManifest(new(manifest, directory), lookup, default);
             var topics = builder.Build();
-            Check(russian, LessonType.Curs, GroupPartitionKey.All, "Lecture one", "Lecture two");
-            Check(russian, LessonType.Lab, new(new SubGroup("I"), Specialization.All), "Russian lab one", "Russian lab two");
-            Check(english, LessonType.Lab, GroupPartitionKey.All, "English lab one", "English lab two");
+            Check(russian, LessonType.Curs, GroupPartitionKey.All, first: "Lecture one", second: "Lecture two");
+            Check(russian, LessonType.Lab, new(new SubGroup("I"), Specialization.All), first: "Russian lab one", second: "Russian lab two");
+            Check(english, LessonType.Lab, GroupPartitionKey.All, first: "English lab one", second: "English lab two");
             Assert.Null(topics.Get(Key(russian, LessonType.Lab, GroupPartitionKey.All, 0)));
             Assert.Null(topics.Get(Key(english, LessonType.Curs, GroupPartitionKey.All, 0)));
 
             AttendanceLookupKey Key(GroupId group, LessonType type, GroupPartitionKey partition, int index) =>
-                new(new FoundGroups { Value = [group], IsWildcard = false }, partition, course, type, index, default);
+                new(new FoundGroups {
+                    Value = [group],
+                    IsWildcard = false
+                }, partition, course, type, index, default);
 
             void Check(GroupId group, LessonType type, GroupPartitionKey partition, string first, string second)
             {
-                Assert.Equal(first, topics.Get(Key(group, type, partition, 0)));
-                Assert.Equal(second, topics.Get(Key(group, type, partition, 1)));
+                Assert.Equal(expected: first, actual: topics.Get(Key(group, type, partition, 0)));
+                Assert.Equal(expected: second, actual: topics.Get(Key(group, type, partition, 1)));
                 Assert.Null(topics.Get(Key(group, type, partition, 2)));
             }
 

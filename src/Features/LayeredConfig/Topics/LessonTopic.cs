@@ -34,13 +34,19 @@ public sealed class LessonTopicDefaults
 
 public static class LessonTopicCsvSerializer
 {
-    private static CsvConfiguration Config => new(CultureInfo.InvariantCulture)
+    private static CsvConfiguration Config
     {
-        HasHeaderRecord = true,
-        MissingFieldFound = null, // Don't throw error on missing fields
-        IgnoreBlankLines = true,
-        DetectDelimiter = true,
-    };
+        get
+        {
+            return new(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                MissingFieldFound = null, // Don't throw error on missing fields
+                IgnoreBlankLines = true,
+                DetectDelimiter = true,
+            };
+        }
+    }
 
     public static async IAsyncEnumerable<LessonTopic> Deserialize(
         TextReader input,
@@ -58,7 +64,7 @@ public static class LessonTopicCsvSerializer
         csvReader.ReadHeader();
         var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
         var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
-        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults, hasLessonType, hasLanguage));
+        csvReader.Context.RegisterClassMap(new LessonTopicMap(defaults, hasLessonType: hasLessonType, hasLanguage: hasLanguage));
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
         await foreach (var x in ret)
         {

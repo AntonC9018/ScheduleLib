@@ -58,8 +58,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             ArraySegment<GroupId> CurrentColumns()
             {
                 var groups = Columns();
-                var count = int.Min(groups.Length - i, _sizesConfig.MaxAdditionalColumnsPerPage);
-                return new(groups, i, count);
+                var count = int.Min(x: groups.Length - i, y: _sizesConfig.MaxAdditionalColumnsPerPage);
+                return new(groups, offset: i, count: count);
             }
 
             var currentContext = new CurrentContext
@@ -155,7 +155,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                     continue;
                 }
 
-                SizeComputer SizeComputer(int lessonCount) => new(_cache.MaxRowsInOneCell, lessonCount);
+                SizeComputer SizeComputer(int lessonCount) => new(maxRowsInOneCell: _cache.MaxRowsInOneCell, lessonCount: lessonCount);
 
                 if (_cache.SharedLayout is not {} layout)
                 {
@@ -258,7 +258,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
                             var order = layout.LessonVerticalOrder[lesson.Id];
                             var rowSpan = sizeComputer.ComputeRowSpan((int) order);
-                            yield return new(lesson, order, rowSpan);
+                            yield return new(lesson, LessonOrder: order, RowSpan: rowSpan);
                         }
                     }
                 }
@@ -378,11 +378,17 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
         public uint CellsPerTimeSlot => RowGroupIter.CellsPerTimeSlot;
 
-        public DefaultRowKey Key => new()
+        public DefaultRowKey Key
         {
-            TimeSlot = TimeSlot,
-            DayOfWeek = RowGroupIter.Day,
-        };
+            get
+            {
+                return new()
+                {
+                    TimeSlot = TimeSlot,
+                    DayOfWeek = RowGroupIter.Day,
+                };
+            }
+        }
     }
 
     private IEnumerable<RowGroupIter> IterateRowGroups()
@@ -494,7 +500,7 @@ public static class PdfHelper
         float left,
         float right)
     {
-        return ReflectedBorder(element, top, bottom, left, right);
+        return ReflectedBorder(element, top: top, bottom: bottom, left: left, right: right);
     }
 }
 

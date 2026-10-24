@@ -85,7 +85,7 @@ public static class ScheduleDocumentParserHelper
                 throw new NotSupportedException("Time range not consumed fully");
             }
 
-            return new(startTime, endTime);
+            return new(Start: startTime, End: endTime);
         }
 
         public DayOfWeek ParseDayOfWeek(DayNameParser dayNameParser)
@@ -117,7 +117,7 @@ public static class ScheduleDocumentParserHelper
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            bool parsed = DateOnly.TryParseExact(dateSpan, format, out var date);
+            bool parsed = DateOnly.TryParseExact(s: dateSpan, format: format, out var date);
             if (!parsed)
             {
                 throw InvalidScheduleDocumentException.ForDateNotMatchingFormat();
@@ -150,7 +150,7 @@ public readonly record struct TimeInterval(TimeOnly Start, TimeOnly End)
 {
     public static TimeInterval CreateOpenInterval(TimeOnly start)
     {
-        return new(start, default);
+        return new(Start: start, End: default);
     }
 
     public bool IsOpenInterval => End == default;

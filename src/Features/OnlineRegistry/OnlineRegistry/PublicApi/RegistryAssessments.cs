@@ -89,7 +89,7 @@ internal static class RegistryAssessments
             var dates = rule.Dates.Order().ToArray();
             for (int i = 0; i < dates.Length; i++)
             {
-                var candidates = Enumerable.Range(0, local.Length).Where(index => local[index].RegistryLessonType == rule.LessonType
+                var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].RegistryLessonType == rule.LessonType
                     && DateOnly.FromDateTime(local[index].DateTime) == dates[i]).ToArray();
                 if (candidates.Length != 1)
                     throw new InvalidOperationException("An assessment date must identify exactly one scheduled lesson of its type.");
@@ -145,10 +145,10 @@ internal static class RegistryAssessments
 
         bool ReserveExisting(RemoteLessonInstance assessment)
         {
-            var candidates = Enumerable.Range(0, local.Length).Where(index => local[index].DateTime == assessment.DateTime
+            var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].DateTime == assessment.DateTime
                 && (assessment.LessonType == LessonType.Unspecified || local[index].RegistryLessonType == assessment.LessonType)).ToArray();
             if (candidates.Length == 0)
-                candidates = Enumerable.Range(0, local.Length).Where(index => local[index].DateTime.Date == assessment.DateTime.Date
+                candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].DateTime.Date == assessment.DateTime.Date
                     && (assessment.LessonType == LessonType.Unspecified || local[index].RegistryLessonType == assessment.LessonType)).ToArray();
             if (candidates.Length == 0) return false;
             if (candidates.Length != 1 || reserved.ContainsKey(candidates[0]))

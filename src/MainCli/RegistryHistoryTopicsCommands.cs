@@ -10,11 +10,7 @@ public sealed class RegistryHistoryTopicsArguments : IArgumentModel
         "local-directory",
         Description =
             "Required private output directory named .registry-history. Existing topics are preserved; only counts appear on stdout.")]
-    public string? LocalDirectory
-    {
-        get;
-        set;
-    }
+    public string? LocalDirectory { get; set; }
 }
 
 public interface IRegistryHistoryTopicsProvider
@@ -24,12 +20,14 @@ public interface IRegistryHistoryTopicsProvider
 
 public sealed partial class ConfiguredRegistryHistoryProvider
 {
-    public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token) =>
-        WithHistoryContext(
+    public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
+    {
+        return WithHistoryContext(
             settings,
             client => new RegistryHistoryTopicsReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance"))
                 .Discover(token),
             token);
+    }
 }
 
 public partial class RegistryCommands
@@ -89,8 +87,8 @@ public partial class RegistryCommands
                 var offeredYear = analysis.OfferedYears[yearIndex];
                 cli.WriteHuman($"Offered year {offeredYear}.");
                 cli.EmitItem(
-                    "year-" + yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: (string) $"year-{yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    status: "completed",
                     new { year = offeredYear });
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
@@ -101,8 +99,8 @@ public partial class RegistryCommands
                 cli.WriteHuman(
                     $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.");
                 cli.EmitItem(
-                    "candidate-" + candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: (string) $"candidate-{candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    status: "completed",
                     new
                     {
                         historicalYear = candidate.Historical.Year,
@@ -115,17 +113,17 @@ public partial class RegistryCommands
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
                 cli.WriteHuman($"Unresolved {unresolvedIndex}: {unresolved.Reason}.");
                 cli.EmitItem(
-                    "unresolved-" + unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: (string) $"unresolved-{unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    status: "completed",
                     new { reason = unresolved.Reason.ToString() });
             }
             return Finish(
-                CliExit.Success,
+                exit: CliExit.Success,
                 null,
-                analysis.Current.Count,
-                analysis.Selection.Candidates.Count,
-                analysis.Selection.Unresolved.Count,
-                output.CsvFiles.Count);
+                courses: analysis.Current.Count,
+                candidates: analysis.Selection.Candidates.Count,
+                unresolved: analysis.Selection.Unresolved.Count,
+                files: output.CsvFiles.Count);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {

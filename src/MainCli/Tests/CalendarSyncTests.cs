@@ -29,9 +29,9 @@ public sealed class CalendarSyncTests
                     context.StreamUpdate(report with { Human = new ThrowingMessage() });
                 }
             }));
-        Assert.Equal(["delete old"], provider.Writes);
-        Assert.Equal(6, failure.PartialResult.ExitCode);
-        Assert.Equal("completed", Assert.Single(failure.PartialResult.Outcomes).State);
+        Assert.Equal(expected: ["delete old"], actual: provider.Writes);
+        Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
+        Assert.Equal(expected: "completed", actual: Assert.Single(failure.PartialResult.Outcomes).State);
         Assert.IsType<InvalidOperationException>(failure.InnerException!.InnerException);
     }
 
@@ -54,12 +54,12 @@ public sealed class CalendarSyncTests
             using var provider = new Fake();
             DateTimeOffset? start = missingDates
                 ? null
-                : new(2026,
-                    10,
-                    18,
-                    9,
-                    0,
-                    0,
+                : new(year: 2026,
+                    month: 10,
+                    day: 18,
+                    hour: 9,
+                    minute: 0,
+                    second: 0,
                     TimeSpan.FromHours(3));
             var end = start?.AddMinutes(90);
             var recurrence = new List<string>
@@ -101,35 +101,35 @@ public sealed class CalendarSyncTests
                 });
 
             var message = Assert.IsType<CalendarDesiredEventMessage>(reports.Single(x => x.Id == "desired-0").Human);
-            Assert.Equal(0, message.Index);
-            Assert.Equal("Desired / Știință", message.Summary);
-            Assert.Equal(start, message.Start);
-            Assert.Equal(end, message.End);
-            Assert.Equal(missingDates
+            Assert.Equal(expected: 0, actual: message.Index);
+            Assert.Equal(expected: "Desired / Știință", actual: message.Summary);
+            Assert.Equal(expected: start, actual: message.Start);
+            Assert.Equal(expected: end, actual: message.End);
+            Assert.Equal(expected: missingDates
                     ? []
                     : new[]
                     {
                         "RRULE:FREQ=WEEKLY;COUNT=2",
                         "EXDATE:20261025T060000Z",
                     },
-                message.Recurrence);
-            Assert.Equal(expected, message.Format(CultureInfo.CurrentCulture));
+                actual: message.Recurrence);
+            Assert.Equal(expected: expected, actual: message.Format(CultureInfo.CurrentCulture));
             var deleted = Assert.IsType<CalendarDeletedEventMessage>(reports.Single(x => x.Id == "deleted-0").Human);
-            Assert.Equal("old-event", deleted.Id);
-            Assert.Equal("Old", deleted.Summary);
-            Assert.Equal("Delete event old-event: Old", deleted.Format(CultureInfo.CurrentCulture));
-            Assert.Equal(["0", "1", "2"], reports.Where(x => x.Status == "planned").Select(x => x.Id));
+            Assert.Equal(expected: "old-event", actual: deleted.Id);
+            Assert.Equal(expected: "Old", actual: deleted.Summary);
+            Assert.Equal(expected: "Delete event old-event: Old", actual: deleted.Format(CultureInfo.CurrentCulture));
+            Assert.Equal(expected: ["0", "1", "2"], actual: reports.Where(x => x.Status == "planned").Select(x => x.Id));
             Assert.Equal(
-                "create event: planned; calendar ; event ; desired index 0",
-                reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture));
-            Assert.Equal(["index", "summary", "start", "end", "recurrence"],
-                item.EnumerateObject().Select(x => x.Name));
-            Assert.Equal(start?.ToString("o", CultureInfo.InvariantCulture), item.GetProperty("start").GetString());
-            Assert.Equal(end?.ToString("o", CultureInfo.InvariantCulture), item.GetProperty("end").GetString());
-            Assert.Equal(missingDates ? JsonValueKind.Null : JsonValueKind.Array,
-                item.GetProperty("recurrence").ValueKind);
-            Assert.Same(desired, Assert.Single(result.DesiredEvents));
-            Assert.Equal("Changed", desired.Summary);
+                expected: "create event: planned; calendar ; event ; desired index 0",
+                actual: reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture));
+            Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
+                actual: item.EnumerateObject().Select(x => x.Name));
+            Assert.Equal(expected: start?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("start").GetString());
+            Assert.Equal(expected: end?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("end").GetString());
+            Assert.Equal(expected: missingDates ? JsonValueKind.Null : JsonValueKind.Array,
+                actual: item.GetProperty("recurrence").ValueKind);
+            Assert.Same(expected: desired, actual: Assert.Single(result.DesiredEvents));
+            Assert.Equal(expected: "Changed", actual: desired.Summary);
             Assert.Empty(provider.Writes);
         }
         finally
@@ -148,10 +148,10 @@ public sealed class CalendarSyncTests
             [new() { Summary = "Desired" }],
             false,
             default);
-        Assert.Equal("actual@example.test", result.Account);
-        Assert.Equal("old", result.ReplacedCalendar!.Id);
-        Assert.Equal("old-event", Assert.Single(result.DeletedEvents).Id);
-        Assert.Equal("Desired", Assert.Single(result.DesiredEvents).Summary);
+        Assert.Equal(expected: "actual@example.test", actual: result.Account);
+        Assert.Equal(expected: "old", actual: result.ReplacedCalendar!.Id);
+        Assert.Equal(expected: "old-event", actual: Assert.Single(result.DeletedEvents).Id);
+        Assert.Equal(expected: "Desired", actual: Assert.Single(result.DesiredEvents).Summary);
         Assert.Empty(provider.Writes);
         Assert.Empty(result.Outcomes);
     }
@@ -174,16 +174,16 @@ public sealed class CalendarSyncTests
             true,
             default);
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 "delete changed",
                 "calendar",
                 "event new",
             },
-            provider.Writes);
-        Assert.Equal("new", result.CreatedCalendarId);
-        Assert.Equal("event-1", result.Outcomes.Last().EventId);
-        Assert.Equal(0, result.ExitCode);
+            actual: provider.Writes);
+        Assert.Equal(expected: "new", actual: result.CreatedCalendarId);
+        Assert.Equal(expected: "event-1", actual: result.Outcomes.Last().EventId);
+        Assert.Equal(expected: 0, actual: result.ExitCode);
     }
 
     [Theory]
@@ -198,11 +198,11 @@ public sealed class CalendarSyncTests
             [new(), new()],
             true,
             default);
-        Assert.Equal(6, result.ExitCode);
-        Assert.Equal(writes, provider.Writes.Count);
-        Assert.Equal("uncertain", result.Outcomes.Last().State);
-        Assert.Equal("completed", result.Outcomes.First().State);
-        Assert.Equal(fail == "calendar" ? null : "new", result.CreatedCalendarId);
+        Assert.Equal(expected: 6, actual: result.ExitCode);
+        Assert.Equal(expected: writes, actual: provider.Writes.Count);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State);
+        Assert.Equal(expected: "completed", actual: result.Outcomes.First().State);
+        Assert.Equal(expected: fail == "calendar" ? null : "new", actual: result.CreatedCalendarId);
     }
 
     [Fact]
@@ -219,9 +219,9 @@ public sealed class CalendarSyncTests
             [new()],
             true,
             default);
-        Assert.Equal(5, result.ExitCode);
-        Assert.Equal("failed", Assert.Single(result.Outcomes).State);
-        Assert.Equal("calendar", Assert.Single(provider.Writes));
+        Assert.Equal(expected: 5, actual: result.ExitCode);
+        Assert.Equal(expected: "failed", actual: Assert.Single(result.Outcomes).State);
+        Assert.Equal(expected: "calendar", actual: Assert.Single(provider.Writes));
     }
 
     [Fact]
@@ -239,11 +239,11 @@ public sealed class CalendarSyncTests
             [new(), new()],
             true,
             cancel.Token);
-        Assert.Equal(130, result.ExitCode);
-        Assert.Equal("event-1", result.Outcomes[2].EventId);
-        Assert.Equal(0, result.Outcomes[2].DesiredEventIndex);
-        Assert.Equal(1, result.Outcomes[3].DesiredEventIndex);
-        Assert.Equal("uncertain", result.Outcomes[3].State);
+        Assert.Equal(expected: 130, actual: result.ExitCode);
+        Assert.Equal(expected: "event-1", actual: result.Outcomes[2].EventId);
+        Assert.Equal(expected: 0, actual: result.Outcomes[2].DesiredEventIndex);
+        Assert.Equal(expected: 1, actual: result.Outcomes[3].DesiredEventIndex);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes[3].State);
     }
 
     [Fact]
@@ -261,11 +261,11 @@ public sealed class CalendarSyncTests
             [new(), new()],
             true,
             cancel.Token);
-        Assert.Equal(130, result.ExitCode);
-        Assert.Equal("new", result.CreatedCalendarId);
-        Assert.Equal(3, result.Outcomes.Count);
-        Assert.Equal("uncertain", result.Outcomes.Last().State);
-        Assert.Equal(3, provider.Writes.Count);
+        Assert.Equal(expected: 130, actual: result.ExitCode);
+        Assert.Equal(expected: "new", actual: result.CreatedCalendarId);
+        Assert.Equal(expected: 3, actual: result.Outcomes.Count);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State);
+        Assert.Equal(expected: 3, actual: provider.Writes.Count);
     }
 
     [Fact]
@@ -276,19 +276,19 @@ public sealed class CalendarSyncTests
         {
             await using var lease = await LocalFileLock.Acquire(
                 CalendarSync.LockPath(
-                    root,
-                    "actual@example.test",
-                    "Lessons"),
+                    root: root,
+                    account: "actual@example.test",
+                    name: "Lessons"),
                 default);
             using var provider = new Fake();
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => CalendarSync.Run(
                 provider,
-                "Lessons",
+                name: "Lessons",
                 [],
                 true,
                 default,
-                root));
-            Assert.Equal(0, provider.ListCalls);
+                lockRoot: root));
+            Assert.Equal(expected: 0, actual: provider.ListCalls);
             Assert.Empty(provider.Writes);
         }
         finally
@@ -331,7 +331,7 @@ public sealed class CalendarSyncTests
         },
         2)]
     public async Task HelpAndIrrelevantOptionsDoNotLoadSchedule(string[] args, int exit)
-        => Assert.Equal(exit, await CliHost.Run(args));
+        => Assert.Equal(expected: exit, actual: await CliHost.Run(args));
 
     [Fact]
     public async Task MissingProfileIsCleanJsonConfigurationFailure()
@@ -342,15 +342,15 @@ public sealed class CalendarSyncTests
         {
             Console.SetOut(output);
             Assert.Equal(
-                3,
-                await new CalendarCommands().Sync(
+                expected: 3,
+                actual: await new CalendarCommands().Sync(
                     new(),
                     new(),
                     new() { Json = true },
                     new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal("calendar sync", document.RootElement.GetProperty("command").GetString());
-            Assert.Equal(3, document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: "calendar sync", actual: document.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: 3, actual: document.RootElement.GetProperty("exitCode").GetInt32());
         }
         finally
         {
@@ -369,8 +369,8 @@ public sealed class CalendarSyncTests
             Console.SetOut(output);
             var command = new FixtureCalendar(fake);
             Assert.Equal(
-                0,
-                await command.Sync(
+                expected: 0,
+                actual: await command.Sync(
                     new()
                     {
                         NoCache = true,
@@ -381,17 +381,17 @@ public sealed class CalendarSyncTests
                     new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
             var data = document.RootElement.GetProperty("data");
-            Assert.Equal("preview", document.RootElement.GetProperty("status").GetString());
+            Assert.Equal(expected: "preview", actual: document.RootElement.GetProperty("status").GetString());
             Assert.NotEmpty(data.GetProperty("desiredEvents").EnumerateArray());
             var desiredCount = data.GetProperty("desiredEvents").GetArrayLength();
             var calendarName = data.GetProperty("calendarName").GetString();
             Assert.Equal(
-                new[]
+                expected: new[]
                 {
                     $"Create calendar {calendarName} with a new ID",
                     $"Create {desiredCount} events with new IDs",
                 },
-                document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
+                actual: document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
             Assert.Empty(fake.Writes);
         }
         finally
@@ -422,48 +422,21 @@ public sealed class CalendarSyncTests
 
     private sealed class Fake : ICalendarSyncProvider
     {
-        public List<string> Writes
-        {
-            get;
-        } = [];
+        public List<string> Writes { get; } = [];
 
-        public string Destination
-        {
-            get;
-            set;
-        } = "old";
+        public string Destination { get; set; } = "old";
 
-        public string? Fail
-        {
-            get;
-            init;
-        }
+        public string? Fail { get; init; }
 
-        public CancellationTokenSource? Cancellation
-        {
-            get;
-            init;
-        }
+        public CancellationTokenSource? Cancellation { get; init; }
 
-        public bool Primary
-        {
-            get;
-            init;
-        }
+        public bool Primary { get; init; }
 
-        public bool Missing
-        {
-            get;
-            init;
-        }
+        public bool Missing { get; init; }
 
         private int _events;
 
-        public int ListCalls
-        {
-            get;
-            private set;
-        }
+        public int ListCalls { get; private set; }
 
         public Task<string> GetAccount(CancellationToken token) => Task.FromResult("actual@example.test");
 
@@ -476,18 +449,18 @@ public sealed class CalendarSyncTests
                     :
                     [
                         new(
-                            Destination,
-                            "Lessons",
+                            Id: Destination,
+                            Summary: "Lessons",
                             Primary),
                     ]);
         }
 
         public Task<IReadOnlyList<CalendarEventIdentity>> ListEvents(string id, CancellationToken token) =>
-            Task.FromResult<IReadOnlyList<CalendarEventIdentity>>([new("old-event", "Old")]);
+            Task.FromResult<IReadOnlyList<CalendarEventIdentity>>([new(Id: "old-event", Summary: "Old")]);
 
         public Task DeleteCalendar(string id, CancellationToken token)
         {
-            Writes.Add("delete " + id);
+            Writes.Add((string) $"delete {id}");
             return Task.CompletedTask;
         }
 
@@ -496,7 +469,7 @@ public sealed class CalendarSyncTests
             Writes.Add("calendar");
             if (Fail == "rejected")
             {
-                throw new Google.GoogleApiException("calendar", "Rejected")
+                throw new Google.GoogleApiException(serviceName: "calendar", message: "Rejected")
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.BadRequest,
                 };
@@ -515,7 +488,7 @@ public sealed class CalendarSyncTests
             Event ev,
             CancellationToken token)
         {
-            Writes.Add("event " + id);
+            Writes.Add((string) $"event {id}");
             _events++;
             if (Fail == "cancel-second" && _events == 2)
             {

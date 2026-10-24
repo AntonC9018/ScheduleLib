@@ -22,21 +22,21 @@ public sealed class RegistryHistoryTopicsTests
     public void ExtractsOnlyDateTypeAndTopicWithoutAttendanceOrMutationLinks()
     {
         var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons));
-        Assert.Equal(2, lessons.Count);
+        Assert.Equal(expected: 2, actual: lessons.Count);
         Assert.Equal(
-            new DateTime(
-                2024,
-                10,
-                3,
-                9,
-                45,
-                0),
-            lessons[0].Date);
-        Assert.Equal(LessonType.Lab, lessons[0].LessonType);
-        Assert.Equal("Synthetic first, \"quoted\" topic", lessons[0].Topic);
+            expected: new DateTime(
+                year: 2024,
+                month: 10,
+                day: 3,
+                hour: 9,
+                minute: 45,
+                second: 0),
+            actual: lessons[0].Date);
+        Assert.Equal(expected: LessonType.Lab, actual: lessons[0].LessonType);
+        Assert.Equal(expected: "Synthetic first, \"quoted\" topic", actual: lessons[0].Topic);
         var json = JsonSerializer.Serialize(lessons);
-        Assert.DoesNotContain("canary", json);
-        Assert.DoesNotContain("href", json);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: json);
+        Assert.DoesNotContain(expectedSubstring: "href", actualString: json);
     }
 
     [Theory]
@@ -46,13 +46,10 @@ public sealed class RegistryHistoryTopicsTests
     [InlineData("1 3D geometry", "3D geometry")]
     public void SequenceRemovalPreservesBlankPositionsAndTopicNumbers(string cell, string expected)
     {
-        var html = "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr>"
-            + "<tr><td><a>01.10.2024 08:00</a> curs</td><td>"
-            + cell
-            + "</td><td></td></tr></table>";
+        var html = (string) $"<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr> <tr><td><a>01.10.2024 08:00</a> curs</td><td>{cell}</td><td></td></tr></table>";
         Assert.Equal(
-            expected,
-            Assert.Single(RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html))).Topic);
+            expected: expected,
+            actual: Assert.Single(RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html))).Topic);
     }
 
     [Theory]
@@ -66,10 +63,10 @@ public sealed class RegistryHistoryTopicsTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
             RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html)));
-        Assert.Equal(RegistryHistoryPhase.Lessons, error.Phase);
-        Assert.Equal(RegistryHistoryDiagnostic.TopicTable, error.Diagnostic);
-        Assert.DoesNotContain("canary", error.Message);
-        Assert.DoesNotContain("private topic", error.Message);
+        Assert.Equal(expected: RegistryHistoryPhase.Lessons, actual: error.Phase);
+        Assert.Equal(expected: RegistryHistoryDiagnostic.TopicTable, actual: error.Diagnostic);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.Message);
+        Assert.DoesNotContain(expectedSubstring: "private topic", actualString: error.Message);
     }
 
     [Fact]
@@ -78,21 +75,21 @@ public sealed class RegistryHistoryTopicsTests
         var current = new[]
         {
             Course(
-                " Systems, ",
+                name: " Systems, ",
                 1,
-                "current"),
+                id: "current"),
             Course(
-                "Ambiguous",
+                name: "Ambiguous",
                 1,
-                "a"),
+                id: "a"),
             Course(
-                "Missing",
+                name: "Missing",
                 2,
-                "m"),
+                id: "m"),
             Course(
-                "Știință",
+                name: "Știință",
                 1,
-                "s"),
+                id: "s"),
         };
         var offered = new[]
         {
@@ -104,30 +101,30 @@ public sealed class RegistryHistoryTopicsTests
         var historical = new[]
         {
             Snapshot(
-                "2023/24",
-                "systems",
+                year: "2023/24",
+                name: "systems",
                 1,
-                "old"),
+                @group: "old"),
             Snapshot(
-                "2024/25",
-                "SYSTEMS",
+                year: "2024/25",
+                name: "SYSTEMS",
                 1,
-                "new"),
+                @group: "new"),
             Snapshot(
-                "2024/25",
-                "Ambiguous",
+                year: "2024/25",
+                name: "Ambiguous",
                 1,
-                "first"),
+                @group: "first"),
             Snapshot(
-                "2024/25",
-                "ambiguous,",
+                year: "2024/25",
+                name: "ambiguous,",
                 1,
-                "second"),
+                @group: "second"),
             Snapshot(
-                "2024/25",
-                "Stiinta",
+                year: "2024/25",
+                name: "Stiinta",
                 1,
-                "diacritics"),
+                @group: "diacritics"),
         };
         var selection = RegistryHistoryTopicSelection.Select(
             "2025/26",
@@ -135,21 +132,24 @@ public sealed class RegistryHistoryTopicsTests
             current,
             historical);
         var candidate = Assert.Single(selection.Candidates);
-        Assert.Equal("2024/25", candidate.Historical.Year);
-        Assert.Equal("new", Assert.Single(candidate.Historical.Groups).Name);
-        Assert.Equal(2, candidate.Historical.Groups[0].Lessons.Count);
-        Assert.Equal(3, selection.Unresolved.Count);
+        Assert.Equal(expected: "2024/25", actual: candidate.Historical.Year);
+        Assert.Equal(expected: "new", actual: Assert.Single(candidate.Historical.Groups).Name);
+        Assert.Equal(expected: 2, actual: candidate.Historical.Groups[0].Lessons.Count);
+        Assert.Equal(expected: 3, actual: selection.Unresolved.Count);
         Assert.Contains(selection.Unresolved, x => x.Reason == RegistryHistoryTopicMappingFailure.AmbiguousCourse);
         Assert.DoesNotContain(selection.Candidates, x => x.CurrentCourse.Name == "Știință");
     }
 
     [Fact]
-    public void UnknownAcademicYearCannotBeOrderedOrGuessed() => Assert.Throws<RegistryHistoryException>(() =>
-        RegistryHistoryTopicSelection.Select(
-            "current",
-            ["current"],
-            [],
-            []));
+    public void UnknownAcademicYearCannotBeOrderedOrGuessed()
+    {
+        Assert.Throws<RegistryHistoryException>(() =>
+            RegistryHistoryTopicSelection.Select(
+                "current",
+                ["current"],
+                [],
+                []));
+    }
 
     [Theory]
     [InlineData("/studregistry/LessonAttendance/LessonsList/1", true)]
@@ -165,8 +165,8 @@ public sealed class RegistryHistoryTopicsTests
         using var inner = new FakeHandler();
         using var guard = new RegistryHistoryRequestHandler(
             inner,
-            Index,
-            new("https://registry.test/studregistry/Account/Login"),
+            index: Index,
+            login: new("https://registry.test/studregistry/Account/Login"),
             TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
@@ -179,7 +179,7 @@ public sealed class RegistryHistoryTopicsTests
             await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(new Uri(Index, path)));
         }
 
-        Assert.Equal(allowed ? 1 : 0, inner.Calls);
+        Assert.Equal(expected: allowed ? 1 : 0, actual: inner.Calls);
     }
 
     [Fact]
@@ -196,16 +196,16 @@ public sealed class RegistryHistoryTopicsTests
                 ["2025/26", "2024/25"],
                 [
                     Course(
-                        "Systems",
+                        name: "Systems",
                         1,
-                        "current"),
+                        id: "current"),
                 ],
                 [
                     Snapshot(
-                        "2024/25",
-                        "Systems,",
+                        year: "2024/25",
+                        name: "Systems,",
                         1,
-                        "raw ambiguous group"),
+                        @group: "raw ambiguous group"),
                 ]);
             var first = await RegistryHistoryTopicFiles.Save(
                 directory,
@@ -216,11 +216,11 @@ public sealed class RegistryHistoryTopicsTests
                 directory,
                 selection,
                 default);
-            Assert.NotEqual(first.InventoryFile, second.InventoryFile);
-            Assert.Equal(original, await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile)));
+            Assert.NotEqual(expected: first.InventoryFile, actual: second.InventoryFile);
+            Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile)));
             var csv = await File.ReadAllTextAsync(Path.Combine(directory, first.CsvFiles[0]));
-            Assert.StartsWith("name,lessonType", csv);
-            Assert.Contains("\"Synthetic first, \"\"quoted\"\" topic\"", csv);
+            Assert.StartsWith(expectedStartString: "name,lessonType", actualString: csv);
+            Assert.Contains(expectedSubstring: "\"Synthetic first, \"\"quoted\"\" topic\"", actualString: csv);
             using var csvInput = new StringReader(csv);
             var imported = new List<ScheduleLib.Application.Core.Topics.LessonTopic>();
             await foreach (var topic in ScheduleLib.Application.Core.Topics.LessonTopicCsvSerializer.Deserialize(
@@ -231,19 +231,19 @@ public sealed class RegistryHistoryTopicsTests
                 imported.Add(topic);
             }
 
-            Assert.Equal(2, first.CsvFiles.Count);
+            Assert.Equal(expected: 2, actual: first.CsvFiles.Count);
             Assert.Single(imported);
             Assert.Contains(
                 imported,
                 x => x.Name == "Synthetic first, \"quoted\" topic" && x.LessonType == LessonType.Lab);
-            Assert.DoesNotContain("language", csv);
-            Assert.DoesNotContain("faculty", original);
-            Assert.Contains("raw ambiguous group", original);
+            Assert.DoesNotContain(expectedSubstring: "language", actualString: csv);
+            Assert.DoesNotContain(expectedSubstring: "faculty", actualString: original);
+            Assert.Contains(expectedSubstring: "raw ambiguous group", actualString: original);
             using var inventory = JsonDocument.Parse(original);
             Assert.All(
                 inventory.RootElement.GetProperty("sources").EnumerateArray(),
                 source =>
-                    Assert.Equal("requires-group-mapping", source.GetProperty("courseMapping").GetString()));
+                    Assert.Equal(expected: "requires-group-mapping", actual: source.GetProperty("courseMapping").GetString()));
             Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
         }
         finally
@@ -270,15 +270,9 @@ public sealed class RegistryHistoryTopicsTests
                     year = "2024/25";
                 }
 
-                html = "<form><select id='AnUniv' name='AnUniv'>"
-                    + $"<option {(year == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>"
-                    + $"<option {(year == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>"
-                    + "</select></form><div id='nav-1'><div><span>1</span><span>"
-                    + "<a href='/studregistry/LessonAttendance/groups/1'>Systems,</a></span></div>"
-                    + (year == "2024/25"
+                html = (string) $"<form><select id='AnUniv' name='AnUniv'>{($"<option {(year == "2025/26" ? "selected" : "")} value='2025/26'>2025/26</option>")}{($"<option {(year == "2024/25" ? "selected" : "")} value='2024/25'>2024/25</option>")}</select></form><div id='nav-1'><div><span>1</span><span> <a href='/studregistry/LessonAttendance/groups/1'>Systems,</a></span></div>{(year == "2024/25"
                         ? "<div><span>2</span><span><a href='/studregistry/LessonAttendance/groups/99'>Unrelated course</a></span></div>"
-                        : "")
-                    + "</div><div id='nav-2'></div>";
+                        : "")}</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.EndsWith("/groups/1", StringComparison.Ordinal))
             {
@@ -293,21 +287,21 @@ public sealed class RegistryHistoryTopicsTests
                 html = Lessons;
             }
 
-            return new(HttpStatusCode.OK) { Content = new StringContent(logout + html) };
+            return new(HttpStatusCode.OK) { Content = new StringContent((string) $"{logout}{html}") };
         });
         using var guard = new RegistryHistoryRequestHandler(
             inner,
-            Index,
-            new("https://registry.test/studregistry/Account/Login"),
+            index: Index,
+            login: new("https://registry.test/studregistry/Account/Login"),
             TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var analysis = await new RegistryHistoryTopicsReader(client, Index).Discover(default);
-        Assert.Equal("2025/26", analysis.Selection.CurrentYear);
-        Assert.Equal("2024/25", Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        Assert.Equal(expected: "2025/26", actual: analysis.Selection.CurrentYear);
+        Assert.Equal(expected: "2024/25", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
         Assert.Single(analysis.Current);
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 "/studregistry/LessonAttendance",
                 "/studregistry/LessonAttendance/groups/1",
@@ -316,15 +310,15 @@ public sealed class RegistryHistoryTopicsTests
                 "/studregistry/LessonAttendance/groups/1",
                 "/studregistry/LessonAttendance/LessonsList/1?groupId=2",
             },
-            requests);
-        Assert.DoesNotContain("canary", JsonSerializer.Serialize(analysis));
+            actual: requests);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: JsonSerializer.Serialize(analysis));
     }
 
     [Fact]
     public async Task ReaderStopsBeforeOlderYearWhenLatestTopicsResolveCourse()
     {
         var (analysis, requests) = await ReadThreeYearHistory();
-        Assert.Equal("2024/25", Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        Assert.Equal(expected: "2024/25", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
         Assert.Single(analysis.Current);
         Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
         Assert.DoesNotContain(requests, path => path.EndsWith("/groups/5", StringComparison.Ordinal));
@@ -335,8 +329,8 @@ public sealed class RegistryHistoryTopicsTests
     public async Task ReaderFallsBackAfterBlankLatestTopics()
     {
         var (analysis, requests) = await ReadThreeYearHistory(latestBlank: true);
-        Assert.Equal("2023/24", Assert.Single(analysis.Selection.Candidates).Historical.Year);
-        Assert.Equal(2, analysis.Historical!.Count);
+        Assert.Equal(expected: "2023/24", actual: Assert.Single(analysis.Selection.Candidates).Historical.Year);
+        Assert.Equal(expected: 2, actual: analysis.Historical!.Count);
         Assert.Contains(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
     }
@@ -345,8 +339,8 @@ public sealed class RegistryHistoryTopicsTests
     public async Task ReaderSkipsResolvedCourseWhileAnotherCourseFallsBack()
     {
         var (analysis, requests) = await ReadThreeYearHistory(secondCourseFallsBack: true);
-        Assert.Equal(2, analysis.Current.Count);
-        Assert.Equal(2, analysis.Selection.Candidates.Count);
+        Assert.Equal(expected: 2, actual: analysis.Current.Count);
+        Assert.Equal(expected: 2, actual: analysis.Selection.Candidates.Count);
         Assert.Contains(
             analysis.Selection.Candidates,
             candidate => candidate.CurrentCourse.Name == "Systems" && candidate.Historical.Year == "2024/25");
@@ -366,9 +360,9 @@ public sealed class RegistryHistoryTopicsTests
         var (analysis, requests) = await ReadThreeYearHistory(latestDuplicate: true);
         Assert.Empty(analysis.Selection.Candidates);
         Assert.Equal(
-            RegistryHistoryTopicMappingFailure.AmbiguousCourse,
-            Assert.Single(analysis.Selection.Unresolved).Reason);
-        Assert.Equal(2, analysis.Historical!.Count);
+            expected: RegistryHistoryTopicMappingFailure.AmbiguousCourse,
+            actual: Assert.Single(analysis.Selection.Unresolved).Reason);
+        Assert.Equal(expected: 2, actual: analysis.Historical!.Count);
         Assert.Contains(requests, path => path.EndsWith("/groups/3", StringComparison.Ordinal));
         Assert.Contains(requests, path => path.EndsWith("/groups/4", StringComparison.Ordinal));
         Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
@@ -378,11 +372,11 @@ public sealed class RegistryHistoryTopicsTests
     public async Task DuplicateCurrentCoursesStopAfterNewestUsableHistoricalSnapshots()
     {
         var (analysis, requests) = await ReadThreeYearHistory(duplicateCurrent: true);
-        Assert.Equal(2, analysis.Current.Count);
-        Assert.Equal(2, analysis.Selection.Unresolved.Count);
+        Assert.Equal(expected: 2, actual: analysis.Current.Count);
+        Assert.Equal(expected: 2, actual: analysis.Selection.Unresolved.Count);
         Assert.All(
             analysis.Selection.Unresolved,
-            item => Assert.Equal(RegistryHistoryTopicMappingFailure.AmbiguousCourse, item.Reason));
+            item => Assert.Equal(expected: RegistryHistoryTopicMappingFailure.AmbiguousCourse, actual: item.Reason));
         Assert.Single(analysis.Historical!);
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/3", StringComparison.Ordinal));
         Assert.DoesNotContain(requests, path => path.Contains("2023%2F24", StringComparison.Ordinal));
@@ -393,11 +387,11 @@ public sealed class RegistryHistoryTopicsTests
     public async Task DuplicateCurrentCoursesFallBackWhenNewestTopicsAreBlank()
     {
         var (analysis, requests) = await ReadThreeYearHistory(duplicateCurrent: true, latestBlank: true);
-        Assert.Equal(2, analysis.Historical!.Count);
+        Assert.Equal(expected: 2, actual: analysis.Historical!.Count);
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/5", StringComparison.Ordinal));
         Assert.All(
             analysis.Selection.Unresolved,
-            item => Assert.Equal(RegistryHistoryTopicMappingFailure.AmbiguousCourse, item.Reason));
+            item => Assert.Equal(expected: RegistryHistoryTopicMappingFailure.AmbiguousCourse, actual: item.Reason));
     }
 
     [Fact]
@@ -414,23 +408,23 @@ public sealed class RegistryHistoryTopicsTests
                 directory,
                 analysis,
                 default);
-            Assert.Equal(2, result.CsvFiles.Count);
+            Assert.Equal(expected: 2, actual: result.CsvFiles.Count);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
-            Assert.Equal(2, inventory.RootElement.GetProperty("unresolved").GetArrayLength());
-            Assert.Equal(1, inventory.RootElement.GetProperty("historical").GetArrayLength());
+            Assert.Equal(expected: 2, actual: inventory.RootElement.GetProperty("unresolved").GetArrayLength());
+            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("historical").GetArrayLength());
             var sources = inventory.RootElement.GetProperty("sources");
-            Assert.Equal(2, sources.GetArrayLength());
+            Assert.Equal(expected: 2, actual: sources.GetArrayLength());
             Assert.All(
                 sources.EnumerateArray(),
                 source =>
                 {
-                    Assert.Equal("ambiguous-course", source.GetProperty("courseMapping").GetString());
-                    Assert.Equal("2024/25", source.GetProperty("year").GetString());
+                    Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping").GetString());
+                    Assert.Equal(expected: "2024/25", actual: source.GetProperty("year").GetString());
                 });
             Assert.Contains(
-                "Synthetic first",
-                await File.ReadAllTextAsync(Path.Combine(directory, result.CsvFiles[0])));
+                expectedSubstring: "Synthetic first",
+                actualString: await File.ReadAllTextAsync(Path.Combine(directory, result.CsvFiles[0])));
             Assert.False(File.Exists(Path.Combine(directory, "manifest.json")));
         }
         finally
@@ -453,15 +447,15 @@ public sealed class RegistryHistoryTopicsTests
                 directory,
                 analysis,
                 default);
-            Assert.Equal(4, result.CsvFiles.Count);
+            Assert.Equal(expected: 4, actual: result.CsvFiles.Count);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
             var sources = inventory.RootElement.GetProperty("sources");
-            Assert.Equal(4, sources.GetArrayLength());
+            Assert.Equal(expected: 4, actual: sources.GetArrayLength());
             Assert.All(
                 sources.EnumerateArray(),
-                source => Assert.Equal("ambiguous-course", source.GetProperty("courseMapping").GetString()));
-            Assert.Equal(1, inventory.RootElement.GetProperty("unresolved").GetArrayLength());
+                source => Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping").GetString()));
+            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("unresolved").GetArrayLength());
         }
         finally
         {
@@ -499,28 +493,22 @@ public sealed class RegistryHistoryTopicsTests
                     } :
                     secondCourseFallsBack ? [3, 7] : [3]
                     : secondCourseFallsBack ? [5, 8] : [5];
-                html = "<form><select id='AnUniv' name='AnUniv'>"
-                    + string.Concat(
+                html = (string) $"<form><select id='AnUniv' name='AnUniv'>{string.Concat(
                         new[]
                         {
                             "2025/26",
                             "2024/25",
                             "2023/24",
                         }.Select(value =>
-                            $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>"))
-                    + "</select></form><div id='nav-1'>"
-                    + string.Concat(
+                            $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>"))}</select></form><div id='nav-1'>{string.Concat(
                         courseIds.Select(id =>
-                            $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>"))
-                    + "</div><div id='nav-2'></div>";
+                            $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>"))}</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
             {
                 var id = uri.AbsolutePath.Split('/').Last();
                 html =
-                    "<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>"
-                    + $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>"
-                    + "<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
+                    (string) $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{($"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>")}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
             }
             else
             {
@@ -531,12 +519,12 @@ public sealed class RegistryHistoryTopicsTests
                     : Lessons;
             }
 
-            return new(HttpStatusCode.OK) { Content = new StringContent(logout + html) };
+            return new(HttpStatusCode.OK) { Content = new StringContent((string) $"{logout}{html}") };
         });
         using var guard = new RegistryHistoryRequestHandler(
             inner,
-            Index,
-            new("https://registry.test/studregistry/Account/Login"),
+            index: Index,
+            login: new("https://registry.test/studregistry/Account/Login"),
             TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
@@ -558,32 +546,32 @@ public sealed class RegistryHistoryTopicsTests
         var empty = new RegistryHistoryCourseTopics(
             "2024/25",
             Course(
-                "Systems",
+                name: "Systems",
                 1,
-                "empty"),
+                id: "empty"),
             []);
         var selection = RegistryHistoryTopicSelection.Select(
             "2025/26",
             ["2025/26", "2024/25", "2023/24"],
             [
                 Course(
-                    "Systems",
+                    name: "Systems",
                     1,
-                    "current"),
+                    id: "current"),
                 Course(
-                    "Systems",
+                    name: "Systems",
                     2,
-                    "other semester"),
+                    id: "other semester"),
             ],
             [
                 empty, Snapshot(
-                    "2023/24",
-                    "Systems",
+                    year: "2023/24",
+                    name: "Systems",
                     1,
-                    "older"),
+                    @group: "older"),
             ]);
-        Assert.Equal("2023/24", Assert.Single(selection.Candidates).Historical.Year);
-        Assert.Equal(2, Assert.Single(selection.Unresolved).CurrentCourse.Semester);
+        Assert.Equal(expected: "2023/24", actual: Assert.Single(selection.Candidates).Historical.Year);
+        Assert.Equal(expected: 2, actual: Assert.Single(selection.Unresolved).CurrentCourse.Semester);
     }
 
     [Fact]
@@ -596,16 +584,16 @@ public sealed class RegistryHistoryTopicsTests
         try
         {
             var course = Course(
-                "Synthetic course",
+                name: "Synthetic course",
                 1,
-                "current");
+                id: "current");
             var date = new DateTime(
-                2024,
-                10,
-                7,
-                9,
-                45,
-                0);
+                year: 2024,
+                month: 10,
+                day: 7,
+                hour: 9,
+                minute: 45,
+                second: 0);
             var historical = new RegistryHistoryCourseTopics(
                 "2024/25",
                 course,
@@ -637,20 +625,20 @@ public sealed class RegistryHistoryTopicsTests
                 selection,
                 default);
             var csv = await File.ReadAllTextAsync(Path.Combine(directory, Assert.Single(result.CsvFiles)));
-            Assert.DoesNotContain("Atestare", csv);
-            Assert.Contains("Synthetic first", csv);
-            Assert.Contains("Synthetic second", csv);
+            Assert.DoesNotContain(expectedSubstring: "Atestare", actualString: csv);
+            Assert.Contains(expectedSubstring: "Synthetic first", actualString: csv);
+            Assert.Contains(expectedSubstring: "Synthetic second", actualString: csv);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
             var dates = Assert.Single(inventory.RootElement.GetProperty("sources").EnumerateArray())
                 .GetProperty("dates");
             Assert.Equal(
-                new[]
+                expected: new[]
                 {
                     date,
                     date.AddDays(14),
                 },
-                dates.EnumerateArray().Select(x => x.GetDateTime()));
+                actual: dates.EnumerateArray().Select(x => x.GetDateTime()));
         }
         finally
         {
@@ -661,35 +649,37 @@ public sealed class RegistryHistoryTopicsTests
     private static RegistryHistoryCourse Course(
         string name,
         int semester,
-        string id) => new(
+        string id)
+    {
+        return new(
         name,
         semester,
-        new(Index, "groups/" + id));
+        new(Index, (string) $"groups/{id}"));
+    }
 
     private static RegistryHistoryCourseTopics Snapshot(
         string year,
         string name,
         int semester,
-        string group) => new(
+        string group)
+    {
+        return new(
         year,
         Course(
-            name,
+            name: name,
             semester,
-            group),
+            id: group),
         [
             new(
                 group,
                 new(Index, "LessonsList/1"),
                 RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons))),
         ]);
+    }
 
     private sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage>? respond = null) : HttpMessageHandler
     {
-        public int Calls
-        {
-            get;
-            private set;
-        }
+        public int Calls { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,

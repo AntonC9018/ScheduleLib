@@ -67,7 +67,7 @@ public sealed class CourseNameUnifierConfig
         {
             var fromParsed = config.Parse(from.AsMemory(), new() { IgnorePunctuation = true });
             var toParsed = config.Parse(to.AsMemory(), new() { IgnorePunctuation = true });
-            remappedNames.Add(new FullyRenamedCourse(fromParsed, toParsed));
+            remappedNames.Add(new FullyRenamedCourse(From: fromParsed, To: toParsed));
         }
         return new CourseNameUnifierConfig
         {
@@ -133,11 +133,17 @@ public sealed class CourseNameUnifierModule
         public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
-        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        internal readonly CourseNameForParsing CourseNameForParsing
         {
-            CourseName = CourseName,
-            ParseOptions = ParseOptions,
-        };
+            get
+            {
+                return new()
+                {
+                    CourseName = CourseName,
+                    ParseOptions = ParseOptions,
+                };
+            }
+        }
     }
 
     public CourseId? Find(FindParams p)
@@ -165,11 +171,17 @@ public sealed class CourseNameUnifierModule
         public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
-        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        internal readonly CourseNameForParsing CourseNameForParsing
         {
-            CourseName = CourseName,
-            ParseOptions = ParseOptions,
-        };
+            get
+            {
+                return new()
+                {
+                    CourseName = CourseName,
+                    ParseOptions = ParseOptions,
+                };
+            }
+        }
     }
 
     public struct CourseNameForParsing

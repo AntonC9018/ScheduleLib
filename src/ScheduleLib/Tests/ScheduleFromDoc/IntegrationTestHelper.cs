@@ -20,10 +20,17 @@ public enum TestOption
 
 public sealed class IntegrationTestHelper : IDisposable
 {
-    public static IEnumerable<object[]> TestOptionMemberData => [
-        [TestOption.Default],
-        [TestOption.New],
-    ];
+    public static IEnumerable<object[]> TestOptionMemberData
+    {
+        get
+        {
+            return [
+                [TestOption.Default],
+                [TestOption.New],
+            ];
+        }
+    }
+
     public static string VerifyScheduleSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_model";
     public static string ScheduleJsonSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_json";
     public static string ScheduleSnapshotJsonPath(TestOption option) => $"schedule_{Enum.GetName(option)}.json";

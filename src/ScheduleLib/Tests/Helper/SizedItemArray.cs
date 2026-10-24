@@ -11,9 +11,9 @@ public class SizedItemArrayTests
         array.Add(new("A", 3));
         array.Add(new("B", 2));
 
-        Assert.Equal("A", array.Find(0));
-        Assert.Equal("A", array.Find(2));
-        Assert.Equal("B", array.Find(3));
+        Assert.Equal(expected: "A", actual: array.Find(0));
+        Assert.Equal(expected: "A", actual: array.Find(2));
+        Assert.Equal(expected: "B", actual: array.Find(3));
     }
 
     [Fact]
@@ -32,8 +32,8 @@ public class SizedItemArrayTests
         array.Add(new("X", 3));
         array.Add(new("Y", 2));
 
-        Assert.Equal(0, array.FindPosition("X"));
-        Assert.Equal(3, array.FindPosition("Y"));
+        Assert.Equal(expected: 0, actual: array.FindPosition("X"));
+        Assert.Equal(expected: 3, actual: array.FindPosition("Y"));
         Assert.Null(array.FindPosition("Z"));
     }
 
@@ -43,10 +43,10 @@ public class SizedItemArrayTests
         var array = new SizedItemArray<string>();
         array.Add(new("Old", 2));
 
-        bool replaced = array.Replace("Old", "New");
+        bool replaced = array.Replace(oldItem: "Old", newItem: "New");
 
         Assert.True(replaced);
-        Assert.Equal("New", array.Find(0));
+        Assert.Equal(expected: "New", actual: array.Find(0));
     }
 
     [Fact]
@@ -67,9 +67,9 @@ public class SizedItemArrayTests
 
         var result = array.ReplaceAt(0, new("B", 3));
 
-        Assert.Equal(3, array.TotalSize);
-        Assert.Equal(ReplaceItemStatus.FullyReplaced, result);
-        Assert.Equal("B", array.Find(0));
+        Assert.Equal(expected: 3, actual: array.TotalSize);
+        Assert.Equal(expected: ReplaceItemStatus.FullyReplaced, actual: result);
+        Assert.Equal(expected: "B", actual: array.Find(0));
         Assert.Null(array.FindPosition("A"));
     }
 
@@ -81,10 +81,10 @@ public class SizedItemArrayTests
 
         var result = array.ReplaceAt(0, new("B", 2));
 
-        Assert.Equal(5, array.TotalSize);
-        Assert.Equal(ReplaceItemStatus.PartlyReplaced, result);
-        Assert.Equal("B", array.Find(0));
-        Assert.Equal("A", array.Find(2)); // remainder of A
+        Assert.Equal(expected: 5, actual: array.TotalSize);
+        Assert.Equal(expected: ReplaceItemStatus.PartlyReplaced, actual: result);
+        Assert.Equal(expected: "B", actual: array.Find(0));
+        Assert.Equal(expected: "A", actual: array.Find(2)); // remainder of A
     }
 
     [Fact]
@@ -95,11 +95,11 @@ public class SizedItemArrayTests
 
         var result = array.ReplaceAt(2, new("B", 2));
 
-        Assert.Equal(6, array.TotalSize);
-        Assert.Equal(ReplaceItemStatus.Spliced, result);
-        Assert.Equal("A", array.Find(0));
-        Assert.Equal("B", array.Find(2));
-        Assert.Equal("A", array.Find(4));
+        Assert.Equal(expected: 6, actual: array.TotalSize);
+        Assert.Equal(expected: ReplaceItemStatus.Spliced, actual: result);
+        Assert.Equal(expected: "A", actual: array.Find(0));
+        Assert.Equal(expected: "B", actual: array.Find(2));
+        Assert.Equal(expected: "A", actual: array.Find(4));
     }
 
     [Fact]
@@ -112,13 +112,13 @@ public class SizedItemArrayTests
 
         var result = array.ReplaceAt(5, new("D", 1));
 
-        Assert.Equal(15, array.TotalSize);
-        Assert.Equal(ReplaceItemStatus.Spliced, result);
-        Assert.Equal("A", array.Find(0));
-        Assert.Equal("B", array.Find(3));
-        Assert.Equal("D", array.Find(5));
-        Assert.Equal("B", array.Find(6));
-        Assert.Equal("C", array.Find(9));
+        Assert.Equal(expected: 15, actual: array.TotalSize);
+        Assert.Equal(expected: ReplaceItemStatus.Spliced, actual: result);
+        Assert.Equal(expected: "A", actual: array.Find(0));
+        Assert.Equal(expected: "B", actual: array.Find(3));
+        Assert.Equal(expected: "D", actual: array.Find(5));
+        Assert.Equal(expected: "B", actual: array.Find(6));
+        Assert.Equal(expected: "C", actual: array.Find(9));
     }
 
     [Fact]
@@ -133,12 +133,12 @@ public class SizedItemArrayTests
             new("D", 1),
             new("E", 2),
         ]);
-        Assert.Equal(ReplaceItemStatus.PartlyReplaced, result);
-        Assert.Equal(15, array.TotalSize);
-        Assert.Equal("A", array.Find(0));
-        Assert.Equal("D", array.Find(3));
-        Assert.Equal("E", array.Find(4));
-        Assert.Equal("B", array.Find(6));
-        Assert.Equal("C", array.Find(9));
+        Assert.Equal(expected: ReplaceItemStatus.PartlyReplaced, actual: result);
+        Assert.Equal(expected: 15, actual: array.TotalSize);
+        Assert.Equal(expected: "A", actual: array.Find(0));
+        Assert.Equal(expected: "D", actual: array.Find(3));
+        Assert.Equal(expected: "E", actual: array.Find(4));
+        Assert.Equal(expected: "B", actual: array.Find(6));
+        Assert.Equal(expected: "C", actual: array.Find(9));
     }
 }

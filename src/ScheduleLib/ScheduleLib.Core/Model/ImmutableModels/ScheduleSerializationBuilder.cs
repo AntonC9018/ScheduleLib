@@ -101,10 +101,7 @@ public sealed class ScheduleSerializationBuilder
 
 public sealed class MissingSerializationConfigurationException : ScheduleBuildException
 {
-    public string Configuration
-    {
-        get;
-    }
+    public string Configuration { get; }
 
     public MissingSerializationConfigurationException(string configuration)
         : base($"Serialization requires {configuration} configuration before execution.")

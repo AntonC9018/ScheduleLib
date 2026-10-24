@@ -94,7 +94,7 @@ public sealed class TreeEventDispatcher : IDispatcher
     {
         bool areQueuesEmpty = _keyQueue.IsEmpty && _latestActions.IsEmpty;
         var prevState = Interlocked.CompareExchange(
-            ref _isQueueing,
+            location1: ref _isQueueing,
             value: QueueingState.Queueing,
             comparand: QueueingState.NotQueueing);
         if (prevState != QueueingState.NotQueueing || !areQueuesEmpty)
@@ -108,7 +108,7 @@ public sealed class TreeEventDispatcher : IDispatcher
     public void EndQueueing()
     {
         var prevQueueing = Interlocked.CompareExchange(
-                ref _isQueueing,
+                location1: ref _isQueueing,
                 value: QueueingState.EmptyingQueue,
                 comparand: QueueingState.Queueing);
         if (prevQueueing != QueueingState.Queueing)
@@ -143,7 +143,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         finally
         {
             var updatedPrevQueueing = Interlocked.CompareExchange(
-                ref _isQueueing,
+                location1: ref _isQueueing,
                 value: QueueingState.NotQueueing,
                 comparand: QueueingState.EmptyingQueue);
             Debug.Assert(updatedPrevQueueing == QueueingState.EmptyingQueue);

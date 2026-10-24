@@ -277,18 +277,10 @@ public static class CliHost
 public sealed partial class Commands
 {
     [Subcommand]
-    public ExportCommands Export
-    {
-        get;
-        set;
-    } = new();
+    public ExportCommands Export { get; set; } = new();
 
     [Subcommand]
-    public QueryCommands Query
-    {
-        get;
-        set;
-    } = new();
+    public QueryCommands Query { get; set; } = new();
 }
 
 [Command("query")]
@@ -435,32 +427,16 @@ public partial class QueryCommands
 public sealed class QueryArguments : IArgumentModel
 {
     [Option("room", Description = "Exact room identifier, for example 423/4.")]
-    public string? Room
-    {
-        get;
-        set;
-    }
+    public string? Room { get; set; }
 
     [Option("day", Description = "Day name, for example Tuesday.")]
-    public DayOfWeek? Day
-    {
-        get;
-        set;
-    }
+    public DayOfWeek? Day { get; set; }
 
     [Option("parity", Description = "OddWeek, EvenWeek or EveryWeek.")]
-    public Parity? Parity
-    {
-        get;
-        set;
-    }
+    public Parity? Parity { get; set; }
 
     [Option("before-slot", Description = "Inclusive time-slot cutoff, numbered from 1.")]
-    public int? BeforeSlot
-    {
-        get;
-        set;
-    }
+    public int? BeforeSlot { get; set; }
 }
 
 public sealed class SourceArguments : IArgumentModel
@@ -469,45 +445,25 @@ public sealed class SourceArguments : IArgumentModel
         "data-dir",
         Description =
             "Schedule data root; defaults to packaged code-configured resources. Academic year and semester remain configured in C#.")]
-    public string? DataDirectory
-    {
-        get;
-        set;
-    }
+    public string? DataDirectory { get; set; }
 
     [Option("no-cache", Description = "Bypass schedule cache reads and writes.")]
-    public bool NoCache
-    {
-        get;
-        set;
-    }
+    public bool NoCache { get; set; }
 
     [Option("cache-dir", Description = "Shared schedule cache directory; defaults to the ScheduleLib user cache.")]
-    public string? CacheDirectory
-    {
-        get;
-        set;
-    }
+    public string? CacheDirectory { get; set; }
 }
 
 public sealed class ResultArguments : IArgumentModel
 {
     [Option("json", Description = "Emit one versioned JSON result on stdout; diagnostics use stderr.")]
-    public bool Json
-    {
-        get;
-        set;
-    }
+    public bool Json { get; set; }
 
     [Option(
         "jsonl",
         Description =
             "Stream newline-delimited JSON records on stdout (start, items as available, final summary); stderr is JSONL. Mutually exclusive with --json.")]
-    public bool Jsonl
-    {
-        get;
-        set;
-    }
+    public bool Jsonl { get; set; }
 }
 
 public sealed record LessonResult(

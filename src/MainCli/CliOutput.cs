@@ -29,35 +29,23 @@ public sealed class CliOutput
     private int _stdoutSeq;
     private int _stderrSeq;
 
-    public string Command
-    {
-        get;
-    }
+    public string Command { get; }
 
-    public string RunId
-    {
-        get;
-    }
+    public string RunId { get; }
 
-    public bool Json
-    {
-        get;
-    }
+    public bool Json { get; }
 
-    public bool Jsonl
-    {
-        get;
-    }
+    public bool Jsonl { get; }
 
     public CliOutput(
         string command,
         string runId,
         ResultArguments result)
         : this(
-            command,
-            runId,
-            result.Json,
-            GetJsonl(result))
+            command: command,
+            runId: runId,
+            json: result.Json,
+            jsonl: GetJsonl(result))
     {
     }
 
@@ -179,7 +167,7 @@ public sealed class CliOutput
     {
         if (Jsonl)
         {
-            WriteStderrLog("Warning", message);
+            WriteStderrLog(level: "Warning", message: message);
         }
         else
         {
@@ -195,7 +183,7 @@ public sealed class CliOutput
     {
         if (Jsonl)
         {
-            WriteStderrLog("Error", message);
+            WriteStderrLog(level: "Error", message: message);
         }
         else
         {
@@ -219,11 +207,11 @@ public sealed class CliOutput
 
         WriteStructuredLog(
             level,
-            message,
-            exception,
+            message: message,
+            exception: exception,
             null,
             null,
-            null,
+            category: null,
             DateTimeOffset.UtcNow);
     }
 
@@ -242,12 +230,12 @@ public sealed class CliOutput
         }
 
         WriteStderrLog(
-            level.ToString(),
-            message,
-            exception,
+            level: level.ToString(),
+            message: message,
+            exception: exception,
             properties,
             scopes,
-            category,
+            category: category,
             timestamp);
     }
 
@@ -257,12 +245,12 @@ public sealed class CliOutput
         string? exception = null)
     {
         WriteStderrLog(
-            level,
-            message,
-            exception,
+            level: level,
+            message: message,
+            exception: exception,
             null,
             null,
-            null,
+            category: null,
             DateTimeOffset.UtcNow);
     }
 
@@ -336,10 +324,13 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
     private IExternalScopeProvider _scopes = new LoggerExternalScopeProvider();
     public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopes = scopeProvider;
 
-    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(
-        output,
-        categoryName,
-        () => _scopes);
+    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+    {
+        return new Logger(
+            output,
+            categoryName,
+            () => _scopes);
+    }
 
     public void Dispose()
     {
@@ -392,11 +383,11 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                 scopes);
             output.WriteStructuredLog(
                 logLevel,
-                message,
-                exception?.ToString(),
+                message: message,
+                exception: exception?.ToString(),
                 properties.Count > 0 ? properties : null,
                 scopes.Count > 0 ? scopes : null,
-                category,
+                category: category,
                 DateTimeOffset.UtcNow);
         }
 

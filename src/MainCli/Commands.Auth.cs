@@ -103,7 +103,7 @@ public partial class AuthCommands
         ResultArguments outputArgs,
         CancellationToken cancellationToken)
     {
-        var command = "auth " + verb + " google";
+        var command = (string) $"auth {verb} google";
         using var context = new CliCommandContext(
             command,
             outputArgs,

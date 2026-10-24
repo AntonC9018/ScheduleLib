@@ -51,7 +51,7 @@ public readonly record struct Event
     {
         return new(
             first: first,
-            last: FirstToLast(first, count, interval),
+            last: FirstToLast(first, count: count, interval: interval),
             count: count,
             interval: interval);
     }
@@ -67,7 +67,7 @@ public readonly record struct Event
         {
             Debug.Assert(interval >= 1);
             Debug.Assert(last > first);
-            var expectedLast = FirstToLast(first, count, interval);
+            var expectedLast = FirstToLast(first, count: count, interval: interval);
             Debug.Assert(expectedLast == last);
         }
         else

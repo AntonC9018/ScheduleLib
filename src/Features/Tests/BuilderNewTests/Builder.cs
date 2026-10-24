@@ -57,9 +57,9 @@ public static class TestBuilderHelper
 
             t.LessonAttendance().Source(
                 Path.Join(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "Desktop",
-                    "lipse.xlsx"),
+                    path1: Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    path2: "Desktop",
+                    path3: "lipse.xlsx"),
                 attendance =>
                 {
                     attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;

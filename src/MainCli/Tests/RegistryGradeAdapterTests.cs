@@ -49,7 +49,7 @@ public sealed class RegistryGradeAdapterTests
             default,
             () => started = true));
         Assert.False(started);
-        Assert.Equal(0, handler.Posts);
+        Assert.Equal(expected: 0, actual: handler.Posts);
     }
 
     [Theory]
@@ -112,9 +112,9 @@ public sealed class RegistryGradeAdapterTests
             default);
         var document = await navigator.GetHtml(new("https://registry.test/grades"));
         var error = await Assert.ThrowsAnyAsync<Exception>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(rejected, error is RegistrySubmissionRejectedException);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(0, auth.Calls);
+        Assert.Equal(expected: rejected, actual: error is RegistrySubmissionRejectedException);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     [Theory]
@@ -150,8 +150,8 @@ public sealed class RegistryGradeAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(document, default));
         }
 
-        Assert.Equal(2, reads);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 2, actual: reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -179,8 +179,8 @@ public sealed class RegistryGradeAdapterTests
             default);
         var document = await navigator.GetHtml(new("https://registry.test/grades"));
         await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(2, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 2, actual: reads);
     }
 
     [Theory]
@@ -234,7 +234,7 @@ public sealed class RegistryGradeAdapterTests
         var auth = new Auth();
         using var handler = new Handler((request, _) =>
         {
-            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
+            Assert.Equal(expected: "/grades", actual: request.RequestUri!.AbsolutePath);
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) redirectStatus, "");
@@ -271,9 +271,9 @@ public sealed class RegistryGradeAdapterTests
             () => started = true));
 
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(readStatus == 401 ? 3 : 2, reads);
-        Assert.Equal(readStatus == 401 ? 1 : 0, auth.Calls);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: readStatus == 401 ? 3 : 2, actual: reads);
+        Assert.Equal(expected: readStatus == 401 ? 1 : 0, actual: auth.Calls);
     }
 
     [Fact]
@@ -299,11 +299,11 @@ public sealed class RegistryGradeAdapterTests
             default);
         var document = await navigator.GetHtml(new("https://registry.test/grades"));
         await Assert.ThrowsAsync<RegistrySubmissionRejectedException>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(0, auth.Calls);
+        Assert.Equal(expected: 0, actual: auth.Calls);
         await navigator.GetHtml(new("https://registry.test/grades"));
-        Assert.Equal(1, auth.Calls);
-        Assert.Equal(3, reads);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: auth.Calls);
+        Assert.Equal(expected: 3, actual: reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -316,7 +316,7 @@ public sealed class RegistryGradeAdapterTests
         var reads = 0;
         using var handler = new Handler((request, _) =>
         {
-            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
+            Assert.Equal(expected: "/grades", actual: request.RequestUri!.AbsolutePath);
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) status, "");
@@ -349,8 +349,8 @@ public sealed class RegistryGradeAdapterTests
             await navigator.SubmitGrades(document, default);
         }
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(login ? 1 : 2, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: login ? 1 : 2, actual: reads);
     }
 
     [Theory]
@@ -388,8 +388,8 @@ public sealed class RegistryGradeAdapterTests
 
         await Assert.ThrowsAsync<FormSubmissionRedirectException>(() => navigator.SubmitGrades(document, default));
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(1, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 1, actual: reads);
     }
 
     [Fact]
@@ -406,8 +406,8 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         await context.Browser.OpenAsync("https://registry.test/grades");
-        Assert.Equal(2, reads);
-        Assert.Equal(1, auth.Calls);
+        Assert.Equal(expected: 2, actual: reads);
+        Assert.Equal(expected: 1, actual: auth.Calls);
     }
 
     [Fact]
@@ -427,8 +427,8 @@ public sealed class RegistryGradeAdapterTests
         using var context = ScrapingContext.Create(transport, auth);
         var document = await context.Browser.OpenAsync("https://registry.test/grades");
         await document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")!.SubmitAsync();
-        Assert.Equal(2, posts);
-        Assert.Equal(1, auth.Calls);
+        Assert.Equal(expected: 2, actual: posts);
+        Assert.Equal(expected: 1, actual: auth.Calls);
     }
 
     [Theory]
@@ -455,7 +455,7 @@ public sealed class RegistryGradeAdapterTests
             },
             default,
             transport));
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
         Assert.True(handler.Disposed);
     }
 
@@ -576,13 +576,13 @@ public sealed class RegistryGradeAdapterTests
                 cancellation.Cancel();
             }
 
-            Assert.Equal(exit, await task.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Equal(expected: exit, actual: await task.WaitAsync(TimeSpan.FromSeconds(5)));
             Assert.False(accountLock.Held);
             Assert.True(session.Disposed);
             Assert.True(handler.Disposed);
-            Assert.Equal(1, handler.Posts);
+            Assert.Equal(expected: 1, actual: handler.Posts);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(exit, result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: exit, actual: result.RootElement.GetProperty("exitCode").GetInt32());
             Assert.Empty(result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray());
             if (cancel)
             {
@@ -623,7 +623,7 @@ public sealed class RegistryGradeAdapterTests
             },
             default,
             transport);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     private sealed class Commands(Session session, IRegistryGradePlanner planner, AccountLock accountLock)
@@ -639,10 +639,7 @@ public sealed class RegistryGradeAdapterTests
         public bool Disposed;
         public IServiceProvider Services => services;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("adapter-test", "https://registry.test/");
+        public RegistryDestination Target { get; } = new(Account: "adapter-test", Destination: "https://registry.test/");
 
         public OnlineRegistryNavigator CreateNavigator(CancellationToken token) =>
             throw new InvalidOperationException("Must fail before registry reads.");
@@ -683,13 +680,16 @@ public sealed class RegistryGradeAdapterTests
         }
     }
 
-    private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)
+    private static HttpResponseMessage Response(HttpStatusCode status, string body)
     {
-        Content = new StringContent(
-            body,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(status)
+        {
+            Content = new StringContent(
+                body,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 
     private sealed class Auth : IAuthHandler
     {

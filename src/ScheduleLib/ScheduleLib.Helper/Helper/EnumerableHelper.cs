@@ -21,7 +21,7 @@ public static class EnumerableExtensions
     public static IEnumerable<T> WhereNotDefault<T>(this IEnumerable<T> source)
         where T : struct
     {
-        return source.Where(x => !EqualityComparer<T>.Default.Equals(x, default));
+        return source.Where(x => !EqualityComparer<T>.Default.Equals(x: x, y: default));
     }
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source)
         where T : struct
@@ -295,7 +295,7 @@ public static class EnumerableExtensions
             }
             var c1 = e1.Current;
             var c2 = e2.Current;
-            int comparisonResult = comparer.Compare(c1, c2);
+            int comparisonResult = comparer.Compare(x: c1, y: c2);
             if (comparisonResult < 0)
             {
                 yield return c1;
@@ -364,8 +364,8 @@ public static class EnumerableExtensions
         where T : IComparable<T>
     {
         return MergeSorted(
-            a,
-            b,
+            a: a,
+            b: b,
             Comparer<T>.Default,
             duplicateBehavior);
     }

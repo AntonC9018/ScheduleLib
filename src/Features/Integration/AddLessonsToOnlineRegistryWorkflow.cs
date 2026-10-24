@@ -78,8 +78,10 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
 
     public Task PlanIntakeLabCleanup(IRegistrySyncNavigator navigator,
         Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
-        => _handler.PlanIntakeLabCleanup(navigator, _studyYear.Value.Semester, _lessonFilterProvider.Get(),
-            _diagnostics, onGroupPlanned, cancellationToken);
+    {
+        return _handler.PlanIntakeLabCleanup(navigator, _studyYear.Value.Semester, _lessonFilterProvider.Get(),
+                _diagnostics, onGroupPlanned, cancellationToken);
+    }
 }
 
 // Make a simple abstraction for now, because I don't know what I'm going to want to do.

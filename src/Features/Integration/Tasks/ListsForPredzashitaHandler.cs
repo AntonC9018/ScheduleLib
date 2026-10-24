@@ -40,9 +40,11 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private readonly INameRemapper _nameRemapper;
     private readonly PreDefenseOptions _options;
 
-    public static bool HasConfiguredCommissions(PreDefenseOptions options) =>
-        (options.Commissions ?? Commissions) is { Length: > 0 } configured
+    public static bool HasConfiguredCommissions(PreDefenseOptions options)
+    {
+        return (options.Commissions ?? Commissions) is { Length: > 0 } configured
         && configured.All(x => x.Members.Length > 0);
+    }
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
@@ -81,13 +83,16 @@ public sealed partial class ListsForPredzashitaTaskHandler
         return null;
     }
 
-    private Commission<Name>[] ParseCommissionNames() => (_options.Commissions ?? Commissions).Select(x =>
-        new Commission<Name>
-        {
-            Members = x.Members.Select((y, index) => ParseCommissionMember(x.Number, index + 1, y.Name)).ToArray(),
-            Number = x.Number,
-            Room = x.Room,
-        }).ToArray();
+    private Commission<Name>[] ParseCommissionNames()
+    {
+        return (_options.Commissions ?? Commissions).Select(x =>
+            new Commission<Name>
+            {
+                Members = x.Members.Select((y, index) => ParseCommissionMember(commissionNumber: x.Number, memberNumber: index + 1, y.Name)).ToArray(),
+                Number = x.Number,
+                Room = x.Room,
+            }).ToArray();
+    }
 
     private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
     {
@@ -136,7 +141,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
-            list.Add(new(studentName, group, thesisName));
+            list.Add(new(studentName, Group: group, ThesisName: thesisName));
         }
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
@@ -176,11 +181,11 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 }
 
                 list.Add(new(
-                    t.StudentName,
-                    teacher,
-                    t.Group,
-                    t.ThesisName,
-                    practicaPlace));
+                    StudentName: t.StudentName,
+                    TeacherName: teacher,
+                    Group: t.Group,
+                    ThesisName: t.ThesisName,
+                    PracticaPlace: practicaPlace));
             }
         }
 
@@ -302,7 +307,7 @@ public sealed class Hasher : IEqualityComparer<NameAndGroup>
 
     public bool Equals(NameAndGroup x, NameAndGroup y)
     {
-        if (!Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.Equals(x.Name, y.Name))
+        if (!Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.Equals(x: x.Name, y: y.Name))
         {
             return false;
         }
@@ -319,6 +324,6 @@ public sealed class Hasher : IEqualityComparer<NameAndGroup>
     {
         var a = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.GetHashCode(obj.Name);
         var b = obj.Group.GetHashCode();
-        return HashCode.Combine(a, b);
+        return HashCode.Combine(value1: a, value2: b);
     }
 }

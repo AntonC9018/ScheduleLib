@@ -25,26 +25,30 @@ public static class RegistryHistoryTopicFiles
     public static Task<RegistryHistoryTopicFilesResult> Save(
         string directory,
         RegistryHistoryTopicSelectionResult selection,
-        CancellationToken token) =>
-        Save(
+        CancellationToken token)
+    {
+        return Save(
             directory,
             selection,
             null,
-            null,
-            null,
+            current: null,
+            historical: null,
             token);
+    }
 
     public static Task<RegistryHistoryTopicFilesResult> Save(
         string directory,
         RegistryHistoryTopicsAnalysis analysis,
-        CancellationToken token) =>
-        Save(
+        CancellationToken token)
+    {
+        return Save(
             directory,
             analysis.Selection,
             analysis.OfferedYears,
-            analysis.Current,
-            analysis.Historical,
+            current: analysis.Current,
+            historical: analysis.Historical,
             token);
+    }
 
     private static async Task<RegistryHistoryTopicFilesResult> Save(
         string directory,
@@ -92,7 +96,7 @@ public static class RegistryHistoryTopicFiles
             foreach (var item in ambiguous)
             {
                 var matches = historical.Where(snapshot =>
-                    RegistryHistoryTopicSelection.Matches(item.CurrentCourse, snapshot.Course)).ToArray();
+                    RegistryHistoryTopicSelection.Matches(current: item.CurrentCourse, historical: snapshot.Course)).ToArray();
                 var latest = matches.Where(HasTopics).OrderByDescending(snapshot =>
                         RegistryHistoryTopicSelection.AcademicYearStart(snapshot.Year))
                     .FirstOrDefault()?.Year;
@@ -127,22 +131,22 @@ public static class RegistryHistoryTopicFiles
                         await writer.WriteLineAsync("name,lessonType".AsMemory(), token);
                         foreach (var lesson in ordered)
                         {
-                            var line = "\"" + lesson.Topic.Replace("\"", "\"\"") + "\"," + lesson.LessonType;
+                            var line = (string) $"\"{lesson.Topic.Replace("\"", "\"\"")}\"," + lesson.LessonType;
                             await writer.WriteLineAsync(line.AsMemory(), token);
                         }
                     }
                     files.Add(name);
                     sources.Add(new(
-                        name,
-                        candidate.CurrentCourse.Name,
+                        File: name,
+                        CurrentCourse: candidate.CurrentCourse.Name,
                         candidate.CurrentCourse.Semester,
-                        candidate.Historical.Course.Name,
-                        candidate.Historical.Year,
-                        group.Name,
+                        HistoricalCourse: candidate.Historical.Course.Name,
+                        Year: candidate.Historical.Year,
+                        RawGroup: group.Name,
                         group.Uri,
                         lessons.Key,
                         ordered.Select(x => x.Date).ToArray(),
-                        candidate.CourseMapping));
+                        CourseMapping: candidate.CourseMapping));
                 }
             }
         }
@@ -177,9 +181,11 @@ public static class RegistryHistoryTopicFiles
         return new(inventory, files);
     }
 
-    private static bool HasTopics(RegistryHistoryCourseTopics snapshot) =>
-        snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
+    private static bool HasTopics(RegistryHistoryCourseTopics snapshot)
+    {
+        return snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
             !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic)));
+    }
 
     private static FileStream NewPrivateFile(string path)
     {

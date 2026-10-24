@@ -76,7 +76,7 @@ public static class CommissionParser
                     {
                         DateOnly DateFromString(string s)
                         {
-                            var excelEpoch = new DateOnly(1899, 12, 30);
+                            var excelEpoch = new DateOnly(year: 1899, month: 12, day: 30);
 
                             var parser = new SequenceReader(s);
                             var bparser = parser.BufferedView();
@@ -126,7 +126,7 @@ public static class CommissionParser
                             throw new InvalidOperationException("Expected roman number after 'Comisia'");
                         }
                         int num = romanResult.Number;
-                        state.CommissionNumberMappings.AddAt(cell.Position, new(num, cell.Size));
+                        state.CommissionNumberMappings.AddAt(cell.Position, new(item: num, size: cell.Size));
                     }
                     if (state.CommissionNumberMappings.IsEmpty)
                     {

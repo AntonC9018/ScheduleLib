@@ -86,7 +86,7 @@ internal struct MatchedLessonData
         {
             return true;
         }
-        if (Equal(Local.Attendance, Remote.Attendance))
+        if (Equal(all: Local.Attendance, existing: Remote.Attendance))
         {
             return true;
         }

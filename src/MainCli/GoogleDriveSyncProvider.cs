@@ -53,7 +53,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             throw new IOException("Drive did not return an actual account identity.");
         }
 
-        return new(user.PermissionId, user.EmailAddress);
+        return new(Id: user.PermissionId, Email: user.EmailAddress);
     }
 
     public async Task<DriveDestination> FindFolder(string name, CancellationToken token)
@@ -85,7 +85,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             throw new DirectoryNotFoundException($"Drive folder does not exist: {name}");
         }
 
-        return new(folder.Id, folder.Name);
+        return new(Id: folder.Id, Name: folder.Name);
     }
 
     public async Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string folderId, CancellationToken token)
@@ -100,7 +100,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             request.PageSize = 1000;
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            files.AddRange((response.Files ?? []).Select(x => new DriveRemoteFile(x.Id, x.Name)));
+            files.AddRange((response.Files ?? []).Select(x => new DriveRemoteFile(Id: x.Id, Name: x.Name)));
             page = response.NextPageToken;
         } while (page is not null);
         return files;
@@ -114,27 +114,31 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         string name,
         Stream input,
         CancellationToken token)
-        => Upload(
-            HttpMethod.Post,
-            null,
-            new DriveFile
-            {
-                Name = name,
-                Parents = [folderId],
-            },
-            input,
-            token);
+    {
+        return Upload(
+                HttpMethod.Post,
+                null,
+                new DriveFile
+                {
+                    Name = name,
+                    Parents = [folderId],
+                },
+                input,
+                token);
+    }
 
     public Task<string> Update(
         string fileId,
         Stream input,
         CancellationToken token)
-        => Upload(
-            HttpMethod.Patch,
-            fileId,
-            new DriveFile(),
-            input,
-            token);
+    {
+        return Upload(
+                HttpMethod.Patch,
+                fileId,
+                new DriveFile(),
+                input,
+                token);
+    }
 
     private async Task<string> Upload(
         HttpMethod method,
@@ -153,14 +157,12 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         using var content = new StreamContent(input);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         multipart.Add(content);
-        var uri = "https://www.googleapis.com/upload/drive/v3/files"
-            + (fileId is null ? "" : "/" + Uri.EscapeDataString(fileId))
-            + "?uploadType=multipart&fields=id";
+        var uri = (string) $"https://www.googleapis.com/upload/drive/v3/files{(fileId is null ? "" : (string) $"/{Uri.EscapeDataString(fileId)}")}?uploadType=multipart&fields=id";
         using var request = new HttpRequestMessage(method, uri) { Content = multipart };
         using var response = await _service.HttpClient.SendAsync(request, token);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Google.GoogleApiException("drive", "Drive rejected the upload.")
+            throw new Google.GoogleApiException(serviceName: "drive", message: "Drive rejected the upload.")
             {
                 HttpStatusCode = response.StatusCode,
             };
@@ -175,13 +177,16 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         return id.GetString()!;
     }
 
-    private static string Escape(string value) => value.Replace(
-        "\\",
-        "\\\\",
-        StringComparison.Ordinal).Replace(
-        "'",
-        "\\'",
-        StringComparison.Ordinal);
+    private static string Escape(string value)
+    {
+        return value.Replace(
+            "\\",
+            "\\\\",
+            StringComparison.Ordinal).Replace(
+            "'",
+            "\\'",
+            StringComparison.Ordinal);
+    }
 
     public void Dispose() => _service.Dispose();
 }

@@ -31,7 +31,12 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
     public async Task Run(RunParams p)
     {
         var quiz = await p.MoodleContext.ScrapeQuizAttempts(p.QuizId, cancellationToken: p.CancellationToken);
-        var plan = await Plan(new() { Quiz = quiz, RegistryNavigator = p.RegistryNavigator, Semester = p.Semester, CancellationToken = p.CancellationToken });
+        var plan = await Plan(new() {
+            Quiz = quiz,
+            RegistryNavigator = p.RegistryNavigator,
+            Semester = p.Semester,
+            CancellationToken = p.CancellationToken
+        });
         foreach (var action in plan.Actions) await action.Execute(p.CancellationToken);
     }
 
@@ -58,7 +63,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             var name = NameHelper.TryParseName(ref parser);
             if (name is null)
             {
-                notices.Add(new("omitted", $"Moodle name could not be parsed: {q.UserName}"));
+                notices.Add(new(Kind: "omitted", Detail: $"Moodle name could not be parsed: {q.UserName}"));
                 continue;
             }
 
@@ -72,15 +77,15 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (q.Grade is not { } grade1)
             {
-                notices.Add(new("omitted", $"Moodle student has no grade: {q.UserName}"));
+                notices.Add(new(Kind: "omitted", Detail: $"Moodle student has no grade: {q.UserName}"));
                 continue;
             }
             if (!float.IsFinite(grade1) || (double) grade1 > int.MaxValue || (double) grade1 < int.MinValue)
             {
-                notices.Add(new("unsupported", $"Moodle grade is not a finite supported number: {q.UserName}"));
+                notices.Add(new(Kind: "unsupported", Detail: $"Moodle grade is not a finite supported number: {q.UserName}"));
                 continue;
             }
-            if (gradeByName.ContainsKey(name)) notices.Add(new("omitted", $"Earlier attempt replaced by the last graded attempt: {name}"));
+            if (gradeByName.ContainsKey(name)) notices.Add(new(Kind: "omitted", Detail: $"Earlier attempt replaced by the last graded attempt: {name}"));
             gradeByName[name] = grade1;
         }
 
@@ -88,7 +93,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         var parsedPath = MoodlePathParser.TryParse(quiz.Path.Select(x => x.Name));
         if (parsedPath is null || parsedPath.Grade == Grade.Invalid || parsedPath.TestNumber <= 0)
         {
-            notices.Add(new("unsupported", "Moodle course/test path could not be parsed."));
+            notices.Add(new(Kind: "unsupported", Detail: "Moodle course/test path could not be parsed."));
             return new(actions, notices);
         }
 
@@ -99,7 +104,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         });
         if (courseId is null)
         {
-            notices.Add(new("unsupported", "Moodle course name does not resolve in the configured schedule."));
+            notices.Add(new(Kind: "unsupported", Detail: "Moodle course name does not resolve in the configured schedule."));
             return new(actions, notices);
         }
         var grade = parsedPath.Grade;
@@ -116,7 +121,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             {
                 if (group.Groups.IsWildcard || group.Groups.Value.Count == 0)
                 {
-                    notices.Add(new("unsupported", $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}"));
+                    notices.Add(new(Kind: "unsupported", Detail: $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}"));
                     continue;
                 }
                 var groupInfo = _schedule.Get(group.Groups.Value[0]);
@@ -170,7 +175,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 var testUrl = TestAnchor();
                 if (testUrl is null)
                 {
-                    notices.Add(new("unsupported", $"Testarea {parsedPath.TestNumber} is missing for {group.EvaluationUri}"));
+                    notices.Add(new(Kind: "unsupported", Detail: $"Testarea {parsedPath.TestNumber} is missing for {group.EvaluationUri}"));
                     continue;
                 }
                 var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
@@ -193,7 +198,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         // A two-part name otherwise lets the name parser consume exmatr as a patronymic.
                         if (registryName.EndsWith(" exmatr", StringComparison.Ordinal))
                         {
-                            notices.Add(new("omitted", $"Expelled registry student: {registryName}"));
+                            notices.Add(new(Kind: "omitted", Detail: $"Expelled registry student: {registryName}"));
                             continue;
                         }
                         var nameParser = new SequenceReader(registryName);
@@ -201,26 +206,26 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var parsedName = NameHelper.TryParseName(ref nameParser);
                         if (parsedName is null)
                         {
-                            notices.Add(new("unsupported", $"Registry name could not be parsed: {registryName}"));
+                            notices.Add(new(Kind: "unsupported", Detail: $"Registry name could not be parsed: {registryName}"));
                             continue;
                         }
                         name = parsedName;
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {
-                            notices.Add(new("omitted", $"Expelled registry student: {name}"));
+                            notices.Add(new(Kind: "omitted", Detail: $"Expelled registry student: {name}"));
                             continue;
                         }
                         if (!nameParser.IsEmpty)
                         {
-                            notices.Add(new("unsupported", $"Registry name contains unsupported trailing text: {registryName}"));
+                            notices.Add(new(Kind: "unsupported", Detail: $"Registry name contains unsupported trailing text: {registryName}"));
                             continue;
                         }
                     }
 
                     if (!gradeByName.Remove(name, out float gradeInDb))
                     {
-                        notices.Add(new("unmatched", $"Registry student has no matching graded Moodle attempt: {name}"));
+                        notices.Add(new(Kind: "unmatched", Detail: $"Registry student has no matching graded Moodle attempt: {name}"));
                         continue;
                     }
 
@@ -230,18 +235,18 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var gradeCell = row.Cells[gradeColumnIndex];
                         var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
                             ?? throw new InvalidOperationException("No input found in grade cell");
-                        changes.Add(new(name.ToString(), gradeInDb, gradeRounded, input.Value));
+                        changes.Add(new(Student: name.ToString(), gradeInDb, gradeRounded, PreviousGrade: input.Value));
                         inputs.Add((input, gradeRounded));
                     }
                 }
 
                 if (changes.Count == 0)
                 {
-                    notices.Add(new("omitted", $"No mapped grades to submit for {testUrl.Href}"));
+                    notices.Add(new(Kind: "omitted", Detail: $"No mapped grades to submit for {testUrl.Href}"));
                     continue;
                 }
                 RegistryGradeForm.Validate(test1Doc);
-                actions.Add(new(testUrl.Href, _schedule.Get(course.CourseId).FullName, string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)), parsedPath.TestNumber, changes, async token =>
+                actions.Add(new(destination: testUrl.Href, course: _schedule.Get(course.CourseId).FullName, groups: string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)), parsedPath.TestNumber, changes, async token =>
                 {
                     var started = false;
                     try
@@ -267,10 +272,10 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             }
         }
 
-        if (actions.Count == 0) notices.Add(new("unmatched", "No registry test forms with supported mapped grades were planned."));
+        if (actions.Count == 0) notices.Add(new(Kind: "unmatched", Detail: "No registry test forms with supported mapped grades were planned."));
         foreach (var (name, value) in gradeByName)
         {
-            notices.Add(new("unmatched", $"Moodle student was not matched in registry: {name} ({value})"));
+            notices.Add(new(Kind: "unmatched", Detail: $"Moodle student was not matched in registry: {name} ({value})"));
         }
         return new(actions, notices);
     }

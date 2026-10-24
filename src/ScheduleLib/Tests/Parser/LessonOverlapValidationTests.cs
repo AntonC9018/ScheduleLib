@@ -58,25 +58,25 @@ public sealed class LessonOverlapValidationTests
     public void EveryOffendingPairIsReportedInOneError()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2401", courseName: "X", timeSlot: 0);
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y", timeSlot: 0);
-        AddWeeklyLesson(builder, "M2401", courseName: "P", day: DayOfWeek.Tuesday, timeSlot: 1);
-        AddWeeklyLesson(builder, "M2401", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X", timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y", timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "M2401", courseName: "P", day: DayOfWeek.Tuesday, timeSlot: 1);
+        AddWeeklyLesson(builder, groupName: "M2401", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
 
         var error = Assert.Throws<OverlappingLessonsException>(() => builder.Build());
-        Assert.Contains("'X'", error.Message);
-        Assert.Contains("'Y'", error.Message);
-        Assert.Contains("'P'", error.Message);
-        Assert.Contains("'Q'", error.Message);
-        Assert.Contains("2 overlapping lesson pairs", error.Message);
+        Assert.Contains(expectedSubstring: "'X'", actualString: error.Message);
+        Assert.Contains(expectedSubstring: "'Y'", actualString: error.Message);
+        Assert.Contains(expectedSubstring: "'P'", actualString: error.Message);
+        Assert.Contains(expectedSubstring: "'Q'", actualString: error.Message);
+        Assert.Contains(expectedSubstring: "2 overlapping lesson pairs", actualString: error.Message);
     }
 
     [Fact]
     public void DisjointWeekParitiesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2401", courseName: "X", parity: Parity.OddWeek);
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y", parity: Parity.EvenWeek);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X", parity: Parity.OddWeek);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y", parity: Parity.EvenWeek);
 
         builder.Build();
     }
@@ -85,8 +85,8 @@ public sealed class LessonOverlapValidationTests
     public void EveryWeekIntersectsBothParities()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2401", courseName: "X", parity: Parity.EveryWeek);
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y", parity: Parity.OddWeek);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X", parity: Parity.EveryWeek);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y", parity: Parity.OddWeek);
 
         Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
@@ -95,8 +95,8 @@ public sealed class LessonOverlapValidationTests
     public void DifferentSpecializationsDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2403", courseName: "X", specialization: "DJ");
-        AddWeeklyLesson(builder, "IA2403", courseName: "Y", specialization: "CV");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "X", specialization: "DJ");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "Y", specialization: "CV");
 
         builder.Build();
     }
@@ -105,8 +105,8 @@ public sealed class LessonOverlapValidationTests
     public void DifferentSubGroupsDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2403", courseName: "X", subGroup: "I");
-        AddWeeklyLesson(builder, "IA2403", courseName: "Y", subGroup: "II");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "X", subGroup: "I");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "Y", subGroup: "II");
 
         builder.Build();
     }
@@ -115,8 +115,8 @@ public sealed class LessonOverlapValidationTests
     public void DifferentAlternativesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2403", courseName: "X", alternative: "Antreprenoriat");
-        AddWeeklyLesson(builder, "IA2403", courseName: "Y", alternative: "Psihologie");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "X", alternative: "Antreprenoriat");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "Y", alternative: "Psihologie");
 
         builder.Build();
     }
@@ -125,8 +125,8 @@ public sealed class LessonOverlapValidationTests
     public void WholeGroupLessonsConflictWithSplitOnes()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2403", courseName: "X");
-        AddWeeklyLesson(builder, "IA2403", courseName: "Y", subGroup: "I");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "X");
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "Y", subGroup: "I");
 
         Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
@@ -135,10 +135,10 @@ public sealed class LessonOverlapValidationTests
     public void DisjointGroupsOrDifferentTimesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2403", courseName: "X", timeSlot: 0);
-        AddWeeklyLesson(builder, "IA2404", courseName: "Y", timeSlot: 0);
-        AddWeeklyLesson(builder, "IA2403", courseName: "P", day: DayOfWeek.Tuesday, timeSlot: 0);
-        AddWeeklyLesson(builder, "IA2403", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "X", timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "IA2404", courseName: "Y", timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "P", day: DayOfWeek.Tuesday, timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "IA2403", courseName: "Q", day: DayOfWeek.Tuesday, timeSlot: 1);
 
         builder.Build();
     }
@@ -162,8 +162,8 @@ public sealed class LessonOverlapValidationTests
             ],
         };
         var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y");
 
         builder.Build();
     }
@@ -185,8 +185,8 @@ public sealed class LessonOverlapValidationTests
             ],
         };
         var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y");
 
         Assert.Throws<OverlappingLessonsException>(() => builder.Build());
     }
@@ -195,12 +195,12 @@ public sealed class LessonOverlapValidationTests
     public void OneTimeLessonsAreNotChecked()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X");
         var oneTime = builder.OneTimeLesson();
         oneTime.Course(builder.Course("Y"));
         oneTime.Group(builder.Group("IA2401"));
         oneTime.TimeSlot(new(0));
-        oneTime.Date(new DateOnly(2026, 9, 7));
+        oneTime.Date(new DateOnly(year: 2026, month: 9, day: 7));
 
         builder.Build();
     }
@@ -216,8 +216,8 @@ public sealed class LessonOverlapValidationTests
             }),
         };
         builder.EnableLookupModule();
-        AddWeeklyLesson(builder, "IA2401", courseName: "X");
-        AddWeeklyLesson(builder, "IA2401", courseName: "Y", timeSlot: 0);
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "X");
+        AddWeeklyLesson(builder, groupName: "IA2401", courseName: "Y", timeSlot: 0);
 
         builder.Build();
     }

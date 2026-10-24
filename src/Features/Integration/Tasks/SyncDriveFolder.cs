@@ -24,11 +24,17 @@ public sealed partial class SyncDriveFolderTaskHandler
         public required IFilesProvider FilesProvider { get; init; }
     }
 
-    private static string[] Scopes =>
-    [
-        DriveService.Scope.DriveFile,
-        DriveService.Scope.Drive,
-    ];
+    private static string[] Scopes
+    {
+        get
+        {
+            return [
+                DriveService.Scope.DriveFile,
+                DriveService.Scope.Drive,
+            ];
+        }
+    }
+
     public async Task Run(RunParams p)
     {
         var config = _configProvider.Get();
@@ -100,7 +106,7 @@ public sealed partial class SyncDriveFolderTaskHandler
         }
         foreach (var fileName in cloudFilesToCreate)
         {
-            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (cancellationToken) =>
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (cancellationToken) =>
             {
                 await using var stream = File(fileName);
                 _logger.LogInformation("Uploading file '{FileName}'", fileName);
@@ -114,7 +120,7 @@ public sealed partial class SyncDriveFolderTaskHandler
         }
         foreach (var file in cloudFilesToUpdate)
         {
-            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (cancellationToken) =>
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (cancellationToken) =>
             {
                 await using var stream = File(file.Name);
                 _logger.LogInformation("Updating file '{FileName}'", file.Name);

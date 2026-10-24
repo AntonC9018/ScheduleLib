@@ -27,11 +27,11 @@ public sealed class ScheduleCellParserTests
             [second]));
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(2, result.Base.Group.Groups.Count);
-        Assert.Equal(4, result.Date.TimeSlot!.Value.Index);
-        Assert.Equal(Parity.OddWeek, result.Date.Parity);
-        Assert.Equal(default, result.Base.Group.Alternative);
-        Assert.Equal(context.CurrentPeriodId, result.Base.General.Period);
+        Assert.Equal(expected: 2, actual: result.Base.Group.Groups.Count);
+        Assert.Equal(expected: 4, actual: result.Date.TimeSlot!.Value.Index);
+        Assert.Equal(expected: Parity.OddWeek, actual: result.Date.Parity);
+        Assert.Equal(expected: default, actual: result.Base.Group.Alternative);
+        Assert.Equal(expected: context.CurrentPeriodId, actual: result.Base.General.Period);
     }
 
     [Fact]
@@ -51,13 +51,13 @@ public sealed class ScheduleCellParserTests
             [group],
             new("Gr.2")));
 
-        Assert.Equal(2, context.Schedule.WeeklyLessons.Count);
-        Assert.Equal(new[]
+        Assert.Equal(expected: 2, actual: context.Schedule.WeeklyLessons.Count);
+        Assert.Equal(expected: new[]
             {
                 "Gr.1",
                 "Gr.2",
             },
-            context.Schedule.WeeklyLessons.List
+            actual: context.Schedule.WeeklyLessons.List
                 .Select(l => l.Base.Group.Alternative.Value));
     }
 
@@ -76,8 +76,8 @@ public sealed class ScheduleCellParserTests
             [cellGroup]));
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(lessonGroup, Assert.Single(result.Base.Group.Groups));
-        Assert.Equal(DayOfWeek.Tuesday, result.Date.DayOfWeek);
+        Assert.Equal(expected: lessonGroup, actual: Assert.Single(result.Base.Group.Groups));
+        Assert.Equal(expected: DayOfWeek.Tuesday, actual: result.Date.DayOfWeek);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class ScheduleCellParserTests
         var context = CreateContext();
         var group = context.Schedule.Group("IA2601(ro)").Id;
         var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
-        lesson.StartTime = new(7, 13);
+        lesson.StartTime = new(hour: 7, minute: 13);
 
         Assert.Throws<InvalidScheduleDocumentException>(() =>
             context.AddOrMergeLesson(new(lesson,
@@ -111,9 +111,9 @@ public sealed class ScheduleCellParserTests
         });
         context.SetPeriod(new()
         {
-            StartDate = new(2026,
-                9,
-                14),
+            StartDate = new(year: 2026,
+                month: 9,
+                day: 14),
         });
         return context;
     }

@@ -14,10 +14,7 @@ public sealed record RegistryDestination(string Account, string Destination);
 /// <summary>A session identifies the actual account, independently of the selected teacher alias.</summary>
 public interface IRegistrySession : IAsyncDisposable
 {
-    RegistryDestination Target
-    {
-        get;
-    }
+    RegistryDestination Target { get; }
 
     IReadOnlyList<RegistrySyncDiagnostic> Diagnostics => [];
     RegistrySyncDiagnostics? LiveDiagnostics => null;
@@ -38,10 +35,7 @@ public interface IRegistrySession : IAsyncDisposable
 /// <summary>Configured runtime access for additional registry operations; ownership remains with the session.</summary>
 public interface IConfiguredRegistrySession : IRegistrySession
 {
-    IServiceProvider Services
-    {
-        get;
-    }
+    IServiceProvider Services { get; }
 
     OnlineRegistryNavigator CreateNavigator(CancellationToken token);
 }
@@ -65,12 +59,12 @@ public sealed class RegistryAccountLock : IRegistryAccountLock
     {
         // Coordinate both registry commands on the same real account and registry, across project/profile aliases.
         var hash = Convert.ToHexStringLower(
-            SHA256.HashData(Encoding.UTF8.GetBytes(target.Destination.TrimEnd('/') + "\n" + target.Account)));
+            SHA256.HashData(Encoding.UTF8.GetBytes((string) $"{target.Destination.TrimEnd('/')}\n{target.Account}")));
         var path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ScheduleLib",
             "locks",
-            "registry-" + hash + ".lock");
+            (string) $"registry-{hash}.lock");
         return await LocalFileLock.Acquire(path, token);
     }
 }
@@ -78,8 +72,8 @@ public sealed class RegistryAccountLock : IRegistryAccountLock
 public sealed class ConfiguredRegistryProvider : IRegistryProvider
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
+        category: "Reliability",
+        checkId: "CA2000:Dispose objects before losing scope",
         Justification =
             "Successful sessions own settings, service provider, scope and context; the failure path disposes them.")]
     public async Task<IRegistrySession> Open(
@@ -146,7 +140,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                 provider,
                 scope,
                 context,
-                new(credentials.Login, RegistryScraping.BaseUrl));
+                new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl));
         }
         catch
         {
@@ -181,27 +175,33 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         public IServiceProvider Services => scope.ServiceProvider;
         public OnlineRegistryNavigator CreateNavigator(CancellationToken token) => context.Navigator(Services, token);
 
-        public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token) =>
-            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
+        public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token)
+        {
+            return scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
                 .Plan(CreateNavigator(token), token);
+        }
 
         public Task PlanGroups(
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
-            CancellationToken token) =>
-            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
+            CancellationToken token)
+        {
+            return scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
                 .PlanGroups(
                     CreateNavigator(token),
                     onGroupPlanned,
                     token);
+        }
 
         public Task PlanIntakeLabCleanup(
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
-            CancellationToken token) =>
-            Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
+            CancellationToken token)
+        {
+            return Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>()
                 .PlanIntakeLabCleanup(
                     CreateNavigator(token),
                     onGroupPlanned,
                     token);
+        }
 
         public async ValueTask DisposeAsync()
         {

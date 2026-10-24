@@ -17,8 +17,8 @@ public sealed class NameTests
             FirstName = N("ANTON"),
             LastName = N("CURMANSCHII"),
         };
-        Assert.Equal(a, b, Comparer);
-        Assert.Equal(Comparer.GetHashCode(a), Comparer.GetHashCode(b));
+        Assert.Equal(expected: a, actual: b, Comparer);
+        Assert.Equal(expected: Comparer.GetHashCode(a), actual: Comparer.GetHashCode(b));
     }
 
     [Fact]
@@ -35,9 +35,9 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(a, b, Comparer);
-        Assert.Equal(b, a, Comparer);
-        Assert.Equal(Comparer.GetHashCode(a), Comparer.GetHashCode(b));
+        Assert.Equal(expected: a, actual: b, Comparer);
+        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: Comparer.GetHashCode(a), actual: Comparer.GetHashCode(b));
     }
 
     [Fact]
@@ -54,9 +54,9 @@ public sealed class NameTests
             FirstName = N("Stepvet"),
             LastName = N("dima"),
         };
-        Assert.Equal(a, b, Comparer);
-        Assert.Equal(b, a, Comparer);
-        Assert.Equal(Comparer.GetHashCode(a), Comparer.GetHashCode(b));
+        Assert.Equal(expected: a, actual: b, Comparer);
+        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: Comparer.GetHashCode(a), actual: Comparer.GetHashCode(b));
     }
 
     [Fact]
@@ -74,9 +74,9 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(a, b, Comparer);
-        Assert.Equal(b, a, Comparer);
-        Assert.Equal(Comparer.GetHashCode(a), Comparer.GetHashCode(b));
+        Assert.Equal(expected: a, actual: b, Comparer);
+        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: Comparer.GetHashCode(a), actual: Comparer.GetHashCode(b));
     }
 
     private Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer Comparer => Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;

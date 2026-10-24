@@ -12,31 +12,43 @@ namespace ScheduleLib.ScheduleDefaults;
 
 public static class Config
 {
-    public static CourseNameParserConfig CourseNameParser => new(new()
+    public static CourseNameParserConfig CourseNameParser
     {
-        ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js", "PHP"],
-        IgnoredFullWords = ["p/u", "pentru", "Modele", "jocuri"],
-        IgnoredShortenedWords = ["Opț"],
-        IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
-        MinUsefulWordLength = 3,
-    });
+        get
+        {
+            return new(new()
+            {
+                ProgrammingLanguages = ["Java", "C++", "C#", "Python", "Node.js", "PHP"],
+                IgnoredFullWords = ["p/u", "pentru", "Modele", "jocuri"],
+                IgnoredShortenedWords = ["Opț"],
+                IgnoredProgrammingRelatedWords = ["Programare", "limbaj"],
+                MinUsefulWordLength = 3,
+            });
+        }
+    }
 
-    public static ReadOnlySpan<(string From, string To)> CourseNameUnificationConfig => new[]
+    public static ReadOnlySpan<(string From, string To)> CourseNameUnificationConfig
     {
-        (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
-        (From: "HTML", To: "HTML și CSS"),
-        (From: "Modele design soft", To: "Design Soft"),
-        (From: "Python pentru aplicații", To: "Python"),
-        (From: "Dezvoltare WEB avansată cu PHP", To: "PHP"),
-        (From: "Dezvoltare WEB avansată", To: "PHP"),
-        (From: "Dezvoltare WEB PHP", To: "PHP"),
-        (From: "DA S-S", To: "Server-side"),
-        (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
-        (From: "Cloud", To: "Cloud Computing"),
-        (From: "RA U&Vuforia", To: "U&Vuforia"),
-        // "UI/UX" is mis-tokenized into "U X" by one of the docs.
-        (From: "Designul UI/U X", To: "Designul UI/UX"),
-    };
+        get
+        {
+            return new[]
+            {
+                (From: "Dezv. apl. server-side cu Node.js", To: "Node.js"),
+                (From: "HTML", To: "HTML și CSS"),
+                (From: "Modele design soft", To: "Design Soft"),
+                (From: "Python pentru aplicații", To: "Python"),
+                (From: "Dezvoltare WEB avansată cu PHP", To: "PHP"),
+                (From: "Dezvoltare WEB avansată", To: "PHP"),
+                (From: "Dezvoltare WEB PHP", To: "PHP"),
+                (From: "DA S-S", To: "Server-side"),
+                (From: "Dezvoltarea de aplicații server-side", To: "Server-side"),
+                (From: "Cloud", To: "Cloud Computing"),
+                (From: "RA U&Vuforia", To: "U&Vuforia"),
+                // "UI/UX" is mis-tokenized into "U X" by one of the docs.
+                (From: "Designul UI/U X", To: "Designul UI/UX"),
+            };
+        }
+    }
 
     public static CourseNameUnifierConfig CourseNameUnifier =>
         CourseNameUnifierConfig.Create(CourseNameParser, CourseNameUnificationConfig);
@@ -297,19 +309,19 @@ public static class Config
     {
         // The 2025 first-semester source calls this group DU2501; its later
         // schedules identify it as DU-IA2501. DU alone does not identify a program.
-        remap.GroupNameRemappings.Add("DU2501", "DU-IA2501");
+        remap.GroupNameRemappings.Add(key: "DU2501", value: "DU-IA2501");
         var teach = remap.TeacherLastNameRemappings;
-        teach.Add("Curmanschi", "Curmanschii");
-        teach.Add("Curmanscii", "Curmanschii");
-        teach.Add("Curmansci", "Curmanschii");
-        teach.Add("Vișnevschi", "Vișnevschii");
-        teach.Add("Băț", "Beț");
-        teach.Add("Spincean", "Sprîncean");
-        teach.Add("Anghelov", "Anghelova");
-        teach.Add("Iațîșina", "Iațâșina");
-        teach.Add("Jelihovskii", "Jelihovschii");
-        teach.Add("Jelihovschi", "Jelihovschii");
-        teach.Add("Vișnevshi", "Vișnevschii");
+        teach.Add(a: "Curmanschi", b: "Curmanschii");
+        teach.Add(a: "Curmanscii", b: "Curmanschii");
+        teach.Add(a: "Curmansci", b: "Curmanschii");
+        teach.Add(a: "Vișnevschi", b: "Vișnevschii");
+        teach.Add(a: "Băț", b: "Beț");
+        teach.Add(a: "Spincean", b: "Sprîncean");
+        teach.Add(a: "Anghelov", b: "Anghelova");
+        teach.Add(a: "Iațîșina", b: "Iațâșina");
+        teach.Add(a: "Jelihovskii", b: "Jelihovschii");
+        teach.Add(a: "Jelihovschi", b: "Jelihovschii");
+        teach.Add(a: "Vișnevshi", b: "Vișnevschii");
 
         remap.TeacherFullNameRemappings.Add((ref x) =>
         {
@@ -317,10 +329,10 @@ public static class Config
             {
                 return (x.FirstName.Longer()[0] is { } l
                     && new Word(l).Span.IsEitherShortForOther(new Word(first).Span.Shortened)
-                    && IgnoreDiacriticsAndCaseComparer.Instance.Equals(x.LastName[0], last));
+                    && IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x.LastName[0], y: last));
             }
 
-            if (EqualFirstPart(ref x, "Maria", "Cristei"))
+            if (EqualFirstPart(ref x, first: "Maria", last: "Cristei"))
             {
                 x = default;
                 x.FirstName[0].Full = "Maria";
@@ -328,7 +340,7 @@ public static class Config
                 x.LastName[0] = "Marin";
                 return true;
             }
-            if (EqualFirstPart(ref x, "Gabriel", "Stănescu"))
+            if (EqualFirstPart(ref x, first: "Gabriel", last: "Stănescu"))
             {
                 x = default;
                 x.FirstName[0].Full = "Gabriel";
@@ -338,8 +350,8 @@ public static class Config
                 x.LastName[0] = "Stănescu";
                 return true;
             }
-            if (EqualFirstPart(ref x, "Eva", "Arseni")
-                || EqualFirstPart(ref x, "Mădălina", "Arseni"))
+            if (EqualFirstPart(ref x, first: "Eva", last: "Arseni")
+                || EqualFirstPart(ref x, first: "Mădălina", last: "Arseni"))
             {
                 x = default;
                 x.FirstName[0].Full = "Eva";
@@ -349,7 +361,7 @@ public static class Config
                 x.LastName[0] = "Arseni";
                 return true;
             }
-            if (EqualFirstPart(ref x, "Anatol", "Gladei"))
+            if (EqualFirstPart(ref x, first: "Anatol", last: "Gladei"))
             {
                 x = default;
                 x.FirstName[0].Full = "Anatolie";
@@ -379,7 +391,7 @@ public static class Config
         {
             var from = $"{(char) ('a' + i - 1)}";
             var to = NumberHelper.ToRoman(i);
-            subgroup.Add(from, to);
+            subgroup.Add(key: from, value: to);
         }
     }
 
@@ -464,39 +476,44 @@ public static class Config
     /// academic-year numbering (fall week 1 is even, so spring week 1 after the 15-week fall
     /// term is odd); the PDF fixes only the week counts and dates, not the parity.
     /// </summary>
-    public static StudyWeek[] StudyWeeks =>
-    [
-        // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
-        new(monday: new(2026, 8, 31), isOddWeek: false),
-        new(monday: new(2026, 9, 7), isOddWeek: true),
-        new(monday: new(2026, 9, 14), isOddWeek: false),
-        new(monday: new(2026, 9, 21), isOddWeek: true),
-        new(monday: new(2026, 9, 28), isOddWeek: false),
-        new(monday: new(2026, 10, 5), isOddWeek: true),
-        new(monday: new(2026, 10, 12), isOddWeek: false),
-        new(monday: new(2026, 10, 19), isOddWeek: true),
-        new(monday: new(2026, 10, 26), isOddWeek: false),
-        new(monday: new(2026, 11, 2), isOddWeek: true),
-        new(monday: new(2026, 11, 9), isOddWeek: false),
-        new(monday: new(2026, 11, 16), isOddWeek: true),
-        new(monday: new(2026, 11, 23), isOddWeek: false),
-        new(monday: new(2026, 11, 30), isOddWeek: true),
-        new(monday: new(2026, 12, 7), isOddWeek: false),
-        // Semestrul II: 13 weeks, numbering continues from the fall term.
-        new(monday: new(2027, 2, 1), isOddWeek: true),
-        new(monday: new(2027, 2, 8), isOddWeek: false),
-        new(monday: new(2027, 2, 15), isOddWeek: true),
-        new(monday: new(2027, 2, 22), isOddWeek: false),
-        new(monday: new(2027, 3, 1), isOddWeek: true),
-        new(monday: new(2027, 3, 8), isOddWeek: false),
-        new(monday: new(2027, 3, 15), isOddWeek: true),
-        new(monday: new(2027, 3, 22), isOddWeek: false),
-        new(monday: new(2027, 3, 29), isOddWeek: true),
-        new(monday: new(2027, 4, 5), isOddWeek: false),
-        new(monday: new(2027, 4, 12), isOddWeek: true),
-        new(monday: new(2027, 4, 19), isOddWeek: false),
-        new(monday: new(2027, 4, 26), isOddWeek: true),
-    ];
+    public static StudyWeek[] StudyWeeks
+    {
+        get
+        {
+            return [
+                // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
+                new(monday: new(year: 2026, month: 8, day: 31), isOddWeek: false),
+                new(monday: new(year: 2026, month: 9, day: 7), isOddWeek: true),
+                new(monday: new(year: 2026, month: 9, day: 14), isOddWeek: false),
+                new(monday: new(year: 2026, month: 9, day: 21), isOddWeek: true),
+                new(monday: new(year: 2026, month: 9, day: 28), isOddWeek: false),
+                new(monday: new(year: 2026, month: 10, day: 5), isOddWeek: true),
+                new(monday: new(year: 2026, month: 10, day: 12), isOddWeek: false),
+                new(monday: new(year: 2026, month: 10, day: 19), isOddWeek: true),
+                new(monday: new(year: 2026, month: 10, day: 26), isOddWeek: false),
+                new(monday: new(year: 2026, month: 11, day: 2), isOddWeek: true),
+                new(monday: new(year: 2026, month: 11, day: 9), isOddWeek: false),
+                new(monday: new(year: 2026, month: 11, day: 16), isOddWeek: true),
+                new(monday: new(year: 2026, month: 11, day: 23), isOddWeek: false),
+                new(monday: new(year: 2026, month: 11, day: 30), isOddWeek: true),
+                new(monday: new(year: 2026, month: 12, day: 7), isOddWeek: false),
+                // Semestrul II: 13 weeks, numbering continues from the fall term.
+                new(monday: new(year: 2027, month: 2, day: 1), isOddWeek: true),
+                new(monday: new(year: 2027, month: 2, day: 8), isOddWeek: false),
+                new(monday: new(year: 2027, month: 2, day: 15), isOddWeek: true),
+                new(monday: new(year: 2027, month: 2, day: 22), isOddWeek: false),
+                new(monday: new(year: 2027, month: 3, day: 1), isOddWeek: true),
+                new(monday: new(year: 2027, month: 3, day: 8), isOddWeek: false),
+                new(monday: new(year: 2027, month: 3, day: 15), isOddWeek: true),
+                new(monday: new(year: 2027, month: 3, day: 22), isOddWeek: false),
+                new(monday: new(year: 2027, month: 3, day: 29), isOddWeek: true),
+                new(monday: new(year: 2027, month: 4, day: 5), isOddWeek: false),
+                new(monday: new(year: 2027, month: 4, day: 12), isOddWeek: true),
+                new(monday: new(year: 2027, month: 4, day: 19), isOddWeek: false),
+                new(monday: new(year: 2027, month: 4, day: 26), isOddWeek: true),
+            ];
+        }
+    }
 
     public static HolidayPeriod[] HolidayPeriods
     {
@@ -504,10 +521,10 @@ public static class Config
         {
             HolidayPeriod[] holidayPeriods;
             holidayPeriods = [
-                new(new(2026, month: 10, day: 14)),
-                new(new(2027, month: 1, day: 1), new(2027, month: 1, day: 25)),
-                new(new(2027, month: 5, day: 1)),
-                new(new(2027, month: 5, day: 2), new(2027, month: 5, day: 11)),
+                new(new(year: 2026, month: 10, day: 14)),
+                new(start: new(year: 2027, month: 1, day: 1), endExclusive: new(year: 2027, month: 1, day: 25)),
+                new(new(year: 2027, month: 5, day: 1)),
+                new(start: new(year: 2027, month: 5, day: 2), endExclusive: new(year: 2027, month: 5, day: 11)),
             ];
             return holidayPeriods;
         }

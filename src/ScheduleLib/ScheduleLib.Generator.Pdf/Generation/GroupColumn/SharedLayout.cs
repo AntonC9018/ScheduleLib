@@ -357,7 +357,7 @@ public static class ColumnArrangementHelper
             int startIndex = Math.Max(interval.Start - wiggleRoom, 0);
             for (int i = startIndex; i < startIndex + interval.Length; i++)
             {
-                var slice = OccupiedPositionsWithoutIncludedGroups.Slice(i, length);
+                var slice = OccupiedPositionsWithoutIncludedGroups.Slice(offset: i, length: length);
                 if (!slice.AreNoneSet)
                 {
                     continue;

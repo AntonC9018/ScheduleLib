@@ -18,7 +18,7 @@ public sealed class DriveSyncTests
             "notes.txt");
         using var fake = new Fake
         {
-            Remote = [new("old", "obsolete.xlsx"), new("one", "SCHEDULE.PDF"), new("two", "schedule.pdf")],
+            Remote = [new(Id: "old", Name: "obsolete.xlsx"), new(Id: "one", Name: "SCHEDULE.PDF"), new(Id: "two", Name: "schedule.pdf")],
         };
         var preview = await DriveSync.Run(
             fake,
@@ -26,39 +26,39 @@ public sealed class DriveSyncTests
             files,
             false,
             default);
-        Assert.Equal("actual-account", preview.Account);
-        Assert.Equal("actual@example.test", preview.AccountEmail);
-        Assert.Equal("actual-folder", preview.Folder.Id);
+        Assert.Equal(expected: "actual-account", actual: preview.Account);
+        Assert.Equal(expected: "actual@example.test", actual: preview.AccountEmail);
+        Assert.Equal(expected: "actual-folder", actual: preview.Folder.Id);
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 "delete",
                 "create",
                 "update",
                 "update",
             },
-            preview.Actions.Select(x => x.Action));
+            actual: preview.Actions.Select(x => x.Action));
         Assert.Empty(fake.Writes);
         Assert.Empty(preview.Outcomes);
-        fake.Remote = [new("changed", "obsolete.xlsx"), new("one", "SCHEDULE.PDF")];
+        fake.Remote = [new(Id: "changed", Name: "obsolete.xlsx"), new(Id: "one", Name: "SCHEDULE.PDF")];
         var applied = await DriveSync.Run(
             fake,
-            "Configured",
+            folderName: "Configured",
             files,
             true,
             default,
-            temp.Path);
-        Assert.Equal(0, applied.ExitCode);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: 0, actual: applied.ExitCode);
         Assert.Equal(
-            new[]
+            expected: new[]
             {
                 "delete changed",
                 "create new.ics",
                 "update one",
             },
-            fake.Writes);
-        Assert.All(applied.Outcomes, x => Assert.Equal("completed", x.State));
-        Assert.Equal(2, fake.ListCalls);
+            actual: fake.Writes);
+        Assert.All(applied.Outcomes, x => Assert.Equal(expected: "completed", actual: x.State));
+        Assert.Equal(expected: 2, actual: fake.ListCalls);
     }
 
     [Theory]
@@ -84,14 +84,14 @@ public sealed class DriveSyncTests
         using var fake = new Fake { Fail = fail };
         var result = await DriveSync.Run(
             fake,
-            "Configured",
+            folderName: "Configured",
             files,
             true,
             default,
-            temp.Path);
-        Assert.Equal(exit, result.ExitCode);
-        Assert.Equal(state, result.Outcomes[0].State);
-        Assert.Equal("not-attempted", result.Outcomes[1].State);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: exit, actual: result.ExitCode);
+        Assert.Equal(expected: state, actual: result.Outcomes[0].State);
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State);
         Assert.Single(fake.Writes);
     }
 
@@ -101,30 +101,30 @@ public sealed class DriveSyncTests
         using var temp = new Temp();
         using var rejectedDelete = new Fake
         {
-            Remote = [new("old", "old.txt")],
+            Remote = [new(Id: "old", Name: "old.txt")],
             FailDelete = true,
         };
         var deletion = await DriveSync.Run(
             rejectedDelete,
-            "Configured",
+            folderName: "Configured",
             await temp.Artifacts("a.pdf"),
             true,
             default,
-            temp.Path);
-        Assert.Equal(5, deletion.ExitCode);
-        Assert.Equal("failed", deletion.Outcomes[0].State);
-        Assert.Equal("not-attempted", deletion.Outcomes[1].State);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: 5, actual: deletion.ExitCode);
+        Assert.Equal(expected: "failed", actual: deletion.Outcomes[0].State);
+        Assert.Equal(expected: "not-attempted", actual: deletion.Outcomes[1].State);
         Assert.Single(rejectedDelete.Writes);
         using var unauthorized = new Fake { Fail = "unauthorized" };
         var creation = await DriveSync.Run(
             unauthorized,
-            "Configured",
+            folderName: "Configured",
             await temp.Artifacts("a.pdf"),
             true,
             default,
-            temp.Path);
-        Assert.Equal(4, creation.ExitCode);
-        Assert.Equal("failed", Assert.Single(creation.Outcomes).State);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: 4, actual: creation.ExitCode);
+        Assert.Equal(expected: "failed", actual: Assert.Single(creation.Outcomes).State);
         Assert.Single(unauthorized.Writes);
     }
 
@@ -134,22 +134,22 @@ public sealed class DriveSyncTests
         using var temp = new Temp();
         using var fake = new Fake
         {
-            Remote = [new("removed", "old.txt")],
+            Remote = [new(Id: "removed", Name: "old.txt")],
             Fail = "lost",
         };
         var result = await DriveSync.Run(
             fake,
-            "Configured",
+            folderName: "Configured",
             await temp.Artifacts("a.pdf", "b.pdf"),
             true,
             default,
-            temp.Path);
-        Assert.Equal(6, result.ExitCode);
-        Assert.Equal("removed", result.Outcomes[0].ResultFileId);
-        Assert.Equal("completed", result.Outcomes[0].State);
-        Assert.Equal("uncertain", result.Outcomes[1].State);
-        Assert.Equal("not-attempted", result.Outcomes[2].State);
-        Assert.Equal(2, fake.Writes.Count);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: 6, actual: result.ExitCode);
+        Assert.Equal(expected: "removed", actual: result.Outcomes[0].ResultFileId);
+        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes[1].State);
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[2].State);
+        Assert.Equal(expected: 2, actual: fake.Writes.Count);
     }
 
     [Fact]
@@ -160,14 +160,14 @@ public sealed class DriveSyncTests
         using var fake = new Fake { AfterWrite = cancellation.Cancel };
         var result = await DriveSync.Run(
             fake,
-            "Configured",
+            folderName: "Configured",
             await temp.Artifacts("a.pdf", "b.pdf"),
             true,
             cancellation.Token,
-            temp.Path);
-        Assert.Equal(130, result.ExitCode);
-        Assert.Equal("completed", result.Outcomes[0].State);
-        Assert.Equal("not-attempted", result.Outcomes[1].State);
+            lockRoot: temp.Path);
+        Assert.Equal(expected: 130, actual: result.ExitCode);
+        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State);
         Assert.Single(fake.Writes);
     }
 
@@ -178,39 +178,39 @@ public sealed class DriveSyncTests
         using var fake = new Fake();
         await using (var lease = await LocalFileLock.Acquire(
                          DriveSync.LockPath(
-                             temp.Path,
-                             "actual-account",
-                             "actual-folder"),
+                             root: temp.Path,
+                             account: "actual-account",
+                             folderId: "actual-folder"),
                          default))
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => DriveSync.Run(
                 fake,
-                "Alias",
+                folderName: "Alias",
                 [],
                 true,
                 default,
-                temp.Path));
-            Assert.Equal(0, fake.ListCalls);
+                lockRoot: temp.Path));
+            Assert.Equal(expected: 0, actual: fake.ListCalls);
             Assert.Empty(fake.Writes);
             Assert.Equal(
-                0,
-                (await DriveSync.Run(
+                expected: 0,
+                actual: (await DriveSync.Run(
                     fake,
-                    "Alias",
+                    folderName: "Alias",
                     [],
                     false,
                     default,
-                    temp.Path)).ExitCode);
+                    lockRoot: temp.Path)).ExitCode);
         }
         Assert.Equal(
-            0,
-            (await DriveSync.Run(
+            expected: 0,
+            actual: (await DriveSync.Run(
                 fake,
-                "Alias",
+                folderName: "Alias",
                 [],
                 true,
                 default,
-                temp.Path)).ExitCode);
+                lockRoot: temp.Path)).ExitCode);
     }
 
     [Fact]
@@ -220,13 +220,13 @@ public sealed class DriveSyncTests
         using var fake = new Fake { ChangeFolder = true };
         await Assert.ThrowsAsync<IOException>(() => DriveSync.Run(
             fake,
-            "Configured",
+            folderName: "Configured",
             [],
             true,
             default,
-            temp.Path));
+            lockRoot: temp.Path));
         Assert.Empty(fake.Writes);
-        Assert.Equal(0, fake.ListCalls);
+        Assert.Equal(expected: 0, actual: fake.ListCalls);
     }
 
     [Theory]
@@ -235,7 +235,7 @@ public sealed class DriveSyncTests
     public async Task CommandBuildsRealBundleAndExcludesManifestsAndCallerFiles(bool apply)
     {
         using var temp = new Temp();
-        await File.WriteAllTextAsync(System.IO.Path.Combine(temp.Path, "caller.pdf"), "untouched");
+        await File.WriteAllTextAsync(path: System.IO.Path.Combine(temp.Path, "caller.pdf"), contents: "untouched");
         using var fake = new Fake();
         var original = Console.Out;
         using var text = new StringWriter();
@@ -243,8 +243,8 @@ public sealed class DriveSyncTests
         {
             Console.SetOut(text);
             Assert.Equal(
-                0,
-                await new FixtureDrive(fake).Publish(
+                expected: 0,
+                actual: await new FixtureDrive(fake).Publish(
                     new()
                     {
                         NoCache = true,
@@ -255,7 +255,7 @@ public sealed class DriveSyncTests
                     new() { Json = true },
                     new() { Apply = apply }));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(apply ? "applied" : "preview", json.RootElement.GetProperty("status").GetString());
+            Assert.Equal(expected: apply ? "applied" : "preview", actual: json.RootElement.GetProperty("status").GetString());
             var actions = json.RootElement.GetProperty("data").GetProperty("actions").EnumerateArray().ToArray();
             var names = actions.Select(x => x.GetProperty("name").GetString()).ToArray();
             Assert.Contains("all-teachers.xlsx", names);
@@ -265,29 +265,29 @@ public sealed class DriveSyncTests
             Assert.DoesNotContain("caller.pdf", names);
             Assert.DoesNotContain("schedulelib-manifest.json", names);
             Assert.DoesNotContain(".schedulelib-output.lock", names);
-            foreach (var path in Directory.GetFiles(temp.Path, "*.xlsx"))
+            foreach (var path in Directory.GetFiles(path: temp.Path, searchPattern: "*.xlsx"))
             {
                 using var workbook = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, false);
                 Assert.NotEmpty(workbook.WorkbookPart!.WorksheetParts);
             }
             Assert.StartsWith(
-                "%PDF-",
-                System.Text.Encoding.ASCII.GetString(
+                expectedStartString: "%PDF-",
+                actualString: System.Text.Encoding.ASCII.GetString(
                     await File.ReadAllBytesAsync(
-                        Directory.GetFiles(temp.Path, "*.pdf").First(x => !x.EndsWith(
+                        Directory.GetFiles(path: temp.Path, searchPattern: "*.pdf").First(x => !x.EndsWith(
                             "caller.pdf",
                             StringComparison.Ordinal)))));
-            Assert.Contains("BEGIN:VEVENT", await File.ReadAllTextAsync(Directory.GetFiles(temp.Path, "*.ics")[0]));
+            Assert.Contains(expectedSubstring: "BEGIN:VEVENT", actualString: await File.ReadAllTextAsync(Directory.GetFiles(path: temp.Path, searchPattern: "*.ics")[0]));
             if (apply)
             {
-                Assert.Equal(actions.Length, fake.Writes.Count);
+                Assert.Equal(expected: actions.Length, actual: fake.Writes.Count);
             }
             else
             {
                 Assert.Empty(fake.Writes);
             }
 
-            Assert.Equal("untouched", await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, "caller.pdf")));
+            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, "caller.pdf")));
         }
         finally
         {
@@ -313,7 +313,7 @@ public sealed class DriveSyncTests
         },
         2)]
     public async Task HelpAndInvalidOptionsNeedNoInitialization(string[] args, int exit) =>
-        Assert.Equal(exit, await CliHost.Run(args));
+        Assert.Equal(expected: exit, actual: await CliHost.Run(args));
 
     [Fact]
     public async Task AuthenticationFailureIsExitFourWithOneJsonResult()
@@ -324,8 +324,8 @@ public sealed class DriveSyncTests
         {
             Console.SetOut(text);
             Assert.Equal(
-                4,
-                await new FixtureDrive(null).Publish(
+                expected: 4,
+                actual: await new FixtureDrive(null).Publish(
                     new()
                     {
                         NoCache = true,
@@ -336,7 +336,7 @@ public sealed class DriveSyncTests
                     new() { Json = true },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(4, json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 4, actual: json.RootElement.GetProperty("exitCode").GetInt32());
             Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
         }
         finally
@@ -362,63 +362,40 @@ public sealed class DriveSyncTests
             IServiceProvider services,
             BuiltGoogleDriveConfig config,
             CancellationToken token)
-            => fake is null
-                ? throw new AuthenticationRequiredException("google", "Curmanschii Anton")
-                : Task.FromResult<IDriveSyncProvider>(fake);
+        {
+            return fake is null
+                        ? throw new AuthenticationRequiredException(provider: "google", teacher: "Curmanschii Anton")
+                        : Task.FromResult<IDriveSyncProvider>(fake);
+        }
     }
 
     private sealed class Fake : IDriveSyncProvider
     {
-        public IReadOnlyList<DriveRemoteFile> Remote
-        {
-            get;
-            set;
-        } = [];
+        public IReadOnlyList<DriveRemoteFile> Remote { get; set; } = [];
 
-        public List<string> Writes
-        {
-            get;
-        } = [];
+        public List<string> Writes { get; } = [];
 
-        public string? Fail
-        {
-            get;
-            init;
-        }
+        public string? Fail { get; init; }
 
-        public bool FailDelete
-        {
-            get;
-            init;
-        }
+        public bool FailDelete { get; init; }
 
-        public Action? AfterWrite
-        {
-            get;
-            init;
-        }
+        public Action? AfterWrite { get; init; }
 
-        public bool ChangeFolder
-        {
-            get;
-            init;
-        }
+        public bool ChangeFolder { get; init; }
 
-        public int ListCalls
-        {
-            get;
-            private set;
-        }
+        public int ListCalls { get; private set; }
 
         private int _folderCalls;
 
         public Task<DriveAccount> GetAccount(CancellationToken token) =>
-            Task.FromResult(new DriveAccount("actual-account", "actual@example.test"));
+            Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
-            => Task.FromResult(new DriveDestination(
-                ChangeFolder && ++_folderCalls > 1 ? "changed-folder" : "actual-folder",
-                "Actual folder"));
+        {
+            return Task.FromResult(new DriveDestination(
+                        Id: ChangeFolder && ++_folderCalls > 1 ? "changed-folder" : "actual-folder",
+                        Name: "Actual folder"));
+        }
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
         {
@@ -428,10 +405,10 @@ public sealed class DriveSyncTests
 
         public Task Delete(string id, CancellationToken token)
         {
-            Writes.Add("delete " + id);
+            Writes.Add((string) $"delete {id}");
             if (FailDelete)
             {
-                throw new Google.GoogleApiException("drive", "Rejected")
+                throw new Google.GoogleApiException(serviceName: "drive", message: "Rejected")
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.Forbidden,
                 };
@@ -448,7 +425,7 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
-            Writes.Add("create " + name);
+            Writes.Add((string) $"create {name}");
             if (Fail == "lost")
             {
                 throw new IOException("Lost response");
@@ -461,7 +438,7 @@ public sealed class DriveSyncTests
 
             if (Fail == "unauthorized")
             {
-                throw new Google.GoogleApiException("drive", "Unauthorized")
+                throw new Google.GoogleApiException(serviceName: "drive", message: "Unauthorized")
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.Unauthorized,
                 };
@@ -469,7 +446,7 @@ public sealed class DriveSyncTests
 
             if (Fail == "reject")
             {
-                throw new Google.GoogleApiException("drive", "Rejected")
+                throw new Google.GoogleApiException(serviceName: "drive", message: "Rejected")
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.BadRequest,
                 };
@@ -485,7 +462,7 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
-            Writes.Add("update " + id);
+            Writes.Add((string) $"update {id}");
             return Task.FromResult(id);
         }
 
@@ -496,10 +473,7 @@ public sealed class DriveSyncTests
 
     private sealed class Temp : IDisposable
     {
-        public string Path
-        {
-            get;
-        } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
         public Temp() => Directory.CreateDirectory(Path);
 
@@ -507,10 +481,10 @@ public sealed class DriveSyncTests
         {
             foreach (var name in names)
             {
-                await File.WriteAllTextAsync(System.IO.Path.Combine(Path, name), "fixture bytes");
+                await File.WriteAllTextAsync(path: System.IO.Path.Combine(Path, name), contents: "fixture bytes");
             }
 
-            return names.Select(x => new DriveArtifact(x, System.IO.Path.Combine(Path, x))).ToArray();
+            return names.Select(x => new DriveArtifact(Name: x, Path: System.IO.Path.Combine(Path, x))).ToArray();
         }
 
         public void Dispose() => Directory.Delete(Path, true);

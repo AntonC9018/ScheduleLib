@@ -8,14 +8,14 @@ public sealed class ImplicitSplitCacheHashTests
     [Fact]
     public void CacheHashIgnoresDeclarationOrder()
     {
-        Assert.Equal(Hash(BuildConfigA()), Hash(BuildConfigB()));
-        Assert.NotEqual(Hash(BuildConfigA()), Hash(BuildConfigC()));
+        Assert.Equal(expected: Hash(BuildConfigA()), actual: Hash(BuildConfigB()));
+        Assert.NotEqual(expected: Hash(BuildConfigA()), actual: Hash(BuildConfigC()));
     }
 
     [Fact]
     public void NullConfigHashesDistinctlyFromEmptyConfig()
     {
-        Assert.NotEqual(Hash(null), Hash(new ImplicitSplitConfigBuilder().Build()));
+        Assert.NotEqual(expected: Hash(null), actual: Hash(new ImplicitSplitConfigBuilder().Build()));
     }
 
     private static string Hash(ImplicitSplitConfig? config)

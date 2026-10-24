@@ -45,9 +45,9 @@ public sealed class FmiScheduleClient(HttpClient http)
                 if (element.LocalName is "script" or "style") return;
                 if (element.LocalName == "br") prefix.Append(' ');
                 if (element.LocalName == "a" && element.GetAttribute("href") is { } href
-                    && Uri.TryCreate(page, href, out var uri) && uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    && Uri.TryCreate(baseUri: page, href, result: out var uri) && uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                 {
-                    var match = Regex.Match(prefix.ToString(), @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
+                    var match = Regex.Match(input: prefix.ToString(), pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
                     if (match.Success)
                     {
                         var year = match.Groups[1].Value.Length;
@@ -67,8 +67,8 @@ public sealed class FmiScheduleClient(HttpClient http)
         var value = link.GetAttribute("data-upload-date") ?? link.QuerySelector("time[datetime]")?.GetAttribute("datetime");
         if (value is null)
         {
-            var labelled = Regex.Match(link.GetAttribute("title") ?? link.TextContent,
-                @"(?i)(?:uploaded|încărcat[ă]?|actualizat[ă]?)\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})");
+            var labelled = Regex.Match(input: link.GetAttribute("title") ?? link.TextContent,
+                pattern: @"(?i)(?:uploaded|încărcat[ă]?|actualizat[ă]?)\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})");
             if (labelled.Success) value = labelled.Groups[1].Value;
         }
         if (value is null) return null;

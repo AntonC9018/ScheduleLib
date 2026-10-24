@@ -32,10 +32,16 @@ public sealed class DfsEnumerator() : IDfsEnumerator
     private readonly EnumerationContextCollection _enumerationContextCollection;
     private readonly Stack<StackFrame> _stack = new();
 
-    public DfsEnumerationContext Current => new(
-        _current,
-        this,
-        _enumerationContextCollection);
+    public DfsEnumerationContext Current
+    {
+        get
+        {
+            return new(
+                _current,
+                this,
+                _enumerationContextCollection);
+        }
+    }
 
     internal DfsEnumerator(
         MutableNode root,

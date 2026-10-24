@@ -146,7 +146,7 @@ public static class TeacherLookupHelper
                             {
                                 return true;
                             }
-                            if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(full, newPart.Value))
+                            if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: full, y: newPart.Value))
                             {
                                 return false;
                             }
@@ -169,8 +169,8 @@ public static class TeacherLookupHelper
                             }
                             if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(
                                     // Ignore the separators as well
-                                    newPart.Span.Shortened.Value,
-                                    new WordSpan(teacherShort).Shortened.Value))
+                                    x: newPart.Span.Shortened.Value,
+                                    y: new WordSpan(teacherShort).Shortened.Value))
                             {
                                 return true;
                             }
@@ -204,8 +204,8 @@ public static class TeacherLookupHelper
                             if (existingPart.Short is { } s)
                             {
                                 if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                        newFull,
-                                        new Word(s).Span.Shortened.Value))
+                                        x: newFull,
+                                        y: new Word(s).Span.Shortened.Value))
                                 {
                                     return true;
                                 }
@@ -237,14 +237,14 @@ public static class TeacherLookupHelper
                             if (apart.Short is null)
                             {
                                 matches = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                    full,
-                                    bpart.Span.Shortened.Value);
+                                    x: full,
+                                    y: bpart.Span.Shortened.Value);
                             }
                             else if (bpart.LooksFull)
                             {
                                 matches = IgnoreDiacriticsAndCaseComparer.Instance.Equals(
-                                    full,
-                                    bpart.Value);
+                                    x: full,
+                                    y: bpart.Value);
                             }
                             if (matches)
                             {
@@ -263,7 +263,7 @@ public static class TeacherLookupHelper
                                 shorter = t;
                             }
 
-                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(x: longer, y: shorter))
                             {
                                 return true;
                             }
@@ -489,7 +489,7 @@ public readonly struct TeacherBuilder
             return;
         }
 
-        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(prevLastName, lastName))
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: prevLastName, y: lastName))
         {
             return;
         }
@@ -527,11 +527,11 @@ public static class TeacherNameHelper
         var name = ParseName(ref parser);
         if (!parser.IsEmpty)
         {
-            throw new ArgumentException("The full name must contain a correct name syntax.", nameof(fullName));
+            throw new ArgumentException(message: "The full name must contain a correct name syntax.", paramName: nameof(fullName));
         }
         if (name.LastName == default)
         {
-            throw new ArgumentException("Last name must be provided.", nameof(fullName));
+            throw new ArgumentException(message: "Last name must be provided.", paramName: nameof(fullName));
         }
         return name;
     }
@@ -552,10 +552,13 @@ public static class TeacherNameHelper
     /// </summary>
     public static TeacherBuilderModel.NameModel ParseName(ref SequenceReader reader)
     {
-        static ReadOnlySpan<char> Separators() => [
-            WordHelper.ShortenedWordCharacter,
-            ' ',
-            NameConstants.DoubleNameSeparatorChar];
+        static ReadOnlySpan<char> Separators()
+        {
+            return [
+                WordHelper.ShortenedWordCharacter,
+                ' ',
+                NameConstants.DoubleNameSeparatorChar];
+        }
 
         var ret = new TeacherBuilderModel.NameModel();
         var nameA = ReadName(ref reader);
@@ -722,13 +725,13 @@ public static class TeacherNameHelper
     private static void ValidateInitialsCompatibility(RequiredFirstNamePart requiredFirstName)
     {
         bool isOk = IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-            requiredFirstName.Full.AsSpan(),
-            requiredFirstName.Short.Span.Shortened.Value);
+            x: requiredFirstName.Full.AsSpan(),
+            y: requiredFirstName.Short.Span.Shortened.Value);
         if (!isOk)
         {
             throw new ArgumentException(
-                "The first name must start with initials when those are given.",
-                nameof(requiredFirstName));
+                message: "The first name must start with initials when those are given.",
+                paramName: nameof(requiredFirstName));
         }
     }
 

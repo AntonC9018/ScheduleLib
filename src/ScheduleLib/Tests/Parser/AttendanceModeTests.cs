@@ -14,15 +14,15 @@ public sealed class AttendanceModeTests
     [InlineData(AttendanceMode.Count, false, false, false)]
     public void AttendanceFormAndDualModalityAreIndependent(AttendanceMode mode, bool zi, bool fr, bool dual)
     {
-        Assert.Equal(zi, mode.IsZi());
-        Assert.Equal(fr, mode.IsFr());
-        Assert.Equal(dual, mode.IsDual());
+        Assert.Equal(expected: zi, actual: mode.IsZi());
+        Assert.Equal(expected: fr, actual: mode.IsFr());
+        Assert.Equal(expected: dual, actual: mode.IsDual());
     }
 
     [Fact]
     public void DualZiKeepsTheExistingNumericIdentity()
     {
-        Assert.Equal(2, (int)AttendanceMode.DualZi);
+        Assert.Equal(expected: 2, actual: (int)AttendanceMode.DualZi);
     }
 
     [Fact]
@@ -42,15 +42,18 @@ public sealed class AttendanceModeTests
     [Fact]
     public void ModeSpecificValuesHaveIndependentDualSlots()
     {
-        var values = new OneForEachAttendanceMode<int> { Zi = 10, FrecventaRedusa = 20 };
-        Assert.Equal(0, values[AttendanceMode.DualZi]);
-        Assert.Equal(0, values[AttendanceMode.DualFr]);
+        var values = new OneForEachAttendanceMode<int> {
+            Zi = 10,
+            FrecventaRedusa = 20
+        };
+        Assert.Equal(expected: 0, actual: values[AttendanceMode.DualZi]);
+        Assert.Equal(expected: 0, actual: values[AttendanceMode.DualFr]);
         values[AttendanceMode.DualZi] = 30;
         values[AttendanceMode.DualFr] = 40;
-        Assert.Equal(10, values[AttendanceMode.Zi]);
-        Assert.Equal(20, values[AttendanceMode.FrecventaRedusa]);
-        Assert.Equal(30, values[AttendanceMode.DualZi]);
-        Assert.Equal(40, values[AttendanceMode.DualFr]);
+        Assert.Equal(expected: 10, actual: values[AttendanceMode.Zi]);
+        Assert.Equal(expected: 20, actual: values[AttendanceMode.FrecventaRedusa]);
+        Assert.Equal(expected: 30, actual: values[AttendanceMode.DualZi]);
+        Assert.Equal(expected: 40, actual: values[AttendanceMode.DualFr]);
     }
 
     [Theory]

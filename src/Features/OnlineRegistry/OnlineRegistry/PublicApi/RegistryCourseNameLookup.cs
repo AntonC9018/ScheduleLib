@@ -21,7 +21,7 @@ public static class RegistryCourseNameLookup
     {
         if (maxDistance < 0) throw new ArgumentOutOfRangeException(nameof(maxDistance));
         var parsed = Parse(registryName);
-        if (TryAlias(courseNames, registryName, parsed.Name, out var mappedName))
+        if (TryAlias(courseNames, registryName: registryName, parsedName: parsed.Name, mappedName: out var mappedName))
             return lookup.Course(mappedName.AsMemory(), new() { IgnorePunctuation = true });
         if (lookup.Course(parsed.Name.AsMemory(), new() { IgnorePunctuation = true }) is { } exact)
             return exact;
@@ -38,7 +38,7 @@ public static class RegistryCourseNameLookup
         var tolerance = Math.Min(maxDistance, normalized.Length / 10);
         var approximate = candidates.Where(course => course.Name.Length >= 12
                 && Math.Abs(course.Name.Length - normalized.Length) <= tolerance
-                && Distance(normalized, course.Name) <= tolerance)
+                && Distance(first: normalized, second: course.Name) <= tolerance)
             .Select(course => course.Id).Distinct().ToArray();
         return approximate.Length == 1 ? approximate[0] : null;
     }
@@ -50,12 +50,15 @@ public static class RegistryCourseNameLookup
             || courseNames.TryGetValue(parsedName, out mappedName!);
     }
 
-    private static string Normalize(string name) => new(name.Normalize(NormalizationForm.FormD)
-        .Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+    private static string Normalize(string name)
+    {
+        return new(name.Normalize(NormalizationForm.FormD)
+            .Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+    }
 
     private static int Distance(string first, string second)
     {
-        var previous = Enumerable.Range(0, second.Length + 1).ToArray();
+        var previous = Enumerable.Range(start: 0, count: second.Length + 1).ToArray();
         var current = new int[second.Length + 1];
         for (var i = 1; i <= first.Length; i++)
         {

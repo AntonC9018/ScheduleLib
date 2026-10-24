@@ -121,7 +121,7 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
             {
                 return y1 is null;
             }
-            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x1, y1);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x1, y: y1);
         });
     }
 
@@ -377,7 +377,7 @@ public static class NamePartHelper
         {
             var fa = i.GetRef(ref a);
             var fb = i.GetRef(ref b);
-            var cmp = comparer.Compare(fa, fb);
+            var cmp = comparer.Compare(x: fa, y: fb);
             if (cmp != 0)
             {
                 return cmp;

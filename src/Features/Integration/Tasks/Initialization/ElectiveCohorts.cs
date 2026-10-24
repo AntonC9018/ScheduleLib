@@ -65,10 +65,7 @@ public sealed class ElectiveCohorts
         return config.Build();
     }
 
-    public ImplicitSplitConfig SplitConfig
-    {
-        get;
-    }
+    public ImplicitSplitConfig SplitConfig { get; }
 
     public void Add(ImportedLessonInput input)
     {

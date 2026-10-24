@@ -89,8 +89,8 @@ public static class MoodleQuizScraper
         {
             cancellationToken.ThrowIfCancellationRequested();
             // Skip divider and summary rows
-            if (row.QuerySelector(".tabledivider") != null ||
-                row.TextContent.Contains("Medie generală"))
+            if (row.QuerySelector(".tabledivider") != null
+                || row.TextContent.Contains("Medie generală"))
             {
                 continue;
             }
@@ -351,9 +351,9 @@ public static class MoodleQuizScraper
         var classList = classes.Split(' ');
         foreach (var cls in classList)
         {
-            if (cls == "que" || cls.Contains("feedback") || cls.Contains("graded") ||
-                cls == "complete" || cls == "correct" || cls == "incorrect" ||
-                cls == "partiallycorrect")
+            if (cls == "que" || cls.Contains("feedback") || cls.Contains("graded")
+                || cls == "complete" || cls == "correct" || cls == "incorrect"
+                || cls == "partiallycorrect")
             {
                 continue;
             }
@@ -395,7 +395,7 @@ public static class MoodleQuizScraper
 
         var scored = ParseFloatOrNull(parts[0])!.Value;
         var outOf = ParseFloatOrNull(parts[1])!.Value;
-        return new ScoreOutOf(scored, outOf);
+        return new ScoreOutOf(Scored: scored, OutOf: outOf);
     }
 
     private static HistoryAction ParseHistoryAction(string? action)
@@ -492,7 +492,7 @@ public static class MoodleQuizScraper
             }
         }
 
-        return new TimeSpan(0, minutes, seconds);
+        return new TimeSpan(hours: 0, minutes: minutes, seconds: seconds);
     }
 
     private static float? ParseFloatOrNull(string? value)
@@ -589,7 +589,7 @@ public static class MoodleQuizScraper
         {
             var a = ParseGrade(parts[0])!.Value;
             var b = ParseGrade(parts[1])!.Value;
-            return new ScoreOutOf(a, b);
+            return new ScoreOutOf(Scored: a, OutOf: b);
         }
         return null;
     }
@@ -741,7 +741,7 @@ public static class MoodleQuizScraper
         };
 
         var json = JsonSerializer.Serialize(attempts, options);
-        await File.WriteAllTextAsync(filePath, json);
+        await File.WriteAllTextAsync(path: filePath, contents: json);
     }
 
     public static async Task<List<QuizAttempt>> LoadFromJsonAsync(string filePath)
@@ -965,7 +965,7 @@ public static class MoodleQuizAnswersSerializer
     public static async Task SaveToJsonAsync(List<QuizAttempt> attempts, string filePath)
     {
         var json = JsonSerializer.Serialize(attempts, Options);
-        await File.WriteAllTextAsync(filePath, json);
+        await File.WriteAllTextAsync(path: filePath, contents: json);
     }
 
     public static async Task<List<QuizAttempt>> LoadFromJsonAsync(string filePath)

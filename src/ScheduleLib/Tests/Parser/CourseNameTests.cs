@@ -17,7 +17,7 @@ public sealed class CourseNameTests
 
         var course1 = Parse(parserConfig, "Programarea jocurilor in Python");
         var course2 = Parse(parserConfig, "PJ Python");
-        Assert.Equal(course1, course2);
+        Assert.Equal(expected: course1, actual: course2);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class CourseNameTests
         // The problem was that "de" got consumed by "design".
         var course1 = Parse(parserConfig, "Modele de design software");
         var course2 = Parse(parserConfig, "Design Soft");
-        Assert.Equal(course1, course2);
+        Assert.Equal(expected: course1, actual: course2);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class CourseNameTests
 
         var course1 = Parse(parserConfig, "Dezvoltarea de aplicatii server-side cu Node.js");
         var course2 = Parse(parserConfig, "Dezv. apl. server-side cu Node.js");
-        Assert.Equal(course1, course2);
+        Assert.Equal(expected: course1, actual: course2);
     }
 
     private ParsedCourseName Parse(
@@ -63,7 +63,7 @@ public sealed class CourseNameTests
             IgnorePunctuation = true,
         });
         var course2 = Parse(parserConfig, "MTA3D");
-        Assert.Equal(course1, course2);
+        Assert.Equal(expected: course1, actual: course2);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class CourseNameTests
         });
         var course2 = Parse(parserConfig.ParserConfig, "Python");
         var remapped1 = parserConfig.TryRemap(course1);
-        Assert.Equal(remapped1, course2);
+        Assert.Equal(expected: remapped1, actual: course2);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class CourseNameTests
         var course2 = Parse(parserConfig.ParserConfig, "Dezvoltare WEB avansată cu PHP");
         var remapped1 = parserConfig.TryRemap(course1);
         var remapped2 = parserConfig.TryRemap(course2);
-        Assert.Equal(remapped1, remapped2);
+        Assert.Equal(expected: remapped1, actual: remapped2);
     }
 
     [Fact]
@@ -102,6 +102,6 @@ public sealed class CourseNameTests
 
         var course1 = Parse(parserConfig.ParserConfig, "Psihologie");
         var course2 = Parse(parserConfig.ParserConfig, "PSI");
-        Assert.NotEqual(course1, course2);
+        Assert.NotEqual(expected: course1, actual: course2);
     }
 }

@@ -66,7 +66,7 @@ public sealed class OutputDirectory
     public IEnumerable<RelativeFilePath> FilePaths(string pattern, EnumerationOptions options)
     {
         var files = Directory.EnumerateFiles(
-            _directory,
+            path: _directory,
             searchPattern: pattern,
             enumerationOptions: options);
         var ret = files.Select(x =>
@@ -142,7 +142,7 @@ public sealed class OutputDirectory
 
     public async Task<string> Zip()
     {
-        var path = Path.ChangeExtension(_directory, ".zip");
+        var path = Path.ChangeExtension(path: _directory, @extension: ".zip");
         var outputFile = new FileStream(path, FileMode.Create, FileAccess.Write);
         await using var zip = new ZipArchive(outputFile, ZipArchiveMode.Create);
         foreach (var file in Files("*", new()

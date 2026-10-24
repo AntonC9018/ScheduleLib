@@ -41,7 +41,7 @@ public static class StorageProbe
         if (args[0] == "interrupt")
         {
             await using var lease = await LocalFileLock.Acquire(
-                args[1] + ".lock",
+                (string) $"{args[1]}.lock",
                 CancellationToken.None,
                 wait: true);
             await AtomicFile.Publish(

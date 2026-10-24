@@ -14,9 +14,8 @@ public sealed class SerializationTests
     {
         var services = new ServiceCollection();
         services.AddLayeredData();
-        services.Replace(
-            new ServiceDescriptor(
-                typeof(TreeBuilder), typeof(TreeBuilder), ServiceLifetime.Transient));
+        services.Replace(new ServiceDescriptor(
+                serviceType: typeof(TreeBuilder), implementationType: typeof(TreeBuilder), ServiceLifetime.Transient));
         CredentialsSource.Register(services);
         RegistryConfig.Register(services);
         TeacherLayerConfig.Register(services);
@@ -49,17 +48,17 @@ public sealed class SerializationTests
         {
             if (layer is { } l)
             {
-                Assert.Equal("A", l.Value);
+                Assert.Equal(expected: "A", actual: l.Value);
             }
             var config = Assert.Single(configs);
-            Assert.Equal(RegistryConfig.Key.Value, config.Key);
-            Assert.Equal(value, (RegistryConfig?) config.Value, Comparer.Instance);
+            Assert.Equal(expected: RegistryConfig.Key.Value, actual: config.Key);
+            Assert.Equal(expected: value, actual: (RegistryConfig?) config.Value, Comparer.Instance);
             return t2.AddNode(new("A"));
         });
 
         var child0 = t2.BaseNode.ChildNodes[0];
         var config = child0.Get(RegistryConfig.Key).Value.GetValue();
-        Assert.Equal(value, config, Comparer.Instance);
+        Assert.Equal(expected: value, actual: config, Comparer.Instance);
     }
 }
 
@@ -69,7 +68,7 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
     public bool Equals(RegistryConfig? x, RegistryConfig? y)
     {
         {
-            if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool bothNull))
+            if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool bothNull))
             {
                 return bothNull;
             }

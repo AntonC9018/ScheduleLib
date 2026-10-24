@@ -22,11 +22,11 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
         var deleg = _copyDelegateCache.GetOrAdd(implType, type =>
         {
             var inter = type.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == _interfaceType);
+                .FirstOrDefault(i => i.IsGenericType
+                    && i.GetGenericTypeDefinition() == _interfaceType);
             if (inter == null)
             {
-                throw new ArgumentException($"Type {type} does not implement {_interfaceType.FullName}<T>", nameof(implType));
+                throw new ArgumentException(message: $"Type {type} does not implement {_interfaceType.FullName}<T>", paramName: nameof(implType));
             }
             var types = inter.GetGenericArguments();
             if (types.Length != _methodInfo.GetGenericMethodDefinition().GetGenericArguments().Length)

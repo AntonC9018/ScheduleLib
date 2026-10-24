@@ -16,13 +16,13 @@ public sealed class PdfLessonImportTests
     public void DefaultAndCallbackPathsPreserveLessonCoordinatesAndAlternative(bool useCallback, string? alternative)
     {
         var context = CreateContext();
-        var cell = new PdfScheduleCell("test.pdf",
+        var cell = new PdfScheduleCell(Source: "test.pdf",
             1,
             ["IA2601(ro)", "IA2602(ro)"],
-            "Marți",
-            "8:00",
-            "15:00 HTML (lab, imp)\nG.Marin 326/4",
-            alternative);
+            Day: "Marți",
+            Start: "8:00",
+            Text: "15:00 HTML (lab, imp)\nG.Marin 326/4",
+            Alternative: alternative);
         var groups = cell.Groups.Select(g => context.Schedule.Group(g).Id).ToArray();
         var calls = 0;
 
@@ -30,25 +30,25 @@ public sealed class PdfLessonImportTests
             [cell],
             useCallback ? Add : null);
 
-        Assert.Equal(useCallback ? 1 : 0, calls);
+        Assert.Equal(expected: useCallback ? 1 : 0, actual: calls);
         var lesson = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(groups, lesson.Base.Group.Groups.ToArray());
-        Assert.Equal(DayOfWeek.Tuesday, lesson.Date.DayOfWeek);
-        Assert.Equal(4, lesson.Date.TimeSlot!.Value.Index);
-        Assert.Equal(Parity.OddWeek, lesson.Date.Parity);
-        Assert.Equal(new(alternative), lesson.Base.Group.Alternative);
-        Assert.Equal(context.CurrentPeriodId, lesson.Base.General.Period);
-        Assert.Equal(context.GetOrAddCourse("HTML".AsMemory()), lesson.Base.General.Course);
+        Assert.Equal(expected: groups, actual: lesson.Base.Group.Groups.ToArray());
+        Assert.Equal(expected: DayOfWeek.Tuesday, actual: lesson.Date.DayOfWeek);
+        Assert.Equal(expected: 4, actual: lesson.Date.TimeSlot!.Value.Index);
+        Assert.Equal(expected: Parity.OddWeek, actual: lesson.Date.Parity);
+        Assert.Equal(expected: new(alternative), actual: lesson.Base.Group.Alternative);
+        Assert.Equal(expected: context.CurrentPeriodId, actual: lesson.Base.General.Period);
+        Assert.Equal(expected: context.GetOrAddCourse("HTML".AsMemory()), actual: lesson.Base.General.Course);
 
         void Add(ImportedLessonInput input)
         {
             calls++;
-            Assert.Equal("HTML", input.Lesson.LessonName.ToString());
-            Assert.Equal(new TimeOnly(15, 0), input.Lesson.StartTime);
-            Assert.Equal(DayOfWeek.Tuesday, input.Day);
-            Assert.Equal(TimeSlot.First, input.TimeSlot);
-            Assert.Equal(groups, input.Groups);
-            Assert.Equal(new(alternative), input.Alternative);
+            Assert.Equal(expected: "HTML", actual: input.Lesson.LessonName.ToString());
+            Assert.Equal(expected: new TimeOnly(hour: 15, minute: 0), actual: input.Lesson.StartTime);
+            Assert.Equal(expected: DayOfWeek.Tuesday, actual: input.Day);
+            Assert.Equal(expected: TimeSlot.First, actual: input.TimeSlot);
+            Assert.Equal(expected: groups, actual: input.Groups);
+            Assert.Equal(expected: new(alternative), actual: input.Alternative);
             context.AddOrMergeLesson(input);
         }
     }
@@ -63,7 +63,7 @@ public sealed class PdfLessonImportTests
             [Cell()],
             _ => calls++);
 
-        Assert.Equal(1, calls);
+        Assert.Equal(expected: 1, actual: calls);
         Assert.Empty(context.Schedule.WeeklyLessons.List);
     }
 
@@ -80,10 +80,10 @@ public sealed class PdfLessonImportTests
             [first, next],
             Add));
 
-        Assert.Equal(2, calls);
+        Assert.Equal(expected: 2, actual: calls);
         var cellError = Assert.IsType<FormatException>(Assert.Single(error.InnerExceptions));
-        Assert.Same(failure, cellError.InnerException);
-        Assert.Contains("test.pdf, page 1, Luni 8:00", cellError.Message);
+        Assert.Same(expected: failure, actual: cellError.InnerException);
+        Assert.Contains(expectedSubstring: "test.pdf, page 1, Luni 8:00", actualString: cellError.Message);
         Assert.Single(context.Schedule.WeeklyLessons.List);
 
         void Add(ImportedLessonInput input)
@@ -108,7 +108,7 @@ public sealed class PdfLessonImportTests
                 [Cell()],
                 _ => throw failure));
 
-        Assert.Same(failure, error);
+        Assert.Same(expected: failure, actual: error);
     }
 
     [Fact]
@@ -124,12 +124,15 @@ public sealed class PdfLessonImportTests
         Assert.Empty(context.Schedule.WeeklyLessons.List);
     }
 
-    private static PdfScheduleCell Cell() => new("test.pdf",
-        1,
-        ["IA2601(ro)"],
-        "Luni",
-        "8:00",
-        "HTML (lab)");
+    private static PdfScheduleCell Cell()
+    {
+        return new(Source: "test.pdf",
+            1,
+            ["IA2601(ro)"],
+            Day: "Luni",
+            Start: "8:00",
+            Text: "HTML (lab)");
+    }
 
     private static ScheduleImportContext CreateContext()
     {
@@ -143,9 +146,9 @@ public sealed class PdfLessonImportTests
         context.Schedule.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
         context.SetPeriod(new()
         {
-            StartDate = new(2026,
-                9,
-                14),
+            StartDate = new(year: 2026,
+                month: 9,
+                day: 14),
         });
         return context;
     }

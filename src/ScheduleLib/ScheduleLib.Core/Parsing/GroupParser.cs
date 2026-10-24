@@ -65,7 +65,7 @@ public static class GroupHelper
         // MIA 2402 (ru)
         if (name.Length < 5)
         {
-            throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
+            throw new ArgumentException(message: "The minimum length of the name is 5", paramName: nameof(name));
         }
 
         var baseParser = new SequenceReader(name);
@@ -100,7 +100,7 @@ public static class GroupHelper
         parser.SkipWhitespace();
         var language = ParseLanguage();
 
-        var attendanceMode = AttendanceModeHelper.FromFlags(isFr, isDual);
+        var attendanceMode = AttendanceModeHelper.FromFlags(isFr: isFr, isDual: isDual);
 
         return new()
         {

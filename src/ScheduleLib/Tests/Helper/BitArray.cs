@@ -10,10 +10,10 @@ public sealed class BitArray
         bitArray.Set(2);
         bitArray.Set(4);
         bitArray.Set(6);
-        Assert.Equal(2, bitArray.GetSetAfter(0));
-        Assert.Equal(4, bitArray.GetSetAfter(2));
-        Assert.Equal(6, bitArray.GetSetAfter(4));
-        Assert.Equal(-1, bitArray.GetSetAfter(6));
+        Assert.Equal(expected: 2, actual: bitArray.GetSetAfter(0));
+        Assert.Equal(expected: 4, actual: bitArray.GetSetAfter(2));
+        Assert.Equal(expected: 6, actual: bitArray.GetSetAfter(4));
+        Assert.Equal(expected: -1, actual: bitArray.GetSetAfter(6));
     }
 
     [Fact]
@@ -24,17 +24,17 @@ public sealed class BitArray
         bitArray.Set(2, false);
         bitArray.Set(4, false);
         bitArray.Set(6, false);
-        Assert.Equal(2, bitArray.GetUnsetAfter(0));
-        Assert.Equal(4, bitArray.GetUnsetAfter(2));
-        Assert.Equal(6, bitArray.GetUnsetAfter(4));
-        Assert.Equal(-1, bitArray.GetUnsetAfter(6));
+        Assert.Equal(expected: 2, actual: bitArray.GetUnsetAfter(0));
+        Assert.Equal(expected: 4, actual: bitArray.GetUnsetAfter(2));
+        Assert.Equal(expected: 6, actual: bitArray.GetUnsetAfter(4));
+        Assert.Equal(expected: -1, actual: bitArray.GetUnsetAfter(6));
     }
 
     [Fact]
     public void GetUnsetEmpty()
     {
         var bitArray = BitArray32.AllSet(0);
-        Assert.Equal(-1, bitArray.GetUnsetAfter(-1));
+        Assert.Equal(expected: -1, actual: bitArray.GetUnsetAfter(-1));
     }
 
     [Fact]
@@ -45,9 +45,9 @@ public sealed class BitArray
         bitArray.Set(7);
         using var e = bitArray.SetBitIndicesLowToHigh.GetEnumerator();
         Assert.True(e.MoveNext());
-        Assert.Equal(5, e.Current);
+        Assert.Equal(expected: 5, actual: e.Current);
         Assert.True(e.MoveNext());
-        Assert.Equal(7, e.Current);
+        Assert.Equal(expected: 7, actual: e.Current);
     }
 
     [Fact]
@@ -58,9 +58,9 @@ public sealed class BitArray
         bitArray.Set(7, false);
         using var e = bitArray.UnsetBitIndicesLowToHigh.GetEnumerator();
         Assert.True(e.MoveNext());
-        Assert.Equal(5, e.Current);
+        Assert.Equal(expected: 5, actual: e.Current);
         Assert.True(e.MoveNext());
-        Assert.Equal(7, e.Current);
+        Assert.Equal(expected: 7, actual: e.Current);
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public sealed class BitArray
         bitArray.Set(7);
         using var e = bitArray.SetBitIndicesHighToLow.GetEnumerator();
         Assert.True(e.MoveNext());
-        Assert.Equal(7, e.Current);
+        Assert.Equal(expected: 7, actual: e.Current);
         Assert.True(e.MoveNext());
-        Assert.Equal(5, e.Current);
+        Assert.Equal(expected: 5, actual: e.Current);
     }
 
     [Fact]
@@ -83,9 +83,9 @@ public sealed class BitArray
         var setArr = UnsizedBitArray32.GetMask(3).ShiftedLeft(5).WithFixedSize(10);
         bitArray.SetArray(setArr);
         Assert.Collection(bitArray.SetBitIndicesLowToHigh,
-            f1 => Assert.Equal(5, f1),
-            f2 => Assert.Equal(6, f2),
-            f3 => Assert.Equal(7, f3));
+            f1 => Assert.Equal(expected: 5, actual: f1),
+            f2 => Assert.Equal(expected: 6, actual: f2),
+            f3 => Assert.Equal(expected: 7, actual: f3));
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public sealed class BitArray
         var clearArr = UnsizedBitArray32.GetMask(8).ShiftedLeft(1).WithFixedSize(10);
         bitArray.ClearArray(clearArr);
         Assert.Collection(bitArray.SetBitIndicesLowToHigh,
-            f1 => Assert.Equal(0, f1),
-            f2 => Assert.Equal(9, f2));
+            f1 => Assert.Equal(expected: 0, actual: f1),
+            f2 => Assert.Equal(expected: 9, actual: f2));
     }
 
     [Fact(Skip = "DEBUG")]
@@ -125,6 +125,6 @@ public sealed class BitArray
 
         arr = arr.Remove(mask);
 
-        Assert.Equal(arr.SetBitIndicesLowToHigh, [1, 5]);
+        Assert.Equal(expected: arr.SetBitIndicesLowToHigh, actual: [1, 5]);
     }
 }

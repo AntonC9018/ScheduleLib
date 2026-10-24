@@ -17,21 +17,13 @@ public sealed class RegistryHistoryArguments : IArgumentModel
         "year",
         Description =
             "Exact academic-year selector value, e.g. 2024/25, or current for the registry-selected year only. Omit to discover all offered years.")]
-    public string? Year
-    {
-        get;
-        set;
-    }
+    public string? Year { get; set; }
 
     [Option(
         "local-directory",
         Description =
             "Required private output directory named .registry-history (ignored by Git). Only counts appear on stdout.")]
-    public string? LocalDirectory
-    {
-        get;
-        set;
-    }
+    public string? LocalDirectory { get; set; }
 }
 
 public interface IRegistryHistoryProvider
@@ -47,13 +39,15 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
     public Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(
         SettingsArguments settings,
         string? year,
-        CancellationToken token) =>
-        WithHistoryContext(
+        CancellationToken token)
+    {
+        return WithHistoryContext(
             settings,
             client => new RegistryHistoryReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance")).Discover(
                 year,
                 token),
             token);
+    }
 
     private static async Task<T> WithHistoryContext<T>(
         SettingsArguments settings,
@@ -167,7 +161,7 @@ public partial class RegistryCommands
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
 
-            var path = Path.Combine(directory, "summary-" + context.RunId + ".json");
+            var path = Path.Combine(directory, (string) $"summary-{context.RunId}.json");
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
             {
@@ -196,8 +190,8 @@ public partial class RegistryCommands
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
                 output.WriteHuman($"Year {year.Year}: {courseCount} courses, {groupCount} groups.");
                 output.EmitItem(
-                    yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id: yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    status: "completed",
                     new
                     {
                         year = year.Year,
@@ -206,11 +200,11 @@ public partial class RegistryCommands
                     });
             }
             return Finish(
-                CliExit.Success,
+                exit: CliExit.Success,
                 null,
-                summary.Count,
-                summary.Sum(x => x.Courses.Count),
-                summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
+                years: summary.Count,
+                courses: summary.Sum(x => x.Courses.Count),
+                groups: summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {

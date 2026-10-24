@@ -15,11 +15,7 @@ namespace ScheduleLib.Cli;
 public sealed partial class Commands
 {
     [Subcommand]
-    public CurriculaCommands Curricula
-    {
-        get;
-        set;
-    } = new();
+    public CurriculaCommands Curricula { get; set; } = new();
 }
 
 public sealed record CurriculaDownloadResult(CurriculaSource Source, string? OutputDirectory, int DocumentCount);
@@ -32,8 +28,8 @@ public class CurriculaCommands
     protected virtual MicrosoftAuthentication CreateAuthentication() => new();
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
+        category: "Reliability",
+        checkId: "CA2000:Dispose objects before losing scope",
         Justification = "The returned Graph adapter owns the HttpProvider; the failure path disposes it.")]
     protected virtual async Task<ICurriculaProvider> CreateProvider(string profile, CancellationToken token)
     {
@@ -50,8 +46,8 @@ public class CurriculaCommands
             var client = new GraphServiceClient(new DelegateAuthenticationProvider(async request =>
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue(
-                        "Bearer",
-                        await authentication.Resolve(
+                        scheme: "Bearer",
+                        parameter: await authentication.Resolve(
                             config,
                             profile,
                             token));
@@ -78,11 +74,13 @@ public class CurriculaCommands
     protected virtual Task<bool> ConvertLegacy(
         string input,
         string output,
-        CancellationToken token) =>
-        DocToDocxConversionHelper.TryConvertFile(
-            input,
-            output,
+        CancellationToken token)
+    {
+        return DocToDocxConversionHelper.TryConvertFile(
+            inputPath: input,
+            outputPath: output,
             token);
+    }
 
     [Command(
         "download",
@@ -161,11 +159,11 @@ public class CurriculaCommands
                 }
             }
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
-                resolved.ProjectDirectory);
+                projectDirectory: resolved.ProjectDirectory);
             foreach (var file in files)
             {
                 cancellation.Token.ThrowIfCancellationRequested();
@@ -207,10 +205,10 @@ public class CurriculaCommands
                     {
                         var input = Path.Combine(staging, "source.doc");
                         var converted = Path.Combine(staging, "converted.docx");
-                        File.Copy(Path.Combine(output.DirectoryPath, originalName), input);
+                        File.Copy(sourceFileName: Path.Combine(output.DirectoryPath, originalName), destFileName: input);
                         if (!await ConvertLegacy(
-                                input,
-                                converted,
+                                input: input,
+                                output: converted,
                                 cancellation.Token))
                         {
                             throw new IOException("Legacy Word conversion failed.");
@@ -296,7 +294,7 @@ public class CurriculaCommands
         catch (ServiceException e) when (e.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             exit = CliExit.AuthenticationRequired;
-            errors = [new AuthenticationRequiredException("microsoft", settings.Profile ?? "TEACHER").Message];
+            errors = [new AuthenticationRequiredException(provider: "microsoft", teacher: settings.Profile ?? "TEACHER").Message];
         }
         catch (Exception e) when (e is IOException
                                       or UnauthorizedAccessException
@@ -381,7 +379,7 @@ public class CurriculaCommands
     }
 
     private static string ArtifactName(CurriculaFile file, string extension = ".docx") =>
-        file.Group + " - " + Path.GetFileNameWithoutExtension(file.Name) + extension;
+        (string) $"{file.Group} - {Path.GetFileNameWithoutExtension(file.Name)}{extension}";
 
     private static void ValidateComponent(string value)
     {

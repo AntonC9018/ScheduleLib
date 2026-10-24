@@ -24,7 +24,7 @@ public sealed class ListMerger<T> : IMerger<List<T>>
         var containedInFrom = from.ToHashSet(_equalityComparer);
         foreach (var targetItem in into!)
         {
-            if (containedInFrom.TryGetValue(targetItem, out var sourceItem))
+            if (containedInFrom.TryGetValue(equalValue: targetItem, actualValue: out var sourceItem))
             {
                 containedInFrom.Remove(sourceItem);
                 _merger.Merge(from: sourceItem, into: targetItem);
@@ -126,20 +126,20 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             var merger = _serviceProvider.GetService(typeof(IMerger<>).MakeGenericType(property.PropertyType));
             if (merger != null)
             {
-                targetValue = CallMergerHelper.Merge(merger, sourceValue, targetValue);
-                property.SetValue(to, targetValue);
+                targetValue = CallMergerHelper.Merge(merger: merger, @from: sourceValue, @into: targetValue);
+                property.SetValue(obj: to, value: targetValue);
                 continue;
             }
 
             var copier = _serviceProvider.GetService(typeof(IBasicOperations<>).MakeGenericType(property.PropertyType));
             if (copier != null)
             {
-                targetValue = CallCopyHelper.Copy(copier, sourceValue);
-                property.SetValue(to, targetValue);
+                targetValue = CallCopyHelper.Copy(operations: copier, @from: sourceValue);
+                property.SetValue(obj: to, value: targetValue);
                 continue;
             }
 
-            property.SetValue(to, sourceValue);
+            property.SetValue(obj: to, value: sourceValue);
         }
         return to;
     }
@@ -188,7 +188,7 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         T newInstance = Empty();
         // can't inject, because then it's going to be circular.
         var merger = _serviceProvider.GetRequiredService<IMerger<T>>();
-        return merger.Merge(from, newInstance);
+        return merger.Merge(@from: from, @into: newInstance);
     }
 
     public T Reset(T? item)

@@ -17,7 +17,7 @@ public sealed class TokenCookieModel
 
     public Cookie ToObject(string name)
     {
-        var ret = new Cookie(name, Value)
+        var ret = new Cookie(name: name, value: Value)
         {
             Expires = ExpireTime,
         };
@@ -89,8 +89,8 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
     {
         var uri = _services.Names.LoginUrl;
         using var content = new FormUrlEncodedContent([
-            new(_services.FieldNames.Login, _services.Credentials.Login),
-            new(_services.FieldNames.Password, _services.Credentials.Password)]);
+            new(key: _services.FieldNames.Login, value: _services.Credentials.Login),
+            new(key: _services.FieldNames.Password, value: _services.Credentials.Password)]);
 
         var response = await _services.HttpClient.PostAsync(
             uri,
@@ -392,7 +392,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         return true;
 
 
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+        [SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
         async ValueTask<bool> TryUpdateExisting()
         {
             if (stream.Length == 0)
@@ -425,7 +425,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             return await Save(root);
         }
 
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+        [SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
         async Task<bool> Save(JsonObject root)
         {
             stream.Seek(0, SeekOrigin.Begin);

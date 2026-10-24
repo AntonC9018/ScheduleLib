@@ -91,8 +91,8 @@ public sealed class IntegrationTest
         });
 
         services.Replace(new(
-            typeof(IScheduleInitializer),
-            typeof(ScheduleBuilderInitializer),
+            serviceType: typeof(IScheduleInitializer),
+            implementationType: typeof(ScheduleBuilderInitializer),
             ServiceLifetime.Singleton));
 
         var serviceProvider = services.BuildServiceProvider(options: new()

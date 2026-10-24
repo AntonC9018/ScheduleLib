@@ -21,8 +21,8 @@ public class IcsCalendarWriterTests
             Summary = summary ?? "Programare orientată obiect (Curs)",
             Description = "Curmanschii A.  B407",
             Location = "B407",
-            Start = new DateTime(2026, 9, 7, 8, 0, 0),
-            End = new DateTime(2026, 9, 7, 9, 30, 0),
+            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
+            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 30, second: 0),
         };
     }
 
@@ -70,8 +70,8 @@ public class IcsCalendarWriterTests
     {
         var text = WriteText(Calendar());
 
-        Assert.DoesNotContain("\n", text.Replace("\r\n", ""));
-        Assert.EndsWith("\r\n", text);
+        Assert.DoesNotContain(expectedSubstring: "\n", actualString: text.Replace("\r\n", ""));
+        Assert.EndsWith(expectedEndString: "\r\n", actualString: text);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(Event()));
 
         Assert.Contains("BEGIN:VEVENT", lines);
-        Assert.Matches(@"DTSTAMP:\d{8}T\d{6}Z", SingleLine(lines, "DTSTAMP"));
+        Assert.Matches(expectedRegexPattern: @"DTSTAMP:\d{8}T\d{6}Z", actualString: SingleLine(lines, "DTSTAMP"));
         Assert.Contains("DTSTART;TZID=Europe/Chisinau:20260907T080000", lines);
         Assert.Contains("DTEND;TZID=Europe/Chisinau:20260907T093000", lines);
         Assert.Contains("SUMMARY:Programare orientată obiect (Curs)", lines);
@@ -103,7 +103,7 @@ public class IcsCalendarWriterTests
         var first = WriteText(Calendar(Event()));
         var second = WriteText(Calendar(Event()));
 
-        Assert.Equal(UidOf(first), UidOf(second));
+        Assert.Equal(expected: UidOf(first), actual: UidOf(second));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class IcsCalendarWriterTests
         var a = WriteText(Calendar(Event("Curs A")));
         var b = WriteText(Calendar(Event("Curs B")));
 
-        Assert.NotEqual(UidOf(a), UidOf(b));
+        Assert.NotEqual(expected: UidOf(a), actual: UidOf(b));
     }
 
     [Fact]
@@ -121,8 +121,8 @@ public class IcsCalendarWriterTests
         var calendar = Calendar(new IcsEvent()
         {
             Summary = "x",
-            Start = new DateTime(2026, 9, 7, 8, 0, 0),
-            End = new DateTime(2026, 9, 7, 9, 30, 0),
+            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
+            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 30, second: 0),
             Uid = "explicit@schedulelib",
         });
 
@@ -135,8 +135,8 @@ public class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = @"Back\slash, comma; semi",
-            Start = new DateTime(2026, 9, 7, 8, 0, 0),
-            End = new DateTime(2026, 9, 7, 9, 0, 0),
+            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
+            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
         }));
 
         Assert.Contains(@"SUMMARY:Back\\slash\, comma\; semi", lines);
@@ -148,8 +148,8 @@ public class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = "line1\r\nline2\nline3",
-            Start = new DateTime(2026, 9, 7, 8, 0, 0),
-            End = new DateTime(2026, 9, 7, 9, 0, 0),
+            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
+            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
         }));
 
         Assert.Contains(@"SUMMARY:line1\nline2\nline3", lines);
@@ -160,12 +160,12 @@ public class IcsCalendarWriterTests
     {
         // Cyrillic chars are 2 octets each, an emoji is 4: both stress the
         // octet-vs-char distinction and the 2-octet/4-octet UTF-8 ranges.
-        var longText = new string('а', 60) + new string('б', 30) + "🏝️" + new string('в', 40);
+        var longText = (string) $"{(new string('а', 60))}{(new string('б', 30))}🏝️{(new string('в', 40))}";
         var calendar = Calendar(new IcsEvent()
         {
             Summary = longText,
-            Start = new DateTime(2026, 9, 7, 8, 0, 0),
-            End = new DateTime(2026, 9, 7, 9, 0, 0),
+            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
+            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
         });
 
         var lines = PhysicalLines(calendar);
@@ -182,7 +182,7 @@ public class IcsCalendarWriterTests
 
         var unfolded = string.Join("", summaryLines
             .Select((l, i) => i == 0 ? l : l[1..]));
-        Assert.Equal("SUMMARY:" + longText, unfolded);
+        Assert.Equal(expected: (string) $"SUMMARY:{longText}", actual: unfolded);
     }
 
     [Fact]
@@ -190,14 +190,14 @@ public class IcsCalendarWriterTests
     {
         // 74 ASCII chars then an emoji: the pair does not fit in the first
         // segment, so it must move to the continuation line whole.
-        var line = "SUMMARY:" + new string('a', 67) + "🏝️";
+        var line = (string) $"SUMMARY:{(new string('a', 67))}🏝️";
 
         var folded = IcsCalendarWriter.Fold(line);
         var segments = folded.Split("\r\n");
 
-        Assert.Equal(2, segments.Length);
-        Assert.Equal(75, Encoding.UTF8.GetByteCount(segments[0]));
-        Assert.Equal(" 🏝️", segments[1]);
+        Assert.Equal(expected: 2, actual: segments.Length);
+        Assert.Equal(expected: 75, actual: Encoding.UTF8.GetByteCount(segments[0]));
+        Assert.Equal(expected: " 🏝️", actual: segments[1]);
     }
 
     private static string UidOf(string calendarText)

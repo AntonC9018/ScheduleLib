@@ -10,8 +10,8 @@ public static class PathHelper
         int indexOfDot = file.LastIndexOf('.');
         if (indexOfDot < 0)
         {
-            return string.Concat(file, extension);
+            return string.Concat(str0: file, str1: extension);
         }
-        return string.Concat(file[.. indexOfDot], extension);
+        return string.Concat(str0: file[.. indexOfDot], str1: extension);
     }
 }

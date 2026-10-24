@@ -48,7 +48,7 @@ internal static class RegistryTopicScope
         }
         ids.Sort((a, b) =>
         {
-            int comparison = string.Compare(schedule.Get(a).Name, schedule.Get(b).Name, StringComparison.Ordinal);
+            int comparison = string.Compare(strA: schedule.Get(a).Name, strB: schedule.Get(b).Name, StringComparison.Ordinal);
             if (comparison != 0)
             {
                 return comparison;
@@ -79,11 +79,11 @@ internal static class RegistryTopicScope
         var tokens = new List<string>(3);
         if (!string.IsNullOrEmpty(partition.Alternative.Value))
         {
-            tokens.Add("/alt:" + partition.Alternative.Value);
+            tokens.Add((string) $"/alt:{partition.Alternative.Value}");
         }
         if (!string.IsNullOrEmpty(partition.Specialization.Value))
         {
-            tokens.Add("/spec:" + partition.Specialization.Value);
+            tokens.Add((string) $"/spec:{partition.Specialization.Value}");
         }
         if (!string.IsNullOrEmpty(partition.SubGroup.Value))
         {
@@ -98,7 +98,7 @@ internal static class RegistryTopicScope
         {
             return string.Join(" ", tokens);
         }
-        return basePart + " " + string.Join(" ", tokens);
+        return (string) $"{basePart} {string.Join(" ", tokens)}";
     }
 
     private static string FormatSubGroupToken(string value)
@@ -110,18 +110,18 @@ internal static class RegistryTopicScope
         if (LanguageHelper.ParseName(value.AsSpan()) is { } language
             && language is Language.Ro or Language.Ru or Language.En)
         {
-            return "/" + language.GetName();
+            return (string) $"/{language.GetName()}";
         }
         var upper = value.ToUpperInvariant();
         if (NumberHelper.FromRoman(upper.AsSpan()) is not null)
         {
-            return "/" + upper;
+            return (string) $"/{upper}";
         }
         if (int.TryParse(value, out int arabic) && arabic >= 1 && arabic <= 10)
         {
-            return "/" + NumberHelper.ToRoman(arabic);
+            return (string) $"/{NumberHelper.ToRoman(arabic)}";
         }
-        return "/sub:" + value;
+        return (string) $"/sub:{value}";
     }
 
     /// <summary>
@@ -134,21 +134,21 @@ internal static class RegistryTopicScope
         ArgumentNullException.ThrowIfNull(knownScopes);
         if (string.IsNullOrWhiteSpace(scope))
         {
-            throw new ArgumentException("Scope must not be empty.", nameof(scope));
+            throw new ArgumentException(message: "Scope must not be empty.", paramName: nameof(scope));
         }
         if (string.IsNullOrWhiteSpace(topic))
         {
             return topic;
         }
-        if (TrySplit(topic, knownScopes, out var baseTopic, out _))
+        if (TrySplit(topic: topic, knownScopes, baseTopic: out var baseTopic, scope: out _))
         {
             if (baseTopic!.Length == 0)
             {
-                return "(" + scope + ")";
+                return (string) $"({scope})";
             }
-            return baseTopic + " (" + scope + ")";
+            return (string) $"{baseTopic} ({scope})";
         }
-        return topic.TrimEnd() + " (" + scope + ")";
+        return (string) $"{topic.TrimEnd()} ({scope})";
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ internal static class RegistryTopicScope
         {
             return false;
         }
-        var inner = trimmed.Substring(open + 1, trimmed.Length - open - 2).Trim();
+        var inner = trimmed.Substring(startIndex: open + 1, length: trimmed.Length - open - 2).Trim();
         if (inner.Length == 0)
         {
             return false;
@@ -211,7 +211,7 @@ internal static class RegistryTopicScope
             }
             if (string.Equals(inner, known, StringComparison.OrdinalIgnoreCase))
             {
-                baseTopic = trimmed.Substring(0, open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open).TrimEnd();
                 scope = known;
                 return true;
             }
@@ -225,7 +225,7 @@ internal static class RegistryTopicScope
             }
             if (string.Equals(normalizedInner, NormalizeAlias(known), StringComparison.OrdinalIgnoreCase))
             {
-                baseTopic = trimmed.Substring(0, open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open).TrimEnd();
                 scope = known;
                 return true;
             }
@@ -249,10 +249,10 @@ internal static class RegistryTopicScope
             result = result.Replace(" /", "/", StringComparison.Ordinal);
         }
         result = result.Replace("(eng)", "(en)", StringComparison.OrdinalIgnoreCase);
-        result = ReplaceToken(result, "/eng", "/en");
+        result = ReplaceToken(value: result, oldToken: "/eng", newToken: "/en");
         for (int number = 10; number >= 1; number--)
         {
-            result = ReplaceToken(result, "/" + number, "/" + NumberHelper.ToRoman(number));
+            result = ReplaceToken(value: result, oldToken: "/" + number, newToken: (string) $"/{NumberHelper.ToRoman(number)}");
         }
         return result;
     }
@@ -264,7 +264,7 @@ internal static class RegistryTopicScope
         while (i < value.Length)
         {
             if (i + oldToken.Length <= value.Length
-                && value.AsSpan(i, oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase)
+                && value.AsSpan(start: i, length: oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase)
                 && (i + oldToken.Length == value.Length || !char.IsLetterOrDigit(value[i + oldToken.Length])))
             {
                 result.Append(newToken);

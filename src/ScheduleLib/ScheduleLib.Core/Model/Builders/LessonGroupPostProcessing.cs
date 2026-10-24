@@ -38,7 +38,7 @@ public static partial class ScheduleBuilderHelper
             if (group.Specialization != Specialization.All
                 && group.Specialization != specialization)
             {
-                throw ConflictingSpecializationException.ForConflictingValues(group.Specialization.Value, specialization.Value);
+                throw ConflictingSpecializationException.ForConflictingValues(first: group.Specialization.Value, second: specialization.Value);
             }
             group.Specialization = specialization;
             group.SubGroup = SubGroup.All;
@@ -112,7 +112,7 @@ public static partial class ScheduleBuilderHelper
             }
             if (splitGroups != lesson.Base.Group.Groups.Count)
             {
-                throw InconsistentLanguageSplitException.ForMixedSplit(GroupNames(s, lesson.Base.Group.Groups), CourseName(s, course));
+                throw InconsistentLanguageSplitException.ForMixedSplit(groups: GroupNames(s, lesson.Base.Group.Groups), course: CourseName(s, course));
             }
 
             foreach (var g in lesson.Base.Group.Groups)
@@ -127,7 +127,7 @@ public static partial class ScheduleBuilderHelper
             if (!coveredSplits.Contains((group, course))
                 && !normalizedSplits.Contains((group, course)))
             {
-                throw InconsistentLanguageSplitException.ForMissingCounterpart(GroupName(s, group), CourseName(s, course));
+                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: GroupName(s, group), course: CourseName(s, course));
             }
         }
 
@@ -246,7 +246,7 @@ public static partial class ScheduleBuilderHelper
             {
                 if (!numbers.Contains(expected))
                 {
-                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(GroupName(s, groupId), expected, numbers[^1]);
+                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(GroupName(s, groupId), missing: expected, occurring: numbers[^1]);
                 }
             }
         }

@@ -148,7 +148,7 @@ public static class ParityExcelParser
             bool CompareHeader(string expectedText)
             {
                 var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan().Trim();
-                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(weekHeaderText, expectedText.AsSpan());
+                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: weekHeaderText, y: expectedText.AsSpan());
             }
 
             {

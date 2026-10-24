@@ -74,22 +74,21 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            throw new TypeConverterException(this, memberMapData, text, row.Context,
-                $"Empty value is not allowed for enum {typeof(T).Name}.");
+            throw new TypeConverterException(this, memberMapData, text: text, row.Context,
+                message: $"Empty value is not allowed for enum {typeof(T).Name}.");
         }
 
         // Disallow numeric values
         if (int.TryParse(text, out _))
         {
-            throw new TypeConverterException(this, memberMapData, text, row.Context,
-                $"Numeric value '{text}' is not allowed for enum {typeof(T).Name}.");
+            throw new TypeConverterException(this, memberMapData, text: text, row.Context,
+                message: $"Numeric value '{text}' is not allowed for enum {typeof(T).Name}.");
         }
 
         if (!_allowedNames.Contains(text))
         {
-            throw new TypeConverterException(this, memberMapData, text, row.Context,
-                $"Value '{text}' is not allowed for enum {typeof(T).Name}. " +
-                $"Allowed values: {string.Join(", ", _allowedNames)}");
+            throw new TypeConverterException(this, memberMapData, text: text, row.Context,
+                message: (string) $"{($"Value '{text}' is not allowed for enum {typeof(T).Name}. ")}{($"Allowed values: {string.Join(", ", _allowedNames)}")}");
         }
 
         return Parse(typeof(T), text, ignoreCase: true);

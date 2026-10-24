@@ -47,6 +47,6 @@ public static class DriveBundle
         token.ThrowIfCancellationRequested();
         // Only this invocation's successfully published schedule artifacts, never directory enumeration or prior manifest entries.
         return output.PublishedPaths.Where(x => DriveSync.IsScheduleArtifact(Path.GetFileName(x)))
-            .Select(x => new DriveArtifact(Path.GetFileName(x), x)).ToArray();
+            .Select(x => new DriveArtifact(Name: Path.GetFileName(x), Path: x)).ToArray();
     }
 }

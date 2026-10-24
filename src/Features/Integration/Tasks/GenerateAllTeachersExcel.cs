@@ -368,7 +368,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         Course = true,
                         Room = true,
                     };
-                    var diff = LessonBuilderHelper.Diff(l0, l1, diffMask);
+                    var diff = LessonBuilderHelper.Diff(a: l0, b: l1, diffMask);
                     if (diff.TheyDiffer)
                     {
                         return false;
@@ -456,7 +456,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 var l1 = lessons[1];
                 var checkGroups = l0.Lesson.Groups.IsSingleGroup
                     && l0.Lesson.Groups.IsSingleGroup;
-                var diff = LessonBuilderHelper.Diff(l0, l1, new()
+                var diff = LessonBuilderHelper.Diff(a: l0, b: l1, new()
                 {
                     Course = true,
                     Parity = true,
@@ -837,15 +837,15 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(a: x.LastName, b: y.LastName);
             if (t != 0)
             {
                 return t;
             }
         }
         var ret = NamePartHelper.CompareEach(
-            x.FirstName,
-            y.FirstName,
+            a: x.FirstName,
+            b: y.FirstName,
             Comparer.Instance);
         return ret;
     }
@@ -857,7 +857,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 
         public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
-            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(a: x.Longer, b: y.Longer);
         }
     }
 }

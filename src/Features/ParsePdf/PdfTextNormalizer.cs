@@ -29,11 +29,11 @@ public static class PdfTextNormalizer
         {
             var match = pattern.Match(line);
             if (!match.Success) { remaining.Add(line); continue; }
-            var names = Regex.Matches(match.Groups[2].Value, @"\[(.*?)\]").Select(m => m.Groups[1].Value).ToArray();
+            var names = Regex.Matches(input: match.Groups[2].Value, pattern: @"\[(.*?)\]").Select(m => m.Groups[1].Value).ToArray();
             var groups = cell.Groups.Where(g => names.Contains(g.Split('(')[0])).ToArray();
             if (groups.Length == 0 || groups.Length != names.Length) throw new FormatException($"Unknown cohort membership: {line}");
-            yield return cell with { Groups = groups, Text = course + "\n" + match.Groups[3].Value,
-                Alternative = "Antreprenoriat Gr." + match.Groups[1].Value, Cohort = match.Groups[2].Value };
+            yield return cell with { Groups = groups, Text = (string) $"{course}\n{match.Groups[3].Value}",
+                Alternative = (string) $"Antreprenoriat Gr.{match.Groups[1].Value}", Cohort = match.Groups[2].Value };
         }
         if (remaining.Count > 0) yield return cell with { Text = string.Join('\n', remaining) };
     }
@@ -52,8 +52,8 @@ public static class PdfTextNormalizer
             if (cell.Groups.Length != 1 || cell.Groups[0] != rule.Group || cell.Day != rule.Day || cell.Start != rule.Start
                 || !cell.Text.Contains(rule.Course) || !cell.Text.Contains(rule.Teacher)) continue;
             var lines = cell.Text.Split('\n');
-            if (Regex.IsMatch(lines[0], @"\b(?:imp|par)\b")) continue;
-            lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", $", {rule.Parity})") : lines[0] + $" ({rule.Parity})";
+            if (Regex.IsMatch(input: lines[0], pattern: @"\b(?:imp|par)\b")) continue;
+            lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", $", {rule.Parity})") : (string) $"{lines[0]}{($" ({rule.Parity})")}";
             return cell with { Text = string.Join('\n', lines), Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md" };
         }
         return cell;

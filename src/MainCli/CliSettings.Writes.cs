@@ -38,8 +38,8 @@ public static partial class CliSettings
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         using var initial = await Load(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
@@ -60,9 +60,9 @@ public static partial class CliSettings
         var action = operation is null
             ? null
             : CreateOperation(
-                operation,
-                key,
-                item,
+                operation: operation,
+                key: key,
+                item: item,
                 initial);
         var file = scope switch
         {
@@ -85,17 +85,17 @@ public static partial class CliSettings
         {
             Apply(
                 probe,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 parsed,
                 unset: false);
         }
         else
         {
             ApplyOperation(
-                probe,
+                envelope: probe,
                 arguments.Profile,
-                action);
+                action: action);
         }
 
         ReadEnvelope(
@@ -104,14 +104,14 @@ public static partial class CliSettings
             initial.Json,
             initial.Profiles);
         await using var lease = await LocalFileLock.Acquire(
-            file + ".lock",
+            (string) $"{file}.lock",
             cancellationToken,
             wait: true);
         // Re-read under the lease so concurrent edits cannot overwrite one another.
         using var current = await Load(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken);
         var exists = File.Exists(file);
         var envelope = exists
@@ -125,28 +125,28 @@ public static partial class CliSettings
                 current,
                 file);
             ApplyOperation(
-                envelope,
+                envelope: envelope,
                 arguments.Profile,
-                action);
+                action: action);
         }
         else
         {
             RemoveOperations(
                 envelope,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 includeAncestors: !unset);
             Apply(
                 envelope,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 parsed,
                 unset);
         }
         using var candidate = await LoadCore(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken,
             replacement: (file, envelope));
         var changed = before != envelope.ToJsonString();
@@ -163,10 +163,10 @@ public static partial class CliSettings
         }
 
         return new(
-            file,
-            scope.ToString().ToLowerInvariant(),
-            arguments.Profile,
-            key,
+            File: file,
+            Scope: scope.ToString().ToLowerInvariant(),
+            Profile: arguments.Profile,
+            Key: key,
             changed);
     }
 

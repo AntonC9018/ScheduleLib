@@ -8,11 +8,7 @@ public sealed class ApplyArguments : IArgumentModel
     [Option(
         "apply",
         Description = "Recompute current remote state and execute changes. Without this flag, only preview.")]
-    public bool Apply
-    {
-        get;
-        set;
-    }
+    public bool Apply { get; set; }
 }
 
 public sealed record RegistryActionOutcome(
@@ -47,13 +43,15 @@ public partial class RegistryCommands
         ResultArguments result,
         ApplyArguments apply,
         CancellationToken cancellationToken = default)
-        => RunLessonActions(
-            source,
-            settings,
-            result,
-            apply,
-            cleanupIntakeLabs: false,
-            cancellationToken);
+    {
+        return RunLessonActions(
+                source,
+                settings,
+                result,
+                apply,
+                cleanupIntakeLabs: false,
+                cancellationToken);
+    }
 
     [Command(
         "cleanup-intake-labs",
@@ -65,13 +63,15 @@ public partial class RegistryCommands
         ResultArguments result,
         ApplyArguments apply,
         CancellationToken cancellationToken = default)
-        => RunLessonActions(
-            source,
-            settings,
-            result,
-            apply,
-            cleanupIntakeLabs: true,
-            cancellationToken);
+    {
+        return RunLessonActions(
+                source,
+                settings,
+                result,
+                apply,
+                cleanupIntakeLabs: true,
+                cancellationToken);
+    }
 
     private async Task<int> RunLessonActions(
         SourceArguments source,
@@ -149,8 +149,8 @@ public partial class RegistryCommands
                     actionIndexes.Add(action, outcomes.Count);
                     var initial = ToOutcome(
                         action,
-                        !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned",
-                        action.Omission);
+                        status: !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned",
+                        detail: action.Omission);
                     outcomes.Add(initial);
                     StreamOutcome(outcomes.Count - 1, initial);
                 }
@@ -176,8 +176,8 @@ public partial class RegistryCommands
                     attempted |= outcome.SubmissionStarted;
                     Record(
                         action,
-                        outcome.Status,
-                        outcome.Detail);
+                        status: outcome.Status,
+                        detail: outcome.Detail);
                     if (outcome.DeletionRefused)
                     {
                         var warning =
@@ -228,15 +228,15 @@ public partial class RegistryCommands
             string? detail)
         {
             return new(
-                action.Kind,
-                action.Destination,
-                action.Course,
-                action.Groups,
+                Kind: action.Kind,
+                Destination: action.Destination,
+                Course: action.Course,
+                Groups: action.Groups,
                 action.Date,
-                action.Topic,
+                Topic: action.Topic,
                 action.AttendanceCount,
-                status,
-                detail);
+                Status: status,
+                Detail: detail);
         }
 
         void Record(
@@ -247,8 +247,8 @@ public partial class RegistryCommands
             var index = actionIndexes[action];
             var outcome = ToOutcome(
                 action,
-                status,
-                detail);
+                status: status,
+                detail: detail);
             outcomes[index] = outcome;
             StreamOutcome(index, outcome);
         }
@@ -256,8 +256,8 @@ public partial class RegistryCommands
         void StreamOutcome(int index, RegistryActionOutcome outcome)
         {
             context.StreamItem(
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                outcome.Status,
+                id: index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                status: outcome.Status,
                 outcome,
                 renderHuman: () =>
                 {

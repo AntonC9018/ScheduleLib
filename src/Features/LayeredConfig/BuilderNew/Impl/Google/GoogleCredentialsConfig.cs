@@ -137,13 +137,13 @@ public sealed class GoogleCredentialResolver : IDisposable
 
         // Legacy hosts may refresh provisioned credentials, but never initiate consent.
         var user = _userNameProvider.Get();
-        if (config.CredentialsPath is null) throw new AuthenticationRequiredException("google", user);
+        if (config.CredentialsPath is null) throw new AuthenticationRequiredException(provider: "google", teacher: user);
         ClientSecrets secrets;
         try { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
         catch (OperationCanceledException) { throw; }
-        catch (Exception) { throw new AuthenticationRequiredException("google", user); }
+        catch (Exception) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
         if (string.IsNullOrWhiteSpace(secrets.ClientId) || string.IsNullOrWhiteSpace(secrets.ClientSecret))
-            throw new AuthenticationRequiredException("google", user);
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = secrets,
@@ -153,14 +153,14 @@ public sealed class GoogleCredentialResolver : IDisposable
         _flows.Add(flow);
         var token = await flow.LoadTokenAsync(user, cancellationToken);
         if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? []).Any())
-            throw new AuthenticationRequiredException("google", user);
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
         var credential = new UserCredential(flow, user, token);
         try
         {
             if (token.IsStale && !await credential.RefreshTokenAsync(cancellationToken))
-                throw new AuthenticationRequiredException("google", user);
+                throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }
-        catch (TokenResponseException) { throw new AuthenticationRequiredException("google", user); }
+        catch (TokenResponseException) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
         return credential;
     }
 }
@@ -245,11 +245,11 @@ public sealed class AuthenticationRequiredException : Exception
     public string Provider { get; }
     public string LoginCommand { get; }
     public AuthenticationRequiredException(string provider, string teacher)
-        : base($"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider, teacher)}")
+        : base($"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}")
     {
         Provider = provider;
-        LoginCommand = BuildLoginCommand(provider, teacher);
+        LoginCommand = BuildLoginCommand(provider: provider, teacher: teacher);
     }
     private static string BuildLoginCommand(string provider, string teacher) =>
-        "schedulelib auth login " + provider + " --profile \"" + teacher.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        (string) $"schedulelib auth login {provider} --profile \"{teacher.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
 }

@@ -341,7 +341,7 @@ public static partial class CliSettings
             target[name] = actions = new();
         }
 
-        if (!actions.Any(x => JsonNode.DeepEquals(x, action)))
+        if (!actions.Any(x => JsonNode.DeepEquals(node1: x, node2: action)))
         {
             actions.Add(action.DeepClone());
         }
@@ -363,8 +363,8 @@ public static partial class CliSettings
         {
             var actionKey = action["key"]!.GetValue<string>();
             if (actionKey == key
-                || actionKey.StartsWith(key + ".", StringComparison.Ordinal)
-                || includeAncestors && key.StartsWith(actionKey + ".", StringComparison.Ordinal))
+                || actionKey.StartsWith((string) $"{key}.", StringComparison.Ordinal)
+                || includeAncestors && key.StartsWith((string) $"{actionKey}.", StringComparison.Ordinal))
             {
                 actions.Remove(action);
             }

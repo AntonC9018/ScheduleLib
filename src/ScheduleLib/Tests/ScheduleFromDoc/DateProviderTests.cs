@@ -36,8 +36,8 @@ public sealed class DateProviderTests
                 scope.QualificationType(QualificationType.Licenta);
                 scope.Year(2026);
                 scope.Semester(semester);
-                scope.LessonsStart(9, 1);
-                scope.LessonsEndInclusive(12, 13);
+                scope.LessonsStart(month: 9, day: 1);
+                scope.LessonsEndInclusive(month: 12, day: 13);
                 scope.Range(range => range.Grade(new(1)));
             });
         }
@@ -68,53 +68,64 @@ public sealed class DateProviderTests
         var intervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
         var ordinaryRange = intervals.GetSemesterInterval(new()
         {
-            Schedule = schedule, GroupId = new(zi.Id), Semester = semester,
+            Schedule = schedule,
+            GroupId = new(zi.Id),
+            Semester = semester,
         });
         var dualRange = intervals.GetSemesterInterval(new()
         {
-            Schedule = schedule, GroupId = new(dual.Id), Semester = semester,
+            Schedule = schedule,
+            GroupId = new(dual.Id),
+            Semester = semester,
         });
-        Assert.Equal(ordinaryRange, dualRange);
+        Assert.Equal(expected: ordinaryRange, actual: dualRange);
 
-        Group GroupFor(AttendanceMode mode) => new()
+        Group GroupFor(AttendanceMode mode)
         {
-            Name = mode == AttendanceMode.Zi ? $"IA-{grade}" : $"DU-IA-{grade}",
-            Grade = new(grade), GroupNumber = 1, QualificationType = QualificationType.Licenta,
-            Faculty = new("IA"), AttendanceMode = mode, Language = Language.Ro,
-        };
+            return new()
+            {
+                Name = mode == AttendanceMode.Zi ? $"IA-{grade}" : $"DU-IA-{grade}",
+                Grade = new(grade),
+                GroupNumber = 1,
+                QualificationType = QualificationType.Licenta,
+                Faculty = new("IA"),
+                AttendanceMode = mode,
+                Language = Language.Ro,
+            };
+        }
     }
 
     [Fact]
     public void AcademicCalendar2026_2027MatchesPublishedDates()
     {
         var semesterIntervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
-        AssertRange(grade: 1, Semester.Sem1, new(2026, 9, 1), new(2026, 12, 13));
-        AssertRange(grade: 2, Semester.Sem1, new(2026, 9, 1), new(2026, 12, 13));
-        AssertRange(grade: 3, Semester.Sem1, new(2026, 9, 1), new(2026, 12, 13));
-        AssertRange(grade: 1, Semester.Sem2, new(2027, 2, 1), new(2027, 5, 1));
-        AssertRange(grade: 2, Semester.Sem2, new(2027, 2, 1), new(2027, 5, 1));
-        AssertRange(grade: 3, Semester.Sem2, new(2027, 2, 22), new(2027, 4, 11));
+        AssertRange(grade: 1, Semester.Sem1, start: new(year: 2026, month: 9, day: 1), endInclusive: new(year: 2026, month: 12, day: 13));
+        AssertRange(grade: 2, Semester.Sem1, start: new(year: 2026, month: 9, day: 1), endInclusive: new(year: 2026, month: 12, day: 13));
+        AssertRange(grade: 3, Semester.Sem1, start: new(year: 2026, month: 9, day: 1), endInclusive: new(year: 2026, month: 12, day: 13));
+        AssertRange(grade: 1, Semester.Sem2, start: new(year: 2027, month: 2, day: 1), endInclusive: new(year: 2027, month: 5, day: 1));
+        AssertRange(grade: 2, Semester.Sem2, start: new(year: 2027, month: 2, day: 1), endInclusive: new(year: 2027, month: 5, day: 1));
+        AssertRange(grade: 3, Semester.Sem2, start: new(year: 2027, month: 2, day: 22), endInclusive: new(year: 2027, month: 4, day: 11));
 
         var weeks = ScheduleLib.ScheduleDefaults.Config.StudyWeeks;
-        Assert.Equal(28, weeks.Length);
-        Assert.Equal(new DateOnly(2026, 8, 31), weeks[0].MondayDate);
+        Assert.Equal(expected: 28, actual: weeks.Length);
+        Assert.Equal(expected: new DateOnly(year: 2026, month: 8, day: 31), actual: weeks[0].MondayDate);
         Assert.False(weeks[0].IsOddWeek);
-        Assert.Equal(new DateOnly(2026, 12, 7), weeks[14].MondayDate);
-        Assert.Equal(new DateOnly(2027, 2, 1), weeks[15].MondayDate);
+        Assert.Equal(expected: new DateOnly(year: 2026, month: 12, day: 7), actual: weeks[14].MondayDate);
+        Assert.Equal(expected: new DateOnly(year: 2027, month: 2, day: 1), actual: weeks[15].MondayDate);
         Assert.True(weeks[15].IsOddWeek);
-        Assert.Equal(new DateOnly(2027, 4, 26), weeks[^1].MondayDate);
+        Assert.Equal(expected: new DateOnly(year: 2027, month: 4, day: 26), actual: weeks[^1].MondayDate);
 
         for (int i = 1; i < weeks.Length; i++)
         {
-            Assert.NotEqual(weeks[i - 1].IsOddWeek, weeks[i].IsOddWeek);
+            Assert.NotEqual(expected: weeks[i - 1].IsOddWeek, actual: weeks[i].IsOddWeek);
         }
 
         Assert.Collection(
             ScheduleLib.ScheduleDefaults.Config.HolidayPeriods,
-            period => AssertPeriod(period, new(2026, 10, 14), new(2026, 10, 15)),
-            period => AssertPeriod(period, new(2027, 1, 1), new(2027, 1, 25)),
-            period => AssertPeriod(period, new(2027, 5, 1), new(2027, 5, 2)),
-            period => AssertPeriod(period, new(2027, 5, 2), new(2027, 5, 11)));
+            period => AssertPeriod(period, start: new(year: 2026, month: 10, day: 14), endExclusive: new(year: 2026, month: 10, day: 15)),
+            period => AssertPeriod(period, start: new(year: 2027, month: 1, day: 1), endExclusive: new(year: 2027, month: 1, day: 25)),
+            period => AssertPeriod(period, start: new(year: 2027, month: 5, day: 1), endExclusive: new(year: 2027, month: 5, day: 2)),
+            period => AssertPeriod(period, start: new(year: 2027, month: 5, day: 2), endExclusive: new(year: 2027, month: 5, day: 11)));
 
         void AssertRange(int grade, Semester semester, DateOnly start, DateOnly endInclusive)
         {
@@ -138,14 +149,14 @@ public sealed class DateProviderTests
                 Semester = semester,
             });
 
-            Assert.Equal(start, actual.Start);
-            Assert.Equal(endInclusive, actual.EndInclusive);
+            Assert.Equal(expected: start, actual: actual.Start);
+            Assert.Equal(expected: endInclusive, actual: actual.EndInclusive);
         }
 
         static void AssertPeriod(HolidayPeriod period, DateOnly start, DateOnly endExclusive)
         {
-            Assert.Equal(start, period.Start);
-            Assert.Equal(endExclusive, period.EndExclusive);
+            Assert.Equal(expected: start, actual: period.Start);
+            Assert.Equal(expected: endExclusive, actual: period.EndExclusive);
         }
     }
 
@@ -173,17 +184,17 @@ public sealed class DateProviderTests
             e1 =>
             {
                 var ev = Event.CreateRecurring(Date(1), count: 4, interval: 3);
-                Assert.Equal(ev, e1);
+                Assert.Equal(expected: ev, actual: e1);
             },
             e2 =>
             {
                 var ev = Event.CreateSingle(Date(11));
-                Assert.Equal(ev, e2);
+                Assert.Equal(expected: ev, actual: e2);
             },
             e2 =>
             {
                 var ev = Event.CreateRecurring(Date(12), count: 3, interval: 3);
-                Assert.Equal(ev, e2);
+                Assert.Equal(expected: ev, actual: e2);
             });
     }
 }

@@ -147,14 +147,14 @@ public sealed class AddUserTests
 
     private void DoScoreFunctionTest(TestDataRecord data)
     {
-        var score = GetScore(data.Input, data.Person);
-        Assert.Equal(data.ExpectedScorePositive, score.AsInt() > 0);
+        var score = GetScore(input: data.Input, person: data.Person);
+        Assert.Equal(expected: data.ExpectedScorePositive, actual: score.AsInt() > 0);
 
         var expectedScore = new MatchScore(
             FullMatch: data.FullyMatched,
             PartialMatch: data.PartiallyMatched,
             UnmatchedCount: data.UnmatchedCount);
-        Assert.Equal(expectedScore, score);
+        Assert.Equal(expected: expectedScore, actual: score);
     }
 
     private static MatchScore GetScore(string input, string person)

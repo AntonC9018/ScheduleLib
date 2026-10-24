@@ -10,11 +10,7 @@ namespace ScheduleLib.Cli;
 public sealed partial class Commands
 {
     [Subcommand]
-    public CalendarCommands Calendar
-    {
-        get;
-        set;
-    } = new();
+    public CalendarCommands Calendar { get; set; } = new();
 }
 
 [Command(
@@ -29,10 +25,12 @@ public class CalendarCommands
         IServiceProvider services,
         BuiltGoogleCalendarConfig config,
         CancellationToken token)
-        => GoogleCalendarSyncProvider.Connect(
-            services,
-            config,
-            token);
+    {
+        return GoogleCalendarSyncProvider.Connect(
+                services,
+                config,
+                token);
+    }
 
     [Command(
         "sync",
@@ -117,7 +115,7 @@ public class CalendarCommands
             // plan-order ids.
             data = await CalendarSync.Run(
                 provider,
-                config.CalendarName,
+                name: config.CalendarName,
                 desired,
                 apply.Apply,
                 cancellation.Token,

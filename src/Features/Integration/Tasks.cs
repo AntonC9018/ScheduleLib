@@ -79,7 +79,7 @@ public static class TasksHelper
             wordSplitConfig,
             cancellationToken: cancellationToken);
 
-        var subdirs = Directory.EnumerateDirectories(dirName, "*", SearchOption.TopDirectoryOnly)
+        var subdirs = Directory.EnumerateDirectories(path: dirName, searchPattern: "*", SearchOption.TopDirectoryOnly)
             .Select(x =>
             {
                 var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
@@ -89,7 +89,7 @@ public static class TasksHelper
                 var lastSegment = x.AsSpan()[lastSegmentStart ..];
 
                 if (!DateOnly.TryParseExact(
-                        lastSegment,
+                        s: lastSegment,
                         format: "dd.MM.yy",
                         provider: null,
                         style: DateTimeStyles.None,
@@ -124,7 +124,7 @@ public static class TasksHelper
         {
             var firstWeeklyLesson = context.Schedule.WeeklyLessons.Count;
             var firstOneTimeLesson = context.Schedule.OneTimeLessons.Count;
-            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.doc", SearchOption.TopDirectoryOnly))
+            foreach (var filePath in Directory.EnumerateFiles(path: dirName, searchPattern: "*.doc", SearchOption.TopDirectoryOnly))
             {
                 // CA2000 misses using-declaration disposal inside this async local function.
 #pragma warning disable CA2000
@@ -133,20 +133,23 @@ public static class TasksHelper
                 var stagingDirectory = stagingOwner.DirectoryPath;
                 {
                     var stagedInput = Path.Combine(stagingDirectory, Path.GetFileName(filePath));
-                    File.Copy(filePath, stagedInput);
-                    var outputPath = Path.ChangeExtension(stagedInput, ".docx");
-                    if (!await DocToDocxConversionHelper.TryConvertFile(stagedInput, outputPath, cancellationToken))
+                    File.Copy(sourceFileName: filePath, destFileName: stagedInput);
+                    var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
+                    if (!await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput, outputPath: outputPath, cancellationToken))
                         throw new IOException("Could not convert doc to docx. Windows with Microsoft Word is required.");
                     using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
                     context.SetPeriod(period);
-                    WordScheduleParser.ParseToSchedule(new() { Context = context, Document = document });
+                    WordScheduleParser.ParseToSchedule(new() {
+                        Context = context,
+                        Document = document
+                    });
                 }
             }
 
-            foreach (var filePath in Directory.EnumerateFiles(dirName, "*.docx", SearchOption.TopDirectoryOnly))
+            foreach (var filePath in Directory.EnumerateFiles(path: dirName, searchPattern: "*.docx", SearchOption.TopDirectoryOnly))
             {
                 // A paired legacy source was already parsed from its staged conversion.
-                if (File.Exists(Path.ChangeExtension(filePath, ".doc"))) continue;
+                if (File.Exists(Path.ChangeExtension(path: filePath, @extension: ".doc"))) continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 using var document = WordprocessingDocument.Open(filePath, isEditable: false);
                 context.SetPeriod(period);
@@ -158,9 +161,9 @@ public static class TasksHelper
                 });
             }
 
-            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson, firstOneTimeLesson);
+            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson: firstWeeklyLesson, firstOneTimeLesson: firstOneTimeLesson);
 
-            var pdfs = Directory.EnumerateFiles(dirName, "*.pdf", SearchOption.TopDirectoryOnly).Order().ToArray();
+            var pdfs = Directory.EnumerateFiles(path: dirName, searchPattern: "*.pdf", SearchOption.TopDirectoryOnly).Order().ToArray();
             if (pdfs.Length == 0) return;
             var cells = new List<PdfScheduleCell>();
             foreach (var filePath in pdfs)

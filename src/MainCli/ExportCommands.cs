@@ -12,11 +12,7 @@ public sealed class OutputArguments : IArgumentModel
         "output",
         Description =
             "Destination directory. Defaults to a unique run under output. Only unchanged manifest-owned files may be replaced.")]
-    public string? Directory
-    {
-        get;
-        set;
-    }
+    public string? Directory { get; set; }
 }
 
 public sealed record TeachersExcelResult(string? OutputDirectory, int LessonCount, int TeacherCount);
@@ -68,9 +64,9 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
@@ -162,8 +158,8 @@ public partial class ExportCommands
                 errors,
                 new(
                     output?.DirectoryPath,
-                    lessonCount,
-                    teacherCount))
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount))
             {
                 Summary = new
                 {
