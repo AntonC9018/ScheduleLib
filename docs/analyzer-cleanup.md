@@ -8,6 +8,28 @@ solution-only counts understate the CLI cleanup.
 The [follow-up rollout result](#follow-up-rollout-result--2026-10-25) is the
 latest validated state. Earlier sections retain the initial review and measurements.
 
+## Current implementation status
+
+The next reviewed source changes (`a12838a`, `d8c5d6c`, `332ebd6` and follow-ups)
+are committed locally but **not yet built or tested**. AWS login expired before
+worker creation; no replacement runner was launched. CodingRules source changes
+`9bc6620` / `a0e3a29` are likewise pending focused/full tests and consumer gates.
+The prior candidate remains the adopted archive. Counts and green checks below
+refer to that earlier validated rollout, not to the new source revisions.
+
+The next pass adds record-update acceptance/layout, lookup-cast acceptance,
+comparer overload acceptance, trailing-cancellation grouping, readable generated
+locals/types, and a manual branching-Boolean finding. ScheduleLib changes include
+explicit accessor factories, the Google login builder, the Desktop-only CR1001
+suppression, and the history writer/directory/course-comparer refactor. Existing
+CSV, history-command, authentication and permission coverage must be rerun on AWS;
+new tests cover comparer equality/hash consistency and missing builder inputs.
+
+Remapping overload policy and the precise fluent-chain dot rule remain awaiting
+maintainer clarification. Neither is broadened through an inferred exemption.
+The six related command inheritance seams were audited in
+[issue #247](https://github.com/AntonC9018/ScheduleLib/issues/247#issuecomment-6395472858).
+
 ## Measurement
 
 `build/analyzer-inventory.py` deduplicates build diagnostics by source path,

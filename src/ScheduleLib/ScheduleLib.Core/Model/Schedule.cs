@@ -1250,7 +1250,8 @@ public static class ScheduleAccessorHelper
             var id = new AnyLessonId(LessonRegularity.Weekly, index);
             if (schedule.IsLessonActive(id))
             {
-                yield return WeeklyLessonAccessor.FromIndex(index, schedule.WeeklyLessons);
+                var lessonId = new WeeklyLessonId(index);
+                yield return WeeklyLessonAccessor.FromId(lessonId, schedule.WeeklyLessons);
             }
         }
     }
