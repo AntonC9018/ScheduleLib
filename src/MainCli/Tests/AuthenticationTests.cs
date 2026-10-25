@@ -16,6 +16,16 @@ public sealed class AuthenticationTests
     private static readonly string[] Scopes = GoogleAuthentication.LoginScopes;
 
     [Fact]
+    public void LoginBuilderRequiresCredentialsBeforeExecution()
+    {
+        using var fixture = new Fixture();
+        using var auth = fixture.Auth;
+        var builder = auth.Login(Teacher, fixture.Services);
+        Assert.Throws<InvalidOperationException>(() => { _ = builder.Execute(default); });
+        Assert.Equal(0, fixture.Tokens.Consents);
+    }
+
+    [Fact]
     public async Task OrdinaryResolutionNeverConsentsAndReturnsExactLoginCommand()
     {
         using var fixture = new Fixture();
@@ -39,11 +49,9 @@ public sealed class AuthenticationTests
     {
         using var fixture = new Fixture();
         using var auth = fixture.Auth;
-        await auth.Login(
-            fixture.Config,
-            Teacher,
-            fixture.Services,
-            default);
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         var credential = await auth.Resolve(
             fixture.Config,
@@ -95,11 +103,9 @@ public sealed class AuthenticationTests
     {
         using var fixture = new Fixture();
         using var auth = fixture.Auth;
-        await auth.Login(
-            fixture.Config,
-            Teacher,
-            fixture.Services,
-            default);
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() => auth.Resolve(
             fixture.Config,
             ["ungranted"],
@@ -149,22 +155,18 @@ public sealed class AuthenticationTests
                 },
             },
         };
-        await auth.Login(
-            new[]
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(new[]
             {
                 fixture.Config,
                 fixture.Config,
                 second,
-            },
-            Teacher,
-            fixture.Services,
-            default);
+            })
+            .Execute(default);
         Assert.Equal(expected: 2, actual: fixture.Tokens.Consents);
-        await auth.Login(
-            fixture.Config,
-            "Nartea Nichita",
-            fixture.Services,
-            default);
+        await auth.Login("Nartea Nichita", fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
         Assert.Equal(expected: 2, actual: (await auth.Status(Teacher, default)).Accounts.Count);
         Assert.Single((await auth.Status("Nartea Nichita", default)).Accounts);
         var first = await auth.Resolve(
@@ -187,17 +189,13 @@ public sealed class AuthenticationTests
     {
         using var fixture = new Fixture();
         using var auth = fixture.Auth;
-        await auth.Login(
-            fixture.Config,
-            Teacher,
-            fixture.Services,
-            default);
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
         fixture.Tokens.CancelConsent = true;
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => auth.Login(
-            fixture.Config,
-            Teacher,
-            fixture.Services,
-            default));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default));
         Assert.Single((await auth.Status(Teacher, default)).Accounts);
         string[] CalculateCollection()
         {
@@ -370,11 +368,9 @@ public sealed class AuthenticationTests
             default));
         var authorization =
             (GoogleAuthentication) scope.ServiceProvider.GetRequiredService<IGoogleCredentialAuthorization>();
-        await authorization.Login(
-            config,
-            Teacher,
-            scope.ServiceProvider,
-            default);
+        await authorization.Login(Teacher, scope.ServiceProvider)
+            .WithCredentials(config)
+            .Execute(default);
         Assert.Equal(
             expected: "access-secret",
             actual: (await resolver.Resolve(

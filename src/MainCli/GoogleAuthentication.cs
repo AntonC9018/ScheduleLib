@@ -194,20 +194,48 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         return combine;
     }
 
-    public Task Login(
-        BuiltGoogleCredentialsConfig config,
-        string teacher,
-        IServiceProvider services,
-        CancellationToken token)
+    public GoogleLoginBuilder Login(string teacher, IServiceProvider services)
     {
-        return Login(
-            [config],
-            teacher,
-            services,
-            token);
+        return new(this, teacher, services);
     }
 
-    public async Task Login(
+    public sealed class GoogleLoginBuilder
+    {
+        private readonly GoogleAuthentication _authentication;
+        private readonly string _teacher;
+        private readonly IServiceProvider _services;
+        private IReadOnlyList<BuiltGoogleCredentialsConfig>? _configurations;
+
+        internal GoogleLoginBuilder(GoogleAuthentication authentication, string teacher, IServiceProvider services)
+        {
+            _authentication = authentication;
+            _teacher = teacher;
+            _services = services;
+        }
+
+        public GoogleLoginBuilder WithCredentials(BuiltGoogleCredentialsConfig configuration)
+        {
+            _configurations = [configuration];
+            return this;
+        }
+
+        public GoogleLoginBuilder WithCredentials(IReadOnlyList<BuiltGoogleCredentialsConfig> configurations)
+        {
+            _configurations = configurations;
+            return this;
+        }
+
+        public Task Execute(CancellationToken token)
+        {
+            if (_configurations is null)
+            {
+                throw new InvalidOperationException("Configure Google login credentials before execution.");
+            }
+            return _authentication.LoginConfigured(_configurations, _teacher, _services, token);
+        }
+    }
+
+    private async Task LoginConfigured(
         IReadOnlyList<BuiltGoogleCredentialsConfig> configurations,
         string teacher,
         IServiceProvider services,

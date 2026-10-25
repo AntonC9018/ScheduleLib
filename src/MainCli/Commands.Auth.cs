@@ -152,11 +152,9 @@ public partial class AuthCommands
                 services.AddScoped<CurrentUserNameProvider>();
                 await using var container = services.BuildServiceProvider();
                 await using var scope = container.CreateAsyncScope();
-                await authentication.Login(
-                    credentials,
-                    teacher,
-                    scope.ServiceProvider,
-                    cancellation.Token);
+                await authentication.Login(teacher, scope.ServiceProvider)
+                    .WithCredentials(credentials)
+                    .Execute(cancellation.Token);
             }
             else if (verb == "logout")
             {

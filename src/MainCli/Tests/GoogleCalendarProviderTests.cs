@@ -135,11 +135,9 @@ public sealed class GoogleCalendarProviderTests
         try
         {
             // Provision fixture state only; no browser or live authorization.
-            await auth.Login(
-                config,
-                "fixture",
-                services,
-                default);
+            await auth.Login("fixture", services)
+                .WithCredentials(config)
+                .Execute(default);
             var credential = await auth.Resolve(
                 config,
                 [CalendarService.Scope.Calendar],
@@ -1092,11 +1090,9 @@ public sealed class GoogleCalendarProviderTests
         };
         try
         {
-            await auth.Login(
-                config,
-                "fixture",
-                services,
-                default);
+            await auth.Login("fixture", services)
+                .WithCredentials(config)
+                .Execute(default);
             credential = await auth.Resolve(
                 config,
                 [CalendarService.Scope.Calendar],

@@ -1036,11 +1036,9 @@ public sealed class GoogleDriveProviderTests
         using var services = new ServiceCollection().BuildServiceProvider();
         try
         {
-            await auth.Login(
-                AuthConfig,
-                "fixture",
-                services,
-                default);
+            await auth.Login("fixture", services)
+                .WithCredentials(AuthConfig)
+                .Execute(default);
             var credential = await auth.Resolve(
                 AuthConfig,
                 GoogleAuthentication.LoginScopes,
@@ -1220,11 +1218,9 @@ public sealed class GoogleDriveProviderTests
         using var services = new ServiceCollection().BuildServiceProvider();
         try
         {
-            await auth.Login(
-                AuthConfig,
-                "fixture",
-                services,
-                default);
+            await auth.Login("fixture", services)
+                .WithCredentials(AuthConfig)
+                .Execute(default);
             credential = await auth.Resolve(
                 AuthConfig,
                 GoogleAuthentication.LoginScopes,
