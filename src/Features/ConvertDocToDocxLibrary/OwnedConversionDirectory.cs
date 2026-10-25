@@ -27,7 +27,8 @@ public sealed class OwnedConversionDirectory : IDisposable
         {
             // Refuse a replacement symlink/junction, rather than deleting through
             // a path that no longer names our staging directory.
-            if (!Directory.Exists(DirectoryPath) || (File.GetAttributes(DirectoryPath) & FileAttributes.ReparsePoint) != 0)
+            if (!Directory.Exists(DirectoryPath)
+                || (File.GetAttributes(DirectoryPath) & FileAttributes.ReparsePoint) != 0)
             {
                 return;
             }
