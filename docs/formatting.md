@@ -57,8 +57,9 @@ application dependencies or analyzers. Its role is formatting, not compilation.
 See the [CleanupCode documentation](https://www.jetbrains.com/help/resharper/CleanupCode.html).
 
 This syntax-only host is retained deliberately. The executable package-only
-probe in `build/verify-formatting.py` leaves an unbraced control statement,
-missing trailing comma, same-line statements in a compact body and an unwrapped
+probe in `build/verify-formatting.py` now supplies required control-statement
+braces, but still leaves a missing collection trailing comma, same-line statements
+in a compact body and an unwrapped
 three-argument call. The combined workflow repairs them. Therefore neither
 CleanupCode nor its solution host has demonstrated a complete replacement.
 
@@ -67,7 +68,7 @@ wrapper stages the real consumer project, dependency sources and MSBuild/
 EditorConfig inputs. It copies no application data or credentials. NuGet
 configuration and the actual project references provide the fixers' binding
 context; package fixes do not run against the syntax-only project. The copied
-consumer is restored, the five fixes run with an explicit diagnostic/file
+consumer is restored, the formatting fixes run with an explicit diagnostic/file
 allowlist, then Roslyn whitespace formatting runs. Only selected source files
 can be copied back. No other workspace edits are applied to the repository.
 Complete layout/style rounds repeat until the selected bytes stabilize, with
@@ -109,3 +110,9 @@ This is not a diagnostic baseline or suppression: builds continue to report the
 actual findings. Do not bulk-fix user-authored pre-June code or disable a rule to
 hide a questionable finding. Apply clear improvements; record contested findings
 and the maintainer's decision in GitHub. See [analyzer review](analyzer-review.md).
+
+The style allowlist also includes required braces, cast spacing and CR0805:
+every subsequent chained invocation starts on a new line, even for a short
+chain. Computation, naming, tuple and builder refactorings remain outside this
+formatting wrapper. The bounded semantic layout fixes can decline cases where
+implicit caller information or comments would change meaning.

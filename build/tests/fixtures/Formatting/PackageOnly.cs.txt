@@ -47,7 +47,9 @@ internal static class Program
             2
         ];
         if (Both(true, true))
+        {
             Console.WriteLine(text);
+        }
         Console.WriteLine(Sum(Step(3), Step(4), Step(5)));
         Console.WriteLine(Forward());
         /* Keep this block comment and both literal tokens. */
